@@ -28,9 +28,8 @@ import optkl.IfaceValue;
 
 // Interface for Floating Point numbers of 16-bits
 // Values are stored in a short format.
-public interface F16 extends _F16 , IfaceValue.Struct {
-    short value();
-    void value(short value);
+public interface F16 extends S16ImplOfF16, IfaceValue.Struct {
+
     /**
      * Intrinsic for the HAT compiler to create a new half.
      */
@@ -115,21 +114,5 @@ public interface F16 extends _F16 , IfaceValue.Struct {
 
     static F16 add(F16 hb, float f32) {
         return F16.of(f16ToFloat(hb) / f32);
-    }
-
-    default F16 add(F16 ha) {
-        return F16.add(this, ha);
-    }
-
-    default F16 sub(F16 ha) {
-        return F16.sub(this, ha);
-    }
-
-    default F16 mul(F16 ha) {
-        return F16.mul(this, ha);
-    }
-
-    default F16 div(F16 ha) {
-        return F16.div(this, ha);
     }
 }

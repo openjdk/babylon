@@ -25,7 +25,7 @@
 
 package intel.code.spirv;
 
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import java.util.List;
 import java.util.Objects;
 
@@ -88,8 +88,8 @@ public sealed abstract class StorageType extends SpirvType
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of());
+    public ExternalizedCodeType externalize() {
+        return new ExternalizedCodeType(NAME, List.of());
     }
 
     @Override

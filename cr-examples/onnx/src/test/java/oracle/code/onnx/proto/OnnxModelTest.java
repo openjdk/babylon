@@ -41,7 +41,7 @@ import java.util.function.Function;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
@@ -74,7 +74,7 @@ public class OnnxModelTest {
     }
 
     static FunctionType toFunctionType(OnnxModel.GraphProto g) {
-        var paramTypes = new ArrayList<TypeElement>();
+        var paramTypes = new ArrayList<CodeType>();
         for (OnnxModel.ValueInfoProto input : g.input()) {
             paramTypes.add(toOnnxType(input.type()));
         }
@@ -278,7 +278,7 @@ public class OnnxModelTest {
                 OnnxOp rawOp = (OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp);
 
                 // patch the op return type
-                TypeElement returnType = rawOp.onnxOutputs().size() == 1
+                CodeType returnType = rawOp.onnxOutputs().size() == 1
                         ? inferTypeVariableType(rawOp.onnxOutputs().getFirst().type(), rawOp, n)
                         : CoreType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
                 extOp = new ExternalizedOp(

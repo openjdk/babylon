@@ -25,26 +25,26 @@
 
 package oracle.code.onnx.ir;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
-import jdk.incubator.code.extern.TypeElementFactory;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
+import jdk.incubator.code.extern.CodeTypeFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public abstract sealed class OnnxType implements TypeElement {
+public abstract sealed class OnnxType implements CodeType {
 
-    public static final TypeElementFactory FACTORY = new TypeElementFactory() {
+    public static final CodeTypeFactory FACTORY = new CodeTypeFactory() {
         @Override
-        public OnnxType constructType(ExternalizedTypeElement tree) {
+        public OnnxType constructType(ExternalizedCodeType tree) {
             switch (tree.identifier()) {
                 case TypeVariable.NAME: {
                     if (tree.arguments().size() < 2) {
                         throw new IllegalArgumentException();
                     }
 
-                    ExternalizedTypeElement typeVariable = tree.arguments().getFirst();
+                    ExternalizedCodeType typeVariable = tree.arguments().getFirst();
                     if (!typeVariable.arguments().isEmpty()) {
                         throw new IllegalArgumentException();
                     }
@@ -287,13 +287,13 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            List<ExternalizedTypeElement> children = new ArrayList<>();
-            children.add(new ExternalizedTypeElement(name, List.of()));
+        public ExternalizedCodeType externalize() {
+            List<ExternalizedCodeType> children = new ArrayList<>();
+            children.add(new ExternalizedCodeType(name, List.of()));
             for (OnnxType type : types) {
                 children.add(type.externalize());
             }
-            return new ExternalizedTypeElement(NAME, children);
+            return new ExternalizedCodeType(NAME, children);
         }
     }
 
@@ -325,8 +325,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of(eType.externalize()));
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of(eType.externalize()));
         }
     }
 
@@ -357,8 +357,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of(eType.externalize()));
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of(eType.externalize()));
         }
     }
 
@@ -395,8 +395,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of(keyType.externalize(), valueType.externalize()));
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of(keyType.externalize(), valueType.externalize()));
         }
     }
 
@@ -455,15 +455,15 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            List<ExternalizedTypeElement> args = new ArrayList<>();
+        public ExternalizedCodeType externalize() {
+            List<ExternalizedCodeType> args = new ArrayList<>();
             if (shape != null) {
                 for (Object i : shape) {
-                    args.add(new ExternalizedTypeElement("x" + i, List.of()));
+                    args.add(new ExternalizedCodeType("x" + i, List.of()));
                 }
             }
             if (eType != null) args.add(eType.externalize());
-            return new ExternalizedTypeElement(NAME, args);
+            return new ExternalizedCodeType(NAME, args);
         }
     }
 
@@ -478,8 +478,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -496,8 +496,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -514,8 +514,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -531,8 +531,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -548,8 +548,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -565,8 +565,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -582,8 +582,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -599,8 +599,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -617,8 +617,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -634,8 +634,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -651,8 +651,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -668,8 +668,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -685,8 +685,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -702,8 +702,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -719,8 +719,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -736,8 +736,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -753,8 +753,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -770,8 +770,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -787,8 +787,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -804,8 +804,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -821,8 +821,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -838,8 +838,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -855,8 +855,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override
@@ -872,8 +872,8 @@ public abstract sealed class OnnxType implements TypeElement {
         }
 
         @Override
-        public ExternalizedTypeElement externalize() {
-            return new ExternalizedTypeElement(NAME, List.of());
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
         }
 
         @Override

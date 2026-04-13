@@ -24,44 +24,29 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
-import hat.dialect.ReducedFloatType;
-import jdk.incubator.code.Block;
+import hat.HATMath;
+import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.ClassType;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPhase {
-
-    private void transformHATMathWithVarOp(Block.Builder blockBuilder, Op op, Map<Op, ReducedFloatType> setTypeMap) {
-        if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
-            if (setTypeMap.get(varOp) == null) {
-                // this means that the varOp is not a special type
-                // then we insert the varOp into the new tree
-                blockBuilder.op(varOp);
-            } else {
-                // Add the special type as a VarOp
-                HATFP16Phase.createF16VarOp(varOp, blockBuilder, setTypeMap.get(varOp));
-                // If we add HATMath ops for other special types in HAT (e.g., Vectors),
-                // we may need to also add the new <X>HATVarOps here as well.
-            }
-        } else {
-            blockBuilder.op(op);
-        }
-    }
-
-    private Map<Op, ReducedFloatType> analyseIRForInvokeHATMath(CoreOp.FuncOp funcOp) {
-        Map<Op, ReducedFloatType> setTypeMap = new HashMap<>();
-        OpHelper.Invoke.stream(lookup(), funcOp)
-                .filter(invoke -> !invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke))
+public record HATMathLibPhase() implements HATPhase {
+    @Override
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        Map<Op, Class<? extends S16ImplOfF16>> setTypeMap = new HashMap<>();
+        OpHelper.Invoke.stream(lookup, funcOp)
+                .filter(invoke -> !invoke.returnsVoid() && invoke.returnsClassType() && invoke.refIs(HATMath.class))
                 .forEach(invoke ->
                         // This detects a HATMathLib is stored either in a VarOp or a VarStoreOp
                         invoke.op().result().uses().stream()
+
                                 .filter(result -> (result.op() instanceof CoreOp.VarOp) || (result.op() instanceof CoreOp.VarAccessOp.VarStoreOp))
                                 .findFirst()
                                 .ifPresent(result -> {
@@ -69,23 +54,26 @@ public record HATMathLibPhase(KernelCallGraph kernelCallGraph) implements HATPha
                                     // to pass to the cogen to do further processing (e.g., build a new type or typecast).
                                     // An alternative is to insert a `stub`, or a code snippet that insert new nodes in the
                                     // IR
-                                    ReducedFloatType reducedFloatType =  HATFP16Phase.categorizeReducedFloatFromResult(invoke);
-                                    setTypeMap.put(result.op(), reducedFloatType);
-                                    setTypeMap.put(invoke.op(), reducedFloatType);
+                                    if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
+                                        setTypeMap.put(result.op(), reducedFloatType);
+                                        setTypeMap.put(invoke.op(), reducedFloatType);
+                                    }
                                 }));
-        return setTypeMap;
-    }
-
-    private CoreOp.FuncOp transformHATMathWithVarOp(CoreOp.FuncOp funcOp) {
-        Map<Op, ReducedFloatType> setTypeMap = analyseIRForInvokeHATMath(funcOp);
-        return Trxfmr.of(this, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
-            transformHATMathWithVarOp(blockBuilder, op, setTypeMap);
+        return Trxfmr.of(lookup, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
+            if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
+                if (setTypeMap.get(varOp) == null) {
+                    // this varOp is not a special type we insert the varOp into the new tree
+                    blockBuilder.op(varOp);
+                } else {
+                    // Add the special type as a VarOp
+                    HATFP16Phase.createF16VarOp(varOp, blockBuilder, setTypeMap.get(varOp));
+                    // If we add HATMath ops for other special types in HAT (e.g., Vectors),
+                    // we may need to also add the new <X>HATVarOps here as well.
+                }
+            } else {
+                blockBuilder.op(op);
+            }
             return blockBuilder;
         }).funcOp();
-    }
-
-    @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
-        return transformHATMathWithVarOp(funcOp);
     }
 }

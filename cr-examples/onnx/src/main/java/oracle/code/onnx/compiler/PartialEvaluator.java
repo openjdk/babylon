@@ -106,7 +106,7 @@ public final class PartialEvaluator {
                               Body inBody) {
         Block inEntryBlock = inBody.entryBlock();
 
-        Body.Builder outBody = Body.Builder.of(null, inBody.bodyType());
+        Body.Builder outBody = Body.Builder.of(null, inBody.bodySignature());
         Block.Builder outEntryBlock = outBody.entryBlock();
 
         CodeContext cc = outEntryBlock.context();
@@ -254,7 +254,7 @@ public final class PartialEvaluator {
             switch (to) {
                 case CoreOp.ConditionalBranchOp cb -> {
                     if (isConstant(to)) {
-                        boolean p = switch (bc.getValue(cb.predicate())) {
+                        boolean p = switch (bc.getValue(cb.predicateOperand())) {
                             case Boolean bp -> bp;
                             case Integer ip ->
                                 // @@@ This is required when lifting up from bytecode, since boolean values
@@ -345,7 +345,7 @@ public final class PartialEvaluator {
                 }
             }
             case JavaOp.InvokeOp co -> {
-                MethodType target = resolveToMethodType(l, o.opType());
+                MethodType target = resolveToMethodType(l, o.opSignature());
                 MethodHandles.Lookup il = switch (co.invokeKind()) {
                     case STATIC, INSTANCE -> l;
                     case SUPER -> l.in(target.parameterType(0));
@@ -369,7 +369,7 @@ public final class PartialEvaluator {
                     }
                     return Array.newInstance(resolveToClass(l, nType), lengths);
                 } else {
-                    MethodHandle mh = constructorHandle(l, no.constructorReference().type());
+                    MethodHandle mh = constructorHandle(l, no.constructorReference().signature());
                     return invoke(mh, values);
                 }
             }
@@ -459,12 +459,12 @@ public final class PartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -525,12 +525,12 @@ public final class PartialEvaluator {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -559,7 +559,7 @@ public final class PartialEvaluator {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    public static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>) jt.erasure().resolve(l);

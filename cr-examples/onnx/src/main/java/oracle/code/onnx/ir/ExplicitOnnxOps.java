@@ -166,7 +166,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new GroupQueryAttention(this, cc);
         }
 
-        GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
+        GroupQueryAttention(CodeType resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
             super(SCHEMA, resultType, Collections.emptySet(), List.of(query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache), List.of(do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale));
         }
 
@@ -231,7 +231,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
+    public static GroupQueryAttention GroupQueryAttention(CodeType resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
         return new GroupQueryAttention(resultType, query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache, do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale);
     }
 
@@ -364,7 +364,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new MatMulNBits(this, cc);
         }
 
-        MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
+        MatMulNBits(CodeType resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
             super(SCHEMA, resultType, Collections.emptySet(), List.of(a, b, scales, zero_points, g_idx, bias), List.of(K, N, accuracy_level, bits, block_size));
         }
 
@@ -406,7 +406,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static MatMulNBits MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
+    public static MatMulNBits MatMulNBits(CodeType resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
         return new MatMulNBits(resultType, a, b, scales, zero_points, g_idx, bias, K, N, accuracy_level, bits, block_size);
     }
 
@@ -533,7 +533,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new SkipSimplifiedLayerNormalization(this, cc);
         }
 
-        SkipSimplifiedLayerNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
+        SkipSimplifiedLayerNormalization(CodeType resultType, Set<OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
             super(SCHEMA, resultType, optionalOutputs, List.of(input, skip, gamma, bias), List.of(epsilon));
         }
 
@@ -565,7 +565,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(TypeElement resultType, Set<SkipSimplifiedLayerNormalization.OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
+    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(CodeType resultType, Set<SkipSimplifiedLayerNormalization.OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
         return new SkipSimplifiedLayerNormalization(resultType, optionalOutputs, input, skip, gamma, bias, epsilon);
     }
 
@@ -675,7 +675,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new CLIPTokenizer(this, cc);
         }
 
-        CLIPTokenizer(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
+        CLIPTokenizer(CodeType resultType, Set<OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
             super(SCHEMA, resultType, optionalOutputs, List.of(input_text), List.of(vocab, merges, padding_length));
         }
 
@@ -694,7 +694,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static CLIPTokenizer CLIPTokenizer(TypeElement resultType, Set<CLIPTokenizer.OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
+    public static CLIPTokenizer CLIPTokenizer(CodeType resultType, Set<CLIPTokenizer.OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
         return new CLIPTokenizer(resultType, optionalOutputs, input_text, vocab, merges, padding_length);
     }
 
@@ -799,7 +799,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new If(this, cc, ot);
         }
 
-        If(TypeElement resultType, Value cond, Body.Builder thenBranch, Body.Builder elseBranch) {
+        If(CodeType resultType, Value cond, Body.Builder thenBranch, Body.Builder elseBranch) {
             super(SCHEMA, resultType, Set.of(), List.of(cond), List.of());
 
             this.thenBody = thenBranch.build(this);
@@ -834,7 +834,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static If If(TypeElement resultType, Value cond, Body.Builder thenBody, Body.Builder elseBody) {
+    public static If If(CodeType resultType, Value cond, Body.Builder thenBody, Body.Builder elseBody) {
         return new If(resultType, cond, thenBody, elseBody);
     }
 
@@ -940,7 +940,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new ExplicitOnnxOps.Loop(this, cc, ot);
         }
 
-        Loop(TypeElement resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
+        Loop(CodeType resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
             super(SCHEMA, resultType, Set.of(), List.of(m, cond, v_initial), List.of());
 
             this.body = body.build(this);
@@ -979,7 +979,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static Loop Loop(TypeElement resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
+    public static Loop Loop(CodeType resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
         return new Loop(resultType, m, cond, v_initial, body);
     }
 }

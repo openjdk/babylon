@@ -27,36 +27,38 @@ package hat.callgraph;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import optkl.OpHelper;
 import optkl.ifacemapper.MappableIface;
 import optkl.FuncOpParams;
 
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.util.carriers.LookupCarrier;
 
 
-public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
-    public Config config() {
-        return computeContext.config();
+public class ComputeCallGraph implements LookupCarrier {
+    @Override public MethodHandles.Lookup lookup(){
+        return computeContext.lookup();
     }
 
-    public interface ComputeReachable {
-    }
+    public static final boolean  showComputeCallDag =Boolean.getBoolean("showComputeCallDag");
+    public final ComputeContext computeContext;
+    public final MethodCallDag callDag;
+    private CoreOp.FuncOp lowered;
+    private MethodHandle bytecodeGeneratedMethodHandle;
 
-    public abstract static class ComputeReachableResolvedMethodCall extends ResolvedMethodCall implements ComputeReachable {
-        public ComputeReachableResolvedMethodCall(CallGraph<ComputeEntrypoint> callGraph,  Method method, CoreOp.FuncOp funcOp) {
-            super(callGraph,  method, funcOp);
-        }
-    }
-
-    static boolean isValidKernelDispatch(MethodHandles.Lookup lookup, Method calledMethod, CoreOp.FuncOp fow) {
+    static boolean isValidKernelDispatch(MethodHandles.Lookup lookup, Method calledMethod, CoreOp.FuncOp funcOp) {
         // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
         // We also check that other args are primitive or ifacebuffers  (or atomics?)...
         class Traits{
@@ -68,10 +70,10 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
             }
         }
         var traits = new Traits();
-        if (fow.body().yieldType().equals(JavaType.VOID)
+        if (funcOp.body().yieldType().equals(JavaType.VOID)
                 && calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes
                 && parameterTypes.length > 1) {
-                FuncOpParams paramTable = new FuncOpParams(fow);
+                FuncOpParams paramTable = new FuncOpParams(funcOp);
                 paramTable.stream().forEach(paramInfo -> {
                     if (paramInfo.idx == 0) {
                         traits.firstArgKernelContext = parameterTypes[0].isAssignableFrom(KernelContext.class);
@@ -92,18 +94,38 @@ public class ComputeCallGraph extends CallGraph<ComputeEntrypoint> {
     public final Map<MethodRef, KernelCallGraph> kernelCallGraphMap = new HashMap<>();
 
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp entry) {
-        super(computeContext, new ComputeEntrypoint(computeContext.lookup(),null, method, entry));
-        entrypoint.callGraph = this; // This is bad we should be able to do better
-        OpHelper.Invoke.stream(computeContext.lookup(), entry).forEach(invoke -> {
-            if (invoke.targetMethodModelOrNull() instanceof CoreOp.FuncOp funcOp) {
-                Method resolvedMethod = invoke.resolveMethodOrThrow();
-                if (entrypoint.method().getDeclaringClass().equals(invoke.classOrThrow())
-                        && isValidKernelDispatch(computeContext.lookup(),resolvedMethod, funcOp)) {
-                    kernelCallGraphMap.computeIfAbsent( invoke.op().invokeReference(), _ ->
-                            new KernelCallGraph(this, resolvedMethod, funcOp)
-                    );
-                }
+        this.computeContext = computeContext;
+        this.callDag = new MethodCallDag(lookup(), method,entry,null);
+        if (showComputeCallDag){
+            this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
+        }
+
+            callDag.rankOrdered.stream()
+                    .filter(m->m instanceof MethodCallDag.OtherMethodCall &&
+                        this.callDag.entryPoint.method().getDeclaringClass().equals(m.method().getDeclaringClass())
+                                && isValidKernelDispatch(computeContext.lookup(),m.method(),m.funcOp()))
+                .forEach(m-> kernelCallGraphMap.computeIfAbsent( m.methodRef(), _ ->
+                    new KernelCallGraph(this, m.method(), m.funcOp())
+            )
+        );
+
+    }
+
+    public CoreOp.FuncOp lazyLower(){
+        if (lowered == null) {
+            lowered =callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+        }
+        return lowered;
+    }
+
+    public void invokeWithArgs(Object[] args) {
+        try {
+            if (bytecodeGeneratedMethodHandle == null) {
+                bytecodeGeneratedMethodHandle = BytecodeGenerator.generate(lookup(),lazyLower());
             }
-        });
+            bytecodeGeneratedMethodHandle.invokeWithArguments(args);
+        }catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
     }
 }

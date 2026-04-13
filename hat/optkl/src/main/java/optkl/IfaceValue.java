@@ -25,8 +25,10 @@
 package optkl;
 
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.dialect.java.ClassType;
 
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 
 public interface IfaceValue {
@@ -40,23 +42,23 @@ public interface IfaceValue {
      interface Vector {
         interface Shape {
             // This is the type that best describes the usage from a Java POV
-            TypeElement typeElement();
+            CodeType codeType();
             // This is how we expect to represent the type
             // So an FP16x4 might be
-            //    typeElement=FLOAT (we will see float accessors)
+            //    codeType=FLOAT (we will see float accessors)
             //    representedBy=SHORT (the data is 'packed into')
-            TypeElement representedBy();
+            CodeType representedBy();
             int lanes();
-            static Shape of(TypeElement typeElement, TypeElement representedBy, int lanes) {
-                record Impl(TypeElement typeElement, TypeElement representedBy, int lanes) implements Shape {
+            static Shape of(CodeType codeType, CodeType representedBy, int lanes) {
+                record Impl(CodeType codeType, CodeType representedBy, int lanes) implements Shape {
                     @Override public String toString(){
-                        return typeElement.toString() + Impl.this.lanes;
+                        return codeType.toString() + Impl.this.lanes;
                     }
                 }
-                return new Impl(typeElement,representedBy, lanes);
+                return new Impl(codeType,representedBy, lanes);
             }
-            static Shape of(TypeElement typeElement,  int lanes) {
-               return of (typeElement,typeElement,lanes);
+            static Shape of(CodeType codeType,  int lanes) {
+               return of (codeType,codeType,lanes);
             }
             default  List<String> laneNames(){
                 return switch (lanes()){
@@ -67,28 +69,44 @@ public interface IfaceValue {
                 };
             }
         }
+
+
+         /**
+          *
+          * @param codeType
+          *  {@link CodeType}
+          * @return
+          * {@link Vector.Shape}
+          */
+          static Shape getVectorShape(MethodHandles.Lookup lookup, CodeType codeType) {
+             try {
+                 return (Shape)((Class<?>)OpHelper.classTypeToTypeOrThrow(lookup,(ClassType) codeType)).getField("shape").get(null);
+             }catch (NoSuchFieldException|IllegalAccessException e) {
+                 throw new RuntimeException(e);
+             }
+         }
     }
 
     interface vec {
         interface Shape {
             // This is the type that best describes the usage from a Java POV
-            TypeElement typeElement();
+            CodeType codeType();
             // This is how we expect to represent the type
             // So an FP16x4 might be
-            //    typeElement=FLOAT (we will see float accessors)
+            //    codeType=FLOAT (we will see float accessors)
             //    representedBy=SHORT (the data is 'packed into')
-            TypeElement representedBy();
+            CodeType representedBy();
             int lanes();
-            static Shape of(TypeElement typeElement, TypeElement representedBy, int lanes) {
-                record Impl(TypeElement typeElement, TypeElement representedBy, int lanes) implements Shape {
+            static Shape of(CodeType codeType, CodeType representedBy, int lanes) {
+                record Impl(CodeType codeType, CodeType representedBy, int lanes) implements Shape {
                     @Override public String toString(){
-                        return typeElement.toString() + Impl.this.lanes;
+                        return codeType.toString() + Impl.this.lanes;
                     }
                 }
-                return new Impl(typeElement,representedBy, lanes);
+                return new Impl(codeType,representedBy, lanes);
             }
-            static Shape of(TypeElement typeElement, int lanes) {
-                return of (typeElement,typeElement,lanes);
+            static Shape of(CodeType codeType, int lanes) {
+                return of (codeType,codeType,lanes);
             }
             default  List<String> laneNames(){
                 return switch (lanes()){
@@ -105,17 +123,17 @@ public interface IfaceValue {
     // Experimental ... considering for any Struct acting as an aggregate containing a length field.
     interface mat {
         interface Shape {
-            TypeElement typeElement();
+            CodeType codeType();
             int rows();
             int cols();
 
-            static Shape of(TypeElement typeElement, int rows, int cols) {
-                record Impl(TypeElement typeElement, int rows, int cols) implements Shape {
+            static Shape of(CodeType codeType, int rows, int cols) {
+                record Impl(CodeType codeType, int rows, int cols) implements Shape {
                     @Override public String toString(){
-                        return typeElement.toString() + Impl.this.rows+"x"+Impl.this.cols;
+                        return codeType.toString() + Impl.this.rows+"x"+Impl.this.cols;
                     }
                 }
-                return new Impl(typeElement, rows,cols);
+                return new Impl(codeType, rows,cols);
             }
             default  List<String> rowColNames(){
                 return switch (cols()){

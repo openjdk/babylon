@@ -27,7 +27,7 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
 import optkl.util.ops.Precedence;
@@ -37,7 +37,7 @@ import optkl.util.ops.VarLikeOp;
 import java.util.List;
 import java.util.Map;
 
-public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
+public abstract sealed class HATF16Op extends HATOp implements VarLikeOp {
 
     private String varName;
 
@@ -61,19 +61,19 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
 
     public static final class HATF16VarOp extends HATF16Op implements StatementLikeOp {
 
-        private final VarType typeElement;
-        private final ReducedFloatType reducedFloatType;
+        private final VarType varType;
+        private final Class<?> float16Class;
 
-        public HATF16VarOp(String varName, ReducedFloatType reducedFloatType, VarType typeElement, List<Value> operands) {
+        public HATF16VarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
             super(varName, operands);
-            this.typeElement = typeElement;
-            this.reducedFloatType = reducedFloatType;
+            this.varType = varType;
+            this.float16Class = float16Class;
         }
 
         public HATF16VarOp(HATF16VarOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
-            this.reducedFloatType = op.reducedFloatType;
+            this.varType = op.varType;
+            this.float16Class = op.float16Class;
         }
 
         @Override
@@ -82,33 +82,33 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return varType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.fp16varop." + varName(), typeElement);
+            return Map.of("hat.dialect.fp16varop." + varName(), varType);
         }
 
-        public ReducedFloatType reducedFloatType() {
-            return reducedFloatType;
+        public Class<?> float16Class() {
+            return float16Class;
         }
 
     }
 
     public static final class HATF16VarLoadOp extends HATF16Op implements Precedence.LoadOrConv {
 
-        private final VarType typeElement;
+        private final VarType codeType;
 
-        public HATF16VarLoadOp(String varName, VarType typeElement, List<Value> operands) {
+        public HATF16VarLoadOp(String varName, VarType codeType, List<Value> operands) {
             super(varName, operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
         }
 
         public HATF16VarLoadOp(HATF16VarLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
         }
 
         @Override
@@ -117,38 +117,38 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.fp16VarOp." + varName(), typeElement);
+            return Map.of("hat.dialect.fp16VarOp." + varName(), codeType);
         }
 
     }
 
     public static final class HATF16ToFloatConvOp extends HATF16Op implements Precedence.LoadOrConv {
 
-        private final TypeElement typeElement;
+        private final CodeType codeType;
         private final boolean isLocal;
         private final boolean wasFloat;
-        private final ReducedFloatType reducedFloatType;
+        private final Class<?> float16Class;
 
-        public HATF16ToFloatConvOp(TypeElement typeElement, ReducedFloatType reducedFloatType, boolean isLocal, boolean wasFloat, List<Value> operands) {
+        public HATF16ToFloatConvOp(CodeType codeType, Class<?> float16Class, boolean isLocal, boolean wasFloat, List<Value> operands) {
             super("", operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
             this.isLocal = isLocal;
             this.wasFloat = wasFloat;
-            this.reducedFloatType = reducedFloatType;
+            this.float16Class = float16Class;
         }
 
         public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
+            this.codeType = op.codeType;
             this.isLocal = op.isLocal;
             this.wasFloat = op.wasFloat;
-            this.reducedFloatType = op.reducedFloatType;
+            this.float16Class = op.float16Class;
         }
 
         @Override
@@ -157,13 +157,13 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.f16ToFloat", typeElement);
+            return Map.of("hat.dialect.f16ToFloat", codeType);
         }
 
         public boolean isLocal() {
@@ -174,27 +174,27 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
             return wasFloat;
         }
 
-        public ReducedFloatType reducedFloatType() {
-            return reducedFloatType;
+        public Class<?> float16Class() {
+            return float16Class;
         }
 
     }
 
     public static final class HATF16ConvOp extends HATF16Op {
 
-        private final TypeElement typeElement;
-        private final ReducedFloatType reducedFloatType;
+        private final CodeType codeType;
+        private final Class<?> float16Class;
 
-        public HATF16ConvOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
+        public HATF16ConvOp(CodeType codeType, Class<?> float16Class, List<Value> operands) {
             super("", operands);
-            this.typeElement = typeElement;
-            this.reducedFloatType = reducedFloatType;
+            this.codeType = codeType;
+            this.float16Class = float16Class;
         }
 
         public HATF16ConvOp(HATF16ConvOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.typeElement;
-            this.reducedFloatType = op.reducedFloatType;
+            this.codeType = op.codeType;
+            this.float16Class = op.float16Class;
         }
 
         @Override
@@ -203,47 +203,47 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.f16Conv", typeElement);
+            return Map.of("hat.dialect.f16Conv", codeType);
         }
 
-        public ReducedFloatType reducedFloatType() {
-            return reducedFloatType;
+        public Class<?> float16Class() {
+            return float16Class;
         }
 
     }
 
     public abstract static sealed class HATF16BinaryOp extends HATF16Op {
 
-        protected final TypeElement elementType;
+        protected final CodeType codeType;
         protected final BinaryOpEnum operationType;
-        private final ReducedFloatType reducedFloatType;
+        protected final Class<?> float16Class;
 
         public static final byte FIRST_OP = 0x01;
         public static final byte LAST_OP = 0x10;
 
-        protected HATF16BinaryOp(TypeElement typeElement, ReducedFloatType reducedFloatType, BinaryOpEnum operationType, List<Value> operands) {
+        protected HATF16BinaryOp(CodeType codeType, Class<?> float16Class, BinaryOpEnum operationType, List<Value> operands) {
             super("", operands);
-            this.elementType = typeElement;
+            this.codeType = codeType;
             this.operationType = operationType;
-            this.reducedFloatType = reducedFloatType;
+            this.float16Class = float16Class;
         }
 
         protected HATF16BinaryOp(HATF16BinaryOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.elementType = op.elementType;
+            this.codeType = op.codeType;
             this.operationType = op.operationType;
-            this.reducedFloatType = op.reducedFloatType;
+            this.float16Class = op.float16Class;
         }
 
         @Override
-        public TypeElement resultType() {
-            return this.elementType;
+        public CodeType resultType() {
+            return this.codeType;
         }
 
         @Override
@@ -255,14 +255,14 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
             return operationType;
         }
 
-        public ReducedFloatType reducedFloatType() {
-            return reducedFloatType;
+        public Class<?> float16Class() {
+            return float16Class;
         }
 
         public static final class HATF16AddOp extends HATF16BinaryOp implements Precedence.Additive {
 
-            public HATF16AddOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.ADD, operands);
+            public HATF16AddOp(CodeType codeType, Class<?> float16Class, List<Value> operands) {
+                super(codeType, float16Class, BinaryOpEnum.ADD, operands);
             }
 
             public HATF16AddOp(HATF16AddOp op, CodeContext copyContext) {
@@ -277,8 +277,8 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
 
         public static final class HATF16DivOp extends HATF16BinaryOp implements Precedence.Multiplicative {
 
-            public HATF16DivOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.DIV, operands);
+            public HATF16DivOp(CodeType codeType, Class<?> float16Class, List<Value> operands) {
+                super(codeType, float16Class, BinaryOpEnum.DIV, operands);
             }
 
             public HATF16DivOp(HATF16DivOp op, CodeContext copyContext) {
@@ -293,8 +293,8 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
 
         public static final class HATF16MulOp extends HATF16BinaryOp implements Precedence.Multiplicative {
 
-            public HATF16MulOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.MUL, operands);
+            public HATF16MulOp(CodeType codeType, Class<?> float16Class, List<Value> operands) {
+                super(codeType, float16Class, BinaryOpEnum.MUL, operands);
             }
 
             public HATF16MulOp(HATF16MulOp op, CodeContext copyContext) {
@@ -309,8 +309,8 @@ public abstract sealed class  HATF16Op extends HATOp implements VarLikeOp {
 
         public static final class HATF16SubOp extends HATF16BinaryOp implements Precedence.Additive {
 
-            public HATF16SubOp(TypeElement typeElement, ReducedFloatType reducedFloatType, List<Value> operands) {
-                super(typeElement, reducedFloatType, BinaryOpEnum.SUB, operands);
+            public HATF16SubOp(CodeType codeType, Class<?> float16Class, List<Value> operands) {
+                super(codeType, float16Class, BinaryOpEnum.SUB, operands);
             }
 
             public HATF16SubOp(HATF16SubOp op, CodeContext copyContext) {

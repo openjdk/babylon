@@ -586,8 +586,8 @@ public class TestArrayView {
     private interface SharedMemory extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
-                arr -> arr.withArray("array", 1024));
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.array("array", 1024));
 
         static SharedMemory createLocal() { return null; }
 
@@ -603,8 +603,8 @@ public class TestArrayView {
     public interface PrivateArray extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
-                arr -> arr.withArray("array", 16));
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
+                arr -> arr.array("array", 16));
 
         static PrivateArray createPrivate() { return null; }
 
@@ -667,8 +667,8 @@ public class TestArrayView {
     public interface SharedNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<SharedNonMappableIface> schema = DeviceSchema.of(SharedNonMappableIface.class,
-                arr -> arr.withArray("array", 1024));
+        DeviceSchema<SharedNonMappableIface> deviceSchema = DeviceSchema.of(SharedNonMappableIface.class,
+                arr -> arr.array("array", 1024));
         static SharedNonMappableIface create(Accelerator accelerator) {
             return null;
         }
@@ -684,8 +684,8 @@ public class TestArrayView {
     public interface PrivateNonMappableIface extends NonMappableIface {
         void array(long index, int value);
         int array(long index);
-        DeviceSchema<PrivateNonMappableIface> schema = DeviceSchema.of(PrivateNonMappableIface.class,
-                arr -> arr.withArray("array", 32));
+        DeviceSchema<PrivateNonMappableIface> deviceSchema = DeviceSchema.of(PrivateNonMappableIface.class,
+                arr -> arr.array("array", 32));
         static PrivateNonMappableIface create(Accelerator accelerator) {
             return null;
         }

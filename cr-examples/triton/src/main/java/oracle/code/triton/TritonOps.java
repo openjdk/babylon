@@ -39,7 +39,7 @@ import java.util.function.Consumer;
 public class TritonOps {
 
     static abstract class TritonOp extends Op {
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public TritonOp(ExternalizedOp def) {
             super(def.operands());
@@ -53,14 +53,14 @@ public class TritonOps {
             this.resultType = that.resultType;
         }
 
-        TritonOp(TypeElement resultType, List<? extends Value> operands) {
+        TritonOp(CodeType resultType, List<? extends Value> operands) {
             super(operands);
 
             this.resultType = resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
 
@@ -232,8 +232,8 @@ public class TritonOps {
         }
 
         @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
+        public FunctionType invokableSignature() {
+            return body.bodySignature();
         }
 
         public String funcName() {
@@ -288,7 +288,7 @@ public class TritonOps {
             return new CallOp(this, cc);
         }
 
-        CallOp(String funcName, TypeElement resultType, List<Value> args) {
+        CallOp(String funcName, CodeType resultType, List<Value> args) {
             super(resultType, args);
 
             this.funcName = funcName;
@@ -364,7 +364,7 @@ public class TritonOps {
         }
 
         ReduceOp(int axis, Value tensor, Body.Builder reducerBuilder) {
-            super(reducerBuilder.bodyType().returnType(), List.of(tensor));
+            super(reducerBuilder.bodySignature().returnType(), List.of(tensor));
 
             this.axis = axis;
             this.reducer = reducerBuilder.build(this);
@@ -554,7 +554,7 @@ public class TritonOps {
             return new ExpandOp(this, cc);
         }
 
-        ExpandOp(int axis, TypeElement tensorType, Value v) {
+        ExpandOp(int axis, CodeType tensorType, Value v) {
             super(tensorType, List.of(v));
 
             this.axis = axis;
@@ -587,7 +587,7 @@ public class TritonOps {
             return new SplatOp(this, cc);
         }
 
-        SplatOp(TypeElement tensorType, Value v) {
+        SplatOp(CodeType tensorType, Value v) {
             super(tensorType, List.of(v));
         }
     }
@@ -609,7 +609,7 @@ public class TritonOps {
             return new BroadcastOp(this, cc);
         }
 
-        BroadcastOp(TypeElement tensorType, Value v) {
+        BroadcastOp(CodeType tensorType, Value v) {
             super(tensorType, List.of(v));
         }
     }
@@ -653,11 +653,11 @@ public class TritonOps {
             return new LoadOp(this, cc);
         }
 
-        LoadOp(TypeElement tensorType, Value ptr, Value mask) {
+        LoadOp(CodeType tensorType, Value ptr, Value mask) {
             super(tensorType, List.of(ptr, mask));
         }
 
-        LoadOp(TypeElement tensorType, Value ptr, Value mask, Value other) {
+        LoadOp(CodeType tensorType, Value ptr, Value mask, Value other) {
             super(tensorType, List.of(ptr, mask, other));
         }
     }
@@ -727,7 +727,7 @@ public class TritonOps {
             return new DotOp(this, cc);
         }
 
-        DotOp(TypeElement tensorType, Value a, Value b, Value c) {
+        DotOp(CodeType tensorType, Value a, Value b, Value c) {
             super(tensorType, List.of(a, b, c));
         }
     }
@@ -754,7 +754,7 @@ public class TritonOps {
     }
 
     public static CallOp call(FuncOp func, List<Value> args) {
-        return new CallOp(func.funcName(), func.invokableType().returnType(), args);
+        return new CallOp(func.funcName(), func.invokableSignature().returnType(), args);
     }
 
     public static ReduceOp.Builder reduce(Body.Builder ancestorBody, int axis, Value tensor,
@@ -780,17 +780,17 @@ public class TritonOps {
         return new MakeRangeOp(start, end);
     }
 
-    public static ExpandOp expand(int axis, TypeElement tensorType, Value v) {
+    public static ExpandOp expand(int axis, CodeType tensorType, Value v) {
         return new ExpandOp(axis, tensorType, v);
     }
 
     // v is scalar
-    public static SplatOp splat(TypeElement tensorType, Value v) {
+    public static SplatOp splat(CodeType tensorType, Value v) {
         return new SplatOp(tensorType, v);
     }
 
     // v is tensor
-    public static BroadcastOp broadcast(TypeElement tensorType, Value v) {
+    public static BroadcastOp broadcast(CodeType tensorType, Value v) {
         return new BroadcastOp(tensorType, v);
     }
 
@@ -798,11 +798,11 @@ public class TritonOps {
         return new AddPtrOp(ptr, offset);
     }
 
-    public static LoadOp load(TypeElement tensorType, Value ptr, Value mask) {
+    public static LoadOp load(CodeType tensorType, Value ptr, Value mask) {
         return new LoadOp(tensorType, ptr, mask);
     }
 
-    public static LoadOp load(TypeElement tensorType, Value ptr, Value mask, Value other) {
+    public static LoadOp load(CodeType tensorType, Value ptr, Value mask, Value other) {
         return new LoadOp(tensorType, ptr, mask, other);
     }
 
@@ -818,7 +818,7 @@ public class TritonOps {
         return new ReturnOp(v);
     }
 
-    public static DotOp dot(TypeElement tensorType, Value a, Value b, Value c) {
+    public static DotOp dot(CodeType tensorType, Value a, Value b, Value c) {
         return new DotOp(tensorType, a, b, c);
     }
 
@@ -827,16 +827,16 @@ public class TritonOps {
 
     static final OpFactory OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(TritonOps.class);
 
-    static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
+    static final CodeTypeFactory TRITON_TYPE_FACTORY = new CodeTypeFactory() {
         @Override
-        public TypeElement constructType(ExternalizedTypeElement tree) {
+        public CodeType constructType(ExternalizedCodeType tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
                         throw new IllegalArgumentException();
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getFirst());
+                    CodeType v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getFirst());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -853,7 +853,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        ExternalizedTypeElement a = tree.arguments().get(i);
+                        ExternalizedCodeType a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
@@ -866,7 +866,7 @@ public class TritonOps {
                         shape.add(d);
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getLast());
+                    CodeType v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getLast());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -882,11 +882,11 @@ public class TritonOps {
     };
 
     // Triton types then Java types
-    static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
+    static final CodeTypeFactory TRITON_JAVA_TYPE_FACTORY =
             TRITON_TYPE_FACTORY.andThen(JavaType.JAVA_ONLY_TYPE_FACTORY);
 
     // Triton types then Java types, combined with core types
-    static final TypeElementFactory TYPE_FACTORY =
+    static final CodeTypeFactory TYPE_FACTORY =
             CoreType.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
 
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(

@@ -30,7 +30,6 @@
  */
 
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
@@ -72,7 +71,7 @@ public class TestFuncOpMethodRef {
     @Test
     void test2() {
         MethodRef mr = MethodRef.method(thisType, "f", FunctionType.FUNCTION_TYPE_VOID);
-        FuncOp f = func(mr.refType(), mr.name(), mr.type()).body(b -> {
+        FuncOp f = func(mr.refType(), mr.name(), mr.signature()).body(b -> {
             b.op(return_());
         });
         Assertions.assertTrue(f.mref().isPresent());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,24 +22,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.callgraph;
+package hat.types;
 
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.ClassType;
+import optkl.IfaceValue;
+import optkl.OpHelper;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
+/**
+ * Common interface for F16 implementations which are backed by a java short (S16)
+ */
+public interface S16ImplOfF16 extends IfaceValue {
+    short value();
+    void value(short value);
 
-public class KernelEntrypoint extends KernelCallGraph.KernelReachableResolvedMethodCall implements Entrypoint {
-    private final MethodHandles.Lookup lookup;
-    @Override
-    public MethodHandles.Lookup lookup() {
-        return lookup;
+    static <T extends S16ImplOfF16> Class<T> codeTypeToFloatClassOrNull(OpHelper.Invoke invoke, ClassType classType) {
+        Class<?> clazz = (Class<?>) OpHelper.classTypeToTypeOrThrow(invoke.lookup(),classType);
+        if (F16.class.isAssignableFrom(clazz) || BF16.class.isAssignableFrom(clazz)){
+            return (Class<T>)clazz;
+        }
+        return null;
     }
-    public KernelEntrypoint(MethodHandles.Lookup lookup,CallGraph<KernelEntrypoint> callGraph,  Method method, CoreOp.FuncOp entry) {
-        super(callGraph,  method, entry);
-        this.lookup = lookup;
-    }
-
 }

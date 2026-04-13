@@ -25,12 +25,12 @@
 
 package jdk.incubator.code.dialect.java;
 
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.impl.FieldRefImpl;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
-import jdk.incubator.code.TypeElement;
 
 /**
  * The symbolic reference to a Java field, called the <em>target field</em>.
@@ -51,7 +51,7 @@ public sealed interface FieldRef extends JavaRef
     /**
      * {@return the owner type of this method reference}
      */
-    TypeElement refType();
+    CodeType refType();
 
     /**
      * {@return the name of this method reference}
@@ -61,7 +61,7 @@ public sealed interface FieldRef extends JavaRef
     /**
      * {@return the type of this method reference}
      */
-    TypeElement type();
+    CodeType type();
 
     // Conversions
 
@@ -112,7 +112,7 @@ public sealed interface FieldRef extends JavaRef
      * @param name the reference name
      * @param type the reference type
      */
-    static FieldRef field(TypeElement refType, String name, TypeElement type) {
+    static FieldRef field(CodeType refType, String name, CodeType type) {
         return new FieldRefImpl(refType, name, type);
     }
 }

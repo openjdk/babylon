@@ -95,9 +95,9 @@ public sealed abstract class CoreOp extends Op {
                 this.mref = mref;
             }
 
-            Builder(Body.Builder ancestorBody, String funcName, FunctionType functionType) {
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
                 this.ancestorBody = ancestorBody;
-                this.mref = MethodRef.method(NO_REF_TYPE, funcName, functionType);
+                this.mref = MethodRef.method(NO_REF_TYPE, funcName, signature);
             }
 
             /**
@@ -107,7 +107,7 @@ public sealed abstract class CoreOp extends Op {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, mref.type());
+                Body.Builder body = Body.Builder.of(ancestorBody, mref.signature());
                 c.accept(body.entryBlock());
                 return new FuncOp(mref, body);
             }
@@ -116,7 +116,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "func";
 
         /**
-         * The externalized attribute modelling the function name
+         * The externalized attribute modeling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
         static final String ATTRIBUTE_FUNC_MREF = NAME + ".mref";
@@ -139,7 +139,7 @@ public sealed abstract class CoreOp extends Op {
                                         case String s -> s;
                                         case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
                                     });
-                            yield MethodRef.method(NO_REF_TYPE, funcName, def.bodyDefinitions().get(0).bodyType());
+                            yield MethodRef.method(NO_REF_TYPE, funcName, def.bodyDefinitions().get(0).bodySignature());
                         }
                     });
 
@@ -157,7 +157,7 @@ public sealed abstract class CoreOp extends Op {
             super(that, cc);
 
             this.body = that.body.transform(cc, ot).build(this);
-            this.mref = MethodRef.method(that.mref.refType(), funcName, that.mref.type());
+            this.mref = MethodRef.method(that.mref.refType(), funcName, that.mref.signature());
         }
 
         @Override
@@ -197,7 +197,7 @@ public sealed abstract class CoreOp extends Op {
             super(List.of());
 
             this.body = bodyBuilder.build(this);
-            this.mref = MethodRef.method(NO_REF_TYPE, funcName, bodyBuilder.bodyType());
+            this.mref = MethodRef.method(NO_REF_TYPE, funcName, bodyBuilder.bodySignature());
         }
 
         @Override
@@ -214,11 +214,6 @@ public sealed abstract class CoreOp extends Op {
                 m.put(ATTRIBUTE_FUNC_MREF, mref);
             }
             return m;
-        }
-
-        @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
         }
 
         /**
@@ -241,7 +236,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
@@ -266,12 +261,12 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "func.call";
 
         /**
-         * The externalized attribute modelling the name of the invoked function
+         * The externalized attribute modeling the name of the invoked function
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         FuncCallOp(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
@@ -295,7 +290,7 @@ public sealed abstract class CoreOp extends Op {
             return new FuncCallOp(this, cc);
         }
 
-        FuncCallOp(String funcName, TypeElement resultType, List<Value> args) {
+        FuncCallOp(String funcName, CodeType resultType, List<Value> args) {
             super(args);
 
             this.funcName = funcName;
@@ -315,7 +310,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -413,7 +408,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
@@ -425,7 +420,7 @@ public sealed abstract class CoreOp extends Op {
 
         static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
             try {
-        Method method = invokeOp.invokeReference().resolveToMethod(l);
+                Method method = invokeOp.invokeReference().resolveToMethod(l);
                 return Op.ofMethod(method).orElse(null);
             } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException("Could not resolve invokeOp to method");
@@ -472,7 +467,7 @@ public sealed abstract class CoreOp extends Op {
                     if (op instanceof JavaOp.InvokeOp iop) {
                         Method invokeOpCalledMethod = null;
                         try {
-        invokeOpCalledMethod = iop.invokeReference().resolveToMethod(l);
+                            invokeOpCalledMethod = iop.invokeReference().resolveToMethod(l);
                         } catch (ReflectiveOperationException e) {
                             throw new RuntimeException("Could not resolve invokeOp to method");
                         }
@@ -483,7 +478,7 @@ public sealed abstract class CoreOp extends Op {
                                     f -> f.funcName() + "_" + funcNames.size());
                             Op.Result result = blockBuilder.op(CoreOp.funcCall(
                                     funcNames.get(calledFunc),
-                                    calledFunc.invokableType(),
+                                    calledFunc.invokableSignature(),
                                     blockBuilder.context().getValues(iop.operands())));
                             blockBuilder.context().mapValue(op.result(), result);
                             return blockBuilder;
@@ -549,7 +544,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "quoted";
 
         /**
-         * The Java type element modeling the parameterized type {@code Quoted<Op>}
+         * The Java type modeling the parameterized type {@code Quoted<Op>}
          * that is the result type of a quoted operation.
          */
         public static final JavaType QUOTED_OP_TYPE = JavaType.parameterized(
@@ -567,7 +562,7 @@ public sealed abstract class CoreOp extends Op {
             super(that, cc);
 
             this.quotedBody = that.quotedBody.transform(cc, ot).build(this);
-            this.quotedOp = that.quotedOp;
+            this.quotedOp = getQuotedOp(quotedBody);
         }
 
         @Override
@@ -579,16 +574,7 @@ public sealed abstract class CoreOp extends Op {
             super(List.of());
 
             this.quotedBody = bodyC.build(this);
-            if (quotedBody.blocks().size() > 1) {
-                throw new IllegalArgumentException();
-            }
-            if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
-                throw new IllegalArgumentException();
-            }
-            if (!(yop.yieldValue() instanceof Result r)) {
-                throw new IllegalArgumentException();
-            }
-            this.quotedOp = r.op();
+            this.quotedOp = getQuotedOp(quotedBody);
         }
 
         @Override
@@ -612,8 +598,21 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return QUOTED_OP_TYPE;
+        }
+
+        private Op getQuotedOp(Body quotedBody) {
+            if (quotedBody.blocks().size() > 1) {
+                throw new IllegalArgumentException();
+            }
+            if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
+                throw new IllegalArgumentException();
+            }
+            if (!(yop.yieldValue() instanceof Result r)) {
+                throw new IllegalArgumentException();
+            }
+            return r.op();
         }
     }
 
@@ -664,7 +663,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -705,7 +704,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -761,7 +760,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -779,7 +778,7 @@ public sealed abstract class CoreOp extends Op {
             implements Op.BlockTerminating {
         static final String NAME = "branch";
 
-        final Block.Reference b;
+        final Block.Reference branch;
 
         BranchOp(ExternalizedOp def) {
             if (!def.operands().isEmpty() || def.successors().size() != 1) {
@@ -792,7 +791,7 @@ public sealed abstract class CoreOp extends Op {
         BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.b = cc.getSuccessorOrCreate(that.b);
+            this.branch = cc.getSuccessorOrCreate(that.branch);
         }
 
         @Override
@@ -803,23 +802,23 @@ public sealed abstract class CoreOp extends Op {
         BranchOp(Block.Reference successor) {
             super(List.of());
 
-            this.b = successor;
+            this.branch = successor;
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return List.of(b);
+            return List.of(branch);
         }
 
         /**
-         * {@return The branch target}
+         * {@return The block reference to branch to}
          */
         public Block.Reference branch() {
-            return b;
+            return branch;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -840,8 +839,8 @@ public sealed abstract class CoreOp extends Op {
             implements Op.BlockTerminating {
         static final String NAME = "cbranch";
 
-        final Block.Reference t;
-        final Block.Reference f;
+        final Block.Reference trueBranch;
+        final Block.Reference falseBranch;
 
         ConditionalBranchOp(ExternalizedOp def) {
             if (def.operands().size() != 1 || def.successors().size() != 2) {
@@ -854,8 +853,8 @@ public sealed abstract class CoreOp extends Op {
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.t = cc.getSuccessorOrCreate(that.t);
-            this.f = cc.getSuccessorOrCreate(that.f);
+            this.trueBranch = cc.getSuccessorOrCreate(that.trueBranch);
+            this.falseBranch = cc.getSuccessorOrCreate(that.falseBranch);
         }
 
         @Override
@@ -863,41 +862,41 @@ public sealed abstract class CoreOp extends Op {
             return new ConditionalBranchOp(this, cc);
         }
 
-        ConditionalBranchOp(Value p, Block.Reference t, Block.Reference f) {
+        ConditionalBranchOp(Value p, Block.Reference trueBranch, Block.Reference falseBranch) {
             super(List.of(p));
 
-            this.t = t;
-            this.f = f;
+            this.trueBranch = trueBranch;
+            this.falseBranch = falseBranch;
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return List.of(t, f);
+            return List.of(trueBranch, falseBranch);
         }
 
         /**
          * {@return the branch condition}
          */
-        public Value predicate() {
+        public Value predicateOperand() {
             return operands().get(0);
         }
 
         /**
-         * {@return the branch target when the condition is true}
+         * {@return the block reference to branch to when the condition is true}
          */
         public Block.Reference trueBranch() {
-            return t;
+            return trueBranch;
         }
 
         /**
-         * {@return the branch target when the condition is false}
+         * {@return the block reference to branch to when the condition is false}
          */
         public Block.Reference falseBranch() {
-            return f;
+            return falseBranch;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
@@ -917,12 +916,12 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "constant";
 
         /**
-         * The externalized attribute modelling the constant value
+         * The externalized attribute modeling the constant value
          */
         static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
-        final TypeElement type;
+        final CodeType resultType;
 
         ConstantOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
@@ -935,7 +934,7 @@ public sealed abstract class CoreOp extends Op {
             this(def.resultType(), value);
         }
 
-        static Object processConstantValue(TypeElement t, Object value) {
+        static Object processConstantValue(CodeType t, Object value) {
             if (t.equals(JavaType.BOOLEAN) && value instanceof Boolean) {
                 return value;
             } else if (t.equals(JavaType.BYTE) && value instanceof Number n) {
@@ -957,7 +956,7 @@ public sealed abstract class CoreOp extends Op {
                         null : (String)value;
             } else if (t.equals(JavaType.J_L_CLASS)) {
                 return value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ?
-                        null : (TypeElement)value;
+                        null : (CodeType)value;
             } else if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
@@ -968,7 +967,7 @@ public sealed abstract class CoreOp extends Op {
         ConstantOp(ConstantOp that, CodeContext cc) {
             super(that, cc);
 
-            this.type = that.type;
+            this.resultType = that.resultType;
             this.value = that.value;
         }
 
@@ -977,10 +976,10 @@ public sealed abstract class CoreOp extends Op {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeElement type, Object value) {
+        ConstantOp(CodeType resultType, Object value) {
             super(List.of());
 
-            this.type = type;
+            this.resultType = resultType;
             this.value = value;
         }
 
@@ -997,8 +996,8 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
-            return type;
+        public CodeType resultType() {
+            return resultType;
         }
     }
 
@@ -1036,8 +1035,8 @@ public sealed abstract class CoreOp extends Op {
      * A variable operation accepts zero or one operand, corresponding to the initial value of the variable when
      * present.
      * <p>
-     * The result type of a variable operation is the parameterized class type {@code Var<T>},
-     * where {@code T} is the type element modeling the variable's type.
+     * The result type of a variable operation is the parameterized type {@code Var<T>},
+     * where {@code T} is the code type modeling the variable's type.
      *
      * @jls 14.4 Local Variable Declarations
      * @jls 8.4.1 Formal Parameters
@@ -1049,7 +1048,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "var";
 
         /**
-         * The externalized attribute modelling the variable name
+         * The externalized attribute modeling the variable name
          */
         static final String ATTRIBUTE_NAME = NAME + ".name";
 
@@ -1092,7 +1091,7 @@ public sealed abstract class CoreOp extends Op {
             return new VarOp(this, cc);
         }
 
-        VarOp(String varName, TypeElement type, Value init) {
+        VarOp(String varName, CodeType type, Value init) {
             super(init == null ? List.of() : List.of(init));
 
             this.varName =  varName == null ? "" : varName;
@@ -1126,7 +1125,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * {@return the variable type}
          */
-        public TypeElement varValueType() {
+        public CodeType varValueType() {
             return resultType.valueType();
         }
 
@@ -1243,7 +1242,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return varType().valueType();
             }
         }
@@ -1298,7 +1297,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return JavaType.VOID;
             }
         }
@@ -1339,7 +1338,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return CoreType.tupleTypeFromValues(operands());
         }
     }
@@ -1359,7 +1358,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "tuple.load";
 
         /**
-         * The externalized attribute modelling the tuple index
+         * The externalized attribute modeling the tuple index
          */
         static final String ATTRIBUTE_INDEX = NAME + ".index";
 
@@ -1408,8 +1407,15 @@ public sealed abstract class CoreOp extends Op {
             return index;
         }
 
+        /**
+         * {@return the tuple value}
+         */
+        public Value tupleOperand() {
+            return operands().get(0);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType t = (TupleType) tupleValue.type();
             return t.componentTypes().get(index);
@@ -1432,7 +1438,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "tuple.with";
 
         /**
-         * The externalized attribute modelling the tuple index
+         * The externalized attribute modeling the tuple index
          */
         static final String ATTRIBUTE_INDEX = NAME + ".index";
 
@@ -1482,13 +1488,27 @@ public sealed abstract class CoreOp extends Op {
             return index;
         }
 
+        /**
+         * {@return the tuple value}
+         */
+        public Value tupleOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the value being updated in the tuple}
+         */
+        public Value valueOperand() {
+            return operands().get(1);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType tupleType = (TupleType) tupleValue.type();
             Value value = operands().get(1);
 
-            List<TypeElement> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
+            List<CodeType> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
             tupleComponentTypes.set(index, value.type());
             return CoreType.tupleType(tupleComponentTypes);
         }
@@ -1529,11 +1549,11 @@ public sealed abstract class CoreOp extends Op {
      * Creates a function operation builder.
      *
      * @param funcName the function name
-     * @param funcType the function type
+     * @param signature the function's signature, represented as a function type
      * @return the function operation builder
      */
-    public static FuncOp.Builder func(String funcName, FunctionType funcType) {
-        return new FuncOp.Builder(null, funcName, funcType);
+    public static FuncOp.Builder func(String funcName, FunctionType signature) {
+        return new FuncOp.Builder(null, funcName, signature);
     }
 
     /**
@@ -1541,11 +1561,11 @@ public sealed abstract class CoreOp extends Op {
      *
      * @param refType  the function reference type
      * @param funcName the function name
-     * @param funcType the function type
+     * @param signature the function's signature, represented as a function type
      * @return the function operation builder
      */
-    public static FuncOp.Builder func(TypeElement refType, String funcName, FunctionType funcType) {
-        return new FuncOp.Builder(null, MethodRef.method(refType, funcName, funcType));
+    public static FuncOp.Builder func(CodeType refType, String funcName, FunctionType signature) {
+        return new FuncOp.Builder(null, MethodRef.method(refType, funcName, signature));
     }
 
     /**
@@ -1587,32 +1607,32 @@ public sealed abstract class CoreOp extends Op {
      * @param body    the body builder defining the function body
      * @return the function operation
      */
-    public static FuncOp func(TypeElement refType, String funcName, Body.Builder body) {
-        return new FuncOp(MethodRef.method(refType, funcName, body.bodyType()), body);
+    public static FuncOp func(CodeType refType, String funcName, Body.Builder body) {
+        return new FuncOp(MethodRef.method(refType, funcName, body.bodySignature()), body);
     }
 
     /**
      * Creates a function call operation.
      *
      * @param funcName the name of the target function
-     * @param funcType the type of the target function
+     * @param signature the signature of the target function, represented as a function type
      * @param args     the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcType, Value... args) {
-        return funcCall(funcName, funcType, List.of(args));
+    public static FuncCallOp funcCall(String funcName, FunctionType signature, Value... args) {
+        return funcCall(funcName, signature, List.of(args));
     }
 
     /**
      * Creates a function call operation.
      *
-     * @param funcName the name of the target function
-     * @param funcType the type of the target function
-     * @param args     the function arguments
+     * @param funcName  the name of the target function
+     * @param signature the signature of the target function, represented as a function type
+     * @param args      the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcType, List<Value> args) {
-        return new FuncCallOp(funcName, funcType.returnType(), args);
+    public static FuncCallOp funcCall(String funcName, FunctionType signature, List<Value> args) {
+        return new FuncCallOp(funcName, signature.returnType(), args);
     }
 
     /**
@@ -1634,7 +1654,7 @@ public sealed abstract class CoreOp extends Op {
      * @return the function call operation
      */
     public static FuncCallOp funcCall(FuncOp func, List<Value> args) {
-        return new FuncCallOp(func.funcName(), func.invokableType().returnType(), args);
+        return new FuncCallOp(func.funcName(), func.invokableSignature().returnType(), args);
     }
 
     /**
@@ -1769,7 +1789,7 @@ public sealed abstract class CoreOp extends Op {
      * @param value the constant value
      * @return the constant operation
      */
-    public static ConstantOp constant(TypeElement type, Object value) {
+    public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
     }
 
@@ -1782,7 +1802,7 @@ public sealed abstract class CoreOp extends Op {
      * @param type the type of the var's value
      * @return the var operation
      */
-    public static VarOp var(TypeElement type) {
+    public static VarOp var(CodeType type) {
         return var(null, type);
     }
 
@@ -1793,7 +1813,7 @@ public sealed abstract class CoreOp extends Op {
      * @param type the variable type
      * @return the var operation
      */
-    public static VarOp var(String name, TypeElement type) {
+    public static VarOp var(String name, CodeType type) {
         return var(name, type, null);
     }
 
@@ -1830,7 +1850,7 @@ public sealed abstract class CoreOp extends Op {
      * @param init the variable's initial value
      * @return the var operation
      */
-    public static VarOp var(String name, TypeElement type, Value init) {
+    public static VarOp var(String name, CodeType type, Value init) {
         return new VarOp(name, type, init);
     }
 

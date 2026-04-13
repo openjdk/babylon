@@ -221,8 +221,8 @@ public class TestVectorArrayView {
     private interface SharedMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<SharedMemory> schema = DeviceSchema.of(SharedMemory.class,
-                arr -> arr.withArray("array", 1024));
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.array("array", 1024));
         static SharedMemory createLocal() {
             return null;
         }
@@ -253,8 +253,8 @@ public class TestVectorArrayView {
     private interface PrivateMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
-        DeviceSchema<PrivateMemory> schema = DeviceSchema.of(PrivateMemory.class,
-                arr -> arr.withArray("array", 4));
+        DeviceSchema<PrivateMemory> deviceSchema = DeviceSchema.of(PrivateMemory.class,
+                arr -> arr.array("array", 4));
         static PrivateMemory createPrivate() {
             return null;
         }

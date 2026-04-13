@@ -52,7 +52,7 @@ public class AnfTransformer {
 
         var builderEntry = outerBodyBuilder.entryBlock();
 
-        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.ancestorOp()).invokableType());
+        var selfRefP = builderEntry.parameter(((CoreOp.FuncOp) b.ancestorOp()).invokableSignature());
         funMap.put(entry, selfRefP);
 
         for (Block.Parameter p : entry.parameters()) {
@@ -82,7 +82,7 @@ public class AnfTransformer {
         var blockReturnType = getBlockReturnType(b);
         var blockFType = CoreType.functionType(blockReturnType);
 
-        List<TypeElement> synthParamTypes = new ArrayList<>();
+        List<CodeType> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
 
         var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
@@ -109,7 +109,7 @@ public class AnfTransformer {
         var blockReturnType = getBlockReturnType(b);
         var blockFType = CoreType.functionType(blockReturnType);
 
-        List<TypeElement> synthParamTypes = new ArrayList<>();
+        List<CodeType> synthParamTypes = new ArrayList<>();
         synthParamTypes.add(blockFType);
 
         var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
@@ -136,7 +136,7 @@ public class AnfTransformer {
             funMap2.put(dblock, fval);
         }
 
-        var letBody = Body.Builder.of(letrecBody, letrecBody.bodyType(), CodeContext.create(letrecBody.entryBlock().context()));
+        var letBody = Body.Builder.of(letrecBody, letrecBody.bodySignature(), CodeContext.create(letrecBody.entryBlock().context()));
         transformBlockOps(b, letBody.entryBlock());
         var let = AnfDialect.let(letBody);
 
@@ -148,7 +148,7 @@ public class AnfTransformer {
 
     }
 
-    private TypeElement getBlockReturnType(Block b) {
+    private CodeType getBlockReturnType(Block b) {
         var op = b.ops().getLast();
         if (op instanceof Op.Terminating) {
             List<Block.Reference> destBlocks = new ArrayList<>();
@@ -212,7 +212,7 @@ public class AnfTransformer {
 
                     var ifExp = AnfDialect.if_(b.parentBody(),
                                     getBlockReturnType(c.trueBranch().targetBlock()),
-                                    b.context().getValue(c.predicate()))
+                                    b.context().getValue(c.predicateOperand()))
                             .if_((bodyBuilder) -> bindFunApp(bodyBuilder, trueArgs, c.trueBranch().targetBlock()))
                             .else_((bodyBuilder) -> bindFunApp(bodyBuilder, falseArgs, c.falseBranch().targetBlock()));
 

@@ -25,7 +25,7 @@
 
 package oracle.code.onnx.opgen;
 
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import oracle.code.onnx.OpSchema;
 
 import java.io.*;
@@ -149,7 +149,7 @@ public class OpGen {
 
         genAttributeEnum(w, s);
 
-        Map<String, List<ExternalizedTypeElement>> typeConstraints =
+        Map<String, List<ExternalizedCodeType>> typeConstraints =
                 genTypeConstraintEnum(w, s);
 
         genInputParameterEnum(w, s, typeConstraints);
@@ -235,20 +235,20 @@ public class OpGen {
         w.write("\n");
     }
 
-    private Map<String, List<ExternalizedTypeElement>> genTypeConstraintEnum(IndentWriter w, OpSchema s) throws IOException {
+    private Map<String, List<ExternalizedCodeType>> genTypeConstraintEnum(IndentWriter w, OpSchema s) throws IOException {
         if (s.type_constraints().isEmpty()) {
             w.write("public enum TypeConstraint implements OnnxTypeConstraint.None { }\n");
             w.write("\n");
             return Map.of();
         }
 
-        Map<String, List<ExternalizedTypeElement>> typeConstraints = new HashMap<>();
+        Map<String, List<ExternalizedCodeType>> typeConstraints = new HashMap<>();
 
         w.write("public enum TypeConstraint implements OnnxTypeConstraint {\n");
         w.in();
 
         for (OpSchema.TypeConstraintParam tcp : s.type_constraints()) {
-            List<ExternalizedTypeElement> types = tcp.allowed_type_strs().stream()
+            List<ExternalizedCodeType> types = tcp.allowed_type_strs().stream()
                     .map(OpGen::parseTypeString)
                     .toList();
             typeConstraints.put(tcp.type_param_str(), types);
@@ -289,7 +289,7 @@ public class OpGen {
     }
 
     private void genInputParameterEnum(IndentWriter w, OpSchema s,
-                                       Map<String, List<ExternalizedTypeElement>> typeConstraints) throws IOException {
+                                       Map<String, List<ExternalizedCodeType>> typeConstraints) throws IOException {
         if (s.inputs().isEmpty()) {
             w.write("public enum InputParameter implements OnnxParameter.None { }\n");
             w.write("\n");
@@ -305,7 +305,7 @@ public class OpGen {
             if (typeConstraints.containsKey(input.type_str())) {
                 w.write("TypeConstraint." + input.type_str() + ".typeVariable()");
             } else {
-                ExternalizedTypeElement type = parseTypeString(input.type_str());
+                ExternalizedCodeType type = parseTypeString(input.type_str());
                 genType(w, type);
             }
             w.write(", ");
@@ -353,7 +353,7 @@ public class OpGen {
     }
 
     private void genOutputParameterEnum(IndentWriter w, OpSchema s,
-                                        Map<String, List<ExternalizedTypeElement>> typeConstraints) throws IOException {
+                                        Map<String, List<ExternalizedCodeType>> typeConstraints) throws IOException {
         if (s.outputs().isEmpty()) {
             w.write("public enum OutputParameter implements OnnxParameter.None { }\n");
             w.write("\n");
@@ -369,7 +369,7 @@ public class OpGen {
             if (typeConstraints.containsKey(output.type_str())) {
                 w.write("TypeConstraint." + output.type_str() + ".typeVariable()");
             } else {
-                ExternalizedTypeElement type = parseTypeString(output.type_str());
+                ExternalizedCodeType type = parseTypeString(output.type_str());
                 genType(w, type);
             }
             w.write(", ");
@@ -452,7 +452,7 @@ public class OpGen {
         w.write(s.name() + "(");
 
         // Result type parameter
-        w.write("TypeElement resultType, ");
+        w.write("CodeType resultType, ");
 
         boolean hasOptionalOutputs = s.outputs()
                 .stream().anyMatch(o -> o.option() == OpSchema.FormalParameterOption.Optional);
@@ -710,7 +710,7 @@ public class OpGen {
         w.write("public static " + s.name() + " " + s.name() + "(");
 
         // Result type parameter
-        w.write("TypeElement resultType, ");
+        w.write("CodeType resultType, ");
 
         boolean hasOptionalOutputs = s.outputs()
                 .stream().anyMatch(o -> o.option() == OpSchema.FormalParameterOption.Optional);
@@ -806,9 +806,9 @@ public class OpGen {
         w.write("}\n");
     }
 
-    private void genTypes(IndentWriter w, List<ExternalizedTypeElement> types) throws IOException {
+    private void genTypes(IndentWriter w, List<ExternalizedCodeType> types) throws IOException {
         boolean first = true;
-        for (ExternalizedTypeElement type : types) {
+        for (ExternalizedCodeType type : types) {
             if (!first) {
                 w.write(", ");
             }
@@ -819,7 +819,7 @@ public class OpGen {
         }
     }
 
-    private void genType(IndentWriter w, ExternalizedTypeElement type) throws IOException {
+    private void genType(IndentWriter w, ExternalizedCodeType type) throws IOException {
         w.write("OnnxType." + replaceTypeIdentifier(type.identifier()));
         w.write("(");
         genTypes(w, type.arguments());
@@ -834,8 +834,8 @@ public class OpGen {
         };
     }
 
-    static ExternalizedTypeElement parseTypeString(String type_str) {
-        return ExternalizedTypeElement.ofString(
+    static ExternalizedCodeType parseTypeString(String type_str) {
+        return ExternalizedCodeType.ofString(
                 type_str.replace('(', '<').replace(')', '>'));
     }
 

@@ -1,9 +1,9 @@
 package jdk.incubator.code.dialect.core;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
-import jdk.incubator.code.extern.TypeElementFactory;
+import jdk.incubator.code.extern.ExternalizedCodeType;
+import jdk.incubator.code.extern.CodeTypeFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.ArrayList;
@@ -14,30 +14,30 @@ import java.util.stream.Stream;
 /**
  *  The symbolic description of a core type.
  */
-public sealed interface CoreType extends TypeElement
+public sealed interface CoreType extends CodeType
         permits FunctionType, TupleType, VarType {
 
     /**
-     * Creates a composed type element factory for core type elements and type elements from the given
-     * type element factory, where the core type elements can refer to type elements from the
-     * given type element factory.
+     * Creates a composed code type factory for core types and code types from the given
+     * code type factory, where the core types can refer to code types from the
+     * given code type factory.
      *
-     * @param f the type element factory.
-     * @return the composed type element factory.
+     * @param f the code type factory.
+     * @return the composed code type factory.
      */
-    static TypeElementFactory coreTypeFactory(TypeElementFactory f) {
-        class CodeModelFactory implements TypeElementFactory {
-            final TypeElementFactory thisThenF = this.andThen(f);
+    static CodeTypeFactory coreTypeFactory(CodeTypeFactory f) {
+        class CodeModelFactory implements CodeTypeFactory {
+            final CodeTypeFactory thisThenF = this.andThen(f);
 
             @Override
-            public TypeElement constructType(ExternalizedTypeElement tree) {
+            public CodeType constructType(ExternalizedCodeType tree) {
                 return switch (tree.identifier()) {
                     case VarType.NAME -> {
                         if (tree.arguments().size() != 1) {
                             throw new IllegalArgumentException();
                         }
 
-                        TypeElement v = thisThenF.constructType(tree.arguments().getFirst());
+                        CodeType v = thisThenF.constructType(tree.arguments().getFirst());
                         if (v == null) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
@@ -48,9 +48,9 @@ public sealed interface CoreType extends TypeElement
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
 
-                        List<TypeElement> cs = new ArrayList<>(tree.arguments().size());
-                        for (ExternalizedTypeElement child : tree.arguments()) {
-                            TypeElement c = thisThenF.constructType(child);
+                        List<CodeType> cs = new ArrayList<>(tree.arguments().size());
+                        for (ExternalizedCodeType child : tree.arguments()) {
+                            CodeType c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);
                             }
@@ -63,13 +63,13 @@ public sealed interface CoreType extends TypeElement
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
 
-                        TypeElement rt = thisThenF.constructType(tree.arguments().getFirst());
+                        CodeType rt = thisThenF.constructType(tree.arguments().getFirst());
                         if (rt == null) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
-                        List<TypeElement> pts = new ArrayList<>(tree.arguments().size() - 1);
-                        for (ExternalizedTypeElement child : tree.arguments().subList(1, tree.arguments().size())) {
-                            TypeElement c = thisThenF.constructType(child);
+                        List<CodeType> pts = new ArrayList<>(tree.arguments().size() - 1);
+                        for (ExternalizedCodeType child : tree.arguments().subList(1, tree.arguments().size())) {
+                            CodeType c = thisThenF.constructType(child);
                             if (c == null) {
                                 throw new IllegalArgumentException("Bad type: " + tree);
                             }
@@ -102,7 +102,7 @@ public sealed interface CoreType extends TypeElement
      * @param parameterTypes the function type's parameter types.
      * @return a function type.
      */
-    static FunctionType functionType(TypeElement returnType, List<? extends TypeElement> parameterTypes) {
+    static FunctionType functionType(CodeType returnType, List<? extends CodeType> parameterTypes) {
         Objects.requireNonNull(returnType);
         Objects.requireNonNull(parameterTypes);
         return new FunctionType(returnType, parameterTypes);
@@ -115,7 +115,7 @@ public sealed interface CoreType extends TypeElement
      * @param parameterTypes the function type's parameter types.
      * @return a function type.
      */
-    static FunctionType functionType(TypeElement returnType, TypeElement... parameterTypes) {
+    static FunctionType functionType(CodeType returnType, CodeType... parameterTypes) {
         return functionType(returnType, List.of(parameterTypes));
     }
 
@@ -125,7 +125,7 @@ public sealed interface CoreType extends TypeElement
      * @param componentTypes the tuple type's component types.
      * @return a tuple type.
      */
-    static TupleType tupleType(TypeElement... componentTypes) {
+    static TupleType tupleType(CodeType... componentTypes) {
         return tupleType(List.of(componentTypes));
     }
 
@@ -135,7 +135,7 @@ public sealed interface CoreType extends TypeElement
      * @param componentTypes the tuple type's component types.
      * @return a tuple type.
      */
-    static TupleType tupleType(List<? extends TypeElement> componentTypes) {
+    static TupleType tupleType(List<? extends CodeType> componentTypes) {
         Objects.requireNonNull(componentTypes);
         return new TupleType(componentTypes);
     }
@@ -168,7 +168,7 @@ public sealed interface CoreType extends TypeElement
      * @param valueType the variable's value type.
      * @return a variable type.
      */
-    static VarType varType(TypeElement valueType) {
+    static VarType varType(CodeType valueType) {
         Objects.requireNonNull(valueType);
         return new VarType(valueType);
     }

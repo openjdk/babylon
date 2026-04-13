@@ -61,7 +61,7 @@ import static jdk.incubator.code.internal.ArithmeticAndConvOpImpls.*;
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
  * Java Language Specification.
  * <p>
- * Java operations model specific Java language constructs or Java program behaviour. Some Java operations model
+ * Java operations model specific Java language constructs or Java program behavior. Some Java operations model
  * structured control flow and nested code. These operations are transformable, commonly referred to as lowering, into
  * a sequence of other core or Java operations. Those that implement {@link Op.Lowerable} can transform themselves and
  * will transform associated operations that are not explicitly lowerable.
@@ -323,7 +323,7 @@ public sealed abstract class JavaOp extends Op {
             };
         }
 
-        private static boolean isConstantType(TypeElement e) {
+        private static boolean isConstantType(CodeType e) {
             return (e instanceof PrimitiveType && !VOID.equals(e)) || J_L_STRING.equals(e);
         }
     }
@@ -408,21 +408,21 @@ public sealed abstract class JavaOp extends Op {
          */
         public static class Builder {
             final Body.Builder ancestorBody;
-            final FunctionType funcType;
-            final TypeElement functionalInterface;
+            final FunctionType signature;
+            final CodeType functionalInterface;
             final boolean isReflectable;
 
-            Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface) {
+            Builder(Body.Builder ancestorBody, FunctionType signature, CodeType functionalInterface) {
                 this.ancestorBody = ancestorBody;
-                this.funcType = funcType;
+                this.signature = signature;
                 this.functionalInterface = functionalInterface;
                 this.isReflectable = false;
             }
 
-            Builder(Body.Builder ancestorBody, FunctionType funcType, TypeElement functionalInterface,
+            Builder(Body.Builder ancestorBody, FunctionType signature, CodeType functionalInterface,
                     boolean isReflectable) {
                 this.ancestorBody = ancestorBody;
-                this.funcType = funcType;
+                this.signature = signature;
                 this.functionalInterface = functionalInterface;
                 this.isReflectable = isReflectable;
             }
@@ -434,7 +434,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed lambda operation
              */
             public LambdaOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
+                Body.Builder body = Body.Builder.of(ancestorBody, signature);
                 c.accept(body.entryBlock());
                 return new LambdaOp(functionalInterface, body, isReflectable);
             }
@@ -446,14 +446,14 @@ public sealed abstract class JavaOp extends Op {
              * @see Reflect
              */
             public Builder reflectable() {
-                return new Builder(ancestorBody, funcType, functionalInterface, true);
+                return new Builder(ancestorBody, signature, functionalInterface, true);
             }
         }
 
         static final String NAME = "lambda";
         static final String ATTRIBUTE_LAMBDA_IS_REFLECTABLE = NAME + ".isReflectable";
 
-        final TypeElement functionalInterface;
+        final CodeType functionalInterface;
         final Body body;
         final boolean isReflectable;
 
@@ -480,7 +480,7 @@ public sealed abstract class JavaOp extends Op {
             return new LambdaOp(this, cc, ot);
         }
 
-        LambdaOp(TypeElement functionalInterface, Body.Builder bodyC, boolean isReflectable) {
+        LambdaOp(CodeType functionalInterface, Body.Builder bodyC, boolean isReflectable) {
             super(List.of());
 
             this.functionalInterface = functionalInterface;
@@ -493,15 +493,10 @@ public sealed abstract class JavaOp extends Op {
             return List.of(body);
         }
 
-        @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
-        }
-
         /**
          * {@return the functional interface type modeled by this lambda operation}
          */
-        public TypeElement functionalInterface() {
+        public CodeType functionalInterface() {
             return functionalInterface;
         }
 
@@ -518,7 +513,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return functionalInterface();
         }
 
@@ -635,19 +630,19 @@ public sealed abstract class JavaOp extends Op {
          */
         public CoreOp.FuncOp toFuncOp(String lambdaName) {
             if (lambdaName == null) lambdaName = "";
-            List<TypeElement> parameters = new ArrayList<>(this.invokableType().parameterTypes());
+            List<CodeType> parameters = new ArrayList<>(this.invokableSignature().parameterTypes());
             for (Value v : this.capturedValues()) {
-                TypeElement capturedType = v.type() instanceof VarType varType ? varType.valueType() : v.type();
+                CodeType capturedType = v.type() instanceof VarType varType ? varType.valueType() : v.type();
                 parameters.add(capturedType);
             }
-            return CoreOp.func(lambdaName, CoreType.functionType(this.invokableType().returnType(), parameters)).body(builder -> {
-                int idx = this.invokableType().parameterTypes().size();
+            return CoreOp.func(lambdaName, CoreType.functionType(this.invokableSignature().returnType(), parameters)).body(builder -> {
+                int idx = this.invokableSignature().parameterTypes().size();
                 for (Value v : capturedValues()) {
                     Block.Parameter p = builder.parameters().get(idx++);
                     Value functionValue = v.type() instanceof VarType ? builder.op(CoreOp.var(p)) : p;
                     builder.context().mapValue(v, functionValue);
                 }
-                List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableType().parameterTypes().size());
+                List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableSignature().parameterTypes().size());
                 builder.body(this.body(), outputValues, CodeTransformer.COPYING_TRANSFORMER);
             });
         }
@@ -767,12 +762,12 @@ public sealed abstract class JavaOp extends Op {
         /**
          * {@return the value being thrown}
          */
-        public Value argument() {
+        public Value argumentOperand() {
             return operands().get(0);
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -822,13 +817,27 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
 
         @Override
         public List<Body> bodies() {
-            return this.bodies;
+            return bodies;
+        }
+
+        /**
+         * {@return the predicate body}
+         */
+        public Body predicateBody() {
+            return bodies.get(0);
+        }
+
+        /**
+         * {@return the details body, or {@code null} if not present}
+         */
+        public Body detailsBody() {
+            return bodies.size() == 2 ? bodies.get(1) : null;
         }
     }
 
@@ -847,12 +856,12 @@ public sealed abstract class JavaOp extends Op {
         /**
          * {@return the monitor value}
          */
-        public Value monitorValue() {
+        public Value monitorOperand() {
             return operands().getFirst();
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
 
@@ -961,8 +970,8 @@ public sealed abstract class JavaOp extends Op {
 
         final InvokeKind invokeKind;
         final boolean isVarArgs;
-        final MethodRef invokeRef;
-        final TypeElement resultType;
+        final MethodRef invokeReference;
+        final CodeType resultType;
 
         InvokeOp(ExternalizedOp def) {
             // Required attribute
@@ -991,7 +1000,7 @@ public sealed abstract class JavaOp extends Op {
                                 // If varargs then we cannot infer invoke kind
                                 throw new UnsupportedOperationException("Unsupported invoke kind value:" + v);
                             }
-                            int paramCount = invokeRef.type().parameterTypes().size();
+                            int paramCount = invokeRef.signature().parameterTypes().size();
                             int argCount = def.operands().size();
                             yield (argCount == paramCount + 1)
                                     ? InvokeKind.INSTANCE
@@ -1008,7 +1017,7 @@ public sealed abstract class JavaOp extends Op {
 
             this.invokeKind = that.invokeKind;
             this.isVarArgs = that.isVarArgs;
-            this.invokeRef = that.invokeRef;
+            this.invokeReference = that.invokeReference;
             this.resultType = that.resultType;
         }
 
@@ -1017,19 +1026,19 @@ public sealed abstract class JavaOp extends Op {
             return new InvokeOp(this, cc);
         }
 
-        InvokeOp(InvokeKind invokeKind, boolean isVarArgs, TypeElement resultType, MethodRef invokeRef, List<Value> args) {
+        InvokeOp(InvokeKind invokeKind, boolean isVarArgs, CodeType resultType, MethodRef invokeReference, List<Value> args) {
             super(args);
 
-            validateArgCount(invokeKind, isVarArgs, invokeRef, args);
+            validateArgCount(invokeKind, isVarArgs, invokeReference, args);
 
             this.invokeKind = invokeKind;
             this.isVarArgs = isVarArgs;
-            this.invokeRef = invokeRef;
+            this.invokeReference = invokeReference;
             this.resultType = resultType;
         }
 
         static void validateArgCount(InvokeKind invokeKind, boolean isVarArgs, MethodRef invokeRef, List<Value> operands) {
-            int paramCount = invokeRef.type().parameterTypes().size();
+            int paramCount = invokeRef.signature().parameterTypes().size();
             int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
@@ -1040,7 +1049,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             HashMap<String, Object> m = new HashMap<>();
-            m.put("", invokeRef);
+            m.put("", invokeReference);
             if (isVarArgs) {
                 // If varargs then we need to declare the invoke.kind attribute
                 // Given a method `A::m(A... more)` and an invocation with one
@@ -1072,7 +1081,7 @@ public sealed abstract class JavaOp extends Op {
          * {@return the method invocation reference}
          */
         public MethodRef invokeReference() {
-            return invokeRef;
+            return invokeReference;
         }
 
         /**
@@ -1080,6 +1089,13 @@ public sealed abstract class JavaOp extends Op {
          */
         public boolean hasReceiver() {
             return invokeKind != InvokeKind.STATIC;
+        }
+
+        /**
+         * {@return the receiver, otherwise {@code null} if no receiver}
+         */
+        public Value receiverOperand() {
+            return hasReceiver() ? operands().getFirst() : null;
         }
 
         /**
@@ -1093,25 +1109,25 @@ public sealed abstract class JavaOp extends Op {
 
             int operandCount = operands().size();
             int argCount = operandCount - (invokeKind == InvokeKind.STATIC ? 0 : 1);
-            int paramCount = invokeRef.type().parameterTypes().size();
+            int paramCount = invokeReference.signature().parameterTypes().size();
             int varArgCount = argCount - (paramCount - 1);
             return operands().subList(operandCount - varArgCount, operandCount);
         }
 
         /**
-         * {@return the method invocation arguments}
+         * {@return the method invocation arguments, including the receiver as the first argument if present}
          */
         public List<Value> argOperands() {
             if (!isVarArgs) {
                 return operands();
             }
-            int paramCount = invokeReference().type().parameterTypes().size();
+            int paramCount = invokeReference().signature().parameterTypes().size();
             int argOperandsCount = paramCount - (invokeKind() == InvokeKind.STATIC ? 1 : 0);
             return operands().subList(0, argOperandsCount);
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1131,7 +1147,7 @@ public sealed abstract class JavaOp extends Op {
             implements Pure, JavaExpression {
         static final String NAME = "conv";
 
-        final TypeElement resultType;
+        final CodeType resultType;
 
         ConvOp(ExternalizedOp def) {
             this(def.resultType(), def.operands().get(0));
@@ -1148,14 +1164,21 @@ public sealed abstract class JavaOp extends Op {
             return new ConvOp(this, cc);
         }
 
-        ConvOp(TypeElement resultType, Value arg) {
+        ConvOp(CodeType resultType, Value arg) {
             super(List.of(arg));
 
             this.resultType = resultType;
         }
 
+        /**
+         * {@return the value to convert}
+         */
+        public Value valueOperand() {
+            return operands().getFirst();
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1185,8 +1208,8 @@ public sealed abstract class JavaOp extends Op {
         static final String ATTRIBUTE_NEW_VARARGS = NAME + ".varargs";
 
         final boolean isVarArgs;
-        final MethodRef constructorRef;
-        final TypeElement resultType;
+        final MethodRef constructorReference;
+        final CodeType resultType;
 
         NewOp(ExternalizedOp def) {
             // Required attribute
@@ -1211,7 +1234,7 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
 
             this.isVarArgs = that.isVarArgs;
-            this.constructorRef = that.constructorRef;
+            this.constructorReference = that.constructorReference;
             this.resultType = that.resultType;
         }
 
@@ -1220,7 +1243,7 @@ public sealed abstract class JavaOp extends Op {
             return new NewOp(this, cc);
         }
 
-        NewOp(boolean isVarargs, TypeElement resultType, MethodRef ctorRef, List<Value> args) {
+        NewOp(boolean isVarargs, CodeType resultType, MethodRef ctorRef, List<Value> args) {
             super(args);
 
             validateArgCount(isVarargs, ctorRef, args);
@@ -1229,12 +1252,12 @@ public sealed abstract class JavaOp extends Op {
             }
 
             this.isVarArgs = isVarargs;
-            this.constructorRef = ctorRef;
+            this.constructorReference = ctorRef;
             this.resultType = resultType;
         }
 
         static void validateArgCount(boolean isVarArgs, MethodRef ctorRef, List<Value> operands) {
-            int paramCount = ctorRef.type().parameterTypes().size();
+            int paramCount = ctorRef.signature().parameterTypes().size();
             int argCount = operands.size();
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
@@ -1245,14 +1268,13 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             HashMap<String, Object> m = new HashMap<>();
-            m.put("", constructorRef);
+            m.put("", constructorReference);
             if (isVarArgs) {
                 m.put(ATTRIBUTE_NEW_VARARGS, isVarArgs);
             }
             return Collections.unmodifiableMap(m);
         }
 
-        // Indicates whether this instance creation uses a variable argument (varargs) constructor.
         /**
          * {@return {@code true}, if this instance creation operation is a varargs constructor call}
          */
@@ -1260,23 +1282,15 @@ public sealed abstract class JavaOp extends Op {
             return isVarArgs;
         }
 
-        // Retrieves the resulting type produced by this instance creation operation.
-        /**
-         * {@return the resulting type of this instance creation operation}
-         */
-        public TypeElement type() {
-            return opType().returnType();
-        } // @@@ duplication, same as resultType()
-
         /**
          * {@return the constructor reference for this instance creation operation}
          */
         public MethodRef constructorReference() {
-            return constructorRef;
+            return constructorReference;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1299,30 +1313,37 @@ public sealed abstract class JavaOp extends Op {
          */
         static final String ATTRIBUTE_FIELD_REF = "field.ref";
 
-        final FieldRef fieldRef;
+        final FieldRef fieldReference;
 
         FieldAccessOp(FieldAccessOp that, CodeContext cc) {
             super(that, cc);
-            this.fieldRef = that.fieldRef;
+            this.fieldReference = that.fieldReference;
         }
 
         FieldAccessOp(List<Value> operands,
-                      FieldRef fieldRef) {
+                      FieldRef fieldReference) {
             super(operands);
 
-            this.fieldRef = fieldRef;
+            this.fieldReference = fieldReference;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", fieldRef);
+            return Map.of("", fieldReference);
         }
 
         /**
          * {@return the reference to the accessed field}
          */
         public final FieldRef fieldReference() {
-            return fieldRef;
+            return fieldReference;
+        }
+
+        /**
+         * {@return the value of the receiver, or {@code null} if no receiver}
+         */
+        public Value receiverOperand() {
+            return operands().isEmpty() ? null : operands().getFirst();
         }
 
         /**
@@ -1336,7 +1357,7 @@ public sealed abstract class JavaOp extends Op {
                 implements Pure, JavaExpression {
             static final String NAME = "field.load";
 
-            final TypeElement resultType;
+            final CodeType resultType;
 
             FieldLoadOp(ExternalizedOp def) {
                 if (def.operands().size() > 1) {
@@ -1367,21 +1388,21 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // instance
-            FieldLoadOp(TypeElement resultType, FieldRef fieldRef, Value receiver) {
+            FieldLoadOp(CodeType resultType, FieldRef fieldRef, Value receiver) {
                 super(List.of(receiver), fieldRef);
 
                 this.resultType = resultType;
             }
 
             // static
-            FieldLoadOp(TypeElement resultType, FieldRef fieldRef) {
+            FieldLoadOp(CodeType resultType, FieldRef fieldRef) {
                 super(List.of(), fieldRef);
 
                 this.resultType = resultType;
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return resultType;
             }
         }
@@ -1433,8 +1454,15 @@ public sealed abstract class JavaOp extends Op {
                 super(List.of(v), fieldRef);
             }
 
+            /**
+             * {@return the value to store}
+             */
+            public Value valueOperand() {
+                return operands().get(operands().size() - 1);
+            }
+
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return VOID;
             }
         }
@@ -1471,8 +1499,15 @@ public sealed abstract class JavaOp extends Op {
             super(List.of(array));
         }
 
+        /**
+         * {@return the larray}
+         */
+        public Value arrayOperand() {
+            return operands().getFirst();
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return INT;
         }
     }
@@ -1503,6 +1538,20 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
+         * {@return the array}
+         */
+        public Value arrayOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the array index}
+         */
+        public Value indexOperand() {
+            return operands().get(1);
+        }
+
+        /**
          * The array load operation, that can model Java language array expressions combined with load access to the
          * components of an array.
          *
@@ -1512,7 +1561,7 @@ public sealed abstract class JavaOp extends Op {
         public static final class ArrayLoadOp extends ArrayAccessOp
                 implements Pure, JavaExpression {
             static final String NAME = "array.load";
-            final TypeElement componentType;
+            final CodeType componentType;
 
             ArrayLoadOp(ExternalizedOp def) {
                 if (def.operands().size() != 2) {
@@ -1537,13 +1586,13 @@ public sealed abstract class JavaOp extends Op {
                 this(array, index, ((ArrayType)array.type()).componentType());
             }
 
-            ArrayLoadOp(Value array, Value index, TypeElement componentType) {
+            ArrayLoadOp(Value array, Value index, CodeType componentType) {
                 super(array, index, null);
                 this.componentType = componentType;
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return componentType;
             }
         }
@@ -1582,8 +1631,15 @@ public sealed abstract class JavaOp extends Op {
                 super(array, index, v);
             }
 
+            /**
+             * {@return the value to store}
+             */
+            public Value valueOperand() {
+                return operands().get(2);
+            }
+
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return VOID;
             }
         }
@@ -1602,17 +1658,17 @@ public sealed abstract class JavaOp extends Op {
     public static final class InstanceOfOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "instanceof";
-        /** The externalized attribute key for the type element modeling the instanceof target type. */
+        /** The externalized attribute key for the code type modeling the instanceof target type. */
         static final String ATTRIBUTE_INSTANCEOF_TYPE = NAME + ".type";
 
-        final TypeElement targetType;
+        final CodeType targetType;
 
         InstanceOfOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeElement targetType = def.extractAttributeValue(ATTRIBUTE_INSTANCEOF_TYPE, true,
+            CodeType targetType = def.extractAttributeValue(ATTRIBUTE_INSTANCEOF_TYPE, true,
                     v -> switch (v) {
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type value:" + v);
@@ -1632,7 +1688,7 @@ public sealed abstract class JavaOp extends Op {
             return new InstanceOfOp(this, cc);
         }
 
-        InstanceOfOp(TypeElement t, Value v) {
+        InstanceOfOp(CodeType t, Value v) {
             super(List.of(v));
 
             this.targetType = t;
@@ -1644,14 +1700,21 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the type element modeling the target type of this instanceof operation}
+         * {@return the value to test}
          */
-        public TypeElement targetType() {
+        public Value valueOperand() {
+            return operands().getFirst();
+        }
+
+        /**
+         * {@return the code type modeling the target type of this instanceof operation}
+         */
+        public CodeType targetType() {
             return targetType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return BOOLEAN;
         }
     }
@@ -1668,18 +1731,18 @@ public sealed abstract class JavaOp extends Op {
     public static final class CastOp extends JavaOp
             implements Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "cast";
-        /** The externalized attribute key for the type element modeling the target type of the cast. */
+        /** The externalized attribute key for the code type modeling the target type of the cast. */
         static final String ATTRIBUTE_CAST_TYPE = NAME + ".type";
 
-        final TypeElement resultType;
-        final TypeElement targetType;
+        final CodeType resultType;
+        final CodeType targetType;
 
         CastOp(ExternalizedOp def) {
             if (def.operands().size() != 1) {
                 throw new IllegalArgumentException("Operation must have one operand " + def.name());
             }
 
-            TypeElement type = def.extractAttributeValue(ATTRIBUTE_CAST_TYPE, true,
+            CodeType type = def.extractAttributeValue(ATTRIBUTE_CAST_TYPE, true,
                     v -> switch (v) {
                         case JavaType td -> td;
                         case null, default -> throw new UnsupportedOperationException("Unsupported type value:" + v);
@@ -1700,7 +1763,7 @@ public sealed abstract class JavaOp extends Op {
             return new CastOp(this, cc);
         }
 
-        CastOp(TypeElement resultType, TypeElement t, Value v) {
+        CastOp(CodeType resultType, CodeType t, Value v) {
             super(List.of(v));
 
             this.resultType = resultType;
@@ -1713,14 +1776,21 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the type element modeling the target type of this cast operation}
+         * {@return the value to cast}
          */
-        public TypeElement targetType() {
+        public Value valueOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the code type modeling the target type of this cast operation}
+         */
+        public CodeType targetType() {
             return targetType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -1740,7 +1810,7 @@ public sealed abstract class JavaOp extends Op {
         // the first block in the exception region.
         // One or more subsequent successors target the exception catching blocks
         // each of which have one block argument whose type is an exception type.
-        final List<Block.Reference> s;
+        final List<Block.Reference> references;
 
         ExceptionRegionEnter(ExternalizedOp def) {
             this(def.successors());
@@ -1749,7 +1819,7 @@ public sealed abstract class JavaOp extends Op {
         ExceptionRegionEnter(ExceptionRegionEnter that, CodeContext cc) {
             super(that, cc);
 
-            this.s = that.s.stream().map(cc::getSuccessorOrCreate).toList();
+            this.references = that.references.stream().map(cc::getSuccessorOrCreate).toList();
         }
 
         @Override
@@ -1757,37 +1827,37 @@ public sealed abstract class JavaOp extends Op {
             return new ExceptionRegionEnter(this, cc);
         }
 
-        ExceptionRegionEnter(List<Block.Reference> s) {
+        ExceptionRegionEnter(List<Block.Reference> references) {
             super(List.of());
 
-            if (s.size() < 2) {
+            if (references.size() < 2) {
                 throw new IllegalArgumentException("Operation must have two or more successors " + this);
             }
 
-            this.s = List.copyOf(s);
+            this.references = List.copyOf(references);
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return s;
+            return references;
         }
 
         /**
-         * {@return the starting block of this exception region}
+         * {@return the starting block reference of this exception region}
          */
-        public Block.Reference start() {
-            return s.get(0);
+        public Block.Reference startReference() {
+            return references.get(0);
         }
 
         /**
-         * {@return the catch blocks for this exception region}
+         * {@return the catch block references of this exception region}
          */
-        public List<Block.Reference> catchBlocks() {
-            return s.subList(1, s.size());
+        public List<Block.Reference> catchReferences() {
+            return references.subList(1, references.size());
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -1805,7 +1875,7 @@ public sealed abstract class JavaOp extends Op {
 
         // First successor is the non-exceptional successor whose target indicates
         // the first block following the exception region.
-        final List<Block.Reference> s;
+        final List<Block.Reference> references;
 
         ExceptionRegionExit(ExternalizedOp def) {
             this(def.successors());
@@ -1814,7 +1884,7 @@ public sealed abstract class JavaOp extends Op {
         ExceptionRegionExit(ExceptionRegionExit that, CodeContext cc) {
             super(that, cc);
 
-            this.s = that.s.stream().map(cc::getSuccessorOrCreate).toList();
+            this.references = that.references.stream().map(cc::getSuccessorOrCreate).toList();
         }
 
         @Override
@@ -1822,37 +1892,37 @@ public sealed abstract class JavaOp extends Op {
             return new ExceptionRegionExit(this, cc);
         }
 
-        ExceptionRegionExit(List<Block.Reference> s) {
+        ExceptionRegionExit(List<Block.Reference> references) {
             super(List.of());
 
-            if (s.size() < 2) {
+            if (references.size() < 2) {
                 throw new IllegalArgumentException("Operation must have two or more successors " + this);
             }
 
-            this.s = List.copyOf(s);
+            this.references = List.copyOf(references);
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return s;
+            return references;
         }
 
         /**
-         * {@return the successor block that follows this exception region}
+         * {@return the end block reference that of this exception region}
          */
-        public Block.Reference end() {
-            return s.get(0);
+        public Block.Reference endReference() {
+            return references.get(0);
         }
 
         /**
-         * {@return the catch blocks for this exception region}
+         * {@return the catch block references of this exception region}
          */
-        public List<Block.Reference> catchBlocks() {
-            return s.subList(1, s.size());
+        public List<Block.Reference> catchReferences() {
+            return references.subList(1, references.size());
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -1866,7 +1936,6 @@ public sealed abstract class JavaOp extends Op {
      *
      * @jls 15.18.1 String Concatenation Operator +
      */
-
     @OpDeclaration(ConcatOp.NAME)
     public static final class ConcatOp extends JavaOp
             implements Pure, JavaExpression {
@@ -1893,8 +1962,22 @@ public sealed abstract class JavaOp extends Op {
             return new ConcatOp(this, cc);
         }
 
+        /**
+         * {@return the left hand operand}
+         */
+        public Value lhsOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the right hand operand}
+         */
+        public Value rhsOperand() {
+            return operands().get(1);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return J_L_STRING;
         }
     }
@@ -1929,8 +2012,22 @@ public sealed abstract class JavaOp extends Op {
             super(List.of(lhs, rhs));
         }
 
+        /**
+         * {@return the left hand operand}
+         */
+        public Value lhsOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the right hand operand}
+         */
+        public Value rhsOperand() {
+            return operands().get(1);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return operands().get(0).type();
         }
     }
@@ -1950,8 +2047,15 @@ public sealed abstract class JavaOp extends Op {
             super(List.of(v));
         }
 
+        /**
+         * {@return the operand}
+         */
+        public Value operand() {
+            return operands().get(0);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return operands().get(0).type();
         }
     }
@@ -1970,8 +2074,22 @@ public sealed abstract class JavaOp extends Op {
             super(List.of(lhs, rhs));
         }
 
+        /**
+         * {@return the left hand operand}
+         */
+        public Value lhsOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the right hand operand}
+         */
+        public Value rhsOperand() {
+            return operands().get(1);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return BOOLEAN;
         }
     }
@@ -2603,15 +2721,22 @@ public sealed abstract class JavaOp extends Op {
             Op opt = target();
             BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
             if (t != null) {
-                b.op(branch(f.apply(t).successor()));
+                b.op(branch(f.apply(t).reference()));
             } else {
                 throw new IllegalStateException("No branch target for operation: " + opt);
             }
             return b;
         }
 
+        /**
+         * {@return the label identifier, otherwise {@code null} if no label}
+         */
+        public Value labelOperand() {
+            return operands().isEmpty() ? null : operands().getFirst();
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -2722,12 +2847,12 @@ public sealed abstract class JavaOp extends Op {
         /**
          * {@return the yielded value}
          */
-        public Value yieldValue() {
+        public Value yieldOperand() {
             return operands().get(0);
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
 
@@ -2741,7 +2866,7 @@ public sealed abstract class JavaOp extends Op {
             Op opt = target();
             BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
             if (t != null) {
-                b.op(branch(f.apply(t).successor(b.context().getValue(yieldValue()))));
+                b.op(branch(f.apply(t).reference(b.context().getValue(yieldOperand()))));
             } else {
                 throw new IllegalStateException("No branch target for operation: " + opt);
             }
@@ -2807,11 +2932,11 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
+            if (!body.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodySignature());
             }
-            if (!body.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodyType());
+            if (!body.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodySignature());
             }
         }
 
@@ -2834,7 +2959,7 @@ public sealed abstract class JavaOp extends Op {
 
             b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
-                    block.op(branch(exit.successor()));
+                    block.op(branch(exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -2845,7 +2970,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -2867,7 +2992,7 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "java.synchronized";
 
-        final Body expr;
+        final Body exprBody;
         final Body blockBody;
 
         SynchronizedOp(ExternalizedOp def) {
@@ -2878,7 +3003,7 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
 
             // Copy bodies
-            this.expr = that.expr.transform(cc, ot).build(this);
+            this.exprBody = that.exprBody.transform(cc, ot).build(this);
             this.blockBody = that.blockBody.transform(cc, ot).build(this);
         }
 
@@ -2891,33 +3016,33 @@ public sealed abstract class JavaOp extends Op {
         SynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
             super(List.of());
 
-            this.expr = exprC.build(this);
-            if (expr.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Expression body should return non-void value: " + expr.bodyType());
+            this.exprBody = exprC.build(this);
+            if (exprBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Expression body should return non-void value: " + exprBody.bodySignature());
             }
-            if (!expr.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Expression body should have zero parameters: " + expr.bodyType());
+            if (!exprBody.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Expression body should have zero parameters: " + exprBody.bodySignature());
             }
 
             this.blockBody = bodyC.build(this);
-            if (!blockBody.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Block body should return void: " + blockBody.bodyType());
+            if (!blockBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Block body should return void: " + blockBody.bodySignature());
             }
-            if (!blockBody.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Block body should have zero parameters: " + blockBody.bodyType());
+            if (!blockBody.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Block body should have zero parameters: " + blockBody.bodySignature());
             }
         }
 
         @Override
         public List<Body> bodies() {
-            return List.of(expr, blockBody);
+            return List.of(exprBody, blockBody);
         }
 
         /**
          * {@return the expression body whose result is the monitor object for synchronization}
          */
-        public Body expr() {
-            return expr;
+        public Body exprBody() {
+            return exprBody;
         }
 
         /**
@@ -2943,7 +3068,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder syncRegionEnter = b.block();
             Block.Builder catcherFinally = b.block();
             b.op(exceptionRegionEnter(
-                    syncRegionEnter.successor(), catcherFinally.successor()));
+                    syncRegionEnter.reference(), catcherFinally.reference()));
 
             CodeTransformer syncExitTransformer = compose(opT, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
@@ -2952,7 +3077,7 @@ public sealed abstract class JavaOp extends Op {
                     block.op(monitorExit(monitorTarget));
                     // Exit the exception region
                     Block.Builder exitRegion = block.block();
-                    block.op(exceptionRegionExit(exitRegion.successor(), catcherFinally.successor()));
+                    block.op(exceptionRegionExit(exitRegion.reference(), catcherFinally.reference()));
                     return exitRegion;
                 } else {
                     return block;
@@ -2964,7 +3089,7 @@ public sealed abstract class JavaOp extends Op {
                     // Monitor exit
                     block.op(monitorExit(monitorTarget));
                     // Exit the exception region
-                    block.op(exceptionRegionExit(exit.successor(), catcherFinally.successor()));
+                    block.op(exceptionRegionExit(exit.reference(), catcherFinally.reference()));
                     return block;
                 } else {
                     return null;
@@ -2974,14 +3099,14 @@ public sealed abstract class JavaOp extends Op {
             // The catcher, with an exception region back branching to itself
             Block.Builder catcherFinallyRegionEnter = b.block();
             catcherFinally.op(exceptionRegionEnter(
-                    catcherFinallyRegionEnter.successor(), catcherFinally.successor()));
+                    catcherFinallyRegionEnter.reference(), catcherFinally.reference()));
 
             // Monitor exit
             catcherFinallyRegionEnter.op(monitorExit(monitorTarget));
             Block.Builder catcherFinallyRegionExit = b.block();
             // Exit the exception region
             catcherFinallyRegionEnter.op(exceptionRegionExit(
-                    catcherFinallyRegionExit.successor(), catcherFinally.successor()));
+                    catcherFinallyRegionExit.reference(), catcherFinally.reference()));
             // Rethrow outside of region
             Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
             catcherFinallyRegionExit.op(throw_(t));
@@ -2990,11 +3115,11 @@ public sealed abstract class JavaOp extends Op {
         }
 
         Block.Builder lowerExpr(Block.Builder b, CodeTransformer opT) {
-            Block.Builder exprExit = b.block(expr.bodyType().returnType());
-            b.body(expr, List.of(), andThenLowering(opT, (block, op) -> {
+            Block.Builder exprExit = b.block(exprBody.bodySignature().returnType());
+            b.body(exprBody, List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     Value monitorTarget = block.context().getValue(yop.yieldValue());
-                    block.op(branch(exprExit.successor(monitorTarget)));
+                    block.op(branch(exprExit.reference(monitorTarget)));
                     return block;
                 } else {
                     return null;
@@ -3009,7 +3134,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -3058,11 +3183,11 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
+            if (!body.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + body.bodySignature());
             }
-            if (!body.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodyType());
+            if (!body.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodySignature());
             }
         }
 
@@ -3072,10 +3197,24 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
+         * {@return the labeled body}
+         */
+        public Body body() {
+            return body;
+        }
+
+        /**
          * {@return the label associated with this labeled operation}
          */
         public Op label() {
             return body.entryBlock().firstOp();
+        }
+
+        /**
+         * {@return the label identifier, the operation result of the label}
+         */
+        public Op.Result labelIdentifier() {
+            return label().result();
         }
 
         /**
@@ -3099,7 +3238,7 @@ public sealed abstract class JavaOp extends Op {
                 }
 
                 if (op instanceof CoreOp.YieldOp) {
-                    block.op(branch(exit.successor()));
+                    block.op(branch(exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -3110,7 +3249,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -3136,9 +3275,9 @@ public sealed abstract class JavaOp extends Op {
     public static final class IfOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
-        static final FunctionType PREDICATE_TYPE = CoreType.functionType(BOOLEAN);
+        static final FunctionType PREDICATE_SIGNATURE = CoreType.functionType(BOOLEAN);
 
-        static final FunctionType ACTION_TYPE = CoreType.FUNCTION_TYPE_VOID;
+        static final FunctionType ACTION_SIGNATURE = CoreType.FUNCTION_TYPE_VOID;
 
         /**
          * Builder for the initial predicate body of an if operation.
@@ -3159,7 +3298,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder if_(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3186,7 +3325,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3198,7 +3337,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then() {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 body.entryBlock().op(core_yield());
                 bodies.add(body);
 
@@ -3225,7 +3364,7 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder elseif(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3239,7 +3378,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed if operation
              */
             public IfOp else_(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3251,7 +3390,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed if operation
              */
             public IfOp else_() {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_TYPE);
+                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
                 body.entryBlock().op(core_yield());
                 bodies.add(body);
 
@@ -3309,12 +3448,12 @@ public sealed abstract class JavaOp extends Op {
                 } else {
                     action = bodies.get(i + 1);
                     Body fromPred = bodies.get(i);
-                    if (!fromPred.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal predicate body type: " + fromPred.bodyType());
+                    if (!fromPred.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
+                throw new IllegalArgumentException("Illegal predicate body signature: " + fromPred.bodySignature());
                     }
                 }
-                if (!action.bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
-                throw new IllegalArgumentException("Illegal action body type: " + action.bodyType());
+                if (!action.bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
+                throw new IllegalArgumentException("Illegal action body signature: " + action.bodySignature());
                 }
             }
         }
@@ -3357,7 +3496,7 @@ public sealed abstract class JavaOp extends Op {
                     pred.body(predBody, List.of(), andThenLowering(opT, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yo) {
                             block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                                    action.successor(), next.successor()));
+                                    action.reference(), next.reference()));
                             return block;
                         } else {
                             return null;
@@ -3367,7 +3506,7 @@ public sealed abstract class JavaOp extends Op {
 
                 action.body(actionBody, List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(exit.successor()));
+                        block.op(branch(exit.reference()));
                         return block;
                     } else {
                         return null;
@@ -3379,7 +3518,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -3442,7 +3581,7 @@ public sealed abstract class JavaOp extends Op {
 
                 Result p = b.op(invoke(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
                         selectorExpression, b.op(constant(J_L_OBJECT, null))));
-                b.op(conditionalBranch(p, throwBlock.successor(), continueBlock.successor()));
+                b.op(conditionalBranch(p, throwBlock.reference(), continueBlock.reference()));
 
                 b = continueBlock;
             }
@@ -3513,14 +3652,14 @@ public sealed abstract class JavaOp extends Op {
                             case CoreOp.YieldOp yop -> {
                                 Block.Reference falseTarget;
                                 if (nextLabel != null) {
-                                    falseTarget = nextLabel.successor();
+                                    falseTarget = nextLabel.reference();
                                 } else if (finalDefLabelIndex != -1) {
-                                    falseTarget = blocks.get(finalDefLabelIndex + 1).successor();
+                                    falseTarget = blocks.get(finalDefLabelIndex + 1).reference();
                                 } else {
-                                    falseTarget = exit.successor();
+                                    falseTarget = exit.reference();
                                 }
                                 block.op(conditionalBranch(block.context().getValue(yop.yieldValue()),
-                                        statement.successor(), falseTarget));
+                                        statement.reference(), falseTarget));
                                 yield block;
                             }
                             default -> null;
@@ -3530,7 +3669,7 @@ public sealed abstract class JavaOp extends Op {
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
                                 List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
-                                block.op(branch(exit.successor(args)));
+                                block.op(branch(exit.reference(args)));
                                 yield block;
                             }
                             default -> null;
@@ -3542,7 +3681,7 @@ public sealed abstract class JavaOp extends Op {
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
                                 List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
-                                block.op(branch(exit.successor(args)));
+                                block.op(branch(exit.reference(args)));
                                 yield block;
                             }
                             default -> null;
@@ -3593,7 +3732,7 @@ public sealed abstract class JavaOp extends Op {
             implements JavaExpression {
         static final String NAME = "java.switch.expression";
 
-        final TypeElement resultType;
+        final CodeType resultType;
 
         SwitchExpressionOp(ExternalizedOp def) {
             this(def.resultType(), def.operands().get(0), def.bodyDefinitions());
@@ -3610,14 +3749,14 @@ public sealed abstract class JavaOp extends Op {
             return new SwitchExpressionOp(this, cc, ot);
         }
 
-        SwitchExpressionOp(TypeElement resultType, Value target, List<Body.Builder> bodyCs) {
+        SwitchExpressionOp(CodeType resultType, Value target, List<Body.Builder> bodyCs) {
             super(target, bodyCs);
 
             this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -3654,7 +3793,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -3688,7 +3827,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
 
@@ -3700,7 +3839,7 @@ public sealed abstract class JavaOp extends Op {
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
             BranchTarget t = BranchTarget.getBranchTarget(b.context(), ancestorBody());
             if (t != null) {
-                b.op(branch(f.apply(t).successor()));
+                b.op(branch(f.apply(t).reference()));
             } else {
                 throw new IllegalStateException("No branch target for operation: " + this);
             }
@@ -3736,10 +3875,10 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class InitBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
 
             InitBuilder(Body.Builder ancestorBody,
-                        List<? extends TypeElement> initTypes) {
+                        List<? extends CodeType> initTypes) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes.stream().map(CoreType::varType).toList();
             }
@@ -3764,11 +3903,11 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class CondBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
             final Body.Builder init;
 
             CondBuilder(Body.Builder ancestorBody,
-                               List<? extends TypeElement> initTypes,
+                               List<? extends CodeType> initTypes,
                                Body.Builder init) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -3795,12 +3934,12 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class UpdateBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
 
             UpdateBuilder(Body.Builder ancestorBody,
-                                 List<? extends TypeElement> initTypes,
+                                 List<? extends CodeType> initTypes,
                                  Body.Builder init, Body.Builder cond) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -3828,13 +3967,13 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> initTypes;
+            final List<? extends CodeType> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
             final Body.Builder update;
 
             BodyBuilder(Body.Builder ancestorBody,
-                               List<? extends TypeElement> initTypes,
+                               List<? extends CodeType> initTypes,
                                Body.Builder init, Body.Builder cond, Body.Builder update) {
                 this.ancestorBody = ancestorBody;
                 this.initTypes = initTypes;
@@ -3860,10 +3999,10 @@ public sealed abstract class JavaOp extends Op {
 
         static final String NAME = "java.for";
 
-        final Body init;
-        final Body cond;
-        final Body update;
-        final Body body;
+        final Body initBody;
+        final Body condBody;
+        final Body updateBody;
+        final Body loopBody;
 
         ForOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0),
@@ -3875,10 +4014,10 @@ public sealed abstract class JavaOp extends Op {
         ForOp(ForOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
-            this.init = that.init.transform(cc, ot).build(this);
-            this.cond = that.cond.transform(cc, ot).build(this);
-            this.update = that.update.transform(cc, ot).build(this);
-            this.body = that.body.transform(cc, ot).build(this);
+            this.initBody = that.initBody.transform(cc, ot).build(this);
+            this.condBody = that.condBody.transform(cc, ot).build(this);
+            this.updateBody = that.updateBody.transform(cc, ot).build(this);
+            this.loopBody = that.loopBody.transform(cc, ot).build(this);
         }
 
         @Override
@@ -3892,50 +4031,50 @@ public sealed abstract class JavaOp extends Op {
               Body.Builder bodyC) {
             super(List.of());
 
-            this.init = initC.build(this);
+            this.initBody = initC.build(this);
 
-            this.cond = condC.build(this);
+            this.condBody = condC.build(this);
 
-            this.update = updateC.build(this);
-            if (!update.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Update should return void: " + update.bodyType());
+            this.updateBody = updateC.build(this);
+            if (!updateBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Update should return void: " + updateBody.bodySignature());
             }
 
-            this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
+            this.loopBody = bodyC.build(this);
+            if (!loopBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + loopBody.bodySignature());
             }
         }
 
         @Override
         public List<Body> bodies() {
-            return List.of(init, cond, update, body);
+            return List.of(initBody, condBody, updateBody, loopBody);
         }
 
         /**
          * {@return the initialization body}
          */
-        public Body init() {
-            return init;
+        public Body initBody() {
+            return initBody;
         }
 
         /**
          * {@return the loop condition (predicate) body}
          */
-        public Body cond() {
-            return cond;
+        public Body condBody() {
+            return condBody;
         }
 
         /**
          * {@return the update body}
          */
-        public Body update() {
-            return update;
+        public Body updateBody() {
+            return updateBody;
         }
 
         @Override
         public Body loopBody() {
-            return body;
+            return loopBody;
         }
 
         @Override
@@ -3948,7 +4087,7 @@ public sealed abstract class JavaOp extends Op {
             List<Value> initValues = new ArrayList<>();
             // @@@ Init body has one yield operation yielding
             //  void, a single variable, or a tuple of one or more variables
-            b.body(init, List.of(), andThenLowering(opT, (block, op) -> switch (op) {
+            b.body(initBody, List.of(), andThenLowering(opT, (block, op) -> switch (op) {
                 case TupleOp _ -> {
                     // Drop Tuple if a yielded
                     boolean isResult = op.result().uses().size() == 1 &&
@@ -3960,7 +4099,7 @@ public sealed abstract class JavaOp extends Op {
                 }
                 case CoreOp.YieldOp yop -> {
                     if (yop.yieldValue() == null) {
-                        block.op(branch(header.successor()));
+                        block.op(branch(header.reference()));
                         yield block;
                     } else if (yop.yieldValue() instanceof Result or) {
                         if (or.op() instanceof TupleOp top) {
@@ -3968,7 +4107,7 @@ public sealed abstract class JavaOp extends Op {
                         } else {
                             initValues.addAll(block.context().getValues(yop.operands()));
                         }
-                        block.op(branch(header.successor()));
+                        block.op(branch(header.reference()));
                         yield block;
                     }
 
@@ -3977,10 +4116,10 @@ public sealed abstract class JavaOp extends Op {
                 default -> null;
             }));
 
-            header.body(cond, initValues, andThenLowering(opT, (block, op) -> {
+            header.body(condBody, initValues, andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            body.successor(), exit.successor()));
+                            body.reference(), exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -3989,11 +4128,11 @@ public sealed abstract class JavaOp extends Op {
 
             BranchTarget.setBranchTarget(b.context(), this, exit, update);
 
-            body.body(this.body, initValues, andThenLowering(opT, (_, _) -> null));
+            body.body(this.loopBody, initValues, andThenLowering(opT, (_, _) -> null));
 
-            update.body(this.update, initValues, andThenLowering(opT, (block, op) -> {
+            update.body(this.updateBody, initValues, andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
-                    block.op(branch(header.successor()));
+                    block.op(branch(header.reference()));
                     return block;
                 } else {
                     return null;
@@ -4004,7 +4143,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -4034,11 +4173,11 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class ExpressionBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement iterableType;
-            final TypeElement elementType;
+            final CodeType iterableType;
+            final CodeType elementType;
 
             ExpressionBuilder(Body.Builder ancestorBody,
-                              TypeElement iterableType, TypeElement elementType) {
+                              CodeType iterableType, CodeType elementType) {
                 this.ancestorBody = ancestorBody;
                 this.iterableType = iterableType;
                 this.elementType = elementType;
@@ -4064,11 +4203,11 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class DefinitionBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement elementType;
+            final CodeType elementType;
             final Body.Builder expression;
 
             DefinitionBuilder(Body.Builder ancestorBody,
-                              TypeElement elementType, Body.Builder expression) {
+                              CodeType elementType, Body.Builder expression) {
                 this.ancestorBody = ancestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
@@ -4092,7 +4231,7 @@ public sealed abstract class JavaOp extends Op {
              * @param c a consumer that populates the definition body
              * @return a builder for specifying the loop body
              */
-            public BodyBuilder definition(TypeElement bodyElementType, Consumer<Block.Builder> c) {
+            public BodyBuilder definition(CodeType bodyElementType, Consumer<Block.Builder> c) {
                 Body.Builder definition = Body.Builder.of(ancestorBody,
                         CoreType.functionType(bodyElementType, elementType));
                 c.accept(definition.entryBlock());
@@ -4106,12 +4245,12 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement elementType;
+            final CodeType elementType;
             final Body.Builder expression;
             final Body.Builder definition;
 
             BodyBuilder(Body.Builder ancestorBody,
-                        TypeElement elementType, Body.Builder expression, Body.Builder definition) {
+                        CodeType elementType, Body.Builder expression, Body.Builder definition) {
                 this.ancestorBody = ancestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
@@ -4135,9 +4274,9 @@ public sealed abstract class JavaOp extends Op {
 
         static final String NAME = "java.enhancedFor";
 
-        final Body expression;
-        final Body init;
-        final Body body;
+        final Body exprBody;
+        final Body initBody;
+        final Body loopBody;
 
         EnhancedForOp(ExternalizedOp def) {
             this(def.bodyDefinitions().get(0),
@@ -4148,9 +4287,9 @@ public sealed abstract class JavaOp extends Op {
         EnhancedForOp(EnhancedForOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
-            this.expression = that.expression.transform(cc, ot).build(this);
-            this.init = that.init.transform(cc, ot).build(this);
-            this.body = that.body.transform(cc, ot).build(this);
+            this.exprBody = that.exprBody.transform(cc, ot).build(this);
+            this.initBody = that.initBody.transform(cc, ot).build(this);
+            this.loopBody = that.loopBody.transform(cc, ot).build(this);
         }
 
         @Override
@@ -4161,53 +4300,53 @@ public sealed abstract class JavaOp extends Op {
         EnhancedForOp(Body.Builder expressionC, Body.Builder initC, Body.Builder bodyC) {
             super(List.of());
 
-            this.expression = expressionC.build(this);
-            if (expression.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Expression should return non-void value: " + expression.bodyType());
+            this.exprBody = expressionC.build(this);
+            if (exprBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Expression should return non-void value: " + exprBody.bodySignature());
             }
-            if (!expression.bodyType().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Expression should have zero parameters: " + expression.bodyType());
-            }
-
-            this.init = initC.build(this);
-            if (init.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Initialization should return non-void value: " + init.bodyType());
-            }
-            if (init.bodyType().parameterTypes().size() != 1) {
-                throw new IllegalArgumentException("Initialization should have one parameter: " + init.bodyType());
+            if (!exprBody.bodySignature().parameterTypes().isEmpty()) {
+                throw new IllegalArgumentException("Expression should have zero parameters: " + exprBody.bodySignature());
             }
 
-            this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodyType());
+            this.initBody = initC.build(this);
+            if (initBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Initialization should return non-void value: " + initBody.bodySignature());
             }
-            if (body.bodyType().parameterTypes().size() != 1) {
-                throw new IllegalArgumentException("Body should have one parameter: " + body.bodyType());
+            if (initBody.bodySignature().parameterTypes().size() != 1) {
+                throw new IllegalArgumentException("Initialization should have one parameter: " + initBody.bodySignature());
+            }
+
+            this.loopBody = bodyC.build(this);
+            if (!loopBody.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Body should return void: " + loopBody.bodySignature());
+            }
+            if (loopBody.bodySignature().parameterTypes().size() != 1) {
+                throw new IllegalArgumentException("Body should have one parameter: " + loopBody.bodySignature());
             }
         }
 
         @Override
         public List<Body> bodies() {
-            return List.of(expression, init, body);
+            return List.of(exprBody, initBody, loopBody);
         }
 
         /**
          * {@return the expression body}
          */
-        public Body expression() {
-            return expression;
+        public Body exprBody() {
+            return exprBody;
         }
 
         /**
          * {@return the initialization body}
          */
-        public Body initialization() {
-            return init;
+        public Body initBody() {
+            return initBody;
         }
 
         @Override
         public Body loopBody() {
-            return body;
+            return loopBody;
         }
 
         static final MethodRef ITERABLE_ITERATOR = MethodRef.method(Iterable.class, "iterator", Iterator.class);
@@ -4216,19 +4355,19 @@ public sealed abstract class JavaOp extends Op {
 
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
-            JavaType elementType = (JavaType) init.entryBlock().parameters().get(0).type();
-            boolean isArray = expression.bodyType().returnType() instanceof ArrayType;
+            JavaType elementType = (JavaType) initBody.entryBlock().parameters().get(0).type();
+            boolean isArray = exprBody.bodySignature().returnType() instanceof ArrayType;
 
-            Block.Builder preHeader = b.block(expression.bodyType().returnType());
+            Block.Builder preHeader = b.block(exprBody.bodySignature().returnType());
             Block.Builder header = b.block(isArray ? List.of(INT) : List.of());
             Block.Builder init = b.block();
             Block.Builder body = b.block();
             Block.Builder exit = b.block();
 
-            b.body(expression, List.of(), andThenLowering(opT, (block, op) -> {
+            b.body(exprBody, List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     Value loopSource = block.context().getValue(yop.yieldValue());
-                    block.op(branch(preHeader.successor(loopSource)));
+                    block.op(branch(preHeader.reference(loopSource)));
                     return block;
                 } else {
                     return null;
@@ -4239,18 +4378,18 @@ public sealed abstract class JavaOp extends Op {
                 Value array = preHeader.parameters().get(0);
                 Value arrayLength = preHeader.op(arrayLength(array));
                 Value i = preHeader.op(constant(INT, 0));
-                preHeader.op(branch(header.successor(i)));
+                preHeader.op(branch(header.reference(i)));
 
                 i = header.parameters().get(0);
                 Value p = header.op(lt(i, arrayLength));
-                header.op(conditionalBranch(p, init.successor(), exit.successor()));
+                header.op(conditionalBranch(p, init.reference(), exit.reference()));
 
                 Value e = init.op(arrayLoadOp(array, i));
                 List<Value> initValues = new ArrayList<>();
-                init.body(this.init, List.of(e), andThenLowering(opT, (block, op) -> {
+                init.body(this.initBody, List.of(e), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         initValues.addAll(block.context().getValues(yop.operands()));
-                        block.op(branch(body.successor()));
+                        block.op(branch(body.reference()));
                         return block;
                     } else {
                         return null;
@@ -4260,24 +4399,24 @@ public sealed abstract class JavaOp extends Op {
                 Block.Builder update = b.block();
                 BranchTarget.setBranchTarget(b.context(), this, exit, update);
 
-                body.body(this.body, initValues, andThenLowering(opT, (_, _) -> null));
+                body.body(this.loopBody, initValues, andThenLowering(opT, (_, _) -> null));
 
                 i = update.op(add(i, update.op(constant(INT, 1))));
-                update.op(branch(header.successor(i)));
+                update.op(branch(header.reference(i)));
             } else {
                 JavaType iterable = parameterized(type(Iterator.class), elementType);
                 Value iterator = preHeader.op(invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
-                preHeader.op(branch(header.successor()));
+                preHeader.op(branch(header.reference()));
 
                 Value p = header.op(invoke(ITERATOR_HAS_NEXT, iterator));
-                header.op(conditionalBranch(p, init.successor(), exit.successor()));
+                header.op(conditionalBranch(p, init.reference(), exit.reference()));
 
                 Value e = init.op(invoke(elementType, ITERATOR_NEXT, iterator));
                 List<Value> initValues = new ArrayList<>();
-                init.body(this.init, List.of(e), andThenLowering(opT, (block, op) -> {
+                init.body(this.initBody, List.of(e), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         initValues.addAll(block.context().getValues(yop.operands()));
-                        block.op(branch(body.successor()));
+                        block.op(branch(body.reference()));
                         return block;
                     } else {
                         return null;
@@ -4286,14 +4425,14 @@ public sealed abstract class JavaOp extends Op {
 
                 BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
-                body.body(this.body, initValues, andThenLowering(opT, (_, _) -> null));
+                body.body(this.loopBody, initValues, andThenLowering(opT, (_, _) -> null));
             }
 
             return exit;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -4388,15 +4527,15 @@ public sealed abstract class JavaOp extends Op {
                     .map(bc -> bc.build(this)).toList();
 
             // @@@ This will change with pattern bindings
-            if (!bodies.get(0).bodyType().equals(CoreType.functionType(BOOLEAN))) {
+            if (!bodies.get(0).bodySignature().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body type should be " + CoreType.functionType(BOOLEAN) +
-                                " but is " + bodies.get(0).bodyType());
+                        "Predicate body signature should be " + CoreType.functionType(BOOLEAN) +
+                                " but is " + bodies.get(0).bodySignature());
             }
-            if (!bodies.get(1).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
+            if (!bodies.get(1).bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
                         "Body type should be " + CoreType.functionType(VOID) +
-                                " but is " + bodies.get(1).bodyType());
+                                " but is " + bodies.get(1).bodySignature());
             }
         }
 
@@ -4435,12 +4574,12 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder body = b.block();
             Block.Builder exit = b.block();
 
-            b.op(branch(header.successor()));
+            b.op(branch(header.reference()));
 
             header.body(predicateBody(), List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            body.successor(), exit.successor()));
+                            body.reference(), exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -4455,7 +4594,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -4550,15 +4689,15 @@ public sealed abstract class JavaOp extends Op {
             this.bodies = Stream.of(body, predicate).filter(Objects::nonNull)
                     .map(bc -> bc.build(this)).toList();
 
-            if (!bodies.get(0).bodyType().equals(CoreType.FUNCTION_TYPE_VOID)) {
+            if (!bodies.get(0).bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
                 throw new IllegalArgumentException(
                         "Body type should be " + CoreType.functionType(VOID) +
-                                " but is " + bodies.get(1).bodyType());
+                                " but is " + bodies.get(1).bodySignature());
             }
-            if (!bodies.get(1).bodyType().equals(CoreType.functionType(BOOLEAN))) {
+            if (!bodies.get(1).bodySignature().equals(CoreType.functionType(BOOLEAN))) {
                 throw new IllegalArgumentException(
-                        "Predicate body type should be " + CoreType.functionType(BOOLEAN) +
-                                " but is " + bodies.get(0).bodyType());
+                        "Predicate body signature should be " + CoreType.functionType(BOOLEAN) +
+                                " but is " + bodies.get(0).bodySignature());
             }
         }
 
@@ -4597,7 +4736,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder header = b.block();
             Block.Builder exit = b.block();
 
-            b.op(branch(body.successor()));
+            b.op(branch(body.reference()));
 
             BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
@@ -4606,7 +4745,7 @@ public sealed abstract class JavaOp extends Op {
             header.body(predicateBody(), List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            body.successor(), exit.successor()));
+                            body.reference(), exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -4617,7 +4756,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -4650,8 +4789,8 @@ public sealed abstract class JavaOp extends Op {
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             for (Body b : bodies) {
-                if (!b.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                    throw new IllegalArgumentException("Body conditional body type: " + b.bodyType());
+                if (!b.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
+                    throw new IllegalArgumentException("Body conditional body signature: " + b.bodySignature());
                 }
             }
         }
@@ -4665,7 +4804,7 @@ public sealed abstract class JavaOp extends Op {
             List<Body> bodies = cop.bodies();
 
             Block.Builder exit = startBlock.block();
-            TypeElement oprType = cop.result().type();
+            CodeType oprType = cop.result().type();
             Block.Parameter arg = exit.parameter(oprType);
             startBlock.context().mapValue(cop.result(), arg);
 
@@ -4679,7 +4818,7 @@ public sealed abstract class JavaOp extends Op {
                     opt = lowering(opT, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
-                            block.op(branch(exit.successor(p)));
+                            block.op(branch(exit.reference(p)));
                             return block;
                         } else {
                             return null;
@@ -4691,9 +4830,9 @@ public sealed abstract class JavaOp extends Op {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             if (cop instanceof ConditionalAndOp) {
-                                block.op(conditionalBranch(p, nextPred.successor(), exit.successor(p)));
+                                block.op(conditionalBranch(p, nextPred.reference(), exit.reference(p)));
                             } else {
-                                block.op(conditionalBranch(p, exit.successor(p), nextPred.successor()));
+                                block.op(conditionalBranch(p, exit.reference(p), nextPred.reference()));
                             }
                             return block;
                         } else {
@@ -4706,7 +4845,7 @@ public sealed abstract class JavaOp extends Op {
                 if (i == 0) {
                     startBlock.body(fromPred, List.of(), opt::apply);
                 } else {
-                    pred = startBlock.block(fromPred.bodyType().parameterTypes());
+                    pred = startBlock.block(fromPred.bodySignature().parameterTypes());
                     pred.body(fromPred, pred.parameters(), andThen(opT, opt));
                 }
             }
@@ -4715,7 +4854,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return BOOLEAN;
         }
     }
@@ -4874,7 +5013,7 @@ public sealed abstract class JavaOp extends Op {
 
         static final String NAME = "java.cexpression";
 
-        final TypeElement resultType;
+        final CodeType resultType;
         // {cond, truepart, falsepart}
         final List<Body> bodies;
 
@@ -4900,7 +5039,7 @@ public sealed abstract class JavaOp extends Op {
             return new ConditionalExpressionOp(this, cc, ot);
         }
 
-        ConditionalExpressionOp(TypeElement expressionType, List<Body.Builder> bodyCs) {
+        ConditionalExpressionOp(CodeType expressionType, List<Body.Builder> bodyCs) {
             super(List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
@@ -4912,14 +5051,35 @@ public sealed abstract class JavaOp extends Op {
             }
 
             Body cond = bodies.get(0);
-            if (!cond.bodyType().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal cond body type: " + cond.bodyType());
+            if (!cond.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
+                throw new IllegalArgumentException("Illegal cond body signature: " + cond.bodySignature());
             }
         }
 
         @Override
         public List<Body> bodies() {
             return bodies;
+        }
+
+        /**
+         * {@return the predicate body}
+         */
+        public Body predicateBody() {
+            return bodies.get(0);
+        }
+
+        /**
+         * {@return the true body}
+         */
+        public Body trueBody() {
+            return bodies.get(1);
+        }
+
+        /**
+         * {@return the false body}
+         */
+        public Body falseBody() {
+            return bodies.get(2);
         }
 
         @Override
@@ -4933,7 +5093,7 @@ public sealed abstract class JavaOp extends Op {
             b.body(bodies.get(0), List.of(), andThenLowering(opT, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            builders.get(0).successor(), builders.get(1).successor()));
+                            builders.get(0).reference(), builders.get(1).reference()));
                     return block;
                 } else {
                     return null;
@@ -4943,7 +5103,7 @@ public sealed abstract class JavaOp extends Op {
             for (int i = 0; i < 2; i++) {
                 builders.get(i).body(bodies.get(i + 1), List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
-                        block.op(branch(exit.successor(block.context().getValue(yop.yieldValue()))));
+                        block.op(branch(exit.reference(block.context().getValue(yop.yieldValue()))));
                         return block;
                     } else {
                         return null;
@@ -4955,7 +5115,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
@@ -4964,7 +5124,7 @@ public sealed abstract class JavaOp extends Op {
      * The try operation, that can model Java language try statements.
      * <p>
      * Try operations feature a <em>try body</em>, zero or more <em>catch bodies</em>, and an optional
-     * <em>finalizer body</em>. Try operations may also feature an optional <em>resources body</em>, modeling a
+     * <em>finally body</em>. Try operations may also feature an optional <em>resources body</em>, modeling a
      * try-with-resources statement.
      * <p>
      * The resources body, if present, accepts no arguments and yields a value of type {@code R}.
@@ -4975,7 +5135,7 @@ public sealed abstract class JavaOp extends Op {
      * accept an argument of type {@code R}, otherwise it accepts no arguments.
      * <p>
      * Each catch body should accept an exception value and yield {@linkplain JavaType#VOID no value}. The
-     * finalizer body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
+     * finally body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
      * <p>
      * The result type of a try operation is {@link JavaType#VOID}.
      *
@@ -4991,10 +5151,10 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class BodyBuilder {
             final Body.Builder ancestorBody;
-            final List<? extends TypeElement> resourceTypes;
+            final List<? extends CodeType> resourceTypes;
             final Body.Builder resources;
 
-            BodyBuilder(Body.Builder ancestorBody, List<? extends TypeElement> resourceTypes, Body.Builder resources) {
+            BodyBuilder(Body.Builder ancestorBody, List<? extends CodeType> resourceTypes, Body.Builder resources) {
                 this.ancestorBody = ancestorBody;
                 this.resourceTypes = resourceTypes;
                 this.resources = resources;
@@ -5039,7 +5199,7 @@ public sealed abstract class JavaOp extends Op {
              * @param c a consumer that populates the catch body
              * @return this builder
              */
-            public CatchBuilder catch_(TypeElement exceptionType, Consumer<Block.Builder> c) {
+            public CatchBuilder catch_(CodeType exceptionType, Consumer<Block.Builder> c) {
                 Body.Builder _catch = Body.Builder.of(ancestorBody,
                         CoreType.functionType(VOID, exceptionType));
                 c.accept(_catch.entryBlock());
@@ -5073,17 +5233,17 @@ public sealed abstract class JavaOp extends Op {
 
         static final String NAME = "java.try";
 
-        final Body resources;
+        final Body resourcesBody;
         final Body body;
-        final List<Body> catchers;
-        final Body finalizer;
+        final List<Body> catchBodies;
+        final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
             List<Body.Builder> bodies = def.bodyDefinitions();
             Body.Builder first = bodies.getFirst();
             Body.Builder resources;
             Body.Builder body;
-            if (first.bodyType().returnType().equals(VOID)) {
+            if (first.bodySignature().returnType().equals(VOID)) {
                 resources = null;
                 body = first;
             } else {
@@ -5093,7 +5253,7 @@ public sealed abstract class JavaOp extends Op {
 
             Body.Builder last = bodies.getLast();
             Body.Builder finalizer;
-            if (last.bodyType().parameterTypes().isEmpty()) {
+            if (last.bodySignature().parameterTypes().isEmpty()) {
                 finalizer = last;
             } else {
                 finalizer = null;
@@ -5108,19 +5268,19 @@ public sealed abstract class JavaOp extends Op {
         TryOp(TryOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
 
-            if (that.resources != null) {
-                this.resources = that.resources.transform(cc, ot).build(this);
+            if (that.resourcesBody != null) {
+                this.resourcesBody = that.resourcesBody.transform(cc, ot).build(this);
             } else {
-                this.resources = null;
+                this.resourcesBody = null;
             }
             this.body = that.body.transform(cc, ot).build(this);
-            this.catchers = that.catchers.stream()
+            this.catchBodies = that.catchBodies.stream()
                     .map(b -> b.transform(cc, ot).build(this))
                     .toList();
-            if (that.finalizer != null) {
-                this.finalizer = that.finalizer.transform(cc, ot).build(this);
+            if (that.finallyBody != null) {
+                this.finallyBody = that.finallyBody.transform(cc, ot).build(this);
             } else {
-                this.finalizer = null;
+                this.finallyBody = null;
             }
         }
 
@@ -5136,55 +5296,55 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             if (resourcesC != null) {
-                this.resources = resourcesC.build(this);
-                if (resources.bodyType().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Resources should not return void: " + resources.bodyType());
+                this.resourcesBody = resourcesC.build(this);
+                if (resourcesBody.bodySignature().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Resources should not return void: " + resourcesBody.bodySignature());
                 }
-                if (!resources.bodyType().parameterTypes().isEmpty()) {
-                    throw new IllegalArgumentException("Resources should have zero parameters: " + resources.bodyType());
+                if (!resourcesBody.bodySignature().parameterTypes().isEmpty()) {
+                    throw new IllegalArgumentException("Resources should have zero parameters: " + resourcesBody.bodySignature());
                 }
             } else {
-                this.resources = null;
+                this.resourcesBody = null;
             }
 
             this.body = bodyC.build(this);
-            if (!body.bodyType().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Try should return void: " + body.bodyType());
+            if (!body.bodySignature().returnType().equals(VOID)) {
+                throw new IllegalArgumentException("Try should return void: " + body.bodySignature());
             }
 
-            this.catchers = catchersC.stream().map(c -> c.build(this)).toList();
-            for (Body _catch : catchers) {
-                if (!_catch.bodyType().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Catch should return void: " + _catch.bodyType());
+            this.catchBodies = catchersC.stream().map(c -> c.build(this)).toList();
+            for (Body _catch : catchBodies) {
+                if (!_catch.bodySignature().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Catch should return void: " + _catch.bodySignature());
                 }
-                if (_catch.bodyType().parameterTypes().size() != 1) {
-                    throw new IllegalArgumentException("Catch should have zero parameters: " + _catch.bodyType());
+                if (_catch.bodySignature().parameterTypes().size() != 1) {
+                    throw new IllegalArgumentException("Catch should have zero parameters: " + _catch.bodySignature());
                 }
             }
 
             if (finalizerC != null) {
-                this.finalizer = finalizerC.build(this);
-                if (!finalizer.bodyType().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Finally should return void: " + finalizer.bodyType());
+                this.finallyBody = finalizerC.build(this);
+                if (!finallyBody.bodySignature().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Finally should return void: " + finallyBody.bodySignature());
                 }
-                if (!finalizer.bodyType().parameterTypes().isEmpty()) {
-                    throw new IllegalArgumentException("Finally should have zero parameters: " + finalizer.bodyType());
+                if (!finallyBody.bodySignature().parameterTypes().isEmpty()) {
+                    throw new IllegalArgumentException("Finally should have zero parameters: " + finallyBody.bodySignature());
                 }
             } else {
-                this.finalizer = null;
+                this.finallyBody = null;
             }
         }
 
         @Override
         public List<Body> bodies() {
             ArrayList<Body> bodies = new ArrayList<>();
-            if (resources != null) {
-                bodies.add(resources);
+            if (resourcesBody != null) {
+                bodies.add(resourcesBody);
             }
             bodies.add(body);
-            bodies.addAll(catchers);
-            if (finalizer != null) {
-                bodies.add(finalizer);
+            bodies.addAll(catchBodies);
+            if (finallyBody != null) {
+                bodies.add(finallyBody);
             }
             return bodies;
         }
@@ -5192,8 +5352,8 @@ public sealed abstract class JavaOp extends Op {
         /**
          * {@return the resources body, or {@code null} if this try operation has no resources}
          */
-        public Body resources() {
-            return resources;
+        public Body resourcesBody() {
+            return resourcesBody;
         }
 
         /**
@@ -5206,20 +5366,20 @@ public sealed abstract class JavaOp extends Op {
         /**
          * {@return the catch bodies}
          */
-        public List<Body> catchers() {
-            return catchers;
+        public List<Body> catchBodies() {
+            return catchBodies;
         }
 
         /**
-         * {@return the finalizer body, or {@code null} if this try operation has no finalizer}
+         * {@return the finally body, or {@code null} if this try operation has no finally body}
          */
-        public Body finalizer() {
-            return finalizer;
+        public Body finallyBody() {
+            return finallyBody;
         }
 
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
-            if (resources != null) {
+            if (resourcesBody != null) {
                 throw new UnsupportedOperationException("Lowering of try-with-resources is unsupported");
             }
 
@@ -5227,10 +5387,10 @@ public sealed abstract class JavaOp extends Op {
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             // Simple case with no catch and finally bodies
-            if (catchers.isEmpty() && finalizer == null) {
+            if (catchBodies.isEmpty() && finallyBody == null) {
                 b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(exit.successor()));
+                        block.op(branch(exit.reference()));
                         return block;
                     } else {
                         return null;
@@ -5243,11 +5403,11 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder tryRegionExit = b.block();
 
             // Construct the catcher block builders
-            List<Block.Builder> catchers = catchers().stream()
+            List<Block.Builder> catchers = catchBodies().stream()
                     .map(catcher -> b.block())
                     .toList();
             Block.Builder catcherFinally;
-            if (finalizer == null) {
+            if (finallyBody == null) {
                 catcherFinally = null;
             } else {
                 catcherFinally = b.block();
@@ -5257,12 +5417,12 @@ public sealed abstract class JavaOp extends Op {
 
             // Enter the try exception region
             List<Block.Reference> exitHandlers = catchers.stream()
-                    .map(Block.Builder::successor)
+                    .map(Block.Builder::reference)
                     .toList();
-            b.op(exceptionRegionEnter(tryRegionEnter.successor(), exitHandlers.reversed()));
+            b.op(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
 
             CodeTransformer tryExitTransformer;
-            if (finalizer != null) {
+            if (finallyBody != null) {
                 tryExitTransformer = compose(opT, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
@@ -5276,7 +5436,7 @@ public sealed abstract class JavaOp extends Op {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
-                        block.op(exceptionRegionExit(tryRegionReturnExit.successor(), exitHandlers));
+                        block.op(exceptionRegionExit(tryRegionReturnExit.reference(), exitHandlers));
                         return tryRegionReturnExit;
                     } else {
                         return block;
@@ -5288,7 +5448,7 @@ public sealed abstract class JavaOp extends Op {
             tryRegionEnter.body(body, List.of(), andThenLowering(tryExitTransformer, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     hasTryRegionExit.set(true);
-                    block.op(branch(tryRegionExit.successor()));
+                    block.op(branch(tryRegionExit.reference()));
                     return block;
                 } else {
                     return null;
@@ -5296,37 +5456,37 @@ public sealed abstract class JavaOp extends Op {
             }));
 
             Block.Builder finallyEnter = null;
-            if (finalizer != null) {
+            if (finallyBody != null) {
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
-                    tryRegionExit.op(exceptionRegionExit(finallyEnter.successor(), exitHandlers));
+                    tryRegionExit.op(exceptionRegionExit(finallyEnter.reference(), exitHandlers));
                 }
             } else if (hasTryRegionExit.get()) {
                 // Exit the try exception region
-                tryRegionExit.op(exceptionRegionExit(exit.successor(), exitHandlers));
+                tryRegionExit.op(exceptionRegionExit(exit.reference(), exitHandlers));
             }
 
             // Inline the catch bodies
-            for (int i = 0; i < this.catchers.size(); i++) {
+            for (int i = 0; i < this.catchBodies.size(); i++) {
                 Block.Builder catcher = catchers.get(i);
-                Body catcherBody = this.catchers.get(i);
+                Body catcherBody = this.catchBodies.get(i);
                 // Create the throwable argument
-                Block.Parameter t = catcher.parameter(catcherBody.bodyType().parameterTypes().get(0));
+                Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
-                if (finalizer != null) {
+                if (finallyBody != null) {
                     Block.Builder catchRegionEnter = b.block();
                     Block.Builder catchRegionExit = b.block();
 
                     // Enter the catch exception region
                     Result catchExceptionRegion = catcher.op(
-                            exceptionRegionEnter(catchRegionEnter.successor(), catcherFinally.successor()));
+                            exceptionRegionEnter(catchRegionEnter.reference(), catcherFinally.reference()));
 
                     CodeTransformer catchExitTransformer = compose(opT, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
-                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.reference()), opT);
                         } else if (op instanceof StatementTargetOp lop && ifExitFromTry(lop)) {
-                            return inlineFinalizer(block, List.of(catcherFinally.successor()), opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.reference()), opT);
                         } else {
                             return block;
                         }
@@ -5336,7 +5496,7 @@ public sealed abstract class JavaOp extends Op {
                     catchRegionEnter.body(catcherBody, List.of(t), andThenLowering(catchExitTransformer, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp) {
                             hasCatchRegionExit.set(true);
-                            block.op(branch(catchRegionExit.successor()));
+                            block.op(branch(catchRegionExit.reference()));
                             return block;
                         } else {
                             return null;
@@ -5346,13 +5506,13 @@ public sealed abstract class JavaOp extends Op {
                     // Exit the catch exception region
                     if (hasCatchRegionExit.get()) {
                         hasTryRegionExit.set(true);
-                        catchRegionExit.op(exceptionRegionExit(finallyEnter.successor(), catcherFinally.successor()));
+                        catchRegionExit.op(exceptionRegionExit(finallyEnter.reference(), catcherFinally.reference()));
                     }
                 } else {
                     // Inline the catch body
                     catcher.body(catcherBody, List.of(t), andThenLowering(opT, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp) {
-                            block.op(branch(exit.successor()));
+                            block.op(branch(exit.reference()));
                             return block;
                         } else {
                             return null;
@@ -5361,11 +5521,11 @@ public sealed abstract class JavaOp extends Op {
                 }
             }
 
-            if (finalizer != null && hasTryRegionExit.get()) {
+            if (finallyBody != null && hasTryRegionExit.get()) {
                 // Inline the finally body
-                finallyEnter.body(finalizer, List.of(), andThenLowering(opT, (block, op) -> {
+                finallyEnter.body(finallyBody, List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(exit.successor()));
+                        block.op(branch(exit.reference()));
                         return block;
                     } else {
                         return null;
@@ -5374,11 +5534,11 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // Inline the finally body as a catcher of Throwable and adjusting to throw
-            if (finalizer != null) {
+            if (finallyBody != null) {
                 // Create the throwable argument
                 Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
 
-                catcherFinally.body(finalizer, List.of(), andThenLowering(opT, (block, op) -> {
+                catcherFinally.body(finallyBody, List.of(), andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(throw_(t));
                         return block;
@@ -5399,12 +5559,12 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
-            block1.op(exceptionRegionExit(finallyEnter.successor(), tryHandlers));
+            block1.op(exceptionRegionExit(finallyEnter.reference(), tryHandlers));
 
             // Inline the finally body
-            finallyEnter.body(finalizer, List.of(), andThenLowering(opT, (block2, op2) -> {
+            finallyEnter.body(finallyBody, List.of(), andThenLowering(opT, (block2, op2) -> {
                 if (op2 instanceof CoreOp.YieldOp) {
-                    block2.op(branch(finallyExit.successor()));
+                    block2.op(branch(finallyExit.reference()));
                     return block2;
                 } else {
                     return null;
@@ -5415,7 +5575,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return VOID;
         }
     }
@@ -5427,7 +5587,7 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * Synthetic pattern types
-     * // @@@ Replace with types extending from TypeElement
+     * // @@@ Replace with types extending from CodeType
      */
     public sealed interface Pattern {
 
@@ -5474,7 +5634,7 @@ public sealed abstract class JavaOp extends Op {
          * {@return a synthetic type for a type test pattern with the provided type}
          * @param t the type of the type test pattern
          */
-        static JavaType bindingType(TypeElement t) {
+        static JavaType bindingType(CodeType t) {
             return parameterized(PATTERN_BINDING_TYPE, (JavaType) t);
         }
 
@@ -5482,7 +5642,7 @@ public sealed abstract class JavaOp extends Op {
          * {@return a synthetic type for a record pattern with the provided record type}
          * @param t the record type
          */
-        static JavaType recordType(TypeElement t) {
+        static JavaType recordType(CodeType t) {
             return parameterized(PATTERN_RECORD_TYPE, (JavaType) t);
         }
 
@@ -5497,7 +5657,7 @@ public sealed abstract class JavaOp extends Op {
          * {@return the type bound by a synthetic type test/record pattern}
          * @param t the synthetic pattern type
          */
-        static TypeElement targetType(TypeElement t) {
+        static CodeType targetType(CodeType t) {
             return ((ClassType) t).typeArguments().get(0);
         }
     }
@@ -5546,7 +5706,7 @@ public sealed abstract class JavaOp extends Op {
              */
         static final String ATTRIBUTE_BINDING_NAME = NAME + ".binding.name";
 
-            final TypeElement resultType;
+            final CodeType resultType;
             final String bindingName;
 
             TypePatternOp(ExternalizedOp def) {
@@ -5574,7 +5734,7 @@ public sealed abstract class JavaOp extends Op {
                 return new TypePatternOp(this, cc);
             }
 
-            TypePatternOp(TypeElement targetType, String bindingName) {
+            TypePatternOp(CodeType targetType, String bindingName) {
                 super(List.of());
 
                 this.bindingName = bindingName;
@@ -5596,12 +5756,12 @@ public sealed abstract class JavaOp extends Op {
             /**
              * {@return the type matched by this type test pattern}
              */
-            public TypeElement targetType() {
+            public CodeType targetType() {
                 return Pattern.targetType(resultType());
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return resultType;
             }
         }
@@ -5623,7 +5783,7 @@ public sealed abstract class JavaOp extends Op {
               */
             static final String ATTRIBUTE_RECORD_REF = NAME + ".ref";
 
-            final RecordTypeRef recordRef;
+            final RecordTypeRef recordReference;
 
             RecordPatternOp(ExternalizedOp def) {
                 RecordTypeRef recordRef = def.extractAttributeValue(ATTRIBUTE_RECORD_REF, true,
@@ -5639,7 +5799,7 @@ public sealed abstract class JavaOp extends Op {
             RecordPatternOp(RecordPatternOp that, CodeContext cc) {
                 super(that, cc);
 
-                this.recordRef = that.recordRef;
+                this.recordReference = that.recordReference;
             }
 
             @Override
@@ -5647,12 +5807,12 @@ public sealed abstract class JavaOp extends Op {
                 return new RecordPatternOp(this, cc);
             }
 
-            RecordPatternOp(RecordTypeRef recordRef, List<Value> nestedPatterns) {
+            RecordPatternOp(RecordTypeRef recordReference, List<Value> nestedPatterns) {
                 // The type of each value is a subtype of Pattern
                 // The number of values corresponds to the number of components of the record
                 super(List.copyOf(nestedPatterns));
 
-                this.recordRef = recordRef;
+                this.recordReference = recordReference;
             }
 
             @Override
@@ -5664,19 +5824,19 @@ public sealed abstract class JavaOp extends Op {
               * {@return the record reference associated with this record pattern}
               */
             public RecordTypeRef recordReference() {
-                return recordRef;
+                return recordReference;
             }
 
             /**
              * {@return the type matched by this record pattern}
              */
-            public TypeElement targetType() {
+            public CodeType targetType() {
                 return Pattern.targetType(resultType());
             }
 
             @Override
-            public TypeElement resultType() {
-                return Pattern.recordType(recordRef.recordType());
+            public CodeType resultType() {
+                return Pattern.recordType(recordReference.recordType());
             }
         }
 
@@ -5711,7 +5871,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return Pattern.matchAllType();
             }
         }
@@ -5738,8 +5898,8 @@ public sealed abstract class JavaOp extends Op {
         public static final class MatchOp extends JavaOp implements Op.Isolated, Op.Lowerable {
             static final String NAME = "pattern.match";
 
-            final Body pattern;
-            final Body match;
+            final Body patternBody;
+            final Body matchBody;
 
             MatchOp(ExternalizedOp def) {
                 this(def.operands().get(0),
@@ -5749,8 +5909,8 @@ public sealed abstract class JavaOp extends Op {
             MatchOp(MatchOp that, CodeContext cc, CodeTransformer ot) {
                 super(that, cc);
 
-                this.pattern = that.pattern.transform(cc, ot).build(this);
-                this.match = that.match.transform(cc, ot).build(this);
+                this.patternBody = that.patternBody.transform(cc, ot).build(this);
+                this.matchBody = that.matchBody.transform(cc, ot).build(this);
             }
 
             @Override
@@ -5761,13 +5921,13 @@ public sealed abstract class JavaOp extends Op {
             MatchOp(Value target, Body.Builder patternC, Body.Builder matchC) {
                 super(List.of(target));
 
-                this.pattern = patternC.build(this);
-                this.match = matchC.build(this);
+                this.patternBody = patternC.build(this);
+                this.matchBody = matchC.build(this);
             }
 
             @Override
             public List<Body> bodies() {
-                return List.of(pattern, match);
+                return List.of(patternBody, matchBody);
             }
 
             /**
@@ -5775,8 +5935,8 @@ public sealed abstract class JavaOp extends Op {
              *
              * @return the pattern body
              */
-            public Body pattern() {
-                return pattern;
+            public Body patternBody() {
+                return patternBody;
             }
 
             /**
@@ -5784,8 +5944,8 @@ public sealed abstract class JavaOp extends Op {
              *
              * @return the match body
              */
-            public Body match() {
-                return match;
+            public Body matchBody() {
+                return matchBody;
             }
 
             /**
@@ -5793,7 +5953,7 @@ public sealed abstract class JavaOp extends Op {
              *
              * @return the match target value
              */
-            public Value target() {
+            public Value targetOperand() {
                 return operands().get(0);
             }
 
@@ -5810,24 +5970,24 @@ public sealed abstract class JavaOp extends Op {
                 b.context().mapValue(result(), matchResult);
 
                 List<Value> patternValues = new ArrayList<>();
-                Op patternYieldOp = pattern.entryBlock().terminatingOp();
+                Op patternYieldOp = patternBody.entryBlock().terminatingOp();
                 Op.Result rootPatternValue = (Op.Result) patternYieldOp.operands().get(0);
                 Block.Builder currentBlock = lower(endNoMatchBlock, b,
                         patternValues,
                         rootPatternValue.op(),
-                        b.context().getValue(target()));
-                currentBlock.op(branch(endMatchBlock.successor()));
+                        b.context().getValue(targetOperand()));
+                currentBlock.op(branch(endMatchBlock.reference()));
 
                 // No match block
                 // Pass false
-                endNoMatchBlock.op(branch(endBlock.successor(
+                endNoMatchBlock.op(branch(endBlock.reference(
                         endNoMatchBlock.op(constant(BOOLEAN, false)))));
 
                 // Match block
                 // Lower match body and pass true
-                endMatchBlock.body(match, patternValues, andThenLowering(opT, (block, op) -> {
+                endMatchBlock.body(matchBody, patternValues, andThenLowering(opT, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(endBlock.successor(
+                        block.op(branch(endBlock.reference(
                                 block.op(constant(BOOLEAN, true)))));
                         return block;
                     } else {
@@ -5852,13 +6012,13 @@ public sealed abstract class JavaOp extends Op {
             static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                                     List<Value> bindings,
                                                     JavaOp.PatternOps.RecordPatternOp rpOp, Value target) {
-                TypeElement targetType = rpOp.targetType();
+                CodeType targetType = rpOp.targetType();
 
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
                 Op.Result isInstance = currentBlock.op(instanceOf(targetType, target));
-                currentBlock.op(conditionalBranch(isInstance, nextBlock.successor(), endNoMatchBlock.successor()));
+                currentBlock.op(conditionalBranch(isInstance, nextBlock.reference(), endNoMatchBlock.reference()));
 
                 currentBlock = nextBlock;
 
@@ -5880,13 +6040,13 @@ public sealed abstract class JavaOp extends Op {
             static Block.Builder lowerTypePattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
                                                   List<Value> bindings,
                                                   TypePatternOp tpOp, Value target) {
-                TypeElement targetType = tpOp.targetType();
+                CodeType targetType = tpOp.targetType();
 
                 // Check if instance of target type
                 Op p; // op that perform type check
                 Op c; // op that perform conversion
-                TypeElement s = target.type();
-                TypeElement t = targetType;
+                CodeType s = target.type();
+                CodeType t = targetType;
                 if (t instanceof PrimitiveType pt) {
                     if (s instanceof ClassType cs) {
                         // unboxing conversions
@@ -5941,7 +6101,7 @@ public sealed abstract class JavaOp extends Op {
                     if (p != null) {
                         // p != null, we need to perform type check at runtime
                         Block.Builder nextBlock = currentBlock.block();
-                        currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.successor(), endNoMatchBlock.successor()));
+                        currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.reference(), endNoMatchBlock.reference()));
                         currentBlock = nextBlock;
                     }
                     target = currentBlock.op(c);
@@ -5976,7 +6136,7 @@ public sealed abstract class JavaOp extends Op {
                 return narrowingOrder.get(t) <= narrowingOrder.get(s) && !s.equals(t); // need to be strict, to not consider int -> int as narrowing
             }
 
-            private static MethodRef convMethodRef(TypeElement s, TypeElement t) {
+            private static MethodRef convMethodRef(CodeType s, CodeType t) {
                 if (BYTE.equals(s) || SHORT.equals(s) || CHAR.equals(s)) {
                     s = INT;
                 }
@@ -5996,7 +6156,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return BOOLEAN;
             }
         }
@@ -6079,8 +6239,8 @@ public sealed abstract class JavaOp extends Op {
 
     /**
      * A Java dialect factory, for constructing core and Java operations and constructing
-     * core type and Java type elements, where the core type elements can refer to Java
-     * type elements.
+     * core types and Java types, where the core types can refer to Java
+     * types.
      */
     public static final DialectFactory JAVA_DIALECT_FACTORY = new DialectFactory(
             JAVA_OP_FACTORY,
@@ -6090,13 +6250,13 @@ public sealed abstract class JavaOp extends Op {
      * Creates a lambda operation.
      *
      * @param ancestorBody        the ancestor of the body of the lambda operation
-     * @param funcType            the lambda operation's function type
+     * @param signature           the lambda operation's signature, represented as a function type
      * @param functionalInterface the lambda operation's functional interface type
      * @return the lambda operation
      */
     public static LambdaOp.Builder lambda(Body.Builder ancestorBody,
-                                          FunctionType funcType, TypeElement functionalInterface) {
-        return new LambdaOp.Builder(ancestorBody, funcType, functionalInterface);
+                                          FunctionType signature, CodeType functionalInterface) {
+        return new LambdaOp.Builder(ancestorBody, signature, functionalInterface);
     }
 
     /**
@@ -6106,7 +6266,7 @@ public sealed abstract class JavaOp extends Op {
      * @param body                the body of the lambda operation
      * @return the lambda operation
      */
-    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body) {
+    public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body) {
         return new LambdaOp(functionalInterface, body, false);
     }
 
@@ -6118,15 +6278,15 @@ public sealed abstract class JavaOp extends Op {
      * @param isReflectable       true if the lambda is reflectable
      * @return the lambda operation
      */
-    public static LambdaOp lambda(TypeElement functionalInterface, Body.Builder body, boolean isReflectable) {
+    public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body, boolean isReflectable) {
         return new LambdaOp(functionalInterface, body, isReflectable);
     }
 
     /**
      * Creates an exception region enter operation
      *
-     * @param start    the exception region block
-     * @param catchers the blocks handling exceptions thrown by the region block
+     * @param start    the reference to the block that enters the exception region
+     * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
      * @return the exception region enter operation
      */
     public static ExceptionRegionEnter exceptionRegionEnter(Block.Reference start, Block.Reference... catchers) {
@@ -6136,8 +6296,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an exception region enter operation
      *
-     * @param start    the exception region block
-     * @param catchers the blocks handling exceptions thrown by the region block
+     * @param start    the reference to the block that enters the exception region
+     * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
      * @return the exception region enter operation
      */
     public static ExceptionRegionEnter exceptionRegionEnter(Block.Reference start, List<Block.Reference> catchers) {
@@ -6150,8 +6310,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an exception region exit operation
      *
-     * @param end             the block to which control is transferred after the exception region is exited
-     * @param catchers the blocks handling exceptions thrown by the region block
+     * @param end      the reference to the block that exits the exception region
+     * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
      * @return the exception region exit operation
      */
     public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, Block.Reference... catchers) {
@@ -6161,8 +6321,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an exception region exit operation
      *
-     * @param end             the block to which control is transferred after the exception region is exited
-     * @param catchers the blocks handling exceptions thrown by the region block
+     * @param end      the reference to the block that exits the exception region
+     * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
      * @return the exception region exit operation
      */
     public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, List<Block.Reference> catchers) {
@@ -6249,7 +6409,7 @@ public sealed abstract class JavaOp extends Op {
      * @return the invoke operation
      */
     public static InvokeOp invoke(MethodRef invokeRef, List<Value> args) {
-        return invoke(invokeRef.type().returnType(), invokeRef, args);
+        return invoke(invokeRef.signature().returnType(), invokeRef, args);
     }
 
     /**
@@ -6268,7 +6428,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args             the invoke arguments
      * @return the invoke operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeRef, Value... args) {
+    public static InvokeOp invoke(CodeType returnType, MethodRef invokeRef, Value... args) {
         return invoke(returnType, invokeRef, List.of(args));
     }
 
@@ -6288,8 +6448,8 @@ public sealed abstract class JavaOp extends Op {
      * @param args             the invoke arguments
      * @return the invoke super operation
      */
-    public static InvokeOp invoke(TypeElement returnType, MethodRef invokeRef, List<Value> args) {
-        int paramCount = invokeRef.type().parameterTypes().size();
+    public static InvokeOp invoke(CodeType returnType, MethodRef invokeRef, List<Value> args) {
+        int paramCount = invokeRef.signature().parameterTypes().size();
         int argCount = args.size();
         InvokeOp.InvokeKind ik = (argCount == paramCount + 1)
                 ? InvokeOp.InvokeKind.INSTANCE
@@ -6310,7 +6470,7 @@ public sealed abstract class JavaOp extends Op {
      *                                  and the method reference's parameter count.
      */
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
-                                  TypeElement returnType, MethodRef invokeRef, Value... args) {
+                                  CodeType returnType, MethodRef invokeRef, Value... args) {
         return new InvokeOp(invokeKind, isVarArgs, returnType, invokeRef, List.of(args));
     }
 
@@ -6327,7 +6487,7 @@ public sealed abstract class JavaOp extends Op {
      *                                  and the method reference's parameter count.
      */
     public static InvokeOp invoke(InvokeOp.InvokeKind invokeKind, boolean isVarArgs,
-                                  TypeElement returnType, MethodRef invokeRef, List<Value> args) {
+                                  CodeType returnType, MethodRef invokeRef, List<Value> args) {
         return new InvokeOp(invokeKind, isVarArgs, returnType, invokeRef, args);
     }
 
@@ -6338,7 +6498,7 @@ public sealed abstract class JavaOp extends Op {
      * @param from the value to be converted
      * @return the conversion operation
      */
-    public static ConvOp conv(TypeElement to, Value from) {
+    public static ConvOp conv(CodeType to, Value from) {
         return new ConvOp(to, from);
     }
 
@@ -6372,7 +6532,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(TypeElement returnType, MethodRef constructorRef,
+    public static NewOp new_(CodeType returnType, MethodRef constructorRef,
                              Value... args) {
         return new_(returnType, constructorRef, List.of(args));
     }
@@ -6385,7 +6545,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(TypeElement returnType, MethodRef constructorRef,
+    public static NewOp new_(CodeType returnType, MethodRef constructorRef,
                              List<Value> args) {
         return new NewOp(false, returnType, constructorRef, args);
     }
@@ -6399,7 +6559,7 @@ public sealed abstract class JavaOp extends Op {
      * @param args            the constructor arguments
      * @return the instance creation operation
      */
-    public static NewOp new_(boolean isVarargs, TypeElement returnType, MethodRef constructorRef,
+    public static NewOp new_(boolean isVarargs, CodeType returnType, MethodRef constructorRef,
                              List<Value> args) {
         return new NewOp(isVarargs, returnType, constructorRef, args);
     }
@@ -6411,7 +6571,7 @@ public sealed abstract class JavaOp extends Op {
      * @param length    the array size
      * @return the array creation operation
      */
-    public static NewOp newArray(TypeElement arrayType, Value length) {
+    public static NewOp newArray(CodeType arrayType, Value length) {
         MethodRef constructorRef = MethodRef.constructor(arrayType, INT);
         return new_(constructorRef, length);
     }
@@ -6435,7 +6595,7 @@ public sealed abstract class JavaOp extends Op {
      * @param receiver   the receiver value
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef fieldRef, Value receiver) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(CodeType resultType, FieldRef fieldRef, Value receiver) {
         return new FieldAccessOp.FieldLoadOp(resultType, fieldRef, receiver);
     }
 
@@ -6456,7 +6616,7 @@ public sealed abstract class JavaOp extends Op {
      * @param fieldRef the field reference
      * @return the field load operation
      */
-    public static FieldAccessOp.FieldLoadOp fieldLoad(TypeElement resultType, FieldRef fieldRef) {
+    public static FieldAccessOp.FieldLoadOp fieldLoad(CodeType resultType, FieldRef fieldRef) {
         return new FieldAccessOp.FieldLoadOp(resultType, fieldRef);
     }
 
@@ -6512,7 +6672,7 @@ public sealed abstract class JavaOp extends Op {
      * @param componentType the type of the array component
      * @return the array load operation
      */
-    public static ArrayAccessOp.ArrayLoadOp arrayLoadOp(Value array, Value index, TypeElement componentType) {
+    public static ArrayAccessOp.ArrayLoadOp arrayLoadOp(Value array, Value index, CodeType componentType) {
         return new ArrayAccessOp.ArrayLoadOp(array, index, componentType);
     }
 
@@ -6535,7 +6695,7 @@ public sealed abstract class JavaOp extends Op {
      * @param v the value to test
      * @return the instanceof operation
      */
-    public static InstanceOfOp instanceOf(TypeElement t, Value v) {
+    public static InstanceOfOp instanceOf(CodeType t, Value v) {
         return new InstanceOfOp(t, v);
     }
 
@@ -6546,7 +6706,7 @@ public sealed abstract class JavaOp extends Op {
      * @param v          the value to cast
      * @return the cast operation
      */
-    public static CastOp cast(TypeElement resultType, Value v) {
+    public static CastOp cast(CodeType resultType, Value v) {
         return new CastOp(resultType, resultType, v);
     }
 
@@ -6558,7 +6718,7 @@ public sealed abstract class JavaOp extends Op {
      * @param v          the value to cast
      * @return the cast operation
      */
-    public static CastOp cast(TypeElement resultType, JavaType t, Value v) {
+    public static CastOp cast(CodeType resultType, JavaType t, Value v) {
         return new CastOp(resultType, t, v);
     }
 
@@ -6915,7 +7075,7 @@ public sealed abstract class JavaOp extends Op {
      * @param bodies     the body builders for the predicate and action bodies
      * @return the switch expression operation
      */
-    public static SwitchExpressionOp switchExpression(TypeElement resultType, Value target,
+    public static SwitchExpressionOp switchExpression(CodeType resultType, Value target,
                                                       List<Body.Builder> bodies) {
         Objects.requireNonNull(resultType);
         return new SwitchExpressionOp(resultType, target, bodies);
@@ -6952,7 +7112,7 @@ public sealed abstract class JavaOp extends Op {
      * @param initTypes    the types of initialized variables
      * @return the for operation builder
      */
-    public static ForOp.InitBuilder for_(Body.Builder ancestorBody, TypeElement... initTypes) {
+    public static ForOp.InitBuilder for_(Body.Builder ancestorBody, CodeType... initTypes) {
         return for_(ancestorBody, List.of(initTypes));
     }
 
@@ -6964,7 +7124,7 @@ public sealed abstract class JavaOp extends Op {
      * @param initTypes    the types of initialized variables
      * @return the for operation builder
      */
-    public static ForOp.InitBuilder for_(Body.Builder ancestorBody, List<? extends TypeElement> initTypes) {
+    public static ForOp.InitBuilder for_(Body.Builder ancestorBody, List<? extends CodeType> initTypes) {
         return new ForOp.InitBuilder(ancestorBody, initTypes);
     }
 
@@ -6972,21 +7132,21 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a for operation.
      *
-     * @param init   the initialization body builder
-     * @param cond   the predicate body builder
-     * @param update the update body builder
-     * @param body   the loop body builder
+     * @param initBody   the initialization body builder
+     * @param condBody   the predicate body builder
+     * @param updateBody the update body builder
+     * @param loopBody   the loop body builder
      * @return the for operation
      */
-    // init ()Tuple<Var<T1>, Var<T2>, ..., Var<TN>>, or init ()void
-    // cond (Var<T1>, Var<T2>, ..., Var<TN>)boolean
-    // update (Var<T1>, Var<T2>, ..., Var<TN>)void
-    // body (Var<T1>, Var<T2>, ..., Var<TN>)void
-    public static ForOp for_(Body.Builder init,
-                             Body.Builder cond,
-                             Body.Builder update,
-                             Body.Builder body) {
-        return new ForOp(init, cond, update, body);
+    // initBody ()Tuple<Var<T1>, Var<T2>, ..., Var<TN>>, or initBody ()Var<T1>, or initBody ()void
+    // condBody (Var<T1>, Var<T2>, ..., Var<TN>)boolean
+    // updateBody (Var<T1>, Var<T2>, ..., Var<TN>)void
+    // loopBody (Var<T1>, Var<T2>, ..., Var<TN>)void
+    public static ForOp for_(Body.Builder initBody,
+                             Body.Builder condBody,
+                             Body.Builder updateBody,
+                             Body.Builder loopBody) {
+        return new ForOp(initBody, condBody, updateBody, loopBody);
     }
 
     /**
@@ -6999,26 +7159,25 @@ public sealed abstract class JavaOp extends Op {
      * @return the enhanced for operation builder
      */
     public static EnhancedForOp.ExpressionBuilder enhancedFor(Body.Builder ancestorBody,
-                                                              TypeElement iterableType, TypeElement elementType) {
+                                                              CodeType iterableType, CodeType elementType) {
         return new EnhancedForOp.ExpressionBuilder(ancestorBody, iterableType, elementType);
     }
-
-    // expression ()I<E>
-    // init (E )Var<T>
-    // body (Var<T> )void
 
     /**
      * Creates an enhanced for operation.
      *
-     * @param expression the expression body builder
-     * @param init       the definition body builder
-     * @param body       the loop body builder
+     * @param exprBody the expression body builder
+     * @param initBody the initialization body builder
+     * @param loopBody the loop body builder
      * @return the enhanced for operation
      */
-    public static EnhancedForOp enhancedFor(Body.Builder expression,
-                                            Body.Builder init,
-                                            Body.Builder body) {
-        return new EnhancedForOp(expression, init, body);
+    // expression ()I<E>
+    // init (E )Var<T>
+    // body (Var<T> )void
+    public static EnhancedForOp enhancedFor(Body.Builder exprBody,
+                                            Body.Builder initBody,
+                                            Body.Builder loopBody) {
+        return new EnhancedForOp(exprBody, initBody, loopBody);
     }
 
     /**
@@ -7035,14 +7194,14 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a while operation.
      *
-     * @param predicate the predicate body builder
-     * @param body      the loop body builder
+     * @param predicateBody the predicate body builder
+     * @param loopBody      the loop body builder
      * @return the while operation
      */
-    // predicate, ()boolean, may be null for predicate returning true
-    // body, ()void
-    public static WhileOp while_(Body.Builder predicate, Body.Builder body) {
-        return new WhileOp(predicate, body);
+    // predicateBody, ()boolean, may be null for predicateBody returning true
+    // loopBody, ()void
+    public static WhileOp while_(Body.Builder predicateBody, Body.Builder loopBody) {
+        return new WhileOp(predicateBody, loopBody);
     }
 
     /**
@@ -7059,12 +7218,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a do operation.
      *
-     * @param predicate the predicate body builder
-     * @param body      the loop body builder
+     * @param loopBody      the loop body builder
+     * @param predicateBody the predicate body builder
      * @return the do operation
      */
-    public static DoWhileOp doWhile(Body.Builder body, Body.Builder predicate) {
-        return new DoWhileOp(body, predicate);
+    public static DoWhileOp doWhile(Body.Builder loopBody, Body.Builder predicateBody) {
+        return new DoWhileOp(loopBody, predicateBody);
     }
 
     /**
@@ -7124,7 +7283,7 @@ public sealed abstract class JavaOp extends Op {
      * @param bodies         the body builders for the predicate, true, and false bodies
      * @return the conditional operation
      */
-    public static ConditionalExpressionOp conditionalExpression(TypeElement expressionType,
+    public static ConditionalExpressionOp conditionalExpression(CodeType expressionType,
                                                                 List<Body.Builder> bodies) {
         Objects.requireNonNull(expressionType);
         return new ConditionalExpressionOp(expressionType, bodies);
@@ -7166,7 +7325,7 @@ public sealed abstract class JavaOp extends Op {
      * @return the try-with-resources operation builder
      */
     public static TryOp.BodyBuilder tryWithResources(Body.Builder ancestorBody,
-                                                     List<? extends TypeElement> resourceTypes,
+                                                     List<? extends CodeType> resourceTypes,
                                                      Consumer<Block.Builder> c) {
         resourceTypes = resourceTypes.stream().map(CoreType::varType).toList();
         Body.Builder resources = Body.Builder.of(ancestorBody,
@@ -7183,18 +7342,17 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a try or try-with-resources operation.
      *
-     * @param resources the resources body builder, may be {@code null}
-     * @param body      the try body builder
-     * @param catchers  the catch body builders
-     * @param finalizer the finalizer body builder,
-     *                  may be {@code null}
+     * @param resourcesBody the resources body builder, may be {@code null}
+     * @param body          the try body builder
+     * @param catchBodies   the catch body builders
+     * @param finallyBody   the finalizer body builder, may be {@code null}
      * @return the try or try-with-resources operation
      */
-    public static TryOp try_(Body.Builder resources,
+    public static TryOp try_(Body.Builder resourcesBody,
                              Body.Builder body,
-                             List<Body.Builder> catchers,
-                             Body.Builder finalizer) {
-        return new TryOp(resources, body, catchers, finalizer);
+                             List<Body.Builder> catchBodies,
+                             Body.Builder finallyBody) {
+        return new TryOp(resourcesBody, body, catchBodies, finallyBody);
     }
 
     //
@@ -7203,14 +7361,14 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a pattern match operation.
      *
-     * @param target  the target value
-     * @param pattern the pattern body builder
-     * @param match   the match body builder
+     * @param target      the target value
+     * @param patternBody the pattern body builder
+     * @param matchBody   the match body builder
      * @return the pattern match operation
      */
     public static PatternOps.MatchOp match(Value target,
-                                           Body.Builder pattern, Body.Builder match) {
-        return new PatternOps.MatchOp(target, pattern, match);
+                                           Body.Builder patternBody, Body.Builder matchBody) {
+        return new PatternOps.MatchOp(target, patternBody, matchBody);
     }
 
     /**
@@ -7220,7 +7378,7 @@ public sealed abstract class JavaOp extends Op {
      * @param bindingName the binding name
      * @return the pattern binding operation
      */
-    public static PatternOps.TypePatternOp typePattern(TypeElement type, String bindingName) {
+    public static PatternOps.TypePatternOp typePattern(CodeType type, String bindingName) {
         return new PatternOps.TypePatternOp(type, bindingName);
     }
 

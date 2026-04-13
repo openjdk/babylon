@@ -24,9 +24,9 @@
  */
 package hat.codebuilders;
 
+import hat.HATMath;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
-import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
@@ -35,12 +35,9 @@ import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
-import hat.dialect.ReducedFloatType;
-import hat.phases.HATFP16Phase;
-import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types._F16;
+import hat.types.S16ImplOfF16;
 import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
@@ -57,24 +54,48 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.codebuilders.CodeBuilder;
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import static hat.buffer.F16Array.F16Impl;
-
 import static java.lang.invoke.MethodHandles.lookup;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
-    protected  final KernelCallGraph.State callgraphState;
-    protected C99HATKernelBuilder(KernelCallGraph.State callgraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+    protected  final KernelCallGraph kernelCallGraph;
+
+    protected static boolean isOperandF32(Value v) {
+        return v instanceof Op.Result r && switch (r.op()) {
+            case CoreOp.VarAccessOp varLoadOp -> varLoadOp.varType().valueType() == JavaType.FLOAT; //recurse
+            case CoreOp.VarOp varOp -> varOp.resultType().valueType() == JavaType.FLOAT;
+            default -> false;
+        };
+    }
+
+    //recursive
+    protected  boolean isArrayReference(Value v) {
+        return v instanceof Op.Result result && switch (result.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(varLoadOp); // recurse
+            case CoreOp.VarOp varOp ->
+                    varOp.operands().getFirst() instanceof Op.Result varOpResult
+                            && invoke(lookup(),varOpResult.op()) instanceof OpHelper.Invoke invoke && invoke.named("array");
+            default -> false;
+        };
+    }
+
+    //recursive
+    private  boolean isArrayReference( CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return isArrayReference(varLoadOp.operands().getFirst());
+    }
+
+    protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
-        this.callgraphState = callgraphState;
+        this.kernelCallGraph = kernelCallGraph;
     }
 
     public final T HAT_KERNEL() {
@@ -203,7 +224,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return ifaceType.iface.isAssignableFrom(F16.class)
-                || ifaceType.iface.isAssignableFrom(F16Array.F16Impl.class);
+                || ifaceType.iface.isAssignableFrom(F16Impl.class);
     }
 
     public final boolean isbfloat16(Schema.IfaceType ifaceType) {
@@ -370,7 +391,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             C99VecAndMatHandler.handleType(self(),javaType);
         }else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
-                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, _F16.class)
+                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
         ) {
             HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
@@ -386,8 +407,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
 
-    public final  T kernelMethod(ScopedCodeBuilderContext buildContext,CoreOp.FuncOp funcOp) {
-          buildContext.funcScope(funcOp, () -> {
+    public final  T kernelMethod(CoreOp.FuncOp funcOp) {
+          scopedCodeBuilderContext().funcScope(funcOp, () -> {
               nl();
               functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
               parenNlIndented(_ ->
@@ -407,16 +428,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public final  T kernelEntrypoint(ScopedCodeBuilderContext buildContext) {
+    public final  T kernelEntrypoint() {
         nl();
-        buildContext.funcScope(buildContext.funcOp(), () ->
-                kernelDeclaration(buildContext.funcOp())
+        scopedCodeBuilderContext().funcScope(scopedCodeBuilderContext().funcOp(), () ->
+                kernelDeclaration(scopedCodeBuilderContext().funcOp())
                 .parenNlIndented(_ -> commaNlSeparated(
-                    buildContext.paramTable.list(),
+                        scopedCodeBuilderContext().paramTable.list(),
                         this::declareParam)
                 )
                 .braceNlIndented(_ -> nlSeparated(
-                    OpHelper.Statement.statements(buildContext.funcOp().bodies().getFirst().entryBlock()),
+                    OpHelper.Statement.statements(scopedCodeBuilderContext().funcOp().bodies().getFirst().entryBlock()),
                         this::statement
                 )
             )
@@ -438,22 +459,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return suffix_t(BF16.class);
     }
 
-    protected final T genReducedType(ReducedFloatType reducedFloatType) {
-        return (switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> f16Type();
-            case ReducedFloatType.BFloat16 _ -> bf16Type();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        });
+     protected T f16OrBF16(Class<?> float16Class){
+        if (F16.class.isAssignableFrom(float16Class)){
+            return f16Type();
+        }else if (BF16.class.isAssignableFrom(float16Class)){
+            return bf16Type();
+        }else {
+            throw new IllegalStateException("Unexpected value: " + float16Class);
+        }
     }
 
     @Override
     public final T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp) {
-        ReducedFloatType reducedFloatType = hatF16VarOp.reducedFloatType();
-        return (switch (reducedFloatType) {
-            case ReducedFloatType.HalfFloat _ -> f16Type();
-            case ReducedFloatType.BFloat16 _ ->  bf16Type();
-            default -> throw new IllegalStateException("Unexpected value: " + reducedFloatType);
-        }).sp().assign(
+        var float16Class = hatF16VarOp.float16Class();
+        return f16OrBF16(float16Class).sp().assign(
                 _-> id(hatF16VarOp.varName()),
                 _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
     }
@@ -478,12 +497,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private final T binaryOperationsForBfloat16( HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
 
-        boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatf16BinaryOp.operands().get(0));
-        boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatf16BinaryOp.operands().get(1));
+        boolean isFirstOperandReference = isArrayReference(hatf16BinaryOp.operands().get(0));
+        boolean isSecondOperandReference = isArrayReference(hatf16BinaryOp.operands().get(1));
         final byte f32Mixed;
-        if (!isFirstOperandReference && HATPhaseUtils.isOperandF32(hatf16BinaryOp.operands().get(0))) {
+        if (!isFirstOperandReference && isOperandF32(hatf16BinaryOp.operands().get(0))) {
             f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
-        } else if (!isSecondOperandReference && HATPhaseUtils.isOperandF32(hatf16BinaryOp.operands().get(1))) {
+        } else if (!isSecondOperandReference && isOperandF32(hatf16BinaryOp.operands().get(1))) {
             f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
         } else {
             f32Mixed = 0x00;
@@ -532,16 +551,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public T hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
-        ReducedFloatType reducedFloatType = hatF16BinaryOp.reducedFloatType();
-        if (reducedFloatType instanceof ReducedFloatType.BFloat16) {
+        var float16Class = hatF16BinaryOp.float16Class();
+        if (BF16.class.isAssignableFrom(float16Class)) {
             return binaryOperationsForBfloat16( hatF16BinaryOp);
         }
         paren(_-> f16Type());
         return brace(_->
             paren(_-> {
                 recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
-                boolean isFirstOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatF16BinaryOp.operands().get(0));
-                boolean isSecondOperandReference = HATPhaseUtils.isArrayReference(lookup(), hatF16BinaryOp.operands().get(1));
+                boolean isFirstOperandReference = isArrayReference( hatF16BinaryOp.operands().get(0));
+                boolean isSecondOperandReference = isArrayReference(hatF16BinaryOp.operands().get(1));
                 if (isFirstOperandReference) {
                     rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
@@ -781,13 +800,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     );
                 }
             } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
-
                 // Attention: Since F16.toFloat operations are supported, it should be possible to
                 // implement a load from global memory from an F16Array and directly use it for a math operation.
                 // In this case, we need to add an extra parenthesis.
                 SequencedSet<Op.Result> uses = invokeOp.result().uses();
                 boolean narrowTypeCast = uses.stream().anyMatch(node -> node.op() instanceof HATF16Op.HATF16ToFloatConvOp);
-
                 parenWhen(narrowTypeCast, _ -> {
                     parenWhen(
                             invoke.operandCount() > 1
@@ -835,16 +852,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             }
                             default -> throw new IllegalStateException("How ");
                         }
-                    } else {
-                        if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
+                    } else if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
                             sbrace(_ -> recurse(op));
-                        } else {
-                            // this is just call.
-                        }
                     }
                 });
             }
-        } else if (!invoke.returnsVoid() && HATPhaseUtils.isInvokeFromMathLib(invoke)) {
+        } else if (!invoke.returnsVoid() && invoke.refIs(HATMath.class)) {
                 // codegen for the math operation
                 generateMathIntrinsicOperation(invoke);
             } else {
@@ -870,32 +883,33 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     private void generateMathIntrinsicOperation(Invoke invoke) {
-        // Obtain if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-        final ReducedFloatType reducedFloatType = HATFP16Phase.categorizeReducedFloatFromResult(invoke);
-        if (reducedFloatType != null) {
-            // If special type, then we need to build the type
-            // For now this applies to F16 and bFloat16
-            paren(_ -> genReducedType(reducedFloatType)).obrace();
-        }
-        id(mapMathIntrinsic(invoke.name()));
+        // if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
+         if (invoke.returnsClassType() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Class){
+             paren(_ ->
+                     f16OrBF16(float16Class))
+                     .brace(_-> {
+                         id(mapMathIntrinsic(invoke.name()));
+                         // For each operand, obtain if it is a reference from global memory or device memory.
+                         List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
+                                 .mapToObj(i -> isArrayReference( invoke.op().operands().get(i)))
+                                 .collect(Collectors.toList());
 
-        // For each operand, obtain if it is a reference from global memory or device memory.
-        List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
-                .mapToObj(i -> HATPhaseUtils.isArrayReference(lookup(), invoke.op().operands().get(i)))
-                .collect(Collectors.toList());
-
-        paren( _ -> {
-            int[] counter = new int[] {0};
-            commaSpaceSeparated(invoke.op().operands(), op -> {
-                recurse(OpHelper.asResultOrThrow(op).op());
-                if (reducedFloatType != null) {
-                    genFieldAccess(op, referenceList.get(counter[0]++));
-                }
-            });
-        });
-        if (reducedFloatType != null) {
-            cbrace();
-        }
+                         paren(_ -> {
+                             int[] counter = {0};
+                             commaSpaceSeparated(invoke.op().operands(), op -> {
+                                 recurse(OpHelper.asResultOrThrow(op).op());
+                                 genFieldAccess(op, referenceList.get(counter[0]++));
+                             });
+                         });
+                     });
+         }else {
+             id(mapMathIntrinsic(invoke.name()));
+             paren(_ ->
+                 commaSpaceSeparated(invoke.op().operands(), op ->
+                     recurse(OpHelper.asResultOrThrow(op).op())
+                 )
+             );
+         }
     }
 
     protected abstract String mapMathIntrinsic(String name);

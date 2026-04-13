@@ -25,37 +25,37 @@
 
 package hat.backend.ffi;
 
-import hat.NDRange;
 import hat.Config;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.annotations.Kernel;
+import hat.annotations.Preformatted;
+import hat.annotations.TypeDef;
+import hat.buffer.ArgArray;
+import hat.buffer.KernelBufferContext;
+import hat.callgraph.IfaceDataDag;
+import hat.callgraph.KernelCallGraph;
 import hat.callgraph.MethodCallDag;
+import hat.codebuilders.C99HATKernelBuilder;
 import hat.codebuilders.C99VecAndMatHandler;
+import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.CodeTransformer;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
-import hat.annotations.TypeDef;
-import hat.buffer.*;
-import hat.codebuilders.C99HATKernelBuilder;
-import hat.callgraph.KernelCallGraph;
-import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.device.DeviceSchema;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BufferState;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
-import optkl.util.Mutable;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -75,12 +75,13 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeContext.accelerator());
+            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeCallGraph.computeContext.accelerator());
             ndRangeAndArgs[0] = this.kernelBufferContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeContext.accelerator(), kernelCallGraph, ndRangeAndArgs);
+            this.argArray = ArgArray.create(kernelCallGraph.computeCallGraph.computeContext.accelerator(), kernelCallGraph, ndRangeAndArgs);
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
+            // Do we really need this?  We never actually read these
             kernelBufferContext.gsy(1);
             kernelBufferContext.gsz(1);
             switch (kernelContext.ndRange.global()) {
@@ -139,35 +140,6 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-    private <T extends C99HATKernelBuilder<T>> void generateDeviceTypeStructs(T builder, String toText, Set<String> typedefs) {
-        // From here is text processing
-        String[] split = toText.split(">");
-        // Each item is a data struct
-        for (String ss : split) {
-            // curate: remove first character
-            final var finalS = ss.substring(1);
-            String dsName = finalS.split(":")[0];
-            if (typedefs.add(dsName)){
-                builder.typedefStruct(sanitize(dsName), _ -> {
-                    String[] members = finalS.split(";");
-                    builder.indent(_-> {
-                                for (int i = 0, j = 1; i < members.length; i++, j = 0) {
-                                    String[] field = members[i].split(":");
-                                    final boolean isArray = field[j++].equals("[");
-                                    String rawtype = field[j++];
-                                    builder.type(sanitize(rawtype)+((typedefs.contains(rawtype)?"_t":""))).sp().id( field[j++]);
-                                    if (isArray) {
-                                        final String lenValue = field[j];
-                                        builder.sp().sbrace(_ -> builder.id(lenValue));
-                                    }
-                                    builder.semicolon().nl();
-                                }
-                            });
-                });
-                builder.semicolon().nl().nl();
-            }
-        }
-    }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
@@ -186,19 +158,19 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                 });
 
 
-        var kernelAnnotation = kernelCallGraph.entrypoint.method().getAnnotation(Kernel.class);
+        var kernelAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class);
         if (kernelAnnotation != null) {
             // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
-            kernelCallGraph.state.usesAtomics = true;
-            kernelCallGraph.state.usesFp16 = true;
-            kernelCallGraph.state.usesBarrier = true;
-            kernelCallGraph.state.usesVecTypes = false;// maybe?
-            var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method.getAnnotation(TypeDef.class);
+            kernelCallGraph.usesAtomics = true;
+            kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class, BF16.class));
+            kernelCallGraph.usesBarrier = true;
+
+            var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
             if (typedefAnnotation != null) {
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
-                builder.typedefStruct(typedefAnnotation.name(),_-> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
+                builder.typedefStruct(typedefAnnotation.name(), _ -> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
             }
-            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method.getAnnotation(Preformatted.class);
+            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
             if (preformattedAnnotation != null) {
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformattedAnnotation.value());
@@ -206,78 +178,54 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(kernelAnnotation.value());
         } else {
-            Set<String> typedefs = new HashSet<>();
-            if (kernelCallGraph.state.usesFp16) {
-                // Add HAT reserved types
-                typedefs.add(F16.class.getName());
-                typedefs.add(BF16.class.getName());
-            }
-
-            // Dynamically build the schema for the user data type we are creating within the kernel.
-            // This is because no allocation was done from the host. This is kernel code, and it is reflected
-            // using the code reflection API
-            // 1. Add for struct for iface objects
-
-            kernelCallGraph.state.accessedClasses.stream().filter(NonMappableIface.class::isAssignableFrom).forEach(
-                    c -> {
-                        try {
-                            Field schemaField = c.getDeclaredField("schema");
-                            schemaField.setAccessible(true);
-                            var s = schemaField.get(schemaField);
-                            if (s instanceof DeviceSchema<?> deviceSchema) {
-                                // <1> We are creating text form of DeviceType schema
-                                String toText = deviceSchema.toText();
-                                if (toText != null) {
-                                    // <2> just to then parse the text from above.
-                                    // Lets get the model in a cleaner form
-                                    generateDeviceTypeStructs(builder, toText, typedefs);
-                                } else {
-                                    throw new RuntimeException("[ERROR] Could not find valid device schema ");
-                                }
-                            } else if (s instanceof Schema<?> schema) {
-                                throw new RuntimeException("found " + schema + " in NonMappableIface " + c.getName());
-                            }
-                        } catch (ReflectiveOperationException e) {
-                            throw new RuntimeException(e);
+            Set<Class<?>> typedeffed = new HashSet<>();
+            typedeffed.add(F16.class);
+            typedeffed.add(BF16.class);
+            kernelCallGraph.accessedNonMappableIfaceClasses.stream()
+                    .filter(c->!typedeffed.contains(c))
+                    .map(c->(Class<NonMappableIface>) c) // why do we need to do this.
+                    .forEach(c -> {
+                        // We create a dag of iface references rooted at c
+                        var ifaceDataDag = new IfaceDataDag<NonMappableIface>(dag -> {
+                            var entryPoint = dag.getNode(c);
+                            dag.methodsWithIfaceReturnTypes(c).forEach(ifaceInfo ->
+                                 dag.addEdge(entryPoint, dag.getNode(ifaceInfo.clazz())) // this recurses with each added class
+                            );
+                        });
+                        // Now we can generate typedefs in rankOrder (so inner typedefs first)
+                        if (ifaceDataDag.isDag()) {
+                            ifaceDataDag.rankOrdered.stream()
+                                    .filter(ifaceInfo -> !typedeffed.contains(ifaceInfo.clazz()))
+                                    .forEach(ifaceInfo -> typedeffed.add(
+                                            DeviceSchema.getDeviceSchemaOrThrow(ifaceInfo.clazz()).typedef(builder).clazz()
+                                    )
+                            );
+                        } else  {
+                            typedeffed.add(DeviceSchema.getDeviceSchemaOrThrow(c).typedef(builder).clazz());
                         }
-                    }
-            );
+                    });
 
-            var buildContext = new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp);
-
-            if (kernelCallGraph.state.usesVecTypes) {
+            // This is a slight hack for Shader support.
+            if (!kernelCallGraph.accessedVecClasses.isEmpty()) {
                 C99VecAndMatHandler.createVecFunctions(builder);
             }
 
-            // This provides functions in reverse call order.  There may be none if the entrypojnt does it all
-            kernelCallGraph.callDag.rankOrderedFunctions().forEach(f ->
-                    builder.nl().kernelMethod(buildContext, f.funcOp).nl()
-            );
+            kernelCallGraph.callDag.rankOrdered.stream()
+                    .filter(m -> m instanceof MethodCallDag.OtherMethodCall)
+                    .forEach(m -> builder.nl().kernelMethod( m.funcOp()).nl());
 
-            builder.nl().kernelEntrypoint(buildContext).nl();
+            builder.nl().kernelEntrypoint().nl();
 
             if (config().showKernelModel()) {
                 IO.println("Non Lowered");
-                IO.println(kernelCallGraph.callDag.entryPoint.funcOp.toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp().toText());
             }
             if (config().showLoweredKernelModel()) {
                 IO.println("Lowered");
-                IO.println(kernelCallGraph.callDag.entryPoint.funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
+                IO.println(kernelCallGraph.callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER).toText());
             }
         }
         return builder.toString();
-    }
-
-    private String sanitize(String s) {
-        String[] split1 = s.split("\\.");
-        if (split1.length != 1) {
-            s = split1[split1.length - 1];
-            if (s.split("\\$").length > 1) {
-                int last = s.lastIndexOf("$");
-                s = s.substring(last + 1);
-            }
-        }
-        return s;
     }
 
     @Override

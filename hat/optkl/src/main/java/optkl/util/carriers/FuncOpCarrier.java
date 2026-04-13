@@ -22,12 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.types;
+package optkl.util.carriers;
 
-import optkl.IfaceValue;
+import jdk.incubator.code.dialect.core.CoreOp;
 
-/**
- * Common interface for F16 implementations
- */
-public interface _F16 extends IfaceValue {
+public interface FuncOpCarrier {
+    CoreOp.FuncOp funcOp();
+    void funcOp(CoreOp.FuncOp funcOp);
+
+      class Impl implements FuncOpCarrier{
+        private CoreOp.FuncOp funcOp;
+
+        @Override
+        public CoreOp.FuncOp funcOp() {
+            return funcOp;
+        }
+
+        @Override
+        public void funcOp(CoreOp.FuncOp funcOp) {
+            this.funcOp=funcOp;
+        }
+        public Impl(CoreOp.FuncOp funcOp){
+            this.funcOp = funcOp;
+        }
+    }
 }

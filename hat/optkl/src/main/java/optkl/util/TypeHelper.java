@@ -22,11 +22,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.callgraph;
-import java.lang.reflect.Method;
-public interface MethodCall {
-     Method method();
-     default String name(){
-         return method().getName();
-     }
+package optkl.util;
+
+
+import java.lang.reflect.Type;
+
+public abstract class TypeHelper {
+
+
+    public static Type nameToTypeOrThrow(String name) {
+        return switch (name) {
+            case "void" -> void.class;
+            case "boolean" -> boolean.class;
+            case "byte" -> byte.class;
+            case "short" -> short.class;
+            case "char" -> char.class;
+            case "int" -> int.class;
+            case "float" -> float.class;
+            case "double" -> double.class;
+            case "long" -> long.class;
+            default -> {
+                try {
+                    if (Class.forName(name) instanceof Class<?> clazz) {
+                        yield clazz;
+                    } else {
+                        throw new RuntimeException("Not a class");
+                    }
+                } catch (ClassNotFoundException classNotFoundException) {
+                    throw new RuntimeException("Not a class");
+                }
+            }
+        };
+
+    }
 }

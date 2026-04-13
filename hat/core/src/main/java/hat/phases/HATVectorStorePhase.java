@@ -27,6 +27,7 @@ package hat.phases;
 import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
@@ -35,8 +36,11 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.Trxfmr;
 
+import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
+
+import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.VarAccess;
@@ -45,16 +49,15 @@ import static optkl.OpHelper.copyLocation;
 
 public abstract sealed class HATVectorStorePhase implements HATPhase
         permits HATVectorStorePhase.Float2StorePhase, HATVectorStorePhase.Float4StorePhase{
-
-    protected final KernelCallGraph kernelCallGraph;
-    @Override  public KernelCallGraph kernelCallGraph(){
-        return this.kernelCallGraph;
-    }
-    public HATVectorStorePhase(KernelCallGraph kernelCallGraph/*, StoreView vectorOperation*/) {
-        this.kernelCallGraph= kernelCallGraph;
-    }
-
     abstract String storeViewName();
+
+
+    public static Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
+        if (invokeOp.operands().get(idx) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return getVectorShape(lookup,varLoadOp.resultType());
+        }
+        return null;
+    }
 
     //recursive
     private String findNameVector(Value v) {
@@ -77,32 +80,32 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
     }
 
     @Override
-    public CoreOp.FuncOp apply(CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Set<CodeElement<?,?>> nodesInvolved = new HashSet<>();
-        Invoke.stream(lookup(),funcOp).forEach(invoke->{
+        Invoke.stream(lookup,funcOp).forEach(invoke->{
               if ( invoke.named(storeViewName())
-                   && varAccess(lookup(),invoke.opFromOperandNOrNull(1)) instanceof VarAccess varAccess
+                   && varAccess(lookup,invoke.opFromOperandNOrNull(1)) instanceof VarAccess varAccess
                    && varAccess.isLoad() && varAccess.isAssignable( Vector.class)){
                    nodesInvolved.add(invoke.op());
               }
         });
 
-        return Trxfmr.of(this,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
-            if (invoke(lookup(),op) instanceof Invoke invoke) {
-                Vector.Shape vectorShape  = HATPhaseUtils.getVectorShapeFromOperandN(lookup(),invoke.op(), 1);
+            if (invoke(lookup,op) instanceof Invoke invoke) {
+                Vector.Shape vectorShape  = getVectorShapeFromOperandN(lookup,invoke.op(), 1);
                 HATVectorOp storeView = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst())
                         ? new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(
                                 findNameVector(invoke.resultFromOperandNOrThrow(1)),
                                 invoke.returnType(),
                                 vectorShape,
-                                //vectorShape.typeElement(),
+                                //vectorShape.codeType(),
                                 context.getValues(invoke.op().operands()))
                         : new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(
                                 findNameVector(invoke.resultFromOperandNOrThrow(1)),
                                 invoke.returnType(),
                                 vectorShape,//.lanes(),
-                               // vectorShape.typeElement(),
+                               // vectorShape.codeType(),
                                 context.getValues(invoke.op().operands()));
                 context.mapValue(invoke.op().result(), blockBuilder.op(copyLocation(invoke.op(),storeView)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -114,9 +117,6 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
     }
 
     public static final class Float4StorePhase extends HATVectorStorePhase {
-        public Float4StorePhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph);
-        }
         @Override
          String storeViewName() {
             return "storeFloat4View";
@@ -124,9 +124,6 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
     }
 
     public static final class Float2StorePhase extends HATVectorStorePhase {
-        public Float2StorePhase(KernelCallGraph kernelCallGraph) {
-            super(kernelCallGraph);
-        }
         @Override
         String storeViewName() {
             return "storeFloat2View";

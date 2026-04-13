@@ -177,8 +177,8 @@ public final class Unreflect {
         JavaOp.LambdaOp lambda = (JavaOp.LambdaOp)((CoreOp.QuotedOp)ops.get(ops.size() - 2)).quotedOp();
         return CoreOp.func(funcOp.funcName(), CoreType.functionType(
                 lambda.body().yieldType(),
-                Stream.of(funcOp.invokableType().parameterTypes(),
-                          lambda.invokableType().parameterTypes()).flatMap(List::stream).toList())).body(bb -> {
+                Stream.of(funcOp.invokableSignature().parameterTypes(),
+                          lambda.invokableSignature().parameterTypes()).flatMap(List::stream).toList())).body(bb -> {
             bb.context().mapBlock(funcOp.body().entryBlock(), bb.entryBlock());
             bb.context().mapValues(funcOp.parameters(), bb.parameters().subList(0, capturedValues));
             for (int i = 0; i < ops.size() - 2; i++) {

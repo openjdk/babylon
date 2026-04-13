@@ -224,7 +224,7 @@ public final class Interpreter {
         }
 
         void popExceptionRegion(JavaOp.ExceptionRegionExit ere) {
-            ere.catchBlocks().forEach(catchBlock -> {
+            ere.catchReferences().forEach(catchBlock -> {
                 if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
                     // @@@ Use internal exception type
                     throw interpreterException(new IllegalStateException("Mismatched exception regions"));
@@ -288,7 +288,7 @@ public final class Interpreter {
             if (args.size() != 1) {
                 throw interpreterException(new IllegalStateException("Catch block must have one argument"));
             }
-            TypeElement et = args.get(0).type();
+            CodeType et = args.get(0).type();
             if (et instanceof VarType vt) {
                 et = vt.valueType();
             }
@@ -355,7 +355,7 @@ public final class Interpreter {
             Op to = bc.b.terminatingOp();
             if (to instanceof CoreOp.ConditionalBranchOp cb) {
                 boolean p;
-                Object bop = oc.getValue(cb.predicate());
+                Object bop = oc.getValue(cb.predicateOperand());
                 if (bop instanceof Boolean bp) {
                     p = bp;
                 } else if (bop instanceof Integer ip) {
@@ -374,7 +374,7 @@ public final class Interpreter {
 
                 oc.successor(sb);
             } else if (to instanceof JavaOp.ThrowOp _throw) {
-                Throwable t = (Throwable) oc.getValue(_throw.argument());
+                Throwable t = (Throwable) oc.getValue(_throw.argumentOperand());
                 processThrowable(oc, l, t);
             } else if (to instanceof CoreOp.ReturnOp ret) {
                 Value rv = ret.returnValue();
@@ -390,16 +390,16 @@ public final class Interpreter {
                 return yr;
             } else if (to instanceof JavaOp.ExceptionRegionEnter ers) {
                 int erStackDepth = oc.erStack.size();
-                ers.catchBlocks().forEach(catchBlock -> {
+                ers.catchReferences().forEach(catchBlock -> {
                     var er = new ExceptionRegionRecord(oc.stack.peek(), erStackDepth, catchBlock.targetBlock());
                     oc.pushExceptionRegion(er);
                 });
 
-                oc.successor(ers.start());
+                oc.successor(ers.startReference());
             } else if (to instanceof JavaOp.ExceptionRegionExit ere) {
                 oc.popExceptionRegion(ere);
 
-                oc.successor(ere.end());
+                oc.successor(ere.endReference());
             } else {
                 throw interpreterException(
                         new UnsupportedOperationException("Unsupported terminating operation: " + to));
@@ -466,7 +466,7 @@ public final class Interpreter {
                                 "Function " + name + " cannot be resolved: top level op is not a module"));
             }
         } else if (o instanceof JavaOp.InvokeOp co) {
-            MethodType target = resolveToMethodType(l, o.opType());
+            MethodType target = resolveToMethodType(l, o.opSignature());
             MethodHandles.Lookup il = switch (co.invokeKind()) {
                 case STATIC, INSTANCE -> l;
                 case SUPER -> l.in(target.parameterType(0));
@@ -585,12 +585,12 @@ public final class Interpreter {
             return null;
         } else if (o instanceof JavaOp.ArithmeticOperation) {
             // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
+            MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.ConvOp) {
             // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
+            MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
             Object[] values = o.operands().stream().map(oc::getValue).toArray();
             return invoke(mh, values);
         } else if (o instanceof JavaOp.AssertOp _assert) {
@@ -670,12 +670,12 @@ public final class Interpreter {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -712,7 +712,7 @@ public final class Interpreter {
         }
     }
 
-    static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>)jt.erasure().resolve(l);

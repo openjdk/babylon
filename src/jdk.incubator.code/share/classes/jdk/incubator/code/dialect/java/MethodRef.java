@@ -37,7 +37,7 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.FunctionType;
 
 import java.util.List;
@@ -51,7 +51,7 @@ import static jdk.incubator.code.dialect.core.CoreType.functionType;
  * <ul>
  *     <li>an <em>owner type</em>, the type of which the target method is a member;</li>
  *     <li>a <em>name</em>, the name of the target method.</li>
- *     <li>a <em>type</em>, the type of the target method.</li>
+ *     <li>a <em>signature</em>, representing the method type of the target method.</li>
  * </ul>
  * Some method references, called <em>constructor references</em> are used to model a Java constructor, called
  * the <em>target constructor</em>. The name of a constructor reference is always the special name {@code "<init>"}.
@@ -66,7 +66,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     /**
      * {@return the owner type of this method reference}
      */
-    TypeElement refType();
+    CodeType refType();
 
     /**
      * {@return the name of this method reference}
@@ -74,9 +74,9 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     String name();
 
     /**
-     * {@return the type of this method reference}
+     * {@return the signature of this method reference, represented as a function type}
      */
-    FunctionType type();
+    FunctionType signature();
 
     /**
      * {@return {@code true}, if this method reference is a constructor reference}
@@ -138,7 +138,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * {@return a method reference obtained from the provided owner, name and type}
      * @param refType the reference owner type
      * @param name the reference name
-     * @param mt the reference type
+     * @param mt the reference method type
      */
     static MethodRef method(Class<?> refType, String name, MethodType mt) {
         return method(refType, name, mt.returnType(), mt.parameterList());
@@ -170,10 +170,10 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * {@return a method reference obtained from the provided owner, name and type}
      * @param refType the reference owner type
      * @param name the reference name
-     * @param type the reference type
+     * @param signature the reference signature, represented as a function type
      */
-    static MethodRef method(TypeElement refType, String name, FunctionType type) {
-        return new MethodRefImpl(refType, name, type);
+    static MethodRef method(CodeType refType, String name, FunctionType signature) {
+        return new MethodRefImpl(refType, name, signature);
     }
 
     /**
@@ -183,7 +183,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * @param retType the reference return type
      * @param params the reference parameter types
      */
-    static MethodRef method(TypeElement refType, String name, TypeElement retType, TypeElement... params) {
+    static MethodRef method(CodeType refType, String name, CodeType retType, CodeType... params) {
         return method(refType, name, functionType(retType, params));
     }
 
@@ -194,14 +194,14 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
      * @param retType the reference return type
      * @param params the reference parameter types
      */
-    static MethodRef method(TypeElement refType, String name, TypeElement retType, List<? extends TypeElement> params) {
+    static MethodRef method(CodeType refType, String name, CodeType retType, List<? extends CodeType> params) {
         return method(refType, name, functionType(retType, params));
     }
 
     // Constructor factories
 
     /**
-     * {@return a method reference obtained from the provided constructor}
+     * {@return a constructor method reference obtained from the provided constructor}
      * @param c a reflective constructor
      */
     static MethodRef constructor(Constructor<?> c) {
@@ -210,16 +210,16 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     }
 
     /**
-     * {@return a method reference obtained from the provided type}
+     * {@return a constructor method reference obtained from the provided method type}
      * The owner type of the returned method reference is the return type of the provided type.
-     * @param mt the reference type
+     * @param mt the method type
      */
     static MethodRef constructor(MethodType mt) {
         return constructor(mt.returnType(), mt.parameterList());
     }
 
     /**
-     * {@return a method reference obtained from the provided owner and parameter types}
+     * {@return a constructor method reference obtained from the provided owner and parameter types}
      * @param refType the reference owner type
      * @param params the reference parameter types
      */
@@ -228,7 +228,7 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     }
 
     /**
-     * {@return a method reference obtained from the provided owner and parameter types}
+     * {@return a constructor method reference obtained from the provided owner and parameter types}
      * @param refType the reference owner type
      * @param params the reference parameter types
      */
@@ -237,30 +237,30 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
     }
 
     /**
-     * {@return a method reference obtained from the provided owner and parameter types}
+     * {@return a constructor method reference obtained from the provided owner and parameter types}
      * @param refType the reference owner type
      * @param params the reference parameter types
      */
-    static MethodRef constructor(TypeElement refType, List<? extends TypeElement> params) {
+    static MethodRef constructor(CodeType refType, List<? extends CodeType> params) {
         return constructor(functionType(refType, params));
     }
 
     /**
-     * {@return a method reference obtained from the provided owner and parameter types}
+     * {@return a constructor method reference obtained from the provided owner and parameter types}
      * @param refType the reference owner type
      * @param params the reference parameter types
      */
-    static MethodRef constructor(TypeElement refType, TypeElement... params) {
+    static MethodRef constructor(CodeType refType, CodeType... params) {
         return constructor(functionType(refType, params));
     }
 
     /**
-     * {@return a method reference obtained from the provided type}
+     * {@return a constructor method reference obtained from the provided type}
      * The owner type of the returned method reference is the return type of the provided type.
-     * @param type the reference type
+     * @param signature the signature of the reference type, represented as a function type.
      */
-    static MethodRef constructor(FunctionType type) {
-        return new MethodRefImpl(type.returnType(), INIT_NAME, type);
+    static MethodRef constructor(FunctionType signature) {
+        return new MethodRefImpl(signature.returnType(), INIT_NAME, signature);
     }
 
     // MethodTypeDesc factories
@@ -278,15 +278,15 @@ public sealed interface MethodRef extends JavaRef, TypeVariableType.Owner
 
     /**
      * {@return a nominal method type descriptor representing the signature of the given function type}
-     * @param t the function type to convert
+     * @param signature the signature to convert, represented as a function type
      */
-    static MethodTypeDesc toNominalDescriptor(FunctionType t) {
+    static MethodTypeDesc toNominalDescriptor(FunctionType signature) {
         return MethodTypeDesc.of(
-                toClassDesc(t.returnType()),
-                t.parameterTypes().stream().map(MethodRef::toClassDesc).toList());
+                toClassDesc(signature.returnType()),
+                signature.parameterTypes().stream().map(MethodRef::toClassDesc).toList());
     }
 
-    private static ClassDesc toClassDesc(TypeElement e) {
+    private static ClassDesc toClassDesc(CodeType e) {
         if (!(e instanceof JavaType jt)) {
             throw new IllegalArgumentException();
         }

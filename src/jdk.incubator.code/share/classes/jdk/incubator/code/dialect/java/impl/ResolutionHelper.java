@@ -1,6 +1,6 @@
 package jdk.incubator.code.dialect.java.impl;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
@@ -14,7 +14,6 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.TypeDescriptor;
 import java.lang.invoke.VarHandle;
-import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 public class ResolutionHelper {
@@ -58,7 +57,7 @@ public class ResolutionHelper {
 
     // public API
 
-    public static Class<?> resolveClass(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
+    public static Class<?> resolveClass(MethodHandles.Lookup l, CodeType t) throws ReflectiveOperationException {
         if (t instanceof JavaType jt) {
             return (Class<?>)jt.erasure().resolve(l);
         } else {
@@ -73,7 +72,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef, InvokeKind kind) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.type());
+        MethodType mt = resolveMethodType(l, methodRef.signature());
         HandleResolver<MethodHandle, MethodType> resolver = switch (kind) {
             case INSTANCE -> HandleResolver.FIND_VIRTUAL;
             case STATIC -> HandleResolver.FIND_STATIC;
@@ -84,7 +83,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.type());
+        MethodType mt = resolveMethodType(l, methodRef.signature());
         return resolveHandle(HandleResolver.FIND_STATIC, l, refC, methodRef.name(), mt)
                 .orElse(() -> resolveHandle(HandleResolver.FIND_VIRTUAL, l, refC, methodRef.name(), mt))
                 .handle();
