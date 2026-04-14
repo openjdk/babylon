@@ -112,14 +112,12 @@ public class Main {
 
     @Reflect
     public static void mxmNaiveF32(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
-                float acc = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.giy * size + k) * matrixB.array(k * size + kc.gix));
-                }
-                matrixC.array(kc.giy * size + kc.gix, acc);
+        if (kc.gix < kc.gsx && kc.giy < kc.gsy) {
+            float acc = 0.0f;
+            for (int k = 0; k < size; k++) {
+                acc += (matrixA.array(k * size + kc.giy) * matrixB.array(kc.gix * size + k));
             }
+            matrixC.array(kc.gix * size + kc.giy, acc);
         }
     }
 
@@ -132,19 +130,18 @@ public class Main {
 
     @Reflect
     public static void mxmNaiveF16(@MappableIface.RO KernelContext kc, @MappableIface.RO F16Array matrixA, @MappableIface.RO F16Array matrixB, @MappableIface.WO F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
-                float acc = 0.0f;
-                for (int k = 0; k < size; k++) {
-                    F16 ha = matrixA.array(kc.giy * size + k);
-                    F16 hb = matrixB.array(k * size + kc.gix);
-                    F16 hc = F16.mul(ha, hb);
-                    float fc = F16.f16ToFloat(hc);
-                    acc += fc;
-                }
-                matrixC.array(kc.giy * size + kc.gix, acc);
+        if (kc.gix < kc.gsx && kc.giy < kc.gsy) {
+            float acc = 0.0f;
+            for (int k = 0; k < size; k++) {
+                F16 ha = matrixA.array(k * size + kc.giy);
+                F16 hb = matrixB.array(kc.gix * size + k);
+                F16 hc = F16.mul(ha, hb);
+                float fc = F16.f16ToFloat(hc);
+                acc += fc;
             }
+            matrixC.array(kc.gix * size + kc.giy, acc);
         }
+
     }
 
     @Reflect
@@ -154,13 +151,13 @@ public class Main {
         );
     }
 
-    private static void runSequential(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
+    private static void runSequentialColumnMajor(F32Array matrixA, F32Array matrixB, F32Array matrixC, final int size) {
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 float sum = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    float a = matrixA.array((long) j * size + k);
-                    float b = matrixB.array((long) k * size + i);
+                    float a = matrixA.array((long) k * size + i);
+                    float b = matrixB.array((long) j * size + k);
                     sum += (a * b);
                 }
                 matrixC.array((long) j * size + i, sum);
@@ -168,7 +165,7 @@ public class Main {
         }
     }
 
-    private static void runMultiThreadedWithStreams(F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    private static void runMultiThreadedWithStreamsColumnMajor(F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         IntStream.range(0, size)
                 .parallel()
                 .forEach(i -> IntStream.range(0, size)
@@ -176,9 +173,9 @@ public class Main {
                         .forEach(j -> {
                             float sum = 0.0f;
                             for (int k = 0; k < size; k++) {
-                                sum += matrixA.array(i * size + k) * matrixB.array(k * size + j);
+                                sum += matrixA.array(k * size + i) * matrixB.array(j * size + k);
                             }
-                            matrixC.array(i * size + j, sum);
+                            matrixC.array(j * size + i, sum);
                         }));
     }
 
@@ -188,7 +185,7 @@ public class Main {
                 final float expected = reference.array(i * size + j);
                 final float got = output.array(i * size + j);
                 if (Math.abs(expected - got) > 0.1f) {
-                    IO.println("GOT: " + got + " - but expected: " + expected);
+                    IO.println("[Error] GOT: " + got + " - but expected: " + expected);
                     return false;
                 }
             }
@@ -242,7 +239,7 @@ public class Main {
         if (!options.skipSequential()) {
             for (int i = 0; i < numIterations; i++) {
                 long start = System.nanoTime();
-                runSequential(matrixA, matrixB, matrixReference, size);
+                runSequentialColumnMajor(matrixA, matrixB, matrixReference, size);
                 long end = System.nanoTime();
                 if (options.verbose()) {
                     IO.println("Java Seq Timer: " + (end - start));
@@ -254,7 +251,7 @@ public class Main {
         // Java Parallel Streams
         for (int i = 0; i < numIterations; i++) {
             long start = System.nanoTime();
-            runMultiThreadedWithStreams(matrixA, matrixB, resultStreams, size);
+            runMultiThreadedWithStreamsColumnMajor(matrixA, matrixB, resultStreams, size);
             long end = System.nanoTime();
             if (options.verbose()) {
                 IO.println("Java Parallel-Stream Timer: " + (end - start));
