@@ -935,6 +935,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             recurse(r.op());
         }
         plus();
+        oparen();
         if (b instanceof Op.Result r) {
             recurse(r.op());
         }
@@ -942,6 +943,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (ldSize instanceof Op.Result r) {
             recurse(r.op());
         }
+        cparen();
         return self();
     }
 
