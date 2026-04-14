@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -127,7 +127,7 @@ public class TypeConvertor {
         }
         assert recordClass.isRecord();
 
-        List<TypeElement> tupleComponentTypes = new ArrayList<>();
+        List<CodeType> tupleComponentTypes = new ArrayList<>();
         for (RecordComponent rc : recordClass.getRecordComponents()) {
             Type type = rc.getGenericType();
             if (type instanceof ParameterizedType pt && pt.getRawType().equals(Optional.class)) {
@@ -168,7 +168,7 @@ public class TypeConvertor {
                 case GenericArrayType gat -> {
                     var cType = convertType(JavaType.type(gat.getGenericComponentType()));
                     Integer size = constantArraySizeMap.get(rc.toString());
-                    var tContent = new TypeElement[size];
+                    var tContent = new CodeType[size];
                     Arrays.fill(tContent, cType);
                     tupleComponentTypes.add(CoreType.tupleType(tContent));
                 }
@@ -179,7 +179,7 @@ public class TypeConvertor {
         return CoreType.tupleType(tupleComponentTypes);
     }
 
-    boolean isRecord(TypeElement type) {
+    boolean isRecord(CodeType type) {
         try {
             return type instanceof ClassType ct &&
                     ct.erasure().resolve(l) instanceof Class c &&
@@ -220,12 +220,12 @@ public class TypeConvertor {
         return CoreType.functionType(convertType(fo.body().entryBlock().terminatingOp().operands().getFirst()), fo.parameters().stream().map(this::convertType).toList());
     }
 
-    TypeElement convertType(Value value) {
+    CodeType convertType(Value value) {
         // convert 1-dimensional constantly accessed constant arrays into tuples
         if (value.type() instanceof ArrayType at && at.dimensions() == 1) {
             int size = countConstantArraySize(value.uses());
             if (size >= 0) {
-                var targs = new TypeElement[size];
+                var targs = new CodeType[size];
                 Arrays.fill(targs, convertType(at.componentType()));
                 return CoreType.tupleType(targs);
             }
@@ -251,7 +251,7 @@ public class TypeConvertor {
 
     // @@@ Map of Java tensor types to ONNX tensor types
     // @@@ Shape??
-    TypeElement convertType(TypeElement type) {
+    CodeType convertType(CodeType type) {
         if (type instanceof ClassType ct) {
             if (ct.rawType().equals(TENSOR_CLASS)) {
                 JavaType elementType = ct.typeArguments().getFirst();

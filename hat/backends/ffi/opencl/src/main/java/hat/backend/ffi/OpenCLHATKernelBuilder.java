@@ -28,20 +28,19 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
-import optkl.OpHelper;
+import hat.types.BF16;
+import hat.types.F16;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import hat.dialect.ReducedFloatType;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
-    protected OpenCLHATKernelBuilder(KernelCallGraph.State kernelCallGraphState, ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(kernelCallGraphState,scopedCodeBuilderContext);
+    protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(kernelCallGraph,scopedCodeBuilderContext);
     }
 
     public OpenCLHATKernelBuilder vstore(int dims) {
@@ -57,34 +56,34 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self()
                 .hashDefine("HAT_OPENCL")
                 .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
-                .when(callgraphState.usesAtomics,_->pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable"))
-                .when(callgraphState.usesAtomics,_->pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable"))
-                /*.when(callgraphState.usesFp16,_->*/.pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")//)                      // Enable Half type
+                .when(kernelCallGraph.usesAtomics,_->pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable"))
+                .when(kernelCallGraph.usesAtomics,_->pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable"))
+                /*.when(kernelCallGraph.usesFp16,_->*/.pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")//)                      // Enable Half type
                 .hashDefine("HAT_FUNC", _ -> keyword(""))
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__local"))
-                .when(callgraphState.accessedKcFields.contains("gix"), _->hashDefine("HAT_GIX", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstZero()))))
-                .when(callgraphState.accessedKcFields.contains("giy"), _->hashDefine("HAT_GIY", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstOne()))))
-                .when(callgraphState.accessedKcFields.contains("giz"), _->hashDefine("HAT_GIZ", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstTwo()))))
-                .when(callgraphState.accessedKcFields.contains("lix"), _->hashDefine("HAT_LIX", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstZero()))))
-                .when(callgraphState.accessedKcFields.contains("liy"), _->hashDefine("HAT_LIY", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstOne()))))
-                .when(callgraphState.accessedKcFields.contains("liz"), _->hashDefine("HAT_LIZ", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstTwo()))))
-                .when(callgraphState.accessedKcFields.contains("gsx"), _->hashDefine("HAT_GSX", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstZero()))))
-                .when(callgraphState.accessedKcFields.contains("gsy"), _->hashDefine("HAT_GSY", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstOne()))))
-                .when(callgraphState.accessedKcFields.contains("gsz"), _->hashDefine("HAT_GSZ", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstTwo()))))
-                .when(callgraphState.accessedKcFields.contains("lsx"), _->hashDefine("HAT_LSX", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstZero()))))
-                .when(callgraphState.accessedKcFields.contains("lsy"), _->hashDefine("HAT_LSY", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstOne()))))
-                .when(callgraphState.accessedKcFields.contains("lsz"), _->hashDefine("HAT_LSZ", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstTwo()))))
-                .when(callgraphState.accessedKcFields.contains("bix"), _->hashDefine("HAT_BIX", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstZero()))))
-                .when(callgraphState.accessedKcFields.contains("biy"), _->hashDefine("HAT_BIY", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstOne()))))
-                .when(callgraphState.accessedKcFields.contains("biz"), _->hashDefine("HAT_BIZ", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstTwo()))))
-                .when(callgraphState.accessedKcFields.contains("bsx"), _->hashDefine("HAT_BSX", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstZero()))))
-                .when(callgraphState.accessedKcFields.contains("bsy"), _->hashDefine("HAT_BSY", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstOne()))))
-                .when(callgraphState.accessedKcFields.contains("bsz"), _->hashDefine("HAT_BSZ", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstTwo()))))
-                .when(callgraphState.usesFp16, _->maxMacro("MAX_HAT"))
-                .when(callgraphState.usesFp16, _->minMacro("MIN_HAT"))
-                .when(callgraphState.usesBarrier, _->hashDefine("HAT_BARRIER", _ -> id("barrier").oparen().id("CLK_LOCAL_MEM_FENCE").cparen()))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("gix"), _->hashDefine("HAT_GIX", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstZero()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("giy"), _->hashDefine("HAT_GIY", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstOne()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("giz"), _->hashDefine("HAT_GIZ", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstTwo()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("lix"), _->hashDefine("HAT_LIX", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstZero()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("liy"), _->hashDefine("HAT_LIY", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstOne()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("liz"), _->hashDefine("HAT_LIZ", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstTwo()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("gsx"), _->hashDefine("HAT_GSX", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstZero()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("gsy"), _->hashDefine("HAT_GSY", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstOne()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("gsz"), _->hashDefine("HAT_GSZ", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstTwo()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("lsx"), _->hashDefine("HAT_LSX", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstZero()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("lsy"), _->hashDefine("HAT_LSY", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstOne()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("lsz"), _->hashDefine("HAT_LSZ", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstTwo()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("bix"), _->hashDefine("HAT_BIX", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstZero()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("biy"), _->hashDefine("HAT_BIY", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstOne()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("biz"), _->hashDefine("HAT_BIZ", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstTwo()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("bsx"), _->hashDefine("HAT_BSX", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstZero()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("bsy"), _->hashDefine("HAT_BSY", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstOne()))))
+                .when(kernelCallGraph.accessedKernelContextFields.contains("bsz"), _->hashDefine("HAT_BSZ", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstTwo()))))
+                .when(!kernelCallGraph.accessedFP16Classes.isEmpty(), _->maxMacro("MAX_HAT"))
+                .when(!kernelCallGraph.accessedFP16Classes.isEmpty(), _->minMacro("MIN_HAT"))
+                .when(kernelCallGraph.usesBarrier, _->hashDefine("HAT_BARRIER", _ -> id("barrier").oparen().id("CLK_LOCAL_MEM_FENCE").cparen()))
                 /*.when(callgraphState.usesFp16,_->*/.hashDefine("BFLOAT16", _ -> keyword("ushort"))//)
                 /*.when(callgraphState.usesFp16,_->*/.typedefSingleValueStruct("F16",  "half")//)
                 /*.when(callgraphState.usesFp16,_->*/.typedefSingleValueStruct("BF16",  "BFLOAT16")//)
@@ -107,9 +106,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             } else {
                 varName(hatVectorStoreView);
             }
-            csp().intConstZero().csp().ampersand().recurse(hatVectorStoreView.operands().get(0).result().op());
+            csp().intConstZero().csp().ampersand().recurseResultOrThrow(hatVectorStoreView.operands().get(0));
             either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ ->recurse(hatVectorStoreView.operands().get(2).result().op()));
+            id("array").sbrace(_ ->recurseResultOrThrow(hatVectorStoreView.operands().get(2)));
         });
         return self();
     }
@@ -117,9 +116,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp binOp) {
         return paren(_-> {
-            recurse(binOp.operands().get(0).result().op());
+            recurseResultOrThrow(binOp.operands().get(0));
             sp().id(binOp.operationType().symbol()).sp();
-            recurse(binOp.operands().get(1).result().op());
+            recurseResultOrThrow(binOp.operands().get(1));
         });
     }
 
@@ -127,9 +126,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         vload(hatVectorLoadOp.vectorShape().lanes()).paren(_-> {
             intConstZero().comma().sp().ampersand();
-            recurse( hatVectorLoadOp.operands().get(0).result().op());
+            recurseResultOrThrow( hatVectorLoadOp.operands().get(0));
             either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurse( hatVectorLoadOp.operands().get(1).result().op()));
+            id("array").sbrace(_ -> recurseResultOrThrow( hatVectorLoadOp.operands().get(1)));
         });
         return self();
     }
@@ -155,24 +154,17 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         dot().id(hatVSelectStoreOp.mapLane()).sp().equals().sp();
         return either (hatVSelectStoreOp.resolvedName() != null,
                 _-> varName(hatVSelectStoreOp.resolvedName()),
-                _-> recurse(hatVSelectStoreOp.operands().get(1).result().op())
+                _-> recurseResultOrThrow(hatVSelectStoreOp.operands().get(1))
         );
     }
 
     @Override
     public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        ReducedFloatType reducedFloatType = hatF16ConvOp.reducedFloatType();
-        return paren(_->{
-            switch(reducedFloatType){
-                case ReducedFloatType.HalfFloat _ -> f16Type();
-                case ReducedFloatType.BFloat16 _-> bf16Type();
-                default ->   throw new RuntimeException("What is ths reducedType");
-            }
-        }).brace(_-> {
-            var firstOperandOp = hatF16ConvOp.operands().getFirst().result().op();
-            either (reducedFloatType instanceof ReducedFloatType.BFloat16,
-                    _-> builtin_float2bfloat16().paren(_-> recurse(firstOperandOp)),
-                    _-> recurse( firstOperandOp)
+        var reducedFloatType = hatF16ConvOp.float16Class();
+        return paren(_-> f16OrBF16(reducedFloatType)).brace(_-> {
+            either (BF16.class.isAssignableFrom(reducedFloatType),
+                    _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(hatF16ConvOp.operands().getFirst())),
+                    _-> recurseResultOrThrow( hatF16ConvOp.operands().getFirst())
             );
         });
     }
@@ -180,7 +172,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
         type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp).sp().equals().sp();
-        recurse( hatVectorVarOp.operands().getFirst().result().op());
+        recurseResultOrThrow( hatVectorVarOp.operands().getFirst());
         return self();
     }
 
@@ -192,22 +184,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         // Type conversions: half,bfloat16 -> float
-        ReducedFloatType reducedFloatType = hatF16ToFloatConvOp.reducedFloatType();
+        var reducedFloatType = hatF16ToFloatConvOp.float16Class();
 
-        if (reducedFloatType instanceof ReducedFloatType.HalfFloat) {// half -> float
+        if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
             paren(_->f32Type());
-        } else if (reducedFloatType instanceof ReducedFloatType.BFloat16) {// bfloat16 -> float
+        } else if (BF16.class.isAssignableFrom(reducedFloatType)) {// bfloat16 -> float
             builtin_bfloat16ToFloat();
         }
-        parenWhen(reducedFloatType instanceof ReducedFloatType.BFloat16,_-> {
-            recurse(hatF16ToFloatConvOp.operands().getFirst().result().op());
+        parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
+            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
             if (!hatF16ToFloatConvOp.isLocal()) {
-                rarrow().id("value");
+                rarrow();//.id("value");
             } else if (!hatF16ToFloatConvOp.wasFloat()) {
-                dot().id("value");
+                dot();//.id("value");
             } else{
-                throw new RuntimeException("Can we get here");
+               throw new RuntimeException("Can we get here");
             }
+            id("value");
         });
         return self();
     }

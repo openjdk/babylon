@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 
 /**
  * A code element, one of {@link Body body}, {@link Block block}, or {@link Op operation}, is an element in a code
- * model.
+ * model tree.
  * <p>
  * Code elements form a tree. A code element may have a parent code element. A root code element is an operation,
  * a root operation, that has no parent element (a block). A code element and all its ancestors can be traversed,
@@ -40,6 +40,9 @@ import java.util.stream.Stream;
  * <p>
  * A code element may have child code elements. A root code element and all its descendants can be
  * traversed, down to and including elements with no children. Bodies and blocks have at least one child element.
+ * <p>
+ * Operations contain child bodies, bodies contain child blocks, and blocks contain child operations, to form
+ * a tree of arbitrary depth.
  *
  * @param <E> the code element type
  * @param <C> the child code element type.
@@ -75,7 +78,7 @@ public sealed interface CodeElement<
      * Returns the parent element, otherwise {@code null} if this element is an operation that has no parent block.
      *
      * @return the parent code element.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     CodeElement<?, E> parent();
 
@@ -85,7 +88,7 @@ public sealed interface CodeElement<
      * Finds the nearest ancestor operation, otherwise {@code null} if there is no nearest ancestor.
      *
      * @return the nearest ancestor operation.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     default Op ancestorOp() {
         return switch (this) {
@@ -95,7 +98,7 @@ public sealed interface CodeElement<
             case Body body -> body.parent();
             // op -> block? -> body -> op~
             case Op op -> {
-                // Throws ISE if op is not bound
+                // Throws ISE if encountering block being built
                 Block parent = op.parent();
                 yield parent == null ? null : parent.parent().parent();
             }
@@ -106,7 +109,7 @@ public sealed interface CodeElement<
      * Finds the nearest ancestor body, otherwise {@code null} if there is no nearest ancestor.
      *
      * @return the nearest ancestor body.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     default Body ancestorBody() {
         return switch (this) {
@@ -120,7 +123,7 @@ public sealed interface CodeElement<
             }
             // op~ -> block? -> body
             case Op op -> {
-                // Throws ISE if op is not bound
+                // Throws ISE if encountering block being built
                 Block parent = op.parent();
                 yield parent == null ? null : parent.parent();
             }
@@ -131,18 +134,18 @@ public sealed interface CodeElement<
      * Finds the nearest ancestor block, otherwise {@code null} if there is no nearest ancestor.
      *
      * @return the nearest ancestor block.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     default Block ancestorBlock() {
         return switch (this) {
             // block -> body -> op~ -> block?
-            // Throws ISE if op is not bound
+            // Throws ISE if encountering block being built
             case Block block -> block.parent().parent().parent();
             // body -> op~ -> block?
-            // Throws ISE if op is not bound
+            // Throws ISE if encountering block being built
             case Body body -> body.parent().parent();
             // op~ -> block?
-            // Throws ISE if op is not bound
+            // Throws ISE if encountering block being built
             case Op op -> op.parent();
         };
     }
@@ -152,7 +155,8 @@ public sealed interface CodeElement<
      *
      * @param descendant the descendant element.
      * @return true if this element is an ancestor of the descendant element.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
+     * @see #isDescendantOf
      */
     default boolean isAncestorOf(CodeElement<?, ?> descendant) {
         Objects.requireNonNull(descendant);
@@ -162,6 +166,19 @@ public sealed interface CodeElement<
             e = e.parent();
         }
         return e != null;
+    }
+
+    /**
+     * Returns true if this element is a descendant of the ancestor element.
+     *
+     * @param ancestor the ancestor element.
+     * @return true if this element is a descendant of the ancestor element.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
+     * @see #isAncestorOf
+     */
+    default boolean isDescendantOf(CodeElement<?, ?> ancestor) {
+        Objects.requireNonNull(ancestor);
+        return ancestor.isAncestorOf(this);
     }
 
     /**
@@ -184,7 +201,7 @@ public sealed interface CodeElement<
      * is less than {@code b}'s position; and {@code 1} if {@code a}'s pre-order traversal position
      * is greater than {@code b}'s position
      * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     static int compare(CodeElement<?, ?> a, CodeElement<?, ?> b) {
         if (a == b) {

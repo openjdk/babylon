@@ -327,6 +327,13 @@ public interface vec3 extends IfaceValue.vec{
                 l.x()*r._20()+l.y()*r._21()+l.z()*r._22()
         );
     }
+    static vec3 mul(mat3 l, vec3 r){
+        return vec3(
+        l._00() * r.x() + l._01() * r.y() + l._02() * r.z(),
+        l._10() * r.x() + l._11() * r.y() + l._12() * r.z(),
+        l._20() * r.x() + l._21() * r.y() + l._22() * r.z()
+        );
+    }
 
     static vec3 xxx(vec4 v){
         return vec3(v.x(), v.x(), v.x());

@@ -1,7 +1,4 @@
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Reflect;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -327,7 +324,7 @@ public class TestConstantExpressionEvaluation {
         return null;
     }
 
-    static CoreOp.FuncOp conversionModel(TypeElement source, TypeElement target) {
+    static CoreOp.FuncOp conversionModel(CodeType source, CodeType target) {
         return CoreOp.func("conv", CoreType.functionType(target)).body(b -> {
             var v = b.op(CoreOp.constant(source, valueOne(source)));
             var r = b.op(JavaOp.conv(target, v));
@@ -335,7 +332,7 @@ public class TestConstantExpressionEvaluation {
         });
     }
 
-    static Object valueOne(TypeElement t) {
+    static Object valueOne(CodeType t) {
         if (t.equals(BOOLEAN)) {
             return true;
         } if (t.equals(BYTE)) {

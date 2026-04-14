@@ -127,7 +127,7 @@ public class TestTransitiveInvokeModule {
                             // Replace invocation with function call
                             Op.Result result = block.op(CoreOp.funcCall(
                                     call.r.toString(),
-                                    call.f.invokableType(),
+                                    call.f.invokableSignature(),
                                     block.context().getValues(iop.operands())));
                             // Map invocation result to function call result
                             block.context().mapValue(op.result(), result);

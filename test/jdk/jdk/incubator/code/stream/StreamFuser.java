@@ -150,7 +150,7 @@ public final class StreamFuser {
                         _else.op(JavaOp.continue_());
                     }
 
-                    block.op(conditionalBranch(p, _if.successor(), _else.successor()));
+                    block.op(conditionalBranch(p, _if.reference(), _else.reference()));
 
                     fuseIntermediateOperation(i + 1, _if, element, _else, terminalConsumer);
                 });
@@ -215,7 +215,7 @@ public final class StreamFuser {
             }
             JavaOp.LambdaOp accumulator = quotedAccumulator.op();
 
-            JavaType collectType = (JavaType) supplier.invokableType().returnType();
+            JavaType collectType = (JavaType) supplier.invokableSignature().returnType();
             return func("fused.collect", CoreType.functionType(collectType, sourceType))
                     .body(b -> {
                         Value source = b.parameters().get(0);

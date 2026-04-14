@@ -29,7 +29,7 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ArrayType;
@@ -124,21 +124,21 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
     }
 
-    static boolean isAssignable(MethodHandles.Lookup lookup, TypeElement typeElement, Class<?>... classes) {
-        if (typeElement instanceof ClassType classType) {
+    static boolean isAssignable(MethodHandles.Lookup lookup, CodeType codeType, Class<?>... classes) {
+        if (codeType instanceof ClassType classType) {
             Type type = classTypeToTypeOrThrow(lookup, classType);
             return Arrays.stream(classes).anyMatch(clazz -> clazz.isAssignableFrom((Class<?>) type));
-        } else if (typeElement instanceof PrimitiveType) {
+        } else if (codeType instanceof PrimitiveType) {
             return Arrays.stream(classes).anyMatch(clazz ->
-                    (typeElement == JavaType.FLOAT && clazz.equals(float.class))
-                            || (typeElement == JavaType.DOUBLE && clazz.equals(double.class))
-                            || (typeElement == JavaType.INT && clazz.equals(int.class))
-                            || (typeElement == JavaType.LONG && clazz.equals(long.class))
-                            || (typeElement == JavaType.SHORT && clazz.equals(short.class))
-                            || (typeElement == JavaType.CHAR && clazz.equals(char.class))
-                            || (typeElement == JavaType.BYTE && clazz.equals(byte.class))
-                            || (typeElement == JavaType.BOOLEAN && clazz.equals(boolean.class))
-                            || (typeElement == JavaType.VOID && clazz.equals(void.class))
+                    (codeType == JavaType.FLOAT && clazz.equals(float.class))
+                            || (codeType == JavaType.DOUBLE && clazz.equals(double.class))
+                            || (codeType == JavaType.INT && clazz.equals(int.class))
+                            || (codeType == JavaType.LONG && clazz.equals(long.class))
+                            || (codeType == JavaType.SHORT && clazz.equals(short.class))
+                            || (codeType == JavaType.CHAR && clazz.equals(char.class))
+                            || (codeType == JavaType.BYTE && clazz.equals(byte.class))
+                            || (codeType == JavaType.BOOLEAN && clazz.equals(boolean.class))
+                            || (codeType == JavaType.VOID && clazz.equals(void.class))
             );
         }
         return false;
@@ -367,7 +367,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return isAssignable((JavaType) op().varValueType(), clazzes);
         }
 
-        default TypeElement type() {
+        default CodeType type() {
             return op().resultType().valueType();
         }
 
@@ -399,11 +399,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return op().result().type() instanceof PrimitiveType;
         }
 
-        default TypeElement resultType() {
+        default CodeType resultType() {
             return op().resultType();
         }
 
-        default TypeElement refType() {
+        default CodeType refType() {
             return op().fieldReference().refType();
         }
 
@@ -524,7 +524,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             } else {
                 for (int i = 0; assignable && i < classes.length && i < op().operands().size() - adj; i++) {
                     var operand = op().operands().get(i + adj);
-                    TypeElement resultType = operand.type();
+                    CodeType resultType = operand.type();
                     if (resultType instanceof JavaType javaType) {
                         assignable &= isAssignable(javaType, classes[i]);
                     } else {
@@ -556,11 +556,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
 
         default boolean returnsVoid() {
-            return op().invokeReference().type().returnType().equals(JavaType.VOID);
+            return op().invokeReference().signature().returnType().equals(JavaType.VOID);
         }
 
-        default TypeElement returnType() {
-            return op().invokeReference().type().returnType();
+        default CodeType returnType() {
+            return op().invokeReference().signature().returnType();
         }
 
         default boolean returnsInt() {
@@ -573,7 +573,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
 
 
-        default TypeElement refType() {
+        default CodeType refType() {
             return op().invokeReference().refType();
         }
 

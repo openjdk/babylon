@@ -1,27 +1,27 @@
 package jdk.incubator.code.extern;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * A type element's externalized content in structured symbolic form.
+ * A code type's externalized content in structured symbolic form.
  * <p>
- * A {@link TypeElement type element} can be constructed from an externalized type element
- * using a {@link TypeElementFactory}.
+ * A {@link CodeType code type} can be constructed from an externalized code type
+ * using a {@link CodeTypeFactory}.
  *
  * @param identifier the externalized type's identifier
  * @param arguments  the externalized type's arguments
  */
-public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeElement> arguments) {
+public record ExternalizedCodeType(String identifier, List<ExternalizedCodeType> arguments) {
 
     /**
      * Constructs a new externalized type
      * @param identifier the externalized type's identifier
      * @param arguments  the externalized type's arguments
      */
-    public ExternalizedTypeElement {
+    public ExternalizedCodeType {
         arguments = List.copyOf(arguments);
     }
 
@@ -30,7 +30,7 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
         return toString(this);
     }
 
-    static String toString(ExternalizedTypeElement t) {
+    static String toString(ExternalizedCodeType t) {
         if (t.arguments.isEmpty()) {
             return t.identifier;
         }
@@ -55,8 +55,8 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
      * @param s the externalized type identifier
      * @return the externalized type
      */
-    public static ExternalizedTypeElement of(String s) {
-        return new ExternalizedTypeElement(s, List.of());
+    public static ExternalizedCodeType of(String s) {
+        return new ExternalizedCodeType(s, List.of());
     }
 
     /**
@@ -66,9 +66,9 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
      * @param a the type argument
      * @return the externalized type
      */
-    public static ExternalizedTypeElement of(String s,
-                                             ExternalizedTypeElement a) {
-        return new ExternalizedTypeElement(s, List.of(a));
+    public static ExternalizedCodeType of(String s,
+                                          ExternalizedCodeType a) {
+        return new ExternalizedCodeType(s, List.of(a));
     }
 
     /**
@@ -79,9 +79,9 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
      * @param a2 the second type argument
      * @return the externalized type
      */
-    public static ExternalizedTypeElement of(String s,
-                                             ExternalizedTypeElement a1, ExternalizedTypeElement a2) {
-        return new ExternalizedTypeElement(s, List.of(a1, a2));
+    public static ExternalizedCodeType of(String s,
+                                          ExternalizedCodeType a1, ExternalizedCodeType a2) {
+        return new ExternalizedCodeType(s, List.of(a1, a2));
     }
 
     /**
@@ -93,10 +93,10 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
      * @param a3 the third type argument
      * @return the externalized type
      */
-    public static ExternalizedTypeElement of(String s,
-                                             ExternalizedTypeElement a1, ExternalizedTypeElement a2,
-                                             ExternalizedTypeElement a3) {
-        return new ExternalizedTypeElement(s, List.of(a1, a2, a3));
+    public static ExternalizedCodeType of(String s,
+                                          ExternalizedCodeType a1, ExternalizedCodeType a2,
+                                          ExternalizedCodeType a3) {
+        return new ExternalizedCodeType(s, List.of(a1, a2, a3));
     }
 
     /**
@@ -109,10 +109,10 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
      * @param a4 the fourth type argument
      * @return the externalized type
      */
-    public static ExternalizedTypeElement of(String s,
-                                             ExternalizedTypeElement a1, ExternalizedTypeElement a2,
-                                             ExternalizedTypeElement a3, ExternalizedTypeElement a4) {
-        return new ExternalizedTypeElement(s, List.of(a1, a2, a3, a4));
+    public static ExternalizedCodeType of(String s,
+                                          ExternalizedCodeType a1, ExternalizedCodeType a2,
+                                          ExternalizedCodeType a3, ExternalizedCodeType a4) {
+        return new ExternalizedCodeType(s, List.of(a1, a2, a3, a4));
     }
 
     /**
@@ -122,9 +122,9 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
      * @param arguments the type arguments
      * @return the externalized type
      */
-    public static ExternalizedTypeElement of(String s,
-                                             ExternalizedTypeElement... arguments) {
-        return new ExternalizedTypeElement(s, List.of(arguments));
+    public static ExternalizedCodeType of(String s,
+                                          ExternalizedCodeType... arguments) {
+        return new ExternalizedCodeType(s, List.of(arguments));
     }
 
     /**
@@ -134,24 +134,24 @@ public record ExternalizedTypeElement(String identifier, List<ExternalizedTypeEl
      * @param arguments the type arguments
      * @return the externalized type
      */
-    public static ExternalizedTypeElement of(String s,
-                                             List<ExternalizedTypeElement> arguments) {
-        return new ExternalizedTypeElement(s, arguments);
+    public static ExternalizedCodeType of(String s,
+                                          List<ExternalizedCodeType> arguments) {
+        return new ExternalizedCodeType(s, arguments);
     }
 
     /**
-     * Parses a string as an externalized type element.
+     * Parses a string as an externalized code type.
      * <p>
-     * For any given externalized type element, {@code te}, the following
+     * For any given externalized code type, {@code ct}, the following
      * expression returns {@code true}.
      * {@snippet lang = java:
-     * te.equals(ExternalizedTypeElement.ofString(te.toString()));
-     * }
+     * ct.equals(ExternalizedCodeType.ofString(ct.toString()));
+     *}
      *
      * @param s the string
      * @return the externalized code type.
      */
-    public static ExternalizedTypeElement ofString(String s) {
-        return jdk.incubator.code.extern.impl.DescParser.parseExTypeElem(s);
+    public static ExternalizedCodeType ofString(String s) {
+        return jdk.incubator.code.extern.impl.DescParser.parseExCodeType(s);
     }
 }

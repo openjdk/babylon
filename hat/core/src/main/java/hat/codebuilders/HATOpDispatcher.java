@@ -26,6 +26,7 @@ package hat.codebuilders;
 
 import hat.dialect.*;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.JavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
@@ -79,6 +80,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp);
 
     T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
+
 
 
     @Override

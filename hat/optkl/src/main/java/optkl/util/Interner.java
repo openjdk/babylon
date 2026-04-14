@@ -1,6 +1,5 @@
-
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-26, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,39 +25,23 @@
 package optkl.util;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Consumer;
 
-public class BiMapOfSets<From, To> {
-    private Map<From, Set<To>> fromTo = new LinkedHashMap<>();
-    private Map<To, Set<From>> toFrom = new LinkedHashMap<>();
+public class Interner<N> {
+    protected final Map<N, N> interned = new LinkedHashMap<>();
 
-    public void add(From from, To to) {
-        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
-        toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
+    public N intern(N n, Consumer<N> ifAbsent) {
+        if (!interned.containsKey(n)) {
+            interned.put(n, n);
+            ifAbsent.accept(n);
+        }
+        return interned.get(n);
     }
 
-    public Set<From> getFrom(To to) {
-        return toFrom.get(to);
-    }
-
-    public Set<To> getTo(From from) {
-        return fromTo.get(from);
-    }
-
-    public boolean containsFrom(From from) {
-        return fromTo.containsKey(from);
-    }
-
-    public boolean containsTo(To to) {
-        return toFrom.containsKey(to);
-    }
-
-    public Iterable<From> fromKeys() {
-        return fromTo.keySet();
-    }
-    public Iterable<To> toKeys() {
-        return toFrom.keySet();
+    public boolean add(N n) {
+        boolean[] added ={false};
+        intern(n,_->added[0]=true);
+        return added[0];
     }
 }

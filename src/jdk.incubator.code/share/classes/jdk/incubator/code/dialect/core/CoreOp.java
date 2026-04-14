@@ -27,6 +27,8 @@ package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.JavaOp.InvokeOp;
+import jdk.incubator.code.dialect.java.JavaOp.LambdaOp;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.internal.OpDeclaration;
@@ -38,11 +40,11 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * The top-level operation class for the set of enclosed core operations.
+ * The top-level operation class for core operations.
  * <p>
- * A code model, produced by the Java compiler from Java program source, may consist of core operations and Java
- * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
- * Java Language Specification
+ * Core operations model the foundational, language-agnostic structure of code, such as functions, modules,
+ * variables, tuples, constants, and control flow. Core operations may appear on their own or together with
+ * operations expressed in other dialects.
  */
 public sealed abstract class CoreOp extends Op {
 
@@ -62,34 +64,47 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * The function operation, that can model a Java method declaration.
+     * The function operation, that can model a named function.
+     * <p>
+     * In code models derived from Java source, function operations can model Java method declarations.
+     * <p>
+     * A function operation has a {@linkplain #funcName() function name}, which should correspond to an entry in the
+     * ancestor module's {@linkplain ModuleOp#functionTable() symbol table}, if any.
+     * <p>
+     * Function operations feature one body, the {@linkplain #body() function body}. The body accepts the function
+     * parameters and yields the function result. That is, the type of the function body corresponds to the signature
+     * of the function modeled by the function operation.
+     * <p>
+     * The result type of a function operation is {@link JavaType#VOID}.
+     *
+     * @jls 8.4 Method Declarations
      */
     @OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends CoreOp
             implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
         /**
-         * Builder for function operations.
+         * A builder for constructing a function operation.
          */
         public static class Builder {
             final Body.Builder ancestorBody;
             final String funcName;
-            final FunctionType funcType;
+            final FunctionType signature;
 
-            Builder(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
+            Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
                 this.ancestorBody = ancestorBody;
                 this.funcName = funcName;
-                this.funcType = funcType;
+                this.signature = signature;
             }
 
             /**
-             * Builds a function operation using a block builder.
+             * Completes the function operation by adding the function body.
              *
-             * @param c consumer that populates the function body using a block builder
-             * @return the function operation
+             * @param c a consumer that populates the function body
+             * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, funcType);
+                Body.Builder body = Body.Builder.of(ancestorBody, signature);
                 c.accept(body.entryBlock());
                 return new FuncOp(funcName, body);
             }
@@ -98,7 +113,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "func";
 
         /**
-         * The externalized attribute modelling the function name
+         * The externalized attribute modeling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
@@ -141,7 +156,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * Transforms a function operation using the given code transformer and a new context.
          *
-         * @param ot code transformer to apply to the function operation
+         * @param ot code transformer to apply to this function operation
          * @return the transformed function operation
          */
         public FuncOp transform(CodeTransformer ot) {
@@ -149,11 +164,10 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * Transforms a function operation using the given function name, code transformer,
-         * and a new context.
+         * Transforms a function operation using the given function name, code transformer and a new context.
          *
          * @param funcName the new function name
-         * @param ot code transformer to apply to the function operation
+         * @param ot code transformer to apply to this function operation
          * @return the transformed function operation
          */
         public FuncOp transform(String funcName, CodeTransformer ot) {
@@ -177,11 +191,6 @@ public sealed abstract class CoreOp extends Op {
             return Map.of("", funcName);
         }
 
-        @Override
-        public FunctionType invokableType() {
-            return body.bodyType();
-        }
-
         /**
          * {@return the function name}
          */
@@ -202,14 +211,20 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
 
     /**
-     * The function call operation, that models a call to a function, by name, declared in the module op that is also an
-     * ancestor of this operation.
+     * The function call operation, that can model invocation of a function operation declared in an ancestor module
+     * operation.
+     * <p>
+     * A function call operation accepts zero or more operands, corresponding to the arguments passed to the invoked
+     * function operation. The invoked function is identified by its {@linkplain #funcName() function name}, which
+     * should correspond to an entry in the ancestor module's {@linkplain ModuleOp#functionTable() symbol table}.
+     * <p>
+     * The result type of a function call operation is the return type of the invoked function operation.
      */
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
     @OpDeclaration(FuncCallOp.NAME)
@@ -217,12 +232,12 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "func.call";
 
         /**
-         * The externalized attribute modelling the name of the invoked function
+         * The externalized attribute modeling the name of the invoked function
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
 
         final String funcName;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         FuncCallOp(ExternalizedOp def) {
             String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
@@ -246,7 +261,7 @@ public sealed abstract class CoreOp extends Op {
             return new FuncCallOp(this, cc);
         }
 
-        FuncCallOp(String funcName, TypeElement resultType, List<Value> args) {
+        FuncCallOp(String funcName, CodeType resultType, List<Value> args) {
             super(args);
 
             this.funcName = funcName;
@@ -266,14 +281,21 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
     }
 
     /**
-     * The module operation, modeling a collection of functions,
-     * and creating a symbol table of function name to function
+     * The module operation, that can model a collection of function operations.
+     * <p>
+     * A module operation maintains a symbol table from function name to function operation, referred to as the
+     * module operation's <em>module symbol table</em>.
+     * <p>
+     * Module operations feature one body. The body contains the function operations in the module symbol table and
+     * terminates without yielding a value.
+     * <p>
+     * The result type of a module operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends CoreOp
@@ -350,14 +372,14 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * {@return a symbol table of function name to function}
+         * {@return the module symbol table, mapping function name to function operation}
          */
         public SequencedMap<String, FuncOp> functionTable() {
             return table;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
@@ -369,7 +391,7 @@ public sealed abstract class CoreOp extends Op {
 
         static CoreOp.FuncOp invokeToFuncOp(JavaOp.InvokeOp invokeOp, MethodHandles.Lookup l) {
             try {
-        Method method = invokeOp.invokeReference().resolveToMethod(l);
+                Method method = invokeOp.invokeReference().resolveToMethod(l);
                 return Op.ofMethod(method).orElse(null);
             } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException("Could not resolve invokeOp to method");
@@ -377,13 +399,23 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * Creates a module operation using a root function operation, collecting all reachable function operations.
-         * The symbol table of the returned module operation lists function operations in the order encountered within the
-         * root function operation, preceded by the function obtained from the root function itself.
+         * Creates a module operation from a root function operation, collecting all reachable function operations.
+         * The symbol table of the returned module operation contains the root function operation, followed by
+         * reachable function operations in encounter order.
+         * <p>
+         * More precisely, for a function operation to be included in the symbol table of the returned module
+         * operation it has to be:
+         * <ul>
+         *     <li>the root function operation</li>
+         *     <li>a function operation referenced by an
+         *     {@linkplain jdk.incubator.code.dialect.java.JavaOp.InvokeOp invoke operation}, where the reference
+         *     occurs in the body of a function already included and the {@linkplain InvokeOp#invokeReference() method reference}
+         *     associated with the invoke operation resolves to a function operation.</li>
+         * </ul>
          *
          * @param root the root function operation
-         * @param l the lookup used to resolve method references nested in the root function
-         * @return a module operation containing the root and reachable functions
+         * @param l    the lookup used to resolve {@linkplain MethodRef method references}
+         * @return a module operation containing the root and reachable function operations
          */
         public static CoreOp.ModuleOp ofFuncOp(CoreOp.FuncOp root, MethodHandles.Lookup l) {
             SequencedSet<FuncOp> visited = new LinkedHashSet<>();
@@ -406,7 +438,7 @@ public sealed abstract class CoreOp extends Op {
                     if (op instanceof JavaOp.InvokeOp iop) {
                         Method invokeOpCalledMethod = null;
                         try {
-        invokeOpCalledMethod = iop.invokeReference().resolveToMethod(l);
+                            invokeOpCalledMethod = iop.invokeReference().resolveToMethod(l);
                         } catch (ReflectiveOperationException e) {
                             throw new RuntimeException("Could not resolve invokeOp to method");
                         }
@@ -417,7 +449,7 @@ public sealed abstract class CoreOp extends Op {
                                     f -> f.funcName() + "_" + funcNames.size());
                             Op.Result result = blockBuilder.op(CoreOp.funcCall(
                                     funcNames.get(calledFunc),
-                                    calledFunc.invokableType(),
+                                    calledFunc.invokableSignature(),
                                     blockBuilder.context().getValues(iop.operands())));
                             blockBuilder.context().mapValue(op.result(), result);
                             return blockBuilder;
@@ -435,14 +467,25 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * Creates a module operation using a lambda operation, method handles lookup, and a name for the root lambda.
-         * The symbol table of the returned module operation lists function operations in the order encountered within the
-         * root lambda operation, preceded by the function obtained from the provided lambda operation.
+         * Creates a module operation from a lambda operation, a method handles lookup, and a name for the root
+         * lambda.
+         * <p>
+         * This is equivalent to:
+         * {@snippet :
+         * ofFuncOp(root)
+         * }
+         * where {@code root} is derived as follows:
+         * <ul>
+         *     <li>if {@code lambdaOp} contains a {@linkplain LambdaOp#directInvocation() direct invocation}, and that
+         *     direct invocation can be resolved to a function operation, that operation is {@code root}</li>
+         *     <li>otherwise, {@code root} is the function operation obtained using
+         *     {@code lambdaOp.toFuncOp(lambdaName)}</li>
+         * </ul>
          *
-         * @param lambdaOp the lambda operation
-         * @param l the lookup used to resolve method references nested in the lambda operation
-         * @param lambdaName the name to use for the root function (or {@code null})
-         * @return a module operation containing a root function (obtained from {@code lambdaOp}) and reachable functions
+         * @param lambdaOp   the lambda operation
+         * @param l          the lookup used to resolve {@linkplain MethodRef method references}
+         * @param lambdaName the name to use for the root function operation, or {@code null}
+         * @return a module operation containing a (derived) root function operation and reachable function operations
          */
         public static CoreOp.ModuleOp ofLambdaOp(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, String lambdaName) {
             if (lambdaName == null) lambdaName = "";
@@ -454,7 +497,17 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * The quoted operation, that models the quoting of an operation.
+     * The quoted operation, that can model creation of a {@link Quoted} instance.
+     * <p>
+     * The created {@link Quoted} instance describes, as data, the operation being quoted.
+     * <p>
+     * The operation being quoted may depend on values defined outside that operation. Such values become captured
+     * values of the created {@link Quoted} instance.
+     * <p>
+     * Quoted operations feature one body. The body yields the operation being quoted.
+     * <p>
+     * The result type of a quoted operation is the parameterized class type {@code Quoted<Op>},
+     * {@link #QUOTED_OP_TYPE}.
      */
     @OpDeclaration(QuotedOp.NAME)
     public static final class QuotedOp extends CoreOp
@@ -462,8 +515,8 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "quoted";
 
         /**
-         * The java type element modelling the parameterized type {@code Quoted<Op>}
-         * that is the result type of a QuotedOp instance.
+         * The Java type modeling the parameterized type {@code Quoted<Op>}
+         * that is the result type of a quoted operation.
          */
         public static final JavaType QUOTED_OP_TYPE = JavaType.parameterized(
                 JavaType.type(Quoted.class), JavaType.type(Op.class));
@@ -480,7 +533,7 @@ public sealed abstract class CoreOp extends Op {
             super(that, cc);
 
             this.quotedBody = that.quotedBody.transform(cc, ot).build(this);
-            this.quotedOp = that.quotedOp;
+            this.quotedOp = getQuotedOp(quotedBody);
         }
 
         @Override
@@ -492,16 +545,7 @@ public sealed abstract class CoreOp extends Op {
             super(List.of());
 
             this.quotedBody = bodyC.build(this);
-            if (quotedBody.blocks().size() > 1) {
-                throw new IllegalArgumentException();
-            }
-            if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
-                throw new IllegalArgumentException();
-            }
-            if (!(yop.yieldValue() instanceof Result r)) {
-                throw new IllegalArgumentException();
-            }
-            this.quotedOp = r.op();
+            this.quotedOp = getQuotedOp(quotedBody);
         }
 
         @Override
@@ -510,7 +554,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * {@return the quoted operation}
+         * {@return the operation being quoted}
          */
         public Op quotedOp() {
             return quotedOp;
@@ -525,15 +569,31 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return QUOTED_OP_TYPE;
+        }
+
+        private Op getQuotedOp(Body quotedBody) {
+            if (quotedBody.blocks().size() > 1) {
+                throw new IllegalArgumentException();
+            }
+            if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
+                throw new IllegalArgumentException();
+            }
+            if (!(yop.yieldValue() instanceof Result r)) {
+                throw new IllegalArgumentException();
+            }
+            return r.op();
         }
     }
 
     /**
-     * The terminating return operation, that can model the Java language return statement.
+     * The return operation, that can model exit from the body of a function operation or a lambda operation.
      * <p>
-     * This operation exits an isolated body.
+     * A return operation is a body-terminating operation that accepts zero or one operand, corresponding to the
+     * value returned from the function operation or lambda operation.
+     * <p>
+     * The result type of a return operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ReturnOp.NAME)
     public static final class ReturnOp extends CoreOp
@@ -574,15 +634,19 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
 
     /**
-     * The terminating unreachable operation.
+     * The unreachable operation, that can model exit from a body that cannot complete normally.
      * <p>
-     * This operation models termination that is unreachable.
+     * An unreachable operation is a body-terminating operation.
+     * <p>
+     * The result type of an unreachable operation is {@link JavaType#VOID}.
+     *
+     * @jls 14.22 Unreachable Statements
      */
     @OpDeclaration(UnreachableOp.NAME)
     public static final class UnreachableOp extends CoreOp
@@ -611,16 +675,18 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
 
     /**
-     * The terminating yield operation.
+     * The yield operation, that can model exit from a body.
      * <p>
-     * This operation models exits from its parent body, yielding at most one value (zero value for yielding unit
-     * or void)
+     * A yield operation is a body-terminating operation that accepts zero or one operand, corresponding to the value
+     * yielded from the body to its parent operation.
+     * <p>
+     * The result type of a yield operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends CoreOp
@@ -665,22 +731,25 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
 
     /**
-     * The terminating unconditional branch operation.
+     * The unconditional branch operation, that can model transfer of control from one block to a successor block.
      * <p>
-     * This operation accepts a successor to the next block to branch to.
+     * A branch operation is a block-terminating operation that accepts no operands and one successor, the next block
+     * to branch to. The arguments of the successor are assigned to the parameters to the target block.
+     * <p>
+     * The result type of a branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(BranchOp.NAME)
     public static final class BranchOp extends CoreOp
             implements Op.BlockTerminating {
         static final String NAME = "branch";
 
-        final Block.Reference b;
+        final Block.Reference branch;
 
         BranchOp(ExternalizedOp def) {
             if (!def.operands().isEmpty() || def.successors().size() != 1) {
@@ -693,7 +762,7 @@ public sealed abstract class CoreOp extends Op {
         BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.b = cc.getSuccessorOrCreate(that.b);
+            this.branch = cc.getSuccessorOrCreate(that.branch);
         }
 
         @Override
@@ -704,41 +773,45 @@ public sealed abstract class CoreOp extends Op {
         BranchOp(Block.Reference successor) {
             super(List.of());
 
-            this.b = successor;
+            this.branch = successor;
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return List.of(b);
+            return List.of(branch);
         }
 
         /**
-         * {@return The branch target}
+         * {@return The block reference to branch to}
          */
         public Block.Reference branch() {
-            return b;
+            return branch;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
 
     /**
-     * The terminating conditional branch operation.
+     * The conditional branch operation, that can model transfer of control from one block to one of two successor
+     * blocks.
      * <p>
-     * This operation accepts a boolean operand and two successors, the true successor and false successor.
-     * When the operand is true the  true successor is selected, otherwise the false successor is selected.
-     * The selected successor refers to the next block to branch to.
+     * A conditional branch operation is a block-terminating operation that accepts one boolean operand and two
+     * successors, the true successor and the false successor. When the operand is true the true successor is
+     * selected, otherwise the false successor is selected. The arguments of the selected successor are assigned
+     * to the parameters to the target block.
+     * <p>
+     * The result type of a conditional branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ConditionalBranchOp.NAME)
     public static final class ConditionalBranchOp extends CoreOp
             implements Op.BlockTerminating {
         static final String NAME = "cbranch";
 
-        final Block.Reference t;
-        final Block.Reference f;
+        final Block.Reference trueBranch;
+        final Block.Reference falseBranch;
 
         ConditionalBranchOp(ExternalizedOp def) {
             if (def.operands().size() != 1 || def.successors().size() != 2) {
@@ -751,8 +824,8 @@ public sealed abstract class CoreOp extends Op {
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.t = cc.getSuccessorOrCreate(that.t);
-            this.f = cc.getSuccessorOrCreate(that.f);
+            this.trueBranch = cc.getSuccessorOrCreate(that.trueBranch);
+            this.falseBranch = cc.getSuccessorOrCreate(that.falseBranch);
         }
 
         @Override
@@ -760,47 +833,53 @@ public sealed abstract class CoreOp extends Op {
             return new ConditionalBranchOp(this, cc);
         }
 
-        ConditionalBranchOp(Value p, Block.Reference t, Block.Reference f) {
+        ConditionalBranchOp(Value p, Block.Reference trueBranch, Block.Reference falseBranch) {
             super(List.of(p));
 
-            this.t = t;
-            this.f = f;
+            this.trueBranch = trueBranch;
+            this.falseBranch = falseBranch;
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return List.of(t, f);
+            return List.of(trueBranch, falseBranch);
         }
 
         /**
          * {@return the branch condition}
          */
-        public Value predicate() {
+        public Value predicateOperand() {
             return operands().get(0);
         }
 
         /**
-         * {@return the branch target when the condition is true}
+         * {@return the block reference to branch to when the condition is true}
          */
         public Block.Reference trueBranch() {
-            return t;
+            return trueBranch;
         }
 
         /**
-         * {@return the branch target when the condition is false}
+         * {@return the block reference to branch to when the condition is false}
          */
         public Block.Reference falseBranch() {
-            return f;
+            return falseBranch;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
     }
 
     /**
-     * The constant operation, that can model Java language literal and constant expressions.
+     * The constant operation, that can model a constant value, such as a Java literal.
+     * <p>
+     * A constant operation accepts no operands and stores the constant value as an attribute.
+     * <p>
+     * The result type of a constant operation is the type of the modeled constant value.
+     *
+     * @jls 15.29 Constant Expressions
      */
     @OpDeclaration(ConstantOp.NAME)
     public static final class ConstantOp extends CoreOp
@@ -808,12 +887,12 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "constant";
 
         /**
-         * The externalized attribute modelling the constant value
+         * The externalized attribute modeling the constant value
          */
         static final String ATTRIBUTE_CONSTANT_VALUE = NAME + ".value";
 
         final Object value;
-        final TypeElement type;
+        final CodeType resultType;
 
         ConstantOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
@@ -826,7 +905,7 @@ public sealed abstract class CoreOp extends Op {
             this(def.resultType(), value);
         }
 
-        static Object processConstantValue(TypeElement t, Object value) {
+        static Object processConstantValue(CodeType t, Object value) {
             if (t.equals(JavaType.BOOLEAN) && value instanceof Boolean) {
                 return value;
             } else if (t.equals(JavaType.BYTE) && value instanceof Number n) {
@@ -848,7 +927,7 @@ public sealed abstract class CoreOp extends Op {
                         null : (String)value;
             } else if (t.equals(JavaType.J_L_CLASS)) {
                 return value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ?
-                        null : (TypeElement)value;
+                        null : (CodeType)value;
             } else if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
@@ -859,7 +938,7 @@ public sealed abstract class CoreOp extends Op {
         ConstantOp(ConstantOp that, CodeContext cc) {
             super(that, cc);
 
-            this.type = that.type;
+            this.resultType = that.resultType;
             this.value = that.value;
         }
 
@@ -868,10 +947,10 @@ public sealed abstract class CoreOp extends Op {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeElement type, Object value) {
+        ConstantOp(CodeType resultType, Object value) {
             super(List.of());
 
-            this.type = type;
+            this.resultType = resultType;
             this.value = value;
         }
 
@@ -888,15 +967,15 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
-            return type;
+        public CodeType resultType() {
+            return resultType;
         }
     }
 
     /**
-     * A runtime representation of a variable.
+     * A runtime representation of the storage associated with a variable operation.
      *
-     * @param <T> the type of the var's value.
+     * @param <T> the type of the var's value
      * @@@ Ideally should never be exposed
      * @@@ Move to interpreter?
      */
@@ -919,8 +998,20 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * The variable operation, that can model declarations of Java language local variables, method parameters, or
-     * lambda parameters.
+     * The variable operation, that can model declarations of mutable storage.
+     * <p>
+     * In code models derived from Java source, variable operations can model Java local variables, method parameters,
+     * or lambda parameters.
+     * <p>
+     * A variable operation accepts zero or one operand, corresponding to the initial value of the variable when
+     * present.
+     * <p>
+     * The result type of a variable operation is the parameterized type {@code Var<T>},
+     * where {@code T} is the code type modeling the variable's type.
+     *
+     * @jls 14.4 Local Variable Declarations
+     * @jls 8.4.1 Formal Parameters
+     * @jls 15.27.1 Lambda Parameters
      */
     @OpDeclaration(VarOp.NAME)
     public static final class VarOp extends CoreOp
@@ -928,7 +1019,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "var";
 
         /**
-         * The externalized attribute modelling the variable name
+         * The externalized attribute modeling the variable name
          */
         static final String ATTRIBUTE_NAME = NAME + ".name";
 
@@ -971,7 +1062,7 @@ public sealed abstract class CoreOp extends Op {
             return new VarOp(this, cc);
         }
 
-        VarOp(String varName, TypeElement type, Value init) {
+        VarOp(String varName, CodeType type, Value init) {
             super(init == null ? List.of() : List.of(init));
 
             this.varName =  varName == null ? "" : varName;
@@ -1005,7 +1096,7 @@ public sealed abstract class CoreOp extends Op {
         /**
          * {@return the variable type}
          */
-        public TypeElement varValueType() {
+        public CodeType varValueType() {
             return resultType.valueType();
         }
 
@@ -1030,8 +1121,14 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * The var access operation, that can model access to Java language local variables, method parameters, or
-     * lambda parameters.
+     * A variable access operation, that can model access to mutable storage.
+     * <p>
+     * In code models derived from Java source, variable access operations can model access to Java local variables,
+     * method parameters, or lambda parameters.
+     * <p>
+     * Variable access operations accept the accessed variable as their first operand.
+     *
+     * @see JavaOp.FieldAccessOp
      */
     public sealed abstract static class VarAccessOp extends CoreOp
             implements JavaOp.AccessOp {
@@ -1078,7 +1175,14 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * The variable load operation, that models a reading variable.
+         * The var load operation, that can model reading a variable.
+         * <p>
+         * A var load operation accepts the accessed variable as its operand.
+         * <p>
+         * The result type of a var load operation is the value type of the accessed variable.
+         *
+         * @see JavaOp.FieldAccessOp.FieldLoadOp
+         * @jls 6.5.6.1 Simple Expression Names
          */
         @OpDeclaration(VarLoadOp.NAME)
         public static final class VarLoadOp extends VarAccessOp
@@ -1109,13 +1213,20 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return varType().valueType();
             }
         }
 
         /**
-         * The variable store operation, that can model a variable assignment.
+         * The var store operation, that can model assignment to a variable.
+         * <p>
+         * A var store operation accepts two operands: the accessed variable and the value to store.
+         * <p>
+         * The result type of a var store operation is {@link JavaType#VOID}.
+         *
+         * @see JavaOp.FieldAccessOp.FieldStoreOp
+         * @jls 15.26 Assignment Operators
          */
         @OpDeclaration(VarStoreOp.NAME)
         public static final class VarStoreOp extends VarAccessOp
@@ -1157,16 +1268,24 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public TypeElement resultType() {
+            public CodeType resultType() {
                 return JavaType.VOID;
             }
         }
     }
 
-    // Tuple operations, for modelling return with multiple values
+    // Tuple operations, for modeling return with multiple values
 
     /**
-     * The tuple operation. A tuple contain a fixed set of values accessible by their component index.
+     * The tuple operation, that can model constructing a tuple from a fixed set of values.
+     * <p>
+     * A tuple operation accepts one operand per tuple component, in component order.
+     * <p>
+     * The result type of a tuple operation is a {@linkplain TupleType tuple type} whose component types are
+     * derived from the operand types.
+     *
+     * @see TupleLoadOp
+     * @see TupleWithOp
      */
     @OpDeclaration(TupleOp.NAME)
     public static final class TupleOp extends CoreOp {
@@ -1190,20 +1309,27 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return CoreType.tupleTypeFromValues(operands());
         }
     }
 
     /**
-     * The tuple component load operation, that access the component of a tuple at a given, constant, component index.
+     * The tuple component load operation, that can model reading a tuple component at a given index.
+     * <p>
+     * A tuple load operation accepts one operand, the tuple value. The index of the accessed component is
+     * identified using an attribute.
+     * <p>
+     * The result type of a tuple load operation is the type of the selected tuple component.
+     *
+     * @see TupleOp
      */
     @OpDeclaration(TupleLoadOp.NAME)
     public static final class TupleLoadOp extends CoreOp {
         static final String NAME = "tuple.load";
 
         /**
-         * The externalized attribute modelling the tuple index
+         * The externalized attribute modeling the tuple index
          */
         static final String ATTRIBUTE_INDEX = NAME + ".index";
 
@@ -1252,8 +1378,15 @@ public sealed abstract class CoreOp extends Op {
             return index;
         }
 
+        /**
+         * {@return the tuple value}
+         */
+        public Value tupleOperand() {
+            return operands().get(0);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType t = (TupleType) tupleValue.type();
             return t.componentTypes().get(index);
@@ -1261,14 +1394,22 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * The tuple component set operation, that access the component of a tuple at a given, constant, component index.
+     * The tuple with operation, that can model replacing a tuple component at a given index.
+     * <p>
+     * A tuple with operation accepts two operands: the tuple value and the replacement component value. The index of the
+     * component to be replaced is identified using an attribute.
+     * <p>
+     * The result type of a tuple with operation is a {@linkplain TupleType tuple type} obtained from the
+     * tuple value type by replacing the selected component type with the replacement component value type.
+     *
+     * @see TupleOp
      */
     @OpDeclaration(TupleWithOp.NAME)
     public static final class TupleWithOp extends CoreOp {
         static final String NAME = "tuple.with";
 
         /**
-         * The externalized attribute modelling the tuple index
+         * The externalized attribute modeling the tuple index
          */
         static final String ATTRIBUTE_INDEX = NAME + ".index";
 
@@ -1318,13 +1459,27 @@ public sealed abstract class CoreOp extends Op {
             return index;
         }
 
+        /**
+         * {@return the tuple value}
+         */
+        public Value tupleOperand() {
+            return operands().get(0);
+        }
+
+        /**
+         * {@return the value being updated in the tuple}
+         */
+        public Value valueOperand() {
+            return operands().get(1);
+        }
+
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             Value tupleValue = operands().get(0);
             TupleType tupleType = (TupleType) tupleValue.type();
             Value value = operands().get(1);
 
-            List<TypeElement> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
+            List<CodeType> tupleComponentTypes = new ArrayList<>(tupleType.componentTypes());
             tupleComponentTypes.set(index, value.type());
             return CoreType.tupleType(tupleComponentTypes);
         }
@@ -1362,21 +1517,21 @@ public sealed abstract class CoreOp extends Op {
     public static final OpFactory CORE_OP_FACTORY = CoreOp::createOp;
 
     /**
-     * Creates a function operation builder
+     * Creates a function operation builder.
      *
      * @param funcName the function name
-     * @param funcType the function type
+     * @param signature the function's signature, represented as a function type
      * @return the function operation builder
      */
-    public static FuncOp.Builder func(String funcName, FunctionType funcType) {
-        return new FuncOp.Builder(null, funcName, funcType);
+    public static FuncOp.Builder func(String funcName, FunctionType signature) {
+        return new FuncOp.Builder(null, funcName, signature);
     }
 
     /**
-     * Creates a function operation
+     * Creates a function operation.
      *
      * @param funcName the function name
-     * @param body     the function body
+     * @param body     the body builder defining the function body
      * @return the function operation
      */
     public static FuncOp func(String funcName, Body.Builder body) {
@@ -1384,31 +1539,31 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * Creates a function call operation
+     * Creates a function call operation.
      *
-     * @param funcName the name of the function operation
-     * @param funcType the function type
+     * @param funcName the name of the target function
+     * @param signature the signature of the target function, represented as a function type
      * @param args     the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcType, Value... args) {
-        return funcCall(funcName, funcType, List.of(args));
+    public static FuncCallOp funcCall(String funcName, FunctionType signature, Value... args) {
+        return funcCall(funcName, signature, List.of(args));
     }
 
     /**
-     * Creates a function call operation
+     * Creates a function call operation.
      *
-     * @param funcName the name of the function operation
-     * @param funcType the function type
-     * @param args     the function arguments
+     * @param funcName  the name of the target function
+     * @param signature the signature of the target function, represented as a function type
+     * @param args      the function arguments
      * @return the function call operation
      */
-    public static FuncCallOp funcCall(String funcName, FunctionType funcType, List<Value> args) {
-        return new FuncCallOp(funcName, funcType.returnType(), args);
+    public static FuncCallOp funcCall(String funcName, FunctionType signature, List<Value> args) {
+        return new FuncCallOp(funcName, signature.returnType(), args);
     }
 
     /**
-     * Creates a function call operation
+     * Creates a function call operation.
      *
      * @param func the target function
      * @param args the function arguments
@@ -1419,20 +1574,24 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * Creates a function call operation
+     * Creates a function call operation.
      *
      * @param func the target function
-     * @param args the function argments
+     * @param args the function arguments
      * @return the function call operation
      */
     public static FuncCallOp funcCall(FuncOp func, List<Value> args) {
-        return new FuncCallOp(func.funcName(), func.invokableType().returnType(), args);
+        return new FuncCallOp(func.funcName(), func.invokableSignature().returnType(), args);
     }
 
     /**
      * Creates a module operation.
      *
-     * @param functions the functions of the module operation
+     * <p>
+     * The function operations are specified in the order in which they will appear in the
+     * {@linkplain ModuleOp#functionTable() symbol table} of the returned module operation.
+     *
+     * @param functions the function operations in the module
      * @return the module operation
      */
     public static ModuleOp module(FuncOp... functions) {
@@ -1442,7 +1601,11 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a module operation.
      *
-     * @param functions the functions of the module operation
+     * <p>
+     * The function operations are specified in the order in which they will appear in the
+     * {@linkplain ModuleOp#functionTable() symbol table} of the returned module operation.
+     *
+     * @param functions the function operations in the module
      * @return the module operation
      */
     public static ModuleOp module(List<FuncOp> functions) {
@@ -1452,8 +1615,9 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a quoted operation.
      *
-     * @param ancestorBody the ancestor of the body of the quoted operation
-     * @param opFunc       a function that accepts the body of the quoted operation and returns the operation to be quoted
+     * @param ancestorBody the nearest ancestor body builder from which to construct
+     *                     the body builder for this operation
+     * @param opFunc       a function that accepts a builder for the quoted operation body and returns the operation to be quoted
      * @return the quoted operation
      */
     public static QuotedOp quoted(Body.Builder ancestorBody,
@@ -1468,7 +1632,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a quoted operation.
      *
-     * @param body quoted operation body
+     * @param body the quoted operation body builder, which yields the operation to be quoted
      * @return the quoted operation
      */
     public static QuotedOp quoted(Body.Builder body) {
@@ -1476,7 +1640,7 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * Creates a return operation.
+     * Creates a return operation with no returned value.
      *
      * @return the return operation
      */
@@ -1504,7 +1668,7 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * Creates a yield operation.
+     * Creates a yield operation with no yielded value.
      *
      * @return the yield operation
      */
@@ -1523,22 +1687,22 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * Creates an unconditional break operation.
+     * Creates an unconditional branch operation.
      *
      * @param target the jump target
-     * @return the unconditional break operation
+     * @return the unconditional branch operation
      */
     public static BranchOp branch(Block.Reference target) {
         return new BranchOp(target);
     }
 
     /**
-     * Creates a conditional break operation.
+     * Creates a conditional branch operation.
      *
-     * @param condValue   the test value of the conditional break operation
+     * @param condValue   the test value of the conditional branch operation
      * @param trueTarget  the jump target when the test value evaluates to true
      * @param falseTarget the jump target when the test value evaluates to false
-     * @return the conditional break operation
+     * @return the conditional branch operation
      */
     public static ConditionalBranchOp conditionalBranch(Value condValue,
                                                         Block.Reference trueTarget, Block.Reference falseTarget) {
@@ -1552,96 +1716,96 @@ public sealed abstract class CoreOp extends Op {
      * @param value the constant value
      * @return the constant operation
      */
-    public static ConstantOp constant(TypeElement type, Object value) {
+    public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
     }
 
     // @@@ Add field load/store overload with explicit fieldType
 
     /**
-     * Creates a var operation modeling an unnamed and uninitialized variable,
+     * Creates a variable operation modeling an unnamed and uninitialized variable,
      * either an unnamed local variable or an unnamed parameter.
      *
      * @param type the type of the var's value
      * @return the var operation
      */
-    public static VarOp var(TypeElement type) {
+    public static VarOp var(CodeType type) {
         return var(null, type);
     }
 
     /**
-     * Creates a var operation modeling an uninitialized variable, either a local variable or a parameter.
+     * Creates a variable operation modeling an uninitialized variable.
      *
-     * @param name the name of the var
-     * @param type the type of the var's value
+     * @param name the name of the variable
+     * @param type the variable type
      * @return the var operation
      */
-    public static VarOp var(String name, TypeElement type) {
+    public static VarOp var(String name, CodeType type) {
         return var(name, type, null);
     }
 
     /**
-     * Creates a var operation modeling an unnamed variable, either an unnamed local variable or an unnamed parameter.
+     * Creates a variable operation modeling an unnamed variable.
      *
-     * @param init the initial value of the var
-     * @return the var operation
+     * @param init the variable's initial value
+     * @return the variable operation
      */
     public static VarOp var(Value init) {
         return var(null, init);
     }
 
     /**
-     * Creates a var operation modeling a variable, either a local variable or a parameter.
+     * Creates a variable operation.
      * <p>
      * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
      *
-     * @param name the name of the var
-     * @param init the initial value of the var
-     * @return the var operation
+     * @param name the variable name
+     * @param init the variable's initial value
+     * @return the variable operation
      */
     public static VarOp var(String name, Value init) {
         return var(name, init.type(), init);
     }
 
     /**
-     * Creates a var operation modeling a variable, either a local variable or a parameter.
+     * Creates a variable operation.
      * <p>
      * If the given name is {@code null} or an empty string then the variable is an unnamed variable.
      *
-     * @param name the name of the var
-     * @param type the type of the var's value
-     * @param init the initial value of the var
+     * @param name the variable name
+     * @param type the variable type
+     * @param init the variable's initial value
      * @return the var operation
      */
-    public static VarOp var(String name, TypeElement type, Value init) {
+    public static VarOp var(String name, CodeType type, Value init) {
         return new VarOp(name, type, init);
     }
 
     /**
-     * Creates a var load operation.
+     * Creates a variable load operation.
      *
-     * @param varValue the var value
-     * @return the var load operation
+     * @param var the variable to be accessed
+     * @return the variable load operation
      */
-    public static VarAccessOp.VarLoadOp varLoad(Value varValue) {
-        return new VarAccessOp.VarLoadOp(varValue);
+    public static VarAccessOp.VarLoadOp varLoad(Value var) {
+        return new VarAccessOp.VarLoadOp(var);
     }
 
     /**
-     * Creates a var store operation.
+     * Creates a variable store operation.
      *
-     * @param varValue the var value
-     * @param v        the value to store in the var
-     * @return the var store operation
+     * @param var the variable to be set
+     * @param v   the value to store in {@code var}
+     * @return the variable store operation
      */
-    public static VarAccessOp.VarStoreOp varStore(Value varValue, Value v) {
-        return new VarAccessOp.VarStoreOp(varValue, v);
+    public static VarAccessOp.VarStoreOp varStore(Value var, Value v) {
+        return new VarAccessOp.VarStoreOp(var, v);
     }
 
     /**
      * Creates a tuple operation.
      *
-     * @param componentValues the values of tuple (in order)
+     * @param componentValues the values of the tuple components, in order
      * @return the tuple operation
      */
     public static TupleOp tuple(Value... componentValues) {
@@ -1651,7 +1815,7 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a tuple operation.
      *
-     * @param componentValues the values of tuple (in order)
+     * @param componentValues the values of the tuple components, in order
      * @return the tuple operation
      */
     public static TupleOp tuple(List<? extends Value> componentValues) {
@@ -1661,8 +1825,8 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a tuple load operation.
      *
-     * @param tuple the tuple value
-     * @param index the component index value
+     * @param tuple the tuple to be accessed
+     * @param index the index of the component to be accessed
      * @return the tuple load operation
      */
     public static TupleLoadOp tupleLoad(Value tuple, int index) {
@@ -1672,9 +1836,9 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a tuple with operation.
      *
-     * @param tuple the tuple value
-     * @param index the component index value
-     * @param value the component value
+     * @param tuple the tuple with the component to be replaced
+     * @param index the index of the component to be replaced
+     * @param value the replacement component value
      * @return the tuple with operation
      */
     public static TupleWithOp tupleWith(Value tuple, int index, Value value) {

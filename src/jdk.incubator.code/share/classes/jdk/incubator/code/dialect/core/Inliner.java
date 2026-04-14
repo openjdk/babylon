@@ -84,8 +84,8 @@ public final class Inliner {
                     // with two or more blocks with only one returnOp is declared.
                     Value r;
                     if (rop.ancestorBody().blocks().size() != 1) {
-                        List<TypeElement> param = rop.returnValue() != null
-                                ? List.of(invokableOp.invokableType().returnType())
+                        List<CodeType> param = rop.returnValue() != null
+                                ? List.of(invokableOp.invokableSignature().returnType())
                                 : List.of();
                         rb = block.block(param);
                         r = !param.isEmpty()
@@ -110,7 +110,7 @@ public final class Inliner {
                     List<Value> arg = rop.returnValue() != null
                             ? List.of(block.context().getValue(rop.returnValue()))
                             : List.of();
-                    block.op(branch(returnBlock.successor(arg)));
+                    block.op(branch(returnBlock.reference(arg)));
                 }
 
                 return block;

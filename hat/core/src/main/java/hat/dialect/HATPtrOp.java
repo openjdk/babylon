@@ -24,6 +24,8 @@
  */
 package hat.dialect;
 
+import hat.device.DeviceSchema;
+import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.*;
 import optkl.util.ops.Precedence;
@@ -35,16 +37,41 @@ import java.util.Map;
 public abstract sealed class HATPtrOp extends HATOp
         permits HATPtrOp.HATPtrLengthOp, HATPtrOp.HATPtrLoadOp, HATPtrOp.HATPtrStoreOp {
 
-    private TypeElement resultType;
+    private CodeType resultType;
     private List<String> strides;
     private String name;
 
     private static final String NAME = "HATPtrOp";
 
-    public HATPtrOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+    public HATPtrOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
         this(operands);
         this.resultType = resultType;
-        this.strides = getFieldsOfBuffer(bufferClass);
+        List<String> retValue = List.of();
+        if (Modifier.isPublic(bufferClass.getModifiers())) {
+            try {
+                if (bufferClass.getField("schema").get(null) instanceof Schema<?> schema) {
+                    retValue = schema.rootIfaceType.fields
+                            .stream()
+                            .map(fieldNode -> fieldNode.name)
+                            .toList();
+
+                    if (!retValue.isEmpty()) {
+                        retValue = retValue.subList(0, retValue.size() - 1);// remove the "array" field from the fields
+                    }
+                }
+            } catch (IllegalAccessException | NoSuchFieldException e) {
+                try {
+                    if (bufferClass.getField("deviceSchema").get(null) instanceof DeviceSchema deviceSchema) {
+                        // We did find a device schema !  I think we should not be getting here with device schemas
+                    } else {
+                        throw new RuntimeException("No schema or deviceSchema field ");
+                    }
+                } catch (IllegalAccessException | NoSuchFieldException e2) {
+                    throw new RuntimeException("No schema field ", e2);
+                }
+            }
+        }
+        this.strides = retValue;
         this.name = name;
     }
 
@@ -59,27 +86,8 @@ public abstract sealed class HATPtrOp extends HATOp
         this.name = op.name;
     }
 
-    public static List<String> getFieldsOfBuffer(Class<?> clazz) {
-        List<String> retValue = List.of();
-        if (Modifier.isPublic(clazz.getModifiers())) {
-            try {
-                if (clazz.getField("schema").get(null/* we expect static */) instanceof Schema<?> schema) {
-                    retValue = schema.rootIfaceType.fields
-                            .stream()
-                            .map(fieldNode -> fieldNode.name)
-                            .toList();
-                    // remove the "array" field from the fields
-                    if (!retValue.isEmpty()) retValue = retValue.subList(0, retValue.size() - 1);
-                }
-            } catch (IllegalAccessException | NoSuchFieldException e) {
-                throw new RuntimeException("No schema field ",e);
-            }
-        }
-        return retValue;
-    }
-
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return resultType;
     }
 
@@ -100,7 +108,7 @@ public abstract sealed class HATPtrOp extends HATOp
 
         private static final String NAME = "HATPtrStoreOp";
 
-        public HATPtrStoreOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        public HATPtrStoreOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
         }
 
@@ -128,7 +136,7 @@ public abstract sealed class HATPtrOp extends HATOp
 
         private static final String NAME = "HATPtrLoadOp";
 
-        public HATPtrLoadOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        public HATPtrLoadOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
         }
 
@@ -155,7 +163,7 @@ public abstract sealed class HATPtrOp extends HATOp
 
         private static final String NAME = "HATPtrLengthOp";
 
-        public HATPtrLengthOp(String name, TypeElement resultType, Class<?> bufferClass, List<Value> operands) {
+        public HATPtrLengthOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
         }
 

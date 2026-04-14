@@ -103,7 +103,8 @@ public class SpiralShader{
             U =U/2.;                                     // but small times
             id = mod(floor(I.x/2.)+I.y,5.);
         }
-        U = abs(fract(U)*2.-1.); float v = max(U.x,U.y);          // dist to border
+        U = abs(fract(U)*2.-1.);
+         float v = max(U.x,U.y);          // dist to border
         fragColor =   smoothstep(.7,-.7, (v-.95)/( abs(z.x-z.y)>1.?.1:z.y*8.))  // draw AA tiles
             * (id<0.?vec4(1): .6 + .6 * cos( id  + vec4(0,23,21,0)  ) );// color
     }
@@ -127,7 +128,7 @@ public class SpiralShader{
                     dot(U, U)
             );
             // offset   spiral, zoom   phase            // spiraling
-            U = add(U, vec2(.5f, 0f));
+            U = add(U, .5f);
             //U =   log(length(U))*vec2(.5, -.5) + iTime/8. + atan(U.y, U.x)/6.2832 * vec2(6, 1);
             U = add(
                     add(
@@ -147,8 +148,9 @@ public class SpiralShader{
             vec2 I = floor(U);
             U = fract(U);             // subdiv big square in 5x5
             I = vec2(mod(I.x() - 2.f * I.y(), 5f), I.y());                            // rearrange
-            U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
-            float id = -1f;
+          //  U =  vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f);     // recombine big tiles
+        U = add(U, vec2((I.x() == 1f || I.x() == 3f) ? 1f : 0f, I.x() < 2.0 ? 1f : 0f));     // recombine big tiles
+        float id = -1f;
             if (I.x() != 4f) {
                 U = div(U, 2f);                                     // but small times
                 id = mod(floor(I.x() / 2f) + I.y(), 5f);
@@ -157,7 +159,7 @@ public class SpiralShader{
             float v = max(U.x(), U.y());          // dist to border
 
             return
-                    normalize(
+                    //normalize(
                             smoothstep(
                                     vec4(.7f),
                                     vec4(-.7f),
@@ -171,7 +173,7 @@ public class SpiralShader{
                                                     cos(add(vec4(id), vec4(0f, 23f, 21f, 0f)))
                                             )
                                     )
-                            )
+                         //   )
                     );// color
         }
     @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){

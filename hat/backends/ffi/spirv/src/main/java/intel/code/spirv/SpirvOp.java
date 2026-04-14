@@ -31,7 +31,7 @@ import java.util.HashMap;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
@@ -42,7 +42,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 
 public abstract class SpirvOp extends Op {
     static final String NAME_PREFIX = "spirv.";
-    private final TypeElement type;
+    private final CodeType type;
     private final Map<String, Object> attributes;
 
     SpirvOp(String opName) {
@@ -51,13 +51,13 @@ public abstract class SpirvOp extends Op {
         this.attributes = new HashMap<>();
     }
 
-    SpirvOp(String opName, TypeElement type, List<Value> operands) {
+    SpirvOp(String opName, CodeType type, List<Value> operands) {
         super(opName, operands);
         this.type = type;
         this.attributes = new HashMap<>();
     }
 
-    SpirvOp(String opName, TypeElement type, List<Value> operands, Map<String, Object> attributes) {
+    SpirvOp(String opName, CodeType type, List<Value> operands, Map<String, Object> attributes) {
         super(opName, operands);
         this.type = type;
         this.attributes = new HashMap<>();
@@ -70,7 +70,7 @@ public abstract class SpirvOp extends Op {
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return type;
     }
 
@@ -107,7 +107,7 @@ public abstract class SpirvOp extends Op {
         private final List<Predecessor> predecessors;
 
 
-        public PhiOp(TypeElement resultType, List<Predecessor> predecessors) {
+        public PhiOp(CodeType resultType, List<Predecessor> predecessors) {
             super(OPNAME, resultType, List.of());
             this.predecessors = predecessors;
             this.attributes().put("predecessors", predecessors);
@@ -136,7 +136,7 @@ public abstract class SpirvOp extends Op {
     public static final class LoadOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "load";
 
-        public LoadOp(TypeElement resultType, List<Value> operands) {
+        public LoadOp(CodeType resultType, List<Value> operands) {
             super(OPNAME, resultType, operands);
         }
 
@@ -154,7 +154,7 @@ public abstract class SpirvOp extends Op {
         public static final String OPNAME = NAME_PREFIX + "fieldload";
         private final FieldRef fieldDesc;
 
-        public FieldLoadOp(TypeElement resultType, FieldRef fieldRef, List<Value> operands) {
+        public FieldLoadOp(CodeType resultType, FieldRef fieldRef, List<Value> operands) {
             super(OPNAME, resultType, operands);
             this.fieldDesc = fieldRef;
         }
@@ -226,7 +226,7 @@ public abstract class SpirvOp extends Op {
     public static final class ArrayLengthOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "arraylength";
 
-        public ArrayLengthOp(TypeElement resultType, List<Value> operands) {
+        public ArrayLengthOp(CodeType resultType, List<Value> operands) {
             super(NAME, resultType, operands);
         }
 
@@ -244,7 +244,7 @@ public abstract class SpirvOp extends Op {
         public static final String OPNAME = NAME_PREFIX + "constant";
         private final Object value;
 
-        public ConstantOp(TypeElement resultType, Object value) {
+        public ConstantOp(CodeType resultType, Object value) {
                 super(OPNAME, resultType, List.of());
                 this.value = value;
         }
@@ -267,7 +267,7 @@ public abstract class SpirvOp extends Op {
     public static final class ConvertOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "sconvert";
 
-        public ConvertOp(TypeElement resultType, List<Value> operands) {
+        public ConvertOp(CodeType resultType, List<Value> operands) {
                 super(OPNAME, resultType, operands);
         }
 
@@ -284,7 +284,7 @@ public abstract class SpirvOp extends Op {
     public static final class BitwiseAndOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "and";
 
-        public BitwiseAndOp(TypeElement resultType, List<Value> operands) {
+        public BitwiseAndOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -302,7 +302,7 @@ public abstract class SpirvOp extends Op {
     public static final class IAddOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "iadd";
 
-        public IAddOp(TypeElement resultType, List<Value> operands) {
+        public IAddOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -319,7 +319,7 @@ public abstract class SpirvOp extends Op {
     public static final class FAddOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "fadd";
 
-        public FAddOp(TypeElement resultType, List<Value> operands) {
+        public FAddOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -336,7 +336,7 @@ public abstract class SpirvOp extends Op {
     public static final class ISubOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "isub";
 
-        public ISubOp(TypeElement resultType, List<Value> operands) {
+        public ISubOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -353,7 +353,7 @@ public abstract class SpirvOp extends Op {
     public static final class FSubOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "fsub";
 
-        public FSubOp(TypeElement resultType, List<Value> operands) {
+        public FSubOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -370,7 +370,7 @@ public abstract class SpirvOp extends Op {
     public static final class IMulOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "imul";
 
-        public IMulOp(TypeElement resultType, List<Value> operands) {
+        public IMulOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -387,7 +387,7 @@ public abstract class SpirvOp extends Op {
     public static final class FMulOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "fmul";
 
-        public FMulOp(TypeElement resultType, List<Value> operands) {
+        public FMulOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -404,7 +404,7 @@ public abstract class SpirvOp extends Op {
     public static final class IDivOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "idiv";
 
-        public IDivOp(TypeElement resultType, List<Value> operands) {
+        public IDivOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -421,7 +421,7 @@ public abstract class SpirvOp extends Op {
     public static final class FDivOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "fdiv";
 
-        public FDivOp(TypeElement resultType, List<Value> operands) {
+        public FDivOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -438,7 +438,7 @@ public abstract class SpirvOp extends Op {
     public static final class ModOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "mod";
 
-        public ModOp(TypeElement resultType, List<Value> operands) {
+        public ModOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -455,7 +455,7 @@ public abstract class SpirvOp extends Op {
     public static final class SNegateOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "sneg";
 
-        public SNegateOp(TypeElement resultType, List<Value> operands) {
+        public SNegateOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -472,7 +472,7 @@ public abstract class SpirvOp extends Op {
     public static final class FNegateOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "fneg";
 
-        public FNegateOp(TypeElement resultType, List<Value> operands) {
+        public FNegateOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -489,7 +489,7 @@ public abstract class SpirvOp extends Op {
     public static final class IEqualOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "iequal";
 
-        public IEqualOp(TypeElement resultType, List<Value> operands) {
+        public IEqualOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -506,7 +506,7 @@ public abstract class SpirvOp extends Op {
     public static final class FEqualOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "fequal";
 
-        public FEqualOp(TypeElement resultType, List<Value> operands) {
+        public FEqualOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -523,7 +523,7 @@ public abstract class SpirvOp extends Op {
     public static final class INotEqualOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "inotequal";
 
-        public INotEqualOp(TypeElement resultType, List<Value> operands) {
+        public INotEqualOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -541,7 +541,7 @@ public abstract class SpirvOp extends Op {
     public static final class FNotEqualOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "fnotequal";
 
-        public FNotEqualOp(TypeElement resultType, List<Value> operands) {
+        public FNotEqualOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -558,7 +558,7 @@ public abstract class SpirvOp extends Op {
     public static final class PtrNotEqualOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "ptrnotequal";
 
-        public PtrNotEqualOp(TypeElement resultType, List<Value> operands) {
+        public PtrNotEqualOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -575,7 +575,7 @@ public abstract class SpirvOp extends Op {
     public static final class LtOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "lt";
 
-        public LtOp(TypeElement resultType, List<Value> operands) {
+        public LtOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -592,7 +592,7 @@ public abstract class SpirvOp extends Op {
     public static final class GtOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "gt";
 
-        public GtOp(TypeElement resultType, List<Value> operands) {
+        public GtOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -609,7 +609,7 @@ public abstract class SpirvOp extends Op {
     public static final class GeOp extends SpirvOp {
         public static final String NAME = NAME_PREFIX + "ge";
 
-        public GeOp(TypeElement resultType, List<Value> operands) {
+        public GeOp(CodeType resultType, List<Value> operands) {
                 super(NAME, resultType, operands);
         }
 
@@ -691,9 +691,9 @@ public abstract class SpirvOp extends Op {
     public static final class VariableOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "variable";
         private final String varName;
-        private final TypeElement varType;
+        private final CodeType varType;
 
-        public VariableOp(String varName, TypeElement type, TypeElement varType) {
+        public VariableOp(String varName, CodeType type, CodeType varType) {
             super(OPNAME + " @" + varName, type, List.of());
             this.varName = varName;
             this.varType = varType;
@@ -710,7 +710,7 @@ public abstract class SpirvOp extends Op {
             return new VariableOp(this, cc);
         }
 
-        public TypeElement varType() {
+        public CodeType varType() {
             return varType;
         }
 
@@ -722,7 +722,7 @@ public abstract class SpirvOp extends Op {
     public static final class CompositeExtractOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "compositeExtract";
 
-        public CompositeExtractOp(TypeElement resultType, List<Value> operands) {
+        public CompositeExtractOp(CodeType resultType, List<Value> operands) {
                 super(OPNAME, resultType, operands);
         }
 
@@ -739,7 +739,7 @@ public abstract class SpirvOp extends Op {
     public static final class InBoundsAccessChainOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "inBoundsAccessChain";
 
-        public InBoundsAccessChainOp(TypeElement resultType, List<Value> operands) {
+        public InBoundsAccessChainOp(CodeType resultType, List<Value> operands) {
                 super(OPNAME, resultType, operands);
         }
 
@@ -756,7 +756,7 @@ public abstract class SpirvOp extends Op {
     public static final class ReturnOp extends SpirvOp implements Op.Terminating {
         public static final String OPNAME = "return";
 
-        public ReturnOp(TypeElement resultType) {
+        public ReturnOp(CodeType resultType) {
             super(OPNAME, resultType, List.of());
         }
 
@@ -773,7 +773,7 @@ public abstract class SpirvOp extends Op {
     public static final class ReturnValueOp extends SpirvOp implements Op.Terminating {
         public static final String OPNAME = "return";
 
-        public ReturnValueOp(TypeElement resultType, List<Value> operands) {
+        public ReturnValueOp(CodeType resultType, List<Value> operands) {
             super(OPNAME, resultType, operands);
         }
 
@@ -790,7 +790,7 @@ public abstract class SpirvOp extends Op {
     public static final class FunctionParameterOp extends SpirvOp {
         public static final String OPNAME = NAME_PREFIX + "function parameter";
 
-        public FunctionParameterOp(TypeElement resultType, List<Value> operands) {
+        public FunctionParameterOp(CodeType resultType, List<Value> operands) {
             super(OPNAME, resultType, operands);
         }
 

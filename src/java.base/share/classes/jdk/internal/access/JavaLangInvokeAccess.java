@@ -27,9 +27,7 @@ package jdk.internal.access;
 
 import jdk.internal.foreign.abi.NativeEntryPoint;
 
-import java.lang.constant.ClassDesc;
-import java.lang.constant.MethodHandleDesc;
-import java.lang.constant.MethodTypeDesc;
+import java.lang.classfile.ClassBuilder;
 import java.lang.foreign.MemoryLayout;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
@@ -42,6 +40,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public interface JavaLangInvokeAccess {
@@ -177,20 +176,17 @@ public interface JavaLangInvokeAccess {
      */
     MethodHandle serializableConstructor(Class<?> decl, Constructor<?> ctorToCall) throws IllegalAccessException;
 
-    record ReflectableLambdaInfo(ClassDesc quotedClass, ClassDesc funcOpClass,
-                                 MethodHandle extractOpHandle, MethodHandle opHandle) { }
-
     CallSite metafactoryInternal(MethodHandles.Lookup caller,
-                                               String interfaceMethodName,
-                                               MethodType factoryType,
-                                               MethodType interfaceMethodType,
-                                               MethodHandle implementation,
-                                               MethodType dynamicMethodType,
-                                               ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException;
+                                 String interfaceMethodName,
+                                 MethodType factoryType,
+                                 MethodType interfaceMethodType,
+                                 MethodHandle implementation,
+                                 MethodType dynamicMethodType,
+                                 Function<ClassBuilder, Object> finisher) throws LambdaConversionException;
 
     CallSite altMetafactoryInternal(MethodHandles.Lookup caller,
                                     String interfaceMethodName,
                                     MethodType factoryType,
-                                    ReflectableLambdaInfo reflectableLambdaInfo,
+                                    Function<ClassBuilder, Object> finisher,
                                     Object... args) throws LambdaConversionException;
 }

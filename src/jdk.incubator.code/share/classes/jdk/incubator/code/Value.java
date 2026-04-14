@@ -30,20 +30,17 @@ import java.util.*;
 /**
  * A value, that is the result of an operation or a block parameter.
  * <p>
- * A value is considered unbuilt if it's {@link #declaringBlock() declaring block} is unbuilt and
- * therefore is inaccessible. A value is considered built when the declaring block is built and
- * therefore is accessible.
  * @sealedGraph
  */
 public sealed abstract class Value implements CodeItem
         permits Block.Parameter, Op.Result {
     final Block block;
-    final TypeElement type;
+    final CodeType type;
     // @@@ In topological order?
     //     Can the representation be more efficient e.g. an array?
     final SequencedSet<Op.Result> uses;
 
-    Value(Block block, TypeElement type) {
+    Value(Block block, CodeType type) {
         this.block = block;
         this.type = type;
         this.uses = new LinkedHashSet<>();
@@ -55,11 +52,11 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring block is the block declaring the parameter.
      *
      * @return the value's declaring block.
-     * @throws IllegalStateException if this value is unbuilt because its declaring block is unbuilt.
+     * @throws IllegalStateException if the declaring block is being built and is not observable.
      */
     public Block declaringBlock() {
         if (!isBuilt()) {
-            throw new IllegalStateException("Declaring block is unbuilt");
+            throw new IllegalStateException("Declaring block is being built and is not observable");
         }
         return block;
     }
@@ -70,8 +67,8 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring code element is this value's declaring block.
      *
      * @return the value's declaring code element.
-     * @throws IllegalStateException if this value is a a block parameter and is unbuilt because its declaring block is
-     * unbuilt.
+     * @throws IllegalStateException if this value is a block parameter and its declaring block is being built and is
+     * not observable.
      */
     public CodeElement<?, ?> declaringElement() {
         return switch (this) {
@@ -85,7 +82,7 @@ public sealed abstract class Value implements CodeItem
      *
      * @return the type of the value.
      */
-    public TypeElement type() {
+    public CodeType type() {
         return type;
     }
 
@@ -133,11 +130,11 @@ public sealed abstract class Value implements CodeItem
      *
      * @return the uses of this value, as an unmodifiable sequenced set. The encouncter order is unspecified
      * and determined by the order in which operations are built into blocks.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if this value's declaring block is being built and is not observable.
      */
     public SequencedSet<Op.Result> uses() {
         if (!isBuilt()) {
-            throw new IllegalStateException("Users are are unbuilt");
+            throw new IllegalStateException("Declaring block is being built and is not observable");
         }
 
         return Collections.unmodifiableSequencedSet(uses);
@@ -146,20 +143,23 @@ public sealed abstract class Value implements CodeItem
     /**
      * Returns {@code true} if this value is dominated by the given value {@code dom}.
      * <p>
-     * If {@code v} and {@code dom} are in not declared in the same block then, domination is the result of
-     * if the declaring block of {@code v} is dominated by the declaring block of {@code dom}.
+     * If this value and {@code dom} are declared in different blocks, then this method
+     * returns the result of testing whether this value's declaring block is
+     * {@link Block#isDominatedBy dominated by} {@code dom}'s declaring block.
      * <p>
-     * Otherwise, if {@code v} and {@code dom} are declared in the same block then (in order):
+     * Otherwise, if both values are declared in the same block then:
      * <ul>
-     * <li>if {@code dom} is a block parameter, then {@code v} is dominated by {@code dom}.
-     * <li>if {@code v} is a block parameter, then {@code v} is <b>not</b> dominated by {@code dom}.
-     * <li>otherwise, both {@code v} and {@code dom} are operation results, then {@code v} is dominated by {@code dom}
-     * if {@code v} is the same as {@code dom} or {@code v} occurs after {@code dom} in the declaring block.
+     * <li>if {@code dom} is a block parameter, then this value is dominated by {@code dom}.
+     * <li>if this value is a block parameter, then this value is <b>not</b> dominated by {@code dom}.
+     * <li>otherwise, both values are operation results, then this value is dominated by
+     * {@code dom} if this value is the same as {@code dom} or this value's operation occurs
+     * after {@code dom}'s operation in the declaring block.
      * </ul>
      *
      * @param dom the dominating value
      * @return {@code true} if this value is dominated by the given value {@code dom}.
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
+     * @see Block#isDominatedBy
      */
     public boolean isDominatedBy(Value dom) {
         if (this == dom) {
@@ -197,7 +197,7 @@ public sealed abstract class Value implements CodeItem
      * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a} is less than {@code b}; and {@code -1}
      * if {@code a} is greater than {@code b}.
      * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
-     * @throws IllegalStateException if an unbuilt block is encountered.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      * @see CodeElement#compare
      */
     public static int compare(Value a, Value b) {

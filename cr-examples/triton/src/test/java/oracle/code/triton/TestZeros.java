@@ -26,7 +26,7 @@ package oracle.code.triton;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.Reflect;
 import java.util.List;
@@ -55,7 +55,7 @@ public class TestZeros {
 
     @Test
     public void test1(TritonTestExtension.TritonTestData t) {
-        List<TypeElement> argTypes = List.of(
+        List<CodeType> argTypes = List.of(
                 new ConstantType(JavaType.INT, 32),
                 new ConstantType(JavaType.INT, 64));
 

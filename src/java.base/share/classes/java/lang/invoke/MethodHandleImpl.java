@@ -41,6 +41,7 @@ import sun.invoke.util.ValueConversions;
 import sun.invoke.util.VerifyType;
 import sun.invoke.util.Wrapper;
 
+import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.foreign.MemoryLayout;
@@ -1648,15 +1649,15 @@ abstract class MethodHandleImpl {
             @Override
             public CallSite metafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
                                                 MethodType interfaceMethodType, MethodHandle implementation,
-                                                MethodType dynamicMethodType, ReflectableLambdaInfo reflectableLambdaInfo) throws LambdaConversionException {
+                                                MethodType dynamicMethodType, Function<ClassBuilder, Object> finisher) throws LambdaConversionException {
                 return LambdaMetafactory.metafactoryInternal(caller, interfaceMethodName, factoryType,
-                        interfaceMethodType, implementation, dynamicMethodType, reflectableLambdaInfo);
+                        interfaceMethodType, implementation, dynamicMethodType, finisher);
             }
 
             @Override
             public CallSite altMetafactoryInternal(Lookup caller, String interfaceMethodName, MethodType factoryType,
-                                                   ReflectableLambdaInfo reflectableLambdaInfo, Object... args) throws LambdaConversionException {
-                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, reflectableLambdaInfo, args);
+                                                   Function<ClassBuilder, Object> finisher, Object... args) throws LambdaConversionException {
+                return LambdaMetafactory.altMetafactoryInternal(caller, interfaceMethodName, factoryType, finisher, args);
             }
         });
     }

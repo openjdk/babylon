@@ -23,6 +23,7 @@
  * questions.
  */
 
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
@@ -50,11 +51,8 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.AccessFlag;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.TypeElement;
+
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 
 import java.util.ArrayDeque;
@@ -134,8 +132,8 @@ public final class BytecodeLift {
         }
     }
 
-    private List<TypeElement> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
-        ArrayList<TypeElement> params = new ArrayList<>(vtis.size());
+    private List<CodeType> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
+        ArrayList<CodeType> params = new ArrayList<>(vtis.size());
         for (int i = vtis.size() - 1; i >= 0; i--) {
             var vti = vtis.get(i);
             switch (vti) {
@@ -276,7 +274,7 @@ public final class BytecodeLift {
                     Block.Builder branch = targetBlockForBranch(inst.target());
                     Block.Builder next = entryBlock.block();
                     op(CoreOp.conditionalBranch(op(cop),
-                            next.successor(),
+                            next.reference(),
                             successorWithStack(branch)));
                     currentBlock = next;
                 }
@@ -422,11 +420,11 @@ public final class BytecodeLift {
                         case INVOKEVIRTUAL, INVOKEINTERFACE -> {
                             operands.add(stack.pop());
                             yield op(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.INSTANCE, false,
-                                    mDesc.type().returnType(), mDesc, operands.reversed()));
+                                    mDesc.signature().returnType(), mDesc, operands.reversed()));
                         }
                         case INVOKESTATIC ->
                                 op(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.STATIC, false,
-                                        mDesc.type().returnType(), mDesc, operands.reversed()));
+                                        mDesc.signature().returnType(), mDesc, operands.reversed()));
                         case INVOKESPECIAL -> {
                             if (inst.owner().asSymbol().equals(newStack.peek()) && inst.name().equalsString(ConstantDescs.INIT_NAME)) {
                                 newStack.pop();
@@ -438,7 +436,7 @@ public final class BytecodeLift {
                             } else {
                                 operands.add(stack.pop());
                                 yield op(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.SUPER, false,
-                                        mDesc.type().returnType(), mDesc, operands.reversed()));
+                                        mDesc.signature().returnType(), mDesc, operands.reversed()));
                             }
                         }
                         default ->
@@ -534,7 +532,7 @@ public final class BytecodeLift {
                         MethodRef bsmRef = MethodRef.method(JavaType.type(bsmOwner),
                                                             bsm.methodName(),
                                                             JavaType.type(bsmDesc.returnType()),
-                                                            bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
+                                                            bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
 
                         Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, inst.name().toString(), mtd, inst.bootstrapArgs());
                         Value methodHandle = op(JavaOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", MethodHandle.class),
@@ -714,7 +712,7 @@ public final class BytecodeLift {
         assert newStack.isEmpty();
     }
 
-    private Op.Result liftConstantsIntoArray(TypeElement arrayType, Object... constants) {
+    private Op.Result liftConstantsIntoArray(CodeType arrayType, Object... constants) {
         Op.Result array = op(JavaOp.newArray(arrayType, liftConstant(constants.length)));
         for (int i = 0; i < constants.length; i++) {
             op(JavaOp.arrayStoreOp(array, liftConstant(i), liftConstant(constants[i])));
@@ -789,7 +787,7 @@ public final class BytecodeLift {
                 MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
                                                     bsm.methodName(),
                                                     JavaType.type(bsmDesc.returnType()),
-                                                    bsmDesc.parameterList().stream().map(JavaType::type).toArray(TypeElement[]::new));
+                                                    bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
                 yield op(JavaOp.invoke(bsmRef, bootstrapArgs));
             }
             case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
@@ -840,7 +838,7 @@ public final class BytecodeLift {
                 op(CoreOp.conditionalBranch(
                         op(JavaOp.eq(v, liftConstant(sc.caseValue()))),
                         successorWithStack(targetBlockForBranch(sc.target())),
-                        next.successor()));
+                        next.reference()));
                 currentBlock = next;
             }
         }
@@ -897,7 +895,7 @@ public final class BytecodeLift {
 
         if (transits.isEmpty()) {
             // Join with branch
-            initialBlock.op(CoreOp.branch(targetBlock.successor(values)));
+            initialBlock.op(CoreOp.branch(targetBlock.reference(values)));
         } else {
             // Insert ERE transitions
             Block.Builder currentBlock = initialBlock;
@@ -915,29 +913,29 @@ public final class BytecodeLift {
     }
 
     private void ereTransit(Block.Builder initialBlock, Block.Builder currentBlock, boolean enter, Block.Builder targetBlock, List<? extends Value> values, int ehi, int targetExceptionHandlerIndex, BitSet handlerEreStack) {
-        Block.Reference ref = targetBlock.successor(values);
+        Block.Reference ref = targetBlock.reference(values);
         Block.Reference catcher = (ehi == targetExceptionHandlerIndex
                 ? initialBlock
-                : targetBlockForExceptionHandler(handlerEreStack, ehi)).successor();
+                : targetBlockForExceptionHandler(handlerEreStack, ehi)).reference();
         currentBlock.op(enter ? JavaOp.exceptionRegionEnter(ref, catcher) : JavaOp.exceptionRegionExit(ref, catcher));
     }
 
     Block.Reference successorWithStack(Block.Builder next) {
-        return next.successor(stackValues(next));
+        return next.reference(stackValues(next));
     }
 
     private List<Value> stackValues(Block.Builder limit) {
         return stack.stream().limit(limit.parameters().size()).toList();
     }
 
-    private static TypeElement valueType(Value v) {
+    private static CodeType valueType(Value v) {
         var t = v.type();
         while (t instanceof VarType vt) t = vt.valueType();
         return t;
     }
 
     private static boolean isCategory1(Value v) {
-        TypeElement t = v.type();
+        CodeType t = v.type();
         return !t.equals(JavaType.LONG) && !t.equals(JavaType.DOUBLE);
     }
 

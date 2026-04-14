@@ -1,7 +1,7 @@
 package jdk.incubator.code.dialect.core;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -13,10 +13,10 @@ public final class FunctionType implements CoreType {
     // @@@ Change to "->" when the textual form supports it
     static final String NAME = "func";
 
-    final TypeElement returnType;
-    final List<TypeElement> parameterTypes;
+    final CodeType returnType;
+    final List<CodeType> parameterTypes;
 
-    FunctionType(TypeElement returnType, List<? extends TypeElement> parameterTypes) {
+    FunctionType(CodeType returnType, List<? extends CodeType> parameterTypes) {
         this.returnType = returnType;
         this.parameterTypes = List.copyOf(parameterTypes);
     }
@@ -24,22 +24,22 @@ public final class FunctionType implements CoreType {
     /**
      * {@return the function type's return type}
      */
-    public TypeElement returnType() {
+    public CodeType returnType() {
         return returnType;
     }
 
     /**
      * {@return the function type's parameter types}
      */
-    public List<TypeElement> parameterTypes() {
+    public List<CodeType> parameterTypes() {
         return parameterTypes;
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return ExternalizedTypeElement.of(NAME,
+    public ExternalizedCodeType externalize() {
+        return ExternalizedCodeType.of(NAME,
                 Stream.concat(Stream.of(returnType), parameterTypes.stream())
-                        .map(TypeElement::externalize).toList());
+                        .map(CodeType::externalize).toList());
     }
 
     @Override

@@ -27,7 +27,7 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
 import optkl.util.ops.StatementLikeOp;
@@ -59,23 +59,23 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
     public abstract ClassType classType();
 
-    public abstract TypeElement invokeType();
+    public abstract CodeType invokeType();
 
     public static final  class HATLocalVarOp extends HATMemoryVarOp {
-        private final TypeElement typeElement;
+        private final CodeType codeType;
         private final ClassType klassType;
-        private final TypeElement invokeResultType;
+        private final CodeType invokeResultType;
 
-        public HATLocalVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+        public HATLocalVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
             super(varName, operands);
-            this.typeElement = typeElement;
+            this.codeType = codeType;
             this.klassType = javaType;
             this.invokeResultType = invokeResultType;
         }
 
         public HATLocalVarOp(HATLocalVarOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.typeElement = op.resultType();
+            this.codeType = op.resultType();
             this.klassType = op.klassType;
             this.invokeResultType = op.invokeResultType;
         }
@@ -86,13 +86,13 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatSharedVarOp." + varName(), typeElement);
+            return Map.of("hat.dialect.hatSharedVarOp." + varName(), codeType);
         }
 
         @Override
@@ -101,21 +101,21 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         @Override
-        public TypeElement invokeType() {
+        public CodeType invokeType() {
             return invokeResultType;
         }
     }
 
     public static final class HATPrivateVarOp extends HATMemoryVarOp {
-        private final TypeElement typeElement;
+        private final CodeType codeType;
         private final ClassType klassType;
-        private final TypeElement invokeResultType;
+        private final CodeType invokeResultType;
         private final String varName;
 
-        public HATPrivateVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+        public HATPrivateVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
             super(varName, operands);
             this.varName = varName;
-            this.typeElement = typeElement;
+            this.codeType = codeType;
             this.klassType = javaType;
             this.invokeResultType = invokeResultType;
         }
@@ -123,7 +123,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         public HATPrivateVarOp(HATPrivateVarOp op, CodeContext copyContext) {
             super(op, copyContext);
             this.varName = op.varName;
-            this.typeElement = op.resultType();
+            this.codeType = op.resultType();
             this.klassType = op.klassType;
             this.invokeResultType = op.invokeResultType;
         }
@@ -134,13 +134,13 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatPrivateVarOp." + varName, typeElement);
+            return Map.of("hat.dialect.hatPrivateVarOp." + varName, codeType);
         }
 
         @Override
@@ -149,21 +149,21 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         @Override
-        public TypeElement invokeType() {
+        public CodeType invokeType() {
             return invokeResultType;
         }
     }
 
     public static final class HATPrivateInitVarOp extends HATMemoryVarOp {
-        private final TypeElement typeElement;
+        private final CodeType codeType;
         private final ClassType klassType;
-        private final TypeElement invokeResultType;
+        private final CodeType invokeResultType;
         private final String varName;
 
-        public HATPrivateInitVarOp(String varName, ClassType javaType, TypeElement typeElement, TypeElement invokeResultType, List<Value> operands) {
+        public HATPrivateInitVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
             super(varName, operands);
             this.varName = varName;
-            this.typeElement = typeElement;
+            this.codeType = codeType;
             this.klassType = javaType;
             this.invokeResultType = invokeResultType;
         }
@@ -171,7 +171,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         public HATPrivateInitVarOp(HATPrivateInitVarOp op, CodeContext copyContext) {
             super(op, copyContext);
             this.varName = op.varName;
-            this.typeElement = op.resultType();
+            this.codeType = op.resultType();
             this.klassType = op.klassType;
             this.invokeResultType = op.invokeResultType;
         }
@@ -182,13 +182,13 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         @Override
-        public TypeElement resultType() {
-            return typeElement;
+        public CodeType resultType() {
+            return codeType;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatPrivateVarInitOp." + varName, typeElement);
+            return Map.of("hat.dialect.hatPrivateVarInitOp." + varName, codeType);
         }
 
         @Override
@@ -197,7 +197,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         @Override
-        public TypeElement invokeType() {
+        public CodeType invokeType() {
             return invokeResultType;
         }
     }

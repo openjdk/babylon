@@ -27,7 +27,7 @@ package hat.backend.ffi;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import optkl.ifacemapper.BoundSchema;
 
@@ -36,10 +36,10 @@ import java.util.List;
 public class PTXPtrOp extends Op {
     public String fieldName;
     public static final String NAME = "ptxPtr";
-    final TypeElement resultType;
+    final CodeType resultType;
     public BoundSchema<?> boundSchema;
 
-    PTXPtrOp(TypeElement resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
+    PTXPtrOp(CodeType resultType, String fieldName, List<Value> operands, BoundSchema<?> boundSchema) {
         super(operands);
         this.resultType = resultType;
         this.fieldName = fieldName;
@@ -59,7 +59,7 @@ public class PTXPtrOp extends Op {
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return resultType;
     }
 

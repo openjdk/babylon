@@ -504,7 +504,7 @@ public final class MLIRGenerator {
      */
     Map<String, Object> addAditionalAttributes(Op op, Map<String, Object> attributes) {
         if (op.externalizeOpName().equals("tt.func")) {
-            String retType = op.bodies().get(0).bodyType().returnType().toString();
+            String retType = op.bodies().get(0).bodySignature().returnType().toString();
             List<Block.Parameter> parameters = op.bodies().get(0).entryBlock().parameters();
             attributes = new HashMap<>(attributes);
             attributes.put("sym_visibility", retType.equals("void") ? "public" : "private");
@@ -736,7 +736,7 @@ public final class MLIRGenerator {
         }
     }
 
-    void writeType(TypeElement te) {
+    void writeType(CodeType te) {
         write(TypeConverter.mapType(te.externalize().toString()));
     }
 

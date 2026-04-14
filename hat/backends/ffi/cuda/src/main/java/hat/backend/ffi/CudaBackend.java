@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import hat.callgraph.MethodCallDag;
 import jdk.incubator.code.CodeTransformer;
 import optkl.Trxfmr;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -372,7 +373,7 @@ public class CudaBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        computeContext.computeEntrypoint().funcOp(injectBufferTracking(config(),lookup(),computeContext.computeEntrypoint().funcOp()));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
 
     @Override
@@ -384,7 +385,7 @@ public class CudaBackend extends C99FFIBackend {
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel(kernelCallGraph.entrypoint.name());
+                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
                 return new CompiledKernel(this, kernelCallGraph,  kernel, args);
             } else {
                 throw new IllegalStateException("cuda failed to compile ");
@@ -393,7 +394,7 @@ public class CudaBackend extends C99FFIBackend {
         compiledKernel.dispatch(kernelContext, args);
     }
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph.state,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.entrypoint.funcOp())), args);
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), args);
     }
 
     ///   Same as OpenCL backend until here
@@ -403,7 +404,7 @@ public class CudaBackend extends C99FFIBackend {
         var builder = new PTXHATKernelBuilder();
         StringBuilder out = new StringBuilder();
         StringBuilder invokedMethods = new StringBuilder();
-        var paramTable = new FuncOpParams(kernelCallGraph.entrypoint.funcOp());
+        var paramTable = new FuncOpParams(kernelCallGraph.callDag.entryPoint.funcOp());
         HashMap<String, Object> argsMap = new HashMap<>();
         for (int i = 0; i < args.length; i++) {
             argsMap.put(paramTable.list().get(i).varOp.varName(), args[i]);
@@ -412,16 +413,16 @@ public class CudaBackend extends C99FFIBackend {
         out.append(builder.getText());
         builder.clear();
 
-        var here = CallSite.of(CudaBackend.class, "createPTX");
+     //   var here = CallSite.of(CudaBackend.class, "createPTX");
+        kernelCallGraph.callDag.rankOrdered.stream()
+                .filter(m->m instanceof MethodCallDag.OtherMethodCall)
+                .forEach(f -> {
+                    CoreOp.FuncOp loweredFunc = f.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+                    loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
+                    invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
+                });
 
-        kernelCallGraph.getModuleOp().functionTable().forEach((_, funcOp) -> {
-            // TODO did we just trash any sidetables?
-            CoreOp.FuncOp loweredFunc = funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
-            loweredFunc = transformPTXPtrs(kernelCallGraph.lookup(),loweredFunc, argsMap, usedMathFns);
-            invokedMethods.append(createFunction(kernelCallGraph.lookup(),new PTXHATKernelBuilder(addressSize).nl().nl(), loweredFunc, false));
-        });
-
-        CoreOp.FuncOp lowered = kernelCallGraph.entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+        CoreOp.FuncOp lowered = kernelCallGraph.callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
         CoreOp.FuncOp loweredPtx = transformPTXPtrs(kernelCallGraph.lookup(),lowered, argsMap, usedMathFns);
         for (String s : usedMathFns) {
             out.append("\n").append(mathFns.get(s)).append("\n");

@@ -27,7 +27,7 @@ import org.testng.annotations.Test;
 
 import jdk.incubator.code.CopyContext;
 import jdk.incubator.code.OpTransformer;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -57,9 +57,9 @@ public class CustomOpTest {
     }
 
     public static class DNAOp extends Op { // externalized
-        private final TypeElement type;
+        private final CodeType type;
 
-        DNAOp(String opName, TypeElement type, List<Value> operands) {
+        DNAOp(String opName, CodeType type, List<Value> operands) {
             super(opName, operands);
             this.type = type;
         }
@@ -72,7 +72,7 @@ public class CustomOpTest {
 
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             System.out.println("in result type");
             return type;
         }

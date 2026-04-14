@@ -238,7 +238,7 @@ final class OnnxPartialEvaluator {
 
             if (to instanceof CoreOp.ConditionalBranchOp cb) {
                 boolean p;
-                Object bop = oc.getValue(cb.predicate());
+                Object bop = oc.getValue(cb.predicateOperand());
                 if (bop instanceof Boolean bp) {
                     p = bp;
                 } else if (bop instanceof Integer ip) {
@@ -351,7 +351,7 @@ final class OnnxPartialEvaluator {
                 }
             }
             case JavaOp.InvokeOp co -> {
-                MethodType target = resolveToMethodType(l, o.opType());
+                MethodType target = resolveToMethodType(l, o.opSignature());
                 MethodHandles.Lookup il = switch (co.invokeKind()) {
                     case STATIC, INSTANCE -> l;
                     case SUPER -> l.in(target.parameterType(0));
@@ -375,7 +375,7 @@ final class OnnxPartialEvaluator {
                     }
                     return Array.newInstance(resolveToClass(l, nType), lengths);
                 } else {
-                    MethodHandle mh = constructorHandle(l, no.constructorReference().type());
+                    MethodHandle mh = constructorHandle(l, no.constructorReference().signature());
                     return invoke(mh, values);
                 }
             }
@@ -460,12 +460,12 @@ final class OnnxPartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opType().returnType(), o.opType());
+                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -524,12 +524,12 @@ final class OnnxPartialEvaluator {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -558,7 +558,7 @@ final class OnnxPartialEvaluator {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    public static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>) jt.erasure().resolve(l);

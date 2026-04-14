@@ -31,11 +31,11 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import jdk.incubator.code.dialect.java.WildcardType.BoundKind;
-import jdk.incubator.code.extern.TypeElementFactory;
+import jdk.incubator.code.extern.CodeTypeFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -56,7 +56,7 @@ import java.util.stream.Stream;
  * or be {@linkplain #resolve(Lookup) resolved} into reflective type mirrors.
  * @sealedGraph
  */
-public sealed interface JavaType extends TypeElement
+public sealed interface JavaType extends CodeType
         permits ClassType, ArrayType, PrimitiveType, WildcardType, TypeVariableType {
 
     /** {@link JavaType} representing {@code void} */
@@ -187,19 +187,19 @@ public sealed interface JavaType extends TypeElement
     // Factories
 
     /**
-     * A type element factory for Java type elements that is not composed with any other type element factory
+     * A code type factory for Java types that is not composed with any other code type factory
      */
-    TypeElementFactory JAVA_ONLY_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
+    CodeTypeFactory JAVA_ONLY_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
         case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
         case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
         default -> throw new UnsupportedOperationException("Unsupported: " + tree);
     };
 
     /**
-     * A type element factory for core type elements composed with Java type elements, where the core type elements can
-     * refer to Java type elements
+     * A code type factory for core types composed with Java types, where the core types can
+     * refer to Java types.
      */
-    TypeElementFactory JAVA_TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_ONLY_TYPE_FACTORY);
+    CodeTypeFactory JAVA_TYPE_FACTORY = CoreType.coreTypeFactory(JAVA_ONLY_TYPE_FACTORY);
 
     /**
      * {@return a Java type obtained from the provided reflective type mirror}

@@ -143,9 +143,8 @@ public class TestBFloat16Type {
 
     public interface LocalArray extends NonMappableIface {
         BF16 array(int index);
-        DeviceSchema<LocalArray> schema = DeviceSchema.of(LocalArray.class,
-                builder -> builder.withArray("array", 1024)
-                        .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
+        DeviceSchema<LocalArray> deviceSchema = DeviceSchema.of(LocalArray.class,
+                builder -> builder.array("array", 1024, bfloat16 -> bfloat16.field("value")));
 
         static LocalArray  create(Accelerator accelerator) {
             return null;
@@ -177,7 +176,7 @@ public class TestBFloat16Type {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
-            BF16 result = ha.add(hb);
+            BF16 result = BF16.add(ha,hb);
             c.array(kernelContext.gix).value(result.value());
         }
     }
@@ -188,7 +187,7 @@ public class TestBFloat16Type {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             BF16 hb = b.array(kernelContext.gix);
-            BF16 result = ha.add(hb).sub(hb).mul(ha).div(ha);
+            BF16 result = BF16.div(BF16.mul(BF16.sub(BF16.add(ha,hb),hb),ha),ha);
             c.array(kernelContext.gix).value(result.value());
         }
     }
@@ -206,9 +205,8 @@ public class TestBFloat16Type {
 
     public interface PrivateArray extends NonMappableIface {
         BF16 array(int index);
-        DeviceSchema<PrivateArray> schema = DeviceSchema.of(PrivateArray.class,
-                builder -> builder.withArray("array", 256)
-                        .withDeps(BF16.class, bfloat16 -> bfloat16.withField("value")));
+        DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
+                builder -> builder.array("array", 256, bfloat16 -> bfloat16.field("value")));
 
         static PrivateArray  create(Accelerator accelerator) {
             return null;

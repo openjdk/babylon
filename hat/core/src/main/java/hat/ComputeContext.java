@@ -24,12 +24,7 @@
  */
 package hat;
 
-import hat.callgraph.ComputeEntrypoint;
-import jdk.incubator.code.bytecode.BytecodeGenerator;
-//import jdk.incubator.code.interpreter.Interpreter;
 import optkl.util.carriers.ArenaAndLookupCarrier;
-import optkl.util.carriers.ArenaCarrier;
-import optkl.util.carriers.LookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
@@ -84,22 +79,15 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         return accelerator.lookup();
     }
 
-    public ComputeEntrypoint computeEntrypoint() {
-        return computeCallGraph.entrypoint;
-    }
 
     public Config config() {
         return accelerator().config();
     }
 
     public void invokeWithArgs(Object[] args) {
-        computeEntrypoint().invokeWithArgs(args);
+        computeCallGraph.invokeWithArgs(args);
 
     }
-
-    //public void interpretWithArgs(Object[] args) {
-      //  computeEntrypoint().interpretWithArgs( args);
-   // }
 
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");
@@ -164,7 +152,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
          analysing the callgraph and trsnsforming to HATDielect
      So we cache the callsite against the location from the lambdaop.
      */
-    public void dispatchKernel(NDRange<?, ?> ndRange, Kernel kernel) {
+    public void dispatchKernel(NDRange ndRange, Kernel kernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
@@ -184,7 +172,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
             });
         }
-        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.entrypoint.method());
+        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
         KernelContext kernelContext = accelerator.range(ndRange);
         args[0] = kernelContext;
         accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);

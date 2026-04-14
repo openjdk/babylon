@@ -58,7 +58,7 @@ public class TestBuild {
 
         var a = f.body().entryBlock().parameters().get(0);
         var b = f.body().entryBlock().parameters().get(1);
-        // Passing built values as operands to a new unbound operation
+        // Passing built values as operands to a new unattached operation
         Assertions.assertThrows(IllegalArgumentException.class, () -> JavaOp.add(a, b));
     }
 
@@ -66,21 +66,21 @@ public class TestBuild {
     public void testBuiltValueAsBlockArgument() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
         var anotherBlock = block.block(INT, INT);
 
         var a = f.body().entryBlock().parameters().get(0);
         var b = f.body().entryBlock().parameters().get(1);
         // Passing built values as block arguments of a block reference
-        Assertions.assertThrows(IllegalArgumentException.class, () -> branch(anotherBlock.successor(a, b)));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> branch(anotherBlock.reference(a, b)));
     }
 
     @Test
     public void testUnmappedBuiltValue() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
 
         var freturnOp = f.body().entryBlock().terminatingOp();
@@ -92,7 +92,7 @@ public class TestBuild {
     public void testMappingToBuiltValue() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
 
         var result = f.body().entryBlock().firstOp().result();
@@ -104,7 +104,7 @@ public class TestBuild {
     public void testMappedBuiltValue() {
         JavaOp.LambdaOp f = f();
 
-        var body = Body.Builder.of(null, f.invokableType());
+        var body = Body.Builder.of(null, f.invokableSignature());
         var block = body.entryBlock();
 
         var a = block.parameters().get(0);
@@ -120,7 +120,7 @@ public class TestBuild {
     }
 
     @Test
-    public void testUnbuiltValueAccess() {
+    public void testUnbuiltBlocksViaValue() {
         var body = Body.Builder.of(null, functionType(INT, INT, INT));
         var block = body.entryBlock();
 
@@ -128,13 +128,13 @@ public class TestBuild {
         Block.Parameter b = block.parameters().get(1);
         Op.Result result = block.op(JavaOp.add(a, b));
 
-        // Access the declaring block of unbuilt values before the blocks are built
+        // Declaring block is being built
         Assertions.assertThrows(IllegalStateException.class, a::declaringBlock);
         Assertions.assertThrows(IllegalStateException.class, result::declaringBlock);
         // Access to parent block/body of operation result before they are built
         Assertions.assertThrows(IllegalStateException.class, result.op()::ancestorBlock);
         Assertions.assertThrows(IllegalStateException.class, result.op()::ancestorBody);
-        // Access to set of users before built
+        // Access to set of users while declaring block is being built
         Assertions.assertThrows(IllegalStateException.class, a::uses);
 
         block.op(return_(result));
@@ -149,17 +149,17 @@ public class TestBuild {
     }
 
     @Test
-    public void testUnbuiltReferenceAccess() {
+    public void testUnbuiltBlocksViaReference() {
         var body = Body.Builder.of(null, functionType(INT, INT, INT));
         var block = body.entryBlock();
         var anotherBlock = block.block(INT, INT);
 
         var a = block.parameters().get(0);
         var b = block.parameters().get(1);
-        Block.Reference successor = anotherBlock.successor(a, b);
-        // Access to target block before built
+        Block.Reference successor = anotherBlock.reference(a, b);
+        // Target block is being built
         Assertions.assertThrows(IllegalStateException.class, successor::targetBlock);
-        block.op(branch(anotherBlock.successor(a, b)));
+        block.op(branch(anotherBlock.reference(a, b)));
 
         a = anotherBlock.parameters().get(0);
         b = anotherBlock.parameters().get(1);
@@ -178,7 +178,7 @@ public class TestBuild {
         var aa = ablock.parameters().get(0);
         var ab = ablock.parameters().get(1);
 
-        var bbody = Body.Builder.of(null, abody.bodyType());
+        var bbody = Body.Builder.of(null, abody.bodySignature());
         var bblock = bbody.entryBlock();
 
         // Operation uses values from another model
@@ -195,7 +195,7 @@ public class TestBuild {
         var bblock = bbody.entryBlock();
 
         // Operation uses header with target block from another model
-        var brOp = branch(ablock.successor());
+        var brOp = branch(ablock.reference());
         Assertions.assertThrows(IllegalStateException.class, () -> bblock.op(brOp));
     }
 
@@ -203,7 +203,7 @@ public class TestBuild {
     public void testReferenceFromEntryBlock() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        Assertions.assertThrows(IllegalStateException.class, block::successor);
+        Assertions.assertThrows(IllegalStateException.class, block::reference);
     }
 
     @Test
@@ -316,7 +316,7 @@ public class TestBuild {
         // Create empty block
         var block = entryBlock.block();
         // Branch to empty block
-        entryBlock.op(branch(block.successor()));
+        entryBlock.op(branch(block.reference()));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -328,7 +328,7 @@ public class TestBuild {
         // Create empty block
         var block = entryBlock.block();
         // Branch to empty block
-        entryBlock.op(branch(block.successor()));
+        entryBlock.op(branch(block.reference()));
         // No terminating op
         block.op(constant(INT, 0));
 

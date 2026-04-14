@@ -9,21 +9,21 @@ import java.lang.invoke.MethodHandles;
 import java.util.Optional;
 
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
-import static jdk.incubator.code.dialect.java.JavaOp.JavaExpression.ConstantExpresssionEvaluator;
+import static jdk.incubator.code.dialect.java.JavaOp.JavaExpression.ConstantExpressionEvaluator;
 
 /**
  * A transformer that replace every operation that model a constant expression with its value.
  */
 public class ConstantExpressionTransformer implements CodeTransformer {
-    private final ConstantExpresssionEvaluator constantExpresssionEvaluator;
+    private final ConstantExpressionEvaluator constantExpressionEvaluator;
 
-    private ConstantExpressionTransformer(ConstantExpresssionEvaluator constantExpresssionEvaluator) {
-        this.constantExpresssionEvaluator = constantExpresssionEvaluator;
+    private ConstantExpressionTransformer(ConstantExpressionEvaluator constantExpressionEvaluator) {
+        this.constantExpressionEvaluator = constantExpressionEvaluator;
     }
 
     @Override
     public Block.Builder acceptOp(Block.Builder b, Op op) {
-        Optional<Object> v = constantExpresssionEvaluator.evaluate(op.result());
+        Optional<Object> v = constantExpressionEvaluator.evaluate(op.result());
         if (v.isPresent()) {
             Op.Result c = b.op(constant(op.resultType(), v.get()));
             b.context().mapValue(op.result(), c);
@@ -34,6 +34,6 @@ public class ConstantExpressionTransformer implements CodeTransformer {
     }
 
     public static Op transform(MethodHandles.Lookup l, Op op) {
-        return op.transform(CodeContext.create(), new ConstantExpressionTransformer(new ConstantExpresssionEvaluator(l)));
+        return op.transform(CodeContext.create(), new ConstantExpressionTransformer(new ConstantExpressionEvaluator(l)));
     }
 }
