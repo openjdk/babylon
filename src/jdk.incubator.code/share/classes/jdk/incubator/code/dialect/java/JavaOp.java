@@ -143,7 +143,7 @@ public sealed abstract class JavaOp extends Op {
          *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
-            return new Evaluator(l).evaluate(v);
+            return new ConstantExpresssionEvaluator(l).evaluate(v);
         }
 
         /**
@@ -175,14 +175,14 @@ public sealed abstract class JavaOp extends Op {
          * @jls 15.29 Constant Expressions
          */
         static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op) {
-            return new Evaluator(l).evaluate(op);
+            return new ConstantExpresssionEvaluator(l).evaluate(op);
         }
 
-        class Evaluator {
+        class ConstantExpresssionEvaluator {
             private final MethodHandles.Lookup l;
             private final Map<Value, Object> m = new HashMap<>();
 
-            Evaluator(MethodHandles.Lookup l) {
+            ConstantExpresssionEvaluator(MethodHandles.Lookup l) {
                 this.l = l;
             }
 
@@ -273,7 +273,7 @@ public sealed abstract class JavaOp extends Op {
                     }
                     case ConditionalExpressionOp _ -> {
                         boolean p = evalBoolean(op.bodies().get(0));
-                        Object t = eval(op.bodies().get(1)); // I need to have a version that accept operand evaluator, for every eval* method
+                        Object t = eval(op.bodies().get(1));
                         Object f = eval(op.bodies().get(2));
                         yield p ? t : f;
                     }

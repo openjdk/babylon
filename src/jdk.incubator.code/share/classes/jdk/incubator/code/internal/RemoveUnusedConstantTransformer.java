@@ -11,11 +11,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 public class RemoveUnusedConstantTransformer implements CodeTransformer {
     private RemoveUnusedConstantTransformer() {}
 
-    private static final RemoveUnusedConstantTransformer instance = new RemoveUnusedConstantTransformer();
-
-    public static RemoveUnusedConstantTransformer getInstance() {
-        return instance;
-    }
+    public static final RemoveUnusedConstantTransformer INSTANCE = new RemoveUnusedConstantTransformer();
 
     @Override
     public Block.Builder acceptOp(Block.Builder builder, Op op) {

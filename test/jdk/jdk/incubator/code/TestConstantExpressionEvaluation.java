@@ -26,11 +26,11 @@ import static jdk.incubator.code.dialect.java.PrimitiveType.*;
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit TestEvaluation
- * @run main Unreflect TestEvaluation
- * @run junit TestEvaluation
+ * @run junit TestConstantExpressionEvaluation
+ * @run main Unreflect TestConstantExpressionEvaluation
+ * @run junit TestConstantExpressionEvaluation
  */
-public class TestEvaluation {
+public class TestConstantExpressionEvaluation {
     @Reflect
     static int primitiveLiteral() {
         return 1;
@@ -289,7 +289,7 @@ public class TestEvaluation {
     }
 
     static Stream<Method> cases() {
-        return Arrays.stream(TestEvaluation.class.getDeclaredMethods())
+        return Arrays.stream(TestConstantExpressionEvaluation.class.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Reflect.class));
     }
 

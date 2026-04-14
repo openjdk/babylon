@@ -2,7 +2,7 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.java.ConstantFolder;
+import jdk.incubator.code.dialect.java.ConstantExpressionTransformer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -14,8 +14,6 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
-import static jdk.incubator.code.dialect.java.JavaOp.*;
-import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /*
  * @test
@@ -104,7 +102,7 @@ public class TestStringConstantExpressionInterning {
         MethodHandles.Lookup l = MethodHandles.lookup();
 
         FuncOp lop = op.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        FuncOp cfop = lop.transform(ConstantFolder.getInstance(l));
+        FuncOp cfop = (FuncOp) ConstantExpressionTransformer.transform(l, lop);
         Assertions.assertEquals(expected, Interpreter.invoke(l, cfop));
 
         Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invoke());

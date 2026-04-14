@@ -175,8 +175,8 @@ public final class BytecodeGenerator {
             BitSet reflectableLambda = new BitSet();
             CodeTransformer lowering = LoweringTransform.getInstance(lookup);
             for (var e : ops.sequencedEntrySet()) {
-                Op transformed = e.getValue().transform(CodeContext.create(), ConstantFolder.getInstance(lookup));
-                transformed = transformed.transform(CodeContext.create(), RemoveUnusedConstantTransformer.getInstance());
+                Op transformed = ConstantExpressionTransformer.transform(lookup, e.getValue());
+                transformed = transformed.transform(CodeContext.create(), RemoveUnusedConstantTransformer.INSTANCE);
                 O lowered = NormalizeBlocksTransformer.transform(
                         (O)transformed.transform(CodeContext.create(), lowering));
                 generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, reflectableLambda);

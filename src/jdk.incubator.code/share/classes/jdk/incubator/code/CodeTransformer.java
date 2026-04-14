@@ -25,7 +25,6 @@
 
 package jdk.incubator.code;
 
-import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.util.List;
 import java.util.function.BiFunction;
