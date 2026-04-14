@@ -191,7 +191,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         paren(_ -> {
             ampersand().recurseResultOrThrow(dest);
             either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
+            id(ARRAY).sbrace(_ -> recurseResultOrThrow(index));
         });
         sbrace(_ -> intConstZero());
         sp().equals().sp();
@@ -265,7 +265,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         paren(_ -> {
             ampersand();recurseResultOrThrow(source);
             either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
+            id(ARRAY).sbrace(_ -> recurseResultOrThrow(index));
         });
         sbrace(_ -> intConstZero());
         return self();
@@ -584,34 +584,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    public CudaHATKernelBuilder ptrAddressForTensorLoad(List<Value> operands) {
-        Value reference2 = operands.getFirst();
-        id("halfPtr_");
-        if (reference2 instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        plus().constantHalf(2).plus();
-        return self();
-    }
-
     private CudaHATKernelBuilder generateLoadTensor(HATTensorOp.TensorLoadOp tensorLoadOp, boolean isColumnMajor, String tensorName) {
         // First operand is the reference to global memory
         List<Value> operands = tensorLoadOp.operands();
         Value reference = operands.getFirst();
-        type("half").asterisk().sp().id("halfPtr_");
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        assign().paren(_ -> type("half").asterisk());
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        semicolon().nl();
-
         id(WMMA_LOAD_TENSOR)
                 .paren(_ -> {
                     id(tensorName).comma();
-                    ptrAddressForTensorLoad(operands).indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3)).comma();
+                    paren(_ -> type("half").asterisk());
+                    if (reference instanceof Op.Result r) {
+                        recurse(r.op());
+                    }
+                    rarrow().id(ARRAY)
+                            .sp().plus().sp()
+                            .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
+                            .comma();
                     if (operands.get(3) instanceof Op.Result r) {
                         recurse(r.op());
                     }
@@ -625,7 +612,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * <p>
      * <code>
-     *     wmma::load_matrix_sync(a_frag, a + headSize + aRow + aCol * lda, lda);
+     *     wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
      * </code>
      * </p>
      *
@@ -670,21 +657,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    public CudaHATKernelBuilder pointerArithmeticStoreTensor(Value globalPtr) {
-        id("ptr_");
-        if (globalPtr instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        plus().constant("(int)1").plus();
-        return self();
-    }
-
     /**
      * Example of code being generated:
      *
      * <p>
      * <code>
-     *     store_matrix_sync(c + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
+     *     store_matrix_sync(matrix->array + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
      * </code>
      * </p>
      *
@@ -695,27 +673,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      */
     private CudaHATKernelBuilder generateStoreTensor(List<Value> operands, boolean isColumnMajor) {
         Value reference = operands.getFirst();
-        f32Type().asterisk().sp().id("ptr_");
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        assign().paren(_ -> f32Type().asterisk());
-        if (reference instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        semicolon().nl();
-
         id(WMMA_STORE_TENSOR).paren(_ -> {
-            // First operand as global memory reference:
-            pointerArithmeticStoreTensor(operands.get(0));
-            // Second param is the i-index
             Value iIndex = operands.get(1);
             Value jIndex = operands.get(2);
             Value tensorToStore = operands.get(3);
             Value ldSize = operands.get(4);
 
-            indexForTensor(isColumnMajor, iIndex, jIndex, ldSize);
-            comma();
+            if (reference instanceof Op.Result r) {
+                recurse(r.op());
+            }
+            rarrow().id(ARRAY)
+                    .sp().plus().sp()
+                    .indexForTensor(isColumnMajor, iIndex, jIndex, ldSize)
+                    .comma();
+
             if (tensorToStore instanceof Op.Result r) {
                 recurse(r.op());
             }
@@ -741,4 +712,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         final boolean isColumnMajor = isColumnMajor(operands.get(5));
         return generateStoreTensor(operands, isColumnMajor);
     }
+
+    private static final String ARRAY = "array";
 }

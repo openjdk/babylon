@@ -2,6 +2,7 @@ package hat.types;
 
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
+import hat.buffer.F32ArrayPadded;
 import optkl.IfaceValue;
 
 // Tensors are immutable
@@ -34,27 +35,38 @@ public record Tensor(int first, Shape shape, Class<?> klass, Access tensorAccess
         return null;
     }
 
-    public static void store(F32Array matrix, int i, int j, Tensor resultTensor, int ld, Access tensorAccess) {}
+    public static void store(F32Array matrix, int i, int j, Tensor resultTensor, int ld, Access tensorAccess) {
+    }
 
-    public record Shape(int x, int y, int z) {}
+    public static void store(F32ArrayPadded matrix, int i, int j, Tensor resultTensor, int ld, Access tensorAccess) {
+    }
+
+    public record Shape(int x, int y, int z) {
+    }
 
     public static class Accessor {
         public static final int ROW_MAJOR = 0;
         public static final int COL_MAJOR = 1;
         public static final int NOT_DEFINED = -1;
-        private Accessor() {}
+
+        private Accessor() {
+        }
     }
 
     public interface Access {
 
     }
 
-    public record ColumMajor() implements Access {}
-    public record RowMajor() implements Access {}
+    public record ColumMajor() implements Access {
+    }
+
+    public record RowMajor() implements Access {
+    }
 
     public static ColumMajor ofColumnMajor() {
         return new ColumMajor();
     }
+
     public static RowMajor ofRowMajor() {
         return new RowMajor();
     }
