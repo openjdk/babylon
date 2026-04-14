@@ -51,7 +51,7 @@ import static optkl.ifacemapper.MappableIface.RO;
 import static optkl.ifacemapper.MappableIface.WO;
 
 /**
- * How to run?
+ * Check tensor operations in HAT. How to run?
  *
  * <p>
  * <code>
