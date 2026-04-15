@@ -56,7 +56,8 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
  * Example to test the Tensor/Tile API vs the Thread API.
  *
  * <p>
- * How to run?
+ * How to run? We recommend running this example with the CUDA backend to be
+ * able to generate tensor operations.
  * <code>java @hat/run ffi-opencl tensors --iterations=10 --verbose --size=2048</code>
  * </p>
  */
