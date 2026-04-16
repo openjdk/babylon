@@ -37,12 +37,11 @@ import java.util.List;
 import java.util.Map;
 
 
-public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp
-        permits HATMemoryVarOp.HATLocalVarOp, HATMemoryVarOp.HATPrivateVarOp, HATMemoryVarOp.HATPrivateInitVarOp {
+public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp {
 
     private final String varName;
 
-    public HATMemoryVarOp(String varName, List<Value> operands) {
+    protected HATMemoryVarOp(String varName, List<Value> operands) {
         super(operands);
         this.varName = varName;
     }

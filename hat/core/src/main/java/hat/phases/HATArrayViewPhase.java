@@ -45,7 +45,7 @@ import static optkl.OpHelper.*;
 import static optkl.OpHelper.Invoke.invoke;
 
 public record HATArrayViewPhase() implements HATPhase {
-    static public boolean isVectorOp(MethodHandles.Lookup lookup, Op op) {
+    public static boolean isVectorOp(MethodHandles.Lookup lookup, Op op) {
         if (!op.operands().isEmpty()) {
             CodeType type = switch(op) {
                 case JavaOp.ArrayAccessOp.ArrayLoadOp load -> load.resultType();
@@ -66,7 +66,7 @@ public record HATArrayViewPhase() implements HATPhase {
         return false;
     }
 
-    static public boolean isVectorBinaryOp(MethodHandles.Lookup lookup, OpHelper.Invoke invoke) {
+    public static boolean isVectorBinaryOp(MethodHandles.Lookup lookup, OpHelper.Invoke invoke) {
         return isVectorOp(lookup, invoke.op()) && invoke.nameMatchesRegex("(add|sub|mul|div)");
     }
 
@@ -80,19 +80,21 @@ public record HATArrayViewPhase() implements HATPhase {
             default -> throw new IllegalStateException("Unexpected value: " + opType);
         };
     }
-    static public boolean isBufferArray(MethodHandles.Lookup lookup, Op op) {
+
+    public static boolean isBufferArray(MethodHandles.Lookup lookup, Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
         return iop != null && iop.invokeReference().name().toLowerCase().contains("arrayview"); // we need a better way
     }
 
-    static public boolean isBufferInitialize(MethodHandles.Lookup lookup, Op op) {
+    public static boolean isBufferInitialize(MethodHandles.Lookup lookup, Op op) {
         // first check if the return is an array type
         if (op instanceof CoreOp.VarOp vop && vop.varValueType() instanceof ArrayType
                 || op instanceof JavaOp.ArrayAccessOp
                 || op.resultType() instanceof ArrayType) return isBufferArray(lookup, op);
         return false;
     }
-    static public boolean isLocalSharedOrPrivate(Op op) {
+
+    public static boolean isLocalSharedOrPrivate(Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
         return iop != null
                 && (iop.invokeReference().name().toLowerCase().contains("shared")
@@ -101,7 +103,7 @@ public record HATArrayViewPhase() implements HATPhase {
         );
     }
 
-    static public HATVectorOp buildArrayViewVector(Op op, String name, CodeType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operands) {
+    public static HATVectorOp buildArrayViewVector(Op op, String name, CodeType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operands) {
         if (isLocalSharedOrPrivate(op)) {
             if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
                 return new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(name, resultType, vectorShape, operands);
@@ -165,7 +167,7 @@ public record HATArrayViewPhase() implements HATPhase {
         return Trxfmr.of(lookup,funcOp).transform((blockBuilder, op) -> {
             var context = blockBuilder.context();
             switch (op) {
-                case JavaOp.InvokeOp $ when invoke(lookup, $) instanceof Invoke invoke -> {
+                case JavaOp.InvokeOp iOp when invoke(lookup, iOp) instanceof Invoke invoke -> {
                     if (isVectorBinaryOp(invoke.lookup(), invoke)){
                         var hatVectorBinaryOp = buildVectorBinaryOp(
                                 invoke.varOpFromFirstUseOrThrow().varName(),
@@ -229,7 +231,7 @@ public record HATArrayViewPhase() implements HATPhase {
         return Trxfmr.of(lookup,funcOp).transform((blockBuilder, op) -> {
             var context = blockBuilder.context();
             switch (op) {
-                case JavaOp.InvokeOp $ when invoke(lookup, $) instanceof Invoke invoke -> {
+                case JavaOp.InvokeOp invokeOp when invoke(lookup, invokeOp) instanceof Invoke invoke -> {
                     if (isBufferArray(lookup, invoke.op())) { // ensures we can use iop as key for replaced vvv
                         Op.Result result = invoke.resultFromFirstOperandOrNull();
                         replaced.put(invoke.returnResult(), result);
