@@ -59,6 +59,7 @@ public final class HATBarrierOp extends HATOp {
         return JavaType.VOID;
     }
 
+    @Override
     public Map<String, Object> externalize() {return Map.of("hat.dialect.sync."+NAME, JavaOp.InvokeOp.InvokeKind.INSTANCE);
     }
 

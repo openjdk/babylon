@@ -24,11 +24,16 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.*;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATMemoryDefOp;
+import hat.dialect.HATMemoryVarOp;
+import hat.dialect.HATOp;
+import hat.dialect.HATPtrOp;
+import hat.dialect.HATThreadOp;
+import hat.dialect.HATVectorOp;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import optkl.codebuilders.BabylonOpDispatcher;
-import optkl.codebuilders.JavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
