@@ -239,7 +239,11 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
     delete []events;
 }
 
-void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelContext, size_t global_work_size[], size_t *local_work_size) {
+void printWarningLocalGroupResized(const size_t local_work_size[]) {
+    std::cout << "[Warning] Thread-Block size got automatically resized: [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
+}
+
+void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelContext, const size_t global_work_size[], size_t *local_work_size) {
     const PlatformInfo platformInfo(backend);
     size_t max_group_size = platformInfo.deviceInfo.maxWorkGroupSize;
     size_t totalThreads = kernelContext->lsx * kernelContext->lsy * kernelContext->lsz;
@@ -255,7 +259,9 @@ void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelCon
             local_work_size[2] /= 2;
         }
         totalThreads = local_work_size[0] * local_work_size[1] * local_work_size[2];
-        std::cout << "[Warning] Thread-Block size got automatically resized: " << local_work_size[0] << " " << local_work_size[1] << " " << local_work_size[2] << std::endl;
+        if (backend->config->info) {
+            printWarningLocalGroupResized(local_work_size);
+        }
     }
 
     // Adjust also depending on the global size. We can't launch more threads as local work than global work for
@@ -263,7 +269,9 @@ void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelCon
     for (int i = 0; i < 3; i++) {
         while (local_work_size[i] > global_work_size[i]) {
             local_work_size[i] /= 2;
-            std::cout << "[Warning] Thread-Block size got automatically resized: " << local_work_size[0] << " " << local_work_size[1] << " " << local_work_size[2] << std::endl;
+            if (backend->config->info) {
+                printWarningLocalGroupResized(local_work_size);
+            }
         }
     }
 }
