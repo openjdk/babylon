@@ -29,7 +29,8 @@ import java.util.Set;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;
 
 public class HATPhaseUtils {
-    static public Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
+
+    public static Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?> ...classes) {
         Set<Class<?>> set =Set.of(classes);
         while (!set.contains(op.getClass())) {
             if (resultFromFirstOperandOrNull(op) instanceof Op.Result result) {
@@ -39,5 +40,9 @@ public class HATPhaseUtils {
             }
         }
         return op;
+    }
+
+    private HATPhaseUtils() {
+        /* This utility class should not be instantiated */
     }
 }

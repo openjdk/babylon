@@ -109,7 +109,7 @@ public class KernelContext {
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.
      */
     public void barrier() {
-        // this method is intentionally empty and used just a marker for the GPU/accelerator code.
+        // empty method - this is just a marker for the HAT Kernels
     }
 
 }
