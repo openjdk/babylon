@@ -78,8 +78,8 @@ public class BufferTagger {
     private static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         // build blockParams so that we can map params to "root" params later
         funcOp.elements()
-                .filter(elem -> elem instanceof Block)
-                .map(elem->(Block)elem)
+                .filter(Block.class::isInstance)
+                .map(Block.class::cast)
                 .forEach(block -> blockParams.put(block, block.parameters()));
 
         funcOp.elements().forEach(op -> {
@@ -183,6 +183,5 @@ public class BufferTagger {
         }
     }
 
-    private BufferTagger() {
-    }
+    private BufferTagger() {}
 }

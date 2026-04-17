@@ -33,10 +33,10 @@ import jdk.incubator.code.Value;
 import java.util.List;
 import java.util.Map;
 
-public abstract sealed class HATMemoryDefOp extends HATOp permits HATMemoryDefOp.HATMemoryLoadOp {
+public abstract sealed class HATMemoryDefOp extends HATOp {
     private final String varName;
 
-    public HATMemoryDefOp(String varName, List<Value> operands) {
+    protected HATMemoryDefOp(String varName, List<Value> operands) {
         super(operands);
         this.varName = varName;
     }

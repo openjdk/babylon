@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATBarrierOp;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.core.CoreOp;

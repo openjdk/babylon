@@ -32,7 +32,7 @@ public enum BinaryOpEnum {
     MUL("*"),
     DIV("/");
 
-    String symbol;
+    final String symbol;
 
     BinaryOpEnum(String symbol) {
         this.symbol = symbol;
