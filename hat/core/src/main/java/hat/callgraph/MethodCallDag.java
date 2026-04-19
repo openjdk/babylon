@@ -36,7 +36,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 public class MethodCallDag extends Dag<MethodCallDag.Call> {
-    static abstract public class Call implements FuncOpCarrier {
+    public abstract static class Call implements FuncOpCarrier {
         private final MethodRef methodRef;
         private final Method method;
         private CoreOp.FuncOp funcOp;

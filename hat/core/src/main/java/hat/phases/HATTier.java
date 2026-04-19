@@ -24,14 +24,13 @@
  */
 package hat.phases;
 
-import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.Mutable;
 import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
 public class HATTier  {
+
     public static final  List<HATPhase> KernelPhases = List.of(
                 // barrier
                 new HATBarrierPhase(),
@@ -65,12 +64,16 @@ public class HATTier  {
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){
         phases.forEach(phase -> {
             if (showCompilationPhases) {
-                System.out.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
+                IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
             funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp()));
             if (showCompilationPhases) {
-                System.out.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
+                IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
         });
+    }
+
+    private HATTier() {
+        /* This utility class should not be instantiated */
     }
 }

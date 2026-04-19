@@ -70,7 +70,7 @@ public class KernelContext {
 
     final int dimensions;
 
-    final public NDRange ndRange;
+    public final NDRange ndRange;
 
     public KernelContext(NDRange ndRange) {
         this.ndRange = ndRange;
@@ -95,13 +95,14 @@ public class KernelContext {
             }
             case null, default ->
                 throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
-
         }
     }
 
     /**
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.
      */
-    public void barrier() { }
+    public void barrier() {
+        // empty method - this is just a marker for the HAT Kernels
+    }
 
 }

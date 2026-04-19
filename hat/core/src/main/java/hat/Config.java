@@ -103,12 +103,15 @@ public class Config {
         return INTERPRET.isSet(this);
     }
     private static final Bit HEADLESS = Bit.nextBit(INTERPRET, "HEADLESS", "H","Don't show UI");
+
     public boolean headless() {
-        return HEADLESS.isSet(this)|| Boolean.getBoolean("headless");
+        return HEADLESS.isSet(this) || Boolean.getBoolean("headless");
     }
+
     public boolean headless(String arg) {
-        return headless()|"--headless".equals(arg);
+        return headless() || "--headless".equals(arg);
     }
+
     private static final Bit SHOW_LOWERED_KERNEL_MODEL = Bit.nextBit(HEADLESS,"SHOW_LOWERED_KERNEL_MODEL", "SLKM","Show (via OpWriter) Lowered Kernel Model");
     public boolean showLoweredKernelModel() {
         return SHOW_LOWERED_KERNEL_MODEL.isSet(this);
@@ -155,13 +158,13 @@ public class Config {
             SHOW_COMPUTE_MODEL_JAVA_CODE
     );
 
-    final private int bits;
+    private final int bits;
 
-    public int bits(){
+    public int bits() {
         return bits;
     }
 
-    Config(int bits, boolean junk){
+    Config(int bits) {
         this.bits = bits;
     }
 
@@ -170,51 +173,48 @@ public class Config {
 
     public static Config fromEnvOrProperty() {
         if (System.getenv("HAT") instanceof String opts) {
-           // System.out.println("From env " + opts);
             return fromSpec(opts);
-        }else if (System.getProperty("HAT") instanceof String opts) {
-           // System.out.println("From prop " + opts);
+        } else if (System.getProperty("HAT") instanceof String opts) {
             return fromSpec(opts);
-        }else {
+        } else {
             return fromSpec("");
         }
     }
 
     public static Config fromIntBits(int bits) {
-        return new Config(bits,false);
+        return new Config(bits);
     }
 
-     record BitValue(Bit bit, int value){}
+    record BitValue(Bit bit, int value){}
 
-    // recursive!!!
     public static Config fromSpec(String spec) {
-        Optional<Config> returnValue=Optional.of(Config.fromIntBits(0));
+        Optional<Config> returnValue = Optional.of(Config.fromIntBits(0));
         if (spec == null || spec.isEmpty()) {
-           // default is good
+            // default is good
         } else if (spec.equals("HELP")) {
-          bitList.forEach(bit -> System.out.println(bit.name+ "/"+bit.alt+" ".repeat(40-(bit.name.length()+bit.alt.length()))+(bit.index<10?" ":"")+bit.index+((bit.size>1)?"-"+(bit.index+bit.size-1):"  ")+ " "+bit.description));
-          if(spec.equals("HELP")){
-              System.exit(0);
-          }
-        }else if (spec.contains(",")) {
-            returnValue =  Arrays.stream(spec.split(",")).map(Config::fromSpec).reduce((lhs, rhs) -> Config.fromIntBits(lhs.bits() | rhs.bits()));
+            bitList.forEach(bit -> IO.println(bit.name + "/" + bit.alt + " ".repeat(40 - (bit.name.length() + bit.alt.length())) + (bit.index < 10 ? " " : "") + bit.index + ((bit.size > 1) ? "-" + (bit.index + bit.size - 1) : "  ") + " " + bit.description));
+            if (spec.equals("HELP")) {
+                System.exit(0);
+            }
+        } else if (spec.contains(",")) {
+            returnValue = Arrays.stream(spec.split(",")).map(Config::fromSpec).reduce((lhs, rhs) -> Config.fromIntBits(lhs.bits() | rhs.bits()));
         } else if (!spec.contains(":")) {
-            returnValue=  bitList.stream().filter(bit->bit.name().equals(spec)||bit.alt().equals(spec)).findFirst().map(b->fromIntBits(b.mask()));
-        }else{
+            returnValue = bitList.stream().filter(bit -> bit.name().equals(spec) || bit.alt().equals(spec)).findFirst().map(b -> fromIntBits(b.mask()));
+        } else {
             var split = spec.split(":");
-            if (split.length==2) {
-                var optBit = bitList.stream().filter(bit -> bit.name().equals(split[0])||bit.alt().equals(split[0])).findFirst();
+            if (split.length == 2) {
+                var optBit = bitList.stream().filter(bit -> bit.name().equals(split[0]) || bit.alt().equals(split[0])).findFirst();
                 if (optBit.isPresent()) {
                     var bv = new BitValue(optBit.get(), Integer.parseInt(split[1]));
                     var bitz = bv.value << bv.bit().index();
-                    returnValue= Optional.of(fromIntBits(bitz));
+                    returnValue = Optional.of(fromIntBits(bitz));
                 }
             }
         }
         if (returnValue.isPresent()) {
             return returnValue.get();
-        }else {
-            System.out.println("Unexpected spec '" + spec + "'");
+        } else {
+            IO.println("Unexpected spec '" + spec + "'");
             System.exit(1);
         }
         return null;
@@ -229,17 +229,12 @@ public class Config {
                     builder.append("|");
                 }
                 builder.append(bit.name());
-
             }
         }
         return builder.toString();
     }
 
-    public static void main(String[] args){
-       bitList.forEach(b-> {
-           System.out.printf("%30s MASK= %32s\n",  b.name,b.maskString());
-       });
-
+    public static void main() {
+       bitList.forEach(b-> System.out.printf("%30s MASK= %32s\n",  b.name, b.maskString()));
     }
-
 }
