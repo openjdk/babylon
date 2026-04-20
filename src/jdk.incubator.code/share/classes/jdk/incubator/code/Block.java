@@ -650,7 +650,6 @@ public final class Block implements CodeElement<Block, Op> {
             check();
 
             body(body, values, CodeContext.create(cc), ct);
-//            ct.acceptBody(rebind(CodeContext.create(cc), ct), body, values);
         }
 
         /**

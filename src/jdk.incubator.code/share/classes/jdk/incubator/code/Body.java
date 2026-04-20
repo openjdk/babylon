@@ -434,7 +434,7 @@ public final class Body implements CodeElement<Body, Block> {
      */
     public final class Builder {
         /**
-         * Creates a body builder, with entry block {@link #entryBlock builder} that has a
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a
          * {@link CodeContext#create() new} code context and a {@link CodeTransformer#COPYING_TRANSFORMER copying}
          * code transformer.
          *
@@ -450,7 +450,7 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Creates a body builder, with entry block {@link #entryBlock builder} that has the given code context
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has the given code context
          * and a {@link CodeTransformer#COPYING_TRANSFORMER copying} code transformer.
          *
          * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
