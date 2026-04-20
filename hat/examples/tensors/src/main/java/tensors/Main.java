@@ -58,7 +58,9 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
  * <p>
  * How to run? We recommend running this example with the CUDA backend to be
  * able to generate tensor operations.
- * <code>java @hat/run ffi-opencl tensors --iterations=10 --verbose --size=2048</code>
+ * <code>java @hat/run ffi-cuda tensors --iterations=100 --verbose --size=2048</code>
+ * OpenCL:
+ * <code>java @hat/run ffi-opencl tensors --iterations=100 --verbose --size=2048</code>
  * </p>
  */
 public class Main {
