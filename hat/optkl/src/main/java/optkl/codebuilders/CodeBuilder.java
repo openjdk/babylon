@@ -125,6 +125,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return emitText(text);
     }
 
+    public final T constantHalf(Integer value) {
+        return emitText("(half)"+value);
+    }
+
 
     final public T blockComment(String block) {
         return comment("/*").nl().comment(block).nl().symbol("*/").nl();
@@ -734,6 +738,17 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return camelCaseString.toString();
     }
 
+    public T using() {
+        return emitText("using");
+    }
+
+    public T namespace() {
+        return emitText("namespace");
+    }
+
+    public T builtin(String text) {
+        return emitText(text);
+    }
 
     final public T oracleCopyright(){
         return blockComment("""

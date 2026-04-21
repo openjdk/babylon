@@ -75,7 +75,7 @@ public record HATFP16Phase() implements HATPhase {
     private static boolean isF16Local(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
-            case HATF16Op.HATF16VarOp hatf16VarOp -> true;
+            case HATF16Op.HATF16VarOp _ -> true;
             default -> false;
         };
     }

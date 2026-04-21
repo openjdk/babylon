@@ -29,17 +29,17 @@ public final class Inliner {
      * continue building.
      * <p>
      * This method {@link Block.Builder#body(Body, List, CodeContext, CodeTransformer) transforms} the
-     * body of the invokable operation with the given arguments, a new context, and an operation transformer that
+     * body of the invokable operation with the given arguments, a new context, and an code transformer that
      * replaces return operations by applying the given consumer to a block builder and a return value.
      * <p>
-     * The operation transformer copies all operations except return operations whose nearest invokable operation
+     * The code transformer copies all operations except return operations whose nearest invokable operation
      * ancestor is the given the invokable operation. When such a return operation is encountered, then on
      * first encounter of its grandparent body a return block builder is computed and used for this return operation
      * and encounters of subsequent return operations with the same grandparent body.
      * <p>
-     * If the grandparent body has only one block then operation transformer's block builder is the return
+     * If the grandparent body has only one block then code transformer's block builder is the return
      * block builder. Otherwise, if the grandparent body has one or more blocks then the return block builder is
-     * created from the operation transformer's block builder. The created return block builder will have a block
+     * created from the code transformer's block builder. The created return block builder will have a block
      * parameter whose type corresponds to the return type, or will have no parameter for void return.
      * The computation finishes by applying the return block builder and a return value to the inlining consumer.
      * If the grandparent body has only one block then the return value is the value mapped from the return
@@ -47,8 +47,8 @@ public final class Inliner {
      * then the value is the block parameter of the created return block builder, or is null for void return.
      * <p>
      * For every encounter of a return operation the associated return block builder is compared against the
-     * operation transformer's block builder. If they are not equal then a branch operation is added to the
-     * operation transformer's block builder whose successor is the return block builder with a block argument
+     * code transformer's block builder. If they are not equal then a branch operation is added to the
+     * code transformer's block builder whose successor is the return block builder with a block argument
      * that is the value mapped from the return operation's operand, or with no block argument for void return.
      * @apiNote
      * It is easier to inline an invokable op if its body is in lowered form (there are no operations in the blocks

@@ -57,14 +57,16 @@ public class BufferTagger {
             if (accessMap.containsKey(p)) {
                 accessList.add(accessMap.get(p)); // is an accessed buffer
             } else if (OpHelper.isAssignable(lookup, p.type(), MappableIface.class)) {
-                accessList.add(AccessType.NA); // is a buffer but not accessed
+                // accessList.add(AccessType.NA); // is a buffer but not accessed
+                // TODO: shouldn't be RO as default
+                accessList.add(AccessType.RO);
             } else {
                 accessList.add(AccessType.NOT_BUFFER); // is not a buffer
             }
         }
         return accessList;
     }
-    private  static boolean isReference(Invoke ioh) {
+    private static boolean isReference(Invoke ioh) {
         return ioh.returns(IfaceValue.class)
                 && ioh.opFromOnlyUseOrNull() instanceof JavaOp.InvokeOp nextInvoke
                 && invoke(ioh.lookup(), nextInvoke) instanceof Invoke nextIoh
@@ -73,11 +75,11 @@ public class BufferTagger {
     }
 
     // creates the access map
-    private  static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    private static void buildAccessMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         // build blockParams so that we can map params to "root" params later
         funcOp.elements()
-                .filter(elem -> elem instanceof Block)
-                .map(elem->(Block)elem)
+                .filter(Block.class::isInstance)
+                .map(Block.class::cast)
                 .forEach(block -> blockParams.put(block, block.parameters()));
 
         funcOp.elements().forEach(op -> {
@@ -150,11 +152,13 @@ public class BufferTagger {
 
     // retrieves "root" value of an op, which is how we track accesses
     // we will map the return value of this method to the accessType
-    private  static Value getRootValue(Op op) {
+    private static Value getRootValue(Op op) {
         // the op is a field load, an invoke, or something that reduces to one or the other
         // first, check if we can retrieve a fieldloadop from the given op
         Op fieldOp = HATPhaseUtils.findOpInResultFromFirstOperandsOrNull(op, JavaOp.FieldAccessOp.FieldLoadOp.class);
-        if (fieldOp != null) return fieldOp.operands().getFirst(); // if so, we use its first operand to map to accesses
+        if (fieldOp != null) {
+            return fieldOp.operands().isEmpty() ? fieldOp.result() : fieldOp.operands().getFirst();
+        }
 
         // we then check if there's an invokeop that has no operands (meaning a shared or private buffer that was created)
         // or if there's an invokeop with a parameter as its first operation (this is a global buffer)
@@ -167,7 +171,7 @@ public class BufferTagger {
     }
 
     // updates accessMap
-    private  static void updateAccessType(Value value, AccessType currentAccess) {
+    private static void updateAccessType(Value value, AccessType currentAccess) {
         Value remappedValue = remappedVals.getOrDefault(value, value);
         AccessType storedAccess = accessMap.get(remappedValue);
         if (storedAccess == null) {
@@ -178,4 +182,6 @@ public class BufferTagger {
             // this is the same access type as what's already stored
         }
     }
+
+    private BufferTagger() {}
 }

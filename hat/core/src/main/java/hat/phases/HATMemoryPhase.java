@@ -58,7 +58,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
         Set<CodeElement<?,?>> nodesInvolved = new LinkedHashSet<>();
         Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
-        OpHelper.Named.Variable.stream(lookup,funcOp)
+        OpHelper.Variable.stream(lookup,funcOp)
                 .forEach(variable -> variable.op().operands().stream()
                         .filter(operand -> operand instanceof Op.Result result
                                 && invoke(lookup,result.op()) instanceof Invoke invoke
@@ -138,7 +138,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             return invoke.refIs( IfaceValue.class/*DeviceType.class, MappableIface.class, HAType.class*/) && invoke.named(INTRINSIC_NAME);
         }
 
-        static private Regex reservedMethods = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
+        private static Regex reservedMethods = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
         @Override
         public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();

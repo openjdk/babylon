@@ -364,11 +364,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * To copy an operation use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
      *
      * @param cc the code context.
-     * @param ot the code transformer.
+     * @param ct the code transformer.
      * @return the transformed operation.
      * @see CodeTransformer#COPYING_TRANSFORMER
      */
-    public abstract Op transform(CodeContext cc, CodeTransformer ot);
+    public abstract Op transform(CodeContext cc, CodeTransformer ct);
 
     /**
      * Constructs an operation with a list of operands.

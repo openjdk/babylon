@@ -108,7 +108,6 @@ public final class Block implements CodeElement<Block, Op> {
      * A terminating operation may refer, via a block reference, to one or more blocks as its successors.
      * When control is passed from a block to a successor block the values of the block reference's arguments are
      * assigned, in order, to the successor block's parameters.
-     * <p>
      */
     public static final class Reference implements CodeItem {
         final Block target;
@@ -468,22 +467,29 @@ public final class Block implements CodeElement<Block, Op> {
      * A builder of a block.
      * <p>
      * A block builder is built when its {@link #parent() parent} body builder is {@link Body.Builder#build(Op) built}.
-     * <p>
-     * A block is not observable while it is being built. Attempts to access a block being built through the block's
-     * parameters, appended operations, their operation results, or created block references, result in an exception.
-     * <p>
      * If a built builder is operated on to append a block parameter, append an operation, build a sibling block,
      * then an {@code IllegalStateException} is thrown.
+     * <p>
+     * A block is not observable while it is being built. Attempts to access a block being built through the block's
+     * parameters, appended operations, their operation results, or block references, result in an exception.
+     * <p>
+     * A block builder has a code {@link #context() context} and code {@link #transformer() transformer} which are used
+     * to transform an attached or root operation that is {@link #op appended}. Any sibling block builder
+     * {@link #block(List) created} from a block builder will have the same code context and code transformer.
+     * <p>
+     * A block builder may be {@link #rebind rebound} to new block builder that builds the same block but with a
+     * different code context and code transformer. The rebound block builder can be used to apply alternative
+     * transformations to attached or root operations that are appended.
      */
     public final class Builder {
         final Body.Builder parentBody;
         final CodeContext cc;
-        final CodeTransformer ot;
+        final CodeTransformer ct;
 
-        Builder(Body.Builder parentBody, CodeContext cc, CodeTransformer ot) {
+        Builder(Body.Builder parentBody, CodeContext cc, CodeTransformer ct) {
             this.parentBody = parentBody;
             this.cc = cc;
-            this.ot = ot;
+            this.ct = ct;
         }
 
         void check() {
@@ -495,10 +501,10 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * {@return the block builder's operation transformer}
+         * {@return the block builder's code transformer}
          */
         public CodeTransformer transformer() {
-            return ot;
+            return ct;
         }
 
         /**
@@ -524,7 +530,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @return the entry block builder for parent body builder
          */
         public Block.Builder entryBlock() {
-            return parentBody.entryBlock.rebind(cc, ot);
+            return parentBody.entryBlock.rebind(cc, ct);
         }
 
         /**
@@ -535,24 +541,24 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Rebinds this block builder with the given context and operation transformer.
+         * Rebinds this block builder to a new block builder with the given context and code transformer.
          *
-         * <p>Either this block builder and the returned block builder may be operated on to build
+         * <p>Either this block builder and the rebound block builder may be operated on to build
          * the same block.
          * Both are equal to each other, and both are closed when the parent body builder is closed.
          *
          * @param cc the context
-         * @param ot the operation transformer
+         * @param ct the code transformer
          * @return the rebound block builder
          */
-        public Block.Builder rebind(CodeContext cc, CodeTransformer ot) {
-            return this.cc == cc && this.ot == ot
+        public Block.Builder rebind(CodeContext cc, CodeTransformer ct) {
+            return this.cc == cc && this.ct == ct
                     ? this
-                    : this.target().new Builder(parentBody(), cc, ot);
+                    : this.target().new Builder(parentBody(), cc, ct);
         }
 
         /**
-         * Creates a new sibling block in the same parent body as this block.
+         * Creates a new sibling block builder in the same parent body as this block builder.
          *
          * @param params the block's parameter types
          * @return the new block builder
@@ -562,13 +568,13 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Creates a new sibling block in the same parent body as this block.
+         * Creates a new sibling block builder in the same parent body as this block builder.
          *
          * @param params the block's parameter types
          * @return the new block builder
          */
         public Block.Builder block(List<CodeType> params) {
-            return parentBody.block(params, cc, ot);
+            return parentBody.block(params, cc, ct);
         }
 
         /**
@@ -631,36 +637,26 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Transforms a body starting from this block builder, using a code transformer.
-         * <p>
-         * This method first rebinds this builder with a child context created from
-         * this builder's context and the given operation transformer, and then
-         * transforms the body using the code transformer by
-         * {@link CodeTransformer#acceptBody(Builder, Body, List) accepting}
-         * the rebound builder, the body, and the values.
-         *
-         * @apiNote
-         * Creation of a child context ensures block and value mappings produced by
-         * the transformation do not affect this builder's context.
+         * Transforms a body starting from this block builder, using a {@link CodeContext#create(CodeContext) child}
+         * context of this builder's context and a given code transformer.
          *
          * @param body the body to transform
          * @param values the output values to map to the input parameters of the body's entry block
-         * @param ot the operation transformer
-         * @see CodeTransformer#acceptBody(Builder, Body, List)
+         * @param ct the code transformer
+         * @see #body(Body, List, CodeContext, CodeTransformer)
          */
         public void body(Body body, List<? extends Value> values,
-                         CodeTransformer ot) {
+                         CodeTransformer ct) {
             check();
 
-            ot.acceptBody(rebind(CodeContext.create(cc), ot), body, values);
+            body(body, values, CodeContext.create(cc), ct);
         }
 
         /**
-         * Transforms a body starting from this block builder, using a given operation transformer.
+         * Transforms a body starting from this block builder, using a given context and code transformer.
          * <p>
-         * This method first rebinds this builder with the given context
-         * and the given operation transformer, and then
-         * transforms the body using the operation transformer by
+         * This method first {@link #rebind rebinds} this builder with the given context
+         * and code transformer, and then transforms the body using the code transformer by
          * {@link CodeTransformer#acceptBody(Builder, Body, List) accepting}
          * the rebound builder, the body, and the values.
          *
@@ -671,26 +667,27 @@ public final class Block implements CodeElement<Block, Op> {
          * @param body the body to transform
          * @param values the output values to map to the input parameters of the body's entry block
          * @param cc the code context
-         * @param ot the operation transformer
+         * @param ct the code transformer
+         * @see #rebind(CodeContext, CodeTransformer)
          * @see CodeTransformer#acceptBody(Builder, Body, List)
          */
         public void body(Body body, List<? extends Value> values,
-                         CodeContext cc, CodeTransformer ot) {
+                         CodeContext cc, CodeTransformer ct) {
             check();
 
-            ot.acceptBody(rebind(cc, ot), body, values);
+            ct.acceptBody(rebind(cc, ct), body, values);
         }
 
         /**
-         * Appends an operation to this block builder, first transforming the operation if it is attached to a block,
-         * or a root operation.
+         * Appends an operation to the sequence of operations of this block builder, first transforming the operation
+         * if it is attached to a block, or a root operation.
          * <p>
          * If the operation is unattached, then the operation is appended and attached to this block, and the operation
          * is assigned an operation result.
          * Otherwise, the operation (an attached or root operation) is first
-         * {@link Op#transform(CodeContext, CodeTransformer) transformed} with this builder's context and
-         * code transformer, the resulting transformed and unattached operation is attached and appended, and the
-         * operation's result mapped to the transformed operation's result, using the builder's context.
+         * {@link Op#transform(CodeContext, CodeTransformer) transformed} with this builder's code context and
+         * code transformer, the resulting transformed and unattached operation is appended and attached, and the
+         * operation's result mapped to the transformed operation's result, using the builder's code context.
          * <p>
          * If the operation (transformed, or otherwise) is structurally invalid then an
          * {@code IllegalStateException} is thrown. An operation is structurally invalid if:
@@ -699,7 +696,7 @@ public final class Block implements CodeElement<Block, Op> {
          * <li>any of its operands (values) is not reachable from this block.
          * <li>any of its successors is not a sibling of this block.
          * <li>any of its successors arguments (values) is not reachable from this block.
-         * <li>it's a terminating operation and a terminating operation is already appended.
+         * <li>a terminating operation is already appended as the last operation.
          * </ul>
          * A value is reachable from this block if there is a path from this block's parent body,
          * via its ancestor bodies, to the value's declaring block's parent body. (Note this structural check
@@ -718,7 +715,7 @@ public final class Block implements CodeElement<Block, Op> {
             Op transformedOp = op;
             if (op.isRoot() || oprToTransform != null) {
                 // If operation is assigned to block, or it's sealed, then copy it and transform its contents
-                transformedOp = op.transform(cc, ot);
+                transformedOp = op.transform(cc, ct);
                 assert transformedOp.result == null;
             }
 

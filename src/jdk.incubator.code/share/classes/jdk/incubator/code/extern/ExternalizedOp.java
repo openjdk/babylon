@@ -99,7 +99,7 @@ public record ExternalizedOp(String name,
                 op.externalizeOpName(),
                 op.location(),
                 cc.getValues(op.operands()),
-                op.successors().stream().map(cc::getSuccessorOrCreate).toList(),
+                op.successors().stream().map(cc::getReferenceOrCreate).toList(),
                 op.resultType(),
                 op.externalize(),
                 op.bodies().stream().map(b -> b.copy(cc)).toList()

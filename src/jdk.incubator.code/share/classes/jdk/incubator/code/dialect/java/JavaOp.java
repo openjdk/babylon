@@ -467,17 +467,17 @@ public sealed abstract class JavaOp extends Op {
             this(def.resultType(), def.bodyDefinitions().get(0), isReflectable);
         }
 
-        LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ot) {
+        LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             this.functionalInterface = that.functionalInterface;
-            this.body = that.body.transform(cc, ot).build(this);
+            this.body = that.body.transform(cc, ct).build(this);
             this.isReflectable = that.isReflectable;
         }
 
         @Override
-        public LambdaOp transform(CodeContext cc, CodeTransformer ot) {
-            return new LambdaOp(this, cc, ot);
+        public LambdaOp transform(CodeContext cc, CodeTransformer ct) {
+            return new LambdaOp(this, cc, ct);
         }
 
         LambdaOp(CodeType functionalInterface, Body.Builder bodyC, boolean isReflectable) {
@@ -751,7 +751,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public ThrowOp transform(CodeContext cc, CodeTransformer ot) {
+        public ThrowOp transform(CodeContext cc, CodeTransformer ct) {
             return new ThrowOp(this, cc);
         }
 
@@ -806,14 +806,14 @@ public sealed abstract class JavaOp extends Op {
             this.bodies = bodies.stream().map(b -> b.build(this)).toList();
         }
 
-        AssertOp(AssertOp that, CodeContext cc, CodeTransformer ot) {
+        AssertOp(AssertOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
-            this.bodies = that.bodies.stream().map(b -> b.transform(cc, ot).build(this)).toList();
+            this.bodies = that.bodies.stream().map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            return new AssertOp(this, cc, ot);
+        public Op transform(CodeContext cc, CodeTransformer ct) {
+            return new AssertOp(this, cc, ct);
         }
 
         @Override
@@ -885,7 +885,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public MonitorEnterOp transform(CodeContext cc, CodeTransformer ot) {
+            public MonitorEnterOp transform(CodeContext cc, CodeTransformer ct) {
                 return new MonitorEnterOp(this, cc);
             }
 
@@ -914,7 +914,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public MonitorExitOp transform(CodeContext cc, CodeTransformer ot) {
+            public MonitorExitOp transform(CodeContext cc, CodeTransformer ct) {
                 return new MonitorExitOp(this, cc);
             }
 
@@ -1022,7 +1022,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public InvokeOp transform(CodeContext cc, CodeTransformer ot) {
+        public InvokeOp transform(CodeContext cc, CodeTransformer ct) {
             return new InvokeOp(this, cc);
         }
 
@@ -1160,7 +1160,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ct) {
             return new ConvOp(this, cc);
         }
 
@@ -1239,7 +1239,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public NewOp transform(CodeContext cc, CodeTransformer ot) {
+        public NewOp transform(CodeContext cc, CodeTransformer ct) {
             return new NewOp(this, cc);
         }
 
@@ -1383,7 +1383,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public FieldLoadOp transform(CodeContext cc, CodeTransformer ot) {
+            public FieldLoadOp transform(CodeContext cc, CodeTransformer ct) {
                 return new FieldLoadOp(this, cc);
             }
 
@@ -1440,7 +1440,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public FieldStoreOp transform(CodeContext cc, CodeTransformer ot) {
+            public FieldStoreOp transform(CodeContext cc, CodeTransformer ct) {
                 return new FieldStoreOp(this, cc);
             }
 
@@ -1491,7 +1491,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public ArrayLengthOp transform(CodeContext cc, CodeTransformer ot) {
+        public ArrayLengthOp transform(CodeContext cc, CodeTransformer ct) {
             return new ArrayLengthOp(this, cc);
         }
 
@@ -1577,7 +1577,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public ArrayLoadOp transform(CodeContext cc, CodeTransformer ot) {
+            public ArrayLoadOp transform(CodeContext cc, CodeTransformer ct) {
                 return new ArrayLoadOp(this, cc);
             }
 
@@ -1623,7 +1623,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public ArrayStoreOp transform(CodeContext cc, CodeTransformer ot) {
+            public ArrayStoreOp transform(CodeContext cc, CodeTransformer ct) {
                 return new ArrayStoreOp(this, cc);
             }
 
@@ -1684,7 +1684,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public InstanceOfOp transform(CodeContext cc, CodeTransformer ot) {
+        public InstanceOfOp transform(CodeContext cc, CodeTransformer ct) {
             return new InstanceOfOp(this, cc);
         }
 
@@ -1759,7 +1759,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public CastOp transform(CodeContext cc, CodeTransformer ot) {
+        public CastOp transform(CodeContext cc, CodeTransformer ct) {
             return new CastOp(this, cc);
         }
 
@@ -1819,11 +1819,11 @@ public sealed abstract class JavaOp extends Op {
         ExceptionRegionEnter(ExceptionRegionEnter that, CodeContext cc) {
             super(that, cc);
 
-            this.references = that.references.stream().map(cc::getSuccessorOrCreate).toList();
+            this.references = that.references.stream().map(cc::getReferenceOrCreate).toList();
         }
 
         @Override
-        public ExceptionRegionEnter transform(CodeContext cc, CodeTransformer ot) {
+        public ExceptionRegionEnter transform(CodeContext cc, CodeTransformer ct) {
             return new ExceptionRegionEnter(this, cc);
         }
 
@@ -1884,11 +1884,11 @@ public sealed abstract class JavaOp extends Op {
         ExceptionRegionExit(ExceptionRegionExit that, CodeContext cc) {
             super(that, cc);
 
-            this.references = that.references.stream().map(cc::getSuccessorOrCreate).toList();
+            this.references = that.references.stream().map(cc::getReferenceOrCreate).toList();
         }
 
         @Override
-        public ExceptionRegionExit transform(CodeContext cc, CodeTransformer ot) {
+        public ExceptionRegionExit transform(CodeContext cc, CodeTransformer ct) {
             return new ExceptionRegionExit(this, cc);
         }
 
@@ -1958,7 +1958,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ct) {
             return new ConcatOp(this, cc);
         }
 
@@ -2112,7 +2112,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public AddOp transform(CodeContext cc, CodeTransformer ot) {
+        public AddOp transform(CodeContext cc, CodeTransformer ct) {
             return new AddOp(this, cc);
         }
 
@@ -2139,7 +2139,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public SubOp transform(CodeContext cc, CodeTransformer ot) {
+        public SubOp transform(CodeContext cc, CodeTransformer ct) {
             return new SubOp(this, cc);
         }
 
@@ -2166,7 +2166,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public MulOp transform(CodeContext cc, CodeTransformer ot) {
+        public MulOp transform(CodeContext cc, CodeTransformer ct) {
             return new MulOp(this, cc);
         }
 
@@ -2193,7 +2193,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public DivOp transform(CodeContext cc, CodeTransformer ot) {
+        public DivOp transform(CodeContext cc, CodeTransformer ct) {
             return new DivOp(this, cc);
         }
 
@@ -2220,7 +2220,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public ModOp transform(CodeContext cc, CodeTransformer ot) {
+        public ModOp transform(CodeContext cc, CodeTransformer ct) {
             return new ModOp(this, cc);
         }
 
@@ -2248,7 +2248,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public OrOp transform(CodeContext cc, CodeTransformer ot) {
+        public OrOp transform(CodeContext cc, CodeTransformer ct) {
             return new OrOp(this, cc);
         }
 
@@ -2276,7 +2276,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public AndOp transform(CodeContext cc, CodeTransformer ot) {
+        public AndOp transform(CodeContext cc, CodeTransformer ct) {
             return new AndOp(this, cc);
         }
 
@@ -2304,7 +2304,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public XorOp transform(CodeContext cc, CodeTransformer ot) {
+        public XorOp transform(CodeContext cc, CodeTransformer ct) {
             return new XorOp(this, cc);
         }
 
@@ -2331,7 +2331,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public LshlOp transform(CodeContext cc, CodeTransformer ot) {
+        public LshlOp transform(CodeContext cc, CodeTransformer ct) {
             return new LshlOp(this, cc);
         }
 
@@ -2358,7 +2358,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public AshrOp transform(CodeContext cc, CodeTransformer ot) {
+        public AshrOp transform(CodeContext cc, CodeTransformer ct) {
             return new AshrOp(this, cc);
         }
 
@@ -2385,7 +2385,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public LshrOp transform(CodeContext cc, CodeTransformer ot) {
+        public LshrOp transform(CodeContext cc, CodeTransformer ct) {
             return new LshrOp(this, cc);
         }
 
@@ -2412,7 +2412,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public NegOp transform(CodeContext cc, CodeTransformer ot) {
+        public NegOp transform(CodeContext cc, CodeTransformer ct) {
             return new NegOp(this, cc);
         }
 
@@ -2439,7 +2439,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public ComplOp transform(CodeContext cc, CodeTransformer ot) {
+        public ComplOp transform(CodeContext cc, CodeTransformer ct) {
             return new ComplOp(this, cc);
         }
 
@@ -2466,7 +2466,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public NotOp transform(CodeContext cc, CodeTransformer ot) {
+        public NotOp transform(CodeContext cc, CodeTransformer ct) {
             return new NotOp(this, cc);
         }
 
@@ -2494,7 +2494,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public EqOp transform(CodeContext cc, CodeTransformer ot) {
+        public EqOp transform(CodeContext cc, CodeTransformer ct) {
             return new EqOp(this, cc);
         }
 
@@ -2522,7 +2522,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public NeqOp transform(CodeContext cc, CodeTransformer ot) {
+        public NeqOp transform(CodeContext cc, CodeTransformer ct) {
             return new NeqOp(this, cc);
         }
 
@@ -2549,7 +2549,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public GtOp transform(CodeContext cc, CodeTransformer ot) {
+        public GtOp transform(CodeContext cc, CodeTransformer ct) {
             return new GtOp(this, cc);
         }
 
@@ -2577,7 +2577,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public GeOp transform(CodeContext cc, CodeTransformer ot) {
+        public GeOp transform(CodeContext cc, CodeTransformer ct) {
             return new GeOp(this, cc);
         }
 
@@ -2605,7 +2605,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public LtOp transform(CodeContext cc, CodeTransformer ot) {
+        public LtOp transform(CodeContext cc, CodeTransformer ct) {
             return new LtOp(this, cc);
         }
 
@@ -2633,7 +2633,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public LeOp transform(CodeContext cc, CodeTransformer ot) {
+        public LeOp transform(CodeContext cc, CodeTransformer ct) {
             return new LeOp(this, cc);
         }
 
@@ -2761,7 +2761,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public BreakOp transform(CodeContext cc, CodeTransformer ot) {
+        public BreakOp transform(CodeContext cc, CodeTransformer ct) {
             return new BreakOp(this, cc);
         }
 
@@ -2795,7 +2795,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public ContinueOp transform(CodeContext cc, CodeTransformer ot) {
+        public ContinueOp transform(CodeContext cc, CodeTransformer ct) {
             return new ContinueOp(this, cc);
         }
 
@@ -2836,7 +2836,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public YieldOp transform(CodeContext cc, CodeTransformer ot) {
+        public YieldOp transform(CodeContext cc, CodeTransformer ct) {
             return new YieldOp(this, cc);
         }
 
@@ -2916,16 +2916,16 @@ public sealed abstract class JavaOp extends Op {
             this(def.bodyDefinitions().get(0));
         }
 
-        BlockOp(BlockOp that, CodeContext cc, CodeTransformer ot) {
+        BlockOp(BlockOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
-            this.body = that.body.transform(cc, ot).build(this);
+            this.body = that.body.transform(cc, ct).build(this);
         }
 
         @Override
-        public BlockOp transform(CodeContext cc, CodeTransformer ot) {
-            return new BlockOp(this, cc, ot);
+        public BlockOp transform(CodeContext cc, CodeTransformer ct) {
+            return new BlockOp(this, cc, ct);
         }
 
         BlockOp(Body.Builder bodyC) {
@@ -2999,17 +2999,17 @@ public sealed abstract class JavaOp extends Op {
             this(def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
         }
 
-        SynchronizedOp(SynchronizedOp that, CodeContext cc, CodeTransformer ot) {
+        SynchronizedOp(SynchronizedOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy bodies
-            this.exprBody = that.exprBody.transform(cc, ot).build(this);
-            this.blockBody = that.blockBody.transform(cc, ot).build(this);
+            this.exprBody = that.exprBody.transform(cc, ct).build(this);
+            this.blockBody = that.blockBody.transform(cc, ct).build(this);
         }
 
         @Override
-        public SynchronizedOp transform(CodeContext cc, CodeTransformer ot) {
-            return new SynchronizedOp(this, cc, ot);
+        public SynchronizedOp transform(CodeContext cc, CodeTransformer ct) {
+            return new SynchronizedOp(this, cc, ct);
         }
 
         // @@@: builder?
@@ -3167,16 +3167,16 @@ public sealed abstract class JavaOp extends Op {
             this(def.bodyDefinitions().get(0));
         }
 
-        LabeledOp(LabeledOp that, CodeContext cc, CodeTransformer ot) {
+        LabeledOp(LabeledOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
-            this.body = that.body.transform(cc, ot).build(this);
+            this.body = that.body.transform(cc, ct).build(this);
         }
 
         @Override
-        public LabeledOp transform(CodeContext cc, CodeTransformer ot) {
-            return new LabeledOp(this, cc, ot);
+        public LabeledOp transform(CodeContext cc, CodeTransformer ct) {
+            return new LabeledOp(this, cc, ct);
         }
 
         LabeledOp(Body.Builder bodyC) {
@@ -3410,17 +3410,17 @@ public sealed abstract class JavaOp extends Op {
             this(def.bodyDefinitions());
         }
 
-        IfOp(IfOp that, CodeContext cc, CodeTransformer ot) {
+        IfOp(IfOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
             this.bodies = that.bodies.stream()
-                    .map(b -> b.transform(cc, ot).build(this)).toList();
+                    .map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
         @Override
-        public IfOp transform(CodeContext cc, CodeTransformer ot) {
-            return new IfOp(this, cc, ot);
+        public IfOp transform(CodeContext cc, CodeTransformer ct) {
+            return new IfOp(this, cc, ct);
         }
 
         IfOp(List<Body.Builder> bodyCs) {
@@ -3542,12 +3542,12 @@ public sealed abstract class JavaOp extends Op {
 
         final List<Body> bodies;
 
-        JavaSwitchOp(JavaSwitchOp that, CodeContext cc, CodeTransformer ot) {
+        JavaSwitchOp(JavaSwitchOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
             this.bodies = that.bodies.stream()
-                    .map(b -> b.transform(cc, ot).build(this)).toList();
+                    .map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
         JavaSwitchOp(Value target, List<Body.Builder> bodyCs) {
@@ -3738,15 +3738,15 @@ public sealed abstract class JavaOp extends Op {
             this(def.resultType(), def.operands().get(0), def.bodyDefinitions());
         }
 
-        SwitchExpressionOp(SwitchExpressionOp that, CodeContext cc, CodeTransformer ot) {
-            super(that, cc, ot);
+        SwitchExpressionOp(SwitchExpressionOp that, CodeContext cc, CodeTransformer ct) {
+            super(that, cc, ct);
 
             this.resultType = that.resultType;
         }
 
         @Override
-        public SwitchExpressionOp transform(CodeContext cc, CodeTransformer ot) {
-            return new SwitchExpressionOp(this, cc, ot);
+        public SwitchExpressionOp transform(CodeContext cc, CodeTransformer ct) {
+            return new SwitchExpressionOp(this, cc, ct);
         }
 
         SwitchExpressionOp(CodeType resultType, Value target, List<Body.Builder> bodyCs) {
@@ -3779,13 +3779,13 @@ public sealed abstract class JavaOp extends Op {
             this(def.operands().get(0), def.bodyDefinitions());
         }
 
-        SwitchStatementOp(SwitchStatementOp that, CodeContext cc, CodeTransformer ot) {
-            super(that, cc, ot);
+        SwitchStatementOp(SwitchStatementOp that, CodeContext cc, CodeTransformer ct) {
+            super(that, cc, ct);
         }
 
         @Override
-        public SwitchStatementOp transform(CodeContext cc, CodeTransformer ot) {
-            return new SwitchStatementOp(this, cc, ot);
+        public SwitchStatementOp transform(CodeContext cc, CodeTransformer ct) {
+            return new SwitchStatementOp(this, cc, ct);
         }
 
         SwitchStatementOp(Value target, List<Body.Builder> bodyCs) {
@@ -3818,7 +3818,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public SwitchFallthroughOp transform(CodeContext cc, CodeTransformer ot) {
+        public SwitchFallthroughOp transform(CodeContext cc, CodeTransformer ct) {
             return new SwitchFallthroughOp(this, cc);
         }
 
@@ -4011,18 +4011,18 @@ public sealed abstract class JavaOp extends Op {
                     def.bodyDefinitions().get(3));
         }
 
-        ForOp(ForOp that, CodeContext cc, CodeTransformer ot) {
+        ForOp(ForOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.initBody = that.initBody.transform(cc, ot).build(this);
-            this.condBody = that.condBody.transform(cc, ot).build(this);
-            this.updateBody = that.updateBody.transform(cc, ot).build(this);
-            this.loopBody = that.loopBody.transform(cc, ot).build(this);
+            this.initBody = that.initBody.transform(cc, ct).build(this);
+            this.condBody = that.condBody.transform(cc, ct).build(this);
+            this.updateBody = that.updateBody.transform(cc, ct).build(this);
+            this.loopBody = that.loopBody.transform(cc, ct).build(this);
         }
 
         @Override
-        public ForOp transform(CodeContext cc, CodeTransformer ot) {
-            return new ForOp(this, cc, ot);
+        public ForOp transform(CodeContext cc, CodeTransformer ct) {
+            return new ForOp(this, cc, ct);
         }
 
         ForOp(Body.Builder initC,
@@ -4284,17 +4284,17 @@ public sealed abstract class JavaOp extends Op {
                     def.bodyDefinitions().get(2));
         }
 
-        EnhancedForOp(EnhancedForOp that, CodeContext cc, CodeTransformer ot) {
+        EnhancedForOp(EnhancedForOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.exprBody = that.exprBody.transform(cc, ot).build(this);
-            this.initBody = that.initBody.transform(cc, ot).build(this);
-            this.loopBody = that.loopBody.transform(cc, ot).build(this);
+            this.exprBody = that.exprBody.transform(cc, ct).build(this);
+            this.initBody = that.initBody.transform(cc, ct).build(this);
+            this.loopBody = that.loopBody.transform(cc, ct).build(this);
         }
 
         @Override
-        public EnhancedForOp transform(CodeContext cc, CodeTransformer ot) {
-            return new EnhancedForOp(this, cc, ot);
+        public EnhancedForOp transform(CodeContext cc, CodeTransformer ct) {
+            return new EnhancedForOp(this, cc, ct);
         }
 
         EnhancedForOp(Body.Builder expressionC, Body.Builder initC, Body.Builder bodyC) {
@@ -4539,16 +4539,16 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
-        WhileOp(WhileOp that, CodeContext cc, CodeTransformer ot) {
+        WhileOp(WhileOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             this.bodies = that.bodies.stream()
-                    .map(b -> b.transform(cc, ot).build(this)).toList();
+                    .map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
         @Override
-        public WhileOp transform(CodeContext cc, CodeTransformer ot) {
-            return new WhileOp(this, cc, ot);
+        public WhileOp transform(CodeContext cc, CodeTransformer ct) {
+            return new WhileOp(this, cc, ct);
         }
 
         @Override
@@ -4701,16 +4701,16 @@ public sealed abstract class JavaOp extends Op {
             }
         }
 
-        DoWhileOp(DoWhileOp that, CodeContext cc, CodeTransformer ot) {
+        DoWhileOp(DoWhileOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             this.bodies = that.bodies.stream()
-                    .map(b -> b.transform(cc, ot).build(this)).toList();
+                    .map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
         @Override
-        public DoWhileOp transform(CodeContext cc, CodeTransformer ot) {
-            return new DoWhileOp(this, cc, ot);
+        public DoWhileOp transform(CodeContext cc, CodeTransformer ct) {
+            return new DoWhileOp(this, cc, ct);
         }
 
         @Override
@@ -4773,11 +4773,11 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Nested, Op.Lowerable, JavaExpression {
         final List<Body> bodies;
 
-        JavaConditionalOp(JavaConditionalOp that, CodeContext cc, CodeTransformer ot) {
+        JavaConditionalOp(JavaConditionalOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
-            this.bodies = that.bodies.stream().map(b -> b.transform(cc, ot).build(this)).toList();
+            this.bodies = that.bodies.stream().map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
         JavaConditionalOp(List<Body.Builder> bodyCs) {
@@ -4909,13 +4909,13 @@ public sealed abstract class JavaOp extends Op {
             this(def.bodyDefinitions());
         }
 
-        ConditionalAndOp(ConditionalAndOp that, CodeContext cc, CodeTransformer ot) {
-            super(that, cc, ot);
+        ConditionalAndOp(ConditionalAndOp that, CodeContext cc, CodeTransformer ct) {
+            super(that, cc, ct);
         }
 
         @Override
-        public ConditionalAndOp transform(CodeContext cc, CodeTransformer ot) {
-            return new ConditionalAndOp(this, cc, ot);
+        public ConditionalAndOp transform(CodeContext cc, CodeTransformer ct) {
+            return new ConditionalAndOp(this, cc, ct);
         }
 
         ConditionalAndOp(List<Body.Builder> bodyCs) {
@@ -4978,13 +4978,13 @@ public sealed abstract class JavaOp extends Op {
             this(def.bodyDefinitions());
         }
 
-        ConditionalOrOp(ConditionalOrOp that, CodeContext cc, CodeTransformer ot) {
-            super(that, cc, ot);
+        ConditionalOrOp(ConditionalOrOp that, CodeContext cc, CodeTransformer ct) {
+            super(that, cc, ct);
         }
 
         @Override
-        public ConditionalOrOp transform(CodeContext cc, CodeTransformer ot) {
-            return new ConditionalOrOp(this, cc, ot);
+        public ConditionalOrOp transform(CodeContext cc, CodeTransformer ct) {
+            return new ConditionalOrOp(this, cc, ct);
         }
 
         ConditionalOrOp(List<Body.Builder> bodyCs) {
@@ -5025,18 +5025,18 @@ public sealed abstract class JavaOp extends Op {
             this(def.resultType(), def.bodyDefinitions());
         }
 
-        ConditionalExpressionOp(ConditionalExpressionOp that, CodeContext cc, CodeTransformer ot) {
+        ConditionalExpressionOp(ConditionalExpressionOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
             this.bodies = that.bodies.stream()
-                    .map(b -> b.transform(cc, ot).build(this)).toList();
+                    .map(b -> b.transform(cc, ct).build(this)).toList();
             this.resultType = that.resultType;
         }
 
         @Override
-        public ConditionalExpressionOp transform(CodeContext cc, CodeTransformer ot) {
-            return new ConditionalExpressionOp(this, cc, ot);
+        public ConditionalExpressionOp transform(CodeContext cc, CodeTransformer ct) {
+            return new ConditionalExpressionOp(this, cc, ct);
         }
 
         ConditionalExpressionOp(CodeType expressionType, List<Body.Builder> bodyCs) {
@@ -5265,28 +5265,28 @@ public sealed abstract class JavaOp extends Op {
             this(resources, body, catchers, finalizer);
         }
 
-        TryOp(TryOp that, CodeContext cc, CodeTransformer ot) {
+        TryOp(TryOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             if (that.resourcesBody != null) {
-                this.resourcesBody = that.resourcesBody.transform(cc, ot).build(this);
+                this.resourcesBody = that.resourcesBody.transform(cc, ct).build(this);
             } else {
                 this.resourcesBody = null;
             }
-            this.body = that.body.transform(cc, ot).build(this);
+            this.body = that.body.transform(cc, ct).build(this);
             this.catchBodies = that.catchBodies.stream()
-                    .map(b -> b.transform(cc, ot).build(this))
+                    .map(b -> b.transform(cc, ct).build(this))
                     .toList();
             if (that.finallyBody != null) {
-                this.finallyBody = that.finallyBody.transform(cc, ot).build(this);
+                this.finallyBody = that.finallyBody.transform(cc, ct).build(this);
             } else {
                 this.finallyBody = null;
             }
         }
 
         @Override
-        public TryOp transform(CodeContext cc, CodeTransformer ot) {
-            return new TryOp(this, cc, ot);
+        public TryOp transform(CodeContext cc, CodeTransformer ct) {
+            return new TryOp(this, cc, ct);
         }
 
         TryOp(Body.Builder resourcesC,
@@ -5730,7 +5730,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public TypePatternOp transform(CodeContext cc, CodeTransformer ot) {
+            public TypePatternOp transform(CodeContext cc, CodeTransformer ct) {
                 return new TypePatternOp(this, cc);
             }
 
@@ -5803,7 +5803,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public RecordPatternOp transform(CodeContext cc, CodeTransformer ot) {
+            public RecordPatternOp transform(CodeContext cc, CodeTransformer ct) {
                 return new RecordPatternOp(this, cc);
             }
 
@@ -5866,7 +5866,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public Op transform(CodeContext cc, CodeTransformer ot) {
+            public Op transform(CodeContext cc, CodeTransformer ct) {
                 return new MatchAllPatternOp(this, cc);
             }
 
@@ -5906,16 +5906,16 @@ public sealed abstract class JavaOp extends Op {
                         def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
             }
 
-            MatchOp(MatchOp that, CodeContext cc, CodeTransformer ot) {
+            MatchOp(MatchOp that, CodeContext cc, CodeTransformer ct) {
                 super(that, cc);
 
-                this.patternBody = that.patternBody.transform(cc, ot).build(this);
-                this.matchBody = that.matchBody.transform(cc, ot).build(this);
+                this.patternBody = that.patternBody.transform(cc, ct).build(this);
+                this.matchBody = that.matchBody.transform(cc, ct).build(this);
             }
 
             @Override
-            public MatchOp transform(CodeContext cc, CodeTransformer ot) {
-                return new MatchOp(this, cc, ot);
+            public MatchOp transform(CodeContext cc, CodeTransformer ct) {
+                return new MatchOp(this, cc, ct);
             }
 
             MatchOp(Value target, Body.Builder patternC, Body.Builder matchC) {

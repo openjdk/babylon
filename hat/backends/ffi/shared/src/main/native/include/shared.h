@@ -402,6 +402,16 @@ public:
     int bsx;
     int bsy;
     int bsz;
+
+    // Tile Size
+    int tlx;
+    int tly;
+    int tlz;
+
+    // Warp sizes
+    bool wsx;
+    bool wsy;
+    bool wsz;
 };
 
 class Backend {
