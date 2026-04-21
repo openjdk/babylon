@@ -51,7 +51,7 @@ import static hat.dialect.HATTensorOp.TensorVarOp;
 public record HATTensorsPhase() implements HATPhase {
 
     private interface TensorTransformer {
-        
+
         void transform(Block.Builder blockBuilder, Op op);
 
         default void replaceOp(Block.Builder blockBuilder, Op oldOp, Op newOp) {

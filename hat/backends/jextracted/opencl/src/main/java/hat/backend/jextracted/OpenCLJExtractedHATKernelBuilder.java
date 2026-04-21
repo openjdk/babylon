@@ -290,8 +290,8 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    protected OpenCLJExtractedHATKernelBuilder recurseValueOrThrough(Value value) {
-        return blockComment("Not supported yet");
+    protected RuntimeException launchBackendException(String message) {
+        return new RuntimeException("Not supported yet");
     }
 
 }

@@ -576,12 +576,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    protected CudaHATKernelBuilder recurseValueOrThrough(Value value) {
-        if (value instanceof Op.Result r) {
-            return recurse(r.op());
-        } else {
-            throw new CUDACodeGenException("OpResult expected, but found: " + value.getClass());
-        }
+    protected CUDACodeGenException launchBackendException(String message) {
+        return new CUDACodeGenException(message);
     }
 
     @Override

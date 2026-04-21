@@ -255,12 +255,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    protected OpenCLHATKernelBuilder recurseValueOrThrough(Value value) {
-        if (value instanceof Op.Result r) {
-            return recurse(r.op());
-        } else {
-            throw new OpenCLCodeGenException("OpResult expected, but found: " + value.getClass());
-        }
+    protected RuntimeException launchBackendException(String message) {
+        throw new OpenCLCodeGenException(message);
     }
 
     @Override
