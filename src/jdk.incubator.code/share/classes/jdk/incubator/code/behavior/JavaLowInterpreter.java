@@ -118,6 +118,10 @@ public class JavaLowInterpreter extends Interpreter {
                 List<Object> operands = e.valuesOf(o.operands());
                 yield new TerminatingOpEffect(o, operands, e);
             }
+            case JavaOp.ThrowOp o -> {
+                List<Object> operands = e.valuesOf(o.operands());
+                yield new TerminatingOpEffect(o, operands, e);
+            }
             default -> throw new UnsupportedOperationException(op.toString());
         };
     }
