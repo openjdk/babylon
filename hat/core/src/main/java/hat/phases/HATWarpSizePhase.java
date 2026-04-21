@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,11 +24,33 @@
  */
 package hat.phases;
 
+import hat.KernelContext;
+import hat.dialect.HATThreadOp;
+import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.OpHelper;
+import optkl.Trxfmr;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashSet;
+import java.util.Set;
 
-public sealed interface HATPhase
-        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATTensorsPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase, HATWarpSizePhase {
-    CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp);
+import static optkl.OpHelper.FieldAccess.fieldAccess;
+
+public record HATWarpSizePhase() implements HATPhase {
+
+    @Override
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
+        return Trxfmr.of(lookup, funcOp)
+                .transform(c -> {
+                    if (fieldAccess(lookup, c.op()) instanceof OpHelper.FieldAccess.Instance fieldAccess
+                            && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("wrs")) {
+                        varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());
+                        c.replace(HATThreadOp.create(fieldAccess.name()));
+                    }})
+                .remap(varAccessesToBeRemoved)
+                .remove(varAccessesToBeRemoved::contains)
+                .funcOp();
+    }
 }

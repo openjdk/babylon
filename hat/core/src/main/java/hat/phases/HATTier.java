@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,6 +42,8 @@ public class HATTier  {
                 new HATMemoryPhase.DeviceTypePhase(),
                 // ID's /thread access
                 new HATThreadsPhase(),
+
+                new HATWarpSizePhase(),
                 // MathLib phase
                 new HATMathLibPhase(),
                 // views for vector types
@@ -58,7 +60,10 @@ public class HATTier  {
                 // Vector Select individual lines
                 new HATVectorSelectPhase(),
                 // F16 type
-                new HATFP16Phase()
+                new HATFP16Phase(),
+
+                // Tensors
+                new HATTensorsPhase()
         );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){

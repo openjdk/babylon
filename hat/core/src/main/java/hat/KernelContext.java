@@ -68,11 +68,18 @@ public class KernelContext {
     public int bsy;
     public int bsz;
 
+    // Warp size
+    public int wrs;
+
     final int dimensions;
 
     public final NDRange ndRange;
 
     public KernelContext(NDRange ndRange) {
+        if (ndRange == null) {
+            throw new NullPointerException("ndRange is null");
+        }
+
         this.ndRange = ndRange;
         switch (ndRange) {
             case NDRange.NDRange1D ndRange1D -> {
@@ -93,8 +100,8 @@ public class KernelContext {
                 this.gsz = ((NDRange.M3D)(ndRange3D.global())).z();
                 this.dimensions = ((NDRange.M3D)(ndRange3D.global())).dimension();
             }
-            case null, default ->
-                throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
+            default -> throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
+
         }
     }
 
