@@ -961,4 +961,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return false;
     }
 
+    protected abstract T recurseValueOrThrough(Value value);
+
 }

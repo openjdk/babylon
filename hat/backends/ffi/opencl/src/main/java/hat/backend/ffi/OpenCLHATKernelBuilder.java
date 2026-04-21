@@ -255,6 +255,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    protected OpenCLHATKernelBuilder recurseValueOrThrough(Value value) {
+        if (value instanceof Op.Result r) {
+            return recurse(r.op());
+        } else {
+            throw new OpenCLCodeGenException("OpResult expected, but found: " + value.getClass());
+        }
+    }
+
+    @Override
     public OpenCLHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
         recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
         // We don't need to generate the name at this point, but rather during tensor create.

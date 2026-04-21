@@ -43,6 +43,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -457,46 +458,50 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private CudaHATKernelBuilder generateCreateTensor(int[] shape, String matrixOrder, String type, Value access) {
+    private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access) {
         id(WMMA_FRAGMENT_BASE)
                 .id(matrixOrder)
                 .comma().sp()
-                .intValue(shape[0])
+                .intValue(shape.getFirst())
                 .comma().sp()
-                .intValue(shape[1])
+                .intValue(shape.get(1))
                 .comma().sp()
-                .intValue(shape[2])
+                .intValue(shape.get(2))
                 .comma().sp()
                 .type(type);
 
-        if (matrixOrder.equals("accumulator")) {
+        if (matrixOrder.equals(TENSOR_ACC)) {
             gt();
         } else {// infer from the last parameter
             if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
                 // Expecting an invokeOp
                 var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+                comma();
                 if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
-                    comma().id(WMMA_COL_MAJOR).gt();
+                    id(WMMA_COL_MAJOR);
                 } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
-                    comma().id(WMMA_ROW_MAJOR).gt();
+                    id(WMMA_ROW_MAJOR);
                 } else {
                     throw new CUDACodeGenException("[Error]");
                 }
+                gt();
             }
         }
         return self();
     }
 
+    private static final String TENSOR_MATRIX_A = "matrix_a";
+    private static final String TENSOR_MATRIX_B = "matrix_b";
+    private final String TENSOR_ACC = "accumulator";
+
     private String getMatrixOrder(Value valueParameter) {
         if (valueParameter instanceof Op.Result r && r.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
             FieldRef fieldRef = fieldLoadOp.fieldReference();
-            if (fieldRef.name().equals("FIRST")) {
-                 return "matrix_a";
-            } else if (fieldRef.name().equals("SECOND")) {
-                return "matrix_b";
-            } else {
-                return "accumulator";
-            }
+            return switch (fieldRef.name()) {
+                case "FIRST" -> TENSOR_MATRIX_A;
+                case "SECOND" -> TENSOR_MATRIX_B;
+                default -> TENSOR_ACC;
+            };
         }
         return null;
     }
@@ -510,16 +515,23 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         String matrixOrder = getMatrixOrder(first);
 
         // Second parameters: analysis of the shape
-        int[] shape = new int[3];
+        List<Integer> shape = new ArrayList<>();
+
         Value second = operands.get(1);
         if (second.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
             List<Value> shapeOperands = invokeOp.operands();
-            for (int i = 0; i < shapeOperands.size(); i++) {
-                Value shapeOperand = shapeOperands.get(i);
+            for (Value shapeOperand : shapeOperands) {
                 if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
-                    shape[i] = (int) constantOp.value();
+                    shape.add((int) constantOp.value());
+                } else {
+                    throw new CUDACodeGenException("Error: expected to find a ConstantOp, but found a " + shapeOperand.declaringElement().getClass());
                 }
             }
+        } else {
+            throw new CUDACodeGenException("InvokeOp expected, but found: " + second.declaringElement().getClass());
+        }
+        if (shape.size() != 3) {
+            throw new CUDACodeGenException("Shape must have three values");
         }
 
         // The third parameter is the type. It could be `half` or `float` as first implementation
@@ -556,31 +568,25 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
         id(WMMA_FILL_TENSOR).paren( _-> {
             List<Value> operands = tensorFillOp.operands();
-            if (operands.getFirst() instanceof Op.Result r) {
-                recurse(r.op());
-            }
-            comma();
-            if (operands.get(1) instanceof Op.Result r) {
-                recurse(r.op());
-            }
+            recurseValueOrThrough(operands.getFirst())
+                    .comma()
+                    .recurseValueOrThrough(operands.get(1));
         });
         return self();
     }
 
     @Override
+    protected CudaHATKernelBuilder recurseValueOrThrough(Value value) {
+        if (value instanceof Op.Result r) {
+            return recurse(r.op());
+        } else {
+            throw new CUDACodeGenException("OpResult expected, but found: " + value.getClass());
+        }
+    }
+
+    @Override
     public CudaHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        id(WMMA_MMA_TENSOR).paren( _-> {
-            List<Value> operands = tensorMMAOp.operands();
-            for (int i = 0, operandsSize = operands.size(); i < operandsSize; i++) {
-                Value operand = operands.get(i);
-                if (operand instanceof Op.Result r) {
-                    recurse(r.op());
-                }
-                if (i < operandsSize - 1) {
-                    comma();
-                }
-            }
-        });
+        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(tensorMMAOp.operands(), this::recurseValueOrThrough));
         return self();
     }
 
@@ -592,16 +598,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .paren(_ -> {
                     id(tensorName).comma();
                     paren(_ -> type("half").asterisk());
-                    if (reference instanceof Op.Result r) {
-                        recurse(r.op());
-                    }
+                    recurseValueOrThrough(reference);
                     rarrow().id(ARRAY)
                             .sp().plus().sp()
                             .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
                             .comma();
-                    if (operands.get(3) instanceof Op.Result r) {
-                        recurse(r.op());
-                    }
+                    recurseValueOrThrough(operands.get(3));
                 });
 
         return self();
@@ -651,9 +653,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp hatTensorStoreLoadOp) {
         List<Value> operands = hatTensorStoreLoadOp.operands();
-        if (operands.getLast() instanceof Op.Result r) {
-            recurse(r.op());
-        }
+        recurseValueOrThrough(operands.getLast());
         return self();
     }
 
@@ -679,23 +679,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             Value tensorToStore = operands.get(3);
             Value ldSize = operands.get(4);
 
-            if (reference instanceof Op.Result r) {
-                recurse(r.op());
-            }
-            rarrow().id(ARRAY)
+            recurseValueOrThrough(reference)
+                    .rarrow().id(ARRAY)
                     .sp().plus().sp()
                     .indexForTensor(isColumnMajor, iIndex, jIndex, ldSize)
+                    .comma()
+                    .recurseValueOrThrough(tensorToStore)
+                    .comma()
+                    .recurseValueOrThrough(ldSize)
                     .comma();
 
-            if (tensorToStore instanceof Op.Result r) {
-                recurse(r.op());
-            }
-            comma();
-
-            if (ldSize instanceof Op.Result r) {
-                recurse(r.op());
-            }
-            comma();
             if (isColumnMajor) {
                 id(WMMA_MEM_COL_MAJOR);
             } else {
