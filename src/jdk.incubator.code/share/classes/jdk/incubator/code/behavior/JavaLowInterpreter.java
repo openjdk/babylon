@@ -155,7 +155,6 @@ public class JavaLowInterpreter extends Interpreter {
         switch (ancestorOpEffect.terminatingOp()) {
             case CoreOp.ReturnOp rop -> {
                 return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(ancestorOpEffect.operands().getFirst());
-
             }
             case JavaOp.ThrowOp _, JavaOp.AssertOp _ -> throw (Throwable) ancestorOpEffect.operands().getFirst();
             default -> throw new InternalError(ancestorOpEffect.toString());
