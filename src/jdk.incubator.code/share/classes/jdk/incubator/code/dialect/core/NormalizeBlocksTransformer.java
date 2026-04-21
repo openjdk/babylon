@@ -91,7 +91,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                     // Merge the successor's target block with this block
                     mergeBlock(b, br.targetBlock());
                 } else {
-                    b.op(CoreOp.branch(b.context().getSuccessorOrCreate(br)));
+                    b.op(CoreOp.branch(b.context().getReferenceOrCreate(br)));
                 }
 
                 // Remove the conditional dispatching block if all predecessor reference args are constants
@@ -189,7 +189,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
         }
         Block.Reference adjustedSuccessor = b.context().getBlock(successor.targetBlock())
                 .reference(arguments);
-        b.context().mapSuccessor(successor, adjustedSuccessor);
+        b.context().mapReference(successor, adjustedSuccessor);
     }
 
     void mergeBlock(Block.Builder b, CoreOp.BranchOp bop) {
