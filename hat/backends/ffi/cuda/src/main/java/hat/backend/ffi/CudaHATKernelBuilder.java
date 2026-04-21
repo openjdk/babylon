@@ -568,21 +568,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
         id(WMMA_FILL_TENSOR).paren( _-> {
             List<Value> operands = tensorFillOp.operands();
-            recurseValueOrThrough(operands.getFirst())
+            recurseResultOrThrow(operands.getFirst())
                     .comma()
-                    .recurseValueOrThrough(operands.get(1));
+                    .recurseResultOrThrow(operands.get(1));
         });
         return self();
     }
 
     @Override
-    protected CUDACodeGenException launchBackendException(String message) {
+    public CUDACodeGenException launchBackendException(String message) {
         return new CUDACodeGenException(message);
     }
 
     @Override
     public CudaHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(tensorMMAOp.operands(), this::recurseValueOrThrough));
+        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(tensorMMAOp.operands(), this::recurseResultOrThrow));
         return self();
     }
 
@@ -594,12 +594,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .paren(_ -> {
                     id(tensorName).comma();
                     paren(_ -> type("half").asterisk());
-                    recurseValueOrThrough(reference);
+                    recurseResultOrThrow(reference);
                     rarrow().id(ARRAY)
                             .sp().plus().sp()
                             .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
                             .comma();
-                    recurseValueOrThrough(operands.get(3));
+                    recurseResultOrThrow(operands.get(3));
                 });
 
         return self();
@@ -649,7 +649,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp hatTensorStoreLoadOp) {
         List<Value> operands = hatTensorStoreLoadOp.operands();
-        recurseValueOrThrough(operands.getLast());
+        recurseResultOrThrow(operands.getLast());
         return self();
     }
 
@@ -675,14 +675,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             Value tensorToStore = operands.get(3);
             Value ldSize = operands.get(4);
 
-            recurseValueOrThrough(reference)
+            recurseResultOrThrow(reference)
                     .rarrow().id(ARRAY)
                     .sp().plus().sp()
                     .indexForTensor(isColumnMajor, iIndex, jIndex, ldSize)
                     .comma()
-                    .recurseValueOrThrough(tensorToStore)
+                    .recurseResultOrThrow(tensorToStore)
                     .comma()
-                    .recurseValueOrThrough(ldSize)
+                    .recurseResultOrThrow(ldSize)
                     .comma();
 
             if (isColumnMajor) {

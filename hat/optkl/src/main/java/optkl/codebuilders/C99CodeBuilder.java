@@ -23,7 +23,10 @@
  * questions.
  */
 package optkl.codebuilders;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
+import optkl.exceptions.CodeGenException;
 
 import java.util.List;
 import java.util.function.Consumer;

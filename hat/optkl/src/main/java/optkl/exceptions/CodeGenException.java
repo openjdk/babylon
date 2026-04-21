@@ -22,11 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.exceptions;
+package optkl.exceptions;
 
-public abstract class HATCodeGenException extends RuntimeException {
+public class CodeGenException extends RuntimeException {
 
-    protected HATCodeGenException(String message) {
+    public CodeGenException(String message) {
         super(message);
     }
 }

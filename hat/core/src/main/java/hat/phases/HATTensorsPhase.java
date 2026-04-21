@@ -35,6 +35,7 @@ import optkl.Trxfmr;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -59,15 +60,17 @@ public record HATTensorsPhase() implements HATPhase {
             Op.Result newOpResult = blockBuilder.op(newOp);
             blockBuilder.context().mapValue(oldOp.result(), newOpResult);
         }
+
     }
 
     private static class TensorView implements TensorTransformer {
 
         @Override
         public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new TensorVarOp(varOp.varName(), varOp.resultType(), blockBuilder.context().getValues(varOp.operands())));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
+                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new TensorVarOp(varOp.varName(), varOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.op(op);
             }
         }
@@ -77,9 +80,10 @@ public record HATTensorsPhase() implements HATPhase {
 
         @Override
         public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), blockBuilder.context().getValues(loadOp.operands())));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorFillOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
+                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorFillOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.op(op);
             }
         }
@@ -89,9 +93,10 @@ public record HATTensorsPhase() implements HATPhase {
 
         @Override
         public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), blockBuilder.context().getValues(loadOp.operands())));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorMMAOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
+                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorMMAOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.op(op);
             }
         }
@@ -101,11 +106,12 @@ public record HATTensorsPhase() implements HATPhase {
 
         @Override
         public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case CoreOp.VarAccessOp.VarStoreOp storeOp ->
-                        replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), blockBuilder.context().getValues(storeOp.operands())));
+                        replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
                 case JavaOp.InvokeOp invokeOp ->
-                        replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
+                        replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.op(op);
             }
         }

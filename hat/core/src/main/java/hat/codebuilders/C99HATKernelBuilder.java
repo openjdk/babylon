@@ -49,6 +49,7 @@ import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
+import optkl.exceptions.CodeGenException;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
@@ -960,15 +961,5 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
         return false;
     }
-
-    protected T recurseValueOrThrough(Value value) {
-        if (value instanceof Op.Result r) {
-            return recurse(r.op());
-        } else {
-            throw launchBackendException("OpResult expected, but found: " + value.getClass());
-        }
-    }
-
-    protected abstract RuntimeException launchBackendException(String message);
 
 }

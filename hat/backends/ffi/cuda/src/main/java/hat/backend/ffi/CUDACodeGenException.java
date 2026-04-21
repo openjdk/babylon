@@ -24,9 +24,9 @@
  */
 package hat.backend.ffi;
 
-import hat.backend.exceptions.HATCodeGenException;
+import optkl.exceptions.CodeGenException;
 
-public class CUDACodeGenException extends HATCodeGenException {
+public class CUDACodeGenException extends CodeGenException {
 
     protected CUDACodeGenException(String message) {
         super(message);

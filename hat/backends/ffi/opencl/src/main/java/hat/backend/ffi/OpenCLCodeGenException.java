@@ -24,9 +24,9 @@
  */
 package hat.backend.ffi;
 
-import hat.backend.exceptions.HATCodeGenException;
+import optkl.exceptions.CodeGenException;
 
-public class OpenCLCodeGenException extends HATCodeGenException {
+public class OpenCLCodeGenException extends CodeGenException {
 
     protected OpenCLCodeGenException(String message) {
         super(message);
