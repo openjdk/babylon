@@ -60,20 +60,21 @@ public class JavaLowInterpreter extends Interpreter {
 
     @Override
     public OpEffect executeOp(Op op, Env e) {
-        var result = switch (op) {
+        Object result;
+        switch (op) {
             case CoreOp.VarOp o -> {
                 Object init = e.valueOf(o.initOperand());
-                yield new Object[]{init};
+                result = new Object[]{init};
             }
             case CoreOp.VarAccessOp.VarLoadOp o -> {
                 Object[] variable = (Object[]) e.valueOf(o.varOperand());
-                yield variable[0];
+                result = variable[0];
             }
             case CoreOp.VarAccessOp.VarStoreOp o -> {
                 Object[] variable = (Object[]) e.valueOf(o.varOperand());
                 Object v = e.valueOf(o.storeOperand());
                 variable[0] = v;
-                yield null;
+                result = null;
             }
             case JavaOp.InvokeOp o -> {
                 JavaEnv je = (JavaEnv) e;
@@ -86,15 +87,29 @@ public class JavaLowInterpreter extends Interpreter {
 
                 mh = mh.asType(target).asFixedArity();
                 List<Object> operands = e.valuesOf(o.operands());
-                yield invoke(mh, operands.toArray());
+                result = invoke(mh, operands.toArray());
             }
             case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
                 JavaEnv je = (JavaEnv) e;
                 MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
                 List<Object> operands = e.valuesOf(op.operands());
-                yield invoke(mh, operands.toArray());
+                result = invoke(mh, operands.toArray());
             }
-            case CoreOp.ConstantOp o -> o.value();
+            case CoreOp.ConstantOp o -> result = o.value();
+            case JavaOp.AssertOp o -> {
+                TerminatingOpEffect p = executeBody(o.predicateBody(), List.of(), e);
+                Boolean b = (Boolean) p.operands().getFirst();
+                if (!b) {
+                    if (o.bodies().size() > 1) {
+                        TerminatingOpEffect m = executeBody(o.bodies().get(1), List.of(), e);
+                        String message = (String) m.operands().getFirst();
+                        return new TerminatingOpEffect(o, List.of(new AssertionError(message)), e);
+                    } else {
+                        return new TerminatingOpEffect(o, List.of(new AssertionError()), e);
+                    }
+                }
+                result = null;
+            }
             default -> throw new UnsupportedOperationException(op.toString());
         };
         return new OpResultEffect(result, e);
@@ -122,6 +137,13 @@ public class JavaLowInterpreter extends Interpreter {
                 List<Object> operands = e.valuesOf(o.operands());
                 yield new TerminatingOpEffect(o, operands, e);
             }
+            case CoreOp.YieldOp o -> {
+                if (o.ancestorBody().ancestorBody() == null) {
+                    throw new IllegalStateException("Yielding to no parent body");
+                }
+                List<Object> operands = e.valuesOf(o.operands());
+                yield new TerminatingOpEffect(o, operands, e);
+            }
             default -> throw new UnsupportedOperationException(op.toString());
         };
     }
@@ -135,7 +157,7 @@ public class JavaLowInterpreter extends Interpreter {
                 return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(ancestorOpEffect.operands().getFirst());
 
             }
-            case JavaOp.ThrowOp _ -> throw (Throwable) ancestorOpEffect.operands().getFirst();
+            case JavaOp.ThrowOp _, JavaOp.AssertOp _ -> throw (Throwable) ancestorOpEffect.operands().getFirst();
             default -> throw new InternalError(ancestorOpEffect.toString());
         }
     }
