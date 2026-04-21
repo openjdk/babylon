@@ -122,13 +122,14 @@ public class JavaLowInterpreter extends Interpreter {
         };
     }
 
-    public Object executeFuncOp(CoreOp.FuncOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
+    public Optional<Object> executeFuncOp(CoreOp.FuncOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
         Env e = new JavaEnv(new HashMap<>(), l);
 
         var ancestorOpEffect = executeBody(op.body(), args, e);
         switch (ancestorOpEffect.terminatingOp()) {
-            case CoreOp.ReturnOp _ -> {
-                return ancestorOpEffect.operands().getFirst();
+            case CoreOp.ReturnOp rop -> {
+                return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(ancestorOpEffect.operands().getFirst());
+
             }
             case JavaOp.ThrowOp _ -> throw (Throwable) ancestorOpEffect.operands().getFirst();
             default -> throw new InternalError(ancestorOpEffect.toString());
