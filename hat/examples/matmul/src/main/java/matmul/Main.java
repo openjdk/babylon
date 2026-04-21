@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
+import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -963,10 +964,8 @@ public class Main {
         if (checkResult) {
             // Run the sequential version for reference
             switch (configuration) {
-                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED ->
-                        runSequential(matrixAPad, matrixBPad, resultSeq, size);
-                case Configuration.ALG_2DREGISTER_TILING_FP16 ->
-                        runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
+                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
+                case Configuration.ALG_2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
                 case Configuration.ALG_2DLIF16 -> runSequential(matrixAHalf, matrixBHalf, resultSeq, size);
                 default -> runSequential(matrixA, matrixB, resultSeq, size);
             }
@@ -1042,7 +1041,7 @@ public class Main {
         }
 
         // Write CSV table with all results
-        List<String> header = List.of(configuration.toName() + "-" + +size);
+        List<String> header = List.of(configuration.toName() + "-" + + size);
         String fileName = "table-results-mxm-" + configuration.toName() + "-" + size + ".csv";
         dumpStatsToCSVFile(List.of(timers), header, fileName);
     }

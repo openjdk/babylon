@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntBinaryOperator;
+import java.util.function.IntSupplier;
 
 /*
  * @test
@@ -171,7 +172,70 @@ public class TestTransform {
     }
 
 
-     void testTransformer(String methodName, String transformedMethodName, CodeTransformer codeTransformer) throws Exception {
+    @Reflect
+    static int nested() {
+        return (true ? 1 : 2) + (true ? 3 : 4);
+    }
+
+
+    @Reflect
+    static int nestedReentranceOtherModel() {
+        return (true ? 5 : 6) + (true ? 3 : 4);
+    }
+
+    @Test
+    public void testOpTransformer_nestedReentranceOtherModel() throws Exception {
+        var codeTransformer = CodeTransformer.opTransformer((builder, op, operands) -> {
+            switch (op) {
+                case JavaOp.ConditionalExpressionOp cop -> {
+                    // Replace first conditional expression with that from another model
+                    if (cop.parent().nextOp(cop) instanceof JavaOp.ConditionalExpressionOp _) {
+                        @Reflect
+                        IntSupplier r = () -> true ? 5 : 6;
+                        JavaOp.ConditionalExpressionOp other = Op.ofLambda(r).orElseThrow().op().elements()
+                                .filter(JavaOp.ConditionalExpressionOp.class::isInstance)
+                                .map(JavaOp.ConditionalExpressionOp.class::cast)
+                                .findFirst()
+                                .orElseThrow();
+                        builder.apply(other);
+                    } else {
+                        builder.apply(cop);
+                    }
+                }
+                default ->
+                        builder.apply(op);
+            }
+        });
+
+        testTransformer("nested", "nestedReentranceOtherModel", codeTransformer);
+    }
+
+    @Reflect
+    static int nestedReentranceSameModel() {
+        return (true ? 3 : 4) + (true ? 3 : 4);
+    }
+
+    @Test
+    public void testOpTransformer_nestedReentranceSameModel() throws Exception {
+        var codeTransformer = CodeTransformer.opTransformer((builder, op, operands) -> {
+            switch (op) {
+                case JavaOp.ConditionalExpressionOp cop -> {
+                    // Replace first conditional expression with that from same model
+                    if (cop.parent().nextOp(cop) instanceof JavaOp.ConditionalExpressionOp second) {
+                        builder.apply(second);
+                    } else {
+                        builder.apply(cop);
+                    }
+                }
+                default ->
+                        builder.apply(op);
+            }
+        });
+
+        testTransformer("nested", "nestedReentranceSameModel", codeTransformer);
+    }
+
+    void testTransformer(String methodName, String transformedMethodName, CodeTransformer codeTransformer) throws Exception {
         Method fMethod = this.getClass().getDeclaredMethod(methodName);
         var fModel = Op.ofMethod(fMethod).orElseThrow();
 

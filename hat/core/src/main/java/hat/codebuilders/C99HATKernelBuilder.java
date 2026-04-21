@@ -49,6 +49,7 @@ import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
+import optkl.exceptions.CodeGenException;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;

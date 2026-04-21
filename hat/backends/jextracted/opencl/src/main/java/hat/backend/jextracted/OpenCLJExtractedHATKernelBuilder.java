@@ -288,6 +288,4 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     public OpenCLJExtractedHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp $) {
         return blockComment("Not supported yet");
     }
-
-
 }

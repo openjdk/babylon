@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.dialect.HATTensorOp;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -36,7 +35,10 @@ import optkl.Trxfmr;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static hat.dialect.HATTensorOp.TensorCreateOp;
 import static hat.dialect.HATTensorOp.TensorFillOp;
@@ -49,67 +51,92 @@ import static hat.dialect.HATTensorOp.TensorVarOp;
 
 public record HATTensorsPhase() implements HATPhase {
 
-    private void transformTensorDeclWithVarOp(Block.Builder blockBuilder, Op op) {
-        switch (op) {
-            case CoreOp.VarOp varOp -> {
-                HATTensorOp tensorVarOp = new TensorVarOp(varOp.varName(), varOp.resultType(), blockBuilder.context().getValues(varOp.operands()));
-                tensorVarOp.setLocation(varOp.location());
-                Op.Result opResult = blockBuilder.op(tensorVarOp);
-                blockBuilder.context().mapValue(varOp.result(), opResult);
+    private interface TensorTransformer {
+
+        void transform(Block.Builder blockBuilder, Op op);
+
+        default void replaceOp(Block.Builder blockBuilder, Op oldOp, Op newOp) {
+            newOp.setLocation(oldOp.location());
+            Op.Result newOpResult = blockBuilder.op(newOp);
+            blockBuilder.context().mapValue(oldOp.result(), newOpResult);
+        }
+
+    }
+
+    private static class TensorView implements TensorTransformer {
+
+        @Override
+        public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
+            switch (op) {
+                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new TensorVarOp(varOp.varName(), varOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), operands));
+                default -> blockBuilder.op(op);
             }
-            case JavaOp.InvokeOp invokeOp -> {
-                TensorCreateOp tensorOf = new TensorCreateOp(invokeOp.resultType(), //
-                        blockBuilder.context().getValues(invokeOp.operands()));
-                tensorOf.setLocation(invokeOp.location());
-                Op.Result opResult = blockBuilder.op(tensorOf);
-                blockBuilder.context().mapValue(invokeOp.result(), opResult);
-            }
-            case null, default -> blockBuilder.op(op);
         }
     }
 
-    private void transformTensorFillOp(Block.Builder blockBuilder, Op op) {
-        switch (op) {
-            case CoreOp.VarAccessOp.VarLoadOp loadOp -> {
-                TensorVarLoadOp varLoad = new TensorVarLoadOp(loadOp.resultType(), //
-                        blockBuilder.context().getValues(loadOp.operands()));
-                varLoad.setLocation(loadOp.location());
-                Op.Result opResult = blockBuilder.op(varLoad);
-                blockBuilder.context().mapValue(loadOp.result(), opResult);
+    private static class TensorFill implements TensorTransformer {
+
+        @Override
+        public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
+            switch (op) {
+                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorFillOp(invokeOp.resultType(), operands));
+                default -> blockBuilder.op(op);
             }
-            case JavaOp.InvokeOp invokeOp -> {
-                TensorFillOp fillOp = new TensorFillOp(invokeOp.resultType(), //
-                        blockBuilder.context().getValues(invokeOp.operands()));
-                fillOp.setLocation(invokeOp.location());
-                Op.Result opResult = blockBuilder.op(fillOp);
-                blockBuilder.context().mapValue(invokeOp.result(), opResult);
-            }
-            case null, default -> blockBuilder.op(op);
         }
     }
 
-    private void transformTensorMMAOp(Block.Builder blockBuilder, Op op) {
-        switch (op) {
-            case CoreOp.VarAccessOp.VarLoadOp loadOp -> {
-                TensorVarLoadOp varLoad = new TensorVarLoadOp(loadOp.resultType(), //
-                        blockBuilder.context().getValues(loadOp.operands()));
-                varLoad.setLocation(loadOp.location());
-                Op.Result opResult = blockBuilder.op(varLoad);
-                blockBuilder.context().mapValue(loadOp.result(), opResult);
+    private static class TensorMMA implements TensorTransformer {
+
+        @Override
+        public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
+            switch (op) {
+                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorMMAOp(invokeOp.resultType(), operands));
+                default -> blockBuilder.op(op);
             }
-            case JavaOp.InvokeOp invokeOp -> {
-                TensorMMAOp mmaOp = new TensorMMAOp(invokeOp.resultType(), //
-                        blockBuilder.context().getValues(invokeOp.operands()));
-                mmaOp.setLocation(invokeOp.location());
-                Op.Result opResult = blockBuilder.op(mmaOp);
-                blockBuilder.context().mapValue(invokeOp.result(), opResult);
-            }
-            case null, default -> blockBuilder.op(op);
         }
+    }
+
+    private static class TensorLoad implements TensorTransformer {
+
+        @Override
+        public void transform(Block.Builder blockBuilder, Op op) {
+            List<Value> operands = blockBuilder.context().getValues(op.operands());
+            switch (op) {
+                case CoreOp.VarAccessOp.VarStoreOp storeOp ->
+                        replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp ->
+                        replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), operands));
+                default -> blockBuilder.op(op);
+            }
+        }
+    }
+
+    private static class TensorStore implements TensorTransformer {
+
+        @Override
+        public void transform(Block.Builder blockBuilder, Op op) {
+            if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
+                replaceOp(blockBuilder, invokeOp, new TensorStoreOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
+            } else {
+                blockBuilder.op(op);
+            }
+        }
+    }
+
+    private CoreOp.FuncOp transformWithPredicate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, BiConsumer<Block.Builder, Op> function, Set<Op> opsToProcess ) {
+        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
+            function.accept(blockBuilder, op);
+            return blockBuilder;
+        }).funcOp();
     }
 
     private CoreOp.FuncOp createTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        // 1. Analyse IR calls to Tensor.create
         Set<Op> opsToProcess = new HashSet<>();
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
@@ -124,85 +151,33 @@ public record HATTensorsPhase() implements HATPhase {
                             .ifPresent(opsToProcess::add);
                 });
 
-        // 2. Transform the IR
-        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            transformTensorDeclWithVarOp(blockBuilder, op);
-            return blockBuilder;
-        }).funcOp();
+        return transformWithPredicate(lookup, funcOp, new TensorView()::transform, opsToProcess);
     }
 
-    private void transformTensorLoadOp(Block.Builder blockBuilder, Op op) {
-        switch (op) {
-            case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
-                TensorStoreLoadOp tensorStoreLoadOp = new TensorStoreLoadOp(storeOp.resultType(), //
-                        blockBuilder.context().getValues(storeOp.operands()));
-                tensorStoreLoadOp.setLocation(tensorStoreLoadOp.location());
-                Op.Result opResult = blockBuilder.op(tensorStoreLoadOp);
-                blockBuilder.context().mapValue(tensorStoreLoadOp.result(), opResult);
-            }
-            case JavaOp.InvokeOp invokeOp -> {
-                TensorLoadOp mmaOp = new TensorLoadOp(invokeOp.resultType(), //
-                        blockBuilder.context().getValues(invokeOp.operands()));
-                mmaOp.setLocation(invokeOp.location());
-                Op.Result opResult = blockBuilder.op(mmaOp);
-                blockBuilder.context().mapValue(invokeOp.result(), opResult);
-            }
-            case null, default -> blockBuilder.op(op);
-        }
-    }
-
-    private void transformTensorStoreOp(Block.Builder blockBuilder, Op op) {
-        switch (op) {
-            case JavaOp.InvokeOp invokeOp -> {
-                TensorStoreOp storeOp = new TensorStoreOp(invokeOp.resultType(), //
-                        blockBuilder.context().getValues(invokeOp.operands()));
-                storeOp.setLocation(invokeOp.location());
-                Op.Result opResult = blockBuilder.op(storeOp);
-                blockBuilder.context().mapValue(invokeOp.result(), opResult);
-            }
-            case null, default -> blockBuilder.op(op);
-        }
+    private Set<Op> filterOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, String methodIntrinsicName) {
+        Set<Op> opsToProcess = new HashSet<>();
+        OpHelper.Invoke.stream(lookup, funcOp)
+                .filter(OpHelper.Invoke::returnsVoid)
+                .filter(invoke -> invoke.refIs(Tensor.class))
+                .filter(invoke -> invoke.name().equals(methodIntrinsicName))
+                .forEach(invoke -> {
+                    opsToProcess.add(invoke.op());
+                    Value varLoadValue = invoke.op().operands().getFirst();
+                    if (varLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                        opsToProcess.add(varLoadOp);
+                    }
+                });
+        return opsToProcess;
     }
 
     private CoreOp.FuncOp fillTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        // 1. Analyse IR calls for Tensor.fill
-        Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(OpHelper.Invoke::returnsVoid)
-                .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals("fill"))
-                .forEach(invoke -> {
-                    opsToProcess.add(invoke.op());
-                    Value varLoadValue = invoke.op().operands().getFirst();
-                    if (varLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                        opsToProcess.add(varLoadOp);
-                    }
-                });
-
-        // 2. Transform the IR (tensor.fill into dialect.tensor.fill)
-        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            transformTensorFillOp(blockBuilder, op);
-            return blockBuilder;
-        }).funcOp();
+        Set<Op> opsToProcess = filterOps(lookup, funcOp, "fill");
+        return transformWithPredicate(lookup, funcOp, new TensorFill()::transform, opsToProcess);
     }
 
     private CoreOp.FuncOp mmaTensor(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(OpHelper.Invoke::returnsVoid)
-                .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals("mma"))
-                .forEach(invoke -> {
-                    opsToProcess.add(invoke.op());
-                    Value varLoadValue = invoke.op().operands().getFirst();
-                    if (varLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                        opsToProcess.add(varLoadOp);
-                    }
-                });
-        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            transformTensorMMAOp(blockBuilder, op);
-            return blockBuilder;
-        }).funcOp();
+        Set<Op> opsToProcess = filterOps(lookup, funcOp, "mma");
+        return transformWithPredicate(lookup, funcOp, new TensorMMA()::transform, opsToProcess);
     }
 
     private CoreOp.FuncOp tensorLoad(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
@@ -218,10 +193,7 @@ public record HATTensorsPhase() implements HATPhase {
                             .map(result -> (CoreOp.VarAccessOp.VarStoreOp) result.op())
                             .forEach(opsToProcess::add);
                 });
-        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            transformTensorLoadOp(blockBuilder, op);
-            return blockBuilder;
-        }).funcOp();
+        return transformWithPredicate(lookup, funcOp, new TensorLoad()::transform, opsToProcess);
     }
 
     private CoreOp.FuncOp tensorStoreOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
@@ -231,22 +203,11 @@ public record HATTensorsPhase() implements HATPhase {
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("store"))
                 .forEach(invoke -> opsToProcess.add(invoke.op()));
-        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            transformTensorStoreOp(blockBuilder, op);
-            return blockBuilder;
-        }).funcOp();
+        return transformWithPredicate(lookup, funcOp, new TensorStore()::transform, opsToProcess);
     }
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-
-        // Traverse the code-model and analyse Tensor.create / Tensor.of
-        // This will trigger a wma::fragment in the case of NVIDIA/CUDA
-        // and a private memory allocation in the case of OpenCL.
-
-        // The CUDA generator can ignore a TensorVarOp
-        // The OpenCL generator can generate the private allocation in FP16
-        // Thus, it should enable FP16 as well.
         funcOp = createTensors(lookup, funcOp);
         funcOp = fillTensors(lookup, funcOp);
         funcOp = mmaTensor(lookup, funcOp);

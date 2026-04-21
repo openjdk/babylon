@@ -22,13 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package hat.backend.ffi;
+package optkl.exceptions;
 
-import optkl.exceptions.CodeGenException;
+public class CodeGenException extends RuntimeException {
 
-public class CUDACodeGenException extends CodeGenException {
-
-    protected CUDACodeGenException(String message) {
+    public CodeGenException(String message) {
         super(message);
     }
 }

@@ -40,6 +40,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
+import optkl.exceptions.CodeGenException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -252,6 +253,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
+    }
+
+    @Override
+    public OpenCLCodeGenException launchBackendException(String message) {
+        throw new OpenCLCodeGenException(message);
     }
 
     @Override

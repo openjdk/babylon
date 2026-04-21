@@ -102,7 +102,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         @Override
-        public SlotLoadOp transform(CodeContext cc, CodeTransformer ot) {
+        public SlotLoadOp transform(CodeContext cc, CodeTransformer ct) {
             return new SlotLoadOp(this, cc);
         }
 
@@ -151,7 +151,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         @Override
-        public SlotStoreOp transform(CodeContext cc, CodeTransformer ot) {
+        public SlotStoreOp transform(CodeContext cc, CodeTransformer ct) {
             return new SlotStoreOp(this, cc);
         }
 

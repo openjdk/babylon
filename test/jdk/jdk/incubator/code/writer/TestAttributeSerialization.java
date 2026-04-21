@@ -52,7 +52,7 @@ public class TestAttributeSerialization {
         }
 
         @Override
-        public TestOp transform(CodeContext cc, CodeTransformer ot) {
+        public TestOp transform(CodeContext cc, CodeTransformer ct) {
             return new TestOp(this, cc);
         }
 
