@@ -424,7 +424,7 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * A builder of a body.
+     * A builder for a body.
      * <p>
      * When the body builder is {@link Body.Builder#build(Op) built} all associated {@link Block.Builder block builders}
      * are also built and their blocks become children of the body.

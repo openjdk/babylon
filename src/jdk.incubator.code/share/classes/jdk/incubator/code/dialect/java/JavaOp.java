@@ -508,7 +508,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.rebind(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
 
