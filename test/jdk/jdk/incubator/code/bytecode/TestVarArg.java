@@ -53,6 +53,8 @@ public class TestVarArg {
 
         r += ls + j("s1", "s2", "s3");
 
+        r += ls + new V("s4", "s5");
+
         r += ls + w(8, 9);
 
         r += k();
@@ -86,6 +88,13 @@ public class TestVarArg {
 
     static String d(double... a) {
         return Arrays.toString(a);
+    }
+
+    record V(String i, Object... s) {
+        @Override
+        public String toString() {
+            return i + " " + Arrays.toString(s);
+        }
     }
 
     private CoreOp.FuncOp getFuncOp(String name) {
