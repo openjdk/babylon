@@ -1,11 +1,13 @@
 package jdk.incubator.code.behavior;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.invoke.MethodHandle;
@@ -30,6 +32,17 @@ public class JavaLowInterpreter extends Interpreter {
             return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
+        if (!(d instanceof JavaType jt)) {
+            throw new InternalError();
+        }
+        try {
+            return (Class<?>) jt.erasure().resolve(l);
+        } catch (ReflectiveOperationException e) {
+            throw new InternalError(e);
         }
     }
 
@@ -59,60 +72,92 @@ public class JavaLowInterpreter extends Interpreter {
     }
 
     @Override
+    public BlockEffect executeBlock(Block block, Env env) {
+        var op = block.firstOp();
+        for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
+            switch (executeOp(op, env)) {
+                case TerminatingOpEffect e -> {
+                    // not returnOp, either explicit throw or implicit throw
+                    if (!e.operands().isEmpty() && e.operands().getFirst() instanceof Throwable t &&
+                            !(e.terminatingOp() instanceof CoreOp.ReturnOp)) {
+                        JavaEnv jenv = (JavaEnv) env;
+                        Optional<Block> cb = jenv.catchBlocks.stream()
+                                .filter(b -> resolveToClass(jenv.l, b.parameters().getFirst().type()).isInstance(t)).findFirst();
+                        if (cb.isPresent()) {
+                            return new SuccessorEffect(cb.get(), List.of(t), jenv);
+                        }
+                    }
+                    return e;
+                }
+                // op completed normally, bind op result in new env, pass control to next op
+                case OpResultEffect e -> env = env.bind(op.result(), e.result());
+            }
+        }
+
+        return executeTerminatingOp((Op & Op.Terminating) op, env);
+    }
+
+    @Override
     public OpEffect executeOp(Op op, Env e) {
         Object result;
-        switch (op) {
-            case CoreOp.VarOp o -> {
-                Object init = e.valueOf(o.initOperand());
-                result = new Object[]{init};
-            }
-            case CoreOp.VarAccessOp.VarLoadOp o -> {
-                Object[] variable = (Object[]) e.valueOf(o.varOperand());
-                result = variable[0];
-            }
-            case CoreOp.VarAccessOp.VarStoreOp o -> {
-                Object[] variable = (Object[]) e.valueOf(o.varOperand());
-                Object v = e.valueOf(o.storeOperand());
-                variable[0] = v;
-                result = null;
-            }
-            case JavaOp.InvokeOp o -> {
-                JavaEnv je = (JavaEnv) e;
-                MethodType target = resolveToMethodType(je.l, o.opSignature());
-                MethodHandles.Lookup il = switch (o.invokeKind()) {
-                    case STATIC, INSTANCE -> je.l;
-                    case SUPER -> je.l.in(target.parameterType(0));
-                };
-                MethodHandle mh = resolveToMethodHandle(il, o.invokeReference(), o.invokeKind());
-
-                mh = mh.asType(target).asFixedArity();
-                List<Object> operands = e.valuesOf(o.operands());
-                result = invoke(mh, operands.toArray());
-            }
-            case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
-                JavaEnv je = (JavaEnv) e;
-                MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
-                List<Object> operands = e.valuesOf(op.operands());
-                result = invoke(mh, operands.toArray());
-            }
-            case CoreOp.ConstantOp o -> result = o.value();
-            case JavaOp.AssertOp o -> {
-                TerminatingOpEffect p = executeBody(o.predicateBody(), List.of(), e);
-                Boolean b = (Boolean) p.operands().getFirst();
-                if (!b) {
-                    if (o.bodies().size() > 1) {
-                        TerminatingOpEffect m = executeBody(o.bodies().get(1), List.of(), e);
-                        String message = (String) m.operands().getFirst();
-                        return new TerminatingOpEffect(o, List.of(new AssertionError(message)), e);
-                    } else {
-                        return new TerminatingOpEffect(o, List.of(new AssertionError()), e);
-                    }
+        try {
+            switch (op) {
+                case CoreOp.VarOp o -> {
+                    Object init = e.valueOf(o.initOperand());
+                    result = new Object[]{init};
                 }
-                result = null;
+                case CoreOp.VarAccessOp.VarLoadOp o -> {
+                    Object[] variable = (Object[]) e.valueOf(o.varOperand());
+                    result = variable[0];
+                }
+                case CoreOp.VarAccessOp.VarStoreOp o -> {
+                    Object[] variable = (Object[]) e.valueOf(o.varOperand());
+                    Object v = e.valueOf(o.storeOperand());
+                    variable[0] = v;
+                    result = null;
+                }
+                case JavaOp.InvokeOp o -> {
+                    JavaEnv je = (JavaEnv) e;
+                    MethodType target = resolveToMethodType(je.l, o.opSignature());
+                    MethodHandles.Lookup il = switch (o.invokeKind()) {
+                        case STATIC, INSTANCE -> je.l;
+                        case SUPER -> je.l.in(target.parameterType(0));
+                    };
+                    MethodHandle mh = resolveToMethodHandle(il, o.invokeReference(), o.invokeKind());
+
+                    mh = mh.asType(target).asFixedArity();
+                    List<Object> operands = e.valuesOf(o.operands());
+                    result = invoke(mh, operands.toArray());
+                }
+                case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
+                    JavaEnv je = (JavaEnv) e;
+                    MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
+                    List<Object> operands = e.valuesOf(op.operands());
+                    result = invoke(mh, operands.toArray());
+                }
+                case CoreOp.ConstantOp o -> result = o.value();
+                case JavaOp.AssertOp o -> {
+                    TerminatingOpEffect p = executeBody(o.predicateBody(), List.of(), e);
+                    // TODO check if p.op is YieldOp
+                    Boolean b = (Boolean) p.operands().getFirst();
+                    if (!b) {
+                        if (o.bodies().size() > 1) {
+                            TerminatingOpEffect m = executeBody(o.bodies().get(1), List.of(), e);
+                            String message = (String) m.operands().getFirst();
+                            // @@@ we may need to fake out a ThrowOp or a new kind of TerminatingOpEffect
+                            return new TerminatingOpEffect(o, List.of(new AssertionError(message)), e);
+                        } else {
+                            return new TerminatingOpEffect(o, List.of(new AssertionError()), e);
+                        }
+                    }
+                    result = null;
+                }
             }
-            default -> throw new UnsupportedOperationException(op.toString());
-        };
-        return new OpResultEffect(result, e);
+            return new OpResultEffect(result, e);
+        } catch (Throwable t) {
+            // execution of op throws
+            return new TerminatingOpEffect(op, List.of(t), e);
+        }
     }
 
     @Override
@@ -163,7 +208,9 @@ public class JavaLowInterpreter extends Interpreter {
             case CoreOp.ReturnOp rop -> {
                 return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(ancestorOpEffect.operands().getFirst());
             }
-            case JavaOp.ThrowOp _, JavaOp.AssertOp _ -> throw (Throwable) ancestorOpEffect.operands().getFirst();
+            case JavaOp.ThrowOp _ -> throw (Throwable) ancestorOpEffect.operands().getFirst();
+            // implicit throw e.g. AssertOp or execution of an op throws
+            case Op _ when !ancestorOpEffect.operands().isEmpty() && ancestorOpEffect.operands().getFirst() instanceof Throwable t -> throw t;
             default -> throw new InternalError(ancestorOpEffect.toString());
         }
     }
