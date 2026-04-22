@@ -144,6 +144,13 @@ public class JavaLowInterpreter extends Interpreter {
                 List<Object> operands = e.valuesOf(o.operands());
                 yield new TerminatingOpEffect(o, operands, e);
             }
+            case JavaOp.ExceptionRegionEnter o -> {
+                JavaEnv je = (JavaEnv) e;
+                List<Block> catchBlocks = o.catchReferences().stream().map(Block.Reference::targetBlock).toList();
+                je = je.registerCatchBlocks(catchBlocks);
+                yield new SuccessorEffect(o.startReference().targetBlock(), je.valuesOf(o.startReference().arguments()), je);
+            }
+            // TODO explicit exception + implicit ones
             default -> throw new UnsupportedOperationException(op.toString());
         };
     }
@@ -164,10 +171,17 @@ public class JavaLowInterpreter extends Interpreter {
     static final class JavaEnv implements Env {
         final Map<Value, Object> bindings;
         final MethodHandles.Lookup l;
+        final Deque<Block> catchBlocks;
 
         public JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l) {
             this.bindings = bindings;
             this.l = l;
+            this.catchBlocks = new ArrayDeque<>();
+        }
+        private JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<Block> catchBlocks) {
+            this.bindings = bindings;
+            this.l = l;
+            this.catchBlocks = catchBlocks;
         }
 
         Map<Value, Object> newBindings() {
@@ -181,14 +195,14 @@ public class JavaLowInterpreter extends Interpreter {
             for (int i = 0; i < l; i++) {
                 m.put(symbolicValues.get(i), runtimeValues.get(i));
             }
-            return new JavaEnv(m, this.l);
+            return new JavaEnv(m, this.l, this.catchBlocks);
         }
 
         @Override
         public Env bind(Value symbolicValue, Object runtimeValue) {
             Map<Value, Object> m = newBindings();
             m.put(symbolicValue, runtimeValue);
-            return new JavaEnv(m, l);
+            return new JavaEnv(m, l, this.catchBlocks);
         }
 
         @Override
@@ -207,6 +221,14 @@ public class JavaLowInterpreter extends Interpreter {
                 throw new IllegalArgumentException("Unknown binding for " + symbolicValue);
             }
             return bindings.get(symbolicValue);
+        }
+
+        public JavaEnv registerCatchBlocks(List<Block> catchBlocks) {
+            var stack = new ArrayDeque<>(this.catchBlocks);
+            for (Block b : catchBlocks) {
+                stack.addFirst(b);
+            }
+            return new JavaEnv(bindings, l, stack);
         }
     }
 }
