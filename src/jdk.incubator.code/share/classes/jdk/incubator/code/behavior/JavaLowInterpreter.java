@@ -195,7 +195,11 @@ public class JavaLowInterpreter extends Interpreter {
                 je = je.registerCatchBlocks(catchBlocks);
                 yield new SuccessorEffect(o.startReference().targetBlock(), je.valuesOf(o.startReference().arguments()), je);
             }
-            // TODO explicit exception + implicit ones
+            case JavaOp.ExceptionRegionExit o -> {
+                JavaEnv je = (JavaEnv) e;
+                je = je.removeCatchBlocks(o.catchReferences().stream().map(Block.Reference::targetBlock).toList());
+                yield new SuccessorEffect(o.endReference().targetBlock(), je.valuesOf(o.endReference().arguments()), je);
+            }
             default -> throw new UnsupportedOperationException(op.toString());
         };
     }
@@ -274,6 +278,16 @@ public class JavaLowInterpreter extends Interpreter {
             var stack = new ArrayDeque<>(this.catchBlocks);
             for (Block b : catchBlocks) {
                 stack.addFirst(b);
+            }
+            return new JavaEnv(bindings, l, stack);
+        }
+
+        public JavaEnv removeCatchBlocks(List<Block> catchBlocks) {
+            var stack = new ArrayDeque<>(this.catchBlocks);
+            for (Block b : catchBlocks) {
+                if (b != stack.pollFirst()) {
+                    throw new InternalError();
+                }
             }
             return new JavaEnv(bindings, l, stack);
         }
