@@ -88,16 +88,22 @@ public sealed abstract class CoreOp extends Op {
          */
         public static class Builder {
             final Body.Builder ancestorBody;
-            final MethodRef mref;
+            final CodeType ownerType;
+            final String funcName;
+            final FunctionType signature;
 
-            Builder(Body.Builder ancestorBody, MethodRef mref) {
+            Builder(Body.Builder ancestorBody, CodeType ownerType, String funcName, FunctionType signature) {
                 this.ancestorBody = ancestorBody;
-                this.mref = mref;
+                this.ownerType = ownerType;
+                this.funcName = funcName;
+                this.signature = signature;
             }
 
             Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
                 this.ancestorBody = ancestorBody;
-                this.mref = MethodRef.method(NO_REF_TYPE, funcName, signature);
+                this.ownerType = NO_REF_TYPE;
+                this.funcName = funcName;
+                this.signature = signature;
             }
 
             /**
@@ -107,9 +113,9 @@ public sealed abstract class CoreOp extends Op {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, mref.signature());
+                Body.Builder body = Body.Builder.of(ancestorBody, signature);
                 c.accept(body.entryBlock());
-                return new FuncOp(mref, body);
+                return new FuncOp(ownerType, funcName, body);
             }
         }
 
@@ -119,45 +125,49 @@ public sealed abstract class CoreOp extends Op {
          * The externalized attribute modeling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
-        static final String ATTRIBUTE_FUNC_MREF = NAME + ".mref";
+        static final String ATTRIBUTE_FUNC_OWNER_TYPE = NAME + ".owner.type";
         private static final JavaType NO_REF_TYPE = null;
 
+        final CodeType ownerType;
+        final String funcName;
         final Body body;
-        final MethodRef mref;
 
         FuncOp(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            MethodRef mref = def.extractAttributeValue(ATTRIBUTE_FUNC_MREF, false,
-                    v -> switch (v) {
-                        case MethodRef r -> r;
-                        case null, default -> {
-                            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                                    u -> switch (u) {
-                                        case String s -> s;
-                                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
-                                    });
-                            yield MethodRef.method(NO_REF_TYPE, funcName, def.bodyDefinitions().get(0).bodySignature());
-                        }
+            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
+                    u -> switch (u) {
+                        case String s -> s;
+                        case null, default ->
+                                throw new UnsupportedOperationException("Unsupported func name value:" + u);
                     });
 
-            this(mref, def.bodyDefinitions().get(0));
+
+            CodeType ownerType = def.extractAttributeValue(ATTRIBUTE_FUNC_OWNER_TYPE, false,
+                    v -> switch (v) {
+                        case CodeType ct -> ct;
+                        case null, default -> NO_REF_TYPE;
+                    });
+
+            this(ownerType, funcName, def.bodyDefinitions().get(0));
         }
 
         FuncOp(FuncOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
+            this.ownerType = that.ownerType;
+            this.funcName = that.funcName;
             this.body = that.body.transform(cc, ct).build(this);
-            this.mref = that.mref;
         }
 
         FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
+            this.ownerType = that.ownerType;
+            this.funcName = funcName;
             this.body = that.body.transform(cc, ct).build(this);
-            this.mref = MethodRef.method(that.mref.refType(), funcName, that.mref.signature());
         }
 
         @Override
@@ -186,18 +196,20 @@ public sealed abstract class CoreOp extends Op {
             return new FuncOp(this, funcName, CodeContext.create(), ct);
         }
 
-        FuncOp(MethodRef mref, Body.Builder bodyBuilder) {
-            super(List.of());
-
-            this.body = bodyBuilder.build(this);
-            this.mref = mref;
-        }
-
         FuncOp(String funcName, Body.Builder bodyBuilder) {
             super(List.of());
 
+            this.ownerType = NO_REF_TYPE;
+            this.funcName = funcName;
             this.body = bodyBuilder.build(this);
-            this.mref = MethodRef.method(NO_REF_TYPE, funcName, bodyBuilder.bodySignature());
+        }
+
+        FuncOp(CodeType ownerType, String funcName, Body.Builder bodyBuilder) {
+            super(List.of());
+
+            this.ownerType = ownerType;
+            this.funcName = funcName;
+            this.body = bodyBuilder.build(this);
         }
 
         @Override
@@ -208,10 +220,9 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             Map<String, Object> m = new HashMap<>();
-            if (mref.refType() == NO_REF_TYPE) {
-                m.put("", mref.name());
-            } else {
-                m.put(ATTRIBUTE_FUNC_MREF, mref);
+            m.put("", funcName);
+            if (ownerType != NO_REF_TYPE) {
+                m.put(ATTRIBUTE_FUNC_OWNER_TYPE, ownerType);
             }
             return m;
         }
@@ -220,7 +231,7 @@ public sealed abstract class CoreOp extends Op {
          * {@return the function name}
          */
         public String funcName() {
-            return mref.name();
+            return funcName;
         }
 
         @Override
@@ -241,7 +252,9 @@ public sealed abstract class CoreOp extends Op {
         }
 
         public Optional<MethodRef> mref() {
-            return mref.refType() == NO_REF_TYPE ? Optional.empty() : Optional.of(mref);
+            return ownerType == NO_REF_TYPE ?
+                    Optional.empty() :
+                    Optional.of(MethodRef.method(ownerType, funcName, body.bodySignature()));
         }
     }
 
@@ -1565,7 +1578,7 @@ public sealed abstract class CoreOp extends Op {
      * @return the function operation builder
      */
     public static FuncOp.Builder func(CodeType refType, String funcName, FunctionType signature) {
-        return new FuncOp.Builder(null, MethodRef.method(refType, funcName, signature));
+        return new FuncOp.Builder(null, refType, funcName, signature);
     }
 
     /**
@@ -1587,7 +1600,7 @@ public sealed abstract class CoreOp extends Op {
      * @return the function operation
      */
     public static FuncOp func(CodeType refType, String funcName, Body.Builder body) {
-        return new FuncOp(MethodRef.method(refType, funcName, body.bodySignature()), body);
+        return new FuncOp(refType, funcName, body);
     }
 
     /**
