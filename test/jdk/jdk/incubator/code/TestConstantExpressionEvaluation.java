@@ -9,8 +9,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -122,8 +122,7 @@ public class TestConstantExpressionEvaluation {
     static boolean equalityOperator3() {
         return "A" != "B";
     }
-    // @Reflect
-    // @@@ Interpreter doesn't intern constant expression of type String, JDK-8379503
+    @Reflect
     static boolean stringReferenceEquality() {
         return "A" + "A" == "AA";
     }
@@ -266,7 +265,7 @@ public class TestConstantExpressionEvaluation {
 
     @ParameterizedTest
     @MethodSource("cases")
-    void test(Method m) throws NoSuchMethodException {
+    void test(Method m) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
@@ -275,12 +274,7 @@ public class TestConstantExpressionEvaluation {
             Assertions.assertTrue(v.isEmpty(), m.getName());
         } else {
             Assertions.assertTrue(v.isPresent(), m.getName());
-            Object[] args = new Object[0];
-            if ((m.getModifiers() & Modifier.STATIC) == 0) { // instance method
-                args = new Object[] {this};
-            }
-            // TODO use BytecodeGenerator instead of Interpreter
-            Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER), args);
+            Object expected = m.invoke(null);
             Assertions.assertEquals(expected, v.get());
         }
     }
