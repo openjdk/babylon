@@ -5232,6 +5232,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         static final String NAME = "java.try";
+        static final MethodRef AUTO_CLOSEABLE_CLOSE_METHOD = MethodRef.method(AutoCloseable.class, "close", void.class);
+        static final MethodRef THROWABLE_ADD_SUPPRESSED_METHOD = MethodRef.method(Throwable.class, "addSuppressed", void.class, Throwable.class);
 
         final Body resourcesBody;
         final Body body;
@@ -5380,7 +5382,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
             if (resourcesBody != null) {
-                throw new UnsupportedOperationException("Lowering of try-with-resources is unsupported");
+                return desugarTryWithResources(b.parentBody(), b.context()).lower(b, opT);
             }
 
             Block.Builder exit = b.block();
@@ -5548,6 +5550,125 @@ public sealed abstract class JavaOp extends Op {
                 }));
             }
             return exit;
+        }
+
+        TryOp desugarTryWithResources(Body.Builder ancestorBody, CodeContext cc) {
+            if (!(resourcesBody.bodySignature().returnType() instanceof TupleType)) {
+                return desugarBasicTryWithResources(ancestorBody, cc);
+            }
+            if (catchBodies.isEmpty() && finallyBody == null) {
+                return buildBasicTryWithResourcesChain(ancestorBody, cc, 0);
+            }
+            CatchBuilder catchBuilder = try_(ancestorBody, tryB -> {
+                tryB.op(buildBasicTryWithResourcesChain(tryB.parentBody(), cc, 0));
+                tryB.op(core_yield());
+            });
+            for (Body catcher : catchBodies) {
+                catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
+                        catchB.body(catcher, catchB.parameters(), cc, CodeTransformer.COPYING_TRANSFORMER));
+            }
+            return finallyBody == null
+                    ? catchBuilder.noFinalizer()
+                    : catchBuilder.finally_(finB ->
+                            finB.body(finallyBody, List.of(), cc, CodeTransformer.COPYING_TRANSFORMER));
+        }
+
+        TryOp desugarBasicTryWithResources(Body.Builder ancestorBody, CodeContext cc) {
+            assert catchBodies.isEmpty();
+            assert finallyBody == null;
+            CodeType resourceType = resourcesBody.bodySignature().returnType();
+            assert !(resourceType instanceof TupleType);
+            Body.Builder outerBody = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID, cc, CodeTransformer.COPYING_TRANSFORMER);
+            Block.Builder entryBlock = outerBody.entryBlock();
+            Block.Builder afterAcquire = entryBlock.block(resourceType);
+            mapUnbuiltVars(cc, List.of(resourcesBody));
+            entryBlock.body(resourcesBody, List.of(), cc, (block, op) -> {
+                if (op instanceof CoreOp.YieldOp yop) {
+                    block.op(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
+                } else {
+                    block.op(op);
+                }
+                return block;
+            });
+            Value resource = afterAcquire.parameters().getFirst();
+            Value primaryExceptionVar = afterAcquire.op(var(afterAcquire.op(constant(type(Throwable.class), null))));
+            afterAcquire.op(try_(outerBody, tryEntry -> {
+                mapUnbuiltVars(cc, List.of(body));
+                tryEntry.body(body,
+                        List.of(),
+                        cc,
+                        CodeTransformer.COPYING_TRANSFORMER);
+            }).catch_(type(Throwable.class), catchB -> {
+                Block.Parameter thrown = catchB.parameters().getFirst();
+                catchB.op(varStore(primaryExceptionVar, thrown));
+                catchB.op(throw_(thrown));
+            }).finally_(finB -> {
+                Value nullObj = finB.op(constant(J_L_OBJECT, null));
+                finB.op(if_(finB.parentBody()).if_(predB -> {
+                            predB.op(core_yield(predB.op(neq(resource, nullObj))));
+                }).then(closeB -> {
+                    Value primaryException = closeB.op(varLoad(primaryExceptionVar));
+                    closeB.op(if_(closeB.parentBody()).if_(predB -> {
+                        predB.op(core_yield(predB.op(neq(primaryException, nullObj))));
+                    }).then(suppB -> {
+                        suppB.op(try_(suppB.parentBody(), tryB -> {
+                            tryB.op(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                            tryB.op(core_yield());
+                        }).catch_(type(Throwable.class), catchB -> {
+                            Block.Parameter closeException = catchB.parameters().getFirst();
+                            catchB.op(invoke(THROWABLE_ADD_SUPPRESSED_METHOD, primaryException, closeException));
+                            catchB.op(core_yield());
+                        }).noFinalizer());
+                        suppB.op(core_yield());
+                    }).else_(normB -> {
+                        normB.op(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                        normB.op(core_yield());
+                    }));
+                    closeB.op(core_yield());
+                }).else_());
+                finB.op(core_yield());
+            }));
+            afterAcquire.op(core_yield());
+            return try_(null, outerBody, List.of(), null);
+        }
+
+        TryOp buildBasicTryWithResourcesChain(Body.Builder ancestorBody, CodeContext cc, int index) {
+            List<Op> resourceOps = resourcesBody.entryBlock().ops();
+            CodeType resourceType = ((TupleType)resourcesBody.bodySignature().returnType()).componentTypes().get(index);
+            List<Value> resourceValues = ((CoreOp.TupleOp)((CoreOp.YieldOp)(resourceOps.getLast())).yieldValue().result().op()).operands();
+            Body.Builder resourceBody = Body.Builder.of(ancestorBody, CoreType.functionType(resourceType), cc, CodeTransformer.COPYING_TRANSFORMER);
+            Block.Builder bb = resourceBody.entryBlock();
+            // assumption: resource initialization operations can be split into subsequent lists
+            resourceOps.subList(index == 0 ? 0 : resourceOps.indexOf(resourceValues.get(index - 1).result().op()) + 1,
+                                resourceOps.indexOf(resourceValues.get(index).result().op()) + 1).forEach(bb::op);
+            bb.op(core_yield(cc.getValue(resourceValues.get(index))));
+            Body.Builder basicBody = Body.Builder.of(ancestorBody, CoreType.functionType(VOID, List.of(resourceType)), cc, CodeTransformer.COPYING_TRANSFORMER);
+            Block.Builder bodyB = basicBody.entryBlock();
+            cc.mapValue(resourceValues.get(index), bodyB.parameters().getFirst());
+            if (index + 1 < resourceValues.size()) {
+                bodyB.op(buildBasicTryWithResourcesChain(basicBody, cc, index + 1));
+                bodyB.op(core_yield());
+            } else {
+                bodyB.body(body, cc.getValues(resourceValues), CodeTransformer.COPYING_TRANSFORMER);
+            }
+            return try_(resourceBody, basicBody, List.of(), null);
+        }
+
+        // @@@ self-mapping to avoid IAE: No mapping for input value
+        static void mapUnbuiltVars(CodeContext cc, Iterable<Body> bodies) {
+            for (Body body : bodies) {
+                for (Block block : body.blocks()) {
+                    for (Op op : block.ops()) {
+                        mapUnbuiltVars(cc, op.bodies());
+                        if (op instanceof VarAccessOp.VarLoadOp vlo) {
+                            try {
+                                 // @@@ where these unmapped Var ops came from ?
+                                cc.mapValueIfAbsent(vlo.varOperand(), vlo.varOperand());
+                            } catch (IllegalArgumentException _) {}
+                        }
+                    }
+                }
+            }
         }
 
         boolean ifExitFromTry(StatementTargetOp lop) {
