@@ -1569,16 +1569,6 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
-     * Creates a function operation builder.
-     *
-     * @param mref the function method reference
-     * @return the function operation builder
-     */
-    public static FuncOp.Builder func(MethodRef mref) {
-        return new FuncOp.Builder(null, mref);
-    }
-
-    /**
      * Creates a function operation.
      *
      * @param funcName the function name
@@ -1587,17 +1577,6 @@ public sealed abstract class CoreOp extends Op {
      */
     public static FuncOp func(String funcName, Body.Builder body) {
         return new FuncOp(funcName, body);
-    }
-
-    /**
-     * Creates a function operation.
-     *
-     * @param mref the method reference the function operation models
-     * @param body the body builder defining the function body
-     * @return the function operation
-     */
-    public static FuncOp func(MethodRef mref, Body.Builder body) {
-        return new FuncOp(mref, body);
     }
 
     /**
