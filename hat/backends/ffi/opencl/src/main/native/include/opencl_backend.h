@@ -161,6 +161,8 @@ public:
 
     void computeEnd() override;
 
+    std::string *getDeviceVendor() override;
+
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
     void shortDeviceInfo() override;

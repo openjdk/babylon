@@ -172,6 +172,11 @@ void OpenCLBackend::computeEnd() {
     }
 }
 
+std::string* OpenCLBackend::getDeviceVendor() {
+    const PlatformInfo platformInfo(this);
+    return new std::string(platformInfo.vendorName);
+}
+
 OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(OpenCLSource &openclSource) {
     return compileProgram(&openclSource);
 }

@@ -32,6 +32,7 @@ import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
 import optkl.OpHelper;
+import jdk.incubator.code.Op;
 import optkl.codebuilders.CodeBuilder;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -50,7 +51,7 @@ import java.util.Random;
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
     protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(kernelCallGraph,scopedCodeBuilderContext);
+        super(kernelCallGraph, scopedCodeBuilderContext);
     }
 
     @Override
@@ -222,6 +223,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     // Mapping between API function names and OpenCL intrinsics for the math operations
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+
     static {
         MATH_FUNCTIONS.put("maxf", "max");
         MATH_FUNCTIONS.put("maxd", "max");

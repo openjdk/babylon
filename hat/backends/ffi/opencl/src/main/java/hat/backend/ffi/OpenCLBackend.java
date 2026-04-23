@@ -24,7 +24,6 @@
  */
 package hat.backend.ffi;
 
-
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
@@ -36,26 +35,28 @@ import java.lang.invoke.MethodHandles;
 
 public class OpenCLBackend extends C99FFIBackend {
     public OpenCLBackend(Config config) {
-        super(Arena.global(), MethodHandles.lookup(),"opencl_backend", config);
+        super(Arena.global(), MethodHandles.lookup(), "opencl_backend", config);
     }
+
     public OpenCLBackend() {
         this(Config.fromEnvOrProperty());
     }
+
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(), lookup(), computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createC99(kernelCallGraph,  args);
+        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (KernelCallGraph _) -> {
+            String code = createC99(kernelCallGraph, args);
             if (config().showCode()) {
-                System.out.println(code);
+                IO.println(code);
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel( kernelCallGraph.callDag.entryPoint.method().getName());
+                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
                 return new CompiledKernel(this, kernelCallGraph, kernel, args);
             } else {
                 // TODO: We should capture the log from OpenCL and provide as exception message
@@ -65,8 +66,9 @@ public class OpenCLBackend extends C99FFIBackend {
         compiledKernel.dispatch(kernelContext, args);
     }
 
-    String createC99(KernelCallGraph kernelCallGraph,  Object[] args){
-        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), args);
+    String createC99(KernelCallGraph kernelCallGraph, Object[] args) {
+        kernelCallGraph.setDeviceVendor(backendBridge.getDeviceVendor());
+        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp())), args);
     }
 
 }

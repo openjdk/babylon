@@ -154,7 +154,7 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     // create var/cuda directory
     std::string localDirectory = "./var/cuda";
     std::filesystem::create_directories(localDirectory);
-    // create temp file for cuda generarated code
+    // create temp file for cuda generated code
     const uint64_t time = timeSinceEpochMillisec();
     const std::string ptxPath = tmpFileName(time, localDirectory, ".ptx");
     const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
@@ -336,6 +336,12 @@ void CudaBackend::computeEnd() {
 
 void CudaBackend::computeStart() {
     queue->computeStart();
+}
+
+std::string* CudaBackend::getDeviceVendor() {
+    // The CUDA Backend is owned by NVIDIA. Thus, no need to query
+    auto *vendor = new std::string("NVIDIA");
+    return reinterpret_cast<std::string *>(vendor->data());
 }
 
 bool CudaBackend::getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) {

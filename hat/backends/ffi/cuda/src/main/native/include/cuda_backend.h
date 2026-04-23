@@ -104,23 +104,26 @@ private:
 
 class CudaBackend final : public Backend {
 public:
-class CudaQueue final : public Backend::Queue {
+    class CudaQueue final : public Backend::Queue {
     public:
         std::thread::id streamCreationThread;
         CUstream cuStream;
+
         explicit CudaQueue(Backend *backend);
+
         void init();
+
         void wait() override;
 
-         void release() override;
+        void release() override;
 
-         void computeStart() override;
+        void computeStart() override;
 
-         void computeEnd() override;
+        void computeEnd() override;
 
-         void copyToDevice(Buffer *buffer) override;
+        void copyToDevice(Buffer *buffer) override;
 
-         void copyFromDevice(Buffer *buffer) override;
+        void copyFromDevice(Buffer *buffer) override;
 
         int estimateThreadsPerBlock(int dimensions);
 
@@ -128,8 +131,9 @@ class CudaQueue final : public Backend::Queue {
 
         void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
 
+
         ~CudaQueue() override;
-};
+    };
 
     class CudaBuffer final : public Buffer {
     public:
@@ -187,6 +191,8 @@ public:
     bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) override;
 
     explicit CudaBackend(int mode);
+
+    std::string *getDeviceVendor() override;
 
     ~CudaBackend() override;
     static CudaBackend * of(long backendHandle);

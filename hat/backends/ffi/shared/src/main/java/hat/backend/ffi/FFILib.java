@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import java.lang.foreign.AddressLayout;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
@@ -36,14 +37,14 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
 public class FFILib {
-    final public String name;
+    public final String name;
     public final boolean available;
 
-    final public Linker nativeLinker;
+    public final Linker nativeLinker;
 
-    final public SymbolLookup loaderLookup;
+    public final SymbolLookup loaderLookup;
 
-    public static class MethodPtr{
+    public static class MethodPtr {
         final FFILib ffiLib;
         final FunctionDescriptor functionDescriptor;
         final MethodHandle mh;
@@ -51,7 +52,7 @@ public class FFILib {
 
         MethodPtr(FFILib ffiLib, FunctionDescriptor descriptor, String name) {
             this.ffiLib = ffiLib;
-            this.functionDescriptor= descriptor;
+            this.functionDescriptor = descriptor;
             this.mh = ffiLib.loaderLookup.find(name)
                     .map(symbolSegment -> ffiLib.nativeLinker.downcallHandle(symbolSegment, descriptor))
                     .orElse(null);
@@ -60,16 +61,57 @@ public class FFILib {
             }
             this.name = name;
         }
+    }
+
+    public static class StringFunctionMethodPtr extends MethodPtr {
+
+        StringFunctionMethodPtr(FFILib ffiLib, String name) {
+            super(ffiLib, FunctionDescriptor.of(ADDRESS, JAVA_LONG), name);
+        }
+
+        public MemorySegment invoke(long handler) {
+            if (mh == null) {
+                throw new NullPointerException("Null methodhandle " + name);
+            }
+            try {
+                MemorySegment segment = (MemorySegment) mh.invoke(handler);
+                if (segment.equals(MemorySegment.NULL)) {
+                    throw new IllegalStateException("Function " + name + " returned NULL");
+                }
+                return segment;
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static class StringFunctionLengthMethodPtr extends MethodPtr {
+
+        StringFunctionLengthMethodPtr(FFILib ffiLib, String name) {
+            super(ffiLib, FunctionDescriptor.of(AddressLayout.JAVA_LONG, ADDRESS), name);
+        }
+
+        public long invoke(MemorySegment memorySegment) {
+            if (mh == null) {
+                throw new RuntimeException("Null methodhandle " + name);
+            }
+            try {
+                return (long) mh.invoke(memorySegment);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
 
     }
 
-    public static class VoidAddressMethodPtr extends MethodPtr{
+    public static class VoidAddressMethodPtr extends MethodPtr {
         VoidAddressMethodPtr(FFILib ffiLib, String name) {
-            super(ffiLib,FunctionDescriptor.ofVoid(ADDRESS), name);
+            super(ffiLib, FunctionDescriptor.ofVoid(ADDRESS), name);
         }
+
         public void invoke(MemorySegment memorySegment) {
-            if (mh == null){
-                throw new RuntimeException("Null methodhandle "+name);
+            if (mh == null) {
+                throw new RuntimeException("Null methodhandle " + name);
             }
             try {
                 mh.invoke(memorySegment);
@@ -79,13 +121,14 @@ public class FFILib {
         }
     }
 
-    public static class VoidHandleMethodPtr extends MethodPtr{
+    public static class VoidHandleMethodPtr extends MethodPtr {
         VoidHandleMethodPtr(FFILib ffiLib, String name) {
             super(ffiLib, FunctionDescriptor.ofVoid(JAVA_LONG), name);
         }
+
         public void invoke(long handle) {
-            if (mh == null){
-                throw new RuntimeException("Null methodhandle "+name);
+            if (mh == null) {
+                throw new RuntimeException("Null methodhandle " + name);
             }
             if (handle == 0) {
                 throw new RuntimeException("handle is zero");
@@ -98,89 +141,94 @@ public class FFILib {
         }
     }
 
-    public static class BooleanHandleMethodPtr extends MethodPtr{
+    public static class BooleanHandleMethodPtr extends MethodPtr {
         BooleanHandleMethodPtr(FFILib ffiLib, String name) {
-            super(ffiLib, FunctionDescriptor.of(JAVA_BOOLEAN,JAVA_LONG),name);
+            super(ffiLib, FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_LONG), name);
         }
+
         public boolean invoke(long handle) {
-            if (mh == null){
-                throw new RuntimeException("Null methodhandle "+name);
+            if (mh == null) {
+                throw new RuntimeException("Null methodhandle " + name);
             }
             if (handle == 0L) {
                 throw new IllegalArgumentException("handle is zero");
             }
             try {
-                return (boolean)mh.invoke(handle);
+                return (boolean) mh.invoke(handle);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
-    public static class BooleanHandleAddressLongMethodPtr extends MethodPtr{
+    public static class BooleanHandleAddressLongMethodPtr extends MethodPtr {
         BooleanHandleAddressLongMethodPtr(FFILib ffiLib, String name) {
-            super(ffiLib, FunctionDescriptor.of(JAVA_BOOLEAN,JAVA_LONG,ADDRESS,JAVA_LONG), name);
+            super(ffiLib, FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_LONG, ADDRESS, JAVA_LONG), name);
         }
-        public boolean invoke(long handle,MemorySegment memorySegment, long len) {
-            if (mh == null){
-                throw new RuntimeException("Null methodhandle "+name);
+
+        public boolean invoke(long handle, MemorySegment memorySegment, long len) {
+            if (mh == null) {
+                throw new RuntimeException("Null methodhandle " + name);
             }
             if (handle == 0L) {
                 throw new IllegalArgumentException("handle is zero");
             }
             try {
-                return (boolean)mh.invoke(handle, memorySegment, len);
+                return (boolean) mh.invoke(handle, memorySegment, len);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
-    public static class LongHandleIntAddressMethodPtr extends MethodPtr{
+    public static class LongHandleIntAddressMethodPtr extends MethodPtr {
         LongHandleIntAddressMethodPtr(FFILib ffiLib, String name) {
-            super(ffiLib, FunctionDescriptor.of(JAVA_LONG,JAVA_LONG,JAVA_INT,ADDRESS), name);
+            super(ffiLib, FunctionDescriptor.of(JAVA_LONG, JAVA_LONG, JAVA_INT, ADDRESS), name);
         }
+
         public long invoke(long handle, int i, MemorySegment memorySegment) {
-            if (mh == null){
-                throw new RuntimeException("Null methodhandle "+name);
+            if (mh == null) {
+                throw new RuntimeException("Null methodhandle " + name);
             }
             if (handle == 0L) {
                 throw new IllegalArgumentException("handle is zero");
             }
             try {
-                return (long)mh.invoke(handle, i, memorySegment);
+                return (long) mh.invoke(handle, i, memorySegment);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
-    public static class LongHandleIntMethodPtr extends MethodPtr{
+    public static class LongHandleIntMethodPtr extends MethodPtr {
         LongHandleIntMethodPtr(FFILib ffiLib, String name) {
-            super(ffiLib,FunctionDescriptor.of(JAVA_LONG,JAVA_INT), name);
+            super(ffiLib, FunctionDescriptor.of(JAVA_LONG, JAVA_INT), name);
         }
-        public long invoke( int i) {
-            if (mh == null){
-                throw new RuntimeException("Null method handle trying to invoke "+ffiLib.name+"::"+name+"()");
+
+        public long invoke(int i) {
+            if (mh == null) {
+                throw new RuntimeException("Null method handle trying to invoke " + ffiLib.name + "::" + name + "()");
             }
             try {
-                return (long)mh.invoke(i);
+                return (long) mh.invoke(i);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
-    public static class LongHandleLongAddressMethodPtr extends MethodPtr{
+    public static class LongHandleLongAddressMethodPtr extends MethodPtr {
         LongHandleLongAddressMethodPtr(FFILib ffiLib, String name) {
-            super(ffiLib,FunctionDescriptor.of(JAVA_LONG,JAVA_LONG,ADDRESS), name);
+            super(ffiLib, FunctionDescriptor.of(JAVA_LONG, JAVA_LONG, ADDRESS), name);
         }
-        public long invoke(long l,  MemorySegment memorySegment) {
-            if (mh == null){
-                throw new RuntimeException("Null methodhandle "+name);
+
+        public long invoke(long l, MemorySegment memorySegment) {
+            if (mh == null) {
+                throw new RuntimeException("Null methodhandle " + name);
             }
             try {
-                return (long)mh.invoke(l, memorySegment);
+                return (long) mh.invoke(l, memorySegment);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
@@ -201,7 +249,6 @@ public class FFILib {
         this.loaderLookup = SymbolLookup.loaderLookup();
     }
 
-
     public VoidAddressMethodPtr voidAddressFunc(String name) {
         return new VoidAddressMethodPtr(this, name);
     }
@@ -209,20 +256,33 @@ public class FFILib {
     public VoidHandleMethodPtr voidHandleFunc(String name) {
         return new VoidHandleMethodPtr(this, name);
     }
+
     public BooleanHandleMethodPtr booleanHandleFunc(String name) {
         return new BooleanHandleMethodPtr(this, name);
     }
+
     public BooleanHandleAddressLongMethodPtr booleanHandleAddressLongFunc(String name) {
         return new BooleanHandleAddressLongMethodPtr(this, name);
     }
+
     public LongHandleIntAddressMethodPtr longHandleIntAddressFunc(String name) {
         return new LongHandleIntAddressMethodPtr(this, name);
     }
+
     public LongHandleIntMethodPtr longHandleIntFunc(String name) {
         return new LongHandleIntMethodPtr(this, name);
     }
+
     public LongHandleLongAddressMethodPtr longHandleLongAddressFunc(String name) {
         return new LongHandleLongAddressMethodPtr(this, name);
+    }
+
+    public StringFunctionMethodPtr stringHandleFunc(String name) {
+        return new StringFunctionMethodPtr(this, name);
+    }
+
+    public StringFunctionLengthMethodPtr stringFunctionLengthMethodPtr(String name) {
+        return new StringFunctionLengthMethodPtr(this, name);
     }
 
 }

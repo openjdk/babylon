@@ -144,6 +144,19 @@ extern "C" long compile(long backendHandle, int len, char *source) {
     return compilationUnitHandle;
 }
 
+extern "C" const char* getDeviceVendor(long backendHandle) {
+    auto *backend = reinterpret_cast<Backend *>(backendHandle);
+    const std::string* str = backend->getDeviceVendor();
+    return str->data();
+}
+
+extern "C" long getStringLength(std::string *str) {
+    if (str == nullptr) {
+        return 0;
+    }
+    return str->length();
+}
+
 extern "C" long getKernel(long compilationUnitHandle, int nameLen, char *name) {
     if (INFO) {
         std::cout << "trampolining through programHandle to compilationUnit.getKernel()"

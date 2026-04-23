@@ -135,6 +135,10 @@ public:
         std::cout << "mock compute start()" << std::endl;
     }
 
+    std::string *getDeviceVendor() override {
+        return new std::string("Mock Vendor");
+    }
+
     CompilationUnit *compile(int len, char *source) override {
         std::cout << "mock compileProgram()" << std::endl;
         size_t srcLen = ::strlen(source);

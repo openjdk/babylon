@@ -24,13 +24,11 @@
  */
 package hat.backend;
 
-
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
-//import hat.backend.java.JavaMultiThreadedBackend;
-//import hat.backend.java.JavaSequentialBackend;
+import hat.callgraph.KernelCallGraph;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -39,11 +37,8 @@ import optkl.FuncOpParams;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.ifacemapper.AccessType;
-import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.carriers.ArenaAndLookupCarrier;
-import optkl.util.carriers.ArenaCarrier;
-import optkl.util.carriers.LookupCarrier;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -55,25 +50,33 @@ import static hat.ComputeContext.WRAPPER.ACCESS;
 import static hat.ComputeContext.WRAPPER.MUTATE;
 import static optkl.OpHelper.Invoke.invoke;
 
-public  abstract class Backend implements ArenaAndLookupCarrier {
+//import hat.backend.java.JavaMultiThreadedBackend;
+//import hat.backend.java.JavaSequentialBackend;
+
+public abstract class Backend implements ArenaAndLookupCarrier {
     private final Config config;
 
-    public Config config(){
+    public Config config() {
         return config;
     }
 
     private final Arena arena;
-    @Override public Arena arena(){
+
+    @Override
+    public Arena arena() {
         return arena;
     }
+
     private final MethodHandles.Lookup lookup;
-    @Override public MethodHandles.Lookup lookup(){
+
+    @Override
+    public MethodHandles.Lookup lookup() {
         return lookup;
     }
 
-    protected Backend(Arena arena, MethodHandles.Lookup lookup,Config config){
+    protected Backend(Arena arena, MethodHandles.Lookup lookup, Config config) {
         this.lookup = lookup;
-        this.arena =arena;
+        this.arena = arena;
         this.config = config;
     }
 
@@ -105,9 +108,8 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
 
     public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
 
-
-    public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        var transformer = Trxfmr.of(lookup,funcOp);
+    public static CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        var transformer = Trxfmr.of(lookup, funcOp);
         if (config.minimizeCopies()) {
             var paramTable = new FuncOpParams(funcOp);
             return transformer
@@ -154,6 +156,5 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
             return transformer.when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE not injecting buffer tracking)")).funcOp();
         }
     }
-
 
 }
