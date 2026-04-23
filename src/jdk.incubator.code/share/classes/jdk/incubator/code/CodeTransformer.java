@@ -63,31 +63,24 @@ public interface CodeTransformer {
      * @return the code transformer that transforms operations.
      */
     static CodeTransformer opTransformer(OpTransformer opTransformer) {
-        final class CodeTransformerOfOps implements CodeTransformer, Function<Op, Op.Result> {
-            Block.Builder builder;
-            Op op;
-
-            @Override
-            public Block.Builder acceptOp(Block.Builder builder, Op op) {
-                this.builder = builder;
-                this.op = op;
-                // Use null if there is no mapping in the output
-                // This can happen if an operation is removed by not applying
-                // it to the builder
-                List<Value> operands = op.operands().stream()
-                        .map(v -> builder.context().getValueOrDefault(v, null)).toList();
-                opTransformer.acceptOp(this, op, operands);
-                return builder;
-            }
-
-            @Override
-            public Op.Result apply(Op op) {
-                Op.Result result = builder.op(op);
-                builder.context().mapValue(this.op.result(), result);
+        return (builder, inputOp) -> {
+            // Allocate op builder function capturing builder and inputOp
+            // This is simpler and safer that using fields holding the builder and inputOp
+            // and protecting use against reentry of calls to builder.op for an attached
+            // operation that is transformed and contains bodies
+            // @@@ If performance is an issue consider changing
+            Function<Op, Op.Result> opBuilder = outputOp -> {
+                Op.Result result = builder.op(outputOp);
+                builder.context().mapValue(inputOp.result(), result);
                 return result;
-            }
-        }
-        return new CodeTransformerOfOps();
+            };
+
+            List<Value> outputOperands = inputOp.operands().stream()
+                    .map(v -> builder.context().getValueOrDefault(v, null)).toList();
+
+            opTransformer.acceptOp(opBuilder, inputOp, outputOperands);
+            return builder;
+        };
     }
 
     /**

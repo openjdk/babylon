@@ -267,7 +267,7 @@ public final class SSA {
                         List<Value> values = context.getValues(successor.arguments());
                         values.addAll(additionalParams);
                         Block.Builder successorBlockBuilder = context.getBlock(successorBlock);
-                        context.mapSuccessor(successor, successorBlockBuilder.reference(values));
+                        context.mapReference(successor, successorBlockBuilder.reference(values));
                     }
                     block.op(op);
                 }
@@ -447,7 +447,7 @@ public final class SSA {
                             List<Value> toArgs = cc.getValues(s.arguments());
                             toArgs.addAll(values);
                             Block.Reference toS = cc.getBlock(s.targetBlock()).reference(toArgs);
-                            cc.mapSuccessor(s, toS);
+                            cc.mapReference(s, toS);
                         }
                     }
 

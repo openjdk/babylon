@@ -792,7 +792,16 @@ public final class BytecodeGenerator {
                             case JavaType jt -> {
                                 cob.new_(jt.toNominalDescriptor())
                                     .dup();
-                                processOperands(op);
+                                if (op.isVarargs()) {
+                                    int varargIndex = op.constructorReference().signature().parameterTypes().size() - 1;
+                                    var argOperands = op.operands().subList(0, varargIndex);
+                                    processOperands(argOperands);
+                                    var compType = ((ArrayType) op.constructorReference().signature().parameterTypes().getLast()).componentType();
+                                    var varArgOperands = op.operands().subList(varargIndex, op.operands().size());
+                                    loadArray(compType, varArgOperands);
+                                } else {
+                                    processOperands(op);
+                                }
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
                                         ConstantDescs.INIT_NAME,
@@ -828,23 +837,8 @@ public final class BytecodeGenerator {
                         if (op.isVarArgs()) {
                             processOperands(op.argOperands());
                             var varArgOperands = op.varArgOperands();
-                            cob.loadConstant(varArgOperands.size());
                             var compType = ((ArrayType) op.invokeReference().signature().parameterTypes().getLast()).componentType();
-                            var compTypeDesc = compType.toNominalDescriptor();
-                            var typeKind = TypeKind.from(compTypeDesc);
-                            if (compTypeDesc.isPrimitive()) {
-                                cob.newarray(typeKind);
-                            } else {
-                                cob.anewarray(compTypeDesc);
-                            }
-                            for (int j = 0; j < varArgOperands.size(); j++) {
-                                // we duplicate array value on the stack to be consumed by arrayStore
-                                // after completion of this loop the array value will be on top of the stack
-                                cob.dup();
-                                cob.loadConstant(j);
-                                load(varArgOperands.get(j));
-                                cob.arrayStore(typeKind);
-                            }
+                            loadArray(compType, varArgOperands);
                         } else {
                             processOperands(op);
                         }
@@ -1083,6 +1077,25 @@ public final class BytecodeGenerator {
             }
         }
         exceptionRegionsChange(new Block[0]);
+    }
+
+    private void loadArray(JavaType compType, List<Value> array) {
+        cob.loadConstant(array.size());
+        var compTypeDesc = compType.toNominalDescriptor();
+        var typeKind = TypeKind.from(compTypeDesc);
+        if (compTypeDesc.isPrimitive()) {
+            cob.newarray(typeKind);
+        } else {
+            cob.anewarray(compTypeDesc);
+        }
+        for (int j = 0; j < array.size(); j++) {
+            // we duplicate array value on the stack to be consumed by arrayStore
+            // after completion of this loop the array value will be on top of the stack
+            cob.dup();
+            cob.loadConstant(j);
+            load(array.get(j));
+            cob.arrayStore(typeKind);
+        }
     }
 
     private void exceptionRegionsChange(Block[] newCatchBlocks) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,10 +24,10 @@
  */
 package hat.phases;
 
-import hat.dialect.HATBarrierOp;
+import hat.KernelContext;
+import hat.dialect.HATThreadOp;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 
@@ -35,22 +35,22 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
 
-import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.FieldAccess.fieldAccess;
 
-public record HATBarrierPhase() implements HATPhase {
+public record HATWarpSizePhase() implements HATPhase {
+
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-         Set<CodeElement<?,?>> removeMe = new HashSet<>();
-         return Trxfmr.of(lookup,funcOp).transform(ce->ce instanceof JavaOp.InvokeOp, c-> {
-                         if (invoke(lookup,c.op()) instanceof OpHelper.Invoke.Virtual  virtual &&
-                                  virtual.isInstanceAccessedViaVarAccess()                  // we are called via var kc such as kc->XX()
-                              && virtual.named(HATBarrierOp.NAME)){
-                             removeMe.add(virtual.instanceVarAccess().op());
-                             c.replace(new HATBarrierOp());
-                         }
-                    })
-                 .remap(removeMe) // replaced varOps with new identities
-                 .remove(removeMe::contains)
-                 .funcOp();
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
+        return Trxfmr.of(lookup, funcOp)
+                .transform(c -> {
+                    if (fieldAccess(lookup, c.op()) instanceof OpHelper.FieldAccess.Instance fieldAccess
+                            && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("wrs")) {
+                        varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());
+                        c.replace(HATThreadOp.create(fieldAccess.name()));
+                    }})
+                .remap(varAccessesToBeRemoved)
+                .remove(varAccessesToBeRemoved::contains)
+                .funcOp();
     }
 }

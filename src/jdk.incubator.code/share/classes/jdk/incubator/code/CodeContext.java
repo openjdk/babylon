@@ -62,14 +62,14 @@ public final class CodeContext {
     private final CodeContext parent;
     private Map<Value, Value> valueMap;
     private Map<Block, Block.Builder> blockMap;
-    private Map<Block.Reference, Block.Reference> successorMap;
+    private Map<Block.Reference, Block.Reference> referenceMap;
     private Map<Object, Object> propertiesMap;
 
     private CodeContext(CodeContext that) {
         this.parent = that;
         this.blockMap = emptyMap();
         this.valueMap = emptyMap();
-        this.successorMap = emptyMap();
+        this.referenceMap = emptyMap();
         this.propertiesMap = emptyMap();
     }
 
@@ -91,6 +91,7 @@ public final class CodeContext {
      *
      * @param input the input value
      * @throws IllegalArgumentException if there is no mapping
+     * @see #mapValue(Value, Value)
      */
     public Value getValue(Value input) {
         Value output = getValueOrNull(input);
@@ -105,6 +106,7 @@ public final class CodeContext {
      *
      * @param input the input value
      * @param defaultValue the default value to return if no mapping
+     * @see #getValue(Value)
      */
     public Value getValueOrDefault(Value input, Value defaultValue) {
         Value output = getValueOrNull(input);
@@ -121,6 +123,7 @@ public final class CodeContext {
      * @param inputs the list of input values
      * @return a modifiable list of output values
      * @throws IllegalArgumentException if an input value has no mapping
+     * @see #getValue(Value)
      */
     // @@@ If getValue is modified to return null then this method should fail on null
     public List<Value> getValues(List<? extends Value> inputs) {
@@ -150,6 +153,7 @@ public final class CodeContext {
      * @param input the input value
      * @param output the output value
      * @throws IllegalArgumentException if the output value's declaring block is built
+     * @see #getValue(Value)
      */
     public void mapValue(Value input, Value output) {
         Objects.requireNonNull(input);
@@ -174,6 +178,7 @@ public final class CodeContext {
      * @param output the output value
      * @return the previous mapped value, or null of there was no mapping.
      * @throws IllegalArgumentException if the output value's declaring block is built
+     * @see #mapValue(Value, Value)
      */
     // @@@ Is this needed?
     public Value mapValueIfAbsent(Value input, Value output) {
@@ -199,6 +204,7 @@ public final class CodeContext {
      * @param inputs the input values
      * @param outputs the output values.
      * @throws IllegalArgumentException if an output value's declaring block is built
+     * @see #mapValue(Value, Value)
      */
     public void mapValues(List<? extends Value> inputs, List<? extends Value> outputs) {
         // @@@ sizes should be the same?
@@ -214,6 +220,7 @@ public final class CodeContext {
      * {@return the output block builder mapped to the input block, otherwise null if no mapping}
      *
      * @param input the input block
+     * @see #getBlock(Block)
      */
     // @@@ throw IllegalArgumentException if there is no mapping?
     public Block.Builder getBlock(Block input) {
@@ -230,6 +237,7 @@ public final class CodeContext {
      * @param input the input block
      * @param output the output block builder
      * @throws IllegalArgumentException if the output block builder's block is built
+     * @see #getBlock(Block)
      */
     public void mapBlock(Block input, Block.Builder output) {
         Objects.requireNonNull(input);
@@ -246,19 +254,20 @@ public final class CodeContext {
     }
 
 
-    // Successor mappings
+    // Reference mappings
 
     /**
      * {@return the output block reference mapped to the input block reference,
      * otherwise null if no mapping}
      *
      * @param input the input reference
+     * @see #mapReference(Block.Reference, Block.Reference)
      */
     // @@@ throw IllegalArgumentException if there is no mapping?
-    public Block.Reference getSuccessor(Block.Reference input) {
+    public Block.Reference getReference(Block.Reference input) {
         Objects.requireNonNull(input);
 
-        return successorMap.get(input);
+        return referenceMap.get(input);
     }
 
     /**
@@ -270,8 +279,9 @@ public final class CodeContext {
      * @param output the output block reference
      * @throws IllegalArgumentException if the output block reference's target block is built or any of the
      * reference's arguments declaring blocks are built.
+     * @see #getReference(Block.Reference)
      */
-    public void mapSuccessor(Block.Reference input, Block.Reference output) {
+    public void mapReference(Block.Reference input, Block.Reference output) {
         Objects.requireNonNull(input);
         Objects.requireNonNull(output);
 
@@ -285,10 +295,10 @@ public final class CodeContext {
             }
         }
 
-        if (successorMap == EMPTY_MAP) {
-            successorMap = new HashMap<>();
+        if (referenceMap == EMPTY_MAP) {
+            referenceMap = new HashMap<>();
         }
-        successorMap.put(input, output);
+        referenceMap.put(input, output);
     }
 
     /**
@@ -296,21 +306,22 @@ public final class CodeContext {
      * block reference.
      * <p>
      * A new, unmapped reference, is created by obtaining the mapped output block builder from the input reference's
-     * target block, and creating a successor from the output block builder with arguments that is the result of
+     * target block, and creating a reference from the output block builder with arguments that is the result of
      * obtaining the mapped values from the input reference's arguments.
      *
      * @param input the input block reference
      * @return the output block reference, if present, otherwise a created block reference
      * @throws IllegalArgumentException if a new reference is to be created and there is no block mapping for the
      * input's target block or there is no value mapping for an input's argument
+     * @see #getReference(Block.Reference)
      */
-    public Block.Reference getSuccessorOrCreate(Block.Reference input) {
-        Block.Reference successor = getSuccessor(input);
-        if (successor != null) {
-            return successor;
+    public Block.Reference getReferenceOrCreate(Block.Reference input) {
+        Block.Reference reference = getReference(input);
+        if (reference != null) {
+            return reference;
         }
 
-        // Create successor
+        // Create reference
         Block.Builder outputBlock = getBlock(input.targetBlock());
         if (outputBlock == null) {
             throw new IllegalArgumentException("No mapping for input reference target block" + input.targetBlock());
@@ -325,6 +336,7 @@ public final class CodeContext {
      * {@return an object associated with a property key, or null if not associated.}
      *
      * @param key the property key
+     * @see #putProperty(Object, Object)
      */
     public Object getProperty(Object key) {
         CodeContext p = this;
@@ -345,6 +357,7 @@ public final class CodeContext {
      * @param key the property key
      * @param value the associated object
      * @return the current associated object, or null if not associated
+     * @see #getProperty(Object)
      */
     public Object putProperty(Object key, Object value) {
         if (propertiesMap == EMPTY_MAP) {
@@ -361,6 +374,8 @@ public final class CodeContext {
      * @param mappingFunction the mapping function
      * @return the current (existing or computed) object associated with the property key,
      * or null if the computed object is null
+     * @see #getProperty(Object)
+     * @see #putProperty(Object, Object)
      */
     public Object computePropertyIfAbsent(Object key, Function<Object, Object> mappingFunction) {
         if (propertiesMap == EMPTY_MAP) {

@@ -428,12 +428,17 @@ public final class Body implements CodeElement<Body, Block> {
      * <p>
      * When the body builder is {@link Body.Builder#build(Op) built} all associated {@link Block.Builder block builders}
      * are also built and their blocks become children of the body.
+     * <p>
+     * A body builder has an entry block {@link #entryBlock builder} from which sibling block builders may be
+     * {@link Block.Builder#block(List) created}.
      */
     public final class Builder {
         /**
-         * Creates a body builder with a new context, and a copying transformer.
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a
+         * {@link CodeContext#create() new} code context and a {@link CodeTransformer#COPYING_TRANSFORMER copying}
+         * code transformer.
          *
-         * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
+         * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
          * @param bodySignature the body's signature
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
@@ -445,11 +450,12 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Creates a body builder with a copying transformer.
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has the given code context
+         * and a {@link CodeTransformer#COPYING_TRANSFORMER copying} code transformer.
          *
-         * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
+         * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
          * @param bodySignature the body's signature
-         * @param cc            the context
+         * @param cc            the code context
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
@@ -459,7 +465,8 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Creates a body builder.
+         * Creates a body builder, with entry block {@link #entryBlock builder} that has the given code context
+         * and code transformer.
          * <p>
          * Structurally, the created body builder must be built before its ancestor body builder (if non-null) is built,
          * otherwise an {@code IllegalStateException} will occur.
@@ -470,22 +477,23 @@ public final class Body implements CodeElement<Body, Block> {
          * An entry block builder is created with appended block parameters corresponding, in order, to
          * the function type's parameter types.
          * <p>
-         * If the ancestor body is null then the created body builder is isolated and descendant operations may only
-         * use values declared within the created body builder. Otherwise, operations
-         * may use reachable values declared in the ancestor body builders (outside the created body builder).
+         * If the ancestor body is {@code null} then the created body builder is isolated and descendant operations may
+         * only use values declared within the created body builder. Otherwise, operations may use reachable values
+         * declared in the ancestor body builders (outside the created body builder).
+         * <p>
+         * The entry block {@link #entryBlock builder}
          *
-         * @param ancestorBody  the nearest ancestor body builder, may be null if isolated
+         * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
          * @param bodySignature the body's signature
-         * @param cc            the context
-         * @param ot            the transformer
+         * @param cc            the code context
+         * @param ct            the code transformer
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
-         * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
         public static Builder of(Builder ancestorBody, FunctionType bodySignature,
-                                 CodeContext cc, CodeTransformer ot) {
+                                 CodeContext cc, CodeTransformer ct) {
             Body body = new Body(ancestorBody != null ? ancestorBody.target() : null, bodySignature.returnType());
-            return body.new Builder(ancestorBody, bodySignature, cc, ot);
+            return body.new Builder(ancestorBody, bodySignature, cc, ct);
         }
 
         // The ancestor body, may be null
@@ -501,7 +509,7 @@ public final class Body implements CodeElement<Body, Block> {
         boolean closed;
 
         Builder(Builder ancestorBody, FunctionType bodySignature,
-                CodeContext cc, CodeTransformer ot) {
+                CodeContext cc, CodeTransformer ct) {
             // Structural check
             // The ancestor body should not be built before this body is created
             if (ancestorBody != null) {
@@ -512,7 +520,7 @@ public final class Body implements CodeElement<Body, Block> {
             this.ancestorBody = ancestorBody;
             // Create entry block from the body's function type
             Block eb = Body.this.createBlock(bodySignature.parameterTypes());
-            this.entryBlock = eb.new Builder(this, cc, ot);
+            this.entryBlock = eb.new Builder(this, cc, ct);
         }
 
         void addGreatgrandchild(Builder greatgrandchild) {
@@ -644,11 +652,11 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         // Build new block in body
-        Block.Builder block(List<CodeType> params, CodeContext cc, CodeTransformer ot) {
+        Block.Builder block(List<CodeType> params, CodeContext cc, CodeTransformer ct) {
             check();
             Block block = Body.this.createBlock(params);
 
-            return block.new Builder(this, cc, ot);
+            return block.new Builder(this, cc, ct);
         }
     }
 
@@ -659,6 +667,7 @@ public final class Body implements CodeElement<Body, Block> {
      * @return the builder of a body containing the copied body
      * @see #transform(CodeContext, CodeTransformer)
      */
+    // @@@ Remove
     public Builder copy(CodeContext cc) {
         return transform(cc, CodeTransformer.COPYING_TRANSFORMER);
     }
@@ -666,16 +675,26 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Transforms this body.
      * <p>
-     * A new body builder is created with the same function type as this body.
-     * Then, this body is {@link Block.Builder#body(Body, java.util.List, CodeContext, CodeTransformer) transformed}
-     * into the body builder's entry block builder with the given code context, operation transformer, and arguments
-     * that are the entry block builder's parameters.
+     * A new body builder is first {@link Body.Builder#of(Builder, FunctionType, CodeContext, CodeTransformer) created}
+     * with the following arguments:
+     * <ul>
+     * <li>an ancestor body builder that is the {@link Block.Builder#parentBody parent} body builder of the entry block
+     * builder {@link CodeContext#getBlock(Block) associated} with this body's ancestor entry block in the parent code
+     * context, otherwise {@code null} if this body has no ancestor entry block or there is no associated entry block
+     * builder.
+     * <li>this body's signature.
+     * <li>a {@link CodeContext#create(CodeContext) child} code context of the given parent code context.
+     * <li>the given code transformer.
+     * </ul>
+     * Then the given code transformer is used to transform this body by
+     * {@link CodeTransformer#acceptBody accepting} the new body builder's entry block builder, this body, and the entry
+     * block builder's parameters.
      *
-     * @param cc the code context
-     * @param ot the operation transformer
+     * @param cc the parent code context
+     * @param ct the code transformer
      * @return a body builder containing the transformed body
      */
-    public Builder transform(CodeContext cc, CodeTransformer ot) {
+    public Builder transform(CodeContext cc, CodeTransformer ct) {
         Block.Builder ancestorBlockBuilder = ancestorBody != null
                 ? cc.getBlock(ancestorBody.entryBlock()) : null;
         Builder ancestorBodyBuilder = ancestorBlockBuilder != null
@@ -684,10 +703,10 @@ public final class Body implements CodeElement<Body, Block> {
                 bodySignature(),
                 // Create child context for mapped code items contained in this body
                 // thereby not polluting the given context
-                CodeContext.create(cc), ot);
+                CodeContext.create(cc), ct);
 
         // Transform body starting from the entry block builder
-        ot.acceptBody(bodyBuilder.entryBlock, this, bodyBuilder.entryBlock.parameters());
+        ct.acceptBody(bodyBuilder.entryBlock, this, bodyBuilder.entryBlock.parameters());
         return bodyBuilder;
     }
 

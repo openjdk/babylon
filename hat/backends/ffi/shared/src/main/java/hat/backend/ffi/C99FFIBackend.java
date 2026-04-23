@@ -100,10 +100,9 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                     kernelBufferContext.gsz(global3D.z());
                     kernelBufferContext.dimensions(global3D.dimension());
                 }
-                case null, default -> {
-                    throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.global().getClass());
-                }
+                case null, default -> throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.global().getClass());
             }
+
             if (kernelContext.ndRange.hasLocal()) {
                 kernelBufferContext.lsy(1);
                 kernelBufferContext.lsz(1);
@@ -123,15 +122,54 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                         kernelBufferContext.lsz(local3D.z());
                         kernelBufferContext.dimensions(local3D.dimension());
                     }
-                    case null, default -> {
-                        throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.local().getClass());
-                    }
+                    case null, default -> throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.local().getClass());
                 }
             } else {
                 kernelBufferContext.lsx(0);
                 kernelBufferContext.lsy(0);
                 kernelBufferContext.lsz(0);
             }
+
+            // Set Tile
+            kernelBufferContext.tlx(0);
+            kernelBufferContext.tly(0);
+            kernelBufferContext.tlz(0);
+            if (kernelContext.ndRange.hasTile()) {
+                switch (kernelContext.ndRange.tile()) {
+                    case NDRange.Tile1D tile1D -> kernelBufferContext.tlx(tile1D.x());
+                    case NDRange.Tile2D tile2D -> {
+                        kernelBufferContext.tlx(tile2D.x());
+                        kernelBufferContext.tly(tile2D.y());
+                    }
+                    case NDRange.Tile3D tile3D -> {
+                        kernelBufferContext.tlx(tile3D.x());
+                        kernelBufferContext.tly(tile3D.y());
+                        kernelBufferContext.tlz(tile3D.z());
+                    }
+                    case null, default -> throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.tile().getClass());
+                }
+            }
+
+            // Set warp
+            kernelBufferContext.wsx(false);
+            kernelBufferContext.wsy(false);
+            kernelBufferContext.wsz(false);
+            if (kernelContext.ndRange.hasWarp()) {
+                switch (kernelContext.ndRange.warp()) {
+                    case NDRange.Warp1D warp1D -> kernelBufferContext.wsx(warp1D.x());
+                    case NDRange.Warp2D warp2D -> {
+                        kernelBufferContext.wsx(warp2D.x());
+                        kernelBufferContext.wsy(warp2D.y());
+                    }
+                    case NDRange.Warp3D warp3D -> {
+                        kernelBufferContext.wsx(warp3D.x());
+                        kernelBufferContext.wsy(warp3D.y());
+                        kernelBufferContext.wsz(warp3D.z());
+                    }
+                    case null, default -> throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.warp().getClass());
+                }
+            }
+
             args[0] = this.kernelBufferContext;
             ArgArray.update(argArray, kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);
