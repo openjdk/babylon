@@ -98,6 +98,7 @@ public class TestStringConstantExpressionInterning {
     @MethodSource("cases")
     void test(Method m) throws Throwable {
         FuncOp op = Op.ofMethod(m).get();
+        // expected value is encoded in the method name because evaluation API not fully aligned with JLS
         Object expected = m.getName().startsWith("t");
         MethodHandles.Lookup l = MethodHandles.lookup();
 
