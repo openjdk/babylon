@@ -146,44 +146,44 @@ public sealed abstract class CoreOp extends Op {
             this(mref, def.bodyDefinitions().get(0));
         }
 
-        FuncOp(FuncOp that, CodeContext cc, CodeTransformer ot) {
+        FuncOp(FuncOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.body = that.body.transform(cc, ot).build(this);
+            this.body = that.body.transform(cc, ct).build(this);
             this.mref = that.mref;
         }
 
-        FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ot) {
+        FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.body = that.body.transform(cc, ot).build(this);
+            this.body = that.body.transform(cc, ct).build(this);
             this.mref = MethodRef.method(that.mref.refType(), funcName, that.mref.signature());
         }
 
         @Override
-        public FuncOp transform(CodeContext cc, CodeTransformer ot) {
-            return new FuncOp(this, cc, ot);
+        public FuncOp transform(CodeContext cc, CodeTransformer ct) {
+            return new FuncOp(this, cc, ct);
         }
 
         /**
          * Transforms a function operation using the given code transformer and a new context.
          *
-         * @param ot code transformer to apply to this function operation
+         * @param ct code transformer to apply to this function operation
          * @return the transformed function operation
          */
-        public FuncOp transform(CodeTransformer ot) {
-            return new FuncOp(this, CodeContext.create(), ot);
+        public FuncOp transform(CodeTransformer ct) {
+            return new FuncOp(this, CodeContext.create(), ct);
         }
 
         /**
          * Transforms a function operation using the given function name, code transformer and a new context.
          *
          * @param funcName the new function name
-         * @param ot code transformer to apply to this function operation
+         * @param ct code transformer to apply to this function operation
          * @return the transformed function operation
          */
-        public FuncOp transform(String funcName, CodeTransformer ot) {
-            return new FuncOp(this, funcName, CodeContext.create(), ot);
+        public FuncOp transform(String funcName, CodeTransformer ct) {
+            return new FuncOp(this, funcName, CodeContext.create(), ct);
         }
 
         FuncOp(MethodRef mref, Body.Builder bodyBuilder) {
@@ -286,7 +286,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public FuncCallOp transform(CodeContext cc, CodeTransformer ot) {
+        public FuncCallOp transform(CodeContext cc, CodeTransformer ct) {
             return new FuncCallOp(this, cc);
         }
 
@@ -343,10 +343,10 @@ public sealed abstract class CoreOp extends Op {
             this(def.bodyDefinitions().get(0));
         }
 
-        ModuleOp(ModuleOp that, CodeContext cc, CodeTransformer ot) {
+        ModuleOp(ModuleOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.body = that.body.transform(cc, ot).build(this);
+            this.body = that.body.transform(cc, ct).build(this);
             this.table = createTable(body);
         }
 
@@ -363,18 +363,18 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public ModuleOp transform(CodeContext cc, CodeTransformer ot) {
-            return new ModuleOp(this, cc, ot);
+        public ModuleOp transform(CodeContext cc, CodeTransformer ct) {
+            return new ModuleOp(this, cc, ct);
         }
 
         /**
          * Transforms a module operation using the given code transformer and a new context.
          *
-         * @param ot code transformer to apply to the module operation
+         * @param ct code transformer to apply to the module operation
          * @return the transformed module operation
          */
-        public ModuleOp transform(CodeTransformer ot) {
-            return new ModuleOp(this, CodeContext.create(), ot);
+        public ModuleOp transform(CodeTransformer ct) {
+            return new ModuleOp(this, CodeContext.create(), ct);
         }
 
         ModuleOp(Body.Builder bodyBuilder) {
@@ -558,16 +558,16 @@ public sealed abstract class CoreOp extends Op {
             this(def.bodyDefinitions().get(0));
         }
 
-        QuotedOp(QuotedOp that, CodeContext cc, CodeTransformer ot) {
+        QuotedOp(QuotedOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.quotedBody = that.quotedBody.transform(cc, ot).build(this);
+            this.quotedBody = that.quotedBody.transform(cc, ct).build(this);
             this.quotedOp = getQuotedOp(quotedBody);
         }
 
         @Override
-        public QuotedOp transform(CodeContext cc, CodeTransformer ot) {
-            return new QuotedOp(this, cc, ot);
+        public QuotedOp transform(CodeContext cc, CodeTransformer ct) {
+            return new QuotedOp(this, cc, ct);
         }
 
         QuotedOp(Body.Builder bodyC) {
@@ -642,7 +642,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public ReturnOp transform(CodeContext cc, CodeTransformer ot) {
+        public ReturnOp transform(CodeContext cc, CodeTransformer ct) {
             return new ReturnOp(this, cc);
         }
 
@@ -695,7 +695,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public UnreachableOp transform(CodeContext cc, CodeTransformer ot) {
+        public UnreachableOp transform(CodeContext cc, CodeTransformer ct) {
             return new UnreachableOp(this, cc);
         }
 
@@ -735,7 +735,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public YieldOp transform(CodeContext cc, CodeTransformer ot) {
+        public YieldOp transform(CodeContext cc, CodeTransformer ct) {
             return new YieldOp(this, cc);
         }
 
@@ -791,11 +791,11 @@ public sealed abstract class CoreOp extends Op {
         BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.branch = cc.getSuccessorOrCreate(that.branch);
+            this.branch = cc.getReferenceOrCreate(that.branch);
         }
 
         @Override
-        public BranchOp transform(CodeContext cc, CodeTransformer ot) {
+        public BranchOp transform(CodeContext cc, CodeTransformer ct) {
             return new BranchOp(this, cc);
         }
 
@@ -853,12 +853,12 @@ public sealed abstract class CoreOp extends Op {
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
 
-            this.trueBranch = cc.getSuccessorOrCreate(that.trueBranch);
-            this.falseBranch = cc.getSuccessorOrCreate(that.falseBranch);
+            this.trueBranch = cc.getReferenceOrCreate(that.trueBranch);
+            this.falseBranch = cc.getReferenceOrCreate(that.falseBranch);
         }
 
         @Override
-        public ConditionalBranchOp transform(CodeContext cc, CodeTransformer ot) {
+        public ConditionalBranchOp transform(CodeContext cc, CodeTransformer ct) {
             return new ConditionalBranchOp(this, cc);
         }
 
@@ -972,7 +972,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public ConstantOp transform(CodeContext cc, CodeTransformer ot) {
+        public ConstantOp transform(CodeContext cc, CodeTransformer ct) {
             return new ConstantOp(this, cc);
         }
 
@@ -1087,7 +1087,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public VarOp transform(CodeContext cc, CodeTransformer ot) {
+        public VarOp transform(CodeContext cc, CodeTransformer ct) {
             return new VarOp(this, cc);
         }
 
@@ -1232,7 +1232,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public VarLoadOp transform(CodeContext cc, CodeTransformer ot) {
+            public VarLoadOp transform(CodeContext cc, CodeTransformer ct) {
                 return new VarLoadOp(this, cc);
             }
 
@@ -1280,7 +1280,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             @Override
-            public VarStoreOp transform(CodeContext cc, CodeTransformer ot) {
+            public VarStoreOp transform(CodeContext cc, CodeTransformer ct) {
                 return new VarStoreOp(this, cc);
             }
 
@@ -1329,7 +1329,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TupleOp transform(CodeContext cc, CodeTransformer ot) {
+        public TupleOp transform(CodeContext cc, CodeTransformer ct) {
             return new TupleOp(this, cc);
         }
 
@@ -1385,7 +1385,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TupleLoadOp transform(CodeContext cc, CodeTransformer ot) {
+        public TupleLoadOp transform(CodeContext cc, CodeTransformer ct) {
             return new TupleLoadOp(this, cc);
         }
 
@@ -1465,7 +1465,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public TupleWithOp transform(CodeContext cc, CodeTransformer ot) {
+        public TupleWithOp transform(CodeContext cc, CodeTransformer ct) {
             return new TupleWithOp(this, cc);
         }
 

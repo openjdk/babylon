@@ -23,7 +23,10 @@
  * questions.
  */
 package optkl.codebuilders;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.ClassType;
+import optkl.exceptions.CodeGenException;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -214,6 +217,10 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
             hash().includeKeyword().sp().dquote().id(value).dquote().nl();
         }
         return nl();
+    }
+
+    public final T namespace(String namespace) {
+        return using().sp().namespace().sp().id(namespace).semicolon().nl();
     }
 
     public final T externKeyword() {

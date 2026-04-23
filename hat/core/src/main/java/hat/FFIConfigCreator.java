@@ -31,15 +31,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class FFIConfigCreator {
-    public static void main(String[] args) throws IOException {
+    static void main() throws IOException {
         Path ffiInclude = Path.of("backends/ffi/shared/src/main/native/include");
         if (!Files.isDirectory(ffiInclude)) {
-            System.out.println("No dir at " + ffiInclude);
+            IO.println("No dir at " + ffiInclude);
             System.exit(1);
         }
         Path configDotH = ffiInclude.resolve("config.h");
         if (!Files.isRegularFile(configDotH)) {
-            System.out.println("Expected to replace " + configDotH + " but no file exists");
+            IO.println("Expected to replace " + configDotH + " but no file exists");
             System.exit(1);
         }
 

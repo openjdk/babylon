@@ -29,7 +29,7 @@ import java.util.*;
 
 /**
  * A value, that is the result of an operation or a block parameter.
- * <p>
+ *
  * @sealedGraph
  */
 public sealed abstract class Value implements CodeItem
