@@ -27,7 +27,6 @@ package hat.backend.jextracted;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
-import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -41,11 +40,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
 
     protected OpenCLJExtractedHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraph,scopedCodeBuilderContext);
-    }
-
-    @Override
-    protected OpenCLJExtractedHATKernelBuilder hatWarpSize() {
-        return constant("1");
     }
 
     @Override
@@ -247,45 +241,5 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp $) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp $) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp $) {
-        return blockComment("Not supported yet");
     }
 }

@@ -43,7 +43,6 @@ public class HATTier  {
                 // ID's /thread access
                 new HATThreadsPhase(),
 
-                new HATWarpSizePhase(),
                 // MathLib phase
                 new HATMathLibPhase(),
                 // views for vector types
@@ -60,10 +59,7 @@ public class HATTier  {
                 // Vector Select individual lines
                 new HATVectorSelectPhase(),
                 // F16 type
-                new HATFP16Phase(),
-
-                // Tensors
-                new HATTensorsPhase()
+                new HATFP16Phase()
         );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){
