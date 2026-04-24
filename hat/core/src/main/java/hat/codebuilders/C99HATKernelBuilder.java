@@ -746,8 +746,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case CoreOp.VarOp $ -> varName($);
             case HATMemoryVarOp $ -> varName($);
             //case HATVectorOp.HATVectorVarOp $ -> varName($);
-            case HATVectorOp.HATVectorLoadOp $ -> varName($);
-            case HATVectorOp.HATVectorBinaryOp $ -> varName($);
+            //case HATVectorOp.HATVectorLoadOp $ -> varName($);
+            //case HATVectorOp.HATVectorBinaryOp $ -> varName($);
             //case HATF16Op.HATF16VarOp $ -> varName($);
             // The F16 goes to HATVarOp
             //case HATMemoryVarOp.HATVarOp $ -> varName($);
