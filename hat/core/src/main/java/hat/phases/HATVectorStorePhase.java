@@ -62,7 +62,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
         return switch (v) {
             case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
                     findNameVector(varLoadOp.operands().getFirst());
-            case CoreOp.Result r when r.op() instanceof HATVectorOp hatVectorOp -> hatVectorOp.varName();
+            case Op.Result r when r.op() instanceof HATMemoryVarOp.HATVarOp hatVarOp -> hatVarOp.varName();
             default -> throw new IllegalStateException("no name");
         };
     }

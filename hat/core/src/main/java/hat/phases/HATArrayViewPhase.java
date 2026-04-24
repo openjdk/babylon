@@ -181,7 +181,7 @@ public record HATArrayViewPhase() implements HATPhase {
                 }
                 case CoreOp.VarOp varOp -> {
                     if (isVectorOp(lookup,varOp)) {
-                        var hatVectorVarOp = new HATVectorOp.HATVectorVarOp(
+                        var hatVectorVarOp = new HATMemoryVarOp.HATVarOp(
                                 varOp.varName(),
                                 varOp.resultType(),
                                 getVectorShape(lookup,varOp.resultType().valueType()),

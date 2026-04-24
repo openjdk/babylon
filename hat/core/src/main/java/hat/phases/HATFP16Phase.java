@@ -26,6 +26,8 @@ package hat.phases;
 
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATF16Op;
+import hat.dialect.HATMemoryVarOp;
+import hat.dialect.HATTensorOp;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -61,7 +63,8 @@ public record HATFP16Phase() implements HATPhase {
     private static String findVarNameOrNull(Value v) {
         return  (v instanceof Op.Result r) ? switch (r.op()){
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp-> findVarNameOrNull(varLoadOp); //recurse
-            case HATF16Op.HATF16VarOp hatf16VarOp -> hatf16VarOp.varName();
+            //case HATF16Op.HATF16VarOp hatf16VarOp -> hatf16VarOp.varName();
+            case HATMemoryVarOp.HATVarOp hatVarOp -> hatVarOp.varName();
             default -> null;
         }:null;
     }
@@ -75,7 +78,7 @@ public record HATFP16Phase() implements HATPhase {
     private static boolean isF16Local(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
-            case HATF16Op.HATF16VarOp _ -> true;
+            case HATMemoryVarOp.HATVarOp _ -> true;
             default -> false;
         };
     }
@@ -90,7 +93,7 @@ public record HATFP16Phase() implements HATPhase {
     public static void createF16VarOp(CoreOp.VarOp varOp, Block.Builder blockBuilder, Class<?> reducedFloatType) {
         blockBuilder.context().mapValue(varOp.result(),
                 blockBuilder.op(copyLocation(varOp,
-                                new HATF16Op.HATF16VarOp(
+                                new HATMemoryVarOp.HATVarOp(
                                         varOp.varName(),
                                         reducedFloatType, varOp.resultType(),
                                         blockBuilder.context().getValues(varOp.operands()))
@@ -183,7 +186,7 @@ public record HATFP16Phase() implements HATPhase {
                 .forEach(invoke -> {
                     if (invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                             && varLoadOp.operands().getFirst() instanceof Op.Result firstOperandsOpResult
-                            && firstOperandsOpResult.op() instanceof HATF16Op.HATF16VarOp) {
+                            && firstOperandsOpResult.op() instanceof HATMemoryVarOp.HATVarOp) {
                         nodesInvolved.addAll(Set.of(invoke.op(), varLoadOp));
                     }
                 });

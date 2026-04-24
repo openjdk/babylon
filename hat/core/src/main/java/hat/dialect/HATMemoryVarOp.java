@@ -29,7 +29,9 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
+import optkl.IfaceValue;
 import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
@@ -59,6 +61,93 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
     public abstract ClassType classType();
 
     public abstract CodeType invokeType();
+
+    public static final class HATVarOp extends HATMemoryVarOp  {
+
+        private final VarType codeType;
+        private final String varName;
+        private final Class<?> float16Class;
+        private final IfaceValue.Vector.Shape vectorShape;
+
+        // Seems we need to add attributes in the form of( {"Attrib" -> object })
+        // float16Class is only needed for F16
+        // Vector Shape is only needed in the case of Vectors
+
+        public HATVarOp(String varName, VarType codeType, List<Value> operands) {
+            super(varName, operands);
+            this.varName = varName;
+            this.codeType = codeType;
+            this.float16Class = null;
+            this.vectorShape = null;
+        }
+
+        public HATVarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
+            super(varName, operands);
+            this.varName = varName;
+            this.codeType = varType;
+            this.float16Class = float16Class;
+            this.vectorShape = null;
+        }
+
+        public HATVarOp(String varName, VarType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operand) {
+            super(varName, operand);
+            this.varName = varName;
+            this.codeType = resultType;
+            this.vectorShape = vectorShape;
+            this.float16Class = null;
+        }
+
+        public HATVarOp(HATVarOp op, CodeContext copyContext) {
+            super(op, copyContext);
+            this.varName = op.varName;
+            this.codeType = op.codeType;
+            this.float16Class = op.float16Class;
+            this.vectorShape = op.vectorShape;
+        }
+
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATVarOp(this, copyContext);
+        }
+
+        @Override
+        public CodeType resultType() {
+            return codeType;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("hat.dialect.HATVarOp." + varName, codeType);
+        }
+
+        @Override
+        public String varName() {
+            return varName;
+        }
+
+        @Override
+        public ClassType classType() {
+            return null;
+        }
+
+        @Override
+        public CodeType invokeType() {
+            return null;
+        }
+
+        public Class<?> float16Class() {
+            return float16Class;
+        }
+
+        public boolean hasVectorShape() {
+            return vectorShape != null;
+        }
+
+        public String buildVectorType() {
+            return vectorShape.codeType().toString() + vectorShape.lanes();
+        }
+    }
+
 
     public static final  class HATLocalVarOp extends HATMemoryVarOp {
         private final CodeType codeType;

@@ -67,8 +67,8 @@ public abstract sealed class HATVectorPhase implements HATPhase
             return findVectorVarNameOrNull(varLoadOp);
         } else {
             // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-                return hatVectorOp.varName();
+            if (v instanceof CoreOp.Result r && r.op() instanceof HATMemoryVarOp.HATVarOp hatVarOp) {
+                return hatVarOp.varName();
             }
             return null;
         }
@@ -124,7 +124,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
 
 
     private void addVectorVarOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, Vector.Shape vectorShape) {
-        HATVectorOp memoryViewOp = new HATVectorOp.HATVectorVarOp(
+        var memoryViewOp = new HATMemoryVarOp.HATVarOp(
                 varOp.varName(),
                 varOp.resultType(),
                 vectorShape,

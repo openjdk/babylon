@@ -38,6 +38,12 @@ import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
+import static hat.dialect.HATF16Op.*;
+import static hat.dialect.HATMemoryDefOp.*;
+import static hat.dialect.HATPtrOp.*;
+import static hat.dialect.HATTensorOp.*;
+import static hat.dialect.HATVectorOp.*;
+
 /* this should not be too C99 specific but can reference HAT ops.  */
 public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
@@ -49,59 +55,59 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatThreadIdOp( HATThreadOp hatThreadOp);
 
-    T hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp);
+    //T hatVectorVarOp( HATVectorVarOp hatVectorVarOp);
 
-    T hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatFloat4StoreOp);
+    T hatVectorStoreOp( HATVectorStoreView hatFloat4StoreOp);
 
-    T hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp);
+    T hatBinaryVectorOp( HATVectorBinaryOp hatVectorBinaryOp);
 
-    T hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp);
+    T hatVectorLoadOp( HATVectorLoadOp hatVectorLoadOp);
 
-    T hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp);
+    T hatSelectLoadOp( HATVectorSelectLoadOp hatVSelectLoadOp);
 
-    T hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp);
+    T hatSelectStoreOp( HATVectorSelectStoreOp hatVSelectStoreOp);
 
-    T hatVectorVarLoadOp( HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp);
+    T hatVectorVarLoadOp( HATVectorVarLoadOp hatVectorVarLoadOp);
 
-    T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp);
+    //T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp);
 
-    T hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp);
+    T hatF16BinaryOp( HATF16BinaryOp hatF16BinaryOp);
 
-    T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp);
+    T hatF16VarLoadOp( HATF16VarLoadOp hatF16VarLoadOp);
 
-    T hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp);
+    T hatF16ConvOp( HATF16ConvOp hatF16ConvOp);
 
-    T hatVectorOfOps( HATVectorOp.HATVectorOfOp hatVectorOp);
+    T hatVectorOfOps( HATVectorOfOp hatVectorOp);
 
-    T hatVectorMakeOf( HATVectorOp.HATVectorMakeOfOp hatVectorMakeOfOp);
+    T hatVectorMakeOf( HATVectorMakeOfOp hatVectorMakeOfOp);
 
-    T hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp);
+    T hatF16ToFloatConvOp( HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
     T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp);
 
-    T hatMemoryLoadOp( HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp);
+    T hatMemoryLoadOp( HATMemoryLoadOp hatMemoryLoadOp);
 
-    T hatPtrLoadOp(HATPtrOp.HATPtrLoadOp hatPtrLoadOp);
+    T hatPtrLoadOp(HATPtrLoadOp hatPtrLoadOp);
 
-    T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp);
+    T hatPtrStoreOp( HATPtrStoreOp hatPtrStoreOp);
 
-    T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
+    T hatPtrLengthOp( HATPtrLengthOp hatPtrLengthOp);
 
-    T hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp);
+    T hatVarOp(HATMemoryVarOp.HATVarOp HATVarOp);
 
-    T hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp);
+    T hatTensorCreateOp(TensorCreateOp tensorCreateOp);
 
-    T hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp);
+    T hatTensorFillOp(TensorFillOp tensorFillOp);
 
-    T hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp);
+    T hatTensorVarLoadOp(TensorVarLoadOp hatTensorVarLoadOp);
 
-    T hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp);
+    T hatTensorMMAOp(TensorMMAOp tensorMMAOp);
 
-    T hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp);
+    T hatTensorStoreLoadOp(TensorStoreLoadOp tensorStoreLoadOp);
 
-    T hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp);
+    T hatTensorLoadOp(TensorLoadOp tensorLoadOp);
 
-    T hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp);
+    T hatTensorStoreOp(TensorStoreOp tensorStoreOp);
 
 
     @Override
@@ -113,32 +119,32 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp($);
                 case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp($);
                 case HATThreadOp $ -> hatThreadIdOp($);
-                case HATVectorOp.HATVectorVarOp $ -> hatVectorVarOp($);
-                case HATVectorOp.HATVectorStoreView $ -> hatVectorStoreOp($);
-                case HATVectorOp.HATVectorBinaryOp $ -> hatBinaryVectorOp($);
-                case HATVectorOp.HATVectorLoadOp $ -> hatVectorLoadOp($);
-                case HATVectorOp.HATVectorSelectLoadOp $ -> hatSelectLoadOp($);
-                case HATVectorOp.HATVectorSelectStoreOp $ -> hatSelectStoreOp($);
-                case HATVectorOp.HATVectorVarLoadOp $ -> hatVectorVarLoadOp($);
-                case HATVectorOp.HATVectorOfOp $ -> hatVectorOfOps($);
-                case HATF16Op.HATF16VarOp $ -> hatF16VarOp($);
-                case HATF16Op.HATF16BinaryOp $ -> hatF16BinaryOp($);
-                case HATF16Op.HATF16VarLoadOp $ -> hatF16VarLoadOp($);
-                case HATF16Op.HATF16ConvOp $ -> hatF16ConvOp($);
-                case HATVectorOp.HATVectorMakeOfOp $ -> hatVectorMakeOf($);
-                case HATPtrOp.HATPtrLoadOp $ -> hatPtrLoadOp($);
-                case HATPtrOp.HATPtrStoreOp $ -> hatPtrStoreOp($);
-                case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp($);
-                case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
-                case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp($);
-                case HATTensorOp.TensorVarOp $ -> hatTensorVarOp($);
-                case HATTensorOp.TensorCreateOp $ -> hatTensorCreateOp($);
-                case HATTensorOp.TensorVarLoadOp $ -> hatTensorVarLoadOp($);
-                case HATTensorOp.TensorFillOp $ -> hatTensorFillOp($);
-                case HATTensorOp.TensorMMAOp $ -> hatTensorMMAOp($);
-                case HATTensorOp.TensorStoreLoadOp $ -> hatTensorStoreLoadOp($);
-                case HATTensorOp.TensorLoadOp $ -> hatTensorLoadOp($);
-                case HATTensorOp.TensorStoreOp $ -> hatTensorStoreOp($);
+                //case HATVectorVarOp $ -> hatVectorVarOp($);
+                case HATVectorStoreView $ -> hatVectorStoreOp($);
+                case HATVectorBinaryOp $ -> hatBinaryVectorOp($);
+                case HATVectorLoadOp $ -> hatVectorLoadOp($);
+                case HATVectorSelectLoadOp $ -> hatSelectLoadOp($);
+                case HATVectorSelectStoreOp $ -> hatSelectStoreOp($);
+                case HATVectorVarLoadOp $ -> hatVectorVarLoadOp($);
+                case HATVectorOfOp $ -> hatVectorOfOps($);
+                //case HATF16Op.HATF16VarOp $ -> hatF16VarOp($);
+                case HATF16BinaryOp $ -> hatF16BinaryOp($);
+                case HATF16VarLoadOp $ -> hatF16VarLoadOp($);
+                case HATF16ConvOp $ -> hatF16ConvOp($);
+                case HATVectorMakeOfOp $ -> hatVectorMakeOf($);
+                case HATPtrLoadOp $ -> hatPtrLoadOp($);
+                case HATPtrStoreOp $ -> hatPtrStoreOp($);
+                case HATPtrLengthOp $ -> hatPtrLengthOp($);
+                case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
+                case HATMemoryLoadOp $ -> hatMemoryLoadOp($);
+                case HATMemoryVarOp.HATVarOp $ -> hatVarOp($);
+                case TensorCreateOp $ -> hatTensorCreateOp($);
+                case TensorVarLoadOp $ -> hatTensorVarLoadOp($);
+                case TensorFillOp $ -> hatTensorFillOp($);
+                case TensorMMAOp $ -> hatTensorMMAOp($);
+                case TensorStoreLoadOp $ -> hatTensorStoreLoadOp($);
+                case TensorLoadOp $ -> hatTensorLoadOp($);
+                case TensorStoreOp $ -> hatTensorStoreOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {

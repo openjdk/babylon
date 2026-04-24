@@ -33,14 +33,12 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
-import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
@@ -49,7 +47,6 @@ import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import optkl.exceptions.CodeGenException;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
@@ -59,7 +56,6 @@ import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
-import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
@@ -481,13 +477,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
-    @Override
-    public final T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp) {
-        var float16Class = hatF16VarOp.float16Class();
-        return f16OrBF16(float16Class).sp().assign(
-                _-> id(hatF16VarOp.varName()),
-                _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
-    }
+//    @Override
+//    public final T hatF16VarOp( HATTensorOp.HATVarOp hatF16VarOp) {
+//        var float16Class = hatF16VarOp.float16Class();
+//        return f16OrBF16(float16Class).sp().assign(
+//                _-> id(hatF16VarOp.varName()),
+//                _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
+//    }
 
     protected boolean isMixedFirstOperand(byte f32Mixed) {
         return f32Mixed != 0 && f32Mixed != HATF16Op.HATF16BinaryOp.FIRST_OP;
@@ -507,7 +503,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public static final String VALUE = "value";
 
-    private final T binaryOperationsForBfloat16( HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+    private T binaryOperationsForBfloat16(HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
 
         boolean isFirstOperandReference = isArrayReference(hatf16BinaryOp.operands().get(0));
         boolean isSecondOperandReference = isArrayReference(hatf16BinaryOp.operands().get(1));
@@ -749,13 +745,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
             case HATMemoryVarOp $ -> varName($);
-            case HATVectorOp.HATVectorVarOp $ -> varName($);
+            //case HATVectorOp.HATVectorVarOp $ -> varName($);
             case HATVectorOp.HATVectorLoadOp $ -> varName($);
             case HATVectorOp.HATVectorBinaryOp $ -> varName($);
-            case HATF16Op.HATF16VarOp $ -> varName($);
-            case HATTensorOp.TensorVarOp $ -> varName($);
-            case null, default -> {
-            }
+            //case HATF16Op.HATF16VarOp $ -> varName($);
+            // The F16 goes to HATVarOp
+            //case HATMemoryVarOp.HATVarOp $ -> varName($);
+            case null, default -> {}
         }
         return self();
     }
@@ -773,12 +769,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
             case CoreOp.VarOp varOp -> varName(varOp);
-            case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp);
+            //case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp);
             case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp);
             case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
             case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp);
-            case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);
-            case HATTensorOp.TensorVarOp hattensorVarOp -> varName(hattensorVarOp);
+            //case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);
+            case HATMemoryVarOp.HATVarOp hatVarOp -> varName(hatVarOp);
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
         equals().parenthesisIfNeeded( varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());

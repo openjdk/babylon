@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.CodeContext;
@@ -53,7 +54,8 @@ public record HATVectorSelectPhase() implements HATPhase {
             static String vectorNameOrThrow(Value v) {
                 return switch (OpHelper.asOpFromResultOrNull(v)){
                     case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->vectorNameOrThrow(varLoadOp.operands().getFirst()); // recurse
-                    case HATVectorOp vectorOp ->vectorOp.varName();
+                    case HATMemoryVarOp.HATVarOp varOp -> varOp.varName();
+                    //case HATVectorOp vectorOp ->vectorOp.varName();
                     case null -> null;
                     default -> throw new IllegalStateException("failed to find vector name");
                 };

@@ -59,43 +59,43 @@ public abstract sealed class HATF16Op extends HATOp implements VarLikeOp {
         this.varName = varName;
     }
 
-    public static final class HATF16VarOp extends HATF16Op implements StatementLikeOp {
-
-        private final VarType varType;
-        private final Class<?> float16Class;
-
-        public HATF16VarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
-            super(varName, operands);
-            this.varType = varType;
-            this.float16Class = float16Class;
-        }
-
-        public HATF16VarOp(HATF16VarOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.varType = op.varType;
-            this.float16Class = op.float16Class;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATF16VarOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return varType;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.fp16varop." + varName(), varType);
-        }
-
-        public Class<?> float16Class() {
-            return float16Class;
-        }
-
-    }
+//    public static final class HATF16VarOp extends HATF16Op implements StatementLikeOp {
+//
+//        private final VarType varType;
+//        private final Class<?> float16Class;
+//
+//        public HATF16VarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
+//            super(varName, operands);
+//            this.varType = varType;
+//            this.float16Class = float16Class;
+//        }
+//
+//        public HATF16VarOp(HATF16VarOp op, CodeContext copyContext) {
+//            super(op, copyContext);
+//            this.varType = op.varType;
+//            this.float16Class = op.float16Class;
+//        }
+//
+//        @Override
+//        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+//            return new HATF16VarOp(this, copyContext);
+//        }
+//
+//        @Override
+//        public CodeType resultType() {
+//            return varType;
+//        }
+//
+//        @Override
+//        public Map<String, Object> externalize() {
+//            return Map.of("hat.dialect.fp16varop." + varName(), varType);
+//        }
+//
+//        public Class<?> float16Class() {
+//            return float16Class;
+//        }
+//
+//    }
 
     public static final class HATF16VarLoadOp extends HATF16Op implements Precedence.LoadOrConv {
 

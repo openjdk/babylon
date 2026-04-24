@@ -24,7 +24,7 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HATF16Op;
+//import hat.dialect.HATF16Op;
 import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import hat.dialect.HATMemoryVarOp;
@@ -42,10 +42,10 @@ public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends 
         return self();
     }
 
-    public final T varName(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-        id(hatVectorVarOp.varName());
-        return self();
-    }
+//    public final T varName(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
+//        id(hatVectorVarOp.varName());
+//        return self();
+//    }
 
     public final T varName(HATVectorOp.HATVectorLoadOp vectorLoadOp) {
         id(vectorLoadOp.varName());
@@ -67,13 +67,13 @@ public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends 
         return self();
     }
 
-    public final T varName(HATF16Op.HATF16VarOp hatF16VarOp) {
-        id(hatF16VarOp.varName());
-        return self();
-    }
+//    public final T varName(HATF16Op.HATF16VarOp hatF16VarOp) {
+//        id(hatF16VarOp.varName());
+//        return self();
+//    }
 
-    public final T varName(HATTensorOp.TensorVarOp tensorVarOp) {
-        id(tensorVarOp.varName());
+    public final T varName(HATMemoryVarOp.HATVarOp hatVarOp) {
+        id(hatVarOp.varName());
         return self();
     }
 

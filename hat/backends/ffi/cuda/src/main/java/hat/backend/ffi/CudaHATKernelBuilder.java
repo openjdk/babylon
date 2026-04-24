@@ -27,6 +27,7 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
+import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import hat.types.F16;
@@ -317,17 +318,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    @Override
-    public CudaHATKernelBuilder hatVectorVarOp(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp);
-        Value operand = hatVectorVarOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-            semicolon().nl();
-        } else {
-            assign();
-        }
-        return recurseResultOrThrow(operand);
-    }
+//    @Override
+//    public CudaHATKernelBuilder hatVectorVarOp(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
+//        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp);
+//        Value operand = hatVectorVarOp.operands().getFirst();
+//        if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
+//            semicolon().nl();
+//        } else {
+//            assign();
+//        }
+//        return recurseResultOrThrow(operand);
+//    }
 
     @Override
     public CudaHATKernelBuilder genVectorIdentifier(HATVectorOp.HATVectorOfOp hatVectorOfOp) {
@@ -452,9 +453,25 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment<nvcuda::wmma::";
 
     @Override
-    public CudaHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
-        recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
-        sp().id(tensorVarOp.varName());
+    public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
+        if (hatVarOp.hasVectorShape()) {
+            type(hatVarOp.buildVectorType()).sp().varName(hatVarOp);
+            Value operand = hatVarOp.operands().getFirst();
+            if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
+                semicolon().nl();
+            } else {
+                assign();
+            }
+            return recurseResultOrThrow(operand);
+        } else if (hatVarOp.float16Class() != null) {
+            return f16OrBF16(hatVarOp.float16Class()).sp().assign(
+                    _ -> id(hatVarOp.varName()),
+                    _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
+        } else {
+            // At the moment for tensors
+            recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
+            sp().id(hatVarOp.varName());
+        }
         return self();
     }
 
@@ -556,8 +573,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
         Value operand = hatTensorVarLoadOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
-            varName(tensorVarOp.varName());
+        if (operand instanceof Op.Result r && r.op() instanceof HATMemoryVarOp.HATVarOp hatVarOp) {
+            varName(hatVarOp.varName());
         } else {
             throw new CUDACodeGenException("[ERROR] Expected HATTensorVarOp");
         }
@@ -623,21 +640,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         // Find name tensor of the first argument
         String tensorName = "";
         SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
-        HATTensorOp.TensorVarOp tensorVarOp = null;
+        HATMemoryVarOp.HATVarOp HATVarOp = null;
         for (Op.Result result : uses) {
             if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
                 // obtain first arg from tensorStoreOp
                 Value first = storeLoadOp.operands().getFirst();
-                if (first.declaringElement() instanceof HATTensorOp.TensorVarOp varOp) {
-                    tensorVarOp = varOp;
-                    tensorName = tensorVarOp.varName();
+                if (first.declaringElement() instanceof HATMemoryVarOp.HATVarOp varOp) {
+                    HATVarOp = varOp;
+                    tensorName = HATVarOp.varName();
                 }
             }
         }
 
         boolean isColumnMajor = true;
-        if (tensorVarOp != null) {
-            Value value = tensorVarOp.operands().getFirst();
+        if (HATVarOp != null) {
+            Value value = HATVarOp.operands().getFirst();
             if (value.declaringElement() instanceof HATTensorOp.TensorCreateOp createOp) {
                 Value tensorLayout = createOp.operands().getLast();
                 isColumnMajor = isColumnMajor(tensorLayout);
