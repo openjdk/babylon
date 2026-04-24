@@ -339,8 +339,9 @@ public final class Block implements CodeElement<Block, Op> {
      * @return the set of target blocks, as an unmodifiable set.
      */
     public SequencedSet<Block> successorTargets() {
-        return successors().stream().map(Block.Reference::targetBlock)
+        LinkedHashSet<Block> targets = successors().stream().map(Reference::targetBlock)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        return Collections.unmodifiableSequencedSet(targets);
     }
 
     /**
@@ -466,7 +467,13 @@ public final class Block implements CodeElement<Block, Op> {
     /**
      * A builder for a block.
      * <p>
-     * A block builder is operable while its {@link #parentBody() parent body builder} is building the parent body.
+     * A block builder defines the structure of the block that is being built. It is used to {@link #op(Op) append}
+     * operations to its block. It can also be used to {@link Block.Builder#block(List) create} block builders for
+     * sibling blocks.
+     * <p>
+     * A block builder has a {@link Block.Builder#parentBody() parent body builder}.
+     * <p>
+     * A block builder is operable while its parent body builder is building the parent body.
      * After the parent body is {@link Body.Builder#build(Op) built}, further attempts to operate on the block builder
      * throw an exception.
      * <p>
@@ -690,7 +697,7 @@ public final class Block implements CodeElement<Block, Op> {
          * <p>
          * If the operation is unattached, it is appended directly to this block.
          * <p>
-         * If the operation is attached to a block or a root operation, this method performs
+         * If the operation is attached to a block or is a root operation, this method performs
          * <a id="transform-on-append"><i>transform-on-append</i></a>: the operation is first
          * {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block builder's code context and
          * code transformer; and then the resulting unattached operation is appended to this block.
@@ -700,16 +707,13 @@ public final class Block implements CodeElement<Block, Op> {
          * <p>
          * The appended operation must be structurally valid for this block, requiring:
          * <ul>
-         * <li>each body has the same ancestor body as this block's parent body;
-         * <li>each operand is reachable from this block;
-         * <li>each successor target is a sibling of this block;
-         * <li>each successor argument is reachable from this block; and
+         * <li>the body builder for each child body is isolated, or has this block builder's parent body builder as its
+         * nearest ancestor body builder.
+         * <li>each operand is <a href="Body.Builder.html#reachable-value">reachable</a> from the operation;
+         * <li>each successor argument is <a href="Body.Builder.html#reachable-value">reachable</a> from the operation;
+         * <li>each successor target is a sibling of this block; and
          * <li>this block does not already end with a terminating operation.
          * </ul>
-         * A value is reachable from this block if there is a path from this block's parent body,
-         * via its ancestor bodies, to the parent body of the value's declaring block. This check
-         * ensures the value belongs to the same code model being built, but it is weaker than a
-         * dominance check, which can only be performed when the parent body is built.
          *
          * @apiNote
          * Copying is a special case of transform-on-append when this block builder's code transformer is, or
@@ -784,7 +788,7 @@ public final class Block implements CodeElement<Block, Op> {
     private void bindOp(Op.Result opr, Op op) {
         // Structural checks
         if (!ops.isEmpty() && ops.getLast() instanceof Op.Terminating) {
-            throw new IllegalStateException("Operation cannot be appended, the block has a terminal operation");
+            throw new IllegalStateException("Operation cannot be appended, the block has a terminating operation");
         }
 
         for (Body b : op.bodies()) {

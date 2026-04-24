@@ -48,7 +48,7 @@ import java.util.*;
  * entry {@link Block.Builder block builder} from which further non-entry sibling blocks in the body may be created and
  * {@link Block.Builder#block(CodeType...) built}. A block builder can also be used to
  * {@link Block.Builder#reference(Value...) create} references to non-entry sibling blocks that can be used as
- * successors of terminal operations.
+ * successors of terminating operations.
  * When a body completes {@link Body.Builder#build(Op) building} with a given operation all blocks in the body are also
  * built. The given operation becomes the body's {@link #parent()}.
  */
@@ -426,11 +426,23 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * A builder for a body.
      * <p>
-     * When the body builder is {@link Body.Builder#build(Op) built} all associated {@link Block.Builder block builders}
-     * are also built and their blocks become children of the body.
+     * A body builder defines the structure of the body that is being built. It creates and exposes the
+     * {@link Block.Builder block builder} of the body's entry block, from which block builders for sibling blocks may
+     * be {@link Block.Builder#block(List) created}. A block builder is used to append operations to its block.
      * <p>
-     * A body builder has an entry block {@link #entryBlock builder} from which sibling block builders may be
-     * {@link Block.Builder#block(List) created}.
+     * A body builder and its associated block builders are all operable during building. The body is built by invoking
+     * {@link Body.Builder#build(Op)}. After building, the body builder and its block builders all become inoperable,
+     * regardless of whether building succeeds or fails with an exception. Further attempts to operate on the body
+     * builder or any of its block builders throw an exception.
+     * <p>
+     * The body and its child blocks are not observable while building is in progress. Attempts to observe
+     * them through block parameters, appended operations, their operation results, or block references,
+     * throw an exception.
+     * <p>
+     * A body builder may be connected to its {@link #ancestorBody() nearest ancestor} body builder. This connection
+     * constrains the order in which the connected builders can complete building, ancestors cannot complete before
+     * their descendants, and determines the <a href="#reachable-value">reachability</a> of values used by appended
+     * operations.
      */
     public final class Builder {
         /**
@@ -439,7 +451,7 @@ public final class Body implements CodeElement<Body, Block> {
          * code transformer.
          *
          * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
-         * @param bodySignature the body's signature
+         * @param bodySignature the initial body signature
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
@@ -454,7 +466,7 @@ public final class Body implements CodeElement<Body, Block> {
          * and a {@link CodeTransformer#COPYING_TRANSFORMER copying} code transformer.
          *
          * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
-         * @param bodySignature the body's signature
+         * @param bodySignature the initial body signature
          * @param cc            the code context
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is built
@@ -465,30 +477,48 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Creates a body builder, with entry block {@link #entryBlock builder} that has the given code context
-         * and code transformer.
+         * Creates a body builder whose entry block {@link #entryBlock builder} uses the given code context and code
+         * transformer.
          * <p>
-         * Structurally, the created body builder must be built before its ancestor body builder (if non-null) is built,
-         * otherwise an {@code IllegalStateException} will occur.
+         * If {@code ancestorBody} is non-{@code null}, the created body builder is <i>connected</i> to
+         * {@code ancestorBody} as the {@link #ancestorBody() nearest ancestor} body builder, and the following apply:
+         * <ul>
+         * <li>
+         * The created body builder must complete building before the nearest ancestor body builder completes building,
+         * which implies the ancestor body builder cannot complete building until all body builders connected to it
+         * complete building.
+         * <li>
+         * The body built by the created body builder must have, as its nearest {@link Body#ancestorBody ancestor body},
+         * the body built by the nearest ancestor body builder.
+         * <li>
+         * <a id="reachable-value"></a>A value used by an operation {@link Block.Builder#op(Op) appended} to a block builder, created from the
+         * created body builder, must be reachable.
+         * A value is reachable if the created body builder is the same as or is connected, directly or indirectly
+         * through its nearest ancestor body builder and so on, to the body builder that builds the value's declaring
+         * block's parent body.
+         * </ul>
+         * If {@code ancestorBody} is {@code null}, the created body builder is <i>isolated</i>, it has no nearest
+         * ancestor body builder, and the following apply:
+         * <ul>
+         * <li>
+         * By the prior definition of <a href="#reachable-value">reachable value</a>, a value is only reachable if the
+         * created body builder is the same as the body builder that builds the value's declaring block's parent body
+         * (since there is no connection to ancestor body builders).
+         * </ul>
+         * One or more body builders can be connected to the created body builder, whether it be connected or isolated,
+         * which implies the created body builder cannot complete building until all of its connected body builders
+         * complete building.
          * <p>
-         * A function type, referred to as the body's signature, defines the body's yield type and the initial sequence
-         * of entry block parameters.
-         * The body's yield type is the function type's return type.
-         * An entry block builder is created with appended block parameters corresponding, in order, to
-         * the function type's parameter types.
-         * <p>
-         * If the ancestor body is {@code null} then the created body builder is isolated and descendant operations may
-         * only use values declared within the created body builder. Otherwise, operations may use reachable values
-         * declared in the ancestor body builders (outside the created body builder).
-         * <p>
-         * The entry block {@link #entryBlock builder}
+         * The initial body signature's return type defines the body's yield type, and its parameter types are used,
+         * in order, to create the initial parameters of the entry block builder.
          *
-         * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
-         * @param bodySignature the body's signature
-         * @param cc            the code context
-         * @param ct            the code transformer
+         * @param ancestorBody  the nearest ancestor body builder, or {@code null} if the created body builder is
+         *                      isolated
+         * @param bodySignature the initial body signature
+         * @param cc            the code context for the entry block builder
+         * @param ct            the code transformer for the entry block builder
          * @return the body builder
-         * @throws IllegalStateException if the ancestor body builder is built
+         * @throws IllegalStateException if the ancestor body builder is already built
          */
         public static Builder of(Builder ancestorBody, FunctionType bodySignature,
                                  CodeContext cc, CodeTransformer ct) {
@@ -511,7 +541,7 @@ public final class Body implements CodeElement<Body, Block> {
         Builder(Builder ancestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
             // Structural check
-            // The ancestor body should not be built before this body is created
+            // The ancestor body should not be built before this body is built
             if (ancestorBody != null) {
                 ancestorBody.check();
                 ancestorBody.addGreatgrandchild(this);
@@ -532,17 +562,27 @@ public final class Body implements CodeElement<Body, Block> {
         /**
          * Builds the body and its child blocks, associating the body with a parent operation.
          * <p>
-         * Structurally, any descendant body builders must be built before this body is built,
-         * otherwise an {@code IllegalStateException} will occur.
+         * After building, the body builder and its block builders all become inoperable, regardless of whether building
+         * succeeds or fails with an exception. Further attempts to operate on the body builder or any of its block
+         * builders throw an exception.
+         * <p>
+         * Body builders connected to this body builder must complete building before this body builder completes
+         * building.
+         * <p>
+         * The parent operation must report the built body as one of its child bodies.
          * <p>
          * Any unreferenced empty blocks are ignored and do not become children of the body. An unreferenced block is
          * a non-entry block with no predecessors.
          *
+         * @apiNote
+         * This method is commonly called from the parent operation's constructor, which can hold a reference to the
+         * built body so it can report it as one of its child bodies.
+         *
          * @param op the parent operation
          * @return the built body
          * @throws IllegalStateException if this body builder is built
-         * @throws IllegalStateException if any descendant body builders are not built
-         * @throws IllegalStateException if a block has no terminal operation, unless unreferenced and empty
+         * @throws IllegalStateException if any connected body builder is not built
+         * @throws IllegalStateException if a block has no terminating operation, unless unreferenced and empty
          */
         // @@@ Check every operand dominates the operation result.
         //     An operation in block B that uses a value declared in block B requires no special checks, since an
@@ -617,7 +657,8 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * {@return the body builder's nearest ancestor body builder}
+         * {@return the body builder's nearest ancestor body builder if this body is connected,
+         * otherwise {@code null} if this body builder is isolated}
          */
         public Builder ancestorBody() {
             return ancestorBody;
