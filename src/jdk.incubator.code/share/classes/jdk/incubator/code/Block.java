@@ -38,8 +38,8 @@ import java.util.stream.Collectors;
  * <p>
  * Blocks declare zero or more block parameters.
  * <p>
- * A block is built using a {@link Block.Builder block builder} that is used to append operations to the block
- * being built.
+ * A block is built using a {@link Block.Builder}, as part of the
+ * <a href="Body.Builder.html#body-building-process">process of building</a> its parent body.
  */
 public final class Block implements CodeElement<Block, Op> {
 
@@ -467,26 +467,17 @@ public final class Block implements CodeElement<Block, Op> {
     /**
      * A builder for a block.
      * <p>
-     * A block builder defines the structure of the block that is being built. It is used to {@link #op(Op) append}
-     * operations to its block. It can also be used to {@link Block.Builder#block(List) create} block builders for
-     * sibling blocks.
+     * A block builder builds one block as part of the <a href="Body.Builder.html#body-building-process">building process</a>
+     * of building its parent body. The block is not <a href="Body.Builder.html#body-building-observability">observable</a>
+     * until the parent body builder <a href="Body.Builder.html#body-building-finishing">finishes</a>.
      * <p>
-     * A block builder has a {@link Block.Builder#parentBody() parent body builder}.
-     * <p>
-     * A block builder is operable while its parent body builder is building the parent body.
-     * After the parent body is {@link Body.Builder#build(Op) built}, further attempts to operate on the block builder
-     * throw an exception.
-     * <p>
-     * The block being built is not observable while building is in progress. Attempts to observe it through its
-     * parameters, appended operations, their operation results, or block references, throw an exception.
-     * <p>
-     * A block builder always has a code {@link #context() context} and code {@link #transformer() transformer}. These
-     * are used when {@link #op appending} an attached or root operation. Any sibling block builder
-     * {@link #block(List) created} from a block builder will have the same code context and code transformer.
+     * A block builder has a code {@link #context() context} and code {@link #transformer() transformer}. These are used
+     * when {@link #op appending} an attached or root operation, to <i>transform-on-append</i>. Any sibling block
+     * builder {@link #block(List) created} from a block builder will have the same code context and code transformer.
      * <p>
      * A block builder may be obtained with a different code context and code transformer by calling
-     * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}. Such a block builder can be used to apply
-     * alternative transformations to attached or root operations that are appended.
+     * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}. Such a block builder builds the same block, and
+     * can be used to apply alternative transformations to attached or root operations that are appended.
      * <p>
      * During {@link CodeTransformer code transformation}, a block builder may also serve as the current output block
      * builder.
@@ -532,11 +523,11 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Returns the entry block builder of this builder's parent body.
+         * Returns the entry block builder of this builder's parent body builder.
          * <p>
          * The returned block builder has this block builder's code context and code transformer.
          *
-         * @return the entry block builder of this builder's parent body
+         * @return the entry block builder of this builder's parent body builder
          */
         public Block.Builder entryBlock() {
             return parentBody.entryBlock.withContextAndTransformer(cc, ct);
@@ -553,7 +544,8 @@ public final class Block implements CodeElement<Block, Op> {
          * Returns a block builder for the same block with the given code context and code transformer.
          * <p>
          * Both this block builder and the returned block builder may be operated on to build the same block. Both are
-         * equal to each other, and both become inoperable when the parent body is built.
+         * equal to each other, and both become inoperable when the parent body builder
+         * <a href="Body.Builder.html#body-building-finishing">finishes</a>.
          *
          * @param cc the code context
          * @param ct the code transformer
@@ -707,13 +699,20 @@ public final class Block implements CodeElement<Block, Op> {
          * <p>
          * The appended operation must be structurally valid for this block, requiring:
          * <ul>
-         * <li>the body builder for each child body is isolated, or has this block builder's parent body builder as its
-         * nearest ancestor body builder.
-         * <li>each operand is <a href="Body.Builder.html#reachable-value">reachable</a> from the operation;
-         * <li>each successor argument is <a href="Body.Builder.html#reachable-value">reachable</a> from the operation;
+         * <li>for each child body, the body builder for that child body is
+         * <a href="Body.Builder.html#connected-builder">connected</a> to this block builder's parent
+         * body builder, or is <a href="Body.Builder.html#isolated-builder">isolated</a>.
+         * <li>each operand is reachable from the operation;
+         * <li>each successor argument is reachable from the operation;
          * <li>each successor target is a sibling of this block; and
          * <li>this block does not already end with a terminating operation.
          * </ul>
+         * <a id="reachable-value"></a>A value is reachable if this block builder's {@link #parentBody() parent} body
+         * builder is the same as or is connected, directly or indirectly through its
+         * {@link Body.Builder#ancestorBody() nearest ancestor} body builder and so on, to the body builder for the
+         * value's declaring block's parent body. A value is not reachable if an isolated body builder is encountered
+         * (the isolated body builder's nearest ancestor body builder is {@code null} and therefore there is no
+         * connection, directly or indirectly).
          *
          * @apiNote
          * Copying is a special case of transform-on-append when this block builder's code transformer is, or
