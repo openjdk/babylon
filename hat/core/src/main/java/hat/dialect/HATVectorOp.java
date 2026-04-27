@@ -407,24 +407,4 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
             return Map.of("hat.dialect.vectorVarLoadOp." + varName(), resultType());
         }
     }
-
-//    public static final class HATVectorVarOp extends HATVectorOp implements StatementLikeOp {
-//        public HATVectorVarOp(String varName, VarType resultType,  Vector.Shape vectorShape, List<Value> operands) {
-//            super(varName, resultType, vectorShape, operands);
-//        }
-//
-//        public HATVectorVarOp(HATVectorVarOp op, CodeContext copyContext) {
-//            super(op, copyContext);
-//        }
-//
-//        @Override
-//        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-//            return new HATVectorVarOp(this, copyContext);
-//        }
-//
-//        @Override
-//        public Map<String, Object> externalize() {
-//            return Map.of("hat.dialect.vectorVarOp." + varName(), resultType());
-//        }
-//    }
 }

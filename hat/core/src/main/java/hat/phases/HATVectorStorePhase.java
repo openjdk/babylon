@@ -72,7 +72,6 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst()); //recurses here
         } else{
-            //return (v instanceof CoreOp.Result r && (r.op() instanceof HATMemoryVarOp.HATLocalVarOp || r.op() instanceof HATMemoryVarOp.HATPrivateVarOp));
             return (v instanceof CoreOp.Result r && (r.op() instanceof HATMemoryVarOp.HATVarOp));
         }
     }

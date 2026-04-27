@@ -192,20 +192,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         return self();
     }
 
-//    @Override
-//    public OpenCLJExtractedHATKernelBuilder hatVectorVarOp(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-//        type(hatVectorVarOp.buildType())
-//                .sp()
-//                .varName(hatVectorVarOp)
-//                .sp().equals().sp();
-//
-//        Value operand = hatVectorVarOp.operands().getFirst();
-//        if (operand instanceof Op.Result r) {
-//            recurse( r.op());
-//        }
-//        return self();
-//    }
-
     @Override
     public OpenCLJExtractedHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
         return paren(_-> id(hatVectorOfOp.buildType()));
