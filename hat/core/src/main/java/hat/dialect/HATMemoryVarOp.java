@@ -80,13 +80,13 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
             this.deviceRegion = deviceRegion;
         }
 
-        public HATVarOp(String varName, Class<?> float16Class, VarType varType, DeviceRegion deviceRegion, List<Value> operands) {
+        public HATVarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
             super(varName, operands);
             this.codeType = varType;
             this.float16Class = float16Class;
             this.vectorShape = null;
             this.klassType = null;
-            this.deviceRegion = deviceRegion;
+            this.deviceRegion = DeviceRegion.NARROW; // if float16Class -> NARROW
 
         }
 
@@ -102,7 +102,13 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         public enum DeviceRegion {
-            UNKNOWN, PRIVATE, SHARED, INIT, TENSOR, NARROW, VECTOR,
+            UNKNOWN,
+            PRIVATE,
+            SHARED,
+            INIT,
+            TENSOR,
+            NARROW,
+            VECTOR,
         }
 
         // Local/Private Memory Types
