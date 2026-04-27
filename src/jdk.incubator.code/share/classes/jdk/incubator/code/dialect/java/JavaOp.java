@@ -5553,35 +5553,36 @@ public sealed abstract class JavaOp extends Op {
         }
 
         TryOp desugarTryWithResources(Body.Builder ancestorBody, CodeContext cc) {
-            if (!(resourcesBody.bodySignature().returnType() instanceof TupleType)) {
-                return desugarBasicTryWithResources(ancestorBody, cc);
-            }
+            boolean basic = !(resourcesBody.bodySignature().returnType() instanceof TupleType);
             if (catchBodies.isEmpty() && finallyBody == null) {
-                return buildBasicTryWithResourcesChain(ancestorBody, cc, 0);
+                return basic ? desugarBasicTryWithResources(ancestorBody, cc)
+                             : desugarExtendedTryWithResources(ancestorBody, cc, 0);
             }
             CatchBuilder catchBuilder = try_(ancestorBody, tryB -> {
-                tryB.op(buildBasicTryWithResourcesChain(tryB.parentBody(), cc, 0));
+                tryB.op(basic
+                        ? desugarBasicTryWithResources(tryB.parentBody(), cc)
+                        : desugarExtendedTryWithResources(tryB.parentBody(), cc, 0));
                 tryB.op(core_yield());
             });
             for (Body catcher : catchBodies) {
                 catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
                         catchB.body(catcher, catchB.parameters(), cc, CodeTransformer.COPYING_TRANSFORMER));
             }
-            return finallyBody == null
+            TryOp desugared = finallyBody == null
                     ? catchBuilder.noFinalizer()
                     : catchBuilder.finally_(finB ->
                             finB.body(finallyBody, List.of(), cc, CodeTransformer.COPYING_TRANSFORMER));
+            mapUnbuiltValues(cc, desugared.bodies());
+            return desugared;
         }
 
         TryOp desugarBasicTryWithResources(Body.Builder ancestorBody, CodeContext cc) {
-            assert catchBodies.isEmpty();
-            assert finallyBody == null;
             CodeType resourceType = resourcesBody.bodySignature().returnType();
             assert !(resourceType instanceof TupleType);
+            mapUnbuiltValues(cc, List.of(resourcesBody, body));
             Body.Builder outerBody = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID, cc, CodeTransformer.COPYING_TRANSFORMER);
             Block.Builder entryBlock = outerBody.entryBlock();
             Block.Builder afterAcquire = entryBlock.block(resourceType);
-            mapUnbuiltVars(cc, List.of(resourcesBody));
             entryBlock.body(resourcesBody, List.of(), cc, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     block.op(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
@@ -5593,7 +5594,6 @@ public sealed abstract class JavaOp extends Op {
             Value resource = afterAcquire.parameters().getFirst();
             Value primaryExceptionVar = afterAcquire.op(var(afterAcquire.op(constant(type(Throwable.class), null))));
             afterAcquire.op(try_(outerBody, tryEntry -> {
-                mapUnbuiltVars(cc, List.of(body));
                 tryEntry.body(body,
                         List.of(),
                         cc,
@@ -5629,10 +5629,12 @@ public sealed abstract class JavaOp extends Op {
                 finB.op(core_yield());
             }));
             afterAcquire.op(core_yield());
-            return try_(null, outerBody, List.of(), null);
+            TryOp desugared = try_(null, outerBody, List.of(), null);
+            mapUnbuiltValues(cc, desugared.bodies());
+            return desugared;
         }
 
-        TryOp buildBasicTryWithResourcesChain(Body.Builder ancestorBody, CodeContext cc, int index) {
+        TryOp desugarExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, int index) {
             List<Op> resourceOps = resourcesBody.entryBlock().ops();
             CodeType resourceType = ((TupleType)resourcesBody.bodySignature().returnType()).componentTypes().get(index);
             List<Value> resourceValues = ((CoreOp.TupleOp)((CoreOp.YieldOp)(resourceOps.getLast())).yieldValue().result().op()).operands();
@@ -5646,25 +5648,31 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder bodyB = basicBody.entryBlock();
             cc.mapValue(resourceValues.get(index), bodyB.parameters().getFirst());
             if (index + 1 < resourceValues.size()) {
-                bodyB.op(buildBasicTryWithResourcesChain(basicBody, cc, index + 1));
+                bodyB.op(desugarExtendedTryWithResources(basicBody, cc, index + 1));
                 bodyB.op(core_yield());
             } else {
                 bodyB.body(body, cc.getValues(resourceValues), CodeTransformer.COPYING_TRANSFORMER);
             }
-            return try_(resourceBody, basicBody, List.of(), null);
+            return try_(resourceBody, basicBody, List.of(), null).desugarBasicTryWithResources(ancestorBody, cc);
         }
 
-        // @@@ self-mapping to avoid IAE: No mapping for input value
-        static void mapUnbuiltVars(CodeContext cc, Iterable<Body> bodies) {
+        // @@@ self-mapping of unbuilt values to avoid IAE: No mapping for input value
+        static void mapUnbuiltValues(CodeContext cc, Iterable<Body> bodies) {
             for (Body body : bodies) {
                 for (Block block : body.blocks()) {
                     for (Op op : block.ops()) {
-                        mapUnbuiltVars(cc, op.bodies());
-                        if (op instanceof VarAccessOp.VarLoadOp vlo) {
+                        mapUnbuiltValues(cc, op.bodies());
+                        for (Value value : op.operands()) {
                             try {
-                                 // @@@ where these unmapped Var ops came from ?
-                                cc.mapValueIfAbsent(vlo.varOperand(), vlo.varOperand());
+                                cc.mapValueIfAbsent(value, value);
                             } catch (IllegalArgumentException _) {}
+                        }
+                        for (Block.Reference successor : op.successors()) {
+                            for (Value value : successor.arguments()) {
+                                try {
+                                    cc.mapValueIfAbsent(value, value);
+                                } catch (IllegalArgumentException _) {}
+                            }
                         }
                     }
                 }
