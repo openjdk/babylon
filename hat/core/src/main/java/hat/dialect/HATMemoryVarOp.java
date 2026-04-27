@@ -32,6 +32,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import optkl.IfaceValue;
+import optkl.IfaceValue.Vector.Shape;
 import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
@@ -63,7 +64,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
         private final VarType codeType;
         private final Class<?> float16Class;
-        private final IfaceValue.Vector.Shape vectorShape;
+        private final Shape vectorShape;
         private final ClassType klassType;
         private final DeviceRegion deviceRegion;
 
@@ -90,9 +91,9 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
         }
 
-        public HATVarOp(String varName, VarType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operand) {
+        public HATVarOp(String varName, VarType codeType, Shape vectorShape, List<Value> operand) {
             super(varName, operand);
-            this.codeType = resultType;
+            this.codeType = codeType;
             this.vectorShape = vectorShape;
             this.float16Class = null;
 

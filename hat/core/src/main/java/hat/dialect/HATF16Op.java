@@ -31,7 +31,6 @@ import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
 import optkl.util.ops.Precedence;
-import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
 import java.util.List;
