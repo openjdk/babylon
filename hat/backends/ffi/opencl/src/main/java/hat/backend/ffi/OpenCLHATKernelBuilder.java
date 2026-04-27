@@ -263,7 +263,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        if (hatVarOp.hasVectorShape()) {
+        if (hatVarOp.classType() != null) {
+            localDeclaration(new LocalArrayDeclaration(hatVarOp.classType(), hatVarOp));
+        } else if (hatVarOp.hasVectorShape()) {
             // needed for vectors
             type(hatVarOp.buildVectorType()).sp().varName(hatVarOp).sp().equals().sp();
             recurseResultOrThrow(hatVarOp.operands().getFirst());

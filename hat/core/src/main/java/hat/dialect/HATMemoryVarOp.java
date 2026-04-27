@@ -41,7 +41,7 @@ import java.util.Map;
 
 public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp {
 
-    private final String varName;
+    protected final String varName;
 
     protected HATMemoryVarOp(String varName, List<Value> operands) {
         super(operands);
@@ -60,14 +60,12 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
     public abstract ClassType classType();
 
-    public abstract CodeType invokeType();
-
     public static final class HATVarOp extends HATMemoryVarOp  {
 
         private final VarType codeType;
-        private final String varName;
         private final Class<?> float16Class;
         private final IfaceValue.Vector.Shape vectorShape;
+        private final ClassType klassType;
 
         // Seems we need to add attributes in the form of( {"Attrib" -> object })
         // float16Class is only needed for F16
@@ -75,34 +73,47 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
         public HATVarOp(String varName, VarType codeType, List<Value> operands) {
             super(varName, operands);
-            this.varName = varName;
             this.codeType = codeType;
             this.float16Class = null;
             this.vectorShape = null;
+            this.klassType = null;
         }
 
         public HATVarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
             super(varName, operands);
-            this.varName = varName;
             this.codeType = varType;
             this.float16Class = float16Class;
             this.vectorShape = null;
+            this.klassType = null;
         }
 
         public HATVarOp(String varName, VarType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operand) {
             super(varName, operand);
-            this.varName = varName;
             this.codeType = resultType;
             this.vectorShape = vectorShape;
             this.float16Class = null;
+
+            // local
+            this.klassType = null;
+        }
+
+        // Local/Shared Memory Type
+        public HATVarOp(String varName, ClassType javaType, VarType varType, List<Value> operands) {
+            super(varName, operands);
+            this.klassType = javaType;
+            this.codeType = varType;
+
+            this.float16Class = null;
+            this.vectorShape = null;
         }
 
         public HATVarOp(HATVarOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.varName = op.varName;
             this.codeType = op.codeType;
             this.float16Class = op.float16Class;
             this.vectorShape = op.vectorShape;
+
+            this.klassType = op.klassType;
         }
 
         @Override
@@ -121,18 +132,8 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         }
 
         @Override
-        public String varName() {
-            return varName;
-        }
-
-        @Override
         public ClassType classType() {
-            return null;
-        }
-
-        @Override
-        public CodeType invokeType() {
-            return null;
+            return klassType;
         }
 
         public Class<?> float16Class() {
@@ -149,50 +150,50 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
     }
 
 
-    public static final  class HATLocalVarOp extends HATMemoryVarOp {
-        private final CodeType codeType;
-        private final ClassType klassType;
-        private final CodeType invokeResultType;
-
-        public HATLocalVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
-            super(varName, operands);
-            this.codeType = codeType;
-            this.klassType = javaType;
-            this.invokeResultType = invokeResultType;
-        }
-
-        public HATLocalVarOp(HATLocalVarOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.codeType = op.resultType();
-            this.klassType = op.klassType;
-            this.invokeResultType = op.invokeResultType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATLocalVarOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatSharedVarOp." + varName(), codeType);
-        }
-
-        @Override
-        public ClassType classType() {
-            return klassType;
-        }
-
-        @Override
-        public CodeType invokeType() {
-            return invokeResultType;
-        }
-    }
+//    public static final  class HATLocalVarOp extends HATMemoryVarOp {
+//        private final CodeType codeType;
+//        private final ClassType klassType;
+//        private final CodeType invokeResultType;
+//
+//        public HATLocalVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
+//            super(varName, operands);
+//            this.codeType = codeType;
+//            this.klassType = javaType;
+//            this.invokeResultType = invokeResultType;
+//        }
+//
+//        public HATLocalVarOp(HATLocalVarOp op, CodeContext copyContext) {
+//            super(op, copyContext);
+//            this.codeType = op.resultType();
+//            this.klassType = op.klassType;
+//            this.invokeResultType = op.invokeResultType;
+//        }
+//
+//        @Override
+//        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+//            return new HATLocalVarOp(this, copyContext);
+//        }
+//
+//        @Override
+//        public CodeType resultType() {
+//            return codeType;
+//        }
+//
+//        @Override
+//        public Map<String, Object> externalize() {
+//            return Map.of("hat.dialect.hatSharedVarOp." + varName(), codeType);
+//        }
+//
+//        @Override
+//        public ClassType classType() {
+//            return klassType;
+//        }
+//
+//        @Override
+//        public CodeType invokeResultType() {
+//            return invokeResultType;
+//        }
+//    }
 
     public static final class HATPrivateVarOp extends HATMemoryVarOp {
         private final CodeType codeType;
@@ -234,11 +235,6 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         @Override
         public ClassType classType() {
             return klassType;
-        }
-
-        @Override
-        public CodeType invokeType() {
-            return invokeResultType;
         }
     }
 
@@ -282,11 +278,6 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         @Override
         public ClassType classType() {
             return klassType;
-        }
-
-        @Override
-        public CodeType invokeType() {
-            return invokeResultType;
         }
     }
 }

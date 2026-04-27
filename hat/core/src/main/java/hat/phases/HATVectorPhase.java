@@ -82,7 +82,7 @@ public abstract sealed class HATVectorPhase implements HATPhase
     public static boolean isSharedOrPrivate(Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isSharedOrPrivate(varLoadOp); //recurse
-            case HATMemoryVarOp.HATLocalVarOp _, HATMemoryVarOp.HATPrivateVarOp _ -> true;
+            case HATMemoryVarOp.HATVarOp _, HATMemoryVarOp.HATPrivateVarOp _ -> true;
             default -> false;
         };
     }

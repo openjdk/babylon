@@ -25,31 +25,44 @@
 package hat.codebuilders;
 
 import hat.dialect.HATBarrierOp;
-import hat.dialect.HATF16Op;
-import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATOp;
-import hat.dialect.HATPtrOp;
-import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
-import hat.dialect.HATVectorOp;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
-import static hat.dialect.HATF16Op.*;
-import static hat.dialect.HATMemoryDefOp.*;
-import static hat.dialect.HATPtrOp.*;
-import static hat.dialect.HATTensorOp.*;
-import static hat.dialect.HATVectorOp.*;
+import static hat.dialect.HATF16Op.HATF16BinaryOp;
+import static hat.dialect.HATF16Op.HATF16ConvOp;
+import static hat.dialect.HATF16Op.HATF16ToFloatConvOp;
+import static hat.dialect.HATF16Op.HATF16VarLoadOp;
+import static hat.dialect.HATMemoryDefOp.HATMemoryLoadOp;
+import static hat.dialect.HATPtrOp.HATPtrLengthOp;
+import static hat.dialect.HATPtrOp.HATPtrLoadOp;
+import static hat.dialect.HATPtrOp.HATPtrStoreOp;
+import static hat.dialect.HATTensorOp.TensorCreateOp;
+import static hat.dialect.HATTensorOp.TensorFillOp;
+import static hat.dialect.HATTensorOp.TensorLoadOp;
+import static hat.dialect.HATTensorOp.TensorMMAOp;
+import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
+import static hat.dialect.HATTensorOp.TensorStoreOp;
+import static hat.dialect.HATTensorOp.TensorVarLoadOp;
+import static hat.dialect.HATVectorOp.HATVectorBinaryOp;
+import static hat.dialect.HATVectorOp.HATVectorLoadOp;
+import static hat.dialect.HATVectorOp.HATVectorMakeOfOp;
+import static hat.dialect.HATVectorOp.HATVectorOfOp;
+import static hat.dialect.HATVectorOp.HATVectorSelectLoadOp;
+import static hat.dialect.HATVectorOp.HATVectorSelectStoreOp;
+import static hat.dialect.HATVectorOp.HATVectorStoreView;
+import static hat.dialect.HATVectorOp.HATVectorVarLoadOp;
 
 /* this should not be too C99 specific but can reference HAT ops.  */
 public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
     T hatBarrierOp( HATBarrierOp barrierOp);
 
-    T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp barrierOp);
+    //T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp barrierOp);
 
     T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
 
@@ -115,7 +128,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
         if (op instanceof HATOp hatOp) {
             switch (hatOp) {
                 case HATBarrierOp $ -> hatBarrierOp($);
-                case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp($);
+                //case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp($);
                 case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp($);
                 case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp($);
                 case HATThreadOp $ -> hatThreadIdOp($);

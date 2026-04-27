@@ -454,7 +454,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-        if (hatVarOp.hasVectorShape()) {
+        if (hatVarOp.classType() != null) {
+            localDeclaration(new LocalArrayDeclaration(hatVarOp.classType(), hatVarOp));
+        } else if (hatVarOp.hasVectorShape()) {
             type(hatVarOp.buildVectorType()).sp().varName(hatVarOp);
             Value operand = hatVarOp.operands().getFirst();
             if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
