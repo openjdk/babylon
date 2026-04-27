@@ -761,12 +761,11 @@ public final class Body implements CodeElement<Body, Block> {
      * @apiNote
      * The body builder connected to the output body builder can be explicitly determined when this
      * input body's {@link Body#ancestorBody() nearest ancestor} body is present and observable, and the given parent
-     * code context {@link CodeContext#getBlock(Block) contains} the output block builder for that ancestor body's
-     * {@link Body#entryBlock() entry} block. For example, in such cases:
+     * code context can be used to {@link CodeContext#queryBody(Body) query} the present body builder for that ancestor
+     * body. For example, in such cases:
      * {@snippet lang = "java":
      * Body nearestAncestorBody = this.ancestorBody(); // @link substring="ancestorBody" target="jdk.incubator.code.CodeElement#ancestorBody"
-     * Block.Builder entryBlockBuilder = cc.getBlock(nearestAncestorBody.entryBlock());
-     * Body.Builder connectedBodyBuilder = entryBlockBuilder.parentBody();
+     * Body.Builder connectedBodyBuilder = cc.queryBody(nearestAncestorBody).orElseThrow(); // @link substring="queryBody" target="jdk.incubator.code.CodeContext#queryBody"
      * }
      *
      * @param cc the parent code context
