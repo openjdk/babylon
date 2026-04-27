@@ -700,6 +700,10 @@ public class OpBuilder {
                 FieldRef enumValueRef = FieldRef.field(InvokeOp.InvokeKind.class, ik.name(), InvokeOp.InvokeKind.class);
                 yield builder.op(fieldLoad(enumValueRef));
             }
+            case FuncOp.MethodKind mk -> {
+                FieldRef enumValueRef = FieldRef.field(FuncOp.MethodKind.class, mk.name(), FuncOp.MethodKind.class);
+                yield builder.op(fieldLoad(enumValueRef));
+            }
             case Object o when value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ->
                 builder.op(fieldLoad(FieldRef.field(ExternalizedOp.class,
                         "NULL_ATTRIBUTE_VALUE", Object.class)));

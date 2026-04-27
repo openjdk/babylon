@@ -2491,7 +2491,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             scan(body, ReflectMethods.this.currentNode());
             appendReturnOrUnreachable(body);
             CodeType ownerType = typeToCodeType(((JCMethodDecl) tree).sym.owner.type);
-            CoreOp.FuncOp func = CoreOp.func(ownerType, name.toString(), stack.body);
+            CoreOp.FuncOp.MethodKind mk = ((JCMethodDecl) tree).sym.isStatic() ? CoreOp.FuncOp.MethodKind.STATIC :
+                    CoreOp.FuncOp.MethodKind.INSTANCE;
+            CoreOp.FuncOp func = CoreOp.func(ownerType, name.toString(), stack.body, mk);
             func.setLocation(generateLocation(tree, true));
             return func;
         }
