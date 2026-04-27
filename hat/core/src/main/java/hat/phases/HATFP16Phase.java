@@ -96,6 +96,7 @@ public record HATFP16Phase() implements HATPhase {
                                 new HATMemoryVarOp.HATVarOp(
                                         varOp.varName(),
                                         reducedFloatType, varOp.resultType(),
+                                        HATMemoryVarOp.HATVarOp.DeviceRegion.NARROW,
                                         blockBuilder.context().getValues(varOp.operands()))
                         )
                 )

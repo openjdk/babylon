@@ -263,31 +263,42 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        if (hatVarOp.deviceRegion() != HATMemoryVarOp.HATVarOp.DeviceRegion.UNKNOWN) {
-            HATMemoryVarOp.HATVarOp.DeviceRegion deviceRegion = hatVarOp.deviceRegion();
-            switch (deviceRegion) {
-                case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
-                case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
-                case INIT -> suffix_t(hatVarOp.classType()).sp()
-                        .assign(
-                                _ -> id(hatVarOp.varName()),
-                                _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-                default -> {}
+        HATMemoryVarOp.HATVarOp.DeviceRegion deviceRegion = hatVarOp.deviceRegion();
+        switch (deviceRegion) {
+            case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            case INIT -> suffix_t(hatVarOp.classType())
+                    .sp()
+                    .assign(
+                            _ -> id(hatVarOp.varName()),
+                            _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
+            case VECTOR -> {
+                type(hatVarOp.buildVectorType()).sp().varName(hatVarOp).sp().equals().sp();
+                recurseResultOrThrow(hatVarOp.operands().getFirst());
             }
-        } else if (hatVarOp.hasVectorShape()) {
-            // needed for vectors
-            type(hatVarOp.buildVectorType()).sp().varName(hatVarOp).sp().equals().sp();
-            recurseResultOrThrow(hatVarOp.operands().getFirst());
-        }
-        // coming from F16
-        else if (hatVarOp.float16Class() != null) {
-            return f16OrBF16(hatVarOp.float16Class()).sp().assign(
+            case NARROW -> f16OrBF16(hatVarOp.float16Class()).sp().assign(
                     _ -> id(hatVarOp.varName()),
                     _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-        } else {
-            // coming from tensor var declaration
-            recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
+            case TENSOR -> // coming from tensor var declaration
+                    recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
+            case null, default -> {
+            }
         }
+
+//        } else if (hatVarOp.hasVectorShape()) {
+//            // needed for vectors
+//            type(hatVarOp.buildVectorType()).sp().varName(hatVarOp).sp().equals().sp();
+//            recurseResultOrThrow(hatVarOp.operands().getFirst());
+//        }
+//        // coming from F16
+//        else if (hatVarOp.float16Class() != null) {
+//            return f16OrBF16(hatVarOp.float16Class()).sp().assign(
+//                    _ -> id(hatVarOp.varName()),
+//                    _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
+//        } else {
+//            // coming from tensor var declaration
+//            recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
+//        }
         return self();
     }
 

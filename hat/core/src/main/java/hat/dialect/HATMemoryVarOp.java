@@ -72,22 +72,22 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         // float16Class is only needed for F16
         // Vector Shape is only needed in the case of Vectors
 
-        public HATVarOp(String varName, VarType codeType, List<Value> operands) {
+        public HATVarOp(String varName, VarType codeType, DeviceRegion deviceRegion, List<Value> operands) {
             super(varName, operands);
             this.codeType = codeType;
             this.float16Class = null;
             this.vectorShape = null;
             this.klassType = null;
-            this.deviceRegion = DeviceRegion.UNKNOWN;
+            this.deviceRegion = deviceRegion;
         }
 
-        public HATVarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
+        public HATVarOp(String varName, Class<?> float16Class, VarType varType, DeviceRegion deviceRegion, List<Value> operands) {
             super(varName, operands);
             this.codeType = varType;
             this.float16Class = float16Class;
             this.vectorShape = null;
             this.klassType = null;
-            this.deviceRegion = DeviceRegion.UNKNOWN;
+            this.deviceRegion = deviceRegion;
 
         }
 
@@ -99,11 +99,11 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
             // local
             this.klassType = null;
-            this.deviceRegion = DeviceRegion.UNKNOWN;
+            this.deviceRegion = DeviceRegion.VECTOR;  // we can infer Vector category because it has a vector shape
         }
 
         public enum DeviceRegion {
-            UNKNOWN, PRIVATE, SHARED, INIT
+            UNKNOWN, PRIVATE, SHARED, INIT, TENSOR, NARROW, VECTOR,
         }
 
         // Local/Private Memory Types

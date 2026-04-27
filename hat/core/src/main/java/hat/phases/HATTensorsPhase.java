@@ -25,6 +25,7 @@
 package hat.phases;
 
 import hat.dialect.HATMemoryVarOp;
+import hat.dialect.HATMemoryVarOp.HATVarOp.DeviceRegion;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -69,7 +70,7 @@ public record HATTensorsPhase() implements HATPhase {
         public void transform(Block.Builder blockBuilder, Op op) {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new HATMemoryVarOp.HATVarOp(varOp.varName(), varOp.resultType(), operands));
+                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new HATMemoryVarOp.HATVarOp(varOp.varName(), varOp.resultType(), DeviceRegion.TENSOR, operands));
                 case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.op(op);
             }
