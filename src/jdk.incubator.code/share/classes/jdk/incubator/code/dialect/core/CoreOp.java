@@ -148,7 +148,8 @@ public sealed abstract class CoreOp extends Op {
             CodeType ownerType = def.extractAttributeValue(ATTRIBUTE_FUNC_OWNER_TYPE, false,
                     v -> switch (v) {
                         case CodeType ct -> ct;
-                        case null, default -> NO_OWNER_TYPE;
+                        case null -> NO_OWNER_TYPE;
+                        default -> throw new UnsupportedOperationException("Unsupported func owner type:" + v);
                     });
 
             this(ownerType, funcName, def.bodyDefinitions().get(0));
