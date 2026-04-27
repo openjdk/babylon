@@ -156,10 +156,6 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
             return float16Class;
         }
 
-        public boolean hasVectorShape() {
-            return vectorShape != null;
-        }
-
         public DeviceRegion deviceRegion() {
             return this.deviceRegion;
         }
