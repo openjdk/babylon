@@ -126,7 +126,7 @@ public sealed abstract class CoreOp extends Op {
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
         static final String ATTRIBUTE_FUNC_OWNER_TYPE = NAME + ".owner.type";
-        private static final JavaType NO_OWNER_TYPE = null;
+        private static final CodeType NO_OWNER_TYPE = null;
 
         final CodeType ownerType;
         final String funcName;
