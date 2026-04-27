@@ -62,13 +62,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatBarrierOp( HATBarrierOp barrierOp);
 
-    //T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp barrierOp);
-
-    //T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
-
     T hatThreadIdOp( HATThreadOp hatThreadOp);
-
-    //T hatVectorVarOp( HATVectorVarOp hatVectorVarOp);
 
     T hatVectorStoreOp( HATVectorStoreView hatFloat4StoreOp);
 
@@ -82,8 +76,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatVectorVarLoadOp( HATVectorVarLoadOp hatVectorVarLoadOp);
 
-    //T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp);
-
     T hatF16BinaryOp( HATF16BinaryOp hatF16BinaryOp);
 
     T hatF16VarLoadOp( HATF16VarLoadOp hatF16VarLoadOp);
@@ -95,8 +87,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     T hatVectorMakeOf( HATVectorMakeOfOp hatVectorMakeOfOp);
 
     T hatF16ToFloatConvOp( HATF16ToFloatConvOp hatF16ToFloatConvOp);
-
-    //T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp);
 
     T hatMemoryLoadOp( HATMemoryLoadOp hatMemoryLoadOp);
 
@@ -128,11 +118,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
         if (op instanceof HATOp hatOp) {
             switch (hatOp) {
                 case HATBarrierOp $ -> hatBarrierOp($);
-                //case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp($);
-                //case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp($);
-                //case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp($);
                 case HATThreadOp $ -> hatThreadIdOp($);
-                //case HATVectorVarOp $ -> hatVectorVarOp($);
                 case HATVectorStoreView $ -> hatVectorStoreOp($);
                 case HATVectorBinaryOp $ -> hatBinaryVectorOp($);
                 case HATVectorLoadOp $ -> hatVectorLoadOp($);
@@ -140,7 +126,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATVectorSelectStoreOp $ -> hatSelectStoreOp($);
                 case HATVectorVarLoadOp $ -> hatVectorVarLoadOp($);
                 case HATVectorOfOp $ -> hatVectorOfOps($);
-                //case HATF16Op.HATF16VarOp $ -> hatF16VarOp($);
                 case HATF16BinaryOp $ -> hatF16BinaryOp($);
                 case HATF16VarLoadOp $ -> hatF16VarLoadOp($);
                 case HATF16ConvOp $ -> hatF16ConvOp($);

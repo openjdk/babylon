@@ -184,13 +184,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         });
     }
 
-//    @Override
-//    public OpenCLHATKernelBuilder hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-//        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp).sp().equals().sp();
-//        recurseResultOrThrow( hatVectorVarOp.operands().getFirst());
-//        return self();
-//    }
-
     @Override
     public OpenCLHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
         return paren(_-> id(hatVectorOfOp.buildType()));
@@ -262,7 +255,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-
         HATMemoryVarOp.HATVarOp.DeviceRegion deviceRegion = hatVarOp.deviceRegion();
         switch (deviceRegion) {
             case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
@@ -284,21 +276,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             case null, default -> {
             }
         }
-
-//        } else if (hatVarOp.hasVectorShape()) {
-//            // needed for vectors
-//            type(hatVarOp.buildVectorType()).sp().varName(hatVarOp).sp().equals().sp();
-//            recurseResultOrThrow(hatVarOp.operands().getFirst());
-//        }
-//        // coming from F16
-//        else if (hatVarOp.float16Class() != null) {
-//            return f16OrBF16(hatVarOp.float16Class()).sp().assign(
-//                    _ -> id(hatVarOp.varName()),
-//                    _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-//        } else {
-//            // coming from tensor var declaration
-//            recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
-//        }
         return self();
     }
 

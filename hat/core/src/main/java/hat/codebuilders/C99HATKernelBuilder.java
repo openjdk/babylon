@@ -357,16 +357,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_BARRIER();
     }
 
-//    @Override
-//    public final T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp hatLocalVarOp) {
-//        return  localDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
-//    }
-
-//    @Override
-//    public final T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp) {
-//        return privateDeclaration(new DeviceArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
-//    }
-
     public abstract T defines();
 
     public final  T types() {
@@ -476,14 +466,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             throw new IllegalStateException("Unexpected value: " + float16Class);
         }
     }
-
-//    @Override
-//    public final T hatF16VarOp( HATTensorOp.HATVarOp hatF16VarOp) {
-//        var float16Class = hatF16VarOp.float16Class();
-//        return f16OrBF16(float16Class).sp().assign(
-//                _-> id(hatF16VarOp.varName()),
-//                _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
-//    }
 
     protected boolean isMixedFirstOperand(byte f32Mixed) {
         return f32Mixed != 0 && f32Mixed != HATF16Op.HATF16BinaryOp.FIRST_OP;
@@ -609,14 +591,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         operand -> recurse( OpHelper.asResultOrThrow(operand).op()))
                 );
     }
-
-//    @Override
-//    public final T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp) {
-//        return suffix_t(hatPrivateInitVarOp.classType()).sp()
-//                .assign(
-//                        _-> id(hatPrivateInitVarOp.varName()),
-//                        _->recurse(OpHelper.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
-//    }
 
     @Override
     public final T hatMemoryLoadOp( HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp) {
@@ -745,12 +719,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
             case HATMemoryVarOp $ -> varName($);
-            //case HATVectorOp.HATVectorVarOp $ -> varName($);
-            //case HATVectorOp.HATVectorLoadOp $ -> varName($);
-            //case HATVectorOp.HATVectorBinaryOp $ -> varName($);
-            //case HATF16Op.HATF16VarOp $ -> varName($);
-            // The F16 goes to HATVarOp
-            //case HATMemoryVarOp.HATVarOp $ -> varName($);
             case null, default -> {}
         }
         return self();
@@ -769,11 +737,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
             case CoreOp.VarOp varOp -> varName(varOp);
-            //case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp);
-            //case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp);
-            //case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
-            //case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp);
-            //case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);
             case HATMemoryVarOp.HATVarOp hatVarOp -> varName(hatVarOp);
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }

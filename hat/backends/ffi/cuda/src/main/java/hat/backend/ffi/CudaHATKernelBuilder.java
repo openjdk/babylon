@@ -318,18 +318,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-//    @Override
-//    public CudaHATKernelBuilder hatVectorVarOp(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-//        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp);
-//        Value operand = hatVectorVarOp.operands().getFirst();
-//        if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-//            semicolon().nl();
-//        } else {
-//            assign();
-//        }
-//        return recurseResultOrThrow(operand);
-//    }
-
     @Override
     public CudaHATKernelBuilder genVectorIdentifier(HATVectorOp.HATVectorOfOp hatVectorOfOp) {
         return id("make_" + hatVectorOfOp.buildType());
@@ -488,27 +476,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             case null, default -> {
             }
         }
-
-//        else if (hatVarOp.hasVectorShape()) {
-//            // handle vector types
-//            type(hatVarOp.buildVectorType()).sp().varName(hatVarOp);
-//            Value operand = hatVarOp.operands().getFirst();
-//            if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-//                semicolon().nl();
-//            } else {
-//                assign();
-//            }
-//            return recurseResultOrThrow(operand);
-//        } else if (hatVarOp.float16Class() != null) {
-//            // handle narrow types (F16 and BFloat)
-//            return f16OrBF16(hatVarOp.float16Class()).sp().assign(
-//                    _ -> id(hatVarOp.varName()),
-//                    _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-//        } else {
-//            // Handle Tensors
-//            recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
-//            sp().id(hatVarOp.varName());
-//        }
         return self();
     }
 
