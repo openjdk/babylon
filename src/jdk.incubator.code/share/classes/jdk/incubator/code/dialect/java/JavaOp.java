@@ -3430,7 +3430,7 @@ public sealed abstract class JavaOp extends Op {
             // @@@ Is this needed?
             if (bodyCs.size() % 2 == 0) {
                 bodyCs = new ArrayList<>(bodyCs);
-                Body.Builder end = Body.Builder.of(bodyCs.get(0).ancestorBody(),
+                Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
                         CoreType.FUNCTION_TYPE_VOID);
                 end.entryBlock().op(core_yield());
                 bodyCs.add(end);

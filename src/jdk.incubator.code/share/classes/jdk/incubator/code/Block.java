@@ -709,7 +709,7 @@ public final class Block implements CodeElement<Block, Op> {
          * </ul>
          * <a id="reachable-value"></a>A value is reachable if this block builder's {@link #parentBody() parent} body
          * builder is the same as or is connected, directly or indirectly through its
-         * {@link Body.Builder#ancestorBody() nearest ancestor} body builder and so on, to the body builder for the
+         * {@link Body.Builder#connectedAncestorBody() nearest ancestor} body builder and so on, to the body builder for the
          * value's declaring block's parent body. A value is not reachable if an isolated body builder is encountered
          * (the isolated body builder's nearest ancestor body builder is {@code null} and therefore there is no
          * connection, directly or indirectly).
@@ -791,7 +791,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         for (Body b : op.bodies()) {
-            if (b.ancestorBody != null && b.ancestorBody != this.parentBody) {
+            if (b.connectedAncestorBody != null && b.connectedAncestorBody != this.parentBody) {
                 throw new IllegalStateException("Body of operation is connected to a different ancestor body: ");
             }
         }
@@ -840,7 +840,7 @@ public final class Block implements CodeElement<Block, Op> {
     private boolean isReachable(Value v) {
         Body b = parentBody;
         while (b != null && b != v.block.parentBody) {
-            b = b.ancestorBody;
+            b = b.connectedAncestorBody;
         }
         return b != null;
     }

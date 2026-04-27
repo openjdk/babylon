@@ -25,10 +25,7 @@
 
 package jdk.incubator.code;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toList;
@@ -299,6 +296,23 @@ public final class CodeContext {
             referenceMap = new HashMap<>();
         }
         referenceMap.put(input, output);
+    }
+
+    /**
+     * Queries the output body builder for the given input body.
+     * <p>
+     * This method queries the output block builder for the given input body's {@link Body#entryBlock() entry} block. If
+     * such a block builder is present, this method returns an optional containing that block builder's
+     * {@link Block.Builder#parentBody() parent} body builder. Otherwise, this method returns an empty optional.
+     *
+     * @param body the input body
+     * @return an optional containing the output body builder for the given input body, otherwise an empty optional
+     */
+    public Optional<Body.Builder> queryBody(Body body) {
+        Block.Builder entryBlockBuilder = getBlock(body.entryBlock());
+        return entryBlockBuilder != null
+                ? Optional.of(entryBlockBuilder.parentBody())
+                : Optional.empty();
     }
 
     /**
