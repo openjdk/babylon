@@ -73,7 +73,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
             return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst()); //recurses here
         } else{
             //return (v instanceof CoreOp.Result r && (r.op() instanceof HATMemoryVarOp.HATLocalVarOp || r.op() instanceof HATMemoryVarOp.HATPrivateVarOp));
-            return (v instanceof CoreOp.Result r && (r.op() instanceof HATMemoryVarOp.HATVarOp || r.op() instanceof HATMemoryVarOp.HATPrivateVarOp));
+            return (v instanceof CoreOp.Result r && (r.op() instanceof HATMemoryVarOp.HATVarOp));
         }
     }
 
@@ -97,13 +97,11 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
                                 findNameVector(invoke.resultFromOperandNOrThrow(1)),
                                 invoke.returnType(),
                                 vectorShape,
-                                //vectorShape.codeType(),
                                 context.getValues(invoke.op().operands()))
                         : new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(
                                 findNameVector(invoke.resultFromOperandNOrThrow(1)),
                                 invoke.returnType(),
-                                vectorShape,//.lanes(),
-                               // vectorShape.codeType(),
+                                vectorShape,
                                 context.getValues(invoke.op().operands()));
                 context.mapValue(invoke.op().result(), blockBuilder.op(copyLocation(invoke.op(),storeView)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

@@ -337,19 +337,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public record LocalArrayDeclaration(ClassType classType, HATMemoryVarOp varOp) {}
+    public record DeviceArrayDeclaration(ClassType classType, HATMemoryVarOp varOp) {}
 
 
-    public final T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        return suffix_t(localArrayDeclaration.classType()).sp().varName(localArrayDeclaration.varOp());
+    public final T privateDeclaration(DeviceArrayDeclaration deviceArrayDeclaration) {
+        return suffix_t(deviceArrayDeclaration.classType()).sp().varName(deviceArrayDeclaration.varOp());
     }
 
-    public final T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
+    public final T deviceDataTypeDeclaration(DeviceArrayDeclaration deviceArrayDeclaration) {
         return HAT_LOCAL_MEM()
-                .sp() // we should be able to compose-call to privateDeclaration?
-                .suffix_t(localArrayDeclaration.classType())
                 .sp()
-                .varName(localArrayDeclaration.varOp());
+                .suffix_t(deviceArrayDeclaration.classType())
+                .sp()
+                .varName(deviceArrayDeclaration.varOp());
     }
 
     @Override
@@ -362,10 +362,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 //        return  localDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
 //    }
 
-    @Override
-    public final T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp) {
-        return privateDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
-    }
+//    @Override
+//    public final T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp) {
+//        return privateDeclaration(new DeviceArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
+//    }
 
     public abstract T defines();
 
@@ -771,7 +771,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case CoreOp.VarOp varOp -> varName(varOp);
             //case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp);
             case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp);
-            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
+            //case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
             //case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp);
             //case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);
             case HATMemoryVarOp.HATVarOp hatVarOp -> varName(hatVarOp);

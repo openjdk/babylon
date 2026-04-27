@@ -454,9 +454,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-        if (hatVarOp.classType() != null) {
-            localDeclaration(new LocalArrayDeclaration(hatVarOp.classType(), hatVarOp));
+
+        if (hatVarOp.deviceRegion() != HATMemoryVarOp.HATVarOp.DeviceRegion.UNKNOWN) {
+            // Handle shared/private variables
+            if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.SHARED) {
+                deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            } else if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.PRIVATE) {
+                privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            }
         } else if (hatVarOp.hasVectorShape()) {
+            // handle vector types
             type(hatVarOp.buildVectorType()).sp().varName(hatVarOp);
             Value operand = hatVarOp.operands().getFirst();
             if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
@@ -466,11 +473,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }
             return recurseResultOrThrow(operand);
         } else if (hatVarOp.float16Class() != null) {
+            // handle narrow types (F16 and BFloat)
             return f16OrBF16(hatVarOp.float16Class()).sp().assign(
                     _ -> id(hatVarOp.varName()),
                     _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
         } else {
-            // At the moment for tensors
+            // Handle Tensors
             recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
             sp().id(hatVarOp.varName());
         }

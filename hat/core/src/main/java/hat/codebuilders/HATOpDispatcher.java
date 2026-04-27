@@ -64,7 +64,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     //T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp barrierOp);
 
-    T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
+    //T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
 
     T hatThreadIdOp( HATThreadOp hatThreadOp);
 
@@ -129,7 +129,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
             switch (hatOp) {
                 case HATBarrierOp $ -> hatBarrierOp($);
                 //case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp($);
-                case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp($);
+                //case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp($);
                 case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp($);
                 case HATThreadOp $ -> hatThreadIdOp($);
                 //case HATVectorVarOp $ -> hatVectorVarOp($);

@@ -263,8 +263,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        if (hatVarOp.classType() != null) {
-            localDeclaration(new LocalArrayDeclaration(hatVarOp.classType(), hatVarOp));
+        if (hatVarOp.deviceRegion() != HATMemoryVarOp.HATVarOp.DeviceRegion.UNKNOWN) {
+            if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.SHARED) {
+                deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            } else if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.PRIVATE) {
+                privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            }
         } else if (hatVarOp.hasVectorShape()) {
             // needed for vectors
             type(hatVarOp.buildVectorType()).sp().varName(hatVarOp).sp().equals().sp();
@@ -280,10 +284,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op());
         }
         return self();
-
-
-        // We don't need to generate the name at this point, but rather during tensor create.
-        // That's the place we know all information, including type, shape, and name
     }
 
     @Override
