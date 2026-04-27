@@ -713,6 +713,9 @@ public final class Block implements CodeElement<Block, Op> {
          * value's declaring block's parent body. A value is not reachable if an isolated body builder is encountered
          * (the isolated body builder's nearest ancestor body builder is {@code null} and therefore there is no
          * connection, directly or indirectly).
+         * This structural reachable check ensures values are only used from the same code model being built. It is
+         * weaker than the {@link Value#isDominatedBy(Value) dominance} check required for structurally valid use of a
+         * value, that can only be performed when the parent body is built.
          *
          * @apiNote
          * Copying is a special case of transform-on-append when this block builder's code transformer is, or
