@@ -610,13 +610,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 );
     }
 
-    @Override
-    public final T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp) {
-        return suffix_t(hatPrivateInitVarOp.classType()).sp()
-                .assign(
-                        _-> id(hatPrivateInitVarOp.varName()),
-                        _->recurse(OpHelper.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
-    }
+//    @Override
+//    public final T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp) {
+//        return suffix_t(hatPrivateInitVarOp.classType()).sp()
+//                .assign(
+//                        _-> id(hatPrivateInitVarOp.varName()),
+//                        _->recurse(OpHelper.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
+//    }
 
     @Override
     public final T hatMemoryLoadOp( HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp) {
@@ -770,7 +770,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (op) {
             case CoreOp.VarOp varOp -> varName(varOp);
             //case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp);
-            case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp);
+            //case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp);
             //case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
             //case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp);
             //case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);

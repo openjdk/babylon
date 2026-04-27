@@ -264,10 +264,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
         if (hatVarOp.deviceRegion() != HATMemoryVarOp.HATVarOp.DeviceRegion.UNKNOWN) {
-            if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.SHARED) {
-                deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
-            } else if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.PRIVATE) {
-                privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            HATMemoryVarOp.HATVarOp.DeviceRegion deviceRegion = hatVarOp.deviceRegion();
+            switch (deviceRegion) {
+                case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+                case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+                case INIT -> suffix_t(hatVarOp.classType()).sp()
+                        .assign(
+                                _ -> id(hatVarOp.varName()),
+                                _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
+                default -> {}
             }
         } else if (hatVarOp.hasVectorShape()) {
             // needed for vectors

@@ -455,12 +455,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        if (hatVarOp.deviceRegion() != HATMemoryVarOp.HATVarOp.DeviceRegion.UNKNOWN) {
-            // Handle shared/private variables
-            if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.SHARED) {
-                deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
-            } else if (hatVarOp.deviceRegion() == HATMemoryVarOp.HATVarOp.DeviceRegion.PRIVATE) {
-                privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+        HATMemoryVarOp.HATVarOp.DeviceRegion deviceRegion = hatVarOp.deviceRegion();
+        if (deviceRegion != HATMemoryVarOp.HATVarOp.DeviceRegion.UNKNOWN) {
+            switch (deviceRegion) {
+                case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+                case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+                case INIT -> suffix_t(hatVarOp.classType()).sp()
+                        .assign(
+                                _ -> id(hatVarOp.varName()),
+                                _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
+                default -> {}
             }
         } else if (hatVarOp.hasVectorShape()) {
             // handle vector types
