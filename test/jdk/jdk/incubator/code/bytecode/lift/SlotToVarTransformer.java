@@ -212,7 +212,7 @@ final class SlotToVarTransformer {
                 case SlotOp.SlotStoreOp sso -> {
                     Var var = varMap.get(sso);
                     Value val = sso.operands().getFirst();
-                    val = cc.getValueOrDefault(val, val);
+                    val = cc.queryValue(val).orElse(val);
                     if (var.single) {
                         var.value = val;
                     } else if (var.value == null) {

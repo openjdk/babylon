@@ -75,7 +75,7 @@ public interface CodeTransformer {
             };
 
             List<Value> outputOperands = inputOp.operands().stream()
-                    .map(v -> builder.context().getValueOrDefault(v, null)).toList();
+                    .map(v -> builder.context().queryValue(v).orElse(null)).toList();
 
             opTransformer.acceptOp(opBuilder, inputOp, outputOperands);
             return builder;
@@ -116,26 +116,26 @@ public interface CodeTransformer {
      * Transforms a body starting from a block builder.
      *
      * @implSpec
-     * The default implementation {@link #acceptBlock(Block.Builder, Block) accepts} a block builder
-     * and a block for each block of the body, in order, using this code transformer.
-     * The following sequence of actions is performed:
+     * The default implementation {@link #acceptBlock(Block.Builder, Block) accepts} a block builder and a block for
+     * each block of the body, in order, using this code transformer. The following sequence of actions is performed:
      * <ol>
      * <li>
-     * the body's entry block is mapped to the block builder, and the (input) block parameters of the
-     * body's entry block are mapped to the (output) values, using the builder's context.
-     * <li>for each (input) block in the body (except the entry block) an (output) block builder is created
-     * from the builder with the same parameter types as the (input) block, in order.
-     * The (input) block is mapped to the (output) builder, and the (input) block parameters are mapped to the
-     * (output) block parameters, using the builder's context.
+     * the body's entry block is mapped to the block builder, and a prefix of the body's entry block parameters is
+     * mapped, in order, to the given values, using this builder's context. Any remaining entry block parameters are not
+     * mapped;
      * <li>
-     * for each (input) block in the body (in order) the (input) block is transformed
-     * by {@link #acceptBlock(Block.Builder, Block) accepting} the mapped (output) builder and
-     * (input) block, using this code transformer.
+     * for each input block in the body, except the entry block, an output block builder is created from the builder
+     * with the same parameter types as the input block, in order. The input block is mapped to the output builder, and
+     * the input block parameters are mapped to the output block parameters, using the builder's context;
+     * <li>
+     * for each input block in the body, in order, the input block is transformed by
+     * {@link #acceptBlock(Block.Builder, Block) accepting} the mapped output builder and input block, using this code
+     * transformer.
      * </ol>
      *
      * @param builder the block builder
      * @param body the body to transform
-     * @param values the values to map to the body's entry block parameters
+     * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
      */
     default void acceptBody(Block.Builder builder, Body body, List<? extends Value> values) {
         CodeContext cc = builder.context();
@@ -144,7 +144,7 @@ public interface CodeTransformer {
         for (Block block : body.blocks()) {
             if (block.isEntryBlock()) {
                 cc.mapBlock(block, builder);
-                cc.mapValues(block.parameters(), values);
+                cc.mapValuePrefix(block.parameters(), values);
             } else {
                 Block.Builder blockBuilder = builder.block(block.parameterTypes());
                 cc.mapBlock(block, blockBuilder);

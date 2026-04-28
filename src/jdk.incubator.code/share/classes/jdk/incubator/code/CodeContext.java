@@ -31,20 +31,52 @@ import java.util.function.Function;
 import static java.util.stream.Collectors.toList;
 
 /**
- * A context utilized when transforming code models.
+ * A context used when building and transforming code models.
  * <p>
- * The context holds a mapping of input values to output values, input blocks to output block builders,
- * and input block references to output block references.
- * Mappings are defined as an input model is transformed to produce an output model. Mappings are defined
- * implicitly when an operation is transformed by copying, and can be explicitly defined when a transformation
- * removes operations or adds new operations.
+ * A code context records correspondence between input code items and outputs during building and transformation of code
+ * models. It holds mappings from:
+ * <ul>
+ * <li>
+ * input values to output values;
+ * <li>
+ * input blocks to output block builders; and
+ * <li>
+ * input block references to output block references.
+ * </ul>
  * <p>
- * Associating an input code item to its corresponding output requires that an output's blocks are being built. An
- * output value requires that its declaring block is being built. An output block builder requires that its block is
- * being built. An output block reference requires that its target block is being built and all arguments declaring
- * blocks are being built.
+ * Mappings are partial, since a mapping may not exist for a given input code item. Two forms of mapping lookup are
+ * provided. One form returns the mapped output, if present, otherwise throws. The other form returns an optional
+ * containing the mapped output, if present, otherwise an empty optional.
  * <p>
- * Unless otherwise specified the passing of a {@code null} argument to the methods of this interface results in a
+ * A code context may have a parent context, in which case it is referred to as a <i>child</i> context, otherwise it is
+ * referred to as a <i>root</i> context.
+ * <p>
+ * Value mappings are looked up first in the current context and, if absent, in the parent context, if present, and so
+ * on until a mapping is found or there is no parent context. Block and block reference mappings are local to the
+ * current context and are not looked up in parent contexts.
+ * <p>
+ * Mappings are always added to the current context. They may be added implicitly when an operation is
+ * {@link Block.Builder#op(Op) appended} to a block by
+ * <a href="Block.Builder.html#transform-on-append">transform-on-append</a>. They may also be added explicitly when
+ * building introduces outputs, or transformation removes, replaces, or introduces outputs.
+ * <p>
+ * The requirements for mapping an input code item depend on the kind of output:
+ * <ul>
+ * <li>
+ * an output value requires that its declaring block is being built;
+ * <li>
+ * an output block builder requires that its block is being built;
+ * <li>
+ * an output block reference requires that its target block is being built, and each of the output block reference's
+ * arguments requires that its declaring block is being built.
+ * </ul>
+ * <p>
+ * A code context also supports properties that map arbitrary non-{@code null} keys mapped to arbitrary
+ * non-{@code null} values. Properties are looked up first in the current context and, if absent, in the parent context,
+ * and so on until a property is found or there is no parent context. Properties are always added to the current
+ * context.
+ * <p>
+ * Unless otherwise specified the passing of a {@code null} argument to the methods of this class results in a
  * {@code NullPointerException}.
  */
 public final class CodeContext {
@@ -71,7 +103,7 @@ public final class CodeContext {
     }
 
     /**
-     * {@return the parent context, otherwise {@code null} of there is no parent context.}
+     * {@return the parent context, otherwise {@code null} if this is a root context.}
      */
     public CodeContext parent() {
         return parent;
@@ -80,14 +112,14 @@ public final class CodeContext {
     // Value mappings
 
     /**
-     * {@return the output value mapped to the input value}
+     * {@return the output value mapped to the given input value}
      * <p>
-     * If this context is not isolated and there is no value mapping in this context then this method will return
-     * the result of calling {@code getValue} on the parent context, if present. Otherwise, if this context is isolated
-     * or there is no parent context, then there is no mapping.
+     * The output value is looked up first in this context and, if absent, in the parent context, if present, and so on
+     * until a mapping is found or there is no parent context.
      *
      * @param input the input value
      * @throws IllegalArgumentException if there is no mapping
+     * @see #queryValue(Value)
      * @see #mapValue(Value, Value)
      */
     public Value getValue(Value input) {
@@ -99,32 +131,36 @@ public final class CodeContext {
     }
 
     /**
-     * {@return the output value mapped to the input value or a default value if no mapping}
+     * Queries the output value for the given input value.
+     * <p>
+     * If such an output value is present, this method returns an optional containing that value.
+     * Otherwise, this method returns an empty optional.
+     * <p>
+     * The output value is looked up first in this context and, if absent, in the parent context, if present, and so on
+     * until a mapping is found or there is no parent context.
      *
      * @param input the input value
-     * @param defaultValue the default value to return if no mapping
+     * @return an optional containing the output value mapped to the given input value, otherwise an empty optional
      * @see #getValue(Value)
      */
-    public Value getValueOrDefault(Value input, Value defaultValue) {
-        Value output = getValueOrNull(input);
-        if (output != null) {
-            return output;
-        }
-        return defaultValue;
+    public Optional<Value> queryValue(Value input) {
+        Objects.requireNonNull(input);
+
+        return Optional.ofNullable(getValueOrNull(input));
     }
 
     /**
-     * Returns a list of mapped output values by obtaining, in order, the output value for each element in the list
-     * of input values.
+     * Returns output values mapped to the given input values, in order.
+     * <p>
+     * The output value for each input value is obtained using {@link #getValue(Value)}.
      *
      * @param inputs the list of input values
-     * @return a modifiable list of output values
+     * @return an unmodifiable list of output values mapped to the given input values, in order
      * @throws IllegalArgumentException if an input value has no mapping
      * @see #getValue(Value)
      */
-    // @@@ If getValue is modified to return null then this method should fail on null
     public List<Value> getValues(List<? extends Value> inputs) {
-        return inputs.stream().map(this::getValue).collect(toList());
+        return inputs.stream().map(this::getValue).toList();
     }
 
     private Value getValueOrNull(Value input) {
@@ -143,9 +179,9 @@ public final class CodeContext {
     }
 
     /**
-     * Maps an input value to an output value.
+     * Maps the given input value to the given output value.
      * <p>
-     * Uses of the input value will be mapped to the output value when transforming.
+     * The mapping is added only to this context.
      *
      * @param input the input value
      * @param output the output value
@@ -167,69 +203,90 @@ public final class CodeContext {
     }
 
     /**
-     * Maps an input value to an output value, if no such mapping exists.
+     * Maps the given input values, in order, to the given output values.
      * <p>
-     * Uses of the input value will be mapped to the output value when transforming.
-     *
-     * @param input the input value
-     * @param output the output value
-     * @return the previous mapped value, or null of there was no mapping.
-     * @throws IllegalArgumentException if the output value's declaring block is built
-     * @see #mapValue(Value, Value)
-     */
-    // @@@ Is this needed?
-    public Value mapValueIfAbsent(Value input, Value output) {
-        Objects.requireNonNull(input);
-        Objects.requireNonNull(output);
-
-        if (output.isBuilt()) {
-            throw new IllegalArgumentException("Output value's declaring block is built: " + output);
-        }
-
-        if (valueMap == EMPTY_MAP) {
-            valueMap = new HashMap<>();
-        }
-        return valueMap.putIfAbsent(input, output);
-    }
-
-    /**
-     * Maps the list of input values, in order, to the corresponding list of output values, up to the number of
-     * elements that is the minimum of the size of both lists.
-     * <p>
-     * Uses of an input value will be mapped to the corresponding output value when transforming.
+     * The mappings are added only to this context.
      *
      * @param inputs the input values
-     * @param outputs the output values.
+     * @param outputs the output values
      * @throws IllegalArgumentException if an output value's declaring block is built
+     * @throws IllegalArgumentException if the number of input values differs from the number of output values
      * @see #mapValue(Value, Value)
+     * @see #mapValuePrefix(List, List)
      */
     public void mapValues(List<? extends Value> inputs, List<? extends Value> outputs) {
-        // @@@ sizes should be the same?
-        for (int i = 0; i < Math.min(inputs.size(), outputs.size()); i++) {
+        if (inputs.size() != outputs.size()) {
+            throw new IllegalArgumentException("The number of input values differs from the number of output values");
+        }
+
+        for (int i = 0; i < outputs.size(); i++) {
             mapValue(inputs.get(i), outputs.get(i));
         }
     }
 
+    /**
+     * Maps a prefix of the given input values, in order, to the given output values.
+     * <p>
+     * The mappings are added only to this context.
+     *
+     * @param inputs the input values
+     * @param outputs the output values
+     * @throws IllegalArgumentException if an output value's declaring block is built
+     * @throws IllegalArgumentException if there are more output values than input values
+     * @see #mapValue(Value, Value)
+     * @see #mapValues(List, List)
+     */
+    public void mapValuePrefix(List<? extends Value> inputs, List<? extends Value> outputs) {
+        if (outputs.size() > inputs.size()) {
+            throw new IllegalArgumentException("More output values than input values");
+        }
+        for (int i = 0; i < outputs.size(); i++) {
+            mapValue(inputs.get(i), outputs.get(i));
+        }
+    }
 
     // Block mappings
 
     /**
-     * {@return the output block builder mapped to the input block, otherwise null if no mapping}
+     * {@return the output block builder mapped to the given input block}
+     * <p>
+     * The output block builder is looked up only in this context.
      *
      * @param input the input block
-     * @see #getBlock(Block)
+     * @throws IllegalArgumentException if there is no mapping
+     * @see #queryBlock(Block)
+     * @see #mapBlock(Block, Block.Builder)
      */
-    // @@@ throw IllegalArgumentException if there is no mapping?
     public Block.Builder getBlock(Block input) {
         Objects.requireNonNull(input);
 
-        return blockMap.get(input);
+        Block.Builder output = blockMap.get(input);
+        if (output == null) {
+            throw new IllegalArgumentException("No mapping for input block: " + input);
+        }
+
+        return output;
     }
 
     /**
-     * Maps an input block to an output block builder.
+     * Queries the output block builder for the given input block.
      * <p>
-     * Uses of the input block will be mapped to the output block builder when transforming.
+     * The output block builder is looked up only in this context.
+     *
+     * @param input the input block
+     * @return an optional containing the output block builder mapped to the given input block, otherwise an empty
+     * optional
+     */
+    public Optional<Block.Builder> queryBlock(Block input) {
+        Objects.requireNonNull(input);
+
+        return Optional.ofNullable(blockMap.get(input));
+    }
+
+    /**
+     * Maps the given input block to the given output block builder.
+     * <p>
+     * The mapping is added only to this context.
      *
      * @param input the input block
      * @param output the output block builder
@@ -251,26 +308,70 @@ public final class CodeContext {
     }
 
 
+    // Derived body mappings
+
+    /**
+     * Queries the output body builder for the given input body.
+     * <p>
+     * This method queries the output block builder for the given input body's {@link Body#entryBlock() entry} block. If
+     * such a block builder is present, this method returns an optional containing that block builder's
+     * {@link Block.Builder#parentBody() parent} body builder. Otherwise, this method returns an empty optional.
+     * <p>
+     * The output block builder is looked up only in this context.
+     *
+     * @param input the input body
+     * @return an optional containing the output body builder corresponding to the given input body, otherwise an empty
+     * optional
+     * @see #queryBlock(Block)
+     */
+    public Optional<Body.Builder> queryBody(Body input) {
+        return queryBlock(input.entryBlock()).map(Block.Builder::parentBody);
+    }
+
+
     // Reference mappings
 
     /**
-     * {@return the output block reference mapped to the input block reference,
-     * otherwise null if no mapping}
+     * {@return the output block reference mapped to the given input block reference}
+     * <p>
+     * The output block reference is looked up only in this context.
      *
      * @param input the input reference
+     * @throws IllegalArgumentException if there is no mapping
+     * @see #queryReference(Block.Reference)
      * @see #mapReference(Block.Reference, Block.Reference)
      */
-    // @@@ throw IllegalArgumentException if there is no mapping?
     public Block.Reference getReference(Block.Reference input) {
         Objects.requireNonNull(input);
 
-        return referenceMap.get(input);
+        Block.Reference output = referenceMap.get(input);
+        if (output == null) {
+            throw new IllegalArgumentException("No mapping for input block reference: " + input);
+        }
+
+        return output;
     }
 
     /**
-     * Maps an input block reference to an output block reference.
+     * Queries the output block reference for the given input block reference.
      * <p>
-     * Uses of the input block reference will be mapped to the output block reference when transforming.
+     * The output block reference is looked up only in this context.
+     *
+     * @param input the input block reference
+     * @return an optional containing the output block reference mapped to the given input block reference, otherwise an
+     * empty optional
+     * @see #getReference(Block.Reference)
+     */
+    public Optional<Block.Reference> queryReference(Block.Reference input) {
+        Objects.requireNonNull(input);
+
+        return Optional.ofNullable(referenceMap.get(input));
+    }
+
+    /**
+     * Maps the given input block reference to the given output block reference.
+     * <p>
+     * The mapping is added only to this context.
      *
      * @param input the input block reference
      * @param output the output block reference
@@ -299,44 +400,30 @@ public final class CodeContext {
     }
 
     /**
-     * Queries the output body builder for the given input body.
+     * Returns the output block reference mapped to the given input block reference, if present, otherwise creates
+     * and returns a new output block reference from the input block reference.
      * <p>
-     * This method queries the output block builder for the given input body's {@link Body#entryBlock() entry} block. If
-     * such a block builder is present, this method returns an optional containing that block builder's
-     * {@link Block.Builder#parentBody() parent} body builder. Otherwise, this method returns an empty optional.
-     *
-     * @param body the input body
-     * @return an optional containing the output body builder for the given input body, otherwise an empty optional
-     */
-    public Optional<Body.Builder> queryBody(Body body) {
-        Block.Builder entryBlockBuilder = getBlock(body.entryBlock());
-        return entryBlockBuilder != null
-                ? Optional.of(entryBlockBuilder.parentBody())
-                : Optional.empty();
-    }
-
-    /**
-     * Returns a mapped output block reference, if present, otherwise creates a new, unmapped, reference from the input
-     * block reference.
+     * A new output block reference is created by obtaining the output block builder mapped to the input reference's
+     * target block, and creating a reference from the output block builder with arguments that are the output values
+     * mapped to the input reference's arguments.
      * <p>
-     * A new, unmapped reference, is created by obtaining the mapped output block builder from the input reference's
-     * target block, and creating a reference from the output block builder with arguments that is the result of
-     * obtaining the mapped values from the input reference's arguments.
+     * The output block reference and the output block builder are looked up only in this context. The output values
+     * for the input reference's arguments are obtained using {@link #getValues(List)}.
      *
      * @param input the input block reference
-     * @return the output block reference, if present, otherwise a created block reference
+     * @return the output block reference, if present, otherwise a newly created output block reference
      * @throws IllegalArgumentException if a new reference is to be created and there is no block mapping for the
      * input's target block or there is no value mapping for an input's argument
-     * @see #getReference(Block.Reference)
+     * @see #queryReference(Block.Reference)
      */
     public Block.Reference getReferenceOrCreate(Block.Reference input) {
-        Block.Reference reference = getReference(input);
-        if (reference != null) {
-            return reference;
+        Optional<Block.Reference> optionalOutput = queryReference(input);
+        if (optionalOutput.isPresent()) {
+            return optionalOutput.get();
         }
 
         // Create reference
-        Block.Builder outputBlock = getBlock(input.targetBlock());
+        Block.Builder outputBlock = blockMap.get(input.targetBlock());
         if (outputBlock == null) {
             throw new IllegalArgumentException("No mapping for input reference target block" + input.targetBlock());
         }
@@ -347,12 +434,17 @@ public final class CodeContext {
     // Properties mappings
 
     /**
-     * {@return an object associated with a property key, or null if not associated.}
+     * {@return an object associated with a property key, or {@code null} if not associated.}
+     * <p>
+     * The property is looked up first in this context and, if absent, in the parent context, if present, and so on
+     * until a mapping is found or there is no parent context.
      *
      * @param key the property key
      * @see #putProperty(Object, Object)
      */
     public Object getProperty(Object key) {
+        Objects.requireNonNull(key);
+
         CodeContext p = this;
         do {
             Object value = p.propertiesMap.get(key);
@@ -367,13 +459,18 @@ public final class CodeContext {
 
     /**
      * Associates an object with a property key.
+     * <p>
+     * The property is added only to this context.
      *
      * @param key the property key
      * @param value the associated object
-     * @return the current associated object, or null if not associated
+     * @return the previous associated object, or {@code null} if not associated
      * @see #getProperty(Object)
      */
     public Object putProperty(Object key, Object value) {
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(value);
+
         if (propertiesMap == EMPTY_MAP) {
             propertiesMap = new HashMap<>();
         }
@@ -382,16 +479,21 @@ public final class CodeContext {
 
     /**
      * If the property key is not already associated with an object, attempts to compute the object using the
-     * mapping function and associates it unless {@code null}.
+     * mapping function and associates it.
+     * <p>
+     * This method first obtains the property value using {@link #getProperty(Object)}. If no property is found, a new
+     * non-{@code null} property value is computed and added only to this context.
      *
      * @param key the property key
      * @param mappingFunction the mapping function
-     * @return the current (existing or computed) object associated with the property key,
-     * or null if the computed object is null
+     * @return the current (existing or computed) object associated with the property key
      * @see #getProperty(Object)
      * @see #putProperty(Object, Object)
      */
     public Object computePropertyIfAbsent(Object key, Function<Object, Object> mappingFunction) {
+        Objects.requireNonNull(key);
+        Objects.requireNonNull(mappingFunction);
+
         if (propertiesMap == EMPTY_MAP) {
             propertiesMap = new HashMap<>();
         }
@@ -399,7 +501,8 @@ public final class CodeContext {
         if (value != null) {
             return value;
         }
-        propertiesMap.put(key, value = mappingFunction.apply(key));
+        value = Objects.requireNonNull(mappingFunction.apply(key));
+        propertiesMap.put(key, value);
         return value;
     }
 
@@ -407,24 +510,27 @@ public final class CodeContext {
     // Factories
 
     /**
-     * {@return a new isolated context initialized with no mappings and no parent.}
+     * {@return a new root context initialized with no local mappings, no properties, and no parent context.}
+     * @see #create(CodeContext)
      */
     public static CodeContext create() {
         return new CodeContext(null);
     }
 
     /**
-     * {@return a new non-isolated context initialized with no mappings and a parent.}
-     * The returned context will query value and property mappings in its parent context
-     * if a query of its value and property mappings yields no result, and so on until
-     * a context has no parent context.
+     * {@return a new child context initialized with the given parent context, no local mappings, and no properties.}
      * <p>
-     * The returned context only queries its own block and block reference mappings
-     * and does not query the mappings in any ancestor context.
+     * The returned context looks up value mappings and properties first in itself, and then in its parent context,
+     * and so on, until a mapping is found or there is no parent context.
+     * <p>
+     * Block and block reference mappings are local to the returned context and are not looked up in parent contexts.
+     * <p>
+     * Mappings and properties added to the returned context are added only to that context.
      *
      * @param parent the parent code context
      */
     public static CodeContext create(CodeContext parent) {
+        Objects.requireNonNull(parent);
         return new CodeContext(parent);
     }
 }
