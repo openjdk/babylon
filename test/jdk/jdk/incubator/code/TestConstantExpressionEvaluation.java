@@ -9,8 +9,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -23,11 +23,11 @@ import static jdk.incubator.code.dialect.java.PrimitiveType.*;
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit TestEvaluation
- * @run main Unreflect TestEvaluation
- * @run junit TestEvaluation
+ * @run junit TestConstantExpressionEvaluation
+ * @run main Unreflect TestConstantExpressionEvaluation
+ * @run junit TestConstantExpressionEvaluation
  */
-public class TestEvaluation {
+public class TestConstantExpressionEvaluation {
     @Reflect
     static int primitiveLiteral() {
         return 1;
@@ -122,8 +122,7 @@ public class TestEvaluation {
     static boolean equalityOperator3() {
         return "A" != "B";
     }
-    // @Reflect
-    // @@@ Interpreter doesn't intern constant expression of type String, JDK-8379503
+    @Reflect
     static boolean stringReferenceEquality() {
         return "A" + "A" == "AA";
     }
@@ -209,10 +208,9 @@ public class TestEvaluation {
         return i;
     }
 
-    //@Reflect
-    static int fcEffectivelyFinalVar() {
-        // @@@ should fail
-        // currently we lack sufficent info to determine if a variable was declared final in source code
+    @Reflect
+    static int effectivelyFinalVar() {
+        // the op evaluation API broaden the JLS notion of constant variable to include effectively final variable
         int x = 1;
         return x;
     }
@@ -267,7 +265,7 @@ public class TestEvaluation {
 
     @ParameterizedTest
     @MethodSource("cases")
-    void test(Method m) throws NoSuchMethodException {
+    void test(Method m) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
@@ -276,18 +274,13 @@ public class TestEvaluation {
             Assertions.assertTrue(v.isEmpty(), m.getName());
         } else {
             Assertions.assertTrue(v.isPresent(), m.getName());
-            Object[] args = new Object[0];
-            if ((m.getModifiers() & Modifier.STATIC) == 0) { // instance method
-                args = new Object[] {this};
-            }
-            // TODO use BytecodeGenerator instead of Interpreter
-            Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER), args);
+            Object expected = m.invoke(null);
             Assertions.assertEquals(expected, v.get());
         }
     }
 
     static Stream<Method> cases() {
-        return Arrays.stream(TestEvaluation.class.getDeclaredMethods())
+        return Arrays.stream(TestConstantExpressionEvaluation.class.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Reflect.class));
     }
 
