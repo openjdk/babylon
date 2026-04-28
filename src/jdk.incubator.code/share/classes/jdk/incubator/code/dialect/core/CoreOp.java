@@ -1604,6 +1604,7 @@ public sealed abstract class CoreOp extends Op {
      * @param ownerType the function owner type
      * @param funcName  the function name
      * @param signature the function's signature, represented as a function type
+     * @param mk        the function kind
      * @return the function operation builder
      */
     public static FuncOp.Builder func(CodeType ownerType, String funcName, FunctionType signature, FuncOp.MethodKind mk) {
@@ -1626,6 +1627,7 @@ public sealed abstract class CoreOp extends Op {
      *
      * @param ownerType the function owner type
      * @param body      the body builder defining the function body
+     * @param mk        the function kind
      * @return the function operation
      */
     public static FuncOp func(CodeType ownerType, String funcName, Body.Builder body, FuncOp.MethodKind mk) {
