@@ -82,7 +82,7 @@ public class JavaLowInterpreter extends Interpreter {
                         JavaEnv jenv = (JavaEnv) env;
                         R r = jenv.catchBlock(t);
                         if (r.catchBlock().isPresent()) {
-                            return new SuccessorEffect(r.catchBlock().get(), List.of(t), r.javaEnv());
+                            return new SuccessorEffect(r.catchBlock().get(), e.operands(), r.javaEnv());
                         } else {
                             return new TerminatingOpEffect(e.terminatingOp(), e.operands(), r.javaEnv());
                         }
