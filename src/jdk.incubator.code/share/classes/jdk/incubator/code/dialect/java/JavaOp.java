@@ -258,7 +258,6 @@ public sealed abstract class JavaOp extends Op {
                         }
                         Object v;
                         if ((field.getModifiers() & Modifier.STATIC) != 0) {
-                            // @@@ why using field.get fails ?
                             v = vh.get();
                         } else {
                             // we can't get the value of an instance field from the model
