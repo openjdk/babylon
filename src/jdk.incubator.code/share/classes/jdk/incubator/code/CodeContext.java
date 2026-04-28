@@ -48,6 +48,9 @@ import static java.util.stream.Collectors.toList;
  * provided. One form returns the mapped output, if present, otherwise throws. The other form returns an optional
  * containing the mapped output, if present, otherwise an empty optional.
  * <p>
+ * A code context may have a parent context, in which case it is referred to as a <i>child</i> context, otherwise it is
+ * referred to as a <i>root</i> context.
+ * <p>
  * Value mappings are looked up first in the current context and, if absent, in the parent context, if present, and so
  * on until a mapping is found or there is no parent context. Block and block reference mappings are local to the
  * current context and are not looked up in parent contexts.
@@ -100,7 +103,7 @@ public final class CodeContext {
     }
 
     /**
-     * {@return the parent context, otherwise {@code null} of there is no parent context.}
+     * {@return the parent context, otherwise {@code null} if this is a root context.}
      */
     public CodeContext parent() {
         return parent;
@@ -483,24 +486,27 @@ public final class CodeContext {
     // Factories
 
     /**
-     * {@return a new isolated context initialized with no mappings and no parent.}
+     * {@return a new root context initialized with no local mappings, no properties, and no parent context.}
+     * @see #create(CodeContext)
      */
     public static CodeContext create() {
         return new CodeContext(null);
     }
 
     /**
-     * {@return a new non-isolated context initialized with no mappings and a parent.}
-     * The returned context will query value and property mappings in its parent context
-     * if a query of its value and property mappings yields no result, and so on until
-     * a context has no parent context.
+     * {@return a new child context initialized with the given parent context, no local mappings, and no properties.}
      * <p>
-     * The returned context only queries its own block and block reference mappings
-     * and does not query the mappings in any ancestor context.
+     * The returned context looks up value mappings and properties first in itself, and then in its parent context,
+     * and so on, until a mapping is found or there is no parent context.
+     * <p>
+     * Block and block reference mappings are local to the returned context and are not looked up in parent contexts.
+     * <p>
+     * Mappings and properties added to the returned context are added only to that context.
      *
      * @param parent the parent code context
      */
     public static CodeContext create(CodeContext parent) {
+        Objects.requireNonNull(parent);
         return new CodeContext(parent);
     }
 }
