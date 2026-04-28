@@ -78,31 +78,6 @@ public class TestFuncOpMethodRef {
         Assertions.assertEquals(f.mref().get(), cf.mref().get());
     }
 
-//    @Test
-//    void test3() {
-//        FuncOp f = func(MR).body(b -> {
-//            b.op(return_());
-//        });
-//        Assertions.assertTrue(f.mref().isPresent());
-//        Assertions.assertEquals(MR, f.mref().get());
-//
-//        CoreOp.FuncOp cf = externalizeAndCreate(f);
-//        Assertions.assertEquals(f.mref().get(), cf.mref().get());
-//    }
-
-//    @Test
-//    void test4() {
-//        Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
-//        bb.entryBlock().op(return_());
-//        FuncOp f = func(MR, bb);
-//        Assertions.assertTrue(f.mref().isPresent());
-//        Assertions.assertEquals(MR, f.mref().get());
-//
-//        FuncOp cf = externalizeAndCreate(f);
-//        Assertions.assertTrue(cf.mref().isPresent());
-//        Assertions.assertEquals(f.mref().get(), cf.mref().get());
-//    }
-
     @Test
     void test5() {
         Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
