@@ -210,7 +210,8 @@ public class JavaLowInterpreter extends Interpreter {
             }
             case JavaOp.ExceptionRegionExit o -> {
                 JavaEnv je = (JavaEnv) e;
-                je = je.removeCatchBlocks(o.catchReferences().stream().map(Block.Reference::targetBlock).toList());
+                // catch blocks order in ExceptionRegionExit is the inverse of the blocks in ExceptionRegionEnter
+                je = je.removeCatchBlocks(o.catchReferences().stream().map(Block.Reference::targetBlock).toList().reversed());
                 yield new SuccessorEffect(o.endReference().targetBlock(), je.valuesOf(o.endReference().arguments()), je);
             }
             default -> throw new UnsupportedOperationException(op.toString());
