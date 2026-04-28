@@ -644,9 +644,12 @@ public final class Block implements CodeElement<Block, Op> {
          * Transforms a body using this block builder as the current output block builder, with a
          * {@link CodeContext#create(CodeContext) child} of this block builder's code context and the given code
          * transformer.
+         * <p>
+         * This method behaves as if invoking {@link #body(Body, List, CodeContext, CodeTransformer)} with the given
+         * body, the given values, a child of this block builder's code context, and the given code transformer.
          *
          * @param body the body to transform
-         * @param values the output values to map to the input parameters of the body's entry block
+         * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
          * @param ct the code transformer
          * @see #body(Body, List, CodeContext, CodeTransformer)
          */
@@ -665,13 +668,19 @@ public final class Block implements CodeElement<Block, Op> {
          * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}, and then transforms the body using the code
          * transformer by {@link CodeTransformer#acceptBody(Builder, Body, List) accepting} the obtained block builder,
          * the body, and the values.
+         * <p>
+         * A prefix of the input body's entry block parameters is mapped, in order, to the given output values. Any
+         * remaining entry block parameters are not mapped.
          *
          * @apiNote
          * Supplying an explicit code context can ensure block and value mappings produced by the transformation do not
-         * affect this builder's code context.
+         * affect this builder's code context. The explicit code context can also be used when some of the input body's
+         * entry block parameters have already been mapped prior to transforming the body. This is useful when the
+         * transformation removes some entry block parameters. In such cases an empty list of output values can be
+         * given.
          *
          * @param body the body to transform
-         * @param values the output values to map to the input parameters of the body's entry block
+         * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
          * @param cc the code context
          * @param ct the code transformer
          * @see #withContextAndTransformer(CodeContext, CodeTransformer)

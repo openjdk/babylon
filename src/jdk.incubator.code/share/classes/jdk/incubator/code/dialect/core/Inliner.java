@@ -60,7 +60,7 @@ public final class Inliner {
      *
      * @param _this the block builder
      * @param invokableOp the invokable operation
-     * @param args the arguments to map to the invokable operation's parameters
+     * @param args the arguments to map, in order, from a prefix of the invokable operation's parameters
      * @param inlineConsumer the consumer applied to process the return from the invokable operation.
      *                       This is called once for each grandparent body of a return operation, with a block to
      *                       build replacement operations and the return value, or null for void return.

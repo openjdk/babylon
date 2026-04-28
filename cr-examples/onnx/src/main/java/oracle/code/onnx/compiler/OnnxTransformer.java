@@ -178,7 +178,7 @@ public final class OnnxTransformer {
             var ft = f.invokableSignature();
             int argsSize = ft.parameterTypes().size();
             return CoreOp.func(f.funcName(), CoreType.functionType(ft.returnType(), Stream.concat(ft.parameterTypes().stream(), initTypes.stream()).toList()))
-                    .body(bob -> bob.body(f.body(), bob.parameters(), (bb, op) -> {
+                    .body(bob -> bob.body(f.body(), bob.parameters().subList(0, argsSize), (bb, op) -> {
                         List<Block.Parameter> initArgs = bob.parameters().subList(argsSize, bob.parameters().size());
                         switch (op) {
                             // field loads mapped to initializers args

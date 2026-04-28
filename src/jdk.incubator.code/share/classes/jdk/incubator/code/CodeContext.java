@@ -155,12 +155,12 @@ public final class CodeContext {
      * The output value for each input value is obtained using {@link #getValue(Value)}.
      *
      * @param inputs the list of input values
-     * @return a modifiable list of output values mapped to the given input values, in order
+     * @return an unmodifiable list of output values mapped to the given input values, in order
      * @throws IllegalArgumentException if an input value has no mapping
      * @see #getValue(Value)
      */
     public List<Value> getValues(List<? extends Value> inputs) {
-        return inputs.stream().map(this::getValue).collect(toList());
+        return inputs.stream().map(this::getValue).toList();
     }
 
     private Value getValueOrNull(Value input) {
@@ -203,23 +203,47 @@ public final class CodeContext {
     }
 
     /**
-     * Maps the given input values, in order, to the given output values, up to the number of
-     * elements that is the minimum of the size of both lists.
+     * Maps the given input values, in order, to the given output values.
      * <p>
      * The mappings are added only to this context.
      *
      * @param inputs the input values
-     * @param outputs the output values.
+     * @param outputs the output values
      * @throws IllegalArgumentException if an output value's declaring block is built
+     * @throws IllegalArgumentException if the number of input values differs from the number of output values
      * @see #mapValue(Value, Value)
+     * @see #mapValuePrefix(List, List)
      */
     public void mapValues(List<? extends Value> inputs, List<? extends Value> outputs) {
-        // @@@ sizes should be the same?
-        for (int i = 0; i < Math.min(inputs.size(), outputs.size()); i++) {
+        if (inputs.size() != outputs.size()) {
+            throw new IllegalArgumentException("The number of input values differs from the number of output values");
+        }
+
+        for (int i = 0; i < outputs.size(); i++) {
             mapValue(inputs.get(i), outputs.get(i));
         }
     }
 
+    /**
+     * Maps a prefix of the given input values, in order, to the given output values.
+     * <p>
+     * The mappings are added only to this context.
+     *
+     * @param inputs the input values
+     * @param outputs the output values
+     * @throws IllegalArgumentException if an output value's declaring block is built
+     * @throws IllegalArgumentException if there are more output values than input values
+     * @see #mapValue(Value, Value)
+     * @see #mapValues(List, List)
+     */
+    public void mapValuePrefix(List<? extends Value> inputs, List<? extends Value> outputs) {
+        if (outputs.size() > inputs.size()) {
+            throw new IllegalArgumentException("More output values than input values");
+        }
+        for (int i = 0; i < outputs.size(); i++) {
+            mapValue(inputs.get(i), outputs.get(i));
+        }
+    }
 
     // Block mappings
 
@@ -440,7 +464,7 @@ public final class CodeContext {
      *
      * @param key the property key
      * @param value the associated object
-     * @return the current associated object, or {@code null} if not associated
+     * @return the previous associated object, or {@code null} if not associated
      * @see #getProperty(Object)
      */
     public Object putProperty(Object key, Object value) {
