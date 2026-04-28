@@ -35,7 +35,7 @@ import jdk.incubator.code.Reflect;
 public class ArrayAccessTest {
     @Reflect
     @IR("""
-            func @"test1" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
+            func @"test1" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
                 %4 : java.type:"int" = constant @0;
@@ -49,7 +49,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test2" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"int" -> {
+            func @"test2" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"int" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
@@ -66,7 +66,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test3" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+            func @"test3" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
                 %4 : java.type:"int" = constant @0;
@@ -81,7 +81,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test4" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
+            func @"test4" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
@@ -99,7 +99,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test5" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"int" -> {
+            func @"test5" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"int" -> {
                 %3 : Var<java.type:"int[][]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[][]" = var.load %3;
@@ -120,7 +120,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test6" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"void" -> {
+            func @"test6" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[][]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[][]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[][]" = var.load %3;
@@ -144,7 +144,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test7" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
+            func @"test7" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
                 %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
                 %2 : java.type:"int" = constant @0;
                 %3 : java.type:"int" = array.load %1 %2;
@@ -157,7 +157,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test8" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
+            func @"test8" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest")java.type:"int" -> {
                 %1 : java.type:"int[]" = field.load %0 @java.ref:"ArrayAccessTest::ia:int[]";
                 %2 : java.type:"int" = constant @0;
                 %3 : java.type:"int" = array.load %1 %2;
@@ -174,7 +174,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test9" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"int" -> {
+            func @"test9" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"int" -> {
                 %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
                 %3 : java.type:"ArrayAccessTest$A[]" = var.load %2;
                 %4 : java.type:"int" = constant @0;
@@ -189,7 +189,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test10" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"void" -> {
+            func @"test10" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"ArrayAccessTest$A[]")java.type:"void" -> {
                 %2 : Var<java.type:"ArrayAccessTest$A[]"> = var %1 @"aa";
                 %3 : java.type:"ArrayAccessTest$A[]" = var.load %2;
                 %4 : java.type:"int" = constant @0;
@@ -205,7 +205,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test11" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+            func @"test11" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
                 %4 : java.type:"int" = constant @0;
@@ -222,7 +222,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test12" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
+            func @"test12" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
@@ -245,7 +245,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test13" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
+            func @"test13" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]", %2 : java.type:"int")java.type:"void" -> {
                 %3 : Var<java.type:"int[]"> = var %1 @"ia";
                 %4 : Var<java.type:"int"> = var %2 @"i";
                 %5 : java.type:"int[]" = var.load %3;
@@ -271,7 +271,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test14" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+            func @"test14" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
                 %4 : java.type:"int" = constant @0;
@@ -297,7 +297,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test15" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
+            func @"test15" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"void" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
                 %4 : java.type:"int" = constant @0;
@@ -323,7 +323,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test16" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
+            func @"test16" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="INSTANCE" (%0 : java.type:"ArrayAccessTest", %1 : java.type:"int[]")java.type:"int" -> {
                 %2 : Var<java.type:"int[]"> = var %1 @"ia";
                 %3 : java.type:"int[]" = var.load %2;
                 %4 : java.type:"int" = array.length %3;
@@ -339,7 +339,7 @@ public class ArrayAccessTest {
 
     @Reflect
     @IR("""
-            func @"test17" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object" -> {
+            func @"test17" @func.owner.type=java.type:"ArrayAccessTest" @func.kind="STATIC" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"a";
                 %2 : java.type:"java.lang.Object[]" = var.load %1;
                 %3 : java.type:"char" = constant @'c';
