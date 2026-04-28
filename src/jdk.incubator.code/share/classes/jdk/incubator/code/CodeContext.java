@@ -162,6 +162,7 @@ public final class CodeContext {
      */
     public List<Value> getValues(List<? extends Value> inputs) {
         // @@@ Consider making this an unmodifiable list
+        // There are usages that currently rely on a modifiable list
         return inputs.stream().map(this::getValue).collect(Collectors.toCollection(ArrayList::new));
     }
 
