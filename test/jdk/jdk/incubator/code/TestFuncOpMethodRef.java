@@ -51,7 +51,7 @@ import static jdk.incubator.code.dialect.core.CoreOp.*;
 
 public class TestFuncOpMethodRef {
     private final JavaType thisType = JavaType.type(this.getClass().describeConstable().get());
-    private final MethodRef MR = MethodRef.method(thisType, "f", FunctionType.FUNCTION_TYPE_VOID);
+    private final MethodRef MR = MethodRef.method(thisType, "f", CoreType.FUNCTION_TYPE_VOID);
 
     @Test
     void test() {
@@ -66,7 +66,7 @@ public class TestFuncOpMethodRef {
 
     @Test
     void test2() {
-        FuncOp f = func(MR.refType(), MR.name(), MR.signature()).body(b -> {
+        FuncOp f = func(MR.refType(), MR.name(), MR.signature(), FuncOp.MethodKind.STATIC).body(b -> {
             b.op(return_());
         });
         Assertions.assertTrue(f.mref().isPresent());
@@ -107,7 +107,7 @@ public class TestFuncOpMethodRef {
     void test5() {
         Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
         bb.entryBlock().op(return_());
-        FuncOp f = func(MR.refType(), MR.name(), bb);
+        FuncOp f = func(MR.refType(), MR.name(), bb, FuncOp.MethodKind.STATIC);
         Assertions.assertTrue(f.mref().isPresent());
         Assertions.assertEquals(MR, f.mref().get());
 
