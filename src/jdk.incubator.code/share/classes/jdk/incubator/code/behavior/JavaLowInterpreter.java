@@ -1,6 +1,7 @@
 package jdk.incubator.code.behavior;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
@@ -137,13 +138,19 @@ public class JavaLowInterpreter extends Interpreter {
                 }
                 case CoreOp.ConstantOp o -> result = o.value();
                 case JavaOp.AssertOp o -> {
-                    TerminatingOpEffect p = executeBody(o.predicateBody(), List.of(), e);
-                    // TODO check if p.op is YieldOp
-                    Boolean b = (Boolean) p.operands().getFirst();
+                    TerminatingOpEffect perdEffect = executeBody(o.predicateBody(), List.of(), e);
+                    boolean b = switch (perdEffect.terminatingOp()) {
+                        case CoreOp.YieldOp -> (boolean) perdEffect.operands().getFirst();
+                        default -> throw new InternalError();
+                    };
                     if (!b) {
-                        if (o.bodies().size() > 1) {
-                            TerminatingOpEffect m = executeBody(o.bodies().get(1), List.of(), e);
-                            String message = (String) m.operands().getFirst();
+                        Body detailsBody = o.detailsBody();
+                        if (detailsBody != null) {
+                            TerminatingOpEffect messEffect = executeBody(detailsBody, List.of(), e);
+                            String message = switch (messEffect.terminatingOp()) {
+                                case JavaOp.YieldOp -> (String) messEffect.operands().getFirst();
+                                default -> throw new InternalError();
+                            };
                             // @@@ we may need to fake out a ThrowOp or a new kind of TerminatingOpEffect
                             return new TerminatingOpEffect(o, List.of(new AssertionError(message)), e);
                         } else {
