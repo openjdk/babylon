@@ -77,14 +77,14 @@ public class JavaLowInterpreter extends Interpreter {
         for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
             switch (executeOp(op, env)) {
                 case TerminatingOpEffect e -> {
-                    // not returnOp, either explicit throw or implicit throw
-                    if (!e.operands().isEmpty() && e.operands().getFirst() instanceof Throwable t &&
-                            !(e.terminatingOp() instanceof CoreOp.ReturnOp)) {
+                    // implicit throw
+                    if (!e.operands().isEmpty() && e.operands().getFirst() instanceof Throwable t) {
                         JavaEnv jenv = (JavaEnv) env;
-                        Optional<Block> cb = jenv.catchBlocks.stream()
-                                .filter(b -> resolveToClass(jenv.l, b.parameters().getFirst().type()).isInstance(t)).findFirst();
-                        if (cb.isPresent()) {
-                            return new SuccessorEffect(cb.get(), List.of(t), jenv);
+                        R r = jenv.catchBlock(t);
+                        if (r.catchBlock().isPresent()) {
+                            return new SuccessorEffect(r.catchBlock().get(), List.of(t), r.javaEnv());
+                        } else {
+                            return new TerminatingOpEffect(e.terminatingOp(), e.operands(), r.javaEnv());
                         }
                     }
                     return e;
@@ -152,6 +152,7 @@ public class JavaLowInterpreter extends Interpreter {
                     }
                     result = null;
                 }
+                default -> throw new UnsupportedOperationException(op.toString());
             }
             return new OpResultEffect(result, e);
         } catch (Throwable t) {
@@ -179,8 +180,13 @@ public class JavaLowInterpreter extends Interpreter {
                 yield new TerminatingOpEffect(o, operands, e);
             }
             case JavaOp.ThrowOp o -> {
+                JavaEnv jenv = (JavaEnv) e;
                 List<Object> operands = e.valuesOf(o.operands());
-                yield new TerminatingOpEffect(o, operands, e);
+                R r = jenv.catchBlock((Throwable) operands.getFirst());
+                if (r.catchBlock().isPresent()) {
+                    yield new SuccessorEffect(r.catchBlock().get(), operands, r.javaEnv());
+                }
+                yield new TerminatingOpEffect(o, operands, r.javaEnv());
             }
             case CoreOp.YieldOp o -> {
                 if (o.ancestorBody().ancestorBody() == null) {
@@ -222,14 +228,14 @@ public class JavaLowInterpreter extends Interpreter {
     static final class JavaEnv implements Env {
         final Map<Value, Object> bindings;
         final MethodHandles.Lookup l;
-        final Deque<Block> catchBlocks;
+        final Deque<List<Block>> catchBlocks;
 
         public JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l) {
             this.bindings = bindings;
             this.l = l;
             this.catchBlocks = new ArrayDeque<>();
         }
-        private JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<Block> catchBlocks) {
+        private JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
             this.bindings = bindings;
             this.l = l;
             this.catchBlocks = catchBlocks;
@@ -276,20 +282,43 @@ public class JavaLowInterpreter extends Interpreter {
 
         public JavaEnv registerCatchBlocks(List<Block> catchBlocks) {
             var stack = new ArrayDeque<>(this.catchBlocks);
-            for (Block b : catchBlocks) {
-                stack.addFirst(b);
-            }
+            stack.addFirst(catchBlocks);
             return new JavaEnv(bindings, l, stack);
         }
 
         public JavaEnv removeCatchBlocks(List<Block> catchBlocks) {
             var stack = new ArrayDeque<>(this.catchBlocks);
-            for (Block b : catchBlocks) {
-                if (b != stack.pollFirst()) {
-                    throw new InternalError();
+            List<Block> l = stack.removeFirst();
+            if (!l.equals(catchBlocks)) {
+                throw new InternalError();
+            }
+            return new JavaEnv(bindings, this.l, stack);
+        }
+
+        public R catchBlock(Throwable t) {
+            Block cb = null;
+            int blockListToRemove = 0;
+            l:
+            for (List<Block> blocks : catchBlocks) {
+                blockListToRemove++;
+                for (Block block : blocks) {
+                    if (resolveToClass(l, block.parameters().getFirst().type()).isInstance(t)) {
+                        cb = block;
+                        break l;
+                    }
                 }
             }
-            return new JavaEnv(bindings, l, stack);
+
+            var cbs = new ArrayDeque<>(catchBlocks);
+            while (blockListToRemove > 0) {
+                cbs.removeFirst();
+                blockListToRemove--;
+            }
+
+            return new R(new JavaEnv(bindings, l, cbs), Optional.ofNullable(cb));
         }
     }
+
+    // @@@ find a meaningful name
+    record R(JavaEnv javaEnv, Optional<Block> catchBlock) {};
 }
