@@ -27,6 +27,7 @@ package jdk.incubator.code;
 
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -155,12 +156,14 @@ public final class CodeContext {
      * The output value for each input value is obtained using {@link #getValue(Value)}.
      *
      * @param inputs the list of input values
-     * @return an unmodifiable list of output values mapped to the given input values, in order
+     * @return a modifiable list of output values mapped to the given input values, in order
      * @throws IllegalArgumentException if an input value has no mapping
      * @see #getValue(Value)
      */
     public List<Value> getValues(List<? extends Value> inputs) {
-        return inputs.stream().map(this::getValue).toList();
+        // @@@ Consider making this an unmodifiable list
+        // There are usages that currently rely on a modifiable list
+        return inputs.stream().map(this::getValue).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private Value getValueOrNull(Value input) {
