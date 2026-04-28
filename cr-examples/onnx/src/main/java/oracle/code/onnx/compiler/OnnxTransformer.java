@@ -483,7 +483,7 @@ public final class OnnxTransformer {
                 // Transform record construction
                 case JavaOp.NewOp no when tc.isRecord(no.resultType()) -> {
                     Op.Result result = bb.op(CoreOp.tuple(no.operands().stream().map(v -> {
-                        Value mv = bb.context().getValueOrDefault(v, null);
+                        Value mv = bb.context().queryValue(v).orElse(null);
                         if (mv == null && bb.context().getProperty(skipVars(v)) instanceof List list) {
                             mv = bb.op(CoreOp.tuple(bb.context().getValues((List<Value>) list)));
                         }

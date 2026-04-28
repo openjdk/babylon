@@ -693,7 +693,7 @@ public final class Block implements CodeElement<Block, Op> {
          * <a id="transform-on-append"><i>transform-on-append</i></a>: the operation is first
          * {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block builder's code context and
          * code transformer; and then the resulting unattached operation is appended to this block.
-         * If the operation being appended has a result, it is {@link CodeContext#mapValueIfAbsent mapped},
+         * If the operation being appended has a result, it is {@link CodeContext#mapValue(Value, Value)  mapped},
          * if no such mapping already exists, to the result of the appended operation in this block builder's code
          * context.
          * <p>
@@ -741,8 +741,10 @@ public final class Block implements CodeElement<Block, Op> {
                 // Map the result of the first transformation
                 // @@@ If the same operation is transformed more than once then subsequent
                 //  transformed ops will not get implicitly mapped
-                //  Should this be an error?
-                cc.mapValueIfAbsent(inputResult, outputResult);
+                //  Should this be an error? Or should last transformation win?
+                if (cc.queryValue(inputResult).isEmpty()) {
+                    cc.mapValue(inputResult, outputResult);
+                }
             }
 
             return outputResult;

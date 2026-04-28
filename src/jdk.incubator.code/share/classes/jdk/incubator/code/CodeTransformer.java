@@ -75,7 +75,7 @@ public interface CodeTransformer {
             };
 
             List<Value> outputOperands = inputOp.operands().stream()
-                    .map(v -> builder.context().getValueOrDefault(v, null)).toList();
+                    .map(v -> builder.context().queryValue(v).orElse(null)).toList();
 
             opTransformer.acceptOp(opBuilder, inputOp, outputOperands);
             return builder;
