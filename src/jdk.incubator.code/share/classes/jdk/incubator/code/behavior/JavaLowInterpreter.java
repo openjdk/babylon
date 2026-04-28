@@ -140,7 +140,7 @@ public class JavaLowInterpreter extends Interpreter {
                 case JavaOp.AssertOp o -> {
                     TerminatingOpEffect perdEffect = executeBody(o.predicateBody(), List.of(), e);
                     boolean b = switch (perdEffect.terminatingOp()) {
-                        case CoreOp.YieldOp -> (boolean) perdEffect.operands().getFirst();
+                        case CoreOp.YieldOp _ -> (boolean) perdEffect.operands().getFirst();
                         default -> throw new InternalError();
                     };
                     if (!b) {
@@ -148,7 +148,7 @@ public class JavaLowInterpreter extends Interpreter {
                         if (detailsBody != null) {
                             TerminatingOpEffect messEffect = executeBody(detailsBody, List.of(), e);
                             String message = switch (messEffect.terminatingOp()) {
-                                case JavaOp.YieldOp -> (String) messEffect.operands().getFirst();
+                                case JavaOp.YieldOp _ -> (String) messEffect.operands().getFirst();
                                 default -> throw new InternalError();
                             };
                             // @@@ we may need to fake out a ThrowOp or a new kind of TerminatingOpEffect
