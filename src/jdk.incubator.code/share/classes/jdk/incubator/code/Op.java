@@ -58,25 +58,33 @@ import java.util.function.BiFunction;
  * Alternatively an operation may model something more complex like method declarations, lambda expressions, or
  * try statements. In such cases an operation will contain one or more bodies modeling the nested structure.
  * <p>
- * An operation when initially constructed is unattached from any parent block.
- * An unattached operation's state and descendant elements are all immutable except for the operation's
- * {@link #result result}, {@link #parent parent} block, and {@link #location}, which are all initially {@code null}.
+ * The process of building an operation starts with construction of an <i>unattached</i> operation. The
+ * operation-specific state and any descendant elements of the unattached operation are fixed at construction.
  * <p>
- * An unattached operation can be attached to a block by {@link Block.Builder#op(Op) appending} it to a block that is
- * being built. Once attached the operation has a permanently non-{@code null} operation {@link #result} that can be
- * used as an operand of subsequent constructed operations.
- * After the block is built the operation has a permanently non-{@code null} {@link #parent}. Before then, the block
- * being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this operation and
- * any attempt to access the block throws {@link IllegalStateException}.
- * <p>
- * An unattached operation can be built as a {@link #isRoot() root} operation. Once built the operation's
+ * Building then progresses in one of two ways:
+ * <ol>
+ * <li>
+ * the unattached operation is <i>attached</i> to a block, as its parent block, by
+ * {@link Block.Builder#op(Op) appending} it to a block builder for that block. The attached operation has a permanently
+ * non-{@code null} {@link #result result} that can be used as an operand of subsequent constructed operations. The
+ * block being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this
+ * operation and any attempt to access the block throws {@link IllegalStateException}.
+ * <li>
+ * the unattached operation is built as a {@link #isRoot() <i>root</i>} operation. The root operation's
  * {@link #result result} and {@link #parent parent} are always {@code null}.
+ * </ol>
+ * <p>
+ * Building finishes when the parent body builder of the block to which the operation is attached
+ * <a href="Body.Builder.html#body-building-finishing">finishes</a>, or when the operation is built as a root operation.
  * <p>
  * The {@link #location} may be {@link #setLocation set} while the operation is unattached or attached to a block being
  * built.
  * <p>
  * An operation can only be constructed with operands whose declaring block is being built, otherwise construction fails
  * with an exception.
+ * <p>
+ * An unattached operation, or an operation attached to a block whose parent body builder has not
+ * <a href="Body.Builder.html#body-building-finishing">finished</a>, is not thread-safe.
  */
 public non-sealed abstract class Op implements CodeElement<Op, Body> {
 

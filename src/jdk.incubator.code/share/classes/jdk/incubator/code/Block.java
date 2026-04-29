@@ -486,6 +486,8 @@ public final class Block implements CodeElement<Block, Op> {
      * <p>
      * During {@link CodeTransformer code transformation}, a block builder may also serve as the current output block
      * builder.
+     * <p>
+     * Block builders are not thread-safe.
      */
     public final class Builder {
         final Body.Builder parentBody;

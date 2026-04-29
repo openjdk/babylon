@@ -77,6 +77,8 @@ import static java.util.stream.Collectors.toList;
  * and so on until a property is found or there is no parent context. Properties are always added to the current
  * context.
  * <p>
+ * Code contexts are not thread-safe.
+ * <p>
  * Unless otherwise specified the passing of a {@code null} argument to the methods of this class results in a
  * {@code NullPointerException}.
  */
