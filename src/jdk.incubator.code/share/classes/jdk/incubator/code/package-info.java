@@ -260,7 +260,6 @@
 ///
 /// ## <a id="code-models-heading"/>Code models
 ///
-///
 /// A code model is an _immutable_ instance of data structures that can, in general, model many kinds of code, be it
 /// Java code or foreign code. It has some properties like an Abstract Syntax Tree ([AST][AST]) used by a source
 /// compiler, such as modeling code as a tree of arbitrary depth, and some properties like an
@@ -471,7 +470,7 @@
 /// run time uses it to produce models that are accessed. Instead, we anticipate many users will build parts of models
 /// when they transform them.
 ///
-/// ## <a id="transforming-heading"/> Transforming
+/// ## <a id="transforming-heading"/>Transforming
 ///
 /// Code reflection supports the transformation of code models by combining traversing and building. A code model
 /// transformation is represented by a function that takes an operation, encountered in the (input) model being
@@ -594,6 +593,12 @@
 /// model. However, in general, code transformers are not required to preserve program behavior and some will
 /// intentionally not do so as they may transform into a different output programming domain that partially maps from
 /// the input programming domain.
+///
+/// ## Thread safety
+///
+/// The processes of building and transforming code models are not thread-safe. Unless otherwise specified, objects used
+/// to build and transform code models are not thread-safe. Built code models are immutable and may be safely queried
+/// concurrently by multiple threads.
 ///
 /// ## Code model structure
 ///

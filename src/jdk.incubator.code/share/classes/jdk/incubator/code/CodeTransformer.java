@@ -31,6 +31,9 @@ import java.util.function.Function;
 
 /**
  * A code transformer.
+ * <p>
+ * Code transformer implementations are not required to be thread-safe. Code transformations operate on block builders
+ * and code contexts that are not thread-safe.
  */
 @FunctionalInterface
 public interface CodeTransformer {

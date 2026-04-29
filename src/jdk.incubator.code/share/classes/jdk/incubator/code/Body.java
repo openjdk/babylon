@@ -472,10 +472,12 @@ public final class Body implements CodeElement<Body, Block> {
      * builders all become inoperable, regardless of whether building succeeds or fails with an exception.
      * Further attempts to operate on the builders throw an exception.
      * <p>
-     * A body builder may be connected to its {@link #connectedAncestorBody() nearest ancestor} body builder. This connection
-     * constrains the order in which the connected builders can finish building, ancestors cannot finish before
-     * their descendants, and determines the <a href="Block.Builder.html#reachable-value">reachability</a> of values
-     * used by appended operations.
+     * A body builder may be connected to its {@link #connectedAncestorBody() nearest ancestor} body builder. This
+     * connection constrains the order in which the connected builders can finish building, ancestors cannot finish
+     * before their descendants, and determines the <a href="Block.Builder.html#reachable-value">reachability</a> of
+     * values used by appended operations.
+     * <p>
+     * Body builders are not thread-safe. Block builders associated with a body builder are also not thread-safe.
      */
     public final class Builder {
         /**
