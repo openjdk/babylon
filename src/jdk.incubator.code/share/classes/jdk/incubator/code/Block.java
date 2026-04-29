@@ -81,11 +81,13 @@ public final class Block implements CodeElement<Block, Op> {
          *
          * @return the invokable operation, otherwise {@code null} if the operation
          * is not an instance of {@link Op.Invokable}.
+         * @throws IllegalStateException if an <a href="Body.Builder.html#body-building-observability">unobservable</a>
+         * block is encountered
          * @see Op.Invokable#parameters()
          */
         public Op.Invokable invokableOperation() {
-            if (declaringBlock().isEntryBlock() &&
-                    declaringBlock().ancestorOp() instanceof Op.Invokable o) {
+            Block b = declaringBlock();
+            if (b.isEntryBlock() && b.ancestorOp() instanceof Op.Invokable o) {
                 return o;
             } else {
                 return null;
@@ -94,6 +96,8 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the index of this block parameter in the parameters of its declaring block.}
+         * @throws IllegalStateException if this parameter's declaring block is
+         * <a href="Body.Builder.html#body-building-observability">unobservable</a>
          * @see Value#declaringBlock()
          * @see Block#parameters()
          */
@@ -126,11 +130,12 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the target block.}
-         * @throws IllegalStateException if the target block is being built and is not observable.
+         * @throws IllegalStateException if the target block is
+         * <a href="Body.Builder.html#body-building-observability">unobservable</a>
          */
         public Block targetBlock() {
             if (!isBuilt()) {
-                throw new IllegalStateException("Target block is being built and is not observable");
+                throw new IllegalStateException("Target block is unobservable");
             }
 
             return target;
@@ -651,6 +656,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param body the body to transform
          * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
          * @param ct the code transformer
+         * @throws IllegalArgumentException if there are more output values than entry block parameters
          * @see #body(Body, List, CodeContext, CodeTransformer)
          */
         public void body(Body body, List<? extends Value> values,
@@ -683,6 +689,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
          * @param cc the code context
          * @param ct the code transformer
+         * @throws IllegalArgumentException if there are more output values than entry block parameters
          * @see #withContextAndTransformer(CodeContext, CodeTransformer)
          * @see CodeTransformer#acceptBody(Builder, Body, List)
          */
@@ -833,7 +840,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         // State updates after structural checks
-        // @@@ The alternative is to close the body builder on failure, rendering it inoperable,
+        // @@@ The alternative is to finish the body builder on failure, rendering it inoperable,
         // so checks and updates can be merged
         for (Value v : op.operands()) {
             v.uses.add(opr);

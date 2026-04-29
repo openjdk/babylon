@@ -461,7 +461,7 @@ public final class Body implements CodeElement<Body, Block> {
      * <li>
      * <a id="body-building-observability"></a>
      * the body and its child blocks are not observable; attempts to observe them through appended operations, their
-     * operation results, block parameters, or block references, throw an exception.
+     * operation results, block parameters, or block references, throw an {@link IllegalStateException}.
      * </ul>
      * <p>
      * Building finishes by invoking {@link #build(Op)}, with a given operation that becomes the body's
@@ -567,8 +567,8 @@ public final class Body implements CodeElement<Body, Block> {
         // When non-null contains one or more great-grandchildren
         List<Builder> greatgrandchildren;
 
-        // True when built
-        boolean closed;
+        // True when finished
+        boolean finished;
 
         Builder(Builder ancestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
@@ -629,15 +629,15 @@ public final class Body implements CodeElement<Body, Block> {
             Objects.requireNonNull(op);
 
             // Structural check
-            // This body should not be closed
+            // This body builder should not be finished
             check();
-            closed = true;
+            finished = true;
 
             // Structural check
             // All great-grandchildren bodies should be built
             if (greatgrandchildren != null) {
                 for (Builder greatgrandchild : greatgrandchildren) {
-                    if (!greatgrandchild.closed) {
+                    if (!greatgrandchild.finished) {
                         throw new IllegalStateException("Descendant body builder is not built");
                     }
                 }
@@ -713,8 +713,8 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         void check() {
-            if (closed) {
-                throw new IllegalStateException("Builder is closed");
+            if (finished) {
+                throw new IllegalStateException("Builder is finished");
             }
         }
 
