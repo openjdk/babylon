@@ -387,11 +387,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final  T type( JavaType javaType) {
         if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(),javaType)){
             C99VecAndMatHandler.handleType(self(),javaType);
-        }else if (javaType instanceof ClassType classType
+        } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
         ) {
-            HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
+            if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, Tensor.class)) {
+                //suffix_t(classType);  // CHECK (WIP)
+            } else {
+                HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
+            }
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(KernelContext.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls

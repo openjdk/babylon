@@ -32,6 +32,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.JavaCodeBuilder;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
@@ -416,7 +417,13 @@ public class Trxfmr implements LookupCarrier{
             if (predicate.test(op)){
                 codeTransformer.acceptOp(blockBuilder,op);
             } else {
-                biMap.add(op,blockBuilder.op(op).op());
+                var newOp = blockBuilder.op(op).op();
+                // We propagate the existing op into the new tree
+                if (BabylonOpDispatcher.table.containsKey(op)) {
+                    IO.println("REPLACING: " + op + " with " + newOp);
+                    BabylonOpDispatcher.table.put(newOp, BabylonOpDispatcher.table.get(op));
+                }
+                biMap.add(op, newOp);
             }
             return blockBuilder;
         });

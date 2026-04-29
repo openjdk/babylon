@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static optkl.codebuilders.BabylonOpDispatcher.DeviceRegion.SHARED;
+
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
     protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
@@ -255,7 +257,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-        HATMemoryVarOp.HATVarOp.DeviceRegion deviceRegion = hatVarOp.deviceRegion();
+
+        DeviceRegion deviceRegion = hatVarOp.deviceRegion();
         switch (deviceRegion) {
             case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
@@ -305,11 +308,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
 
         var tensorVarValue = tensorCreateOp.result().uses().getFirst();
-        String varTensorName = null;
+        String varTensorName;
         if (tensorVarValue.declaringElement() instanceof HATMemoryVarOp.HATVarOp hatVarOp) {
             varTensorName = hatVarOp.varName();
-
+        } else if (tensorVarValue.declaringElement() instanceof CoreOp.VarOp varOp) {
+            varTensorName = varOp.varName();
+        } else {
+            throw new IllegalStateException("Name can't be null");
         }
+
         final int size = shape[0] * shape[1];
         if (tensorCreateOp.operands().size() > 3) {
             // Share memory only for the input tiles (tensors)
@@ -331,6 +338,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
             case HATMemoryVarOp.HATVarOp hatVarOp -> hatVarOp;
+            case null, default -> null;
+        };
+    }
+
+    static CoreOp.VarOp findVarOp(Value varLoadOp) {
+        return switch (varLoadOp.declaringElement()) {
+            case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findVarOp(tensorVarLoadOp.operands().getFirst());
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findVarOp(varLoadOp2.operands().getFirst());
+            case CoreOp.VarOp varOp -> varOp;
             case null, default -> null;
         };
     }
@@ -365,8 +381,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return new int[]{};
     }
 
-    private int[] getShapeFromTensorVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-        Value tensorCreateValueOp = hatVarOp.operands().getFirst();
+    private int[] getShapeFromTensorVarOp(CoreOp.VarOp varOp) {
+        Value tensorCreateValueOp = varOp.operands().getFirst();
         if (tensorCreateValueOp.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
             // Second parameters: analysis of the shape
             int[] shape = new int[3];
@@ -385,8 +401,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return new int[]{};
     }
 
-    private boolean isColumnMajorFromVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-        Value tensorCreateValueOp = hatVarOp.operands().getFirst();
+    private boolean isColumnMajorFromVarOp(CoreOp.VarOp varOp) {
+        Value tensorCreateValueOp = varOp.operands().getFirst();
         if (tensorCreateValueOp.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
             // Parameter 3 defines the access layout
             Value valueLayout = tensorCreateOp.operands().get(3);
@@ -425,7 +441,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder emitForLoopWithBound(int from, int to, HATMemoryVarOp.HATVarOp hatVarOp, float initValue) {
+    private OpenCLHATKernelBuilder emitForLoopWithBound(int from, int to, CoreOp.VarOp varOp, float initValue) {
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
@@ -441,7 +457,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             }).sp().in();
 
             brace(_ -> nl()
-                    .id(hatVarOp.varName())
+                    .id(varOp.varName())
                     .sbrace(_ ->
                             id(varA).mul()
                             .id(Integer.toString(to))
@@ -454,7 +470,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
-    private OpenCLHATKernelBuilder emitTensorFill(int[] shape, HATMemoryVarOp.HATVarOp hatVarOp, float initValue) {
+    private OpenCLHATKernelBuilder emitTensorFill(int[] shape, CoreOp.VarOp hatVarOp, float initValue) {
 
         return emitForLoopWithBound(0, shape[0], hatVarOp, initValue);
     }
@@ -479,21 +495,24 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         // 1. Access to the variable name
         var tensorValue = tensorFillOp.operands().getFirst();
-        HATMemoryVarOp.HATVarOp hatVarOp = findTensorVarOp(tensorValue);
-        if (hatVarOp == null) {
+        //HATMemoryVarOp.HATVarOp hatVarOp = findTensorVarOp(tensorValue);
+
+        CoreOp.VarOp varOp = findVarOp(tensorValue);
+
+        if (varOp == null) {
             throw new OpenCLCodeGenException("[Error][Codegen] Expected a tensorVarOp, but found `null` instead");
         }
 
         // 2. Access the shape
         // Second parameters: analysis of the shape
-        Value tensorAccDecl = hatVarOp.operands().getFirst();
+        Value tensorAccDecl = varOp.operands().getFirst();
         int[] shape = getShapeFromTensorCreateValue(tensorAccDecl);
 
         // 3. Access the layout
         var tensorInitValue = tensorFillOp.operands().get(1);
         float initValue = getValueConstantTensor(tensorInitValue);
 
-        emitTensorFill(shape, hatVarOp, initValue);
+        emitTensorFill(shape, varOp, initValue);
         return self();
     }
 
@@ -536,7 +555,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder generateTensorMMA(int[] shape, HATMemoryVarOp.HATVarOp tensorA, HATMemoryVarOp.HATVarOp tensorB, HATMemoryVarOp.HATVarOp tensorC, HATMemoryVarOp.HATVarOp result) {
+    private OpenCLHATKernelBuilder generateTensorMMA(int[] shape, CoreOp.VarOp tensorA, CoreOp.VarOp tensorB, CoreOp.VarOp tensorC, CoreOp.VarOp result) {
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
@@ -592,10 +611,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var tensorAValue = tensorMMAOp.operands().get(1);
         var tensorBValue = tensorMMAOp.operands().get(2);
         var tensorCValue = tensorMMAOp.operands().get(3);
-        var tensorA = findTensorVarOp(tensorAValue);
-        var tensorB = findTensorVarOp(tensorBValue);
-        var tensorC = findTensorVarOp(tensorCValue);
-        var tensorResult = findTensorVarOp(resulTensorValue);
+        var tensorA = findVarOp(tensorAValue);
+        var tensorB = findVarOp(tensorBValue);
+        var tensorC = findVarOp(tensorCValue);
+        var tensorResult = findVarOp(resulTensorValue);
         if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
             throw new OpenCLCodeGenException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
         }
@@ -619,6 +638,20 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             Value first = tensorStoreLoadOp.operands().getFirst();
             if (first.declaringElement() instanceof HATMemoryVarOp.HATVarOp hatVarOp) {
                 return hatVarOp;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    private CoreOp.VarOp findVarOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
+        var tensorStoreLoadValue = tensorLoadOp.result().uses().getFirst();
+        if (tensorStoreLoadValue.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
+            Value first = tensorStoreLoadOp.operands().getFirst();
+            if (first.declaringElement() instanceof CoreOp.VarOp varOp) {
+                return varOp;
             } else {
                 return null;
             }
@@ -655,7 +688,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder generateTensorLoad(int[] shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, HATMemoryVarOp.HATVarOp hatVarOp) {
+    private OpenCLHATKernelBuilder generateTensorLoad(int[] shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp hatVarOp) {
 
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
@@ -765,16 +798,17 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var iIndexValue = operands.get(1);
         var jIndexValue = operands.get(2);
         var leadingDimension = operands.get(3);
-        HATMemoryVarOp.HATVarOp hatVarOp = findTensorVarOp(tensorLoadOp);
+        //HATMemoryVarOp.HATVarOp hatVarOp = findTensorVarOp(tensorLoadOp);
+        CoreOp.VarOp varOp = findVarOp(tensorLoadOp);
         int[] shape;
         boolean isColumnMajor;
-        if (hatVarOp != null) {
-            shape = getShapeFromTensorVarOp(hatVarOp);
-            isColumnMajor = isColumnMajorFromVarOp(hatVarOp);
+        if (varOp != null) {
+            shape = getShapeFromTensorVarOp(varOp);
+            isColumnMajor = isColumnMajorFromVarOp(varOp);
         } else {
             throw new OpenCLCodeGenException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
         }
-        generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, hatVarOp);
+        generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, varOp);
         HAT_BARRIER();
         return self();
     }
@@ -805,7 +839,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder generateTensorStore(int[] shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, HATMemoryVarOp.HATVarOp hatVarOp) {
+    private OpenCLHATKernelBuilder generateTensorStore(int[] shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp hatVarOp) {
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
@@ -910,7 +944,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var tensorValue = operands.get(3);
         var leadingDimension = operands.get(4);
 
-        HATMemoryVarOp.HATVarOp hatVarOp = findTensorVarOp(tensorValue);
+        var hatVarOp = findVarOp(tensorValue);
         if (hatVarOp == null) {
             throw new OpenCLCodeGenException("[Error][CodeGen] Expected to find a tensorVarOp, but `null` instead.");
         }

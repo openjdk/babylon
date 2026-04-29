@@ -145,21 +145,32 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
             if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
                 constKeyword().sp();
             }
-            type( (JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
-            var first = varOp.operands().getFirst();
-            if (first instanceof Op.Result result) {
-                parenthesisIfNeeded( varOp, result.op());
-            }else if (first instanceof Block.Parameter parameter) {
-               var p1 =  parameter.declaringBlock().parameters().getFirst();
 
-                var r = parameter.uses().iterator().next();
-                //parenthesisIfNeeded( varOp, r.op());
-               // if (r.op() instanceof CoreOp.VarOp varOp1){
-                 //   identifier(varOp1.varName());
-               // }
-              blockInlineComment("param "+r);
-            }else{
-                blockInlineComment("look at varOp "+first);
+            // TODO: table attribution lookup
+            DeviceRegion deviceRegion = table.get(varOp);
+            emitText("//DeviceRegion for varOp: " + varOp.varName() + " " + deviceRegion).nl();
+            if (deviceRegion != null) {
+                switch (deviceRegion) {
+                    case TENSOR -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+                }
+            } else {
+                // Original varOp
+                type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+                var first = varOp.operands().getFirst();
+                if (first instanceof Op.Result result) {
+                    parenthesisIfNeeded(varOp, result.op());
+                } else if (first instanceof Block.Parameter parameter) {
+                    var p1 = parameter.declaringBlock().parameters().getFirst();
+
+                    var r = parameter.uses().iterator().next();
+                    //parenthesisIfNeeded( varOp, r.op());
+                    // if (r.op() instanceof CoreOp.VarOp varOp1){
+                    //   identifier(varOp1.varName());
+                    // }
+                    blockInlineComment("param " + r);
+                } else {
+                    blockInlineComment("look at varOp " + first);
+                }
             }
         }
         return self();

@@ -36,6 +36,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
@@ -103,7 +104,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    HATMemoryVarOp.HATVarOp.DeviceRegion.PRIVATE,
+                    BabylonOpDispatcher.DeviceRegion.PRIVATE,
                     builder.context().getValues(invokeOp.operands())
             );
             op.setLocation(varOp.location());
@@ -125,7 +126,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    HATMemoryVarOp.HATVarOp.DeviceRegion.SHARED,
+                    BabylonOpDispatcher.DeviceRegion.SHARED,
                     builder.context().getValues(invokeOp.operands())
             ));
         }
@@ -176,7 +177,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             var  privateVarOp = copyLocation(varOp,new HATMemoryVarOp.HATVarOp(varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    HATMemoryVarOp.HATVarOp.DeviceRegion.INIT,
+                    BabylonOpDispatcher.DeviceRegion.INIT,
                     blockBuilder.context().getValues(varOp.operands())));
             blockBuilder.context().mapValue(varOp.result(), blockBuilder.op(privateVarOp));
             return privateVarOp;

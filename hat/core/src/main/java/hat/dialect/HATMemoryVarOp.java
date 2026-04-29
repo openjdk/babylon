@@ -29,15 +29,20 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import optkl.IfaceValue;
 import optkl.IfaceValue.Vector.Shape;
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static optkl.codebuilders.BabylonOpDispatcher.*;
 
 public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp {
 
@@ -72,25 +77,27 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         // float16Class is only needed for F16
         // Vector Shape is only needed in the case of Vectors
 
-        public HATVarOp(String varName, VarType codeType, DeviceRegion deviceRegion, List<Value> operands) {
-            super(varName, operands);
-            this.codeType = codeType;
-            this.float16Class = null;
-            this.vectorShape = null;
-            this.klassType = null;
-            this.deviceRegion = deviceRegion;
-        }
+//       Constructor used only to identify tensors: now it is not used
+//        public HATVarOp(String varName, VarType codeType, DeviceRegion deviceRegion, List<Value> operands) {
+//            super(varName, operands);
+//            this.codeType = codeType;
+//            this.float16Class = null;
+//            this.vectorShape = null;
+//            this.klassType = null;
+//            this.deviceRegion = deviceRegion;
+//        }
 
+        // Constructor used to identify F16 Types
         public HATVarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
             super(varName, operands);
-            this.codeType = varType;
-            this.float16Class = float16Class;
+            this.codeType = varType;                // this can be inferred
+            this.float16Class = float16Class;       // This could be inferred at codegen-time by placing the traversal before generating the code
             this.vectorShape = null;
             this.klassType = null;
             this.deviceRegion = DeviceRegion.NARROW; // if float16Class -> NARROW
-
         }
 
+        // This constructor is used only for vectors in which we ned a shape, but the shape could potentially be inferred in the codegen
         public HATVarOp(String varName, VarType codeType, Shape vectorShape, List<Value> operand) {
             super(varName, operand);
             this.codeType = codeType;
@@ -100,16 +107,6 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
             // local
             this.klassType = null;
             this.deviceRegion = DeviceRegion.VECTOR;  // we can infer Vector category because it has a vector shape
-        }
-
-        public enum DeviceRegion {
-            UNKNOWN,
-            PRIVATE,
-            SHARED,
-            INIT,
-            TENSOR,
-            NARROW,
-            VECTOR,
         }
 
         // Local/Private Memory Types

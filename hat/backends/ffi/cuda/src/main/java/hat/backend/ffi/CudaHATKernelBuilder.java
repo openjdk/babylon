@@ -443,7 +443,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        HATMemoryVarOp.HATVarOp.DeviceRegion deviceRegion = hatVarOp.deviceRegion();
+        DeviceRegion deviceRegion = hatVarOp.deviceRegion();
         switch (deviceRegion) {
             case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));

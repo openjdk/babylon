@@ -24,8 +24,6 @@
  */
 package hat.phases;
 
-import hat.dialect.HATMemoryVarOp;
-import hat.dialect.HATMemoryVarOp.HATVarOp.DeviceRegion;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
@@ -34,6 +32,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.codebuilders.BabylonOpDispatcher;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
@@ -49,10 +48,11 @@ import static hat.dialect.HATTensorOp.TensorMMAOp;
 import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
 import static hat.dialect.HATTensorOp.TensorStoreOp;
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;
+import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public record HATTensorsPhase() implements HATPhase {
 
-    private interface TensorTransformer {
+    public interface TensorTransformer {
 
         void transform(Block.Builder blockBuilder, Op op);
 
@@ -61,7 +61,6 @@ public record HATTensorsPhase() implements HATPhase {
             Op.Result newOpResult = blockBuilder.op(newOp);
             blockBuilder.context().mapValue(oldOp.result(), newOpResult);
         }
-
     }
 
     private static class TensorView implements TensorTransformer {
@@ -70,7 +69,12 @@ public record HATTensorsPhase() implements HATPhase {
         public void transform(Block.Builder blockBuilder, Op op) {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new HATMemoryVarOp.HATVarOp(varOp.varName(), varOp.resultType(), DeviceRegion.TENSOR, operands));
+                //case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new HATMemoryVarOp.HATVarOp(varOp.varName(), varOp.resultType(), HATMemoryVarOp.HATVarOp.DeviceRegion.TENSOR, operands));
+                case CoreOp.VarOp varOp -> {
+                    Op.Result opResult = blockBuilder.op(varOp);
+                    // insert the new op into the table
+                    table.put(opResult.op(), BabylonOpDispatcher.DeviceRegion.TENSOR);
+                }
                 case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.op(op);
             }
@@ -130,7 +134,7 @@ public record HATTensorsPhase() implements HATPhase {
         }
     }
 
-    private CoreOp.FuncOp transformWithPredicate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, BiConsumer<Block.Builder, Op> function, Set<Op> opsToProcess ) {
+    private CoreOp.FuncOp transformWithConsumer(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, BiConsumer<Block.Builder, Op> function, Set<Op> opsToProcess ) {
         return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             function.accept(blockBuilder, op);
             return blockBuilder;
@@ -152,7 +156,7 @@ public record HATTensorsPhase() implements HATPhase {
                             .ifPresent(opsToProcess::add);
                 });
 
-        return transformWithPredicate(lookup, funcOp, new TensorView()::transform, opsToProcess);
+        return transformWithConsumer(lookup, funcOp, new TensorView()::transform, opsToProcess);
     }
 
     private Set<Op> filterOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, String methodIntrinsicName) {
@@ -173,12 +177,12 @@ public record HATTensorsPhase() implements HATPhase {
 
     private CoreOp.FuncOp fillTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         Set<Op> opsToProcess = filterOps(lookup, funcOp, "fill");
-        return transformWithPredicate(lookup, funcOp, new TensorFill()::transform, opsToProcess);
+        return transformWithConsumer(lookup, funcOp, new TensorFill()::transform, opsToProcess);
     }
 
     private CoreOp.FuncOp mmaTensor(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         Set<Op> opsToProcess = filterOps(lookup, funcOp, "mma");
-        return transformWithPredicate(lookup, funcOp, new TensorMMA()::transform, opsToProcess);
+        return transformWithConsumer(lookup, funcOp, new TensorMMA()::transform, opsToProcess);
     }
 
     private CoreOp.FuncOp tensorLoad(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
@@ -194,7 +198,7 @@ public record HATTensorsPhase() implements HATPhase {
                             .map(result -> (CoreOp.VarAccessOp.VarStoreOp) result.op())
                             .forEach(opsToProcess::add);
                 });
-        return transformWithPredicate(lookup, funcOp, new TensorLoad()::transform, opsToProcess);
+        return transformWithConsumer(lookup, funcOp, new TensorLoad()::transform, opsToProcess);
     }
 
     private CoreOp.FuncOp tensorStoreOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
@@ -204,7 +208,7 @@ public record HATTensorsPhase() implements HATPhase {
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("store"))
                 .forEach(invoke -> opsToProcess.add(invoke.op()));
-        return transformWithPredicate(lookup, funcOp, new TensorStore()::transform, opsToProcess);
+        return transformWithConsumer(lookup, funcOp, new TensorStore()::transform, opsToProcess);
     }
 
     @Override
@@ -214,6 +218,19 @@ public record HATTensorsPhase() implements HATPhase {
         funcOp = mmaTensor(lookup, funcOp);
         funcOp = tensorLoad(lookup, funcOp);
         funcOp = tensorStoreOp(lookup, funcOp);
+
+//        funcOp.elements().forEach( codeElement -> {
+//            if (codeElement instanceof CoreOp.VarOp varOp) {
+//                IO.println(varOp.varName());
+//                if (table.containsKey(varOp)) {
+//                    IO.println("OK");
+//                } else {
+//                    IO.println("FAIL");
+//                }
+//            }
+//
+//        });
+
         return funcOp;
     }
 }
