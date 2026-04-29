@@ -52,11 +52,12 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring block is the block declaring the parameter.
      *
      * @return the value's declaring block.
-     * @throws IllegalStateException if the declaring block is being built and is not observable.
+     * @throws IllegalStateException if the declaring block is
+     * <a href="Body.Builder.html#body-building-observability">unobservable</a>
      */
     public Block declaringBlock() {
         if (!isBuilt()) {
-            throw new IllegalStateException("Declaring block is being built and is not observable");
+            throw new IllegalStateException("Declaring block is unobservable");
         }
         return block;
     }
@@ -67,12 +68,12 @@ public sealed abstract class Value implements CodeItem
      * If the value is a block parameter then the declaring code element is this value's declaring block.
      *
      * @return the value's declaring code element.
-     * @throws IllegalStateException if this value is a block parameter and its declaring block is being built and is
-     * not observable.
+     * @throws IllegalStateException if the declaring code element is a block and that block is
+     * <a href="Body.Builder.html#body-building-observability">unobservable</a>
      */
     public CodeElement<?, ?> declaringElement() {
         return switch (this) {
-            case Block.Parameter _ -> block;
+            case Block.Parameter _ -> declaringBlock();
             case Op.Result r -> r.op();
         };
     }
@@ -130,11 +131,12 @@ public sealed abstract class Value implements CodeItem
      *
      * @return the uses of this value, as an unmodifiable sequenced set. The encouncter order is unspecified
      * and determined by the order in which operations are built into blocks.
-     * @throws IllegalStateException if this value's declaring block is being built and is not observable.
+     * @throws IllegalStateException if this value's declaring block is
+     * <a href="Body.Builder.html#body-building-observability">unobservable</a>
      */
     public SequencedSet<Op.Result> uses() {
         if (!isBuilt()) {
-            throw new IllegalStateException("Declaring block is being built and is not observable");
+            throw new IllegalStateException("Declaring block is unobservable");
         }
 
         return Collections.unmodifiableSequencedSet(uses);
@@ -158,7 +160,6 @@ public sealed abstract class Value implements CodeItem
      *
      * @param dom the dominating value
      * @return {@code true} if this value is dominated by the given value {@code dom}.
-     * @throws IllegalStateException if an encountered block is being built and is not observable.
      * @see Block#isDominatedBy
      */
     public boolean isDominatedBy(Value dom) {
@@ -197,7 +198,6 @@ public sealed abstract class Value implements CodeItem
      * @return the value {@code 0} if {@code a == b}; {@code -1} if {@code a} is less than {@code b}; and {@code -1}
      * if {@code a} is greater than {@code b}.
      * @throws IllegalArgumentException if {@code a} and {@code b} are not present in the same code model
-     * @throws IllegalStateException if an encountered block is being built and is not observable.
      * @see CodeElement#compare
      */
     public static int compare(Value a, Value b) {

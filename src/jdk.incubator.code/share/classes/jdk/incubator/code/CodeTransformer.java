@@ -136,6 +136,7 @@ public interface CodeTransformer {
      * @param builder the block builder
      * @param body the body to transform
      * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
+     * @throws IllegalArgumentException if there are more output values than entry block parameters
      */
     default void acceptBody(Block.Builder builder, Body body, List<? extends Value> values) {
         CodeContext cc = builder.context();

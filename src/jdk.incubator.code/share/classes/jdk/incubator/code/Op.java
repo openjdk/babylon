@@ -66,7 +66,8 @@ import java.util.function.BiFunction;
  * being built. Once attached the operation has a permanently non-{@code null} operation {@link #result} that can be
  * used as an operand of subsequent constructed operations.
  * After the block is built the operation has a permanently non-{@code null} {@link #parent}. Before then, the block
- * being built is not observable through this operation and any attempt to access the block results in an exception.
+ * being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this operation and
+ * any attempt to access the block throws {@link IllegalStateException}.
  * <p>
  * An unattached operation can be built as a {@link #isRoot() root} operation. Once built the operation's
  * {@link #result result} and {@link #parent parent} are always {@code null}.
@@ -414,8 +415,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * The operation's parent block is the same as the operation result's {@link Value#declaringBlock declaring block}.
      *
      * @return operation's parent block, or {@code null} if this operation is unattached or a root operation.
-     * @throws IllegalStateException if this operation is attached and the parent block is being built and is not
-     * observable.
+     * @throws IllegalStateException if this operation is attached and its parent block is
+     * <a href="Body.Builder.html#body-building-observability">unobservable</a>.
      * @see Value#declaringBlock()
      */
     @Override
@@ -425,7 +426,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Parent block is being built and is not observable");
+            throw new IllegalStateException("Parent block is unobservable");
         }
 
         return result.block;
@@ -495,7 +496,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * first search of this operation's descendant operations.
      *
      * @return the list of captured values, modifiable
-     * @throws IllegalStateException if an encountered block is being built and is not observable.
      * @see Body#capturedValues()
      */
     public final List<Value> capturedValues() {
