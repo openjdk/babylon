@@ -138,7 +138,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
 
     @Override
-    public final T varOp( CoreOp.VarOp varOp) {
+    public T varOp( CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
             type( (JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {

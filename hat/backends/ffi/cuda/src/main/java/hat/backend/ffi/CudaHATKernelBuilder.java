@@ -32,17 +32,15 @@ import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import hat.types.F16;
 import hat.types.Tensor;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.FieldRef;
-import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.*;
 import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -575,10 +573,56 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder varOp( CoreOp.VarOp varOp) {
+        // Extended from the base class JavaOrC99StyleCodeBuilder
+
+        if (varOp.isUninitialized()) {
+            type( (JavaType) varOp.varValueType()).sp().varName(varOp);
+        } else {
+            if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
+                constKeyword().sp();
+            }
+
+            DeviceRegion deviceRegion = table.get(varOp);
+            emitText("// DeviceRegion for varOp: " + varOp.varName() + " " + deviceRegion).nl();
+            // TODO: complete this switch for every new region
+            if (deviceRegion != null) {
+                switch (deviceRegion) {
+                    case TENSOR -> {
+                        recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+                        sp().id(varOp.varName());
+                    }
+                }
+            } else {
+                // Original varOp
+                type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+                var first = varOp.operands().getFirst();
+                if (first instanceof Op.Result result) {
+                    parenthesisIfNeeded(varOp, result.op());
+                } else if (first instanceof Block.Parameter parameter) {
+                    var p1 = parameter.declaringBlock().parameters().getFirst();
+
+                    var r = parameter.uses().iterator().next();
+                    //parenthesisIfNeeded( varOp, r.op());
+                    // if (r.op() instanceof CoreOp.VarOp varOp1){
+                    //   identifier(varOp1.varName());
+                    // }
+                    blockInlineComment("param " + r);
+                } else {
+                    blockInlineComment("look at varOp " + first);
+                }
+            }
+        }
+        return self();
+    }
+
+    @Override
     public CudaHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
         Value operand = hatTensorVarLoadOp.operands().getFirst();
         if (operand instanceof Op.Result r && r.op() instanceof HATMemoryVarOp.HATVarOp hatVarOp) {
             varName(hatVarOp.varName());
+        } else if (operand.declaringElement() instanceof CoreOp.VarOp varOp) {
+            varName(varOp.varName());
         } else {
             throw new CUDACodeGenException("[ERROR] Expected HATTensorVarOp");
         }
@@ -644,21 +688,27 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         // Find name tensor of the first argument
         String tensorName = "";
         SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
-        HATMemoryVarOp.HATVarOp HATVarOp = null;
+        Op hatVarOp = null;
         for (Op.Result result : uses) {
             if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
                 // obtain first arg from tensorStoreOp
                 Value first = storeLoadOp.operands().getFirst();
-                if (first.declaringElement() instanceof HATMemoryVarOp.HATVarOp varOp) {
-                    HATVarOp = varOp;
-                    tensorName = HATVarOp.varName();
+//                if (first.declaringElement() instanceof HATMemoryVarOp.HATVarOp varOp) {
+//                    hatVarOp = varOp;
+//                    tensorName = varOp.varName();
+//                // } else
+                if (first.declaringElement() instanceof CoreOp.VarOp varOp) {
+                    hatVarOp = varOp;
+                    tensorName = varOp.varName();
+                } else {
+                    throw new CUDACodeGenException("Name not valid: ");
                 }
             }
         }
 
         boolean isColumnMajor = true;
-        if (HATVarOp != null) {
-            Value value = HATVarOp.operands().getFirst();
+        if (hatVarOp != null) {
+            Value value = hatVarOp.operands().getFirst();
             if (value.declaringElement() instanceof HATTensorOp.TensorCreateOp createOp) {
                 Value tensorLayout = createOp.operands().getLast();
                 isColumnMajor = isColumnMajor(tensorLayout);
