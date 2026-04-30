@@ -31,6 +31,7 @@ import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import hat.types.F16;
+import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -42,11 +43,8 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SequencedSet;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static optkl.OpHelper.Invoke.invoke;
 
@@ -582,6 +580,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             throw new IllegalStateException("Function: " + funcOp.funcName() + " not registered");
         }
     }
+    
+    private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    private Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
 
     @Override
     public CudaHATKernelBuilder varOp( CoreOp.VarOp varOp) {
@@ -593,6 +606,34 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             // TODO: complete this switch for every new region
             if (hATOpAttribute != null) {
                 switch (hATOpAttribute) {
+                    case NARROW -> {
+
+                        // obtain the category:
+                        Value first = varOp.operands().getFirst();
+                        Class<?> narrowCategory;
+                        if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                            // Find the category - This is the generic case, when ALL custom ops are removed
+                            Stream<OpHelper.Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+                            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+                            narrowCategory = reduceFloatType(invoke);
+                            if (narrowCategory == null && isMathLib(invoke)) {
+                                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+                            }
+                        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+                            narrowCategory = hatf16BinaryOp.float16Class();
+                        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
+                            narrowCategory = hatf16ConvOp.float16Class();
+                        } else {
+                            throw new CUDACodeGenException("Expected an invoke, but found: " + first.declaringElement().getClass());
+                        }
+                        if (narrowCategory == null) {
+                            throw new CUDACodeGenException("Narrow type can't be null: ");
+                        }
+                        // handle narrow types (F16 and BFloat)
+                        return f16OrBF16(narrowCategory).sp().assign(
+                                _ -> id(varOp.varName()),
+                                _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    }
                     case TENSOR -> {
                         recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
                         sp().id(varOp.varName());
