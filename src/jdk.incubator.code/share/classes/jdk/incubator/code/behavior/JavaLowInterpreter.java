@@ -81,7 +81,7 @@ public class JavaLowInterpreter extends Interpreter {
                     // implicit throw
                     if (!e.operands().isEmpty() && e.operands().getFirst() instanceof Throwable t) {
                         JavaEnv jenv = (JavaEnv) env;
-                        R r = jenv.catchBlock(t);
+                        R r = jenv.findCatchBlock(t);
                         if (r.catchBlock().isPresent()) {
                             return new SuccessorEffect(r.catchBlock().get(), e.operands(), r.javaEnv());
                         } else {
@@ -189,7 +189,7 @@ public class JavaLowInterpreter extends Interpreter {
             case JavaOp.ThrowOp o -> {
                 JavaEnv jenv = (JavaEnv) e;
                 List<Object> operands = e.valuesOf(o.operands());
-                R r = jenv.catchBlock((Throwable) operands.getFirst());
+                R r = jenv.findCatchBlock((Throwable) operands.getFirst());
                 if (r.catchBlock().isPresent()) {
                     yield new SuccessorEffect(r.catchBlock().get(), operands, r.javaEnv());
                 }
@@ -303,7 +303,7 @@ public class JavaLowInterpreter extends Interpreter {
             return new JavaEnv(bindings, this.l, stack);
         }
 
-        public R catchBlock(Throwable t) {
+        public R findCatchBlock(Throwable t) {
             Block cb = null;
             int blockListToRemove = 0;
             l:
