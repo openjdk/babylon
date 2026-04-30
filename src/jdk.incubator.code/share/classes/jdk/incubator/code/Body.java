@@ -69,9 +69,10 @@ public final class Body implements CodeElement<Body, Block> {
     // Sorted in reverse postorder
     final List<Block> blocks;
 
-    // Map of a block to its immediate dominator
-    // Computed lazily, null if not computed
-    Map<Block, Block> idoms;
+    // Lazily computed map of a block to its immediate dominator
+    // Computed after body is built
+    // @@@ when dominance checks are implemented, may be computed and used in build method
+    LazyConstant<Map<Block, Block>> idoms = LazyConstant.of(this::computeImmediateDominators);
 
     /**
      * Constructs a body, whose connected ancestor body is the given ancestor body.
@@ -146,6 +147,11 @@ public final class Body implements CodeElement<Body, Block> {
      * @return a map of block to its immediate dominator, as an unmodifiable map
      */
     public Map<Block, Block> immediateDominators() {
+        return idoms.get();
+    }
+
+    // Called by LazyConstant field
+    private Map<Block, Block> computeImmediateDominators() {
         /*
          * Compute dominators of blocks in a body.
          * <p>
@@ -153,10 +159,6 @@ public final class Body implements CodeElement<Body, Block> {
          * A Simple, Fast Dominance Algorithm
          * Keith D. Cooper, Timothy J. Harvey, and Ken Kennedy
          */
-
-        if (idoms != null) {
-            return idoms;
-        }
 
         // @@@ Compute the idoms as a block index mapping using int[]
         // and wrap and a specific map implementation
@@ -201,7 +203,7 @@ public final class Body implements CodeElement<Body, Block> {
             }
         } while (changed);
 
-        return idoms = Collections.unmodifiableMap(doms);
+        return Collections.unmodifiableMap(doms);
     }
 
     static Block intersect(Map<Block, Block> doms, Block b1, Block b2) {
