@@ -65,7 +65,7 @@ import java.util.function.BiFunction;
  * <ol>
  * <li>
  * the unattached operation is <i>attached</i> to a block, as its parent block, by using a block builder to
- * {@link Block.Builder#op(Op) appending} it to a block. The attached operation has a permanently
+ * {@link Block.Builder#op(Op) append} it to a block. The attached operation has a permanently
  * non-{@code null} {@link #result result} that can be used as an operand of subsequent constructed operations. The
  * block being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this
  * operation and any attempt to access the block throws {@link IllegalStateException}.
