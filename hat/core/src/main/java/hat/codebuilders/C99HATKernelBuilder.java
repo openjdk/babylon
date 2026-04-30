@@ -57,10 +57,13 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 import static hat.buffer.F16Array.F16Impl;
 import static java.lang.invoke.MethodHandles.lookup;
 import static optkl.OpHelper.Invoke;
@@ -385,15 +388,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
+        // TODO: I would not include this method in the visitor, rather just the tree-nodes. Types can be resolved when needed directly.
+
         if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(),javaType)){
             C99VecAndMatHandler.handleType(self(),javaType);
         } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
         ) {
-            if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, Tensor.class)) {
-                //suffix_t(classType);  // CHECK (WIP)
-            } else {
+            if (!OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, Tensor.class)) {
+                //suffix_t(classType);  // CHECK (WIP) - Before we merge, remove this!
                 HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
             }
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
@@ -459,6 +463,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final T bf16Type() {
         return suffix_t(BF16.class);
+    }
+
+    protected boolean isMathLib(Optional<Invoke> invoke) {
+        return !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
     }
 
      protected T f16OrBF16(Class<?> float16Class){
@@ -577,7 +585,25 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
-        return id(hatF16VarLoadOp.varName()).dot().id(VALUE);
+        id(hatF16VarLoadOp.varName());
+
+        // Since all VarOps now are the same, we need to distinguish if it comes from a global load,
+        // or private/shared load.
+        if (hatF16VarLoadOp.operands().getFirst().declaringElement() instanceof CoreOp.VarOp varOp
+                && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            // VarLoad from Global Memory with an InvokeOp
+
+            Stream<Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+            if (isMathLib(invoke)) {
+                dot();
+            } else {
+                rarrow();
+            }
+        } else {
+            dot();
+        }
+        return id(VALUE);
     }
 
     @Override

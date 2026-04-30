@@ -55,8 +55,11 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
 
     protected abstract boolean isIfaceBufferInvokeWithName(Invoke invoke);
 
+    private String functioName;
+
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        functioName = funcOp.funcName();
         Set<CodeElement<?,?>> nodesInvolved = new LinkedHashSet<>();
         Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
         OpHelper.Variable.stream(lookup,funcOp)
@@ -80,7 +83,12 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                             blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(create(blockBuilder, varOp, invoke.op())))
                         );
             } else if (OpHelper.Named.Variable.var(lookup,op) instanceof OpHelper.Named.Variable variable && nodesInvolved.contains(variable.op())) {
-                blockBuilder.context().mapValue(variable.op().result(), blockBuilder.context().getValue(variable.op().operands().getFirst()));
+                Op.Result result = variable.op().result();
+                blockBuilder.context().mapValue(result, blockBuilder.context().getValue(variable.op().operands().getFirst()));
+                if (BabylonOpDispatcher.table.containsKey(functioName)) {
+                    BabylonOpDispatcher.table.get(functioName).put(result.op(), BabylonOpDispatcher.table.get(functioName).get(variable.op()));
+                }
+
             } else {
                 blockBuilder.op(op);
             }
@@ -104,7 +112,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    BabylonOpDispatcher.DeviceRegion.PRIVATE,
+                    BabylonOpDispatcher.HATOpAttribute.PRIVATE,
                     builder.context().getValues(invokeOp.operands())
             );
             op.setLocation(varOp.location());
@@ -126,7 +134,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    BabylonOpDispatcher.DeviceRegion.SHARED,
+                    BabylonOpDispatcher.HATOpAttribute.SHARED,
                     builder.context().getValues(invokeOp.operands())
             ));
         }
@@ -177,7 +185,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             var  privateVarOp = copyLocation(varOp,new HATMemoryVarOp.HATVarOp(varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    BabylonOpDispatcher.DeviceRegion.INIT,
+                    BabylonOpDispatcher.HATOpAttribute.INIT,
                     blockBuilder.context().getValues(varOp.operands())));
             blockBuilder.context().mapValue(varOp.result(), blockBuilder.op(privateVarOp));
             return privateVarOp;

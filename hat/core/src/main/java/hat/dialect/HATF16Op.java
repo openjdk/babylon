@@ -31,6 +31,7 @@ import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.VarType;
 import optkl.util.ops.Precedence;
+import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
 import java.util.List;
@@ -141,7 +142,7 @@ public abstract sealed class HATF16Op extends HATOp implements VarLikeOp {
 
     }
 
-    public static final class HATF16ConvOp extends HATF16Op {
+    public static final class HATF16ConvOp extends HATF16Op implements Precedence.LoadOrConv {
 
         private final CodeType codeType;
         private final Class<?> float16Class;

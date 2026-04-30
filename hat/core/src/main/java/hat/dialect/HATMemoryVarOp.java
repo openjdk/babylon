@@ -29,16 +29,12 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
-import optkl.IfaceValue;
 import optkl.IfaceValue.Vector.Shape;
-import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,10 +67,10 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         private final Class<?> float16Class;
         private final Shape vectorShape;
         private final ClassType klassType;
-        private final DeviceRegion deviceRegion;
+        private final HATOpAttribute hATOpAttribute;
 
         // Seems we need to add attributes in the form of( {"Attrib" -> object })
-        // float16Class is only needed for F16
+        // float16Class is only needed for F16   --> We can get it directly durng code gen
         // Vector Shape is only needed in the case of Vectors
 
 //       Constructor used only to identify tensors: now it is not used
@@ -87,15 +83,15 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 //            this.deviceRegion = deviceRegion;
 //        }
 
-        // Constructor used to identify F16 Types
-        public HATVarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
-            super(varName, operands);
-            this.codeType = varType;                // this can be inferred
-            this.float16Class = float16Class;       // This could be inferred at codegen-time by placing the traversal before generating the code
-            this.vectorShape = null;
-            this.klassType = null;
-            this.deviceRegion = DeviceRegion.NARROW; // if float16Class -> NARROW
-        }
+//        // Constructor used to identify F16 Types
+//        public HATVarOp(String varName, Class<?> float16Class, VarType varType, List<Value> operands) {
+//            super(varName, operands);
+//            this.codeType = varType;                // this can be inferred
+//            this.float16Class = float16Class;       // This could be inferred at codegen-time by placing the traversal before generating the code
+//            this.vectorShape = null;
+//            this.klassType = null;
+//            this.deviceRegion = DeviceRegion.NARROW; // if float16Class -> NARROW
+//        }
 
         // This constructor is used only for vectors in which we ned a shape, but the shape could potentially be inferred in the codegen
         public HATVarOp(String varName, VarType codeType, Shape vectorShape, List<Value> operand) {
@@ -106,15 +102,15 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
             // local
             this.klassType = null;
-            this.deviceRegion = DeviceRegion.VECTOR;  // we can infer Vector category because it has a vector shape
+            this.hATOpAttribute = HATOpAttribute.VECTOR;  // we can infer Vector category because it has a vector shape
         }
 
         // Local/Private Memory Types
-        public HATVarOp(String varName, ClassType javaType, VarType varType, DeviceRegion deviceRegion, List<Value> operands) {
+        public HATVarOp(String varName, ClassType javaType, VarType varType, HATOpAttribute hATOpAttribute, List<Value> operands) {
             super(varName, operands);
             this.klassType = javaType;
             this.codeType = varType;
-            this.deviceRegion = deviceRegion;
+            this.hATOpAttribute = hATOpAttribute;
 
             this.float16Class = null;
             this.vectorShape = null;
@@ -127,7 +123,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
             this.vectorShape = op.vectorShape;
 
             this.klassType = op.klassType;
-            this.deviceRegion = op.deviceRegion;
+            this.hATOpAttribute = op.hATOpAttribute;
         }
 
         @Override
@@ -154,8 +150,8 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
             return float16Class;
         }
 
-        public DeviceRegion deviceRegion() {
-            return this.deviceRegion;
+        public HATOpAttribute deviceRegion() {
+            return this.hATOpAttribute;
         }
 
         public String buildVectorType() {

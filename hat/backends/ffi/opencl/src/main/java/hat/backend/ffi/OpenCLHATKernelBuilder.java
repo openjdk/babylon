@@ -32,6 +32,9 @@ import hat.dialect.HATTensorOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types.S16ImplOfF16;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.dialect.java.JavaType;
 import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import jdk.incubator.code.Value;
@@ -45,13 +48,16 @@ import jdk.incubator.code.Op;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
-
-import static optkl.codebuilders.BabylonOpDispatcher.DeviceRegion.SHARED;
+import java.util.stream.Stream;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
+    private final CoreOp.FuncOp funcOp;
+
     protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        funcOp = scopedCodeBuilderContext.funcOp();
         super(kernelCallGraph,scopedCodeBuilderContext);
     }
 
@@ -255,11 +261,99 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         throw new OpenCLCodeGenException(message);
     }
 
+    private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    private Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    private HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
+        if (table.containsKey(funcOp.funcName())) {
+            return table.get(funcOp.funcName()).get(varOp);
+        } else {
+            throw new IllegalStateException("Function: " + funcOp.funcName() + " not registered");
+        }
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder varOp( CoreOp.VarOp varOp) {
+        if (varOp.isUninitialized()) {
+            type( (JavaType) varOp.varValueType()).sp().varName(varOp);
+        } else {
+
+            // TODO: table attribution lookup In Progress
+            HATOpAttribute hATOpAttribute = getDeviceRegion(varOp);
+            if (hATOpAttribute != null) {
+                switch (hATOpAttribute) {
+                    case NARROW -> {
+                        // obtain the category:
+                        Value first = varOp.operands().getFirst();
+                        Class<?> narrowCategory;
+                        if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                            // Find the category - This is the generic case, when ALL custom ops are removed
+                            Stream<OpHelper.Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+                            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+                            narrowCategory = reduceFloatType(invoke);
+                            if (narrowCategory == null && isMathLib(invoke)) {
+                                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+                            }
+                        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+                            narrowCategory = hatf16BinaryOp.float16Class();
+                        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
+                            narrowCategory = hatf16ConvOp.float16Class();
+                        } else {
+                            throw new OpenCLCodeGenException("Expected an invoke, but found: " + first.declaringElement().getClass());
+                        }
+                        if (narrowCategory == null) {
+                            throw new OpenCLCodeGenException("Narrow type can't be null: ");
+                        }
+                        f16OrBF16(narrowCategory).sp().assign(
+                                _ -> id(varOp.varName()),
+                                _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    }
+                    case TENSOR -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+                    default -> throw new IllegalStateException("Unexpected DeviceRegion: " + hATOpAttribute);
+                }
+            } else {
+                // Original varOp
+                if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
+                    constKeyword().sp();
+                }
+                type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+                var first = varOp.operands().getFirst();
+                if (first instanceof Op.Result result) {
+                    parenthesisIfNeeded(varOp, result.op());
+                } else if (first instanceof Block.Parameter parameter) {
+                    var p1 = parameter.declaringBlock().parameters().getFirst();
+
+                    var r = parameter.uses().iterator().next();
+                    //parenthesisIfNeeded( varOp, r.op());
+                    // if (r.op() instanceof CoreOp.VarOp varOp1){
+                    //   identifier(varOp1.varName());
+                    // }
+                    blockInlineComment("param " + r);
+                } else {
+                    blockInlineComment("look at varOp " + first);
+                }
+            }
+        }
+        return self();
+    }
+
+
     @Override
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        DeviceRegion deviceRegion = hatVarOp.deviceRegion();
-        switch (deviceRegion) {
+        HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
+        switch (hATOpAttribute) {
             case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case INIT -> suffix_t(hatVarOp.classType())

@@ -52,7 +52,10 @@ import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
+    private final CoreOp.FuncOp funcOp;
+
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        funcOp = scopedCodeBuilderContext.funcOp();
         super(kernelCallGraph, scopedCodeBuilderContext);
     }
 
@@ -441,8 +444,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        DeviceRegion deviceRegion = hatVarOp.deviceRegion();
-        switch (deviceRegion) {
+        HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
+        switch (hATOpAttribute) {
             case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case INIT -> suffix_t(hatVarOp.classType()).sp()
@@ -572,22 +575,24 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return generateCreateTensor(shape, matrixOrder, type, access);
     }
 
+    private HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
+        if (table.containsKey(funcOp.funcName())) {
+            return table.get(funcOp.funcName()).get(varOp);
+        } else {
+            throw new IllegalStateException("Function: " + funcOp.funcName() + " not registered");
+        }
+    }
+
     @Override
     public CudaHATKernelBuilder varOp( CoreOp.VarOp varOp) {
         // Extended from the base class JavaOrC99StyleCodeBuilder
-
         if (varOp.isUninitialized()) {
             type( (JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
-            if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
-                constKeyword().sp();
-            }
-
-            DeviceRegion deviceRegion = table.get(varOp);
-            emitText("// DeviceRegion for varOp: " + varOp.varName() + " " + deviceRegion).nl();
+            HATOpAttribute hATOpAttribute = getDeviceRegion(varOp);
             // TODO: complete this switch for every new region
-            if (deviceRegion != null) {
-                switch (deviceRegion) {
+            if (hATOpAttribute != null) {
+                switch (hATOpAttribute) {
                     case TENSOR -> {
                         recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
                         sp().id(varOp.varName());
@@ -595,6 +600,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 }
             } else {
                 // Original varOp
+                if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
+                    constKeyword().sp();
+                }
                 type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
                 var first = varOp.operands().getFirst();
                 if (first instanceof Op.Result result) {

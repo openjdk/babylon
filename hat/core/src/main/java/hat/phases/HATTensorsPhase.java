@@ -52,6 +52,8 @@ import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public record HATTensorsPhase() implements HATPhase {
 
+    private static String deviceFunctionName;
+
     public interface TensorTransformer {
 
         void transform(Block.Builder blockBuilder, Op op);
@@ -73,7 +75,7 @@ public record HATTensorsPhase() implements HATPhase {
                 case CoreOp.VarOp varOp -> {
                     Op.Result opResult = blockBuilder.op(varOp);
                     // insert the new op into the table
-                    table.put(opResult.op(), BabylonOpDispatcher.DeviceRegion.TENSOR);
+                    table.get(deviceFunctionName).put(opResult.op(), BabylonOpDispatcher.HATOpAttribute.TENSOR);
                 }
                 case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.op(op);
@@ -213,22 +215,18 @@ public record HATTensorsPhase() implements HATPhase {
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        this.deviceFunctionName = funcOp.funcName();
         funcOp = createTensors(lookup, funcOp);
         funcOp = fillTensors(lookup, funcOp);
         funcOp = mmaTensor(lookup, funcOp);
         funcOp = tensorLoad(lookup, funcOp);
         funcOp = tensorStoreOp(lookup, funcOp);
 
+//        IO.println("Status: in Final Compilation" );
 //        funcOp.elements().forEach( codeElement -> {
 //            if (codeElement instanceof CoreOp.VarOp varOp) {
-//                IO.println(varOp.varName());
-//                if (table.containsKey(varOp)) {
-//                    IO.println("OK");
-//                } else {
-//                    IO.println("FAIL");
-//                }
+//                IO.println(varOp.varName() + " : " + table.containsKey(varOp));
 //            }
-//
 //        });
 
         return funcOp;
