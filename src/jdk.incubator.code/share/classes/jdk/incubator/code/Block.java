@@ -77,7 +77,7 @@ public final class Block implements CodeElement<Block, Op> {
          *     if (p.invokableOperation() instanceof CoreOp.FuncOp f) {
          *         assert f.parameters().indexOf(p) == p.index(); // @link substring="parameters()" target="Op.Invokable#parameters()"
          *     }
-         *}
+         * }
          *
          * @return the invokable operation, otherwise {@code null} if the operation
          * is not an instance of {@link Op.Invokable}.

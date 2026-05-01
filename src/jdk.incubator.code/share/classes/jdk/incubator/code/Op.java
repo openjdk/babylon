@@ -162,70 +162,77 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * An operation characteristic indicating the operation can replace itself with a lowered form.
+     * An operation characteristic indicating the operation can lower itself by replacing itself with blocks and
+     * operations that represent the same behavior.
      */
     // @@@ Hide this abstraction within JavaOp?
     public interface Lowerable {
 
         /**
-         * Lowers this operation into the block builder, commonly replacing nested structure
-         * with interconnected basic blocks. The previous lowering code transformation
-         * is used to compose with a lowering transformation that is applied to bodies
-         * of this operation, ensuring lowering is applied consistently to nested content.
-         *
-         * @param b the block builder
-         * @param opT the previous lowering code transformation, may be {@code null}
-         * @return the block builder to use for further building
-         */
-        Block.Builder lower(Block.Builder b, CodeTransformer opT);
-
-        /**
-         * Returns a composed code transformer that composes with an operation transformer function adapted to lower
+         * Lowers this operation into the given block builder.
+         * <p>
+         * A lowering implementation emits the replacement blocks and operations into the given builder, and returns
+         * the block builder to use for subsequent operations in an enclosing transformation.
+         * <p>
+         * If this operation lowers one of its bodies, it should transform that body with a lowering code transformer
+         * produced by {@link #loweringTransformer(BiFunction, BiFunction)}. This ensures that lowerable operations
+         * encountered in that body are lowered recursively.
+         * The {@code inherited} transformer is the operation transformer inherited from an enclosing lowering, if any.
+         * A lowering implementation may pass it directly to {@code loweringTransformer}, or compose it with another
+         * transformer and pass the composed transformer. The transformer passed to {@code loweringTransformer} is then
+         * supplied as the inherited transformer when that lowering code transformer recursively lowers lowerable
          * operations.
-         * <p>
-         * This method behaves as if it returns the result of the following expression:
-         * {@snippet lang = java:
-         * CodeTransformer.andThen(before, lowering(before, f));
-         *}
          *
-         * @param before the code transformer to apply before
-         * @param f the operation transformer function to apply after
-         * @return the composed code transformer
+         * @param b the block builder into which this operation is lowered
+         * @param inherited the inherited operation transformer, may be {@code null}
+         * @return the block builder to use for subsequent building
          */
-        static CodeTransformer andThenLowering(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
-            return CodeTransformer.andThen(before, lowering(before, f));
-        }
+        Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited);
 
         /**
-         * Returns an adapted operation transformer function that adapts an operation transformer function
-         * {@code f} to also transform lowerable operations.
+         * Returns a lowering code transformer that partially composes the given operation transformers and, if
+         * required, lowers lowerable operations and appends non-lowerable operations.
          * <p>
-         * The adapted operation transformer function first applies a block builder and operation
-         * to the operation transformer function {@code f}.
-         * If the result is not {@code null} then the result is returned.
-         * Otherwise, if the operation is a lowerable operation then the result of applying the
-         * block builder and code transformer {@code before} to {@link Lowerable#lower lower}
-         * of the lowerable operation is returned.
-         * Otherwise, the operation is copied by applying it to {@link Block.Builder#op op} of the block builder,
-         * and the block builder is returned.
+         * The returned code transformer accepts an operation by first applying the partial composition of
+         * {@code current} with {@code inherited} in the first argument of {@code current}, as if by the following:
+         * {@snippet lang = "java":
+         * Block.Builder composedBlock = inherited == null
+         *         ? block
+         *         : inherited.apply(block, op);
+         * Block.Builder currentBlock = current.apply(composedBlock, op);
+         * }
+         * The returned continuation builder is then selected as if by the following:
+         * {@snippet lang = "java":
+         * if (currentBlock != null) {
+         *     return currentBlock;
+         * } else if (op instanceof Op.Lowerable lop) {
+         *     return lop.lower(composedBlock, inherited);
+         * } else {
+         *     composedBlock.op(op);
+         *     return composedBlock;
+         * }
+         * }
          *
-         * @param before the code transformer to apply for lowering
-         * @param f the operation transformer function to apply after
-         * @return the adapted operation transformer function
+         * @param inherited the inherited operation transformer, may be {@code null}
+         * @param current the current operation transformer
+         * @return the lowering code transformer
          */
-        static BiFunction<Block.Builder, Op, Block.Builder> lowering(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+        static CodeTransformer loweringTransformer(BiFunction<Block.Builder, Op, Block.Builder> inherited,
+                                                   BiFunction<Block.Builder, Op, Block.Builder> current) {
+            Objects.requireNonNull(current);
             return (block, op) -> {
-                Block.Builder b = f.apply(block, op);
-                if (b == null) {
-                    if (op instanceof Lowerable lop) {
-                        block = lop.lower(block, before);
-                    } else {
-                        block.op(op);
-                    }
-                } else {
-                    block = b;
+                if (inherited != null) {
+                    block = inherited.apply(block, op);
                 }
-                return block;
+                Block.Builder currentBlock = current.apply(block, op);
+                if (currentBlock != null) {
+                    return currentBlock;
+                } else if (op instanceof Op.Lowerable lop) {
+                    return lop.lower(block, inherited);
+                } else {
+                    block.op(op);
+                    return block;
+                }
             };
         }
     }
