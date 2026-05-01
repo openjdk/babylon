@@ -36,6 +36,7 @@ import jdk.incubator.code.internal.OpDeclaration;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -204,7 +205,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
             b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
@@ -384,7 +385,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
@@ -561,7 +562,7 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
             b.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER).op(this);
