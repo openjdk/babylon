@@ -31,6 +31,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -179,14 +180,20 @@ public class TransformState {
     static CodeTransformer trackingValueAndThenTransformer(
             CodeTransformer t,
             BiConsumer<Value, Value> mapAction) {
-        return CodeTransformer.applyOpAfter(t, (block, op) -> {
+
+        // This only composes CodeTransformer.acceptOp.
+        // If the given code transformer overrides acceptBody or acceptBlock,
+        // that behavior is not preserved
+        return ((builder, op) -> {
+            builder = t.acceptOp(builder, op);
+
             Value in = op.result();
-            Value out = block.context().queryValue(in).orElse(null);
+            Value out = builder.context().queryValue(in).orElse(null);
             mapAction.accept(in, out);
-            return block;
+
+            return builder;
         });
     }
-
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TransformState.class.getDeclaredMethods())

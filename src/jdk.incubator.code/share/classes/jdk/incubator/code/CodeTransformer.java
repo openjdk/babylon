@@ -26,8 +26,6 @@
 package jdk.incubator.code;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -193,54 +191,4 @@ public interface CodeTransformer {
      * @return the block builder to append to for subsequent operations.
      */
     Block.Builder acceptOp(Block.Builder builder, Op op);
-
-    /**
-     * Returns a code transformer that accepts an input operation by first applying the {@code before} operation
-     * transformer function to the block builder and input operation, then accepting the same input operation with the
-     * {@code after} code transformer.
-     * <p>
-     * If {@code after} is non-{@code null}, this method behaves as if it returns the result of the following
-     * lambda expression:
-     * {@snippet lang = "java":
-     * (builder, op) -> after.acceptOp(before.apply(builder, op), op);
-     * }
-     * If {@code after} is {@code null}, only {@code before} is applied.
-     *
-     * @param after the code transformer to accept after, or {@code null} if only {@code before} is applied
-     * @param before the operation transformer function to apply before
-     * @return the code transformer that applies an operation transformer function and then accepts the same operation
-     * @see #acceptOp(Block.Builder, Op)
-     * @see #applyOpAfter(CodeTransformer, BiFunction)
-     */
-    static CodeTransformer applyOpBefore(CodeTransformer after, BiFunction<Block.Builder, Op, Block.Builder> before) {
-        Objects.requireNonNull(before);
-        return after == null
-                ? before::apply
-                : (builder, op) -> after.acceptOp(before.apply(builder, op), op);
-    }
-
-    /**
-     * Returns a code transformer that accepts an input operation by first accepting the input operation with the
-     * {@code before} code transformer, then applying the {@code after} operation transformer function to the
-     * resulting block builder and the same input operation.
-     * <p>
-     * if {@code before} is non-{@code null}, this method behaves as if it returns the result of the following
-     * lambda expression:
-     * {@snippet lang = "java":
-     * (builder, op) -> after.apply(before.acceptOp(builder, op), op);
-     * }
-     * If {@code before} is {@code null}, only {@code after} is applied.
-     *
-     * @param before the code transformer to accept before, or {@code null} if only {@code after} is applied
-     * @param after the operation transformer function to apply after
-     * @return the code transformer that accepts an operation and then applies an operation transformer function
-     * @see #acceptOp(Block.Builder, Op)
-     * @see #applyOpBefore(CodeTransformer, BiFunction)
-     */
-    static CodeTransformer applyOpAfter(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> after) {
-        Objects.requireNonNull(after);
-        return before == null
-                ? after::apply
-                : (builder, op) -> after.apply(before.acceptOp(builder, op), op);
-    }
 }
