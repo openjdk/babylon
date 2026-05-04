@@ -648,58 +648,60 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Transforms a body using this block builder as the current output block builder, with a
-         * {@link CodeContext#create(CodeContext) child} of this block builder's code context and the given code
-         * transformer.
+         * Transforms the given body into this block builder's parent body, using this block builder as the current
+         * output block builder, a {@link CodeContext#create(CodeContext) child} of this block builder's code context,
+         * and the given code transformer.
          * <p>
-         * This method behaves as if invoking {@link #body(Body, List, CodeContext, CodeTransformer)} with the given
-         * body, the given values, a child of this block builder's code context, and the given code transformer.
+         * This method behaves as if invoking {@link #transformBody(Body, List, CodeContext, CodeTransformer)} with the given
+         * body, the given entry values, a child of this block builder's code context, and the given code transformer.
          *
          * @param body the body to transform
-         * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
+         * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
+         *                    parameters
          * @param ct the code transformer
-         * @throws IllegalArgumentException if there are more output values than entry block parameters
-         * @see #body(Body, List, CodeContext, CodeTransformer)
+         * @throws IllegalArgumentException if there are more output entry values than entry block parameters
+         * @see #transformBody(Body, List, CodeContext, CodeTransformer)
          */
-        public void body(Body body, List<? extends Value> values,
-                         CodeTransformer ct) {
+        public void transformBody(Body body, List<? extends Value> entryValues,
+                                  CodeTransformer ct) {
             check();
 
-            body(body, values, CodeContext.create(cc), ct);
+            transformBody(body, entryValues, CodeContext.create(cc), ct);
         }
 
         /**
-         * Transforms a body using this block builder as the current output block builder, with the given code context
-         * and code transformer.
+         * Transforms the given body into this block builder's parent body, using this block builder as the current
+         * output block builder, the given code context, and the given code transformer.
          * <p>
          * This method first obtains a block builder with the given code context and code transformer by calling
          * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}, and then transforms the body using the code
          * transformer by {@link CodeTransformer#acceptBody(Builder, Body, List) accepting} the obtained block builder,
-         * the body, and the values.
+         * the body, and the entry values.
          * <p>
-         * A prefix of the input body's entry block parameters is mapped, in order, to the given output values. Any
-         * remaining entry block parameters are not mapped.
+         * A prefix of the input body's entry block parameters is mapped, in order, to the given output entry values.
+         * Any remaining entry block parameters are not mapped.
          *
          * @apiNote
          * Supplying an explicit code context can ensure block and value mappings produced by the transformation do not
          * affect this builder's code context. The explicit code context can also be used when some of the input body's
          * entry block parameters have already been mapped prior to transforming the body. This is useful when the
-         * transformation removes some entry block parameters. In such cases an empty list of output values can be
+         * transformation removes some entry block parameters. In such cases an empty list of output entry values can be
          * given.
          *
          * @param body the body to transform
-         * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
+         * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
+         *                    parameters
          * @param cc the code context
          * @param ct the code transformer
-         * @throws IllegalArgumentException if there are more output values than entry block parameters
+         * @throws IllegalArgumentException if there are more output entry values than entry block parameters
          * @see #withContextAndTransformer(CodeContext, CodeTransformer)
          * @see CodeTransformer#acceptBody(Builder, Body, List)
          */
-        public void body(Body body, List<? extends Value> values,
-                         CodeContext cc, CodeTransformer ct) {
+        public void transformBody(Body body, List<? extends Value> entryValues,
+                                  CodeContext cc, CodeTransformer ct) {
             check();
 
-            ct.acceptBody(withContextAndTransformer(cc, ct), body, values);
+            ct.acceptBody(withContextAndTransformer(cc, ct), body, entryValues);
         }
 
         /**

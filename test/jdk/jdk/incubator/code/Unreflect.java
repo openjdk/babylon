@@ -185,7 +185,7 @@ public final class Unreflect {
                 Op o = ops.get(i);
                 bb.context().mapValue(o.result(), bb.op(o));
             }
-            bb.body(lambda.body(),
+            bb.transformBody(lambda.body(),
                     bb.parameters().subList(capturedValues, bb.parameters().size()),
                     bb.context(),
                     CodeTransformer.COPYING_TRANSFORMER);
