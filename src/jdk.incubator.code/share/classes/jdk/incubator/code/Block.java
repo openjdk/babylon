@@ -636,7 +636,7 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Reference reference(List<? extends Value> args) {
             if (isEntryBlock()) {
-                throw new IllegalStateException("Entry block cannot be referenced and used as a successor");
+                throw new IllegalStateException("Entry block cannot be referenced and targeted as a successor");
             }
             for (Value operand : args) {
                 if (operand.isBuilt()) {
@@ -742,6 +742,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @param op the operation to append
          * @return the result of the appended operation
          * @throws IllegalStateException if the operation is structurally invalid
+         * @see Op#transform(CodeContext, CodeTransformer)
          */
         public Op.Result op(Op op) {
             check();
