@@ -31,9 +31,9 @@
 
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.invoke.MethodHandles;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -58,37 +59,37 @@ public class TestFuncOpMethodRef {
         FuncOp f = func(MR.name(), CoreType.FUNCTION_TYPE_VOID).body(b -> {
             b.op(return_());
         });
-        Assertions.assertTrue(f.mref().isEmpty());
+        Assertions.assertTrue(f.source().isEmpty());
 
         CoreOp.FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.mref().isEmpty());
+        Assertions.assertTrue(cf.source().isEmpty());
     }
 
     @Test
     void test2() {
-        FuncOp f = func(MR.refType(), MR.name(), MR.signature(), FuncOp.MethodKind.STATIC).body(b -> {
+        FuncOp f = func(MR).body(b -> {
             b.op(return_());
         });
-        Assertions.assertTrue(f.mref().isPresent());
-        Assertions.assertEquals(MR, f.mref().get());
+        Assertions.assertTrue(f.source().isPresent());
+        Assertions.assertEquals(MR, f.source().get());
 
         CoreOp.FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.mref().isPresent());
+        Assertions.assertTrue(cf.source().isPresent());
 
-        Assertions.assertEquals(f.mref().get(), cf.mref().get());
+        Assertions.assertEquals(f.source().get(), cf.source().get());
     }
 
     @Test
     void test5() {
         Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
         bb.entryBlock().op(return_());
-        FuncOp f = func(MR.refType(), MR.name(), bb, FuncOp.MethodKind.STATIC);
-        Assertions.assertTrue(f.mref().isPresent());
-        Assertions.assertEquals(MR, f.mref().get());
+        FuncOp f = func(MR, bb);
+        Assertions.assertTrue(f.source().isPresent());
+        Assertions.assertEquals(MR, f.source().get());
 
         FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.mref().isPresent());
-        Assertions.assertEquals(f.mref().get(), cf.mref().get());
+        Assertions.assertTrue(cf.source().isPresent());
+        Assertions.assertEquals(f.source().get(), cf.source().get());
     }
 
     @Test
@@ -96,10 +97,10 @@ public class TestFuncOpMethodRef {
         Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
         bb.entryBlock().op(return_());
         FuncOp f = func(MR.name(), bb);
-        Assertions.assertTrue(f.mref().isEmpty());
+        Assertions.assertTrue(f.source().isEmpty());
 
         FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.mref().isEmpty());
+        Assertions.assertTrue(cf.source().isEmpty());
     }
 
     private static FuncOp externalizeAndCreate(FuncOp f) {

@@ -90,25 +90,18 @@ public sealed abstract class CoreOp extends Op {
          */
         public static class Builder {
             final Body.Builder ancestorBody;
-            final CodeType ownerType;
-            final String funcName;
-            final FunctionType signature;
-            final MethodKind methodKind;
-
-            Builder(Body.Builder ancestorBody, CodeType ownerType, String funcName, FunctionType signature, MethodKind mk) {
-                this.ancestorBody = ancestorBody;
-                this.ownerType = ownerType;
-                this.funcName = funcName;
-                this.signature = signature;
-                this.methodKind = mk;
-            }
+            final MethodRef source;
 
             Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
                 this.ancestorBody = ancestorBody;
-                this.ownerType = null;
-                this.funcName = funcName;
-                this.signature = signature;
-                this.methodKind = null;
+                this.source = MethodRef.method(JavaType.VOID, funcName, signature);
+            }
+
+            Builder(Body.Builder ancestorBody, MethodRef source) {
+                Objects.requireNonNull(source, "");
+
+                this.ancestorBody = ancestorBody;
+                this.source = source;
             }
 
             /**
@@ -118,9 +111,13 @@ public sealed abstract class CoreOp extends Op {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, signature);
+                Body.Builder body = Body.Builder.of(ancestorBody, source.signature());
                 c.accept(body.entryBlock());
-                return new FuncOp(ownerType, funcName, body, methodKind);
+                if (source.refType().equals(JavaType.VOID)) {
+                    return new FuncOp(source.name(), body);
+                } else {
+                    return new FuncOp(source, body);
+                }
             }
         }
 
@@ -130,13 +127,10 @@ public sealed abstract class CoreOp extends Op {
          * The externalized attribute modeling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
-        static final String ATTRIBUTE_FUNC_OWNER_TYPE = NAME + ".owner.type";
-        static final String ATTRIBUTE_FUNC_KIND = NAME + ".kind";
+        static final String ATTRIBUTE_FUNC_SOURCE = NAME + ".source";
 
-        final CodeType ownerType;
-        final String funcName;
         final Body body;
-        final MethodKind methodKind;
+        final MethodRef source;
 
 
         FuncOp(ExternalizedOp def) {
@@ -144,48 +138,41 @@ public sealed abstract class CoreOp extends Op {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                    u -> switch (u) {
-                        case String s -> s;
-                        case null, default ->
-                                throw new UnsupportedOperationException("Unsupported func name value:" + u);
-                    });
+            if (def.bodyDefinitions().size() != 1) {
+                throw new IllegalStateException();
+            }
 
+            Body.Builder body = def.bodyDefinitions().getFirst();
 
-            CodeType ownerType = def.extractAttributeValue(ATTRIBUTE_FUNC_OWNER_TYPE, false,
+            MethodRef source = def.extractAttributeValue(ATTRIBUTE_FUNC_SOURCE, false,
                     v -> switch (v) {
-                        case CodeType ct -> ct;
-                        case null -> null;
-                        default -> throw new UnsupportedOperationException("Unsupported func owner type:" + v);
+                        case MethodRef mr -> mr;
+                        case null -> {
+                            String fn = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
+                                    u -> switch (u) {
+                                        case String s -> s;
+                                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
+                                    });
+                            yield MethodRef.method(JavaType.VOID, fn, body.bodySignature());
+                        }
+                        default -> throw new UnsupportedOperationException("Unsupported func source:" + v);
                     });
 
-            MethodKind methodKind = def.extractAttributeValue(ATTRIBUTE_FUNC_KIND, false,
-                    v -> switch (v) {
-                        case String s -> MethodKind.valueOf(s);
-                        case MethodKind mk -> mk;
-                        case null -> null;
-                        default -> throw new UnsupportedOperationException("Unsupported func kind:" + v);
-                    });
-
-            this(ownerType, funcName, def.bodyDefinitions().get(0), methodKind);
+            this(source, body);
         }
 
         FuncOp(FuncOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.ownerType = that.ownerType;
-            this.funcName = that.funcName;
+            this.source = that.source;
             this.body = that.body.transform(cc, ct).build(this);
-            this.methodKind = that.methodKind;
         }
 
         FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.ownerType = that.ownerType;
-            this.funcName = funcName;
+            this.source = MethodRef.method(that.source.refType(), funcName, that.source.signature());
             this.body = that.body.transform(cc, ct).build(this);
-            this.methodKind = that.methodKind;
         }
 
         @Override
@@ -217,19 +204,46 @@ public sealed abstract class CoreOp extends Op {
         FuncOp(String funcName, Body.Builder bodyBuilder) {
             super(List.of());
 
-            this.ownerType = null;
-            this.funcName = funcName;
+            this.source = MethodRef.method(JavaType.VOID, funcName, bodyBuilder.bodySignature());
             this.body = bodyBuilder.build(this);
-            this.methodKind = null;
         }
 
-        FuncOp(CodeType ownerType, String funcName, Body.Builder bodyBuilder, MethodKind mk) {
+        private static void validateType(MethodRef source, Body.Builder bodyBuilder) {
+            List<CodeType> sourceParamTypes = source.signature().parameterTypes();
+            List<CodeType> bodyParamTypes = bodyBuilder.bodySignature().parameterTypes();
+            int d = bodyParamTypes.size() - sourceParamTypes.size();
+            if (d != 0 && d != 1) {
+                throw new UnsupportedOperationException();
+            }
+            bodyParamTypes = bodyParamTypes.subList(d, bodyParamTypes.size());
+
+            if (!(source.signature().returnType() instanceof JavaType) ||
+                    !sourceParamTypes.stream().allMatch(t -> t instanceof JavaType) ||
+                    !(bodyBuilder.bodySignature().returnType() instanceof JavaType) ||
+                    !bodyParamTypes.stream().allMatch(t -> t instanceof JavaType)) {
+                throw new UnsupportedOperationException();
+            }
+
+            var jspt = sourceParamTypes.stream().map(t -> (JavaType) t).toList();
+            var jbpt = bodyParamTypes.stream().map(t -> (JavaType) t).toList();
+            if (!jspt.stream().map(JavaType::erasure).toList().equals(jbpt.stream().map(JavaType::erasure).toList())) {
+                throw new UnsupportedOperationException();
+            }
+
+            if (!((JavaType) source.signature().returnType()).erasure()
+                    .equals(((JavaType) bodyBuilder.bodySignature().returnType()).erasure())) {
+                throw new UnsupportedOperationException();
+            }
+        }
+
+        FuncOp(MethodRef source, Body.Builder bodyBuilder) {
             super(List.of());
 
-            this.ownerType = ownerType;
-            this.funcName = funcName;
+            Objects.requireNonNull(source, "func source can't be null");
+            validateType(source, bodyBuilder);
+
+            this.source = source;
             this.body = bodyBuilder.build(this);
-            this.methodKind = mk;
         }
 
         @Override
@@ -240,12 +254,10 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             Map<String, Object> m = new HashMap<>();
-            m.put("", funcName);
-            if (ownerType != null) {
-                m.put(ATTRIBUTE_FUNC_OWNER_TYPE, ownerType);
-            }
-            if (methodKind != null) {
-                m.put(ATTRIBUTE_FUNC_KIND, methodKind);
+            if (wasSourceProvided()) {
+                m.put(ATTRIBUTE_FUNC_SOURCE, source);
+            } else {
+                m.put(ATTRIBUTE_FUNC_NAME, source.name());
             }
             return m;
         }
@@ -254,7 +266,7 @@ public sealed abstract class CoreOp extends Op {
          * {@return the function name}
          */
         public String funcName() {
-            return funcName;
+            return source.name();
         }
 
         @Override
@@ -274,16 +286,12 @@ public sealed abstract class CoreOp extends Op {
             return JavaType.VOID;
         }
 
-        public Optional<MethodRef> mref() {
-            return ownerType == null || methodKind == null ?
-                    Optional.empty() :
-                    Optional.of(MethodRef.method(ownerType, funcName, body.bodySignature().returnType(), paramTypes()));
+        public Optional<MethodRef> source() {
+            return wasSourceProvided() ? Optional.of(source) : Optional.empty();
         }
 
-        private List<CodeType> paramTypes() {
-            int n = body.bodySignature().parameterTypes().size();
-            return methodKind == MethodKind.INSTANCE ? body.bodySignature().parameterTypes().subList(1, n) :
-                    body.bodySignature().parameterTypes();
+        private boolean wasSourceProvided() {
+            return !source.refType().equals(JavaType.VOID);
         }
     }
 
@@ -1601,14 +1609,11 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a function operation builder.
      *
-     * @param ownerType the function owner type
-     * @param funcName  the function name
-     * @param signature the function's signature, represented as a function type
-     * @param mk        the function kind
+     * @param source reference to the method the function operation models
      * @return the function operation builder
      */
-    public static FuncOp.Builder func(CodeType ownerType, String funcName, FunctionType signature, FuncOp.MethodKind mk) {
-        return new FuncOp.Builder(null, ownerType, funcName, signature, mk);
+    public static FuncOp.Builder func(MethodRef source) {
+        return new FuncOp.Builder(null, source);
     }
 
     /**
@@ -1625,13 +1630,12 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a function operation.
      *
-     * @param ownerType the function owner type
-     * @param body      the body builder defining the function body
-     * @param mk        the function kind
+     * @param source reference to the method the function operation models
+     * @param body   the body builder defining the function body
      * @return the function operation
      */
-    public static FuncOp func(CodeType ownerType, String funcName, Body.Builder body, FuncOp.MethodKind mk) {
-        return new FuncOp(ownerType, funcName, body, mk);
+    public static FuncOp func(MethodRef source, Body.Builder body) {
+        return new FuncOp(source, body);
     }
 
     /**
