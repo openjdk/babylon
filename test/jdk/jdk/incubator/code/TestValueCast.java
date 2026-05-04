@@ -65,8 +65,8 @@ public class TestValueCast {
         Stream<Value> stream = values(f);
         stream.forEach(v -> {
             switch (v) {
-                case Op.Result r -> Assertions.assertEquals(r, v.result());
-                case Block.Parameter p -> Assertions.assertEquals(p, v.parameter());
+                case Op.Result r -> Assertions.assertEquals(r, v.asResult());
+                case Block.Parameter p -> Assertions.assertEquals(p, v.asParameter());
             }
         });
     }
@@ -77,8 +77,32 @@ public class TestValueCast {
         Stream<Value> stream = values(f);
         stream.forEach(v -> {
             switch (v) {
-                case Op.Result r -> Assertions.assertThrows(IllegalStateException.class, () -> v.parameter());
-                case Block.Parameter p -> Assertions.assertThrows(IllegalStateException.class, () -> v.result());
+                case Op.Result r -> Assertions.assertThrows(IllegalStateException.class, v::asParameter);
+                case Block.Parameter p -> Assertions.assertThrows(IllegalStateException.class, v::asResult);
+            }
+        });
+    }
+
+    @Test
+    public void testQueryPresent() {
+        JavaOp.LambdaOp f = f();
+        Stream<Value> stream = values(f);
+        stream.forEach(v -> {
+            switch (v) {
+                case Op.Result r -> Assertions.assertEquals(r, v.queryResult().orElse(null));
+                case Block.Parameter p -> Assertions.assertEquals(p, v.queryParameter().orElse(null));
+            }
+        });
+    }
+
+    @Test
+    public void testQueryEmpty() {
+        JavaOp.LambdaOp f = f();
+        Stream<Value> stream = values(f);
+        stream.forEach(v -> {
+            switch (v) {
+                case Op.Result r -> Assertions.assertEquals(null, v.queryParameter().orElse(null));
+                case Block.Parameter p -> Assertions.assertEquals(null, v.queryResult().orElse(null));
             }
         });
     }
