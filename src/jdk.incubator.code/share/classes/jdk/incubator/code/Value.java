@@ -89,28 +89,66 @@ public sealed abstract class Value implements CodeItem
 
     /**
      * Returns this value as an operation result.
+     * <p>
+     * This method is a narrowing conversion from {@code Value} to {@link Op.Result}.
+     * If this value is not an operation result, this method throws an exception.
      *
-     * @return the value as an operation result.
-     * @throws IllegalStateException if the value is not an instance of an operation result.
+     * @return this value, as an operation result.
+     * @throws IllegalStateException if this value is not an operation result.
+     * @see #queryResult()
+     * @see Op.Result
      */
-    public Op.Result result() {
+    public Op.Result asResult() {
         if (this instanceof Op.Result r) {
             return r;
         }
-        throw new IllegalStateException("Value is not an instance of operation result");
+        throw new IllegalStateException("Value is not an operation result");
+    }
+
+    /**
+     * Queries this value as an operation result.
+     *
+     * @return an optional containing this value as an operation result, otherwise
+     * an empty optional if this value is not an operation result
+     * @see #asResult()
+     * @see Op.Result
+     */
+    public Optional<Op.Result> queryResult() {
+        return this instanceof Op.Result r
+                ? Optional.of(r)
+                : Optional.empty();
     }
 
     /**
      * Returns this value as a block parameter.
+     * <p>
+     * This method is a narrowing conversion from {@code Value} to {@link Block.Parameter}.
+     * If this value is not a block parameter, this method throws an exception.
      *
-     * @return the value as a block parameter.
-     * @throws IllegalStateException if the value is not an instance of a block parameter.
+     * @return this value, as a block parameter.
+     * @throws IllegalStateException if this value is not a block parameter.
+     * @see #queryParameter()
+     * @see Block.Parameter
      */
-    public Block.Parameter parameter() {
+    public Block.Parameter asParameter() {
         if (this instanceof Block.Parameter p) {
             return p;
         }
-        throw new IllegalStateException("Value is not an instance of block parameter");
+        throw new IllegalStateException("Value is not a block parameter");
+    }
+
+    /**
+     * Queries this value as a block parameter.
+     *
+     * @return an optional containing this value as a block parameter, otherwise
+     * an empty optional if this value is not a block parameter
+     * @see #asParameter()
+     * @see Block.Parameter
+     */
+    public Optional<Block.Parameter> queryParameter() {
+        return this instanceof Block.Parameter p
+                ? Optional.of(p)
+                : Optional.empty();
     }
 
     /**

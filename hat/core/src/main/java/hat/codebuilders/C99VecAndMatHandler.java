@@ -192,7 +192,7 @@ public class C99VecAndMatHandler {
             }).recurse(invoke.opFromOperandNOrNull(1)));
         } else if (invoke.named("abs") && invoke.refIs(IfaceValue.vec.class)) {
             bldr.funcName("f" + invoke.name()).paren(_ ->
-                    bldr.sep(invoke.op().operands(), _ -> bldr.csp(), v -> bldr.recurse(v.result().op()))
+                    bldr.sep(invoke.op().operands(), _ -> bldr.csp(), v -> bldr.recurse(v.asResult().op()))
             );
         } else if (invoke.named("fract") && invoke.operandCount() == 1) {
             // return x - floor(x);
@@ -200,11 +200,11 @@ public class C99VecAndMatHandler {
                     .paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull())));
         } else if (invoke.nameMatchesRegex("(dot|length|max|mix|min|smoothstep|step|normalize|clamp|pow|cross|distance|floor|fract|round|sin|cos|abs)")) {
             bldr.funcName(invoke.op()).paren(_ ->
-                    bldr.sep(invoke.op().operands(), _ -> bldr.csp(), v -> bldr.recurse(v.result().op()))
+                    bldr.sep(invoke.op().operands(), _ -> bldr.csp(), v -> bldr.recurse(v.asResult().op()))
             );
         } else {
             StringBuilder stringBuilder = new StringBuilder("For vec types we need to IMPLEMENT " + invoke.refType() + ":" + invoke.name() + "(");
-            invoke.op().operands().forEach(o -> stringBuilder.append(" " + o.result().type()));
+            invoke.op().operands().forEach(o -> stringBuilder.append(" " + o.asResult().type()));
             stringBuilder.append(")");
             throw new RuntimeException(stringBuilder.toString());
         }
@@ -219,7 +219,7 @@ public class C99VecAndMatHandler {
             mangledNameAndArgs(invoke, bldr);
         } else {
             StringBuilder stringBuilder = new StringBuilder("For mat types we need to IMPLEMENT " + invoke.refType() + ":" + invoke.name() + "(");
-            invoke.op().operands().forEach(o -> stringBuilder.append(" " + o.result().type()));
+            invoke.op().operands().forEach(o -> stringBuilder.append(" " + o.asResult().type()));
             stringBuilder.append(")");
             throw new RuntimeException(stringBuilder.toString());
         }
