@@ -29,7 +29,6 @@ import hat.KernelContext;
 import hat.device.NonMappableIface;
 import hat.phases.HATTier;
 import hat.types.S16ImplOfF16;
-import hat.types.Tensor;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
@@ -74,7 +73,6 @@ public class KernelCallGraph implements LookupCarrier {
     public final Set<Class<? extends IfaceValue.vec>> accessedVecClasses;
     public final Set<Class<? extends S16ImplOfF16>> accessedFP16Classes;
     public boolean usesBarrier;
-    public boolean useTensors;
     public boolean usesAtomics;
     public final Set<String> accessedKernelContextFields;
 
@@ -105,7 +103,7 @@ public class KernelCallGraph implements LookupCarrier {
                         blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
                     }
                     changed.set(true);
-                    return exitBlockBuilder.rebind(blockbuilder.context(), blockbuilder.transformer());
+                    return exitBlockBuilder.withContextAndTransformer(blockbuilder.context(), blockbuilder.transformer());
                 }
                 blockbuilder.op(op);
                 return blockbuilder;
@@ -114,8 +112,6 @@ public class KernelCallGraph implements LookupCarrier {
         var inlinedEntryPoint = ssaFunc;
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
-        this.useTensors = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
-                .anyMatch(invoke -> invoke.refIs(Tensor.class) && invoke.named("load"));
         this.accessedKernelContextFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
                 .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList()
         );

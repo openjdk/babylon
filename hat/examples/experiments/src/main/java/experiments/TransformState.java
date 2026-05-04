@@ -132,7 +132,7 @@ public class TransformState {
                 return t.apply(block, op);
             } finally {
                 Value in = op.result();
-                Value out = block.context().getValueOrDefault(in, null);
+                Value out = block.context().queryValue(in).orElse(null);
                 mapAction.accept(in, out);
             }
         };
@@ -179,9 +179,9 @@ public class TransformState {
     static CodeTransformer trackingValueAndThenTransformer(
             CodeTransformer t,
             BiConsumer<Value, Value> mapAction) {
-        return CodeTransformer.andThen(t, (block, op) -> {
+        return CodeTransformer.applyOpAfter(t, (block, op) -> {
             Value in = op.result();
-            Value out = block.context().getValueOrDefault(in, null);
+            Value out = block.context().queryValue(in).orElse(null);
             mapAction.accept(in, out);
             return block;
         });

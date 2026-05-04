@@ -48,7 +48,6 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.Op.Lowerable.*;
-import static jdk.incubator.code.CodeTransformer.*;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;
@@ -143,12 +142,7 @@ public sealed abstract class JavaOp extends Op {
          *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
-            try {
-                Object o = eval(l, v);
-                return Optional.of(o);
-            } catch (NonConstantExpression e) {
-                return Optional.empty();
-            }
+            return new ConstantExpressionEvaluator(l).evaluate(v);
         }
 
         /**
@@ -180,151 +174,176 @@ public sealed abstract class JavaOp extends Op {
          * @jls 15.29 Constant Expressions
          */
         static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op) {
-            try {
-                Object v = eval(l, op);
-                return Optional.of(v);
-            } catch (NonConstantExpression e) {
-                return Optional.empty();
+            return new ConstantExpressionEvaluator(l).evaluate(op);
+        }
+
+        class ConstantExpressionEvaluator {
+            private final MethodHandles.Lookup l;
+            private final Map<Value, Object> m = new HashMap<>();
+
+            ConstantExpressionEvaluator(MethodHandles.Lookup l) {
+                this.l = l;
             }
-        }
 
-        private static Object eval(MethodHandles.Lookup l, Op op) {
-            return switch (op) {
-                case CoreOp.ConstantOp cop when isConstant(cop) -> {
-                    Object v = cop.value();
-                    yield v instanceof String s ? s.intern() : v;
+            <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
+                try {
+                    Object v = this.eval(op);
+                    return Optional.of(v);
+                } catch (NonConstantExpression e) {
+                    return Optional.empty();
                 }
-                case CoreOp.VarAccessOp.VarLoadOp varLoadOp when isConstant(varLoadOp.varOp()) ->
-                        eval(l, varLoadOp.varOp().initOperand());
-                case JavaOp.ConvOp _ -> {
-                    // we expect cast to primitive type
-                    var v = eval(l, op.operands().getFirst());
-                    yield ArithmeticAndConvOpImpls.evaluate(op, List.of(v));
-                }
-                case CastOp castOp -> {
-                    // we expect cast to String
-                    Value operand = castOp.operands().getFirst();
-                    if (!castOp.resultType().equals(J_L_STRING) || !operand.type().equals(J_L_STRING)) {
-                        throw new NonConstantExpression();
-                    }
-                    Object v = eval(l, operand);
-                    if (!(v instanceof String s)) {
-                        throw new NonConstantExpression();
-                    }
-                    yield s;
-                }
-                case ConcatOp concatOp -> {
-                    Object first = eval(l, concatOp.operands().getFirst());
-                    Object second = eval(l, concatOp.operands().getLast());
-                    yield (first.toString() + second).intern();
-                }
-                case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
-                    Field field;
-                    VarHandle vh;
-                    try {
-                        field = fieldLoadOp.fieldReference().resolveToField(l);
-                        vh = fieldLoadOp.fieldReference().resolveToHandle(l);
-                    } catch (ReflectiveOperationException e) {
-                        throw new IllegalArgumentException(e);
-                    }
-                    // Requirement: the field must be a constant variable.
-                    // Current checks:
-                    // 1) The field is declared final.
-                    // 2) The field type is a primitive or String.
-                    // Missing check:
-                    // 3) Verify the field is initialized and the initializer is a constant expression.
-                    if ((field.getModifiers() & Modifier.FINAL) == 0 ||
-                            !isConstantType(fieldLoadOp.fieldReference().type())) {
-                        throw new NonConstantExpression();
-                    }
-                    Object v;
-                    if ((field.getModifiers() & Modifier.STATIC) != 0) {
-                        // @@@ why using field.get fails ?
-                        v = vh.get();
-                    } else {
-                        // we can't get the value of an instance field from the model
-                        // we need the value of the receiver
-                        throw new NonConstantExpression();
-                    }
-                    yield v instanceof String s ? s.intern() : v;
-                }
-                case ArithmeticOperation _ -> {
-                    List<Object> values = op.operands().stream().map(v -> eval(l, v)).toList();
-                    yield ArithmeticAndConvOpImpls.evaluate(op, values);
-                }
-                case JavaOp.ConditionalExpressionOp _ -> {
-                    boolean p = evalBoolean(l, op.bodies().get(0));
-                    Object t = eval(l, op.bodies().get(1));
-                    Object f = eval(l, op.bodies().get(2));
-                    yield p ? t : f;
-                }
-                case JavaOp.ConditionalAndOp _ -> {
-                    boolean left = evalBoolean(l, op.bodies().get(0));
-                    boolean right = evalBoolean(l, op.bodies().get(1));
-                    yield left && right;
-                }
-                case JavaOp.ConditionalOrOp _ -> {
-                    boolean left = evalBoolean(l, op.bodies().get(0));
-                    boolean right = evalBoolean(l, op.bodies().get(1));
-                    yield left || right;
-                }
-                default -> throw new NonConstantExpression();
-            };
-        }
-
-        private static Object eval(MethodHandles.Lookup l, Value v) {
-            if (v.declaringElement() instanceof JavaExpression e) {
-                return eval(l, (Op & JavaExpression) e);
             }
-            throw new NonConstantExpression();
-        }
 
-        private static Object eval(MethodHandles.Lookup l, Body body) throws NonConstantExpression {
-            if (body.blocks().size() != 1 ||
-                    !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
-                    yop.yieldValue() == null ||
-                    !isConstantType(yop.yieldValue().type())) {
+            Optional<Object> evaluate(Value v) {
+                try {
+                    Object o = this.eval(v);
+                    return Optional.of(o);
+                } catch (NonConstantExpression e) {
+                    return Optional.empty();
+                }
+            }
+
+            private Object eval(Op op) {
+                if (m.containsKey(op.result())) {
+                    return m.get(op.result());
+                }
+                Object r = switch (op) {
+                    case ConstantOp cop when isConstant(cop) -> {
+                        Object v = cop.value();
+                        yield v instanceof String s ? s.intern() : v;
+                    }
+                    case VarAccessOp.VarLoadOp varLoadOp when varLoadOp.operands().getFirst() instanceof Result &&
+                            isConstant(varLoadOp.varOp()) -> eval(varLoadOp.varOp().initOperand());
+                    case ConvOp _ -> {
+                        // we expect cast to primitive type
+                        var v = eval(op.operands().getFirst());
+                        yield ArithmeticAndConvOpImpls.evaluate(op, List.of(v));
+                    }
+                    case CastOp castOp -> {
+                        // we expect cast to String
+                        Value operand = castOp.operands().getFirst();
+                        if (!castOp.resultType().equals(J_L_STRING) || !operand.type().equals(J_L_STRING)) {
+                            throw new NonConstantExpression();
+                        }
+                        Object v = eval(operand);
+                        if (!(v instanceof String s)) {
+                            throw new NonConstantExpression();
+                        }
+                        yield s;
+                    }
+                    case ConcatOp concatOp -> {
+                        Object first = eval(concatOp.operands().getFirst());
+                        Object second = eval(concatOp.operands().getLast());
+                        yield (first.toString() + second).intern();
+                    }
+                    case FieldAccessOp.FieldLoadOp fieldLoadOp -> {
+                        Field field;
+                        VarHandle vh;
+                        try {
+                            field = fieldLoadOp.fieldReference().resolveToField(l);
+                            vh = fieldLoadOp.fieldReference().resolveToHandle(l);
+                        } catch (ReflectiveOperationException e) {
+                            throw new IllegalArgumentException(e);
+                        }
+                        // Requirement: the field must be a constant variable.
+                        // Current checks:
+                        // 1) The field is declared final.
+                        // 2) The field type is a primitive or String.
+                        // Missing check:
+                        // 3) Verify the field is initialized and the initializer is a constant expression.
+                        if ((field.getModifiers() & Modifier.FINAL) == 0 ||
+                                !isConstantType(fieldLoadOp.fieldReference().type())) {
+                            throw new NonConstantExpression();
+                        }
+                        Object v;
+                        if ((field.getModifiers() & Modifier.STATIC) != 0) {
+                            v = vh.get();
+                        } else {
+                            // we can't get the value of an instance field from the model
+                            // we need the value of the receiver
+                            throw new NonConstantExpression();
+                        }
+                        yield v instanceof String s ? s.intern() : v;
+                    }
+                    case ArithmeticOperation _ -> {
+                        List<Object> values = op.operands().stream().map(this::eval).toList();
+                        yield ArithmeticAndConvOpImpls.evaluate(op, values);
+                    }
+                    case ConditionalExpressionOp _ -> {
+                        boolean p = evalBoolean(op.bodies().get(0));
+                        Object t = eval(op.bodies().get(1));
+                        Object f = eval(op.bodies().get(2));
+                        yield p ? t : f;
+                    }
+                    case ConditionalAndOp _ -> {
+                        boolean left = evalBoolean(op.bodies().get(0));
+                        boolean right = evalBoolean(op.bodies().get(1));
+                        yield left && right;
+                    }
+                    case ConditionalOrOp _ -> {
+                        boolean left = evalBoolean(op.bodies().get(0));
+                        boolean right = evalBoolean(op.bodies().get(1));
+                        yield left || right;
+                    }
+                    default -> throw new NonConstantExpression();
+                };
+                m.put(op.result(), r);
+                return r;
+            }
+
+            private Object eval(Value v) {
+                if (v.declaringElement() instanceof JavaExpression e) {
+                    return eval((Op & JavaExpression) e);
+                }
                 throw new NonConstantExpression();
             }
-            return eval(l, yop.yieldValue());
-        }
 
-        private static boolean evalBoolean(MethodHandles.Lookup l, Body body) throws NonConstantExpression {
-            Object eval = eval(l, body);
-            if (!(eval instanceof Boolean b)) {
-                throw new NonConstantExpression();
+            private Object eval(Body body) throws NonConstantExpression {
+                if (body.blocks().size() != 1 ||
+                        !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
+                        yop.yieldValue() == null ||
+                        !isConstantType(yop.yieldValue().type())) {
+                    throw new NonConstantExpression();
+                }
+                return eval(yop.yieldValue());
             }
 
-            return b;
-        }
+            private boolean evalBoolean(Body body) throws NonConstantExpression {
+                Object eval = eval(body);
+                if (!(eval instanceof Boolean b)) {
+                    throw new NonConstantExpression();
+                }
+                return b;
+            }
 
-        private static boolean isConstant(CoreOp.ConstantOp op) {
-            return isConstantType(op.resultType()) && isConstantValue(op.value());
-        }
+            private static boolean isConstant(CoreOp.ConstantOp op) {
+                return isConstantType(op.resultType()) && isConstantValue(op.value());
+            }
 
-        private static boolean isConstant(VarOp op) {
-            // Requirement: the local variable must be a constant variable.
-            // Current checks:
-            // 1) The variable is initialized, and the initializer is a constant expression.
-            // 2) The variable type is a primitive or String.
-            // Missing check:
-            // 3) Ensure the variable is declared final
-            return isConstantType(op.varValueType()) &&
-                    !op.isUninitialized() &&
-                    // @@@ Add to VarOp
-                    op.result().uses().stream().noneMatch(u -> u.op() instanceof CoreOp.VarAccessOp.VarStoreOp);
-        }
+            private static boolean isConstant(VarOp op) {
+                // Requirement: the local variable must be a constant variable.
+                // Current checks:
+                // 1) The variable is initialized, and the initializer is a constant expression.
+                // 2) The variable type is a primitive or String.
+                // Missing check:
+                // 3) Ensure the variable is declared final
+                return isConstantType(op.varValueType()) &&
+                        !op.isUninitialized() &&
+                        // @@@ Add to VarOp
+                        op.result().uses().stream().noneMatch(u -> u.op() instanceof CoreOp.VarAccessOp.VarStoreOp);
+            }
 
-        private static boolean isConstantValue(Object o) {
-            return switch (o) {
-                case String _ -> true;
-                case Boolean _, Byte _, Short _, Character _, Integer _, Long _, Float _, Double _ -> true;
-                case null, default -> false;
-            };
-        }
+            private static boolean isConstantValue(Object o) {
+                return switch (o) {
+                    case String _ -> true;
+                    case Boolean _, Byte _, Short _, Character _, Integer _, Long _, Float _, Double _ -> true;
+                    case null, default -> false;
+                };
+            }
 
-        private static boolean isConstantType(CodeType e) {
-            return (e instanceof PrimitiveType && !VOID.equals(e)) || J_L_STRING.equals(e);
+            private static boolean isConstantType(CodeType e) {
+                return (e instanceof PrimitiveType && !VOID.equals(e)) || J_L_STRING.equals(e);
+            }
         }
     }
 
@@ -506,9 +525,9 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.rebind(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
             return b;
         }
 
@@ -2770,7 +2789,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             return lower(b, BranchTarget::breakBlock);
         }
     }
@@ -2804,7 +2823,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             return lower(b, BranchTarget::continueBlock);
         }
     }
@@ -2857,7 +2876,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             // for now, we will use breakBlock field to indicate java.yield target block
             return lower(b, BranchTarget::breakBlock);
         }
@@ -2953,11 +2972,11 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
-            b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
+            b.body(body, List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     block.op(branch(exit.reference()));
                     return block;
@@ -3053,9 +3072,9 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             // Lower the expression body, yielding a monitor target
-            b = lowerExpr(b, opT);
+            b = lowerExpr(b, inherited);
             Value monitorTarget = b.parameters().get(0);
 
             // Monitor enter
@@ -3070,7 +3089,7 @@ public sealed abstract class JavaOp extends Op {
             b.op(exceptionRegionEnter(
                     syncRegionEnter.reference(), catcherFinally.reference()));
 
-            CodeTransformer syncExitTransformer = compose(opT, (block, op) -> {
+            BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
                     (op instanceof StatementTargetOp lop && ifExitFromSynchronized(lop))) {
                     // Monitor exit
@@ -3084,7 +3103,7 @@ public sealed abstract class JavaOp extends Op {
                 }
             });
 
-            syncRegionEnter.body(blockBody, List.of(), andThenLowering(syncExitTransformer, (block, op) -> {
+            syncRegionEnter.body(blockBody, List.of(), loweringTransformer(syncExitTransformer, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     // Monitor exit
                     block.op(monitorExit(monitorTarget));
@@ -3114,9 +3133,9 @@ public sealed abstract class JavaOp extends Op {
             return exit;
         }
 
-        Block.Builder lowerExpr(Block.Builder b, CodeTransformer opT) {
+        Block.Builder lowerExpr(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder exprExit = b.block(exprBody.bodySignature().returnType());
-            b.body(exprBody, List.of(), andThenLowering(opT, (block, op) -> {
+            b.body(exprBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     Value monitorTarget = block.context().getValue(yop.yieldValue());
                     block.op(branch(exprExit.reference(monitorTarget)));
@@ -3225,12 +3244,12 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             AtomicBoolean first = new AtomicBoolean();
-            b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
+            b.body(body, List.of(), loweringTransformer(inherited, (block, op) -> {
                 // Drop first operation that corresponds to the label
                 if (!first.get()) {
                     first.set(true);
@@ -3430,7 +3449,7 @@ public sealed abstract class JavaOp extends Op {
             // @@@ Is this needed?
             if (bodyCs.size() % 2 == 0) {
                 bodyCs = new ArrayList<>(bodyCs);
-                Body.Builder end = Body.Builder.of(bodyCs.get(0).ancestorBody(),
+                Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
                         CoreType.FUNCTION_TYPE_VOID);
                 end.entryBlock().op(core_yield());
                 bodyCs.add(end);
@@ -3464,7 +3483,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
@@ -3493,7 +3512,7 @@ public sealed abstract class JavaOp extends Op {
                     action = builders.get(i + 1);
                     Block.Builder next = builders.get(i + 2);
 
-                    pred.body(predBody, List.of(), andThenLowering(opT, (block, op) -> {
+                    pred.body(predBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yo) {
                             block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
                                     action.reference(), next.reference()));
@@ -3504,7 +3523,7 @@ public sealed abstract class JavaOp extends Op {
                     }));
                 }
 
-                action.body(actionBody, List.of(), andThenLowering(opT, (block, op) -> {
+                action.body(actionBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(branch(exit.reference()));
                         return block;
@@ -3566,7 +3585,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Value selectorExpression = b.context().getValue(operands().get(0));
 
             // @@@ we can add this during model generation
@@ -3647,7 +3666,7 @@ public sealed abstract class JavaOp extends Op {
                 boolean isLastLabel = i == blocks.size() - 2;
                 Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
                 int finalDefLabelIndex = defLabelIndex;
-                blocks.get(i).body(bodies().get(i), List.of(selectorExpression), andThenLowering(opT,
+                blocks.get(i).body(bodies().get(i), List.of(selectorExpression), loweringTransformer(inherited,
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
                                 Block.Reference falseTarget;
@@ -3665,7 +3684,7 @@ public sealed abstract class JavaOp extends Op {
                             default -> null;
                         }));
 
-                blocks.get(i + 1).body(bodies().get(i + 1), List.of(), andThenLowering(opT,
+                blocks.get(i + 1).body(bodies().get(i + 1), List.of(), loweringTransformer(inherited,
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
                                 List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
@@ -3677,7 +3696,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             if (defLabelIndex != -1) {
-                blocks.get(defLabelIndex + 1).body(bodies().get(defLabelIndex + 1), List.of(), andThenLowering(opT,
+                blocks.get(defLabelIndex + 1).body(bodies().get(defLabelIndex + 1), List.of(), loweringTransformer(inherited,
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
                                 List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
@@ -3832,7 +3851,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             return lower(b, BranchTarget::continueBlock);
         }
 
@@ -4078,7 +4097,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder header = b.block();
             Block.Builder body = b.block();
             Block.Builder update = b.block();
@@ -4087,7 +4106,7 @@ public sealed abstract class JavaOp extends Op {
             List<Value> initValues = new ArrayList<>();
             // @@@ Init body has one yield operation yielding
             //  void, a single variable, or a tuple of one or more variables
-            b.body(initBody, List.of(), andThenLowering(opT, (block, op) -> switch (op) {
+            b.body(initBody, List.of(), loweringTransformer(inherited, (block, op) -> switch (op) {
                 case TupleOp _ -> {
                     // Drop Tuple if a yielded
                     boolean isResult = op.result().uses().size() == 1 &&
@@ -4095,7 +4114,7 @@ public sealed abstract class JavaOp extends Op {
                     if (!isResult) {
                         block.op(op);
                     }
-                    yield  block;
+                    yield block;
                 }
                 case CoreOp.YieldOp yop -> {
                     if (yop.yieldValue() == null) {
@@ -4116,7 +4135,7 @@ public sealed abstract class JavaOp extends Op {
                 default -> null;
             }));
 
-            header.body(condBody, initValues, andThenLowering(opT, (block, op) -> {
+            header.body(condBody, initValues, loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.reference(), exit.reference()));
@@ -4128,9 +4147,9 @@ public sealed abstract class JavaOp extends Op {
 
             BranchTarget.setBranchTarget(b.context(), this, exit, update);
 
-            body.body(this.loopBody, initValues, andThenLowering(opT, (_, _) -> null));
+            body.body(this.loopBody, initValues, loweringTransformer(inherited, (_, _) -> null));
 
-            update.body(this.updateBody, initValues, andThenLowering(opT, (block, op) -> {
+            update.body(this.updateBody, initValues, loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     block.op(branch(header.reference()));
                     return block;
@@ -4354,7 +4373,7 @@ public sealed abstract class JavaOp extends Op {
         static final MethodRef ITERATOR_NEXT = MethodRef.method(Iterator.class, "next", Object.class);
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             JavaType elementType = (JavaType) initBody.entryBlock().parameters().get(0).type();
             boolean isArray = exprBody.bodySignature().returnType() instanceof ArrayType;
 
@@ -4364,7 +4383,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder body = b.block();
             Block.Builder exit = b.block();
 
-            b.body(exprBody, List.of(), andThenLowering(opT, (block, op) -> {
+            b.body(exprBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     Value loopSource = block.context().getValue(yop.yieldValue());
                     block.op(branch(preHeader.reference(loopSource)));
@@ -4386,7 +4405,7 @@ public sealed abstract class JavaOp extends Op {
 
                 Value e = init.op(arrayLoadOp(array, i));
                 List<Value> initValues = new ArrayList<>();
-                init.body(this.initBody, List.of(e), andThenLowering(opT, (block, op) -> {
+                init.body(this.initBody, List.of(e), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         initValues.addAll(block.context().getValues(yop.operands()));
                         block.op(branch(body.reference()));
@@ -4399,7 +4418,7 @@ public sealed abstract class JavaOp extends Op {
                 Block.Builder update = b.block();
                 BranchTarget.setBranchTarget(b.context(), this, exit, update);
 
-                body.body(this.loopBody, initValues, andThenLowering(opT, (_, _) -> null));
+                body.body(this.loopBody, initValues, loweringTransformer(inherited, (_, _) -> null));
 
                 i = update.op(add(i, update.op(constant(INT, 1))));
                 update.op(branch(header.reference(i)));
@@ -4413,7 +4432,7 @@ public sealed abstract class JavaOp extends Op {
 
                 Value e = init.op(invoke(elementType, ITERATOR_NEXT, iterator));
                 List<Value> initValues = new ArrayList<>();
-                init.body(this.initBody, List.of(e), andThenLowering(opT, (block, op) -> {
+                init.body(this.initBody, List.of(e), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         initValues.addAll(block.context().getValues(yop.operands()));
                         block.op(branch(body.reference()));
@@ -4425,7 +4444,7 @@ public sealed abstract class JavaOp extends Op {
 
                 BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
-                body.body(this.loopBody, initValues, andThenLowering(opT, (_, _) -> null));
+                body.body(this.loopBody, initValues, loweringTransformer(inherited, (_, _) -> null));
             }
 
             return exit;
@@ -4569,14 +4588,14 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder header = b.block();
             Block.Builder body = b.block();
             Block.Builder exit = b.block();
 
             b.op(branch(header.reference()));
 
-            header.body(predicateBody(), List.of(), andThenLowering(opT, (block, op) -> {
+            header.body(predicateBody(), List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.reference(), exit.reference()));
@@ -4588,7 +4607,7 @@ public sealed abstract class JavaOp extends Op {
 
             BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
-            body.body(loopBody(), List.of(), andThenLowering(opT, (_, _) -> null));
+            body.body(loopBody(), List.of(), loweringTransformer(inherited, (_, _) -> null));
 
             return exit;
         }
@@ -4731,7 +4750,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder body = b.block();
             Block.Builder header = b.block();
             Block.Builder exit = b.block();
@@ -4740,9 +4759,9 @@ public sealed abstract class JavaOp extends Op {
 
             BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
-            body.body(loopBody(), List.of(), andThenLowering(opT, (_, _) -> null));
+            body.body(loopBody(), List.of(), loweringTransformer(inherited, (_, _) -> null));
 
-            header.body(predicateBody(), List.of(), andThenLowering(opT, (block, op) -> {
+            header.body(predicateBody(), List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.reference(), exit.reference()));
@@ -4800,7 +4819,7 @@ public sealed abstract class JavaOp extends Op {
             return bodies;
         }
 
-        static Block.Builder lower(Block.Builder startBlock, CodeTransformer opT, JavaConditionalOp cop) {
+        static Block.Builder lower(Block.Builder startBlock, BiFunction<Block.Builder, Op, Block.Builder> before, JavaConditionalOp cop) {
             List<Body> bodies = cop.bodies();
 
             Block.Builder exit = startBlock.block();
@@ -4813,9 +4832,10 @@ public sealed abstract class JavaOp extends Op {
 
             Block.Builder pred = null;
             for (int i = bodies.size() - 1; i >= 0; i--) {
-                BiFunction<Block.Builder, Op, Block.Builder> opt;
+                CodeTransformer bodyTransformer;
+                BiFunction<Block.Builder, Op, Block.Builder> lowering;
                 if (i == bodies.size() - 1) {
-                    opt = lowering(opT, (block, op) -> {
+                    bodyTransformer = loweringTransformer(before, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             block.op(branch(exit.reference(p)));
@@ -4826,7 +4846,7 @@ public sealed abstract class JavaOp extends Op {
                     });
                 } else {
                     Block.Builder nextPred = pred;
-                    opt = lowering(opT, (block, op) -> {
+                    bodyTransformer = loweringTransformer(before, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             if (cop instanceof ConditionalAndOp) {
@@ -4843,10 +4863,10 @@ public sealed abstract class JavaOp extends Op {
 
                 Body fromPred = bodies.get(i);
                 if (i == 0) {
-                    startBlock.body(fromPred, List.of(), opt::apply);
+                    startBlock.body(fromPred, List.of(), bodyTransformer);
                 } else {
                     pred = startBlock.block(fromPred.bodySignature().parameterTypes());
-                    pred.body(fromPred, pred.parameters(), andThen(opT, opt));
+                    pred.body(fromPred, pred.parameters(), bodyTransformer);
                 }
             }
 
@@ -4923,8 +4943,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
-            return lower(b, opT, this);
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+            return lower(b, inherited, this);
         }
     }
 
@@ -4992,8 +5012,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
-            return lower(b, opT, this);
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+            return lower(b, inherited, this);
         }
     }
 
@@ -5083,14 +5103,14 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder exit = b.block(resultType());
             exit.context().mapValue(result(), exit.parameters().get(0));
 
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             List<Block.Builder> builders = List.of(b.block(), b.block());
-            b.body(bodies.get(0), List.of(), andThenLowering(opT, (block, op) -> {
+            b.body(bodies.get(0), List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
                     block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             builders.get(0).reference(), builders.get(1).reference()));
@@ -5101,7 +5121,7 @@ public sealed abstract class JavaOp extends Op {
             }));
 
             for (int i = 0; i < 2; i++) {
-                builders.get(i).body(bodies.get(i + 1), List.of(), andThenLowering(opT, (block, op) -> {
+                builders.get(i).body(bodies.get(i + 1), List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         block.op(branch(exit.reference(block.context().getValue(yop.yieldValue()))));
                         return block;
@@ -5380,7 +5400,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+        public Block.Builder lower(Block.Builder b, final BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
@@ -5391,7 +5411,7 @@ public sealed abstract class JavaOp extends Op {
                                 ? desugarBasicTryWithResources()
                                 : desugarTryWithResources(),
                         b.context().getValues(capturedValues()),
-                        andThenLowering(opT, (block, op) -> {
+                        loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(branch(exit.reference()));
                         return block;
@@ -5404,7 +5424,7 @@ public sealed abstract class JavaOp extends Op {
 
             // Simple case with no catch and finally bodies
             if (catchBodies.isEmpty() && finallyBody == null) {
-                b.body(body, List.of(), andThenLowering(opT, (block, op) -> {
+                b.body(body, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(branch(exit.reference()));
                         return block;
@@ -5437,18 +5457,18 @@ public sealed abstract class JavaOp extends Op {
                     .toList();
             b.op(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
 
-            CodeTransformer tryExitTransformer;
+            BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
-                tryExitTransformer = compose(opT, (block, op) -> {
+                tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
-                        return inlineFinalizer(block, exitHandlers, opT);
+                        return inlineFinalizer(block, exitHandlers, inherited);
                     } else {
                         return block;
                     }
                 });
             } else {
-                tryExitTransformer = compose(opT, (block, op) -> {
+                tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
@@ -5461,7 +5481,7 @@ public sealed abstract class JavaOp extends Op {
             }
             // Inline the try body
             AtomicBoolean hasTryRegionExit = new AtomicBoolean();
-            tryRegionEnter.body(body, List.of(), andThenLowering(tryExitTransformer, (block, op) -> {
+            tryRegionEnter.body(body, List.of(), loweringTransformer(tryExitTransformer, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     hasTryRegionExit.set(true);
                     block.op(branch(tryRegionExit.reference()));
@@ -5498,18 +5518,18 @@ public sealed abstract class JavaOp extends Op {
                     Result catchExceptionRegion = catcher.op(
                             exceptionRegionEnter(catchRegionEnter.reference(), catcherFinally.reference()));
 
-                    CodeTransformer catchExitTransformer = compose(opT, (block, op) -> {
+                    BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
-                            return inlineFinalizer(block, List.of(catcherFinally.reference()), opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.reference()), inherited);
                         } else if (op instanceof StatementTargetOp lop && ifExitFromTry(lop)) {
-                            return inlineFinalizer(block, List.of(catcherFinally.reference()), opT);
+                            return inlineFinalizer(block, List.of(catcherFinally.reference()), inherited);
                         } else {
                             return block;
                         }
                     });
                     // Inline the catch body
                     AtomicBoolean hasCatchRegionExit = new AtomicBoolean();
-                    catchRegionEnter.body(catcherBody, List.of(t), andThenLowering(catchExitTransformer, (block, op) -> {
+                    catchRegionEnter.body(catcherBody, List.of(t), loweringTransformer(catchExitTransformer, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp) {
                             hasCatchRegionExit.set(true);
                             block.op(branch(catchRegionExit.reference()));
@@ -5526,7 +5546,7 @@ public sealed abstract class JavaOp extends Op {
                     }
                 } else {
                     // Inline the catch body
-                    catcher.body(catcherBody, List.of(t), andThenLowering(opT, (block, op) -> {
+                    catcher.body(catcherBody, List.of(t), loweringTransformer(inherited, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp) {
                             block.op(branch(exit.reference()));
                             return block;
@@ -5539,7 +5559,7 @@ public sealed abstract class JavaOp extends Op {
 
             if (finallyBody != null && hasTryRegionExit.get()) {
                 // Inline the finally body
-                finallyEnter.body(finallyBody, List.of(), andThenLowering(opT, (block, op) -> {
+                finallyEnter.body(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(branch(exit.reference()));
                         return block;
@@ -5554,7 +5574,7 @@ public sealed abstract class JavaOp extends Op {
                 // Create the throwable argument
                 Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
 
-                catcherFinally.body(finallyBody, List.of(), andThenLowering(opT, (block, op) -> {
+                catcherFinally.body(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(throw_(t));
                         return block;
@@ -5682,14 +5702,14 @@ public sealed abstract class JavaOp extends Op {
             return target == this || target.isAncestorOf(this);
         }
 
-        Block.Builder inlineFinalizer(Block.Builder block1, List<Block.Reference> tryHandlers, CodeTransformer opT) {
+        Block.Builder inlineFinalizer(Block.Builder block1, List<Block.Reference> tryHandlers, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
             block1.op(exceptionRegionExit(finallyEnter.reference(), tryHandlers));
 
             // Inline the finally body
-            finallyEnter.body(finallyBody, List.of(), andThenLowering(opT, (block2, op2) -> {
+            finallyEnter.body(finallyBody, List.of(), loweringTransformer(inherited, (block2, op2) -> {
                 if (op2 instanceof CoreOp.YieldOp) {
                     block2.op(branch(finallyExit.reference()));
                     return block2;
@@ -6085,7 +6105,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             @Override
-            public Block.Builder lower(Block.Builder b, CodeTransformer opT) {
+            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
                 // No match block
                 Block.Builder endNoMatchBlock = b.block();
                 // Match block
@@ -6112,7 +6132,7 @@ public sealed abstract class JavaOp extends Op {
 
                 // Match block
                 // Lower match body and pass true
-                endMatchBlock.body(matchBody, patternValues, andThenLowering(opT, (block, op) -> {
+                endMatchBlock.body(matchBody, patternValues, loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.op(branch(endBlock.reference(
                                 block.op(constant(BOOLEAN, true)))));
@@ -6287,6 +6307,24 @@ public sealed abstract class JavaOp extends Op {
                 return BOOLEAN;
             }
         }
+    }
+
+    /**
+     * Returns a composed function that composes {@code g} into the first argument of {@code f}.
+     * <p>
+     * if {@code f} is {@code null} then this method returns {@code g}.
+     *
+     * @param f the outer function
+     * @param g the inner function
+     * @return the composed
+     */
+    static <T, U> BiFunction<T, U, T> composeFirst(
+            BiFunction<T, U, T> f,
+            BiFunction<T, U, T> g) {
+        Objects.requireNonNull(g);
+        return f == null
+                ? g
+                : (builder, op) -> f.apply(g.apply(builder, op), op);
     }
 
     static Op createOp(ExternalizedOp def) {

@@ -26,11 +26,15 @@
 package jdk.incubator.code;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
  * A code transformer.
+ * <p>
+ * Code transformer implementations are not required to be thread-safe. Code transformations operate on block builders
+ * and code contexts that are not thread-safe.
  */
 @FunctionalInterface
 public interface CodeTransformer {
@@ -75,7 +79,7 @@ public interface CodeTransformer {
             };
 
             List<Value> outputOperands = inputOp.operands().stream()
-                    .map(v -> builder.context().getValueOrDefault(v, null)).toList();
+                    .map(v -> builder.context().queryValue(v).orElse(null)).toList();
 
             opTransformer.acceptOp(opBuilder, inputOp, outputOperands);
             return builder;
@@ -116,26 +120,27 @@ public interface CodeTransformer {
      * Transforms a body starting from a block builder.
      *
      * @implSpec
-     * The default implementation {@link #acceptBlock(Block.Builder, Block) accepts} a block builder
-     * and a block for each block of the body, in order, using this code transformer.
-     * The following sequence of actions is performed:
+     * The default implementation {@link #acceptBlock(Block.Builder, Block) accepts} a block builder and a block for
+     * each block of the body, in order, using this code transformer. The following sequence of actions is performed:
      * <ol>
      * <li>
-     * the body's entry block is mapped to the block builder, and the (input) block parameters of the
-     * body's entry block are mapped to the (output) values, using the builder's context.
-     * <li>for each (input) block in the body (except the entry block) an (output) block builder is created
-     * from the builder with the same parameter types as the (input) block, in order.
-     * The (input) block is mapped to the (output) builder, and the (input) block parameters are mapped to the
-     * (output) block parameters, using the builder's context.
+     * the body's entry block is mapped to the block builder, and a prefix of the body's entry block parameters is
+     * mapped, in order, to the given values, using this builder's context. Any remaining entry block parameters are not
+     * mapped;
      * <li>
-     * for each (input) block in the body (in order) the (input) block is transformed
-     * by {@link #acceptBlock(Block.Builder, Block) accepting} the mapped (output) builder and
-     * (input) block, using this code transformer.
+     * for each input block in the body, except the entry block, an output block builder is created from the builder
+     * with the same parameter types as the input block, in order. The input block is mapped to the output builder, and
+     * the input block parameters are mapped to the output block parameters, using the builder's context;
+     * <li>
+     * for each input block in the body, in order, the input block is transformed by
+     * {@link #acceptBlock(Block.Builder, Block) accepting} the mapped output builder and input block, using this code
+     * transformer.
      * </ol>
      *
      * @param builder the block builder
      * @param body the body to transform
-     * @param values the values to map to the body's entry block parameters
+     * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
+     * @throws IllegalArgumentException if there are more output values than entry block parameters
      */
     default void acceptBody(Block.Builder builder, Body body, List<? extends Value> values) {
         CodeContext cc = builder.context();
@@ -144,7 +149,7 @@ public interface CodeTransformer {
         for (Block block : body.blocks()) {
             if (block.isEntryBlock()) {
                 cc.mapBlock(block, builder);
-                cc.mapValues(block.parameters(), values);
+                cc.mapValuePrefix(block.parameters(), values);
             } else {
                 Block.Builder blockBuilder = builder.block(block.parameterTypes());
                 cc.mapBlock(block, blockBuilder);
@@ -190,39 +195,52 @@ public interface CodeTransformer {
     Block.Builder acceptOp(Block.Builder builder, Op op);
 
     /**
-     * Returns a composed code transform that transforms an operation that first applies
-     * a block builder and operation to the function {@code f}, and then applies
-     * the resulting block builder and the same operation to {@link CodeTransformer#acceptOp acceptOp}
-     * of the code transformer {@code after}.
+     * Returns a code transformer that accepts an input operation by first applying the {@code before} operation
+     * transformer function to the block builder and input operation, then accepting the same input operation with the
+     * {@code after} code transformer.
      * <p>
-     * If the code transformer {@code after} is {@code null} then it is as if a code transformer
-     * is applied that does nothing except return the block builder it was given.
+     * If {@code after} is non-{@code null}, this method behaves as if it returns the result of the following
+     * lambda expression:
+     * {@snippet lang = "java":
+     * (builder, op) -> after.acceptOp(before.apply(builder, op), op);
+     * }
+     * If {@code after} is {@code null}, only {@code before} is applied.
      *
-     * @param after the code transformer to apply after
-     * @param f the operation transformer function to apply before
-     * @return the composed code transformer
+     * @param after the code transformer to accept after, or {@code null} if only {@code before} is applied
+     * @param before the operation transformer function to apply before
+     * @return the code transformer that applies an operation transformer function and then accepts the same operation
+     * @see #acceptOp(Block.Builder, Op)
+     * @see #applyOpAfter(CodeTransformer, BiFunction)
      */
-    static CodeTransformer compose(CodeTransformer after, BiFunction<Block.Builder, Op, Block.Builder> f) {
+    static CodeTransformer applyOpBefore(CodeTransformer after, BiFunction<Block.Builder, Op, Block.Builder> before) {
+        Objects.requireNonNull(before);
         return after == null
-                ? f::apply
-                : (builder, op) -> after.acceptOp(f.apply(builder, op), op);
+                ? before::apply
+                : (builder, op) -> after.acceptOp(before.apply(builder, op), op);
     }
 
     /**
-     * Returns a composed code transformer that first applies a block builder and operation to
-     * {@link CodeTransformer#acceptOp acceptOp} of the code transformer {@code before},
-     * and then applies resulting block builder and the same operation to the function {@code f}.
+     * Returns a code transformer that accepts an input operation by first accepting the input operation with the
+     * {@code before} code transformer, then applying the {@code after} operation transformer function to the
+     * resulting block builder and the same input operation.
      * <p>
-     * If the code transformer {@code before} is {@code null} then it is as if a code transformer
-     * is applied that does nothing except return the block builder it was given.
+     * if {@code before} is non-{@code null}, this method behaves as if it returns the result of the following
+     * lambda expression:
+     * {@snippet lang = "java":
+     * (builder, op) -> after.apply(before.acceptOp(builder, op), op);
+     * }
+     * If {@code before} is {@code null}, only {@code after} is applied.
      *
-     * @param before the code transformer to apply before
-     * @param f the operation transformer function to apply after
-     * @return the composed code transformer
+     * @param before the code transformer to accept before, or {@code null} if only {@code after} is applied
+     * @param after the operation transformer function to apply after
+     * @return the code transformer that accepts an operation and then applies an operation transformer function
+     * @see #acceptOp(Block.Builder, Op)
+     * @see #applyOpBefore(CodeTransformer, BiFunction)
      */
-    static CodeTransformer andThen(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+    static CodeTransformer applyOpAfter(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> after) {
+        Objects.requireNonNull(after);
         return before == null
-                ? f::apply
-                : (builder, op) -> f.apply(before.acceptOp(builder, op), op);
+                ? after::apply
+                : (builder, op) -> after.apply(before.acceptOp(builder, op), op);
     }
 }

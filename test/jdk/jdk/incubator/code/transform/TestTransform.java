@@ -146,7 +146,7 @@ public class TestTransform {
                     // add(x, constant(C)) -> sub(x, constant(-C))
                     // add(x, y) -> sub(x, neg(y))
                     List<Value> operands = op.operands().stream()
-                            .map(v -> builder.context().getValueOrDefault(v, null)).toList();
+                            .map(v -> builder.context().queryValue(v).orElse(null)).toList();
                     Op.Result rhs;
                     if (op.operands().get(1) instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop) {
                         // There is no mapping to the second operand, since it was associated
