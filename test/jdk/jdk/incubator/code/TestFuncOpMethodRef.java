@@ -29,86 +29,52 @@
  * @run junit TestFuncOpMethodRef
  */
 
-import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.java.FieldRef;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.extern.DialectFactory;
-import jdk.incubator.code.internal.OpBuilder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.lang.invoke.MethodHandles;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 
 public class TestFuncOpMethodRef {
-    private final JavaType thisType = JavaType.type(this.getClass().describeConstable().get());
-    private final MethodRef MR = MethodRef.method(thisType, "f", CoreType.FUNCTION_TYPE_VOID);
 
-    @Test
-    void test() {
-        FuncOp f = func(MR.name(), CoreType.FUNCTION_TYPE_VOID).body(b -> {
-            b.op(return_());
-        });
-        Assertions.assertTrue(f.source().isEmpty());
+    static void test(FuncOp op, MethodRef expectedMethodRef) {
+        Assertions.assertTrue(op.source().isPresent());
+        Assertions.assertEquals(expectedMethodRef, op.source().get());
+    }
 
-        CoreOp.FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.source().isEmpty());
+    @Reflect
+    static int f(List<Integer> l) {
+        return l.getFirst();
     }
 
     @Test
-    void test2() {
-        FuncOp f = func(MR).body(b -> {
-            b.op(return_());
-        });
-        Assertions.assertTrue(f.source().isPresent());
-        Assertions.assertEquals(MR, f.source().get());
+    void testStatic() throws NoSuchMethodException {
+        FuncOp fop = Op.ofMethod(this.getClass().getDeclaredMethod("f", List.class)).get();
+        MethodRef fmr = MethodRef.method(this.getClass(), "f", int.class, List.class);
+        test(fop, fmr);
 
-        CoreOp.FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.source().isPresent());
+        FuncOp tfop = fop.transform(CodeTransformer.COPYING_TRANSFORMER);
+        test(tfop, fmr);
+    }
 
-        Assertions.assertEquals(f.source().get(), cf.source().get());
+    @Reflect
+    int g(String k, Map<String, Integer> m) {
+        return m.get(k);
     }
 
     @Test
-    void test5() {
-        Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
-        bb.entryBlock().op(return_());
-        FuncOp f = func(MR, bb);
-        Assertions.assertTrue(f.source().isPresent());
-        Assertions.assertEquals(MR, f.source().get());
+    void testInstance() throws NoSuchMethodException {
+        FuncOp gop = Op.ofMethod(this.getClass().getDeclaredMethod("g", String.class, Map.class)).get();
+        MethodRef gmr = MethodRef.method(this.getClass(), "g", int.class, String.class, Map.class);
+        test(gop, gmr);
 
-        FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.source().isPresent());
-        Assertions.assertEquals(f.source().get(), cf.source().get());
-    }
-
-    @Test
-    void test6() {
-        Body.Builder bb = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
-        bb.entryBlock().op(return_());
-        FuncOp f = func(MR.name(), bb);
-        Assertions.assertTrue(f.source().isEmpty());
-
-        FuncOp cf = externalizeAndCreate(f);
-        Assertions.assertTrue(cf.source().isEmpty());
-    }
-
-    private static FuncOp externalizeAndCreate(FuncOp f) {
-        ModuleOp mop = OpBuilder.createBuilderFunctions(new LinkedHashMap<>(Map.of(f.funcName(), f)),
-                b -> b.op(JavaOp.fieldLoad(
-                        FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        CoreOp.FuncOp cf = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
-                mop.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(f.funcName()));
-        return cf;
+        FuncOp tgop = gop.transform(CodeTransformer.COPYING_TRANSFORMER);
+        test(tgop, gmr);
     }
 }
