@@ -123,8 +123,8 @@ public interface CodeTransformer {
      * <ol>
      * <li>
      * the body's entry block is mapped to the block builder, and a prefix of the body's entry block parameters is
-     * mapped, in order, to the given values, using this builder's context. Any remaining entry block parameters are not
-     * mapped;
+     * mapped, in order, to the given entry values, using this builder's context. Any remaining entry block parameters
+     * are not mapped;
      * <li>
      * for each input block in the body, except the entry block, an output block builder is created from the builder
      * with the same parameter types as the input block, in order. The input block is mapped to the output builder, and
@@ -137,17 +137,18 @@ public interface CodeTransformer {
      *
      * @param builder the block builder
      * @param body the body to transform
-     * @param values the output values to map, in order, from a prefix of the input body's entry block parameters
-     * @throws IllegalArgumentException if there are more output values than entry block parameters
+     * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
+     *                    parameters
+     * @throws IllegalArgumentException if there are more output entry values than entry block parameters
      */
-    default void acceptBody(Block.Builder builder, Body body, List<? extends Value> values) {
+    default void acceptBody(Block.Builder builder, Body body, List<? extends Value> entryValues) {
         CodeContext cc = builder.context();
 
         // Map blocks up front, for forward referencing successors
         for (Block block : body.blocks()) {
             if (block.isEntryBlock()) {
                 cc.mapBlock(block, builder);
-                cc.mapValuePrefix(block.parameters(), values);
+                cc.mapValuePrefix(block.parameters(), entryValues);
             } else {
                 Block.Builder blockBuilder = builder.block(block.parameterTypes());
                 cc.mapBlock(block, blockBuilder);

@@ -57,7 +57,7 @@ public class TestVarOp {
         CoreOp.FuncOp f = getFuncOp("f");
         CoreOp.FuncOp ft = CoreOp.func("f", CoreType.functionType(JavaType.J_L_OBJECT, JavaType.type(CharSequence.class)))
                 .body(fb -> {
-                    fb.body(f.body(), fb.parameters(), CodeTransformer.COPYING_TRANSFORMER);
+                    fb.transformBody(f.body(), fb.parameters(), CodeTransformer.COPYING_TRANSFORMER);
                 });
 
         List<CoreOp.VarOp> vops = ft.elements()

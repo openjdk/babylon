@@ -86,7 +86,7 @@ public final class OnnxTransformer {
                 b.context().mapValue(inputCapture, output);
             }
 
-            b.body(lambda.body(), List.of(), CodeTransformer.COPYING_TRANSFORMER);
+            b.transformBody(lambda.body(), List.of(), CodeTransformer.COPYING_TRANSFORMER);
         });
 
         return OnnxTransformer.transform(l, f);
@@ -178,7 +178,7 @@ public final class OnnxTransformer {
             var ft = f.invokableSignature();
             int argsSize = ft.parameterTypes().size();
             return CoreOp.func(f.funcName(), CoreType.functionType(ft.returnType(), Stream.concat(ft.parameterTypes().stream(), initTypes.stream()).toList()))
-                    .body(bob -> bob.body(f.body(), bob.parameters().subList(0, argsSize), (bb, op) -> {
+                    .body(bob -> bob.transformBody(f.body(), bob.parameters().subList(0, argsSize), (bb, op) -> {
                         List<Block.Parameter> initArgs = bob.parameters().subList(argsSize, bob.parameters().size());
                         switch (op) {
                             // field loads mapped to initializers args
@@ -322,10 +322,11 @@ public final class OnnxTransformer {
     static CoreOp.FuncOp transformToOnnx(TypeConvertor tc, CoreOp.FuncOp func, OnnxPartialEvaluator pe) {
         FunctionType ft = tc.convertType(func);
         var func2 = CoreOp.func(func.funcName(), ft).body(b -> {
-            b.body(func.body(), b.parameters(), toOnnxCodeTransformer(tc, pe));
+            b.transformBody(func.body(), b.parameters(), toOnnxCodeTransformer(tc, pe));
         });
         // double transformation to fix return type by the returned tuple type
-        return CoreOp.func(func2.funcName(), tc.convertType(func2)).body(b -> b.body(func2.body(), b.parameters(), CodeTransformer.COPYING_TRANSFORMER));
+        return CoreOp.func(func2.funcName(), tc.convertType(func2))
+                .body(b -> b.transformBody(func2.body(), b.parameters(), CodeTransformer.COPYING_TRANSFORMER));
     }
 
     static CoreOp.FuncOp removeDropedFuncCallsArgs(CoreOp.FuncOp func, Map<String, BitSet> paramsToDropMap) {
@@ -363,7 +364,7 @@ public final class OnnxTransformer {
         var funcType = CoreType.functionType(func.invokableSignature().returnType(), usedParameters.stream().map(Value::type).toList());
         return CoreOp.func(func.funcName(), funcType).body(bob -> {
             bob.context().mapValues(usedParameters, bob.parameters());
-            bob.body(func.body(), List.of(), (b, op) -> {
+            bob.transformBody(func.body(), List.of(), (b, op) -> {
                 // Drop any non-terminating operation whose result is not used
                 if (op instanceof Op.Terminating || !op.result().uses().isEmpty() || op instanceof CoreOp.FuncOp || op instanceof CoreOp.VarAccessOp.VarStoreOp) {
                     b.op(op);
@@ -553,7 +554,7 @@ public final class OnnxTransformer {
         Body.Builder bb = Body.Builder.of(ancestor.parentBody(),
                 outputType, ancestor.context()); // translate types
 
-        bb.entryBlock().body(iop.body(), bb.entryBlock().parameters(), ot);
+        bb.entryBlock().transformBody(iop.body(), bb.entryBlock().parameters(), ot);
         return bb;
     }
 

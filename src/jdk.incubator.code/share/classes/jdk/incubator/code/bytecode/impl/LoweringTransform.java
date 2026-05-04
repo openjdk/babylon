@@ -106,7 +106,7 @@ public final class LoweringTransform {
 
         for (int i = 0; i < targets.size(); i++) {
             Block.Builder curr = blocks.get(i);
-            curr.body(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
+            curr.transformBody(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
                 case YieldOp _ when swOp instanceof JavaOp.SwitchStatementOp -> {
                     b.op(branch(exit.reference()));
                     yield b;
