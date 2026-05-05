@@ -220,7 +220,7 @@ public sealed abstract class CoreOp extends Op {
 
             var jspt = sourceParamTypes.stream().map(t -> (JavaType) t).toList();
             var jbpt = bodyParamTypes.stream().map(t -> (JavaType) t).toList();
-            if (d == 1 && !((JavaType) source.refType()).erasure().equals(jbpt.getFirst())) {
+            if (d == 1 && !((JavaType) source.refType()).erasure().equals(jbpt.getFirst().erasure())) {
                 throw new UnsupportedOperationException("func source ref type not equal to func body first parameter type");
             }
             // skip receiver type (if present)
@@ -257,7 +257,7 @@ public sealed abstract class CoreOp extends Op {
             if (wasSourceProvided()) {
                 m.put(ATTRIBUTE_FUNC_SOURCE, source);
             } else {
-                m.put(ATTRIBUTE_FUNC_NAME, source.name());
+                m.put("", source.name());
             }
             return m;
         }
