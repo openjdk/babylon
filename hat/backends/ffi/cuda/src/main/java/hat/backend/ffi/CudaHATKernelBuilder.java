@@ -35,7 +35,9 @@ import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
+import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
@@ -46,6 +48,7 @@ import jdk.incubator.code.Value;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
@@ -478,6 +481,98 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    @Override
+    public CudaHATKernelBuilder varOp( CoreOp.VarOp varOp) {
+        // Extended from the base class JavaOrC99StyleCodeBuilder
+        if (varOp.isUninitialized()) {
+            type( (JavaType) varOp.varValueType()).sp().varName(varOp);
+        } else {
+            HATOpAttribute hATOpAttribute = getDeviceRegion(varOp);
+            // TODO: complete this switch for every new region
+            if (hATOpAttribute != null) {
+                switch (hATOpAttribute) {
+                    case NARROW -> {
+                        // obtain the category:
+                        Value first = varOp.operands().getFirst();
+                        Class<?> narrowCategory;
+                        if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                            // Find the category - This is the generic case, when ALL custom ops are removed
+                            Stream<OpHelper.Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+                            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+                            narrowCategory = reduceFloatType(invoke);
+                            if (narrowCategory == null && isMathLib(invoke)) {
+                                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+                            }
+                        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+                            narrowCategory = hatf16BinaryOp.float16Class();
+                        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
+                            narrowCategory = hatf16ConvOp.float16Class();
+                        } else {
+                            throw new CUDACodeGenException("Expected an invoke, but found: " + first.declaringElement().getClass());
+                        }
+                        if (narrowCategory == null) {
+                            throw new CUDACodeGenException("Narrow type can't be null: ");
+                        }
+                        // handle narrow types (F16 and BFloat)
+                        return f16OrBF16(narrowCategory).sp().assign(
+                                _ -> id(varOp.varName()),
+                                _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    }
+                    case VECTOR -> {
+                        VarType resultType = varOp.resultType();
+                        if (!(resultType.valueType() instanceof PrimitiveType)) {
+                            IfaceValue.Vector.Shape vectorShape = null;
+                            if (resultType.valueType() instanceof ClassType classType) {
+                                vectorShape = getVectorShape(kernelCallGraph.lookup(), classType);
+                            } else if (resultType.valueType() instanceof VarType varType) {
+                                vectorShape = getVectorShape(kernelCallGraph.lookup(), varType.valueType());
+                            }
+                            if (vectorShape == null) {
+                                // guarantee we don't have a null shape. Otherwise. we can't generate the correct code
+                                throw new CUDACodeGenException("Could not find vector shape");
+                            }
+
+                            type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().varName(varOp);
+                            Value operand = varOp.operands().getFirst();
+                            if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
+                                semicolon().nl();
+                            } else {
+                                assign();
+                            }
+                            return recurseResultOrThrow(operand);
+                        }
+                    }
+                    case TENSOR -> {
+                        recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+                        sp().id(varOp.varName());
+                    }
+                }
+            } else {
+                // Original varOp
+                if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
+                    constKeyword().sp();
+                }
+                type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+                var first = varOp.operands().getFirst();
+                if (first instanceof Op.Result result) {
+                    parenthesisIfNeeded(varOp, result.op());
+                } else if (first instanceof Block.Parameter parameter) {
+                    var p1 = parameter.declaringBlock().parameters().getFirst();
+
+                    var r = parameter.uses().iterator().next();
+                    //parenthesisIfNeeded( varOp, r.op());
+                    // if (r.op() instanceof CoreOp.VarOp varOp1){
+                    //   identifier(varOp1.varName());
+                    // }
+                    blockInlineComment("param " + r);
+                } else {
+                    blockInlineComment("look at varOp " + first);
+                }
+            }
+        }
+        return self();
+    }
+
     private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access) {
         id(WMMA_FRAGMENT_BASE)
                 .id(matrixOrder)
@@ -580,7 +675,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             throw new IllegalStateException("Function: " + funcOp.funcName() + " not registered");
         }
     }
-    
+
     private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
         if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
             return category;
@@ -595,75 +690,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return null;
     }
 
-
-    @Override
-    public CudaHATKernelBuilder varOp( CoreOp.VarOp varOp) {
-        // Extended from the base class JavaOrC99StyleCodeBuilder
-        if (varOp.isUninitialized()) {
-            type( (JavaType) varOp.varValueType()).sp().varName(varOp);
-        } else {
-            HATOpAttribute hATOpAttribute = getDeviceRegion(varOp);
-            // TODO: complete this switch for every new region
-            if (hATOpAttribute != null) {
-                switch (hATOpAttribute) {
-                    case NARROW -> {
-
-                        // obtain the category:
-                        Value first = varOp.operands().getFirst();
-                        Class<?> narrowCategory;
-                        if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
-                            // Find the category - This is the generic case, when ALL custom ops are removed
-                            Stream<OpHelper.Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
-                            Optional<OpHelper.Invoke> invoke = stream.findFirst();
-                            narrowCategory = reduceFloatType(invoke);
-                            if (narrowCategory == null && isMathLib(invoke)) {
-                                narrowCategory = reduceFloatTypeFromReturnType(invoke);
-                            }
-                        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
-                            narrowCategory = hatf16BinaryOp.float16Class();
-                        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
-                            narrowCategory = hatf16ConvOp.float16Class();
-                        } else {
-                            throw new CUDACodeGenException("Expected an invoke, but found: " + first.declaringElement().getClass());
-                        }
-                        if (narrowCategory == null) {
-                            throw new CUDACodeGenException("Narrow type can't be null: ");
-                        }
-                        // handle narrow types (F16 and BFloat)
-                        return f16OrBF16(narrowCategory).sp().assign(
-                                _ -> id(varOp.varName()),
-                                _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
-                    }
-                    case TENSOR -> {
-                        recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
-                        sp().id(varOp.varName());
-                    }
-                }
-            } else {
-                // Original varOp
-                if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
-                    constKeyword().sp();
-                }
-                type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
-                var first = varOp.operands().getFirst();
-                if (first instanceof Op.Result result) {
-                    parenthesisIfNeeded(varOp, result.op());
-                } else if (first instanceof Block.Parameter parameter) {
-                    var p1 = parameter.declaringBlock().parameters().getFirst();
-
-                    var r = parameter.uses().iterator().next();
-                    //parenthesisIfNeeded( varOp, r.op());
-                    // if (r.op() instanceof CoreOp.VarOp varOp1){
-                    //   identifier(varOp1.varName());
-                    // }
-                    blockInlineComment("param " + r);
-                } else {
-                    blockInlineComment("look at varOp " + first);
-                }
-            }
-        }
-        return self();
-    }
 
     @Override
     public CudaHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
