@@ -239,7 +239,9 @@ public sealed abstract class CoreOp extends Op {
             super(List.of());
 
             Objects.requireNonNull(source, "func source can't be null");
-            validateType(source, bodyBuilder);
+            if (!source.refType().equals(JavaType.VOID)) {
+                validateType(source, bodyBuilder);
+            }
 
             this.source = source;
             this.body = bodyBuilder.build(this);
