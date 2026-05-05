@@ -37,6 +37,7 @@ import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.codebuilders.BabylonOpDispatcher;
+import optkl.codebuilders.BabylonOpDispatcher.HATOpAttribute;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
@@ -49,17 +50,18 @@ import java.util.Set;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
+import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public abstract sealed class HATMemoryPhase implements HATPhase {
-    protected abstract HATMemoryVarOp create(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
+    protected abstract Op create(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
 
     protected abstract boolean isIfaceBufferInvokeWithName(Invoke invoke);
 
-    private String functioName;
+    protected String functionName;
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        functioName = funcOp.funcName();
+        functionName = funcOp.funcName();
         Set<CodeElement<?,?>> nodesInvolved = new LinkedHashSet<>();
         Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
         OpHelper.Variable.stream(lookup,funcOp)
@@ -85,8 +87,8 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             } else if (OpHelper.Named.Variable.var(lookup,op) instanceof OpHelper.Named.Variable variable && nodesInvolved.contains(variable.op())) {
                 Op.Result result = variable.op().result();
                 blockBuilder.context().mapValue(result, blockBuilder.context().getValue(variable.op().operands().getFirst()));
-                if (BabylonOpDispatcher.table.containsKey(functioName)) {
-                    BabylonOpDispatcher.table.get(functioName).put(result.op(), BabylonOpDispatcher.table.get(functioName).get(variable.op()));
+                if (BabylonOpDispatcher.table.containsKey(functionName)) {
+                    BabylonOpDispatcher.table.get(functionName).put(result.op(), BabylonOpDispatcher.table.get(functionName).get(variable.op()));
                 }
 
             } else {
@@ -112,7 +114,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    BabylonOpDispatcher.HATOpAttribute.PRIVATE,
+                    HATOpAttribute.PRIVATE,
                     builder.context().getValues(invokeOp.operands())
             );
             op.setLocation(varOp.location());
@@ -134,7 +136,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     varOp.varName(),
                     (ClassType) varOp.varValueType(),
                     varOp.resultType(),
-                    BabylonOpDispatcher.HATOpAttribute.SHARED,
+                    HATOpAttribute.SHARED,
                     builder.context().getValues(invokeOp.operands())
             ));
         }
@@ -150,6 +152,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         private static Regex reservedMethods = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
         @Override
         public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+            this.functionName = funcOp.funcName();
             Map<CoreOp.VarOp, JavaOp.InvokeOp> varTable = new HashMap<>();
             Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
             Invoke.stream(lookup,funcOp)
@@ -180,15 +183,24 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                 return blockBuilder;
             }).funcOp();
         }
+
         @Override
-        protected HATMemoryVarOp create(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            var  privateVarOp = copyLocation(varOp,new HATMemoryVarOp.HATVarOp(varOp.varName(),
-                    (ClassType) varOp.varValueType(),
-                    varOp.resultType(),
-                    BabylonOpDispatcher.HATOpAttribute.INIT,
-                    blockBuilder.context().getValues(varOp.operands())));
-            blockBuilder.context().mapValue(varOp.result(), blockBuilder.op(privateVarOp));
-            return privateVarOp;
+        protected Op create(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
+            Op.Result opResult = blockBuilder.op(varOp);
+            if (table.containsKey(functionName)) {
+                table.get(functionName).put(opResult.op(), HATOpAttribute.INIT);
+            } else {
+                throw new RuntimeException("Function Name: " + functionName + " not present");
+            }
+            return opResult.op();
+
+//            var  privateVarOp = copyLocation(varOp,new HATMemoryVarOp.HATVarOp(varOp.varName(),
+//                    (ClassType) varOp.varValueType(),
+//                    varOp.resultType(),
+//                    BabylonOpDispatcher.HATOpAttribute.INIT,
+//                    blockBuilder.context().getValues(varOp.operands())));
+//            blockBuilder.context().mapValue(varOp.result(), blockBuilder.op(privateVarOp));
+//            return privateVarOp;
         }
     }
 }

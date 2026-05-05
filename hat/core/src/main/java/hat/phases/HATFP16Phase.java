@@ -95,27 +95,12 @@ public record HATFP16Phase() implements HATPhase {
     }
 
     public static void createF16VarOp(String functioName, CoreOp.VarOp varOp, Block.Builder blockBuilder, Class<?> reducedFloatType) {
-
-        // Insert the new Op
         Op.Result op = blockBuilder.op(varOp);
-
-        // Map the Op with a Narrow type
         if (table.containsKey(functioName)) {
             table.get(functioName).put(op.op(), BabylonOpDispatcher.HATOpAttribute.NARROW);
         } else {
             throw new RuntimeException("Function Name: " + functioName + " not present");
         }
-
-//        blockBuilder.context().mapValue(varOp.result(),
-//                blockBuilder.op(copyLocation(varOp,
-//                                new HATMemoryVarOp.HATF16VarOp(
-//                                        varOp.varName(),      // name can be derived
-//                                        reducedFloatType,     // I think this can be derived easily
-//                                        varOp.resultType(),   // type can be derived
-//                                        blockBuilder.context().getValues(varOp.operands())) // operands can be obtained
-//                        )
-//                )
-//        );
     }
 
     private void createF16ConvOP(Invoke invoke, Block.Builder blockBuilder, Class<?> reducedFloatType) {

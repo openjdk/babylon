@@ -288,15 +288,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder varOp( CoreOp.VarOp varOp) {
+    public OpenCLHATKernelBuilder varOp(CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
             type( (JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
 
-            // TODO: table attribution lookup In Progress
-            HATOpAttribute hATOpAttribute = getDeviceRegion(varOp);
-            if (hATOpAttribute != null) {
-                switch (hATOpAttribute) {
+            // First, we look at the attribyte table
+            HATOpAttribute attribute = getDeviceRegion(varOp);
+            if (attribute != null) {
+                switch (attribute) {
                     case NARROW -> {
                         // obtain the category:
                         Value first = varOp.operands().getFirst();
@@ -343,8 +343,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                             recurseResultOrThrow(varOp.operands().getFirst());
                         }
                     }
+                    case INIT -> {
+                        emitText(" // Generting var init: " + varOp.varName()).nl();
+                        suffix_t((ClassType) varOp.varValueType()).sp()
+                                    .assign(_ -> id(varOp.varName()),
+                                            _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    }
                     case TENSOR -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
-                    default -> throw new IllegalStateException("Unexpected DeviceRegion: " + hATOpAttribute);
+                    default -> throw new IllegalStateException("Unexpected DeviceRegion: " + attribute);
                 }
             } else {
                 // Original varOp

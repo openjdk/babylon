@@ -46,6 +46,7 @@ import hat.types.S16ImplOfF16;
 import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
@@ -790,6 +791,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
 
+    private boolean isAttributeSharedOrPrivate(HATOpAttribute attribute) {
+        return attribute == HATOpAttribute.INIT || attribute == HATOpAttribute.PRIVATE || attribute == HATOpAttribute.SHARED;
+    }
+
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
@@ -834,8 +839,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             });
 
                     // Check if the varOpLoad that could follow corresponds to a local/private type
+                    // We need to check for the HATMemoryVarOp until we replace all HAT<>VarOps with CoreOp.VarOp
                     boolean isLocalOrPrivateDS = (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                             && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof HATMemoryVarOp);
+
+                    // Once we do the transition, the following condition applies.
+                    if (!isLocalOrPrivateDS && instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                            && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof CoreOp.VarOp varOp
+                            && BabylonOpDispatcher.table.get(scopedCodeBuilderContext.funcOp().funcName()).containsKey(varOp)) {
+                        HATOpAttribute attribute = BabylonOpDispatcher.table.get(scopedCodeBuilderContext.funcOp().funcName()).get(varOp);
+                        isLocalOrPrivateDS = isAttributeSharedOrPrivate(attribute);
+                    }
+
                     either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
                     funcName(invoke.op());
