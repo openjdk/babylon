@@ -83,8 +83,6 @@ public sealed abstract class CoreOp extends Op {
     public static final class FuncOp extends CoreOp
             implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
-        public enum MethodKind {STATIC, INSTANCE}
-
         /**
          * A builder for constructing a function operation.
          */
