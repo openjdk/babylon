@@ -101,7 +101,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         vstore(hatVectorStoreView.vectorShape().lanes()).paren(_-> {
             // if the value to be stored is an operation, recurse on the operation
-            if (hatVectorStoreView.operands().get(1).result().op() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
+            if (hatVectorStoreView.operands().get(1).asResult().op() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
                 recurse(binOp);
             } else {
                 varName(hatVectorStoreView);
@@ -135,7 +135,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
-        if (hatVSelectLoadOp.operands().getFirst().result().op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+        if (hatVSelectLoadOp.operands().getFirst().asResult().op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
             recurse( vLoadOp);
         } else {
             id(hatVSelectLoadOp.varName());
@@ -146,7 +146,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
-        if (hatVSelectStoreOp.operands().getFirst().result().op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+        if (hatVSelectStoreOp.operands().getFirst().asResult().op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
             recurse( vLoadOp);
         } else {
             id(hatVSelectStoreOp.varName());
