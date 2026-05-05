@@ -96,7 +96,7 @@ public sealed abstract class CoreOp extends Op {
             }
 
             Builder(Body.Builder ancestorBody, MethodRef source) {
-                Objects.requireNonNull(source, "");
+                Objects.requireNonNull(source, "func source can't be null");
 
                 this.ancestorBody = ancestorBody;
                 this.source = source;
@@ -130,18 +130,13 @@ public sealed abstract class CoreOp extends Op {
         final Body body;
         final MethodRef source;
 
-
         FuncOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
+            if (!def.operands().isEmpty() || def.bodyDefinitions().size() != 1) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            if (def.bodyDefinitions().size() != 1) {
-                throw new IllegalStateException();
-            }
 
             Body.Builder body = def.bodyDefinitions().getFirst();
-
             MethodRef source = def.extractAttributeValue(ATTRIBUTE_FUNC_SOURCE, false,
                     v -> switch (v) {
                         case MethodRef mr -> mr;
@@ -211,26 +206,28 @@ public sealed abstract class CoreOp extends Op {
             List<CodeType> bodyParamTypes = bodyBuilder.bodySignature().parameterTypes();
             int d = bodyParamTypes.size() - sourceParamTypes.size();
             if (d != 0 && d != 1) {
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException("func source and func body have incompatible arity");
             }
             bodyParamTypes = bodyParamTypes.subList(d, bodyParamTypes.size());
 
             if (!(source.signature().returnType() instanceof JavaType) ||
-                    !sourceParamTypes.stream().allMatch(t -> t instanceof JavaType) ||
-                    !(bodyBuilder.bodySignature().returnType() instanceof JavaType) ||
+                    !sourceParamTypes.stream().allMatch(t -> t instanceof JavaType)) {
+                throw new UnsupportedOperationException("func source signature contains types that are not instance of JavaType");
+            }
+            if (!(bodyBuilder.bodySignature().returnType() instanceof JavaType) ||
                     !bodyParamTypes.stream().allMatch(t -> t instanceof JavaType)) {
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException("func body signature contains types that are not instance of JavaType");
             }
 
             var jspt = sourceParamTypes.stream().map(t -> (JavaType) t).toList();
             var jbpt = bodyParamTypes.stream().map(t -> (JavaType) t).toList();
             if (!jspt.stream().map(JavaType::erasure).toList().equals(jbpt.stream().map(JavaType::erasure).toList())) {
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException("The parameters types of func source and func body are not equal");
             }
 
             if (!((JavaType) source.signature().returnType()).erasure()
                     .equals(((JavaType) bodyBuilder.bodySignature().returnType()).erasure())) {
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException("The return type of func source and func body are not equal");
             }
         }
 
