@@ -5586,6 +5586,91 @@ public sealed abstract class JavaOp extends Op {
             return exit;
         }
 
+        /// Desugar try-with-resources in two stages.
+        ///
+        /// First normalize an extended form to nested basic forms, one resource per
+        /// level, left to right.
+        ///
+        /// Then lower each basic form to `try / catch / finally` logic.
+        ///
+        /// Stage boundaries use standalone synthetic bodies, so the next step always
+        /// starts from a complete model.
+        ///
+        /// ```
+        /// try (r1; r2; ...; rn) { body } catch (...) { catches } finally { finalizer }
+        ///
+        /// =>
+        ///
+        /// try (r1) {
+        ///     try (r2) {
+        ///         ...
+        ///             try (rn) { body }
+        ///         ...
+        ///     }
+        /// } catch (...) {
+        ///     catches
+        /// } finally {
+        ///     finalizer
+        /// }
+        ///
+        /// =>
+        ///
+        /// try {
+        ///     r1 = acquire1()
+        ///     primary1 = null
+        ///     try {
+        ///         r2 = acquire2()
+        ///         primary2 = null
+        ///         try {
+        ///             ...
+        ///                 rn = acquireN()
+        ///                 primaryN = null
+        ///                 try {
+        ///                     body
+        ///                 } catch (eN) {
+        ///                     primaryN = eN
+        ///                     throw eN
+        ///                 } finally {
+        ///                     if (primaryN != null) {
+        ///                         try { resourceN.close(); }
+        ///                         catch (closeExcN) { primaryN.addSuppressed(closeExcN); }
+        ///                     } else {
+        ///                         resourceN.close();
+        ///                     }
+        ///                 }
+        ///             ...
+        ///         } catch (e2) {
+        ///             primary2 = e2
+        ///             throw e2
+        ///         } finally {
+        ///             if (primary2 != null) {
+        ///                 try { resource2.close(); }
+        ///                 catch (closeExc2) { primary2.addSuppressed(closeExc2); }
+        ///             } else {
+        ///                 resource2.close();
+        ///             }
+        ///         }
+        ///     } catch (e1) {
+        ///         primary1 = e1
+        ///         throw e1
+        ///     } finally {
+        ///         if (primary1 != null) {
+        ///             try { resource1.close(); }
+        ///             catch (closeExc1) { primary1.addSuppressed(closeExc1); }
+        ///         } else {
+        ///             resource1.close();
+        ///         }
+        ///     }
+        /// } catch (...) {
+        ///     catches
+        /// } finally {
+        ///     finalizer
+        /// }
+        /// ```
+        ///
+        /// @jls 14.20.3 try-with-resources
+        /// @jls 14.20.3.1 Basic try-with-resources
+        /// @jls 14.20.3.2 Extended try-with-resources
         Body desugarTryWithResources() {
             return syntheticBody(entryBlock -> {
                 Function<Block.Builder, TryOp> desugaredTry = block -> {
@@ -5614,6 +5699,33 @@ public sealed abstract class JavaOp extends Op {
             });
         }
 
+        /// Desugar basic try-with-resources to `try / catch / finally`.
+        ///
+        /// Keeps the primary exception from the try body and adds as suppressed an exception from resource close.
+        ///
+        /// Use standalone synthetic body, so the desugared model is complete and can be further transformed.
+        ///
+        /// ```
+        /// resource = acquire()
+        /// primary = null
+        /// try {
+        ///     body(resources)
+        /// } catch (e) {
+        ///     primary = e
+        ///     throw t
+        /// } finally {
+        ///     if (resource != null) {
+        ///         if (primary != null) {
+        ///             try { resource.close(); }
+        ///             catch (closeExc) { primary.addSuppressed(closeExc); }
+        ///         } else {
+        ///             resource.close();
+        ///         }
+        ///     }
+        /// }
+        /// ```
+        ///
+        /// @jls 14.20.3.1 Basic try-with-resources
         Body desugarBasicTryWithResources() {
             CodeType resourceType = resourcesBody.bodySignature().returnType();
             assert !(resourceType instanceof TupleType);
@@ -5665,6 +5777,13 @@ public sealed abstract class JavaOp extends Op {
             });
         }
 
+        /// Recursive step for extended try-with-resources.
+        ///
+        /// Resource `index` becomes the current outer basic try-with-resources.
+        ///
+        /// Asumes the resources (uni)body can be split into slices per resource.
+        ///
+        /// @jls 14.20.3.2 Extended try-with-resources
         TryOp desugarExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, int index) {
             List<Op> resourceOps = resourcesBody.entryBlock().ops();
             CodeType resourceType = ((TupleType)resourcesBody.bodySignature().returnType()).componentTypes().get(index);
@@ -5673,7 +5792,7 @@ public sealed abstract class JavaOp extends Op {
             int toIndex = resourceOps.indexOf(resourceValues.get(index).result().op()) + 1;
             Body.Builder resourceBody = Body.Builder.of(ancestorBody, CoreType.functionType(resourceType), cc);
             Block.Builder bb = resourceBody.entryBlock();
-            // assumption: resource initialization operations can be split into subsequent lists
+            // @@@ assumption: resource initialization operations can be split into subsequent lists
             resourceOps.subList(fromIndex, toIndex).forEach(bb::op);
             bb.op(core_yield(cc.getValue(resourceValues.get(index))));
             Body.Builder basicBody = Body.Builder.of(ancestorBody, CoreType.functionType(VOID, List.of(resourceType)), cc);
