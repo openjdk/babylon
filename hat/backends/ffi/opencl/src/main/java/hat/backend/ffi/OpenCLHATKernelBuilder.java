@@ -34,7 +34,9 @@ import hat.types.BF16;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaType;
+import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import jdk.incubator.code.Value;
@@ -51,6 +53,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Stream;
+
+import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -318,6 +322,26 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         f16OrBF16(narrowCategory).sp().assign(
                                 _ -> id(varOp.varName()),
                                 _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    }
+                    case VECTOR -> {
+                        // build VectorType
+                        VarType resultType = varOp.resultType();
+                        if (!(resultType.valueType() instanceof PrimitiveType)) {
+                            IfaceValue.Vector.Shape vectorShape = null;
+                            if (resultType.valueType() instanceof ClassType classType) {
+                                vectorShape = getVectorShape(kernelCallGraph.lookup(), classType);
+                            } else if (resultType.valueType() instanceof VarType varType) {
+                                vectorShape = getVectorShape(kernelCallGraph.lookup(), varType.valueType());
+                            }
+                            if (vectorShape == null) {
+                                // guarantee we don't have a null shape. Otherwise. we can't generate the correct code
+                                throw new OpenCLCodeGenException("Could not find vector shape");
+                            }
+                            // Emit
+                            type(vectorShape.codeType().toString() + vectorShape.lanes());
+                            sp().varName(varOp).sp().equals().sp();
+                            recurseResultOrThrow(varOp.operands().getFirst());
+                        }
                     }
                     case TENSOR -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
                     default -> throw new IllegalStateException("Unexpected DeviceRegion: " + hATOpAttribute);

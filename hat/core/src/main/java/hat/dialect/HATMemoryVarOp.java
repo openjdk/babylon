@@ -94,16 +94,16 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 //        }
 
         // This constructor is used only for vectors in which we ned a shape, but the shape could potentially be inferred in the codegen
-        public HATVarOp(String varName, VarType codeType, Shape vectorShape, List<Value> operand) {
-            super(varName, operand);
-            this.codeType = codeType;
-            this.vectorShape = vectorShape;
-            this.float16Class = null;
-
-            // local
-            this.klassType = null;
-            this.hATOpAttribute = HATOpAttribute.VECTOR;  // we can infer Vector category because it has a vector shape
-        }
+//        public HATVarOp(String varName, VarType codeType, Shape vectorShape, List<Value> operand) {
+//            super(varName, operand);
+//            this.codeType = codeType;
+//            this.vectorShape = vectorShape;
+//            this.float16Class = null;
+//
+//            // local
+//            this.klassType = null;
+//            this.hATOpAttribute = HATOpAttribute.VECTOR;  // we can infer Vector category because it has a vector shape
+//        }
 
         // Local/Private Memory Types
         public HATVarOp(String varName, ClassType javaType, VarType varType, HATOpAttribute hATOpAttribute, List<Value> operands) {

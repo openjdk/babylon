@@ -34,18 +34,21 @@ public class HATTier  {
     public static final  List<HATPhase> KernelPhases = List.of(
                 // barrier
                 new HATBarrierPhase(),
+
                 // array views
                 new HATArrayViewPhase(),
+
                 // Memory
                 new HATMemoryPhase.LocalMemoryPhase(),
                 new HATMemoryPhase.PrivateMemoryPhase(),
                 new HATMemoryPhase.DeviceTypePhase(),
                 // ID's /thread access
                 new HATThreadsPhase(),
-
                 new HATWarpSizePhase(),
+
                 // MathLib phase
                 new HATMathLibPhase(),
+
                 // views for vector types
                 new HATVectorPhase.Float4LoadPhase(),
                 new HATVectorPhase.Float2LoadPhase(),
@@ -57,8 +60,10 @@ public class HATTier  {
                 new HATVectorPhase.MakeMutable(),
                 new HATVectorStorePhase.Float4StorePhase(),
                 new HATVectorStorePhase.Float2StorePhase(),
+
                 // Vector Select individual lines
                 new HATVectorSelectPhase(),
+
                 // F16 type
                 new HATFP16Phase(),
 

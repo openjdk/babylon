@@ -32,6 +32,7 @@ import jdk.incubator.code.Quoted;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -341,7 +342,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return op() instanceof CoreOp.VarAccessOp.VarStoreOp;
         }
 
-        default boolean isAssignable(Class<?> classes) {
+        default boolean isTypeAssignable(Class<?> classes) {
+            if (op().resultType() instanceof VarType varType && varType.valueType() instanceof ClassType classType) {
+                return isAssignable(classType, classes);
+            }
             return isAssignable((JavaType) op().resultType(), classes);
         }
 
