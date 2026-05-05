@@ -135,7 +135,6 @@ public sealed abstract class CoreOp extends Op {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-
             Body.Builder body = def.bodyDefinitions().getFirst();
             MethodRef source = def.extractAttributeValue(ATTRIBUTE_FUNC_SOURCE, false,
                     v -> switch (v) {
