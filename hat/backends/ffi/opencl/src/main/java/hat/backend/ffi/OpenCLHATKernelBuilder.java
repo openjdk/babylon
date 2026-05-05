@@ -344,7 +344,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         }
                     }
                     case INIT -> {
-                        emitText(" // Generting var init: " + varOp.varName()).nl();
                         suffix_t((ClassType) varOp.varValueType()).sp()
                                     .assign(_ -> id(varOp.varName()),
                                             _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));

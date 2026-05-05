@@ -542,6 +542,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                             return recurseResultOrThrow(operand);
                         }
                     }
+                    case INIT -> suffix_t((ClassType) varOp.varValueType()).sp()
+                                .assign(
+                                    _ -> id(varOp.varName()),
+                                    _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
                     case TENSOR -> {
                         recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
                         sp().id(varOp.varName());
