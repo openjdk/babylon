@@ -207,29 +207,16 @@ public sealed abstract class CoreOp extends Op {
             if (d != 0 && d != 1) {
                 throw new UnsupportedOperationException("func source and func body have incompatible arity");
             }
-            // all types need to be JavaType, so we can erase and compare
-            if (!(source.refType() instanceof JavaType) ||
-                    !(source.signature().returnType() instanceof JavaType) ||
-                    !sourceParamTypes.stream().allMatch(t -> t instanceof JavaType)) {
-                throw new UnsupportedOperationException("func source signature contains types that are not instance of JavaType");
-            }
-            if (!(bodyBuilder.bodySignature().returnType() instanceof JavaType) ||
-                    !bodyParamTypes.stream().allMatch(t -> t instanceof JavaType)) {
-                throw new UnsupportedOperationException("func body signature contains types that are not instance of JavaType");
-            }
 
-            var jspt = sourceParamTypes.stream().map(t -> (JavaType) t).toList();
-            var jbpt = bodyParamTypes.stream().map(t -> (JavaType) t).toList();
-            if (d == 1 && !((JavaType) source.refType()).erasure().equals(jbpt.getFirst().erasure())) {
+            if (d == 1 && !source.refType().equals(bodyParamTypes.getFirst())) {
                 throw new UnsupportedOperationException("func source ref type not equal to func body first parameter type");
             }
-            // skip receiver type (if present)
-            jbpt = jbpt.subList(d, jbpt.size());
-            if (!jspt.stream().map(JavaType::erasure).toList().equals(jbpt.stream().map(JavaType::erasure).toList())) {
+
+            if (!sourceParamTypes.equals(bodyParamTypes.subList(d, bodyParamTypes.size()))) {
                 throw new UnsupportedOperationException("The parameters types of func source and func body are not equal");
             }
-            if (!((JavaType) source.signature().returnType()).erasure()
-                    .equals(((JavaType) bodyBuilder.bodySignature().returnType()).erasure())) {
+
+            if (!source.signature().returnType().equals(bodyBuilder.bodySignature().returnType())) {
                 throw new UnsupportedOperationException("The return type of func source and func body are not equal");
             }
         }

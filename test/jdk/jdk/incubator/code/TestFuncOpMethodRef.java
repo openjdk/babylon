@@ -32,6 +32,7 @@
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,9 @@ import java.util.Map;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 
 public class TestFuncOpMethodRef {
+
+    final JavaType THIS_CLASS = JavaType.type(this.getClass().describeConstable().get());
+    static final JavaType J_U_MAP = JavaType.type(Map.class.describeConstable().get());
 
     static void test(FuncOp op, MethodRef expectedMethodRef) {
         Assertions.assertTrue(op.source().isPresent());
@@ -56,7 +60,8 @@ public class TestFuncOpMethodRef {
     @Test
     void testStatic() throws NoSuchMethodException {
         FuncOp fop = Op.ofMethod(this.getClass().getDeclaredMethod("f", List.class)).get();
-        MethodRef fmr = MethodRef.method(this.getClass(), "f", int.class, List.class);
+        MethodRef fmr = MethodRef.method(THIS_CLASS, "f", JavaType.INT,
+                JavaType.parameterized(JavaType.J_U_LIST, JavaType.J_L_INTEGER));
         test(fop, fmr);
 
         FuncOp tfop = fop.transform(CodeTransformer.COPYING_TRANSFORMER);
@@ -71,7 +76,8 @@ public class TestFuncOpMethodRef {
     @Test
     void testInstance() throws NoSuchMethodException {
         FuncOp gop = Op.ofMethod(this.getClass().getDeclaredMethod("g", String.class, Map.class)).get();
-        MethodRef gmr = MethodRef.method(this.getClass(), "g", int.class, String.class, Map.class);
+        MethodRef gmr = MethodRef.method(THIS_CLASS, "g", JavaType.INT,
+                JavaType.J_L_STRING, JavaType.parameterized(J_U_MAP, JavaType.J_L_STRING, JavaType.J_L_INTEGER));
         test(gop, gmr);
 
         FuncOp tgop = gop.transform(CodeTransformer.COPYING_TRANSFORMER);
