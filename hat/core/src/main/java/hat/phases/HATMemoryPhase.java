@@ -26,8 +26,6 @@ package hat.phases;
 
 import hat.device.NonMappableIface;
 import hat.dialect.HATMemoryDefOp;
-import hat.dialect.HATMemoryVarOp;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -49,13 +47,12 @@ import static optkl.OpHelper.copyLocation;
 import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public abstract sealed class HATMemoryPhase implements HATPhase {
-    protected abstract Op create(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp);
 
-    protected abstract boolean isIfaceBufferInvokeWithName(Invoke invoke);
+    protected abstract boolean isIntrinsicForDeviceMemoryType(Invoke invoke);
 
     protected String functionName;
 
-    protected abstract HATOpAttribute attribute();
+    protected abstract HATOpAttribute getAttribute();
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
@@ -66,7 +63,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                 .forEach(variable -> variable.op().operands().stream()
                         .filter(operand -> operand instanceof Op.Result result
                                 && invoke(lookup,result.op()) instanceof Invoke invoke
-                                && isIfaceBufferInvokeWithName(invoke))
+                                && isIntrinsicForDeviceMemoryType(invoke))
                         .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()))
                         .findFirst().ifPresent(remove-> {
                             nodesInvolved.add(variable.op());
@@ -81,7 +78,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             } else if (OpHelper.Named.Variable.var(lookup,op) instanceof OpHelper.Named.Variable variable && nodesInvolved.contains(variable.op())) {
                 Op.Result op1 = blockBuilder.op(variable.op());
                 if (table.containsKey(functionName)) {
-                    table.get(functionName).put(op1.op(), attribute());
+                    table.get(functionName).put(op1.op(), getAttribute());
                 } else {
                     throw new RuntimeException("Function Name: " + functionName + " not present");
                 }
@@ -96,40 +93,29 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
     public static final class PrivateMemoryPhase extends HATMemoryPhase {
         public static final String INTRINSIC_NAME = "createPrivate";
         @Override
-        protected boolean isIfaceBufferInvokeWithName(Invoke invoke) {
+        protected boolean isIntrinsicForDeviceMemoryType(Invoke invoke) {
             return invoke.refIs( IfaceValue.class /*DeviceType.class, MappableIface.class, HAType.class*/)
                     && invoke.named(INTRINSIC_NAME);
 
         }
 
         @Override
-        protected HATOpAttribute attribute() {
+        protected HATOpAttribute getAttribute() {
             return HATOpAttribute.PRIVATE;
         }
 
-        @Override
-        protected HATMemoryVarOp create(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            // no need
-            return null;
-        }
     }
 
     public static final  class LocalMemoryPhase extends HATMemoryPhase {
         public static final String INTRINSIC_NAME = "createLocal";
         @Override
-        protected boolean isIfaceBufferInvokeWithName(Invoke invoke){
+        protected boolean isIntrinsicForDeviceMemoryType(Invoke invoke){
             return invoke.refIs(IfaceValue.class ) && invoke.named(INTRINSIC_NAME);
         }
 
         @Override
-        protected HATOpAttribute attribute() {
+        protected HATOpAttribute getAttribute() {
             return HATOpAttribute.SHARED;
-        }
-
-        @Override
-        protected HATMemoryVarOp create(Block.Builder builder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            // no need
-            return null;
         }
     }
 
@@ -141,12 +127,12 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         public static final String INTRINSIC_NAME = "createLocal";
 
         @Override
-        protected boolean isIfaceBufferInvokeWithName(Invoke invoke) {
+        protected boolean isIntrinsicForDeviceMemoryType(Invoke invoke) {
             return invoke.refIs(IfaceValue.class) && invoke.named(INTRINSIC_NAME);
         }
 
         @Override
-        protected HATOpAttribute attribute() {
+        protected HATOpAttribute getAttribute() {
             return HATOpAttribute.INIT;
         }
 
@@ -178,21 +164,15 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                             )
                     );
                 } else if (op instanceof CoreOp.VarOp varOp) {
-                    create(blockBuilder, varOp, null);
+                    Op.Result opResult = blockBuilder.op(varOp);
+                    if (table.containsKey(functionName)) {
+                        table.get(functionName).put(opResult.op(), HATOpAttribute.INIT);
+                    } else {
+                        throw new RuntimeException("Function Name: " + functionName + " not present");
+                    }
                 }
                 return blockBuilder;
             }).funcOp();
-        }
-
-        @Override
-        protected Op create(Block.Builder blockBuilder, CoreOp.VarOp varOp, JavaOp.InvokeOp invokeOp) {
-            Op.Result opResult = blockBuilder.op(varOp);
-            if (table.containsKey(functionName)) {
-                table.get(functionName).put(opResult.op(), HATOpAttribute.INIT);
-            } else {
-                throw new RuntimeException("Function Name: " + functionName + " not present");
-            }
-            return opResult.op();
         }
     }
 }
