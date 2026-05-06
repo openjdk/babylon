@@ -290,12 +290,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder varOp(CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
-            type( (JavaType) varOp.varValueType()).sp().varName(varOp);
+            type((JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
-
-            // First, we look at the attribyte table
+            // First, we look at the attribute table for each varOp
             HATOpAttribute attribute = getDeviceRegion(varOp);
             if (attribute != null) {
+                // If attribute exits, we apply codegen based on attribute since there is a pre-search and
+                // categorization about the corresponding OpenCL code to be generated.
                 switch (attribute) {
                     case NARROW -> {
                         // obtain the category:
@@ -344,8 +345,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         }
                     }
                     case INIT -> suffix_t((ClassType) varOp.varValueType()).sp()
-                                .assign(_ -> id(varOp.varName()),
-                                        _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                            .assign(_ -> id(varOp.varName()),
+                                    _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
                     case SHARED -> {
                         HAT_LOCAL_MEM().sp();
                         VarType resultType = varOp.resultType();
@@ -375,19 +376,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 }
                 type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
                 var first = varOp.operands().getFirst();
-                if (first instanceof Op.Result result) {
-                    parenthesisIfNeeded(varOp, result.op());
-                } else if (first instanceof Block.Parameter parameter) {
-                    var p1 = parameter.declaringBlock().parameters().getFirst();
-
-                    var r = parameter.uses().iterator().next();
-                    //parenthesisIfNeeded( varOp, r.op());
-                    // if (r.op() instanceof CoreOp.VarOp varOp1){
-                    //   identifier(varOp1.varName());
-                    // }
-                    blockInlineComment("param " + r);
-                } else {
-                    blockInlineComment("look at varOp " + first);
+                switch (first) {
+                    case Op.Result result -> parenthesisIfNeeded(varOp, result.op());
+                    case Block.Parameter parameter -> {
+                        var r = parameter.uses().iterator().next();
+                        blockInlineComment("param " + r);
+                    }
+                    default -> blockInlineComment("look at varOp " + first);
                 }
             }
         }

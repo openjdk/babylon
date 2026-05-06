@@ -487,12 +487,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (varOp.isUninitialized()) {
             type( (JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
-            HATOpAttribute hATOpAttribute = getDeviceRegion(varOp);
-            // TODO: complete this switch for every new region
-            if (hATOpAttribute != null) {
-                switch (hATOpAttribute) {
+            // First we look at the attribute for each varOp
+            HATOpAttribute attribute = getDeviceRegion(varOp);
+            if (attribute != null) {
+                // If attribute exits, we apply codegen based on attribute since there is a pre-search and
+                // categorization about the corresponding OpenCL code to be generated.
+                switch (attribute) {
                     case NARROW -> {
-                        // obtain the category:
                         Value first = varOp.operands().getFirst();
                         Class<?> narrowCategory;
                         if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
@@ -577,19 +578,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 }
                 type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
                 var first = varOp.operands().getFirst();
-                if (first instanceof Op.Result result) {
-                    parenthesisIfNeeded(varOp, result.op());
-                } else if (first instanceof Block.Parameter parameter) {
-                    var p1 = parameter.declaringBlock().parameters().getFirst();
-
-                    var r = parameter.uses().iterator().next();
-                    //parenthesisIfNeeded( varOp, r.op());
-                    // if (r.op() instanceof CoreOp.VarOp varOp1){
-                    //   identifier(varOp1.varName());
-                    // }
-                    blockInlineComment("param " + r);
-                } else {
-                    blockInlineComment("look at varOp " + first);
+                switch (first) {
+                    case Op.Result result -> parenthesisIfNeeded(varOp, result.op());
+                    case Block.Parameter parameter -> {
+                        // for debugging
+                        var r = parameter.uses().iterator().next();
+                        blockInlineComment("param " + r);
+                    }
+                    // for debugging
+                    default -> blockInlineComment("look at varOp " + first);
                 }
             }
         }
