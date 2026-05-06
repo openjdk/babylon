@@ -791,10 +791,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
                 // obtain first arg from tensorStoreOp
                 Value first = storeLoadOp.operands().getFirst();
-//                if (first.declaringElement() instanceof HATMemoryVarOp.HATVarOp varOp) {
-//                    hatVarOp = varOp;
-//                    tensorName = varOp.varName();
-//                // } else
                 if (first.declaringElement() instanceof CoreOp.VarOp varOp) {
                     hatVarOp = varOp;
                     tensorName = varOp.varName();

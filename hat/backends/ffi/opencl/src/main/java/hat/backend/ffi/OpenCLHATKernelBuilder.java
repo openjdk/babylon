@@ -635,8 +635,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         // 1. Access to the variable name
         var tensorValue = tensorFillOp.operands().getFirst();
-        //HATMemoryVarOp.HATVarOp hatVarOp = findTensorVarOp(tensorValue);
-
         CoreOp.VarOp varOp = findVarOp(tensorValue);
 
         if (varOp == null) {
@@ -938,7 +936,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var iIndexValue = operands.get(1);
         var jIndexValue = operands.get(2);
         var leadingDimension = operands.get(3);
-        //HATMemoryVarOp.HATVarOp hatVarOp = findTensorVarOp(tensorLoadOp);
         CoreOp.VarOp varOp = findVarOp(tensorLoadOp);
         int[] shape;
         boolean isColumnMajor;
