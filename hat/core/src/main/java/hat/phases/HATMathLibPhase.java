@@ -66,7 +66,7 @@ public record HATMathLibPhase() implements HATPhase {
                     blockBuilder.op(varOp);
                 } else {
                     // Add the special type as a VarOp
-                    HATFP16Phase.createF16VarOp(funcOp.funcName(), varOp, blockBuilder, setTypeMap.get(varOp));
+                    HATFP16Phase.createF16VarOp(funcOp.funcName(), varOp, blockBuilder);
                     // If we add HATMath ops for other special types in HAT (e.g., Vectors),
                     // we may need to also add the new <X>HATVarOps here as well.
                 }

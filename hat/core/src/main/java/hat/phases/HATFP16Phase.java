@@ -55,15 +55,13 @@ import static optkl.OpHelper.copyLocation;
 import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public record HATFP16Phase() implements HATPhase {
-    private static String functioName;
 
     private static boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
         return invoke.refIs(S16ImplOfF16.class) && invoke.nameMatchesRegex(methodName);
     }
 
 
-    // recursive
-    private static String findVarNameOrNull(Value v) {
+    private String findVarNameOrNull(Value v) {
         return  (v instanceof Op.Result r) ? switch (r.op()){
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp-> findVarNameOrNull(varLoadOp); //recurse
             case HATMemoryVarOp.HATVarOp hatVarOp -> hatVarOp.varName();
@@ -72,8 +70,7 @@ public record HATFP16Phase() implements HATPhase {
         }:null;
     }
 
-    // recursive
-    private static String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+    private String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findVarNameOrNull(varLoadOp.operands().getFirst());
     }
 
@@ -94,12 +91,12 @@ public record HATFP16Phase() implements HATPhase {
         return isF16Local(varLoadOp.operands().getFirst());
     }
 
-    public static void createF16VarOp(String functioName, CoreOp.VarOp varOp, Block.Builder blockBuilder, Class<?> reducedFloatType) {
+    public static void createF16VarOp(String functionName, CoreOp.VarOp varOp, Block.Builder blockBuilder) {
         Op.Result op = blockBuilder.op(varOp);
-        if (table.containsKey(functioName)) {
-            table.get(functioName).put(op.op(), BabylonOpDispatcher.HATOpAttribute.NARROW);
+        if (table.containsKey(functionName)) {
+            table.get(functionName).put(op.op(), BabylonOpDispatcher.HATOpAttribute.NARROW);
         } else {
-            throw new RuntimeException("Function Name: " + functioName + " not present");
+            throw new RuntimeException("Function Name: " + functionName + " not present");
         }
     }
 
@@ -173,7 +170,7 @@ public record HATFP16Phase() implements HATPhase {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16BinaryOp(invokeOp, blockBuilder, binaryOpEnum, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                createF16VarOp(funcOp.funcName(), varOp, blockBuilder, reducedFloatsType.get(varOp));
+                createF16VarOp(funcOp.funcName(), varOp, blockBuilder);
             }
             return blockBuilder;
         }).funcOp();
@@ -229,7 +226,7 @@ public record HATFP16Phase() implements HATPhase {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16ConvOP(invoke(lookup, invokeOp), blockBuilder, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                createF16VarOp(funcOp.funcName(), varOp, blockBuilder, reducedFloatsType.get(varOp));
+                createF16VarOp(funcOp.funcName(), varOp, blockBuilder);
             }
             return blockBuilder;
         }).funcOp();
@@ -263,21 +260,12 @@ public record HATFP16Phase() implements HATPhase {
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        functioName = funcOp.funcName();
         for (BinaryOpEnum binaryOpEnum : BinaryOpEnum.values()) {
             // F16 Operations
             funcOp = dialectifyF16Ops(lookup,funcOp, binaryOpEnum);
         }
         // Init analysis before the store
-        funcOp = dialectifyF16Init(lookup,funcOp);    // We detected this is a problem, creating a hanging value in the tree (varLoadOp)
-
-    //        IO.println("Status: after F16 INIT" );
-//        funcOp.elements().forEach( codeElement -> {
-//            if (codeElement instanceof CoreOp.VarOp varOp) {
-//                IO.println(varOp.varName() + " : " + table.containsKey(varOp));
-//            }
-//        });
-
+        funcOp = dialectifyF16Init(lookup,funcOp);
         funcOp = dialectifyF16ToFloat(lookup,funcOp);
         // Store analysis
         funcOp = dialectifyF16Stores(lookup,funcOp);
