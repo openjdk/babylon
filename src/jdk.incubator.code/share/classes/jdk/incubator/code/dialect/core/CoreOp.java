@@ -200,7 +200,7 @@ public sealed abstract class CoreOp extends Op {
             this.body = bodyBuilder.build(this);
         }
 
-        private static void validateType(MethodRef source, Body.Builder bodyBuilder) {
+        private static void validateSourceRef(MethodRef source, Body.Builder bodyBuilder) {
             List<CodeType> sourceParamTypes = source.signature().parameterTypes();
             List<CodeType> bodyParamTypes = bodyBuilder.bodySignature().parameterTypes();
             int d = bodyParamTypes.size() - sourceParamTypes.size();
@@ -222,10 +222,10 @@ public sealed abstract class CoreOp extends Op {
         }
 
         FuncOp(MethodRef source, Body.Builder bodyBuilder) {
-            super(List.of());
-
             Objects.requireNonNull(source, "func source can't be null");
-            validateType(source, bodyBuilder);
+            validateSourceRef(source, bodyBuilder);
+
+            super(List.of());
 
             this.source = source;
             this.body = bodyBuilder.build(this);
@@ -271,7 +271,7 @@ public sealed abstract class CoreOp extends Op {
             return JavaType.VOID;
         }
 
-        public Optional<MethodRef> source() {
+        public Optional<MethodRef> sourceRef() {
             return wasSourceProvided() ? Optional.of(source) : Optional.empty();
         }
 

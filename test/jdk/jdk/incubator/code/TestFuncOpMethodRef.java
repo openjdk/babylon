@@ -48,8 +48,8 @@ public class TestFuncOpMethodRef {
     static final JavaType J_U_MAP = JavaType.type(Map.class.describeConstable().get());
 
     static void test(FuncOp op, MethodRef expectedMethodRef) {
-        Assertions.assertTrue(op.source().isPresent());
-        Assertions.assertEquals(expectedMethodRef, op.source().get());
+        Assertions.assertTrue(op.sourceRef().isPresent());
+        Assertions.assertEquals(expectedMethodRef, op.sourceRef().get());
     }
 
     @Reflect
