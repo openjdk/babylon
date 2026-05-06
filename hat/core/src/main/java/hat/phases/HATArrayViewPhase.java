@@ -24,7 +24,8 @@
  */
 package hat.phases;
 
-import hat.dialect.*;
+import hat.dialect.HATPtrOp;
+import hat.dialect.HATVectorOp;
 import jdk.incubator.code.CodeType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
@@ -42,8 +43,16 @@ import java.util.*;
 
 import static hat.phases.HATPhaseUtils.findOpInResultFromFirstOperandsOrNull;
 import static optkl.IfaceValue.Vector.getVectorShape;
-import static optkl.OpHelper.*;
+import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.classTypeToTypeOrThrow;
+import static optkl.OpHelper.copyLocation;
+import static optkl.OpHelper.firstOperandOrThrow;
+import static optkl.OpHelper.opFromFirstOperandOrNull;
+import static optkl.OpHelper.opFromFirstOperandOrThrow;
+import static optkl.OpHelper.resultFromFirstOperandOrNull;
+import static optkl.OpHelper.resultFromFirstOperandOrThrow;
+import static optkl.OpHelper.resultFromOperandN;
 import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public record HATArrayViewPhase() implements HATPhase {

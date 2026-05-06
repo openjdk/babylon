@@ -431,12 +431,7 @@ public class Trxfmr implements LookupCarrier{
             } else {
                 var newOp = blockBuilder.op(op).op();
                 // We propagate the existing op into the new tree
-
                 update(funcOp().funcName(), op, newOp);
-//                if (BabylonOpDispatcher.table.containsKey(op)) {
-//                    BabylonOpDispatcher.table.put(newOp, BabylonOpDispatcher.table.get(op));
-//                }
-
                 biMap.add(op, newOp);
             }
             return blockBuilder;

@@ -215,20 +215,12 @@ public record HATTensorsPhase() implements HATPhase {
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        this.deviceFunctionName = funcOp.funcName();
+        deviceFunctionName = funcOp.funcName();
         funcOp = createTensors(lookup, funcOp);
         funcOp = fillTensors(lookup, funcOp);
         funcOp = mmaTensor(lookup, funcOp);
         funcOp = tensorLoad(lookup, funcOp);
         funcOp = tensorStoreOp(lookup, funcOp);
-
-//        IO.println("Status: in Final Compilation" );
-//        funcOp.elements().forEach( codeElement -> {
-//            if (codeElement instanceof CoreOp.VarOp varOp) {
-//                IO.println(varOp.varName() + " : " + table.containsKey(varOp));
-//            }
-//        });
-
         return funcOp;
     }
 }

@@ -24,8 +24,8 @@
  */
 package hat.phases;
 
+import hat.device.NonMappableIface;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import jdk.incubator.code.CodeType;
 import optkl.IfaceValue.Vector;
@@ -45,8 +45,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import static hat.dialect.HATVectorOp.HATVectorLoadOp.*;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
@@ -56,6 +59,8 @@ import static optkl.codebuilders.BabylonOpDispatcher.table;
 public abstract sealed class HATVectorPhase implements HATPhase {
 
     private String functionName;
+
+    protected MethodHandles.Lookup lookup = null;
 
     // recursive
     public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -74,29 +79,57 @@ public abstract sealed class HATVectorPhase implements HATPhase {
             return null;
         }
     }
-    //recursive
-    public static boolean isSharedOrPrivate(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return isSharedOrPrivate(varLoadOp.operands().getFirst());
+
+    public boolean isSharedOrPrivate(Op op) {
+        return isSharedOrPrivate(op.operands().getFirst());
     }
 
-    //recursive
-    public static boolean isSharedOrPrivate(Value v) {
+    private static final Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
+
+    public boolean isSharedOrPrivate(Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isSharedOrPrivate(varLoadOp); //recurse
-            case HATMemoryVarOp.HATVarOp _ -> true;
+            case CoreOp.VarOp varOp -> {
+                // extra analysis
+                Value first = varOp.operands().getFirst();
+                if (first instanceof Block.Parameter) {
+                    // if the var comes from a parameter, then it is global memory
+                    yield false;
+                }
+                // otherwise we continue traversal
+                yield isSharedOrPrivate(varOp);
+            }
+            case JavaOp.InvokeOp invoke -> {
+                // If we get an invoke, we need to get method name, and check the following
+
+                // warp to Invoke
+                if (lookup == null) {
+                    throw new IllegalStateException("Lookup has not been initialized");
+                }
+
+                Stream<Invoke> stream = OpHelper.Invoke.stream(lookup, invoke);
+                Optional<Invoke> invokeOptional = stream.findFirst();
+                // Check for the right class
+                if (invokeOptional.get().refIs(NonMappableIface.class)) {
+                    // check for the method name
+                    String lowerCase = invoke.invokeReference().name().toLowerCase();
+                    yield NON_MAPPABLE_IFACE.contains(lowerCase);
+                }
+                yield false;
+            }
             default -> false;
         };
     }
 
-
     //recursive
-    public static Vector.Shape getVectorShapeOrNullFromVarLoad(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+    public Vector.Shape getVectorShapeOrNullFromVarLoad(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return getVectorShapeOrNull(varLoadOp.operands().getFirst());
     }
-    private static Vector.Shape getVectorShapeOrNull(Value v) {
+
+    private Vector.Shape getVectorShapeOrNull(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return getVectorShapeOrNullFromVarLoad(varLoadOp);
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
+        } else if (v.declaringElement() instanceof HATVectorOp hatVectorOp) {
             return hatVectorOp.vectorShape();
         }
         return null;
@@ -133,6 +166,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
     }
 
     private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+        this.lookup = lookup;
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
@@ -147,21 +181,26 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         });
 
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (Invoke.invoke(lookup, op) instanceof Invoke invoke) {
+            if (invoke(lookup, op) instanceof Invoke invoke) {
                 var varOp = invokeToVar.get(invoke.op());
                 Vector.Shape shape = getVectorShape(invoke.lookup(), invoke.returnType());
-                HATVectorOp memoryViewOp = isSharedOrPrivate(invoke.resultFromFirstOperandOrNull())
-                        ? new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(
-                        varOp.varName(),
-                        varOp.resultType(),
-                        shape,
-                        blockBuilder.context().getValues(invoke.op().operands()))
-                        : new HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp(
-                        varOp.varName(),
-                        varOp.resultType(),
-                        shape,
-                        blockBuilder.context().getValues(invoke.op().operands())
-                );
+
+                HATVectorOp memoryViewOp;
+                if (isSharedOrPrivate(invoke.resultFromFirstOperandOrNull())) {
+                    // this should be considered shared or private
+                    memoryViewOp = new HATSharedVectorLoadOp(
+                                        varOp.varName(),
+                                        varOp.resultType(),
+                                        shape,
+                                        blockBuilder.context().getValues(invoke.op().operands()));
+                } else {
+                    // this should be considered global instead
+                    memoryViewOp = new HATPrivateVectorLoadOp(
+                                        varOp.varName(),
+                                        varOp.resultType(),
+                                        shape,
+                                        blockBuilder.context().getValues(invoke.op().operands()));
+                }
                 blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(copyLocation(varOp, memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp));

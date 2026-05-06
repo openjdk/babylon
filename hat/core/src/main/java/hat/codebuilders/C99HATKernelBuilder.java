@@ -28,6 +28,7 @@ import hat.HATMath;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.callgraph.KernelCallGraph;
+import hat.device.NonMappableIface;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
@@ -60,6 +61,7 @@ import optkl.codebuilders.CodeBuilder;
 import java.util.List;
 import java.util.Optional;
 import java.util.SequencedSet;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -649,21 +651,35 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    private static final Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
+
     private T ptrAccess(HATPtrOp hatPtrOp) {
         id(hatPtrOp.name());
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
-            if (resolve instanceof HATMemoryVarOp) {
-                isLocalOrPrivateDS = true;
+            if (resolve instanceof CoreOp.VarOp varOp) {
+                Value value = varOp.operands().getFirst();
+                if (value.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+
+                    Stream<Invoke> stream = OpHelper.Invoke.stream(scopedCodeBuilderContext.lookup(), invokeOp);
+                    Optional<Invoke> invoke = stream.findFirst();
+                    // Check for the right class
+                    if (invoke.get().refIs(NonMappableIface.class)) {
+                        // check for the method name
+                        String lowerCase = invokeOp.invokeReference().name().toLowerCase();
+                        isLocalOrPrivateDS = NON_MAPPABLE_IFACE.contains(lowerCase);
+                    }
+                }
             }
         }
+
         either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
         if (hatPtrOp instanceof HATPtrOp.HATPtrLengthOp) {
             id("length");
         } else {
-            boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;// ?
+            final boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;
             id("array").sbrace(_ -> {
                 paren(_ -> id("long")); // is this a cast (long)  maybe cast(_->typeName("long"))?
                 paren(_ -> {

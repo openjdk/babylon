@@ -343,10 +343,27 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                             recurseResultOrThrow(varOp.operands().getFirst());
                         }
                     }
-                    case INIT -> {
-                        suffix_t((ClassType) varOp.varValueType()).sp()
-                                    .assign(_ -> id(varOp.varName()),
-                                            _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    case INIT -> suffix_t((ClassType) varOp.varValueType()).sp()
+                                .assign(_ -> id(varOp.varName()),
+                                        _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    case SHARED -> {
+                        HAT_LOCAL_MEM().sp();
+                        VarType resultType = varOp.resultType();
+                        if (resultType.valueType() instanceof VarType varType) {
+                            suffix_t((ClassType) varType.valueType());
+                        } else if (resultType.valueType() instanceof ClassType classType) {
+                            suffix_t(classType);
+                        }
+                        sp().varName(varOp);
+                    }
+                    case PRIVATE -> {
+                        VarType resultType = varOp.resultType();
+                        if (resultType.valueType() instanceof VarType varType) {
+                            suffix_t((ClassType) varType.valueType());
+                        } else if (resultType.valueType() instanceof ClassType classType) {
+                            suffix_t(classType);
+                        }
+                        sp().varName(varOp);
                     }
                     case TENSOR -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
                     default -> throw new IllegalStateException("Unexpected DeviceRegion: " + attribute);

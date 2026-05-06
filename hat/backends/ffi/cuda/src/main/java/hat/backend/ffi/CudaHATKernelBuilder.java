@@ -546,6 +546,25 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                                 .assign(
                                     _ -> id(varOp.varName()),
                                     _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+                    case SHARED -> {
+                        HAT_LOCAL_MEM().sp();
+                        VarType resultType = varOp.resultType();
+                        if (resultType.valueType() instanceof VarType varType) {
+                            suffix_t((ClassType) varType.valueType());
+                        } else if (resultType.valueType() instanceof ClassType classType) {
+                            suffix_t(classType);
+                        }
+                        sp().varName(varOp);
+                    }
+                    case PRIVATE -> {
+                        VarType resultType = varOp.resultType();
+                        if (resultType.valueType() instanceof VarType varType) {
+                            suffix_t((ClassType) varType.valueType());
+                        } else if (resultType.valueType() instanceof ClassType classType) {
+                            suffix_t(classType);
+                        }
+                        sp().varName(varOp);
+                    }
                     case TENSOR -> {
                         recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
                         sp().id(varOp.varName());

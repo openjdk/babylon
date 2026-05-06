@@ -105,16 +105,16 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 //            this.hATOpAttribute = HATOpAttribute.VECTOR;  // we can infer Vector category because it has a vector shape
 //        }
 
-        // Local/Private Memory Types
-        public HATVarOp(String varName, ClassType javaType, VarType varType, HATOpAttribute hATOpAttribute, List<Value> operands) {
-            super(varName, operands);
-            this.klassType = javaType;
-            this.codeType = varType;
-            this.hATOpAttribute = hATOpAttribute;
-
-            this.float16Class = null;
-            this.vectorShape = null;
-        }
+//        // Local/Private Memory Types
+//        public HATVarOp(String varName, ClassType javaType, VarType varType, HATOpAttribute hATOpAttribute, List<Value> operands) {
+//            super(varName, operands);
+//            this.klassType = javaType;
+//            this.codeType = varType;
+//            this.hATOpAttribute = hATOpAttribute;
+//
+//            this.float16Class = null;
+//            this.vectorShape = null;
+//        }
 
         public HATVarOp(HATVarOp op, CodeContext copyContext) {
             super(op, copyContext);
