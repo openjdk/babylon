@@ -115,31 +115,34 @@ public interface CodeTransformer {
     };
 
     /**
-     * Transforms a body starting from a block builder.
+     * Transforms one input body into the output model.
      *
      * @implSpec
-     * The default implementation {@link #acceptBlock(Block.Builder, Block) accepts} a block builder and a block for
-     * each block of the body, in order, using this code transformer. The following sequence of actions is performed:
-     * <ol>
+     * The default implementation first establishes mappings, and then transforms each input block of the body, in
+     * order, using this code transformer.
+     * <p>
+     * The default implementation first <i>implicitly</i> establishes block mappings and value mappings for block
+     * parameters using the given block builder's code context, as follows:
+     * <ul>
      * <li>
-     * the body's entry block is mapped to the block builder, and a prefix of the body's entry block parameters is
-     * mapped, in order, to the given entry values, using this builder's context. Any remaining entry block parameters
-     * are not mapped;
+     * The entry block of the input body is mapped to the given block builder, which is the current output block builder
+     * for the entry block. A prefix of the entry block's parameters is mapped, in order, to the given entry values.
+     * Any remaining entry block parameters are unmapped.
      * <li>
-     * for each input block in the body, except the entry block, an output block builder is created from the builder
-     * with the same parameter types as the input block, in order. The input block is mapped to the output builder, and
-     * the input block parameters are mapped to the output block parameters, using the builder's context;
-     * <li>
-     * for each input block in the body, in order, the input block is transformed by
-     * {@link #acceptBlock(Block.Builder, Block) accepting} the mapped output builder and input block, using this code
-     * transformer.
-     * </ol>
+     * For each non-entry block of the input body, an output block builder is created from the given block builder with
+     * the same sequence of parameter types as the input block. The input block is mapped to that output block builder,
+     * and the input block parameters are mapped exactly to the output block builder's parameters.
+     * </ul>
+     * Then, for each input block, in order, the default implementation invokes
+     * {@link #acceptBlock(Block.Builder, Block)} with the output block builder mapped from the input block and the
+     * input block.
      *
-     * @param builder the block builder
-     * @param body the body to transform
+     * @param builder the current output block builder for the input body's entry block
+     * @param body the input body to transform
      * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
      *                    parameters
      * @throws IllegalArgumentException if there are more output entry values than entry block parameters
+     * @see #acceptBlock(Block.Builder, Block)
      */
     default void acceptBody(Block.Builder builder, Body body, List<? extends Value> entryValues) {
         CodeContext cc = builder.context();
@@ -163,18 +166,20 @@ public interface CodeTransformer {
     }
 
     /**
-     * Transforms a block starting from a block builder.
+     * Transforms one input block into the output model.
      *
      * @implSpec
-     * The default implementation {@link #acceptOp(Block.Builder, Op) accepts} a block builder
-     * and an operation for each operation of the block, in order, using this code transformer.
-     * On first iteration the block builder that is applied is block builder passed as an argument
-     * to this method.
-     * On second and subsequent iterations the block builder that is applied is the resulting
-     * block builder of the prior iteration.
+     * The default implementation transforms each input operation of the given block, in order, using this code
+     * transformer.
+     * <p>
+     * The given block builder is the current output block builder for the first input operation. For each input
+     * operation, the default implementation invokes {@link #acceptOp(Block.Builder, Op)} with the current output block
+     * builder and the input operation. The continuation builder returned by that invocation becomes the current output
+     * block builder for the next input operation from the same input block.
      *
-     * @param builder the block builder
-     * @param block   the block to transform
+     * @param builder the current output block builder
+     * @param block   the input block to transform
+     * @see #acceptOp(Block.Builder, Op)
      */
     default void acceptBlock(Block.Builder builder, Block block) {
         for (Op op : block.ops()) {
@@ -204,10 +209,10 @@ public interface CodeTransformer {
      * appending the input operation, or any other attached or root operation. More specifically:
      * <ul>
      * <li>
-     * If the block builder's code transformer is the same as this code transformer, as is the case for the current
+     * if the block builder's code transformer is the same as this code transformer, as is the case for the current
      * output block builder, this code transformer may be recursively invoked for any descendant input operations.
      * <li>
-     * If the appended operation has a result, the block builder's code context is used to <i>implicitly</i> establish
+     * if the appended operation has a result, the block builder's code context is used to <i>implicitly</i> establish
      * a mapping between that result and the result of the emitted output operation, if no such mapping already exists.
      * </ul>
      * <p>
@@ -239,6 +244,7 @@ public interface CodeTransformer {
      * @param op      the input operation to transform.
      * @return the continuation builder to use to transform subsequent input operations from the same input block
      * @see Block.Builder#op(Op)
+     * @see CodeTransformer#COPYING_TRANSFORMER
      */
     Block.Builder acceptOp(Block.Builder builder, Op op);
 }
