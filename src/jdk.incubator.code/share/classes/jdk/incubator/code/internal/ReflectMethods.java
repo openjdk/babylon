@@ -859,7 +859,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             append(CoreOp.varStore(varOp, result));
                         }
                         case FIELD -> {
-                            FieldRef fd = symbolToFieldRef(sym, symbolSiteType(sym));
+                            FieldRef fd = symbolToErasedFieldRef(sym, symbolSiteType(sym));
                             if (sym.isStatic()) {
                                 append(JavaOp.fieldStore(fd, result));
                             } else {
@@ -882,7 +882,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     result = toValue(tree.rhs, target);
 
                     Symbol sym = assign.sym;
-                    FieldRef fr = symbolToFieldRef(sym, assign.selected.type);
+                    FieldRef fr = symbolToErasedFieldRef(sym, assign.selected.type);
                     if (sym.isStatic()) {
                         append(JavaOp.fieldStore(fr, result));
                     } else {
@@ -973,7 +973,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             append(CoreOp.varStore(varOp, r));
                         }
                         case FIELD -> {
-                            FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
+                            FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
 
                             Op.Result lhsOpValue;
                             CodeType resultType = typeToCodeType(sym.type);
@@ -1003,7 +1003,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     Value receiver = toValue(assign.selected);
 
                     Symbol sym = assign.sym;
-                    FieldRef fr = symbolToFieldRef(sym, assign.selected.type);
+                    FieldRef fr = symbolToErasedFieldRef(sym, assign.selected.type);
 
                     Op.Result lhsOpValue;
                     CodeType resultType = typeToCodeType(sym.type);
@@ -1057,7 +1057,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         Assert.check(sym.isFinal());
                         result = loadVar(sym);
                     } else {
-                        FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
+                        FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
                         CodeType resultType = typeToCodeType(sym.type);
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
@@ -1116,7 +1116,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                             result = thisValue();
                         } else {
-                            FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
+                            FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
                             CodeType resultType = typeToCodeType(types.memberType(tree.selected.type, sym));
                             if (sym.isStatic()) {
@@ -2878,14 +2878,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
         return isMember ? currentClassSym.type : s.owner.type;
     }
 
-    FieldRef symbolToFieldRef(Symbol s, Type site) {
+    FieldRef symbolToErasedFieldRef(Symbol s, Type site) {
         // @@@ Made Gen::binaryQualifier public, duplicate logic?
         // Ensure correct qualifying class is used in the reference, see JLS 13.1
         // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-        return symbolFieldRef(gen.binaryQualifier(s, types.erasure(site)));
+        return symbolErasedFieldRef(gen.binaryQualifier(s, types.erasure(site)));
     }
 
-    FieldRef symbolFieldRef(Symbol s) {
+    FieldRef symbolErasedFieldRef(Symbol s) {
         Type erasedType = s.erasure(types);
         return FieldRef.field(
                 typeToCodeType(s.owner.erasure(types)),
