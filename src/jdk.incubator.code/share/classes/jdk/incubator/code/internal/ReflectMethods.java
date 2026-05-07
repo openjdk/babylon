@@ -700,7 +700,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             int col = log.currentSource().getColumnNumber(startPos, false);
             String path;
             if (includeSourceReference) {
-                path = log.currentSource().getFile().toUri().toString();
+                path = log.currentSource().getFile().getName();
             } else {
                 path = null;
             }
