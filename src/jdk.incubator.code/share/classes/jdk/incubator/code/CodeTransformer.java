@@ -183,13 +183,62 @@ public interface CodeTransformer {
     }
 
     /**
-     * Transforms an operation to zero or more operations, appending those operations to a
-     * block builder. Returns a block builder to be used for transforming further operations, such
-     * as subsequent operations from the same block as the given operation.
+     * Transforms one input operation into the output model.
+     * <p>
+     * Implementations of this method may emit zero or more output operations and output blocks into the output model by
+     * using the given block builder, which is the current output block builder for this transformation, or any other
+     * block builder created for this transformation. Such a block builder can be used to:
+     * <ul>
+     * <li>
+     * emit an output operation, by using the block builder to {@link Block.Builder#op(Op) append} the operation; and
+     * <li>
+     * emit an output block, by using the builder to {@link Block.Builder#block(List) create} a block builder for that
+     * output block and appending operations to the created block builder.
+     * </ul>
+     * <p>
+     * Implementations can choose to drop the input operation by not emitting any output operation, copy it by
+     * appending it, replace it by appending a different output operation, or expand it by appending multiple
+     * output operations and creating additional block builders.
+     * <p>
+     * A block builder will perform <a href="Block.Builder.html#transform-on-append"><i>transform-on-append</i></a> when
+     * appending the input operation, or any other attached or root operation. More specifically:
+     * <ul>
+     * <li>
+     * If the block builder's code transformer is the same as this code transformer, as is the case for the current
+     * output block builder, this code transformer may be recursively invoked for any descendant input operations.
+     * <li>
+     * If the appended operation has a result, the block builder's code context is used to <i>implicitly</i> establish
+     * a mapping between that result and the result of the emitted output operation, if no such mapping already exists.
+     * </ul>
+     * <p>
+     * If an implementation drops, replaces, or expands the input operation, or creates output blocks that correspond to
+     * input blocks, it is responsible for <i>explicitly</i> establishing mappings between input and output values,
+     * blocks, and block references that are required for the transformation of subsequent input bodies, blocks, and
+     * operations. Mappings are established using a block builder's code context for this transformation. For example,
+     * replacing an input operation whose result is used by a subsequent input operation requires that a mapping be
+     * explicitly established between the input and output operation results; otherwise an exception may be thrown if
+     * transformation later appends the subsequent operation.
+     * <p>
+     * An implementation returns the continuation builder to use, as the current output block builder, for subsequent
+     * input operations from the same input block. The returned builder may be the current output block builder, or
+     * another builder created for this transformation.
      *
-     * @param builder the block builder.
-     * @param op      the operation to transform.
-     * @return the block builder to append to for subsequent operations.
+     * @apiNote
+     * A code transformer that copies each input operation, and as a result copies the input code model, can be
+     * implemented as follows:
+     * {@snippet lang = "java":
+     * CodeTransformer copyingTransformer = (builder, inputOp) -> {
+     *     builder.op(inputOp);
+     *     return builder;
+     * };
+     * }
+     * For convenience {@code CodeTransformer} provides such an implementation,
+     * {@link CodeTransformer#COPYING_TRANSFORMER}.
+     *
+     * @param builder the current output block builder.
+     * @param op      the input operation to transform.
+     * @return the continuation builder to use to transform subsequent input operations from the same input block
+     * @see Block.Builder#op(Op)
      */
     Block.Builder acceptOp(Block.Builder builder, Op op);
 }
