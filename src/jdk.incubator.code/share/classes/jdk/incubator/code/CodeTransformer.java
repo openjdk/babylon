@@ -31,8 +31,38 @@ import java.util.function.Function;
 /**
  * A code transformer.
  * <p>
+ * A code transformer transforms an input code model into an output code model. It traverses the input code model and
+ * builds the output code model by accepting input bodies, blocks, and operations and emitting output blocks and
+ * operations using block builders.
+ * <p>
+ * During transformation, a block builder may serve as the current output block builder when accepting bodies, blocks,
+ * and operations. A transformation emits an output operation by appending it to an output block builder.
+ * A transformation emits an output block by creating a block builder for that block and appending operations to it.
+ * Emission is commonly performed by implementations of {@link #acceptOp(Block.Builder, Op)}, and less commonly so by
+ * implementations that override {@link #acceptBlock(Block.Builder, Block)} and
+ * {@link #acceptBody(Block.Builder, Body, List)}.
+ * <p>
+ * By default, traversal transforms an input body by transforming each input block of the body, in order, and transforms
+ * an input block by transforming each input operation of the block, in order. The single abstract method
+ * {@link #acceptOp(Block.Builder, Op)} is the primitive transformation step. Implementations of that method may emit
+ * output blocks and operations. Appending an attached or root operation to an output block builder may recursively
+ * invoke the code transformer for descendant code elements.
+ * <p>
+ * A transformation uses the {@link CodeContext} of an output block builder to record correspondence between input
+ * code items and outputs. Some mappings are established implicitly: by the default traversal of an input body,
+ * for mappings between input blocks and output block builders and for mappings between input block parameters and
+ * output values; and by appending attached or root operations, for mappings between appended operation results and
+ * emitted output operation results. Block reference mappings are never established implicitly.
+ * <p>
+ * Transformations that drop, replace, or expand input code elements are responsible for explicitly establishing any
+ * mappings required by the transformation of subsequent code elements.
+ * <p>
  * Code transformer implementations are not required to be thread-safe. Code transformations operate on block builders
  * and code contexts that are not thread-safe.
+ *
+ * @see Block.Builder#block(List)
+ * @see Block.Builder#op(Op)
+ * @see CodeContext
  */
 @FunctionalInterface
 public interface CodeTransformer {
