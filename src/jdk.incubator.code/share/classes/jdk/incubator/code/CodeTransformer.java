@@ -248,7 +248,7 @@ public interface CodeTransformer {
      * <p>
      * If an implementation drops, replaces, or expands the input operation, or creates output blocks that correspond to
      * input blocks, it is responsible for <i>explicitly</i> establishing mappings between input and output values,
-     * blocks, and block references that are required for the transformation of subsequent input bodies, blocks, and
+     * blocks and block references, that are required for the transformation of subsequent input bodies, blocks, and
      * operations. Mappings are established using a block builder's code context for this transformation. For example,
      * replacing an input operation whose result is used by a subsequent input operation requires that a mapping be
      * explicitly established between the input and output operation results; otherwise an exception may be thrown if
