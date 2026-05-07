@@ -403,12 +403,14 @@ public final class CodeContext {
      * Returns the output block reference mapped to the given input block reference, if present, otherwise creates
      * and returns a new output block reference from the input block reference.
      * <p>
-     * A new output block reference is created by obtaining the output block builder mapped to the input reference's
-     * target block, and creating a reference from the output block builder with arguments that are the output values
-     * mapped to the input reference's arguments.
+     * If a mapping for the input block reference is present in this context, the mapped output block reference is
+     * returned. Otherwise, a new output block reference is created by obtaining the output block builder mapped to the
+     * input reference's target block, and creating a reference from the output block builder with arguments that are
+     * the output values mapped to the input reference's arguments. The newly created output block reference is not
+     * added to this context.
      * <p>
-     * The output block reference and the output block builder are looked up only in this context. The output values
-     * for the input reference's arguments are obtained using {@link #getValues(List)}.
+     * The output block reference and the output block builder are looked up only in this context. The output values for
+     * the input reference's arguments are looked up as specified by {@link #getValues(List)}.
      *
      * @param input the input block reference
      * @return the output block reference, if present, otherwise a newly created output block reference
