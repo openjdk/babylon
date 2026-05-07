@@ -27,6 +27,8 @@ package jdk.incubator.code;
 
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
+
 import java.util.*;
 
 /**
@@ -589,6 +591,23 @@ public final class Body implements CodeElement<Body, Block> {
                     i.remove();
                 } else if (!(block.ops.getLast() instanceof Op.Terminating)) {
                     throw noTerminatingOperation();
+                }
+            }
+
+            for (Block b : blocks) {
+                for (Block.Reference s : b.successors()) {
+                    if (s.arguments().size() == s.target.parameters().size()) {
+                        continue;
+                    }
+                    // catch blocks has one param for the exception, and are referenced with no arg
+                    boolean isCatchBlock = (b.terminatingOp() instanceof JavaOp.ExceptionRegionEnter e && e.catchReferences().contains(s)) ||
+                            (b.terminatingOp() instanceof JavaOp.ExceptionRegionExit ee && ee.catchReferences().contains(s));
+                    if (isCatchBlock && s.target.parameters().size() == 1 && s.arguments().isEmpty()) {
+                        continue;
+                    }
+                    String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
+                            s.target, s.arguments().size(), s.target.parameters().size());
+                    throw new IllegalStateException(m);
                 }
             }
 
