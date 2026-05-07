@@ -267,6 +267,10 @@ public interface CodeTransformer {
      *     return builder;
      * };
      * }
+     * The call to {@code builder.op(inputOp)} performs transform-on-append. If the input operation has descendant code
+     * elements, this code transformer is recursively invoked to transform those elements. The result is that all input
+     * code elements are copied into the output model.
+     * <p>
      * For convenience {@code CodeTransformer} provides such an implementation,
      * {@link CodeTransformer#COPYING_TRANSFORMER}.
      *
