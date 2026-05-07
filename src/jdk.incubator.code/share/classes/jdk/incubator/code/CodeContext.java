@@ -54,12 +54,7 @@ import static java.util.stream.Collectors.toList;
  * <p>
  * Value mappings are looked up first in the current context and, if absent, in the parent context, if present, and so
  * on until a mapping is found or there is no parent context. Block and block reference mappings are local to the
- * current context and are not looked up in parent contexts.
- * <p>
- * Mappings are always added to the current context. They may be added implicitly when an operation is
- * {@link Block.Builder#op(Op) appended} to a block by
- * <a href="Block.Builder.html#transform-on-append">transform-on-append</a>. They may also be added explicitly when
- * building introduces outputs, or transformation removes, replaces, or introduces outputs.
+ * current context and are not looked up in parent contexts. Mappings are always added to the current context.
  * <p>
  * The requirements for mapping an input code item depend on the kind of output:
  * <ul>
