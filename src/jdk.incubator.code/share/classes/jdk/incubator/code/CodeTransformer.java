@@ -52,7 +52,7 @@ import java.util.function.Function;
  * code items and outputs. Some mappings are established implicitly: by the default traversal of an input body,
  * for mappings between input blocks and output block builders and for mappings between input block parameters and
  * output values; and by appending attached or root operations, for mappings between appended operation results and
- * emitted output operation results. Block reference mappings are never established implicitly.
+ * output operation results. By default, block reference mappings are never established implicitly.
  * <p>
  * Transformations that drop, replace, or expand input code elements are responsible for explicitly establishing any
  * mappings required by the transformation of subsequent code elements.
