@@ -54,12 +54,7 @@ import static java.util.stream.Collectors.toList;
  * <p>
  * Value mappings are looked up first in the current context and, if absent, in the parent context, if present, and so
  * on until a mapping is found or there is no parent context. Block and block reference mappings are local to the
- * current context and are not looked up in parent contexts.
- * <p>
- * Mappings are always added to the current context. They may be added implicitly when an operation is
- * {@link Block.Builder#op(Op) appended} to a block by
- * <a href="Block.Builder.html#transform-on-append">transform-on-append</a>. They may also be added explicitly when
- * building introduces outputs, or transformation removes, replaces, or introduces outputs.
+ * current context and are not looked up in parent contexts. Mappings are always added to the current context.
  * <p>
  * The requirements for mapping an input code item depend on the kind of output:
  * <ul>
@@ -408,12 +403,14 @@ public final class CodeContext {
      * Returns the output block reference mapped to the given input block reference, if present, otherwise creates
      * and returns a new output block reference from the input block reference.
      * <p>
-     * A new output block reference is created by obtaining the output block builder mapped to the input reference's
-     * target block, and creating a reference from the output block builder with arguments that are the output values
-     * mapped to the input reference's arguments.
+     * If a mapping for the input block reference is present in this context, the mapped output block reference is
+     * returned. Otherwise, a new output block reference is created by obtaining the output block builder mapped to the
+     * input reference's target block, and creating a reference from the output block builder with arguments that are
+     * the output values mapped to the input reference's arguments. The newly created output block reference is not
+     * added to this context.
      * <p>
-     * The output block reference and the output block builder are looked up only in this context. The output values
-     * for the input reference's arguments are obtained using {@link #getValues(List)}.
+     * The output block reference and the output block builder are looked up only in this context. The output values for
+     * the input reference's arguments are looked up as specified by {@link #getValues(List)}.
      *
      * @param input the input block reference
      * @return the output block reference, if present, otherwise a newly created output block reference
