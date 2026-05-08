@@ -51,9 +51,10 @@ public record HATVectorSelectPhase() implements HATPhase {
         record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
             // recursive
             static String vectorNameOrThrow(Value v) {
-                return switch (OpHelper.asOpFromResultOrNull(v)){
-                    case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->vectorNameOrThrow(varLoadOp.operands().getFirst()); // recurse
-                    case HATVectorOp vectorOp ->vectorOp.varName();
+                return switch (OpHelper.asOpFromResultOrNull(v)) {
+                    case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
+                            vectorNameOrThrow(varLoadOp.operands().getFirst()); // recurse
+                    case CoreOp.VarOp varOp -> varOp.varName();
                     case null -> null;
                     default -> throw new IllegalStateException("failed to find vector name");
                 };
@@ -64,8 +65,8 @@ public record HATVectorSelectPhase() implements HATPhase {
             //recursive
             private CoreOp.VarOp findVarOpOrNull(Value v) {
                 return switch (OpHelper.asOpFromResultOrNull(v)){
-                    case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->findVarOpOrNull(varLoadOp.operands().getFirst()); //recurse
-                    case CoreOp.VarOp varOp->varOp;
+                    case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findVarOpOrNull(varLoadOp.operands().getFirst()); //recurse
+                    case CoreOp.VarOp varOp -> varOp;
                     case null -> null;
                     default ->  null;
                 };

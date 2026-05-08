@@ -29,118 +29,118 @@ import static java.lang.IO.println;
 
 void main(String[] args) {
     var layout = """
-       └──./
-           ├──hat                                  //  All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
-           │    ├──bld                             //  --enable-preview --source 26 hat/bld.java
-           │    ├──bld.java
-           │    ├──run                             //  --enable-preview --source 26 hat/run.java
-           │    ├──run.java
-           │    └──Script                          //  Contains all the tools for building
-           ├──build/                               // All jars, native libs and executables
-           │    ├── cmake-build-debug/             // All intermediate cmake artifacts
-           │    ├── hat-wrap-*-1.0.jar             // Wrapper jars around extracted * (opencl, glwrap, opencl)
-           │    ├── hat-core-1.0.jar               // Base hat jar
-           │    ├── hat-example-*-1.0.jar          // Example jars (hat-example-nbody-1.0.jar, hat-example-life-1.0.jar)
-           │    ├── hat-extracted-opencl-1.0.jar   // Raw extraction jars (hat-extracted-opencl-1.0.jar ....)
-           │    ├── lib*_backend.[dylib|so]        // ffi library backends
-           │    └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
-           ├──extractions/
-           │   ├──CMakeFiles.txt
-           │   ├── opencl/
-           │   │   └──CMakeFiles.txt
-           │   ├── cuda/
-           │   │   └──CMakeFiles.txt
-           │   └── opengl/
-           │       └──CMakeFiles.txt
-           ├──wraps/
-           │   ├──shared/
-           │   │   └──src/main/java
-           │   ├──cuda/
-           │   │   └──src/main/java
-           │   ├──opencl/
-           │   │   └──src/main/java
-           │   └──opengl/
-           │       └──src/main/java
-           │
-           ├──core
-           │    ├──src/main/java
-           │    └──src/main/test
-           │
-           ├──tools  : core
-           │    ├──src/main/java
-           │    └──src/main/test
-           │
-           ├──backends
-           │    ├──java
-           │    │    ├──mt
-           │    │    │    ├──src/main/java
-           │    │    │    └──src/main/resources
-           │    │    └──seq
-           │    │         ├──src/main/java
-           │    │         └──src/main/resources
-           │    ├──jextracted
-           │    │    └──opencl
-           │    │         ├──src/main/java
-           │    │         ├──src/main/native
-           │    │         └──src/main/resources
-           │    └──ffi
-           │         ├──CMakeFiles.txt
-           │         ├──opencl
-           │         │    ├──CMakeFiles.txt
-           │         │    ├──src/main/java
-           │         │    ├──src/main/native
-           │         │    └──src/main/resources
-           │         ├──cuda
-           │         │    ├──CMakeFiles.txt
-           │         │    ├──src/main/java
-           │         │    ├──src/main/native
-           │         │    └──src/main/resources
-           │         ├──mock
-           │         │    ├──CMakeFiles.txt
-           │         │    ├──src/main/java
-           │         │    ├──src/main/native
-           │         │    └──src/main/resources
-           │         ├──spirv
-           │         │    ├──CMakeFiles.txt
-           │         │    ├──src/main/java
-           │         │    ├──src/main/native
-           │         │    └──src/main/resources
-           │         └──hip
-           │              ├──CMakeFiles.txt
-           │              ├──src/main/java
-           │              ├──src/main/native
-           │              └──src/main/resources
-           │
-           └──examples
-                ├──shared
+            └──./
+                ├──hat                                  //  All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
+                │    ├──bld                             //  --enable-preview --source 26 hat/bld.java
+                │    ├──bld.java
+                │    ├──run                             //  --enable-preview --source 26 hat/run.java
+                │    ├──run.java
+                │    └──Script                          //  Contains all the tools for building
+                ├──build/                               // All jars, native libs and executables
+                │    ├── cmake-build-debug/             // All intermediate cmake artifacts
+                │    ├── hat-wrap-*-1.0.jar             // Wrapper jars around extracted * (opencl, glwrap, opencl)
+                │    ├── hat-core-1.0.jar               // Base hat jar
+                │    ├── hat-example-*-1.0.jar          // Example jars (hat-example-nbody-1.0.jar, hat-example-life-1.0.jar)
+                │    ├── hat-extracted-opencl-1.0.jar   // Raw extraction jars (hat-extracted-opencl-1.0.jar ....)
+                │    ├── lib*_backend.[dylib|so]        // ffi library backends
+                │    └── *(no suffix)                   // various generated executables (opencl_info, cuda_info, cuda_squares)
+                ├──extractions/
+                │   ├──CMakeFiles.txt
+                │   ├── opencl/
+                │   │   └──CMakeFiles.txt
+                │   ├── cuda/
+                │   │   └──CMakeFiles.txt
+                │   └── opengl/
+                │       └──CMakeFiles.txt
+                ├──wraps/
+                │   ├──shared/
+                │   │   └──src/main/java
+                │   ├──cuda/
+                │   │   └──src/main/java
+                │   ├──opencl/
+                │   │   └──src/main/java
+                │   └──opengl/
+                │       └──src/main/java
+                │
+                ├──core
                 │    ├──src/main/java
-                │    └──src/main/resources
-                ├──mandel
+                │    └──src/main/test
+                │
+                ├──tools  : core
                 │    ├──src/main/java
-                │    └──src/main/resources
-                ├──squares
-                │    ├──src/main/java
-                │    └──src/main/resources
-                ├──heal
-                │    ├──src/main/java
-                │    └──src/main/resources
-                ├──life
-                │    ├──src/main/java
-                │    └──src/main/resources
-                ├──nbody
-                │    ├──src/main/java
-                │    └──src/main/resources
-                ├──experiments
-                │    ├──src/main/java
-                │    └──src/main/resources
-                ├──violajones
-                │    ├──src/main/java
-                │    └──src/main/resources
-                └──matmul
-                     ├──src/main/java
-                     └──src/main/resources
-       """;
-    class Artifacts{
+                │    └──src/main/test
+                │
+                ├──backends
+                │    ├──java
+                │    │    ├──mt
+                │    │    │    ├──src/main/java
+                │    │    │    └──src/main/resources
+                │    │    └──seq
+                │    │         ├──src/main/java
+                │    │         └──src/main/resources
+                │    ├──jextracted
+                │    │    └──opencl
+                │    │         ├──src/main/java
+                │    │         ├──src/main/native
+                │    │         └──src/main/resources
+                │    └──ffi
+                │         ├──CMakeFiles.txt
+                │         ├──opencl
+                │         │    ├──CMakeFiles.txt
+                │         │    ├──src/main/java
+                │         │    ├──src/main/native
+                │         │    └──src/main/resources
+                │         ├──cuda
+                │         │    ├──CMakeFiles.txt
+                │         │    ├──src/main/java
+                │         │    ├──src/main/native
+                │         │    └──src/main/resources
+                │         ├──mock
+                │         │    ├──CMakeFiles.txt
+                │         │    ├──src/main/java
+                │         │    ├──src/main/native
+                │         │    └──src/main/resources
+                │         ├──spirv
+                │         │    ├──CMakeFiles.txt
+                │         │    ├──src/main/java
+                │         │    ├──src/main/native
+                │         │    └──src/main/resources
+                │         └──hip
+                │              ├──CMakeFiles.txt
+                │              ├──src/main/java
+                │              ├──src/main/native
+                │              └──src/main/resources
+                │
+                └──examples
+                     ├──shared
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     ├──mandel
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     ├──squares
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     ├──heal
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     ├──life
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     ├──nbody
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     ├──experiments
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     ├──violajones
+                     │    ├──src/main/java
+                     │    └──src/main/resources
+                     └──matmul
+                          ├──src/main/java
+                          └──src/main/resources
+            """;
+    class Artifacts {
         static Script.MavenStyleProject core;
         static Script.MavenStyleProject tools;
         static Script.MavenStyleProject tests;
@@ -182,16 +182,16 @@ void main(String[] args) {
 
     var extractionsCmakeBuildDir = extractionsDir.buildDir("cmake-build-debug");
     if (!extractionsCmakeBuildDir.exists()) {
-        Script.cmake($ -> $ .verbose(false) .source_dir(extractionsDir) .build_dir(extractionsCmakeBuildDir));
+        Script.cmake($ -> $.verbose(false).source_dir(extractionsDir).build_dir(extractionsCmakeBuildDir));
     }
-    Script.cmake($ -> $ .build(extractionsCmakeBuildDir) .target("extract"));
+    Script.cmake($ -> $.build(extractionsCmakeBuildDir).target("extract"));
 
     var extraction_opencl_dir = extractionsDir.dir("opencl");
     if (extraction_opencl_dir.dir("src").exists()) {
         Artifacts.extraction_opencl = buildDir.mavenStyleBuild(
                 extraction_opencl_dir, "hat-extracted-opencl-1.0.jar"
         );
-    }else{
+    } else {
         print("no src for extraction_opencl");
     }
 
@@ -200,7 +200,7 @@ void main(String[] args) {
         Artifacts.extraction_opengl = buildDir.mavenStyleBuild(
                 extraction_opengl_dir, "hat-extracted-opengl-1.0.jar"
         );
-    }else{
+    } else {
         print("no src for extraction_opengl");
     }
 
@@ -211,13 +211,12 @@ void main(String[] args) {
         );
     }
 
-
     var wrapsDir = dir.existingDir("wraps");
 
-    Artifacts.wrap_shared = buildDir.mavenStyleBuild( wrapsDir.existingDir("shared"), "hat-wrap-shared-1.0.jar");
+    Artifacts.wrap_shared = buildDir.mavenStyleBuild(wrapsDir.existingDir("shared"), "hat-wrap-shared-1.0.jar");
 
-    if (Artifacts.extraction_opencl != null){
-        Artifacts.wrap_opencl = buildDir.mavenStyleBuild( wrapsDir.dir("opencl"), "hat-wrap-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opencl);
+    if (Artifacts.extraction_opencl != null) {
+        Artifacts.wrap_opencl = buildDir.mavenStyleBuild(wrapsDir.dir("opencl"), "hat-wrap-opencl-1.0.jar", Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opencl);
     }
 // on jetson
 // ls extractions/opengl/src/main/java/opengl/glutKeyboardFunc*
@@ -234,21 +233,21 @@ void main(String[] args) {
         String exclude = null;
         if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$func.class$")).isEmpty()) {
             exclude = "Callback";
-        }else if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
+        } else if (!Artifacts.extraction_opengl.jarFile.select(Script.Regex.of("^.*glutKeyboardFunc\\$callback.class$")).isEmpty()) {
             exclude = "Func";
-        }else {
+        } else {
             println("We can't build wrap_opengl unless exclude one of GLFuncEventHandler or GLCallbackEventHandler something");
         }
         if (exclude != null) {
-            final var excludeMeSigh = "^.*/GL"+exclude+"EventHandler\\.java$";
-            println("exclude ="+exclude+" "+excludeMeSigh);
+            final var excludeMeSigh = "^.*/GL" + exclude + "EventHandler\\.java$";
+            println("exclude =" + exclude + " " + excludeMeSigh);
             Artifacts.wrap_opengl = Script.mavenStyleProject(
                     buildDir, wrapsDir.dir("opengl"), buildDir.jarFile("hat-wrap-opengl-1.0.jar"), Artifacts.wrap_shared, Artifacts.core, Artifacts.extraction_opengl
             ).buildExcluding(javaSrc -> javaSrc.matches(excludeMeSigh));
         }
     }
 
-    if (false && Artifacts.extraction_cuda != null ) {
+    if (false && Artifacts.extraction_cuda != null) {
         Artifacts.wrap_cuda = buildDir.mavenStyleBuild(
                 wrapsDir.dir("cuda"), "hat-wrap-cuda-1.0.jar", Artifacts.extraction_cuda
         );
@@ -261,20 +260,20 @@ void main(String[] args) {
             ffiBackendsDir.existingDir("shared"), "hat-backend-ffi-shared-1.0.jar", Artifacts.core
     );
 
-    if (ffiBackendsDir.optionalDir("opencl") instanceof Script.DirEntry ffiBackendDir ) {
+    if (ffiBackendsDir.optionalDir("opencl") instanceof Script.DirEntry ffiBackendDir) {
         Artifacts.backend_ffi_opencl = buildDir.mavenStyleBuild(
-                ffiBackendDir, "hat-backend-ffi-"+ffiBackendDir.fileName()+ "-1.0.jar", Artifacts.core, Artifacts.backend_ffi_shared
+                ffiBackendDir, "hat-backend-ffi-" + ffiBackendDir.fileName() + "-1.0.jar", Artifacts.core, Artifacts.backend_ffi_shared
         );
     }
     if (ffiBackendsDir.optionalDir("mock") instanceof Script.DirEntry ffiBackendDir) {
         Artifacts.backend_ffi_mock = buildDir.mavenStyleBuild(
-                ffiBackendDir, "hat-backend-ffi-"+ffiBackendDir.fileName()+ "-1.0.jar", Artifacts.core, Artifacts.backend_ffi_shared
+                ffiBackendDir, "hat-backend-ffi-" + ffiBackendDir.fileName() + "-1.0.jar", Artifacts.core, Artifacts.backend_ffi_shared
         );
     }
 
     if (ffiBackendsDir.optionalDir("cuda") instanceof Script.DirEntry ffiBackendDir) {
         Artifacts.backend_ffi_cuda = buildDir.mavenStyleBuild(
-                ffiBackendDir, "hat-backend-ffi-"+ffiBackendDir.fileName()+ "-1.0.jar", Artifacts.core, Artifacts.backend_ffi_shared
+                ffiBackendDir, "hat-backend-ffi-" + ffiBackendDir.fileName() + "-1.0.jar", Artifacts.core, Artifacts.backend_ffi_shared
         );
     }
 
@@ -299,28 +298,27 @@ void main(String[] args) {
     }
 
     var javaBackendsDir = backendsDir.existingDir("java");
-    Artifacts.backend_java_mt =  buildDir.mavenStyleBuild(javaBackendsDir.existingDir("mt"),
+    Artifacts.backend_java_mt = buildDir.mavenStyleBuild(javaBackendsDir.existingDir("mt"),
             "hat-backend-java-mt-1.0.jar", Artifacts.core
     );
-    Artifacts.backend_java_seq =  buildDir.mavenStyleBuild(javaBackendsDir.existingDir("seq"),
+    Artifacts.backend_java_seq = buildDir.mavenStyleBuild(javaBackendsDir.existingDir("seq"),
             "hat-backend-java-seq-1.0.jar", Artifacts.core
     );
 
     var examplesDir = dir.existingDir("examples");
 
-
-    Stream.of( "blackscholes", "squares", "matmul", "flashattention")
+    Stream.of("blackscholes", "squares", "matmul", "flashattention", "tensors")
             .parallel()
             .map(examplesDir::existingDir)
-            .forEach(exampleDir->buildDir.mavenStyleBuild(
-                    exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar", Artifacts.core
+            .forEach(exampleDir -> buildDir.mavenStyleBuild(
+                    exampleDir, "hat-example-" + exampleDir.fileName() + "-1.0.jar", Artifacts.core
             ));
 
-    Stream.of( "experiments")   // this has hardcoded references to opencl backend
+    Stream.of("experiments")   // this has hardcoded references to opencl backend
             .parallel()
             .map(examplesDir::existingDir)
-            .forEach(exampleDir->buildDir.mavenStyleBuild(
-                    exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar",
+            .forEach(exampleDir -> buildDir.mavenStyleBuild(
+                    exampleDir, "hat-example-" + exampleDir.fileName() + "-1.0.jar",
                     Artifacts.core, Artifacts.backend_ffi_shared, Artifacts.backend_ffi_opencl
             ));
 
@@ -328,11 +326,11 @@ void main(String[] args) {
             examplesDir.existingDir("shared"), "hat-example-shared-1.0.jar", Artifacts.core
     );
 
-    Stream.of( "heal", "life", "mandel", "violajones")   // these require example_shared ui stuff
+    Stream.of("heal", "life", "mandel", "violajones")   // these require example_shared ui stuff
             .parallel()
             .map(examplesDir::existingDir)
-            .forEach(exampleDir->buildDir.mavenStyleBuild(
-                    exampleDir, "hat-example-"+exampleDir.fileName()+"-1.0.jar", Artifacts.core, Artifacts.example_shared
+            .forEach(exampleDir -> buildDir.mavenStyleBuild(
+                    exampleDir, "hat-example-" + exampleDir.fileName() + "-1.0.jar", Artifacts.core, Artifacts.example_shared
             ));
 
     var nbodyDependencies = new Script.MavenStyleProject[]{
@@ -347,14 +345,14 @@ void main(String[] args) {
 
     boolean foundNull = false;
 
-    for (var o:nbodyDependencies){
-        if (o == null){
+    for (var o : nbodyDependencies) {
+        if (o == null) {
             foundNull = true;
         }
     }
-    if (foundNull){
+    if (foundNull) {
         print("incomplete nbody dependencies ");
-    }else {
+    } else {
         Artifacts.example_nbody = buildDir.mavenStyleBuild(
                 examplesDir.existingDir("nbody"), "hat-example-nbody-1.0.jar", nbodyDependencies
         );
@@ -362,9 +360,9 @@ void main(String[] args) {
 
     var cmakeBuildDir = buildDir.buildDir("cmake-build-debug");
     if (!cmakeBuildDir.exists()) {
-        Script.cmake($ -> $ .verbose(false) .source_dir(ffiBackendsDir) .build_dir(cmakeBuildDir) .copy_to(buildDir));
+        Script.cmake($ -> $.verbose(false).source_dir(ffiBackendsDir).build_dir(cmakeBuildDir).copy_to(buildDir));
     }
-    Script.cmake($ -> $ .build(cmakeBuildDir));
+    Script.cmake($ -> $.build(cmakeBuildDir));
 
 }
 

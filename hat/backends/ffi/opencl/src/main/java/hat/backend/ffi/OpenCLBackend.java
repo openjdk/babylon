@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.lang.foreign.Arena;
@@ -48,6 +49,7 @@ public class OpenCLBackend extends C99FFIBackend {
 
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createC99(kernelCallGraph,  args);
             if (config().showCode()) {

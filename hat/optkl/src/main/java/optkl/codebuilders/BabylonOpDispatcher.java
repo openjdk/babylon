@@ -32,8 +32,24 @@ import jdk.incubator.code.dialect.java.JavaType;
 import optkl.ParamVar;
 import optkl.exceptions.CodeGenException;
 
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+
 /* this should not be too C99 specific also cannot reference HAT Ops. */
 public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>, SCBC extends ScopedCodeBuilderContext> {
+
+    // Note: this place is experimental: We probably need to place it along the kernel call graph
+    // FunctionName within a KernelCallGraph -> { Table: Op -> <Attributes> }
+    ConcurrentHashMap<String, HashMap<Op, HATOpAttribute>> table = new ConcurrentHashMap<>();
+    enum HATOpAttribute {
+        UNKNOWN,
+        PRIVATE,
+        SHARED,
+        INIT,
+        NARROW,
+        VECTOR,
+    }
+
     T type( JavaType javaType);
 
     T varLoadOp( CoreOp.VarAccessOp.VarLoadOp varLoadOp);

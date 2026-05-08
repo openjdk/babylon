@@ -32,6 +32,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.JavaCodeBuilder;
 import optkl.util.BiMap;
 import optkl.util.CallSite;
@@ -39,6 +40,7 @@ import optkl.util.OpCodeBuilder;
 import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -372,6 +374,15 @@ public class Trxfmr implements LookupCarrier{
         return result;
     }
 
+    public void update(String functionName, Op oldOp, Op newOp) {
+        if (BabylonOpDispatcher.table.containsKey(functionName)) {
+            HashMap<Op, BabylonOpDispatcher.HATOpAttribute> opDeviceRegionHashMap = BabylonOpDispatcher.table.get(functionName);
+            if (opDeviceRegionHashMap.containsKey(oldOp)) {
+                opDeviceRegionHashMap.put(newOp, opDeviceRegionHashMap.get(oldOp));
+            }
+        }
+    }
+
     public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer){
         return transform(funcOp.funcName(),predicate,cursorConsumer);
     }
@@ -385,13 +396,15 @@ public class Trxfmr implements LookupCarrier{
                 cursorConsumer.accept(cursor);
                 if (!cursor.handled()){
                     var result = blockBuilder.op(cursorOp);
-                    var opFromResult= result.op();
+                    var opFromResult = result.op();
+                    update(funcOp().funcName(), cursorOp, opFromResult);
                     biMap.add(cursorOp,opFromResult);
                 }
             } else {
                 try {
                     var result = blockBuilder.op(cursorOp);
                     var opFromResult = result.op();
+                    update(funcOp().funcName(), cursorOp, opFromResult);
                     biMap.add(cursorOp, opFromResult);
                 }catch (Throwable t){
                     throw new RuntimeException(t);
@@ -416,7 +429,10 @@ public class Trxfmr implements LookupCarrier{
             if (predicate.test(op)){
                 codeTransformer.acceptOp(blockBuilder,op);
             } else {
-                biMap.add(op,blockBuilder.op(op).op());
+                var newOp = blockBuilder.op(op).op();
+                // We propagate the existing op into the new tree
+                update(funcOp().funcName(), op, newOp);
+                biMap.add(op, newOp);
             }
             return blockBuilder;
         });

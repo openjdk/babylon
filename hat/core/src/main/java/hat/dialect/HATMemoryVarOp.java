@@ -28,23 +28,19 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
+import optkl.IfaceValue.Vector.Shape;
 import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
-import java.util.List;
 import java.util.Map;
 
+import static optkl.codebuilders.BabylonOpDispatcher.HATOpAttribute;
 
 public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp {
 
-    private final String varName;
-
-    protected HATMemoryVarOp(String varName, List<Value> operands) {
-        super(operands);
-        this.varName = varName;
-    }
+    protected final String varName;
 
     protected HATMemoryVarOp(HATMemoryVarOp that, CodeContext cc) {
         super(that, cc);
@@ -58,30 +54,31 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
     public abstract ClassType classType();
 
-    public abstract CodeType invokeType();
+    public static final class HATVarOp extends HATMemoryVarOp  {
 
-    public static final  class HATLocalVarOp extends HATMemoryVarOp {
-        private final CodeType codeType;
+        private final VarType codeType;
+        private final Class<?> float16Class;
+        private final Shape vectorShape;
         private final ClassType klassType;
-        private final CodeType invokeResultType;
+        private final HATOpAttribute hATOpAttribute;
 
-        public HATLocalVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
-            super(varName, operands);
-            this.codeType = codeType;
-            this.klassType = javaType;
-            this.invokeResultType = invokeResultType;
-        }
+        // Seems we need to add attributes in the form of( {"Attrib" -> object })
+        // float16Class is only needed for F16   --> We can get it directly durng code gen
+        // Vector Shape is only needed in the case of Vectors
 
-        public HATLocalVarOp(HATLocalVarOp op, CodeContext copyContext) {
+        public HATVarOp(HATVarOp op, CodeContext copyContext) {
             super(op, copyContext);
-            this.codeType = op.resultType();
+            this.codeType = op.codeType;
+            this.float16Class = op.float16Class;
+            this.vectorShape = op.vectorShape;
+
             this.klassType = op.klassType;
-            this.invokeResultType = op.invokeResultType;
+            this.hATOpAttribute = op.hATOpAttribute;
         }
 
         @Override
         public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATLocalVarOp(this, copyContext);
+            return new HATVarOp(this, copyContext);
         }
 
         @Override
@@ -91,7 +88,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatSharedVarOp." + varName(), codeType);
+            return Map.of("hat.dialect.HATVarOp." + varName, codeType);
         }
 
         @Override
@@ -99,105 +96,16 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
             return klassType;
         }
 
-        @Override
-        public CodeType invokeType() {
-            return invokeResultType;
-        }
-    }
-
-    public static final class HATPrivateVarOp extends HATMemoryVarOp {
-        private final CodeType codeType;
-        private final ClassType klassType;
-        private final CodeType invokeResultType;
-        private final String varName;
-
-        public HATPrivateVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
-            super(varName, operands);
-            this.varName = varName;
-            this.codeType = codeType;
-            this.klassType = javaType;
-            this.invokeResultType = invokeResultType;
+        public Class<?> float16Class() {
+            return float16Class;
         }
 
-        public HATPrivateVarOp(HATPrivateVarOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.varName = op.varName;
-            this.codeType = op.resultType();
-            this.klassType = op.klassType;
-            this.invokeResultType = op.invokeResultType;
+        public HATOpAttribute deviceRegion() {
+            return this.hATOpAttribute;
         }
 
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATPrivateVarOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatPrivateVarOp." + varName, codeType);
-        }
-
-        @Override
-        public ClassType classType() {
-            return klassType;
-        }
-
-        @Override
-        public CodeType invokeType() {
-            return invokeResultType;
-        }
-    }
-
-    public static final class HATPrivateInitVarOp extends HATMemoryVarOp {
-        private final CodeType codeType;
-        private final ClassType klassType;
-        private final CodeType invokeResultType;
-        private final String varName;
-
-        public HATPrivateInitVarOp(String varName, ClassType javaType, CodeType codeType, CodeType invokeResultType, List<Value> operands) {
-            super(varName, operands);
-            this.varName = varName;
-            this.codeType = codeType;
-            this.klassType = javaType;
-            this.invokeResultType = invokeResultType;
-        }
-
-        public HATPrivateInitVarOp(HATPrivateInitVarOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.varName = op.varName;
-            this.codeType = op.resultType();
-            this.klassType = op.klassType;
-            this.invokeResultType = op.invokeResultType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATPrivateInitVarOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.hatPrivateVarInitOp." + varName, codeType);
-        }
-
-        @Override
-        public ClassType classType() {
-            return klassType;
-        }
-
-        @Override
-        public CodeType invokeType() {
-            return invokeResultType;
+        public String buildVectorType() {
+            return vectorShape.codeType().toString() + vectorShape.lanes();
         }
     }
 }

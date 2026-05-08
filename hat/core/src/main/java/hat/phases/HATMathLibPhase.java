@@ -62,11 +62,11 @@ public record HATMathLibPhase() implements HATPhase {
         return Trxfmr.of(lookup, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
             if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
                 if (setTypeMap.get(varOp) == null) {
-                    // this varOp is not a special type we insert the varOp into the new tree
+                    // this varOp is not a special type (e.g., float16), then we insert the varOp into the new tree
                     blockBuilder.op(varOp);
                 } else {
                     // Add the special type as a VarOp
-                    HATFP16Phase.createF16VarOp(varOp, blockBuilder, setTypeMap.get(varOp));
+                    HATFP16Phase.createF16VarOp(funcOp.funcName(), varOp, blockBuilder);
                     // If we add HATMath ops for other special types in HAT (e.g., Vectors),
                     // we may need to also add the new <X>HATVarOps here as well.
                 }
