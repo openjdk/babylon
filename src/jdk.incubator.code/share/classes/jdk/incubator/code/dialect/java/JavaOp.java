@@ -5692,12 +5692,12 @@ public sealed abstract class JavaOp extends Op {
                     });
                     for (Body catcher : catchBodies) {
                         catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
-                                catchB.body(catcher, catchB.parameters(), CodeTransformer.COPYING_TRANSFORMER));
+                                catchB.body(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
                     }
                     entryBlock.op(finallyBody == null
                             ? catchBuilder.noFinalizer()
                             : catchBuilder.finally_(finB ->
-                                    finB.body(finallyBody, List.of(), CodeTransformer.COPYING_TRANSFORMER)));
+                                    finB.body(finallyBody, List.of(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER)));
                 }
                 entryBlock.op(core_yield());
             });
