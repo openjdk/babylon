@@ -25,7 +25,6 @@
 package hat.codebuilders;
 
 import hat.dialect.HATBarrierOp;
-import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATOp;
 import hat.dialect.HATThreadOp;
 import jdk.incubator.code.Op;
@@ -89,8 +88,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp( HATPtrLengthOp hatPtrLengthOp);
 
-    T hatVarOp(HATMemoryVarOp.HATVarOp HATVarOp);
-
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -113,7 +110,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrLengthOp $ -> hatPtrLengthOp($);
                 case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
                 case HATMemoryLoadOp $ -> hatMemoryLoadOp($);
-                case HATMemoryVarOp.HATVarOp $ -> hatVarOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {

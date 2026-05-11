@@ -26,7 +26,6 @@ package hat.phases;
 
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATF16Op;
-import hat.dialect.HATMemoryVarOp;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -63,7 +62,6 @@ public record HATFP16Phase() implements HATPhase {
     private String findVarNameOrNull(Value v) {
         return  (v instanceof Op.Result r) ? switch (r.op()){
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp-> findVarNameOrNull(varLoadOp); //recurse
-            case HATMemoryVarOp.HATVarOp hatVarOp -> hatVarOp.varName();
             case CoreOp.VarOp varOp -> varOp.varName();
             default -> null;
         }:null;
@@ -77,7 +75,6 @@ public record HATFP16Phase() implements HATPhase {
     private static boolean isF16Local(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
-            case HATMemoryVarOp.HATVarOp _ -> true;
             case CoreOp.VarOp varOp ->
                     !(varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp)
                             || !invokeOp.invokeReference().name().equals("array");

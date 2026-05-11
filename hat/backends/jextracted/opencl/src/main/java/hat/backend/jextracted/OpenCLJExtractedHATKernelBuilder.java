@@ -32,7 +32,6 @@ import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import hat.dialect.HATMemoryVarOp;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -230,8 +229,4 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-        return blockComment("Not supported yet");
-    }
 }

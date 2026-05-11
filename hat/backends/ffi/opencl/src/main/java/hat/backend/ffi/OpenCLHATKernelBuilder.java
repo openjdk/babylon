@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
-import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
@@ -50,7 +49,6 @@ import jdk.incubator.code.Op;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.stream.Stream;
 
 import static optkl.IfaceValue.Vector.getVectorShape;
@@ -374,31 +372,4 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
         return self();
     }
-
-
-    @Override
-    public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-
-        VarTable.HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
-        switch (hATOpAttribute) {
-            case SHARED -> deviceDataTypeDeclaration(hatVarOp.classType(), hatVarOp);
-            case PRIVATE -> privateDeclaration(hatVarOp.classType(), hatVarOp);
-            case INIT -> suffix_t(hatVarOp.classType())
-                    .sp()
-                    .assign(
-                            _ -> id(hatVarOp.varName()),
-                            _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-            case VECTOR -> {
-                type(hatVarOp.buildVectorType()).sp().varName(hatVarOp).sp().equals().sp();
-                recurseResultOrThrow(hatVarOp.operands().getFirst());
-            }
-            case NARROW -> f16OrBF16(hatVarOp.float16Class()).sp().assign(
-                    _ -> id(hatVarOp.varName()),
-                    _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-            case null, default -> {
-            }
-        }
-        return self();
-    }
-
 }

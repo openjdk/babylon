@@ -32,7 +32,6 @@ import hat.device.NonMappableIface;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
-import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
@@ -47,7 +46,6 @@ import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
 import optkl.VarTable;
-import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
@@ -334,18 +332,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .forEach(sb::append);
         id(prefix+sb);
         return self();
-    }
-
-    public final T privateDeclaration(ClassType classType, HATMemoryVarOp.HATVarOp varOp) {
-        return suffix_t(classType).sp().varName(varOp);
-    }
-
-    public final T deviceDataTypeDeclaration(ClassType classType, HATMemoryVarOp.HATVarOp varOp) {
-        return HAT_LOCAL_MEM()
-                .sp()
-                .suffix_t(classType)
-                .sp()
-                .varName(varOp);
     }
 
     @Override
@@ -752,7 +738,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
-            case HATMemoryVarOp $ -> varName($);
             case null, default -> {}
         }
         return self();
@@ -771,7 +756,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
             case CoreOp.VarOp varOp -> varName(varOp);
-            case HATMemoryVarOp.HATVarOp hatVarOp -> varName(hatVarOp);
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
         equals().parenthesisIfNeeded( varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
@@ -843,13 +827,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                     // Check if the varOpLoad that could follow corresponds to a local/private type
                     // We need to check for the HATMemoryVarOp until we replace all HAT<>VarOps with CoreOp.VarOp
-                    boolean isLocalOrPrivateDS = (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof HATMemoryVarOp);
-
+                    boolean isLocalOrPrivateDS = false;
                     VarTable varTable = kernelCallGraph.getVarTable();
-
                     // Once we do the transition, the following condition applies.
-                    if (!isLocalOrPrivateDS && instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                    if (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                             && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof CoreOp.VarOp varOp
                             && varTable.doesVarOpExist(scopedCodeBuilderContext.funcOp().funcName(), varOp)) {
                         VarTable.HATOpAttribute attribute = varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);

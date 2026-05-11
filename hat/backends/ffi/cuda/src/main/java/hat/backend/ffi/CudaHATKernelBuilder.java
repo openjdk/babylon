@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
-import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
@@ -446,40 +445,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             return category;
         }
         return null;
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
-
-        VarTable.HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
-        switch (hATOpAttribute) {
-            case SHARED -> deviceDataTypeDeclaration(hatVarOp.classType(), hatVarOp);
-            case PRIVATE -> privateDeclaration(hatVarOp.classType(), hatVarOp);
-            case INIT -> suffix_t(hatVarOp.classType()).sp()
-                    .assign(
-                            _ -> id(hatVarOp.varName()),
-                            _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-            case VECTOR -> {
-                // handle vector types
-                type(hatVarOp.buildVectorType()).sp().varName(hatVarOp);
-                Value operand = hatVarOp.operands().getFirst();
-                if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-                    semicolon().nl();
-                } else {
-                    assign();
-                }
-                return recurseResultOrThrow(operand);
-            }
-            case NARROW -> {
-                // handle narrow types (F16 and BFloat)
-                return f16OrBF16(hatVarOp.float16Class()).sp().assign(
-                        _ -> id(hatVarOp.varName()),
-                        _ -> recurse(OpHelper.asResultOrThrow(hatVarOp.operands().getFirst()).op()));
-            }
-            case null, default -> {
-            }
-        }
-        return self();
     }
 
     @Override

@@ -25,7 +25,6 @@
 package hat.codebuilders;
 
 import hat.dialect.HATVectorOp;
-import hat.dialect.HATMemoryVarOp;
 import optkl.codebuilders.C99CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -33,11 +32,6 @@ public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends 
 
     protected C99HATCodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
-    }
-
-    public final T varName(HATMemoryVarOp hatLocalVarOp) {
-        id(hatLocalVarOp.varName());
-        return self();
     }
 
     public final T varName(HATVectorOp.HATVectorLoadOp vectorLoadOp) {
@@ -59,10 +53,4 @@ public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends 
         id(hatVectorVarLoadOp.varName());
         return self();
     }
-
-    public final T varName(HATMemoryVarOp.HATVarOp hatVarOp) {
-        id(hatVarOp.varName());
-        return self();
-    }
-
 }
