@@ -47,10 +47,6 @@ public class TestTryWithResources {
 
     record Resource(String suffix, boolean throwOnClose) implements Closeable {
 
-        Resource(boolean throwOnClose) {
-            this("", throwOnClose);
-        }
-
         Resource {
             log.append("open").append(suffix).append(';');
         }
