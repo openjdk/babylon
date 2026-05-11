@@ -45,50 +45,65 @@ import static org.junit.jupiter.api.Assertions.*;
 public class TestTryWithResources {
     static StringBuilder log;
 
-    record Resource(boolean throwOnClose) implements Closeable {
+    record Resource(String suffix, boolean throwOnClose) implements Closeable {
+
+        Resource(boolean throwOnClose) {
+            this("", throwOnClose);
+        }
 
         Resource {
-            log.append("open;");
+            log.append("open").append(suffix).append(';');
         }
 
         @Override
         public void close() throws IOException {
-            log.append("close;");
+            log.append("close").append(suffix).append(';');
             if (throwOnClose) {
+                log.append("throwClose").append(suffix).append(';');
                 throw new IOException();
             }
         }
     }
 
     @Reflect
-    public static void tryWithResources(boolean throwInBody, boolean throwOnClose) throws IOException {
+    public static void tryWithResources(boolean throwInBody, boolean throwOnClose1, boolean throwOnClose2, boolean throwOnClose3) throws IOException {
         log = new StringBuilder();
         try {
-            try (var r = new Resource(throwOnClose)) {
-                log.append("body;");
-                if (throwInBody) {
-                    throw new IllegalStateException("body");
+            try (var _ = new Resource("1", throwOnClose1)) {
+                log.append("outerBody;");
+                try (var _ = new Resource("2", throwOnClose2);
+                     var _ = new Resource("3", throwOnClose3)) {
+                    log.append("innerBody;");
+                    if (throwInBody) {
+                        log.append("throwBody;");
+                        throw new IllegalStateException("body");
+                    }
+                } finally {
+                    log.append("innerFinally;");
                 }
             } finally {
-                log.append("innerFinally;");
+                log.append("outerFinally;");
             }
         } finally {
-            log.append("outerFinally;");
+            log.append("end;");
         }
     }
 
     @Test
     public void testTryWithResources() throws Throwable {
-        Method m = TestTryWithResources.class.getDeclaredMethod("tryWithResources", boolean.class, boolean.class);
+        Method m = TestTryWithResources.class.getDeclaredMethod("tryWithResources", boolean.class, boolean.class, boolean.class, boolean.class);
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), Op.ofMethod(m).orElseThrow());
 
-        assertNull(mh.invoke(false, false));
-        assertEquals("open;body;close;innerFinally;outerFinally;", log.toString());
-        assertThrows(IllegalStateException.class, () -> mh.invoke(true,  false));
-        assertEquals("open;body;close;innerFinally;outerFinally;", log.toString());
-        assertThrows(IOException.class, () -> mh.invoke(false, true));
-        assertEquals("open;body;close;innerFinally;outerFinally;", log.toString());
-        assertThrows(IllegalStateException.class, () -> mh.invoke(true,  true));
-        assertEquals("open;body;close;innerFinally;outerFinally;", log.toString());
+        mh.invoke(false, false, false, false);
+        assertEquals("open1;outerBody;open2;open3;innerBody;close3;close2;innerFinally;close1;outerFinally;end;", log.toString());
+
+        assertEquals(0, assertThrows(IOException.class, () -> mh.invoke(false, false, true, false)).getSuppressed().length);
+        assertEquals("open1;outerBody;open2;open3;innerBody;close3;close2;throwClose2;innerFinally;close1;outerFinally;end;", log.toString());
+
+        assertEquals(1, assertThrows(IOException.class, () -> mh.invoke(false, false, true, true)).getSuppressed().length);
+        assertEquals("open1;outerBody;open2;open3;innerBody;close3;throwClose3;close2;throwClose2;innerFinally;close1;outerFinally;end;", log.toString());
+
+        assertEquals(3, assertThrows(IllegalStateException.class, () -> mh.invoke(true, true, true, true)).getSuppressed().length);
+        assertEquals("open1;outerBody;open2;open3;innerBody;throwBody;close3;throwClose3;close2;throwClose2;innerFinally;close1;throwClose1;outerFinally;end;", log.toString());
     }
 }
