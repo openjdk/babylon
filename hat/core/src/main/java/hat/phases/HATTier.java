@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import optkl.VarTable;
 import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
@@ -67,12 +68,12 @@ public class HATTier  {
                 new HATFP16Phase()
         );
 
-    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){
+    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
         phases.forEach(phase -> {
             if (showCompilationPhases) {
                 IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
-            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp()));
+            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp(), varTable));
             if (showCompilationPhases) {
                 IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }

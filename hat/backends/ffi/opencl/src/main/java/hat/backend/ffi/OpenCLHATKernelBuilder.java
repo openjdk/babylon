@@ -42,6 +42,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
+import optkl.VarTable;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
@@ -57,9 +58,11 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
     private final CoreOp.FuncOp funcOp;
+    private final VarTable varTable;
 
     protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         funcOp = scopedCodeBuilderContext.funcOp();
+        varTable = kernelCallGraph.getVarTable();
         super(kernelCallGraph,scopedCodeBuilderContext);
     }
 
@@ -267,12 +270,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return null;
     }
 
-    private HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
-        if (table.containsKey(funcOp.funcName())) {
-            return table.get(funcOp.funcName()).get(varOp);
-        } else {
-            throw new IllegalStateException("Function: " + funcOp.funcName() + " not registered");
-        }
+    private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
+        return varTable.getAttributeOrThrow(funcOp.funcName(), varOp);
     }
 
     @Override
@@ -281,7 +280,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             type((JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
             // First, we look at the attribute table for each varOp
-            HATOpAttribute attribute = getDeviceRegion(varOp);
+            VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
             if (attribute != null) {
                 // If attribute exits, we apply codegen based on attribute since there is a pre-search and
                 // categorization about the corresponding OpenCL code to be generated.
@@ -380,7 +379,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
+        VarTable.HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
         switch (hATOpAttribute) {
             case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));

@@ -37,6 +37,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 import optkl.codebuilders.BabylonOpDispatcher;
 
 import java.lang.invoke.MethodHandles;
@@ -49,12 +50,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static hat.dialect.HATVectorOp.HATVectorLoadOp.*;
+import static hat.dialect.HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp;
+import static hat.dialect.HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
-import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public abstract sealed class HATVectorPhase implements HATPhase {
 
@@ -156,16 +157,12 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         this.vectorOperation = vectorOperation;
     }
 
-    private void addVectorVarOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, Vector.Shape vectorShape) {
+    private void addVectorVarOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, Vector.Shape vectorShape, VarTable varTable) {
         Op.Result result = blockBuilder.op(varOp);
-        if (table.containsKey(functionName)) {
-            table.get(functionName).put(result.op(), BabylonOpDispatcher.HATOpAttribute.VECTOR);
-        } else {
-            throw new RuntimeException("Function Name: " + functionName + " not present");
-        }
+        varTable.addIfNeededOrThrow(functionName, result.op(), VarTable.HATOpAttribute.VECTOR);
     }
 
-    private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         this.lookup = lookup;
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
@@ -203,10 +200,10 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                 }
                 blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(copyLocation(varOp, memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp));
+                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
 
@@ -220,7 +217,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         };
     }
 
-    private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
@@ -246,10 +243,10 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                 );
                 blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeToVar.get(invokeOp), memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp));
+                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
     private Map<Op, Vector.Shape> getVectorShapeMap(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
@@ -267,7 +264,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
     }
 
 
-    private CoreOp.FuncOp dialectifyVectorOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyVectorOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
 
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
@@ -280,13 +277,13 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                 );
                 blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeOp, memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp));
+                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
-    private CoreOp.FuncOp dialectifyMutableOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyMutableOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
         return Trxfmr.of(lookup, funcOp).transform(ce -> vectorShapeMap.containsKey(ce), (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
@@ -299,14 +296,14 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                 );
                 blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeOp, makeOf)));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp));
+                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
 
-    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
         funcOp.elements().forEach(codeElement -> {
             if (invoke(lookup, codeElement) instanceof Invoke invoke
@@ -347,21 +344,21 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                 blockBuilder.context().mapValue(varLoadOp.result(), blockBuilder.op(copyLocation(varLoadOp, memoryViewOp)));
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         this.functionName = funcOp.funcName();
         switch (Objects.requireNonNull(vectorOperation)) {
-            case FLOAT4_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp);
-            case FLOAT2_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp);
-            case OF -> funcOp = dialectifyVectorOf(lookup,funcOp);
-            case MAKE_MUTABLE -> funcOp = dialectifyMutableOf(lookup,funcOp);
+            case FLOAT4_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp, varTable);
+            case FLOAT2_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp, varTable);
+            case OF -> funcOp = dialectifyVectorOf(lookup,funcOp, varTable);
+            case MAKE_MUTABLE -> funcOp = dialectifyMutableOf(lookup,funcOp, varTable);
             default -> {
                 // Find binary operations
-                funcOp = dialectifyVectorBinaryOps(lookup,funcOp);
-                funcOp = dialectifyVectorBinaryWithConcatenationOps(lookup,funcOp);
+                funcOp = dialectifyVectorBinaryOps(lookup,funcOp, varTable);
+                funcOp = dialectifyVectorBinaryWithConcatenationOps(lookup,funcOp, varTable);
             }
         }
         return funcOp;

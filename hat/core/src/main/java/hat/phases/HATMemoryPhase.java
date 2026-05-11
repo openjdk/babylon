@@ -33,7 +33,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.codebuilders.BabylonOpDispatcher.HATOpAttribute;
+import optkl.VarTable;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
@@ -44,7 +44,6 @@ import java.util.Set;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
-import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public abstract sealed class HATMemoryPhase implements HATPhase {
 
@@ -52,10 +51,10 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
 
     protected String functionName;
 
-    protected abstract HATOpAttribute getAttribute();
+    protected abstract VarTable.HATOpAttribute getAttribute();
 
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         functionName = funcOp.funcName();
         Set<CodeElement<?,?>> nodesInvolved = new LinkedHashSet<>();
         Set<JavaOp.InvokeOp> mapMe = new LinkedHashSet<>();
@@ -77,16 +76,12 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                 blockBuilder.op(invoke.op());
             } else if (OpHelper.Named.Variable.var(lookup,op) instanceof OpHelper.Named.Variable variable && nodesInvolved.contains(variable.op())) {
                 Op.Result op1 = blockBuilder.op(variable.op());
-                if (table.containsKey(functionName)) {
-                    table.get(functionName).put(op1.op(), getAttribute());
-                } else {
-                    throw new RuntimeException("Function Name: " + functionName + " not present");
-                }
+                varTable.addIfNeededOrThrow(functionName, op1.op(), getAttribute());
             } else {
                 blockBuilder.op(op);
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
 
@@ -100,8 +95,8 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected HATOpAttribute getAttribute() {
-            return HATOpAttribute.PRIVATE;
+        protected VarTable.HATOpAttribute getAttribute() {
+            return VarTable.HATOpAttribute.PRIVATE;
         }
 
     }
@@ -114,8 +109,8 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected HATOpAttribute getAttribute() {
-            return HATOpAttribute.SHARED;
+        protected VarTable.HATOpAttribute getAttribute() {
+            return VarTable.HATOpAttribute.SHARED;
         }
     }
 
@@ -132,14 +127,14 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }
 
         @Override
-        protected HATOpAttribute getAttribute() {
-            return HATOpAttribute.INIT;
+        protected VarTable.HATOpAttribute getAttribute() {
+            return VarTable.HATOpAttribute.INIT;
         }
 
         private static final Regex RESERVED_METHODS = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
 
         @Override
-        public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+        public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
             this.functionName = funcOp.funcName();
             Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
             Invoke.stream(lookup, funcOp)
@@ -165,14 +160,10 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     );
                 } else if (op instanceof CoreOp.VarOp varOp) {
                     Op.Result opResult = blockBuilder.op(varOp);
-                    if (table.containsKey(functionName)) {
-                        table.get(functionName).put(opResult.op(), HATOpAttribute.INIT);
-                    } else {
-                        throw new RuntimeException("Function Name: " + functionName + " not present");
-                    }
+                    varTable.addIfNeededOrThrow(functionName, opResult.op(), VarTable.HATOpAttribute.INIT);
                 }
                 return blockBuilder;
-            }).funcOp();
+            }, varTable).funcOp();
         }
     }
 }

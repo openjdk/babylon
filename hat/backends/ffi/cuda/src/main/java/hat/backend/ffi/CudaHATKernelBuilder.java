@@ -40,6 +40,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
+import optkl.VarTable;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
@@ -54,9 +55,11 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
     private final CoreOp.FuncOp funcOp;
+    private final VarTable varTable;
 
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         funcOp = scopedCodeBuilderContext.funcOp();
+        varTable = kernelCallGraph.getVarTable();
         super(kernelCallGraph, scopedCodeBuilderContext);
     }
 
@@ -427,12 +430,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 
-    private HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
-        if (table.containsKey(funcOp.funcName())) {
-            return table.get(funcOp.funcName()).get(varOp);
-        } else {
-            throw new IllegalStateException("Function: " + funcOp.funcName() + " not registered");
-        }
+    private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
+        return varTable.getAttributeOrThrow(funcOp.funcName(), varOp);
     }
 
     private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
@@ -452,7 +451,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatVarOp(HATMemoryVarOp.HATVarOp hatVarOp) {
 
-        HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
+        VarTable.HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
         switch (hATOpAttribute) {
             case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
             case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
@@ -490,7 +489,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             type((JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
             // First we look at the attribute for each varOp
-            HATOpAttribute attribute = getDeviceRegion(varOp);
+            VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
             if (attribute != null) {
                 // If attribute exits, we apply codegen based on attribute since there is a pre-search and
                 // categorization about the corresponding OpenCL code to be generated.

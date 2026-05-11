@@ -35,6 +35,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.Trxfmr;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
@@ -85,7 +86,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
     }
 
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
         Invoke.stream(lookup, funcOp).forEach(invoke -> {
             if (invoke.named(storeViewName()) && varAccess(lookup, invoke.opFromOperandNOrNull(1)) instanceof VarAccess varAccess
@@ -115,7 +116,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
                 context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
     public static final class Float4StorePhase extends HATVectorStorePhase {

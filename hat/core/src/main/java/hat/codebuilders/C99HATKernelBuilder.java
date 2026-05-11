@@ -46,6 +46,7 @@ import hat.types.S16ImplOfF16;
 import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
+import optkl.VarTable;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
@@ -796,8 +797,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
 
-    private boolean isAttributeSharedOrPrivate(HATOpAttribute attribute) {
-        return attribute == HATOpAttribute.INIT || attribute == HATOpAttribute.PRIVATE || attribute == HATOpAttribute.SHARED;
+    private boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute) {
+        return attribute == VarTable.HATOpAttribute.INIT || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED;
     }
 
     @Override
@@ -848,11 +849,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     boolean isLocalOrPrivateDS = (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                             && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof HATMemoryVarOp);
 
+                    VarTable varTable = kernelCallGraph.getVarTable();
+
                     // Once we do the transition, the following condition applies.
                     if (!isLocalOrPrivateDS && instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                             && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof CoreOp.VarOp varOp
-                            && BabylonOpDispatcher.table.get(scopedCodeBuilderContext.funcOp().funcName()).containsKey(varOp)) {
-                        HATOpAttribute attribute = BabylonOpDispatcher.table.get(scopedCodeBuilderContext.funcOp().funcName()).get(varOp);
+                            && varTable.doesVarOpExist(scopedCodeBuilderContext.funcOp().funcName(), varOp)) {
+                        VarTable.HATOpAttribute attribute = varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
                         isLocalOrPrivateDS = isAttributeSharedOrPrivate(attribute);
                     }
 

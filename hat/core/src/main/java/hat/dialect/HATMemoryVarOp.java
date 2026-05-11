@@ -31,12 +31,11 @@ import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import optkl.IfaceValue.Vector.Shape;
+import optkl.VarTable;
 import optkl.util.ops.StatementLikeOp;
 import optkl.util.ops.VarLikeOp;
 
 import java.util.Map;
-
-import static optkl.codebuilders.BabylonOpDispatcher.HATOpAttribute;
 
 public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, StatementLikeOp {
 
@@ -60,7 +59,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
         private final Class<?> float16Class;
         private final Shape vectorShape;
         private final ClassType klassType;
-        private final HATOpAttribute hATOpAttribute;
+        private final VarTable.HATOpAttribute hATOpAttribute;
 
         // Seems we need to add attributes in the form of( {"Attrib" -> object })
         // float16Class is only needed for F16   --> We can get it directly durng code gen
@@ -100,7 +99,7 @@ public abstract sealed class HATMemoryVarOp extends HATOp implements VarLikeOp, 
             return float16Class;
         }
 
-        public HATOpAttribute deviceRegion() {
+        public VarTable.HATOpAttribute deviceRegion() {
             return this.hATOpAttribute;
         }
 

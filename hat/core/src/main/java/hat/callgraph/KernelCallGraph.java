@@ -37,7 +37,7 @@ import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.codebuilders.BabylonOpDispatcher;
+import optkl.VarTable;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.Mutable;
@@ -46,12 +46,10 @@ import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static optkl.OpHelper.Invoke.invoke;
@@ -78,6 +76,7 @@ public class KernelCallGraph implements LookupCarrier {
     public boolean usesBarrier;
     public boolean usesAtomics;
     public final Set<String> accessedKernelContextFields;
+    private final VarTable varTable;
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp e) {
 
@@ -152,17 +151,15 @@ public class KernelCallGraph implements LookupCarrier {
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
         var entrypoint = new FuncOpCarrier.Impl(e);
-        if (!BabylonOpDispatcher.table.containsKey(entrypoint.funcOp().funcName())) {
-            BabylonOpDispatcher.table.put(entrypoint.funcOp().funcName(), new HashMap<>());
-        }
-        HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, computeCallGraph.computeContext.config().showCompilationPhases());
+        this.varTable = new VarTable();
+        varTable.addFunction(entrypoint.funcOp().funcName());
+
+        HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
 
         this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
         callDag.rankOrdered.forEach(f -> {
-            if (!BabylonOpDispatcher.table.containsKey(f.funcOp().funcName())) {
-                BabylonOpDispatcher.table.put(f.funcOp().funcName(), new HashMap<>());
-            }
-            HATTier.transform(HATTier.KernelPhases, lookup(), f, computeCallGraph.computeContext.config().showCompilationPhases());
+            varTable.addFunction(f.funcOp().funcName());
+            HATTier.transform(HATTier.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
         });
         if (showKernelCallDag) {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
@@ -183,5 +180,9 @@ public class KernelCallGraph implements LookupCarrier {
         if (showKernelIfaceDagProposedTypedefs) {
             ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType()));
         }
+    }
+
+    public VarTable getVarTable() {
+        return varTable;
     }
 }

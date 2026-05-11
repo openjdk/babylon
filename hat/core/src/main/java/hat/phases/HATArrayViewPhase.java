@@ -35,6 +35,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
+import optkl.VarTable;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.ops.VarLikeOp;
 
@@ -53,7 +54,6 @@ import static optkl.OpHelper.opFromFirstOperandOrThrow;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;
 import static optkl.OpHelper.resultFromFirstOperandOrThrow;
 import static optkl.OpHelper.resultFromOperandN;
-import static optkl.codebuilders.BabylonOpDispatcher.table;
 
 public record HATArrayViewPhase() implements HATPhase {
     public static boolean isVectorOp(MethodHandles.Lookup lookup, Op op) {
@@ -161,7 +161,7 @@ public record HATArrayViewPhase() implements HATPhase {
         return node;
     }
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         if (Invoke.stream(lookup, funcOp).noneMatch(
                 invoke -> isBufferArray(lookup, invoke.op())
         )) return funcOp;
@@ -170,11 +170,11 @@ public record HATArrayViewPhase() implements HATPhase {
 
         if (funcOp.elements().filter(e -> e instanceof CoreOp.VarOp).anyMatch(
                 e -> isVectorOp(lookup, ((CoreOp.VarOp) e))
-        )) funcOp = applyVectorView(lookup,funcOp);
+        )) funcOp = applyVectorView(lookup,funcOp, varTable);
         return funcOp;
     }
 
-    public CoreOp.FuncOp applyVectorView(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp applyVectorView(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         return Trxfmr.of(lookup,funcOp).transform((blockBuilder, op) -> {
             var context = blockBuilder.context();
             switch (op) {
@@ -195,12 +195,7 @@ public record HATArrayViewPhase() implements HATPhase {
                     if (isVectorOp(lookup,varOp)) {
                         Op.Result op1 = blockBuilder.op(varOp);
                         String functionName = funcOp.funcName();
-
-                        if (table.containsKey(functionName)) {
-                            table.get(functionName).put(op1.op(), BabylonOpDispatcher.HATOpAttribute.VECTOR);
-                        } else {
-                            throw new RuntimeException("Function Name: " + functionName + " not present");
-                        }
+                        varTable.addIfNeededOrThrow(functionName, op1.op(), VarTable.HATOpAttribute.VECTOR);
                         return blockBuilder;
                     }
                 }

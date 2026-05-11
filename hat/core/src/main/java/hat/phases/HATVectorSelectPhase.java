@@ -35,6 +35,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
@@ -47,7 +48,7 @@ import static optkl.OpHelper.copyLocation;
 public record HATVectorSelectPhase() implements HATPhase {
 
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
             // recursive
             static String vectorNameOrThrow(Value v) {
@@ -128,7 +129,7 @@ public record HATVectorSelectPhase() implements HATPhase {
                 context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
 }

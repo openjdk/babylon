@@ -29,6 +29,8 @@ import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
+import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.VarTable;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -44,7 +46,8 @@ public class OpenCLBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
+        VarTable varTable = new VarTable(computeContext.computeCallGraph().callDag.entryPoint.funcOp().funcName());
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp(), varTable));
     }
 
     @Override
