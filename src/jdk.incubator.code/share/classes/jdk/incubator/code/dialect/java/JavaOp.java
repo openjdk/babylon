@@ -5404,6 +5404,10 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
+            // Lowering is staged by repeated dispatching of the intermediate models through
+            // the lower method: extended try-with-resources -> basic try-with-resources ->
+            // try-catch-finally -> lower-level try form.
+            // There is no recursion here, each time it is structurally different TryOp.
             if (resourcesBody != null) {
                 b.body(!(resourcesBody.bodySignature().returnType() instanceof TupleType)
                         && catchBodies.isEmpty()
