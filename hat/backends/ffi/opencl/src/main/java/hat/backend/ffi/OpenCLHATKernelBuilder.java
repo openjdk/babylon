@@ -381,8 +381,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         VarTable.HATOpAttribute hATOpAttribute = hatVarOp.deviceRegion();
         switch (hATOpAttribute) {
-            case SHARED -> deviceDataTypeDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
-            case PRIVATE -> privateDeclaration(new DeviceArrayDeclaration(hatVarOp.classType(), hatVarOp));
+            case SHARED -> deviceDataTypeDeclaration(hatVarOp.classType(), hatVarOp);
+            case PRIVATE -> privateDeclaration(hatVarOp.classType(), hatVarOp);
             case INIT -> suffix_t(hatVarOp.classType())
                     .sp()
                     .assign(

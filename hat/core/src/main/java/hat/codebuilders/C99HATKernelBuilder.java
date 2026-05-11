@@ -336,19 +336,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public record DeviceArrayDeclaration(ClassType classType, HATMemoryVarOp varOp) {}
-
-
-    public final T privateDeclaration(DeviceArrayDeclaration deviceArrayDeclaration) {
-        return suffix_t(deviceArrayDeclaration.classType()).sp().varName(deviceArrayDeclaration.varOp());
+    public final T privateDeclaration(ClassType classType, HATMemoryVarOp.HATVarOp varOp) {
+        return suffix_t(classType).sp().varName(varOp);
     }
 
-    public final T deviceDataTypeDeclaration(DeviceArrayDeclaration deviceArrayDeclaration) {
+    public final T deviceDataTypeDeclaration(ClassType classType, HATMemoryVarOp.HATVarOp varOp) {
         return HAT_LOCAL_MEM()
                 .sp()
-                .suffix_t(deviceArrayDeclaration.classType())
+                .suffix_t(classType)
                 .sp()
-                .varName(deviceArrayDeclaration.varOp());
+                .varName(varOp);
     }
 
     @Override
