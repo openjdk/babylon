@@ -232,7 +232,7 @@ public final class SSA {
         private Value resolveValue(CodeContext context, Val val) {
             return switch (val) {
                 case Uninitialized _ -> throw new IllegalStateException("Uninitialized variable");
-                case Holder holder -> context.getValueOrDefault(holder.value(), holder.value());
+                case Holder holder -> context.queryValue(holder.value()).orElse(holder.value());
                 case Phi phi -> {
                     List<Phi> phis = this.additionalParameters.get(phi.block());
                     int additionalParameterIndex = phis.indexOf(phi);

@@ -30,7 +30,6 @@ import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATOp;
 import hat.dialect.HATPtrOp;
-import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import jdk.incubator.code.Op;
@@ -87,23 +86,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
 
-    T hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp);
-
-    T hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp);
-
-    T hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp);
-
-    T hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp);
-
-    T hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp);
-
-    T hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp);
-
-    T hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp);
-
-    T hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp);
-
-
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -131,14 +113,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp($);
                 case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
                 case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp($);
-                case HATTensorOp.TensorVarOp $ -> hatTensorVarOp($);
-                case HATTensorOp.TensorCreateOp $ -> hatTensorCreateOp($);
-                case HATTensorOp.TensorVarLoadOp $ -> hatTensorVarLoadOp($);
-                case HATTensorOp.TensorFillOp $ -> hatTensorFillOp($);
-                case HATTensorOp.TensorMMAOp $ -> hatTensorMMAOp($);
-                case HATTensorOp.TensorStoreLoadOp $ -> hatTensorStoreLoadOp($);
-                case HATTensorOp.TensorLoadOp $ -> hatTensorLoadOp($);
-                case HATTensorOp.TensorStoreOp $ -> hatTensorStoreOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {

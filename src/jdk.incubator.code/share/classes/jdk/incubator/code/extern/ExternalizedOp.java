@@ -102,7 +102,7 @@ public record ExternalizedOp(String name,
                 op.successors().stream().map(cc::getReferenceOrCreate).toList(),
                 op.resultType(),
                 op.externalize(),
-                op.bodies().stream().map(b -> b.copy(cc)).toList()
+                op.bodies().stream().map(b -> b.transform(cc, CodeTransformer.COPYING_TRANSFORMER)).toList()
         );
     }
 }

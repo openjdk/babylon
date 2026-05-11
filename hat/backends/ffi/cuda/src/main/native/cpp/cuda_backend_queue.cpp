@@ -151,31 +151,14 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
     int threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
 
-
-    int warpFactor[3] = {1, 1, 1};
-    if (kernelContext->wsx) {
-        warpFactor[0] = 32;
-    }
-    if (kernelContext->wsy) {
-        warpFactor[1] = 32;
-    }
-    if (kernelContext->wsz) {
-        warpFactor[2] = 32;
-    }
-
-    int globalSize[3] = {kernelContext->gsx, kernelContext->gsy, kernelContext->gsz};
-    globalSize[0] = kernelContext->tlx? ((kernelContext->gsx + kernelContext->tlx - 1) / kernelContext->tlx) * warpFactor[0]: kernelContext->gsx;
-    globalSize[1] = kernelContext->tly? ((kernelContext->gsy + kernelContext->tly - 1) / kernelContext->tly) * warpFactor[1]: kernelContext->gsy;
-    globalSize[2] = kernelContext->tlz? ((kernelContext->gsz + kernelContext->tlz - 1) / kernelContext->tlz) * warpFactor[2]: kernelContext->gsz;
-
-    int blocksPerGridX = ((globalSize[0] + threadsPerBlockX - 1) / threadsPerBlockX);
+    int blocksPerGridX = (kernelContext->gsx + threadsPerBlockX - 1) / threadsPerBlockX;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
     if (kernelContext->dimensions > 1) {
-        blocksPerGridY = ((globalSize[1] + threadsPerBlockY - 1) / threadsPerBlockY);
+        blocksPerGridY = (kernelContext->gsy + threadsPerBlockY - 1) / threadsPerBlockY;
     }
     if (kernelContext->dimensions > 2) {
-        blocksPerGridZ = ((globalSize[2] + threadsPerBlockZ - 1) / threadsPerBlockZ);
+        blocksPerGridZ = (kernelContext->gsz + threadsPerBlockZ - 1) / threadsPerBlockZ;
     }
 
     // Enable debug information with info: HAT=INFO

@@ -239,43 +239,6 @@ OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
     delete []events;
 }
 
-void printWarningLocalGroupResized(const size_t local_work_size[]) {
-    std::cout << "[Warning] Thread-Block size got automatically resized: [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
-}
-
-void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelContext, const size_t global_work_size[], size_t *local_work_size) {
-    const PlatformInfo platformInfo(backend);
-    size_t max_group_size = platformInfo.deviceInfo.maxWorkGroupSize;
-    size_t totalThreads = kernelContext->lsx * kernelContext->lsy * kernelContext->lsz;
-
-    // Adjust depending on the total number of threads in the local-work-group
-    while (totalThreads > max_group_size) {
-        // Here just a simple heuristic, starting with the first dimension, 16, 4, 1 local group sizxe
-        if (local_work_size[0] >= 16) {
-            local_work_size[0] /= 2;
-        } else if (local_work_size[1] >= 4) {
-            local_work_size[1] /= 2;
-        } else if (local_work_size[2] >= 1) {
-            local_work_size[2] /= 2;
-        }
-        totalThreads = local_work_size[0] * local_work_size[1] * local_work_size[2];
-        if (backend->config->info) {
-            printWarningLocalGroupResized(local_work_size);
-        }
-    }
-
-    // Adjust also depending on the global size. We can't launch more threads as local work than global work for
-    // each dimension
-    for (int i = 0; i < 3; i++) {
-        while (local_work_size[i] > global_work_size[i]) {
-            local_work_size[i] /= 2;
-            if (backend->config->info) {
-                printWarningLocalGroupResized(local_work_size);
-            }
-        }
-    }
-}
-
 void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
     size_t numDimensions = kernelContext->dimensions;
 
@@ -290,23 +253,6 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
         static_cast<size_t>(kernelContext->lsy),
         static_cast<size_t>(kernelContext->lsz),
     };
-
-    if (kernelContext->tlx > 0) {
-        global_work_size[0] /= kernelContext->tlx;
-    }
-    if (kernelContext->tly > 0) {
-        global_work_size[1] /= kernelContext->tly;
-    }
-    if (kernelContext->tlz > 0) {
-        global_work_size[2] /= kernelContext->tlz;
-    }
-
-    // In the OpenCL backend, we don't currently support warp-sizes to be able to run with OpenCL 1.2 (Apple)
-    // The CUDA backend supports warp-sizes
-
-    // Check the local-sizes fit
-    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
-    checkThreadBlockFits(backendInstance, kernelContext, global_work_size, local_work_size);
 
     if (backend->config->info) {
         backend->shortDeviceInfo();
