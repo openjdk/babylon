@@ -39,10 +39,18 @@ import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class TestLocation {
+    @Test
+    void testLocationIsRelative() {
+        CoreOp.FuncOp f = getFuncOp(this.getClass(), "f");
+        Assertions.assertFalse(Path.of(f.location().sourceRef()).isAbsolute());
+        System.out.println(f.location().sourceRef());
+    }
+
     @Test
     public void testLocation() {
         CoreOp.FuncOp f = getFuncOp(ClassWithReflectedMethod.class, "f");
