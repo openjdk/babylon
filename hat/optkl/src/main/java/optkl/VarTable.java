@@ -32,9 +32,20 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class VarTable {
 
-    // Note: this place is experimental: We probably need to place it along the kernel call graph
-    // FunctionName within a KernelCallGraph -> { Table: Op -> <Attributes> }
-    ConcurrentHashMap<String, HashMap<Op, HATOpAttribute>> table;
+    public enum HATOpAttribute {
+        UNKNOWN,
+        PRIVATE,
+        SHARED,
+        INIT,
+        NARROW,
+        VECTOR,
+    }
+
+    /**
+     * FunctionName within a KernelCallGraph -> { FunctioName -> { Table: Op -> <Attributes> } }
+     *
+     */
+    private final ConcurrentHashMap<String, HashMap<Op, HATOpAttribute>> table;
 
     public HATOpAttribute getAttributeOrThrow(String functionName, CoreOp.VarOp varOp) {
         if (table.containsKey(functionName)) {
@@ -52,15 +63,6 @@ public class VarTable {
         }
     }
 
-    public enum HATOpAttribute {
-        UNKNOWN,
-        PRIVATE,
-        SHARED,
-        INIT,
-        NARROW,
-        VECTOR,
-    }
-
     public VarTable() {
         this.table = new ConcurrentHashMap<>();
     }
@@ -69,7 +71,6 @@ public class VarTable {
         this.table = new ConcurrentHashMap<>();
         this.addFunction(function);
     }
-
 
     public void addFunction(String funcName) {
         if (!table.containsKey(funcName)) {
@@ -81,7 +82,7 @@ public class VarTable {
         if (table.containsKey(functionName)) {
             table.get(functionName).put(op, attribute);
         } else {
-            throw new RuntimeException("Function Name: " + functionName + " not present");
+            throw new IllegalStateException("Function Name: " + functionName + " not present");
         }
     }
 
