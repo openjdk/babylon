@@ -5408,8 +5408,8 @@ public sealed abstract class JavaOp extends Op {
                 b.body(!(resourcesBody.bodySignature().returnType() instanceof TupleType)
                         && catchBodies.isEmpty()
                         && finallyBody == null
-                                ? desugarBasicTryWithResources()
-                                : desugarTryWithResources(),
+                                ? lowerBasicTryWithResources()
+                                : normalizeTryWithResources(),
                         b.context().getValues(capturedValues()),
                         loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
@@ -5586,7 +5586,7 @@ public sealed abstract class JavaOp extends Op {
             return exit;
         }
 
-        /// Desugar try-with-resources in two stages.
+        /// Normalize try-with-resources in two stages.
         ///
         /// First normalize an extended form to nested basic forms, one resource per
         /// level, left to right.
@@ -5671,19 +5671,19 @@ public sealed abstract class JavaOp extends Op {
         /// @jls 14.20.3 try-with-resources
         /// @jls 14.20.3.1 Basic try-with-resources
         /// @jls 14.20.3.2 Extended try-with-resources
-        Body desugarTryWithResources() {
+        Body normalizeTryWithResources() {
             return syntheticBody(entryBlock -> {
-                Function<Block.Builder, TryOp> desugaredTry = block -> {
+                Function<Block.Builder, TryOp> normalizedTry = block -> {
                     block.context().mapValues(capturedValues(), entryBlock.parameters());
                     return !(resourcesBody.bodySignature().returnType() instanceof TupleType)
                             ? try_(resourcesBody.copy(block.context()), body.copy(block.context()), List.of(), null)
-                            : desugarExtendedTryWithResources(block.parentBody(), block.context(), 0);
+                            : normalizeExtendedTryWithResources(block.parentBody(), block.context(), 0);
                 };
                 if (catchBodies.isEmpty() && finallyBody == null) {
-                    entryBlock.op(desugaredTry.apply(entryBlock));
+                    entryBlock.op(normalizedTry.apply(entryBlock));
                 } else {
                     CatchBuilder catchBuilder = try_(entryBlock.parentBody(), tryB -> {
-                        tryB.op(desugaredTry.apply(tryB));
+                        tryB.op(normalizedTry.apply(tryB));
                         tryB.op(core_yield());
                     });
                     for (Body catcher : catchBodies) {
@@ -5699,11 +5699,11 @@ public sealed abstract class JavaOp extends Op {
             });
         }
 
-        /// Desugar basic try-with-resources to `try / catch / finally`.
+        /// Lower basic try-with-resources to `try / catch / finally`.
         ///
         /// Keeps the primary exception from the try body and adds as suppressed an exception from resource close.
         ///
-        /// Use standalone synthetic body, so the desugared model is complete and can be further transformed.
+        /// Use standalone synthetic body, so the lowerder model is complete and can be further transformed.
         ///
         /// ```
         /// resource = acquire()
@@ -5726,7 +5726,7 @@ public sealed abstract class JavaOp extends Op {
         /// ```
         ///
         /// @jls 14.20.3.1 Basic try-with-resources
-        Body desugarBasicTryWithResources() {
+        Body lowerBasicTryWithResources() {
             CodeType resourceType = resourcesBody.bodySignature().returnType();
             assert !(resourceType instanceof TupleType);
             return syntheticBody(entryBlock -> {
@@ -5784,7 +5784,7 @@ public sealed abstract class JavaOp extends Op {
         /// Asumes the resources (uni)body can be split into slices per resource.
         ///
         /// @jls 14.20.3.2 Extended try-with-resources
-        TryOp desugarExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, int index) {
+        TryOp normalizeExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, int index) {
             List<Op> resourceOps = resourcesBody.entryBlock().ops();
             CodeType resourceType = ((TupleType)resourcesBody.bodySignature().returnType()).componentTypes().get(index);
             List<Value> resourceValues = ((CoreOp.TupleOp)((CoreOp.YieldOp)(resourceOps.getLast())).yieldValue().result().op()).operands();
@@ -5799,7 +5799,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder bodyB = basicBody.entryBlock();
             cc.mapValue(resourceValues.get(index), bodyB.parameters().getFirst());
             if (index + 1 < resourceValues.size()) {
-                bodyB.op(desugarExtendedTryWithResources(basicBody, cc, index + 1));
+                bodyB.op(normalizeExtendedTryWithResources(basicBody, cc, index + 1));
                 bodyB.op(core_yield());
             } else {
                 bodyB.body(body, cc.getValues(resourceValues), CodeTransformer.COPYING_TRANSFORMER);
