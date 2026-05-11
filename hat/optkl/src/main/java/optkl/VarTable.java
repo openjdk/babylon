@@ -73,14 +73,12 @@ public class VarTable {
     }
 
     public void addFunction(String funcName) {
-        if (!table.containsKey(funcName)) {
-            table.put(funcName, new ConcurrentHashMap<>());
-        }
+        table.putIfAbsent(funcName, new ConcurrentHashMap<>());
     }
 
     public void addIfNeededOrThrow(String functionName, Op op, HATOpAttribute attribute) {
         if (table.containsKey(functionName)) {
-            table.get(functionName).put(op, attribute);
+            table.get(functionName).putIfAbsent(op, attribute);
         } else {
             throw new IllegalStateException("Function Name: " + functionName + " not present");
         }
@@ -88,10 +86,10 @@ public class VarTable {
 
     public void passthrough(String functionName, Op oldOp, Op newOp) {
         if (table.containsKey(functionName)) {
-            ConcurrentHashMap<Op, HATOpAttribute> opDeviceRegionHashMap = table.get(functionName);
-            if (opDeviceRegionHashMap.containsKey(oldOp)) {
-                opDeviceRegionHashMap.put(newOp, opDeviceRegionHashMap.get(oldOp));
-            }
+            table.get(functionName).computeIfPresent(oldOp, (k, v) -> {
+                table.get(functionName).put(newOp, v);
+                return v;
+            });
         }
     }
 }
