@@ -28,7 +28,7 @@ public final class Inliner {
      * Inlines the invokable operation into the given block builder and returns the block builder from which to
      * continue building.
      * <p>
-     * This method {@link Block.Builder#body(Body, List, CodeContext, CodeTransformer) transforms} the
+     * This method {@link Block.Builder#transformBody(Body, List, CodeContext, CodeTransformer) transforms} the
      * body of the invokable operation with the given arguments, a new context, and an code transformer that
      * replaces return operations by applying the given consumer to a block builder and a return value.
      * <p>
@@ -60,7 +60,7 @@ public final class Inliner {
      *
      * @param _this the block builder
      * @param invokableOp the invokable operation
-     * @param args the arguments to map to the invokable operation's parameters
+     * @param args the arguments to map, in order, from a prefix of the invokable operation's parameters
      * @param inlineConsumer the consumer applied to process the return from the invokable operation.
      *                       This is called once for each grandparent body of a return operation, with a block to
      *                       build replacement operations and the return value, or null for void return.
@@ -72,7 +72,7 @@ public final class Inliner {
                          BiConsumer<Block.Builder, Value> inlineConsumer) {
         Map<Body, Block.Builder> returnBlocks = new HashMap<>();
         // Create new context, ensuring inlining is isolated
-        _this.body(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
+        _this.transformBody(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
             // If the return operation is associated with the invokable operation
             if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
                 // Compute the return block

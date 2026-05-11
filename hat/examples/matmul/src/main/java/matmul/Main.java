@@ -30,7 +30,6 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
-import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.examples.common.HATExampleException;
 import hat.examples.common.ParseArgs;

@@ -304,12 +304,14 @@ final class UnresolvedTypesTransformer {
                 case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut ->
                     cc.mapValue(op.result(), block.op(vop.isUninitialized()
                             ? CoreOp.var(vop.varName(), resolvedMap.get(ut))
-                            : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
+                            : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.queryValue(vop.initOperand()).orElse(vop.initOperand()))));
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
                     List<Value> opers = alop.operands();
                     Value array = opers.getFirst();
                     Value index = opers.getLast();
-                    cc.mapValue(op.result(), block.op(JavaOp.arrayLoadOp(cc.getValueOrDefault(array, array), cc.getValueOrDefault(index, index))));
+                    cc.mapValue(op.result(), block.op(JavaOp.arrayLoadOp(
+                            cc.queryValue(array).orElse(array),
+                            cc.queryValue(index).orElse(index))));
                 }
                 default ->
                     block.op(op);
@@ -340,12 +342,12 @@ final class UnresolvedTypesTransformer {
         Value first = operands.getFirst();
         boolean changed = false;
         if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
-            cc.mapValue(first, block.op(JavaOp.conv(firstType, cc.getValueOrDefault(first, first))));
+            cc.mapValue(first, block.op(JavaOp.conv(firstType, cc.queryValue(first).orElse(first))));
             changed = true;
         }
         Value second = operands.get(1);
         if (second.type() instanceof PrimitiveType && !second.type().equals(secondType)) {
-            cc.mapValue(second, block.op(JavaOp.conv(secondType, cc.getValueOrDefault(second, second))));
+            cc.mapValue(second, block.op(JavaOp.conv(secondType, cc.queryValue(second).orElse(second))));
             changed = true;
         }
         if (changed) {

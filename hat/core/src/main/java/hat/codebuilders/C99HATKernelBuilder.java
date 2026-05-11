@@ -33,14 +33,11 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
-import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types.Tensor;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
@@ -49,7 +46,6 @@ import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import optkl.exceptions.CodeGenException;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Op;
@@ -59,7 +55,6 @@ import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
-import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.SequencedSet;
 import java.util.concurrent.ThreadLocalRandom;
@@ -195,12 +190,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id("HAT_BSZ");
     }
 
-    public final T HAT_WARP_SIZE() {
-        return hatWarpSize();
-    }
-
-    protected abstract T hatWarpSize();
-
     @Override
     public final T hatThreadIdOp( HATThreadOp threadOp) {
         return (switch (threadOp) {
@@ -222,7 +211,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATThreadOp.HAT_BS.HAT_BSX _ -> HAT_BSX();
             case HATThreadOp.HAT_BS.HAT_BSY _ -> HAT_BSY();
             case HATThreadOp.HAT_BS.HAT_BSZ _ -> HAT_BSZ();
-            case HATThreadOp.HAT_WARP_SIZE  _ -> HAT_WARP_SIZE();
         });
     }
 
@@ -753,7 +741,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATVectorOp.HATVectorLoadOp $ -> varName($);
             case HATVectorOp.HATVectorBinaryOp $ -> varName($);
             case HATF16Op.HATF16VarOp $ -> varName($);
-            case HATTensorOp.TensorVarOp $ -> varName($);
             case null, default -> {
             }
         }
@@ -778,7 +765,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
             case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp);
             case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);
-            case HATTensorOp.TensorVarOp hattensorVarOp -> varName(hattensorVarOp);
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
         equals().parenthesisIfNeeded( varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
@@ -927,39 +913,4 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected abstract String mapMathIntrinsic(String name);
-
-    protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
-        Value a = isColumnMajor ? iIndex : jIndex;
-        Value b = isColumnMajor ? jIndex : iIndex;
-
-        if (a instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        plus();
-        oparen();
-        if (b instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        mul();
-        if (ldSize instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        cparen();
-        return self();
-    }
-
-    protected boolean isColumnMajor(Value tensorLayout) {
-        if (tensorLayout.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
-            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
-            if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
-                return true;
-            } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
-                return false;
-            } else {
-                throw new RuntimeException("[Error]");
-            }
-        }
-        return false;
-    }
-
 }

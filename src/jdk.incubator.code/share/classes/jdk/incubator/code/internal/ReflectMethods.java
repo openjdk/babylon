@@ -1388,7 +1388,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             FunctionType matchFuncType = CoreType.functionType(JavaType.VOID, patternDescParams);
 
             // Create the match body, assigning pattern values to pattern variables
-            Body.Builder matchBody = Body.Builder.of(patternBody.ancestorBody(), matchFuncType);
+            Body.Builder matchBody = Body.Builder.of(patternBody.connectedAncestorBody(), matchFuncType);
             Block.Builder matchBuilder = matchBody.entryBlock();
             for (int i = 0; i < variables.size(); i++) {
                 Value v = matchBuilder.parameters().get(i);
