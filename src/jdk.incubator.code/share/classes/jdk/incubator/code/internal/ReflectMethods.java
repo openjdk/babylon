@@ -228,7 +228,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     log.note(Notes.ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
                 // create a static method that returns the op
-                Name methodName = methodName(symbolToMethodRef(tree.sym));
+                Name methodName = methodName(symbolToErasedMethodRef(tree.sym));
                 opMethodDecls.add(opMethodDecl(methodName));
                 ops.put(methodName.toString(), funcOp);
             }
@@ -859,7 +859,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             append(CoreOp.varStore(varOp, result));
                         }
                         case FIELD -> {
-                            FieldRef fd = symbolToFieldRef(sym, symbolSiteType(sym));
+                            FieldRef fd = symbolToErasedFieldRef(sym, symbolSiteType(sym));
                             if (sym.isStatic()) {
                                 append(JavaOp.fieldStore(fd, result));
                             } else {
@@ -882,7 +882,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     result = toValue(tree.rhs, target);
 
                     Symbol sym = assign.sym;
-                    FieldRef fr = symbolToFieldRef(sym, assign.selected.type);
+                    FieldRef fr = symbolToErasedFieldRef(sym, assign.selected.type);
                     if (sym.isStatic()) {
                         append(JavaOp.fieldStore(fr, result));
                     } else {
@@ -973,7 +973,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             append(CoreOp.varStore(varOp, r));
                         }
                         case FIELD -> {
-                            FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
+                            FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
 
                             Op.Result lhsOpValue;
                             CodeType resultType = typeToCodeType(sym.type);
@@ -1003,7 +1003,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     Value receiver = toValue(assign.selected);
 
                     Symbol sym = assign.sym;
-                    FieldRef fr = symbolToFieldRef(sym, assign.selected.type);
+                    FieldRef fr = symbolToErasedFieldRef(sym, assign.selected.type);
 
                     Op.Result lhsOpValue;
                     CodeType resultType = typeToCodeType(sym.type);
@@ -1057,7 +1057,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         Assert.check(sym.isFinal());
                         result = loadVar(sym);
                     } else {
-                        FieldRef fr = symbolToFieldRef(sym, symbolSiteType(sym));
+                        FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
                         CodeType resultType = typeToCodeType(sym.type);
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
@@ -1116,7 +1116,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                             result = thisValue();
                         } else {
-                            FieldRef fr = symbolToFieldRef(sym, qualifierTarget.hasTag(NONE) ?
+                            FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
                             CodeType resultType = typeToCodeType(types.memberType(tree.selected.type, sym));
                             if (sym.isStatic()) {
@@ -1171,7 +1171,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
-                    MethodRef mr = symbolToMethodRef(sym, symbolSiteType(sym));
+                    MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
                     Value res = append(JavaOp.invoke(ik, tree.varargsElement != null,
                             typeToCodeType(meth.type.getReturnType()), mr, args));
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
@@ -1202,7 +1202,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
-                    MethodRef mr = symbolToMethodRef(sym, qualifierTarget.hasTag(NONE) ?
+                    MethodRef mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
                             access.selected.type : qualifierTarget);
                     JavaType returnType = typeToCodeType(meth.type.getReturnType());
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
@@ -1440,7 +1440,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // We need to manually construct the constructor reference,
             // as the signature of the constructor symbol is not augmented
             // with enclosing this and captured params.
-            MethodRef methodRef = symbolToMethodRef(tree.constructor);
+            MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
             argtypes.addAll(methodRef.signature().parameterTypes());
             FunctionType constructorSignature = CoreType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
@@ -2490,7 +2490,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
         CoreOp.FuncOp scanMethod(JCBlock body) {
             scan(body, ReflectMethods.this.currentNode());
             appendReturnOrUnreachable(body);
-            CoreOp.FuncOp func = CoreOp.func(name.toString(), stack.body);
+            MethodRef sourceRef = symbolToMethodRef(((JCMethodDecl) tree).sym);
+            CoreOp.FuncOp func = CoreOp.func(sourceRef, stack.body);
             func.setLocation(generateLocation(tree, true));
             return func;
         }
@@ -2817,7 +2818,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     ub = types.erasure(ub);
                 }
                 yield t.tsym.owner.kind == Kind.MTH ?
-                    JavaType.typeVar(t.tsym.name.toString(), symbolToMethodRef(t.tsym.owner),
+                    JavaType.typeVar(t.tsym.name.toString(), symbolToErasedMethodRef(t.tsym.owner),
                             typeToCodeType(ub)) :
                     JavaType.typeVar(t.tsym.name.toString(),
                             (jdk.incubator.code.dialect.java.ClassType)symbolToErasedDesc(t.tsym.owner),
@@ -2877,14 +2878,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
         return isMember ? currentClassSym.type : s.owner.type;
     }
 
-    FieldRef symbolToFieldRef(Symbol s, Type site) {
+    FieldRef symbolToErasedFieldRef(Symbol s, Type site) {
         // @@@ Made Gen::binaryQualifier public, duplicate logic?
         // Ensure correct qualifying class is used in the reference, see JLS 13.1
         // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-        return symbolFieldRef(gen.binaryQualifier(s, types.erasure(site)));
+        return symbolErasedFieldRef(gen.binaryQualifier(s, types.erasure(site)));
     }
 
-    FieldRef symbolFieldRef(Symbol s) {
+    FieldRef symbolErasedFieldRef(Symbol s) {
         Type erasedType = s.erasure(types);
         return FieldRef.field(
                 typeToCodeType(s.owner.erasure(types)),
@@ -2892,20 +2893,27 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 typeToCodeType(erasedType));
     }
 
-    MethodRef symbolToMethodRef(Symbol s, Type site) {
+    MethodRef symbolToErasedMethodRef(Symbol s, Type site) {
         // @@@ Made Gen::binaryQualifier public, duplicate logic?
         // Ensure correct qualifying class is used in the reference, see JLS 13.1
         // https://docs.oracle.com/javase/specs/jls/se20/html/jls-13.html#jls-13.1
-        return symbolToMethodRef(gen.binaryQualifier(s, types.erasure(site)));
+        return symbolToErasedMethodRef(gen.binaryQualifier(s, types.erasure(site)));
     }
 
-    MethodRef symbolToMethodRef(Symbol s) {
+    MethodRef symbolToErasedMethodRef(Symbol s) {
         Type erasedType = s.erasure(types);
         return MethodRef.method(
                 typeToCodeType(s.owner.erasure(types)),
                 s.name.toString(),
                 typeToCodeType(erasedType.getReturnType()),
                 erasedType.getParameterTypes().stream().map(this::typeToCodeType).toArray(CodeType[]::new));
+    }
+
+    MethodRef symbolToMethodRef(Symbol sym) {
+        return MethodRef.method(typeToCodeType(sym.owner.type),
+                sym.name.toString(),
+                typeToCodeType(sym.type.getReturnType()),
+                sym.type.getParameterTypes().stream().map(ReflectMethods.this::typeToCodeType).toList());
     }
 
     FunctionType typeToFunctionType(Type t) {

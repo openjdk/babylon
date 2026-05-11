@@ -89,13 +89,18 @@ public sealed abstract class CoreOp extends Op {
          */
         public static class Builder {
             final Body.Builder ancestorBody;
-            final String funcName;
-            final FunctionType signature;
+            final MethodRef source;
 
             Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
                 this.ancestorBody = ancestorBody;
-                this.funcName = funcName;
-                this.signature = signature;
+                this.source = MethodRef.method(JavaType.VOID, funcName, signature);
+            }
+
+            Builder(Body.Builder ancestorBody, MethodRef source) {
+                Objects.requireNonNull(source, "func source can't be null");
+
+                this.ancestorBody = ancestorBody;
+                this.source = source;
             }
 
             /**
@@ -105,9 +110,13 @@ public sealed abstract class CoreOp extends Op {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, signature);
+                Body.Builder body = Body.Builder.of(ancestorBody, source.signature());
                 c.accept(body.entryBlock());
-                return new FuncOp(funcName, body);
+                if (source.refType().equals(JavaType.VOID)) {
+                    return new FuncOp(source.name(), body);
+                } else {
+                    return new FuncOp(source, body);
+                }
             }
         }
 
@@ -117,35 +126,45 @@ public sealed abstract class CoreOp extends Op {
          * The externalized attribute modeling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
+        static final String ATTRIBUTE_FUNC_SOURCE = NAME + ".source";
 
-        final String funcName;
         final Body body;
+        final MethodRef source;
 
         FuncOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
+            if (!def.operands().isEmpty() || def.bodyDefinitions().size() != 1) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
+            Body.Builder body = def.bodyDefinitions().getFirst();
+            MethodRef source = def.extractAttributeValue(ATTRIBUTE_FUNC_SOURCE, false,
                     v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+                        case MethodRef mr -> mr;
+                        case null -> {
+                            String fn = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
+                                    u -> switch (u) {
+                                        case String s -> s;
+                                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
+                                    });
+                            yield MethodRef.method(JavaType.VOID, fn, body.bodySignature());
+                        }
+                        default -> throw new UnsupportedOperationException("Unsupported func source:" + v);
                     });
 
-            this(funcName, def.bodyDefinitions().get(0));
+            this(source, body);
         }
 
         FuncOp(FuncOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.funcName = that.funcName;
+            this.source = that.source;
             this.body = that.body.transform(cc, ct).build(this);
         }
 
         FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.funcName = funcName;
+            this.source = MethodRef.method(that.source.refType(), funcName, that.source.signature());
             this.body = that.body.transform(cc, ct).build(this);
         }
 
@@ -178,7 +197,38 @@ public sealed abstract class CoreOp extends Op {
         FuncOp(String funcName, Body.Builder bodyBuilder) {
             super(List.of());
 
-            this.funcName = funcName;
+            this.source = MethodRef.method(JavaType.VOID, funcName, bodyBuilder.bodySignature());
+            this.body = bodyBuilder.build(this);
+        }
+
+        private static void validateSourceRef(MethodRef source, Body.Builder bodyBuilder) {
+            List<CodeType> sourceParamTypes = source.signature().parameterTypes();
+            List<CodeType> bodyParamTypes = bodyBuilder.bodySignature().parameterTypes();
+            int d = bodyParamTypes.size() - sourceParamTypes.size();
+            if (d != 0 && d != 1) {
+                throw new UnsupportedOperationException("func source and func body have incompatible arity");
+            }
+
+            if (d == 1 && !source.refType().equals(bodyParamTypes.getFirst())) {
+                throw new UnsupportedOperationException("func source ref type not equal to func body first parameter type");
+            }
+
+            if (!sourceParamTypes.equals(bodyParamTypes.subList(d, bodyParamTypes.size()))) {
+                throw new UnsupportedOperationException("The parameters types of func source and func body are not equal");
+            }
+
+            if (!source.signature().returnType().equals(bodyBuilder.bodySignature().returnType())) {
+                throw new UnsupportedOperationException("The return type of func source and func body are not equal");
+            }
+        }
+
+        FuncOp(MethodRef source, Body.Builder bodyBuilder) {
+            Objects.requireNonNull(source, "func source can't be null");
+            validateSourceRef(source, bodyBuilder);
+
+            super(List.of());
+
+            this.source = source;
             this.body = bodyBuilder.build(this);
         }
 
@@ -189,14 +239,20 @@ public sealed abstract class CoreOp extends Op {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", funcName);
+            Map<String, Object> m = new HashMap<>();
+            if (wasSourceProvided()) {
+                m.put(ATTRIBUTE_FUNC_SOURCE, source);
+            } else {
+                m.put("", source.name());
+            }
+            return m;
         }
 
         /**
          * {@return the function name}
          */
         public String funcName() {
-            return funcName;
+            return source.name();
         }
 
         @Override
@@ -214,6 +270,14 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public CodeType resultType() {
             return JavaType.VOID;
+        }
+
+        public Optional<MethodRef> sourceRef() {
+            return wasSourceProvided() ? Optional.of(source) : Optional.empty();
+        }
+
+        private boolean wasSourceProvided() {
+            return !source.refType().equals(JavaType.VOID);
         }
     }
 
@@ -1529,6 +1593,16 @@ public sealed abstract class CoreOp extends Op {
     }
 
     /**
+     * Creates a function operation builder.
+     *
+     * @param source reference to the method the function operation models
+     * @return the function operation builder
+     */
+    public static FuncOp.Builder func(MethodRef source) {
+        return new FuncOp.Builder(null, source);
+    }
+
+    /**
      * Creates a function operation.
      *
      * @param funcName the function name
@@ -1537,6 +1611,17 @@ public sealed abstract class CoreOp extends Op {
      */
     public static FuncOp func(String funcName, Body.Builder body) {
         return new FuncOp(funcName, body);
+    }
+
+    /**
+     * Creates a function operation.
+     *
+     * @param source reference to the method the function operation models
+     * @param body   the body builder defining the function body
+     * @return the function operation
+     */
+    public static FuncOp func(MethodRef source, Body.Builder body) {
+        return new FuncOp(source, body);
     }
 
     /**
