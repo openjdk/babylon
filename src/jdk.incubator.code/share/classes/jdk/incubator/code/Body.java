@@ -596,18 +596,14 @@ public final class Body implements CodeElement<Body, Block> {
 
             for (Block b : blocks) {
                 for (Block.Reference s : b.successors()) {
-                    if (s.arguments().size() == s.target.parameters().size()) {
-                        continue;
+                    // @@@ model implicit params ?
+                    // block may have optional/implicit params at the end
+                    // so num of arg is same or less than num of params
+                    Block target = s.target;
+                    if (s.arguments().size() > target.parameters().size()) {
+                        String m = String.format("Reference to block %s with %d arguments but the block has %d parameters", target, s.arguments().size(), target.parameters().size());
+                        throw new IllegalStateException(m);
                     }
-                    // catch blocks has one param for the exception, and are referenced with no arg
-                    boolean isCatchBlock = (b.terminatingOp() instanceof JavaOp.ExceptionRegionEnter e && e.catchReferences().contains(s)) ||
-                            (b.terminatingOp() instanceof JavaOp.ExceptionRegionExit ee && ee.catchReferences().contains(s));
-                    if (isCatchBlock && s.target.parameters().size() == 1 && s.arguments().isEmpty()) {
-                        continue;
-                    }
-                    String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
-                            s.target, s.arguments().size(), s.target.parameters().size());
-                    throw new IllegalStateException(m);
                 }
             }
 
