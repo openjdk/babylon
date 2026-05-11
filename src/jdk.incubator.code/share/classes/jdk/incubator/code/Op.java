@@ -54,21 +54,24 @@ import java.util.function.BiFunction;
 /**
  * An operation modeling a unit of program behavior.
  * <p>
- * An operation might model the addition of two integers, or a method invocation expression.
- * Alternatively an operation may model something more complex like method declarations, lambda expressions, or
- * try statements. In such cases an operation will contain one or more bodies modeling the nested structure.
+ * An operation has direct state and zero or more bodies. An operation's direct state consists of zero or more operands,
+ * zero or more successors (references to other blocks), and operation-specific state.
  * <p>
- * The process of building an operation starts with construction of an <i>unattached</i> operation. The
- * operation-specific state and any descendant elements of the unattached operation are fixed at construction.
+ * An operation might model the addition of two integers, or a method invocation expression. Alternatively an operation
+ * may model something more complex like method declarations, lambda expressions, or try statements. In such cases an
+ * operation will contain one or more bodies modeling the nested structure.
+ * <p>
+ * The process of building an operation starts with construction of an <i>unattached</i> operation. The direct state and
+ * any bodies of the unattached operation are fixed at construction.
  * <p>
  * Building then progresses in one of two ways:
  * <ol>
  * <li>
  * the unattached operation is <i>attached</i> to a block, as its parent block, by using a block builder to
- * {@link Block.Builder#op(Op) append} it to a block. The attached operation has a permanently
- * non-{@code null} {@link #result result} that can be used as an operand of subsequent constructed operations. The
- * block being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this
- * operation and any attempt to access the block throws {@link IllegalStateException}.
+ * {@link Block.Builder#op(Op) append} it to a block. The attached operation has a permanently non-{@code null}
+ * {@link #result result} that can be used as an operand of subsequent constructed operations. The block being built is
+ * not <a href="Body.Builder.html#body-building-observability">observable</a> through this operation and any attempt to
+ * access the block throws {@link IllegalStateException}.
  * <li>
  * the unattached operation is built as a {@link #isRoot() <i>root</i>} operation. The root operation's
  * {@link #result result} and {@link #parent parent} are always {@code null}.
@@ -353,14 +356,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     final List<Value> operands;
 
     /**
-     * Constructs an operation from a given operation.
+     * Constructs an operation with operands mapped from, and location copied from, the given operation.
      * <p>
-     * The constructor defers to the {@link Op#Op(List) operands} constructor passing a list of values computed, in
-     * order, by mapping the given operation's operands using the code context. The constructor also assigns the new
-     * operation's location to the given operation's location, if any.
+     * The constructed operation's operands are the values computed, in order, by mapping the given operation's operands
+     * using the given code context. The new operation's location is the given operation's location, if any.
      *
-     * @param that the given operation.
-     * @param cc   the code context.
+     * @param that the given operation
+     * @param cc   the code context
      */
     protected Op(Op that, CodeContext cc) {
         List<Value> outputOperands = cc.getValues(that.operands);
@@ -372,16 +374,24 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Copies this operation and transforms its bodies, if any.
+     * Transforms this operation.
      * <p>
-     * Bodies are {@link Body#transform(CodeContext, CodeTransformer) transformed} with the given code context and
-     * code transformer.
+     * Implementations of this method return an unattached transformed copy of this operation.
+     * <p>
+     * An implementation copies this operation's direct state and transforms this operation's bodies, if any. Operands
+     * are copied by mapping this operation's operands, in order, with the given code context. Successors are copied as
+     * specified by {@link CodeContext#getReferenceOrCreate(Block.Reference)}. Operation-specific state is copied as
+     * appropriate for the operation.
+     * <p>
+     * Bodies are {@link Body#transform(CodeContext, CodeTransformer) transformed} with the given code context and code
+     * transformer.
+     *
      * @apiNote
      * To copy an operation use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
      *
-     * @param cc the code context.
-     * @param ct the code transformer.
-     * @return the transformed operation.
+     * @param cc the code context
+     * @param ct the code transformer
+     * @return the transformed operation
      * @see CodeTransformer#COPYING_TRANSFORMER
      */
     public abstract Op transform(CodeContext cc, CodeTransformer ct);

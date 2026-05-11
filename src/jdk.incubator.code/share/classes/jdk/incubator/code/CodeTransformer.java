@@ -36,16 +36,16 @@ import java.util.function.Function;
  * operations using block builders.
  * <p>
  * During transformation, a block builder may serve as the current output block builder when accepting bodies, blocks,
- * and operations. A transformation emits an output operation by appending it to an output block builder.
- * A transformation emits an output block by creating a block builder for that block and appending operations to it.
- * Emission is commonly performed by implementations of {@link #acceptOp(Block.Builder, Op)}, and less commonly so by
- * implementations that override {@link #acceptBlock(Block.Builder, Block)} and
+ * and operations. A transformation emits an output operation by appending it using an output block builder.
+ * A transformation emits an output block by creating a block builder for that block and appending operations using that
+ * block builder. Emission is commonly performed by implementations of {@link #acceptOp(Block.Builder, Op)}, and less
+ * commonly so by implementations that override {@link #acceptBlock(Block.Builder, Block)} and
  * {@link #acceptBody(Block.Builder, Body, List)}.
  * <p>
  * By default, traversal transforms an input body by transforming each input block of the body, in order, and transforms
  * an input block by transforming each input operation of the block, in order. The single abstract method
  * {@link #acceptOp(Block.Builder, Op)} is the primitive transformation step. Implementations of that method may emit
- * output blocks and operations. Appending an attached or root operation to an output block builder may recursively
+ * output blocks and operations. Appending an attached or root operation using an output block builder may recursively
  * invoke the code transformer for descendant code elements.
  * <p>
  * A transformation uses the {@link CodeContext} of an output block builder to record correspondence between input
@@ -68,34 +68,66 @@ import java.util.function.Function;
 public interface CodeTransformer {
 
     /**
-     * A simplified transformer for only transforming operations.
+     * A simplified transformer for transforming one input operation into an output code model.
      */
     @FunctionalInterface
     interface OpTransformer {
         /**
-         * Transforms an operation to zero or more operations.
+         * Transforms one input operation into the output code model.
+         * <p>
+         * Implementations of this method may emit zero or more output operations into the output model by applying the
+         * given operation-building function to operations.
+         * <p>
+         * Implementations can choose to drop the input operation by not applying the function, copy it by applying the
+         * function to the input operation, replace it by applying the function to a different output operation, or
+         * expand it by applying the function to multiple output operations.
+         * <p>
+         * Each application of the operation-building function implicitly maps the input operation's result to the
+         * result returned by the function, which is the result of the emitted output operation. A later application
+         * replaces the mapping established by any prior application. If the function is not applied, no mapping is
+         * established for the input operation's result.
+         * <p>
+         * The given operands list contains, in order, the output values currently mapped from the input operation's
+         * operands. It has the same number of values as the input operation's operands, but if an input operand
+         * has no mapped output value, the corresponding output value is {@code null}.
+         * <p>
+         * The operation-building function encapsulates the current output block builder for this transformation step.
+         * Applying the function {@link Block.Builder#op(Op) appends} an operation using the current output block
+         * builder, which will perform <a href="Block.Builder.html#transform-on-append"><i>transform-on-append</i></a>
+         * when appending the input operation, or any other attached or root operation.
          *
-         * @param op       the operation to transform
-         * @param operands the operands of the operation mapped to
-         *                 values in the transformed code model. If
-         *                 there is no mapping of an operand then it is
-         *                 mapped to {@code null}.
-         * @param builder  the function to apply zero or more operations
-         *                 into the transformed code model
+         * @param builder  the operation-building function
+         * @param op       the input operation to transform
+         * @param operands the mapped output values for the input operation's operands
          */
         void acceptOp(Function<Op, Op.Result> builder, Op op, List<Value> operands);
     }
 
     /**
-     * Creates a code transformer that transforms operations using the
-     * given operation transformer.
+     * Creates a code transformer that transforms operations using the given operation transformer.
+     * <p>
+     * This method is intended for simplified transformations that only emit output operations using the current output
+     * block builder. Transformations that need to emit output blocks, explicitly establish mappings, customize body or
+     * block traversal, or return a different continuation builder should directly implement {@code CodeTransformer}.
+     * <p>
+     * The created code transformer uses the default {@link #acceptBody(Block.Builder, Body, List)} and
+     * {@link #acceptBlock(Block.Builder, Block)} traversal. Its {@link #acceptOp(Block.Builder, Op)} implementation
+     * invokes the given operation transformer with an operation-building function for the current output block builder,
+     * the input operation, and output values currently mapped from the input operation's operands.
+     * <p>
+     * Applying the operation-building function appends the operation using the current output block builder and maps
+     * the input operation's result to the result of the appended operation, as specified by
+     * {@link OpTransformer#acceptOp(Function, Op, List)}.
+     * <p>
+     * After the operation transformer returns, the created code transformer returns the current output block builder as
+     * the continuation builder for the next input operation.
      *
      * @param opTransformer the operation transformer.
      * @return the code transformer that transforms operations.
      */
     static CodeTransformer opTransformer(OpTransformer opTransformer) {
         return (builder, inputOp) -> {
-            // Allocate op builder function capturing builder and inputOp
+            // Allocate operation-building function capturing builder and inputOp
             // This is simpler and safer that using fields holding the builder and inputOp
             // and protecting use against reentry of calls to builder.op for an attached
             // operation that is transformed and contains bodies
@@ -115,7 +147,7 @@ public interface CodeTransformer {
     }
 
     /**
-     * A copying transformer that applies the operation to the block builder, and returning the block builder.
+     * A copying transformer that appends the operation using the block builder, and returns the block builder.
      */
     CodeTransformer COPYING_TRANSFORMER = (builder, op) -> {
         builder.op(op);
@@ -228,7 +260,7 @@ public interface CodeTransformer {
      * emit an output operation, by using the block builder to {@link Block.Builder#op(Op) append} the operation; and
      * <li>
      * emit an output block, by using the builder to {@link Block.Builder#block(List) create} a block builder for that
-     * output block and appending operations to the created block builder.
+     * output block and appending operations using the created block builder.
      * </ul>
      * <p>
      * Implementations can choose to drop the input operation by not emitting any output operation, copy it by
