@@ -502,16 +502,16 @@
 ///}
 ///
 /// The code transformation function, passed as lambda expression to
-/// [CodeTransformer.opTransformer][jdk.incubator.code.CodeTransformer#opTransformer], accepts as parameters a block
-/// builder function, `builder`, an operation encountered when traversing the input code model, `inputOp`, and a list of
-/// values in the output model being built that are associated with input operation’s operands, `outputOperands`. We
-/// must have previously encountered and transformed the input operations whose results are associated with those
-/// values, since values can only be used after they have been declared.
+/// [CodeTransformer.opTransformer][jdk.incubator.code.CodeTransformer#opTransformer], accepts as parameters a
+/// operation-building function, `builder`, an operation encountered when traversing the input code model, `inputOp`,
+/// and a list of values in the output model being built that are associated with input operation’s operands,
+/// `outputOperands`. We must have previously encountered and transformed the input operations whose results are
+/// associated with those values, since values can only be used after they have been declared.
 ///
 /// In the code transformer we switch over the input operation, and in this case we just match on `add` operation and
-/// by default any other operation. In the latter case we apply the input operation to the builder function, which
-/// creates a new output operation that is a copy of the input operation, appends the new operation to the block being
-/// built, and associates the new operation’s result with the input operation’s result. When we match on an `add`
+/// by default any other operation. In the latter case we apply the input operation to the operation-building function,
+/// which creates a new output operation that is a copy of the input operation, appends the new operation to the block
+/// being built, and associates the new operation’s result with the input operation’s result. When we match on an `add`
 /// operation we replace it by building part of a code model, a method `invoke` operation to the `Integer.sum` method
 /// constructed with the given output operands. The result of the output `invoke` operation is automatically associated
 /// with the result of the input `add` operation.
