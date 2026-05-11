@@ -27,7 +27,6 @@ package optkl;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class VarTable {
