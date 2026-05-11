@@ -736,18 +736,6 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Copies the contents of this body.
-     *
-     * @param cc the code context
-     * @return the builder of a body containing the copied body
-     * @see #transform(CodeContext, CodeTransformer)
-     */
-    // @@@ Remove
-    public Builder copy(CodeContext cc) {
-        return transform(cc, CodeTransformer.COPYING_TRANSFORMER);
-    }
-
-    /**
      * Transforms this body, returning an output body builder containing the transformed body.
      * <p>
      * This method creates an output body builder for this input body's {@link #bodySignature() signature}, with a
@@ -763,6 +751,8 @@ public final class Body implements CodeElement<Body, Block> {
      * parameters.
      *
      * @apiNote
+     * To copy a body use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
+     * <p>
      * The body builder connected to the output body builder can be explicitly determined when this
      * input body's {@link Body#ancestorBody() nearest ancestor} body is present and observable, and the given parent
      * code context can be used to {@link CodeContext#queryBody(Body) query} the present body builder for that ancestor
