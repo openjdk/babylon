@@ -53,13 +53,11 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    private final CoreOp.FuncOp funcOp;
     private final VarTable varTable;
 
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        funcOp = scopedCodeBuilderContext.funcOp();
-        varTable = kernelCallGraph.getVarTable();
         super(kernelCallGraph, scopedCodeBuilderContext);
+        varTable = kernelCallGraph.getVarTable();
     }
 
     private CudaHATKernelBuilder half2float() {
@@ -430,7 +428,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
-        return varTable.getAttributeOrThrow(funcOp.funcName(), varOp);
+        return varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
     }
 
     private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {

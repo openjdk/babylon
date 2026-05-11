@@ -45,7 +45,7 @@ public class VarTable {
      * FunctionName within a KernelCallGraph -> { FunctioName -> { Table: Op -> <Attributes> } }
      *
      */
-    private final ConcurrentHashMap<String, HashMap<Op, HATOpAttribute>> table;
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Op, HATOpAttribute>> table;
 
     public HATOpAttribute getAttributeOrThrow(String functionName, CoreOp.VarOp varOp) {
         if (table.containsKey(functionName)) {
@@ -74,7 +74,7 @@ public class VarTable {
 
     public void addFunction(String funcName) {
         if (!table.containsKey(funcName)) {
-            table.put(funcName, new HashMap<>());
+            table.put(funcName, new ConcurrentHashMap<>());
         }
     }
 
@@ -88,7 +88,7 @@ public class VarTable {
 
     public void passthrough(String functionName, Op oldOp, Op newOp) {
         if (table.containsKey(functionName)) {
-            HashMap<Op, HATOpAttribute> opDeviceRegionHashMap = table.get(functionName);
+            ConcurrentHashMap<Op, HATOpAttribute> opDeviceRegionHashMap = table.get(functionName);
             if (opDeviceRegionHashMap.containsKey(oldOp)) {
                 opDeviceRegionHashMap.put(newOp, opDeviceRegionHashMap.get(oldOp));
             }
