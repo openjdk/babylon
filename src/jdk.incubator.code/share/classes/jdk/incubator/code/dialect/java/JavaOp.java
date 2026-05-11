@@ -5745,6 +5745,7 @@ public sealed abstract class JavaOp extends Op {
                 });
                 Value resource = afterAcquire.parameters().getFirst();
                 Value primaryExceptionVar = afterAcquire.op(var(afterAcquire.op(constant(type(Throwable.class), null))));
+                // @@@ following builder code may be refactored into a reflected template method transformation
                 afterAcquire.op(try_(entryBlock.parentBody(), tryEntry -> {
                     tryEntry.body(body, List.of(resource), afterAcquire.context(), CodeTransformer.COPYING_TRANSFORMER);
                 }).catch_(type(Throwable.class), catchB -> {
