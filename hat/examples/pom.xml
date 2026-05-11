@@ -56,7 +56,6 @@
         <module>view</module>
         <module>life</module>
         <module>nbody</module>
-        <module>tensors</module>
         <module>experiments</module>
     </modules>
     <profiles>
