@@ -426,21 +426,21 @@ public sealed abstract class JavaOp extends Op {
          * A builder for constructing a lambda operation.
          */
         public static class Builder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final FunctionType signature;
             final CodeType functionalInterface;
             final boolean isReflectable;
 
-            Builder(Body.Builder ancestorBody, FunctionType signature, CodeType functionalInterface) {
-                this.ancestorBody = ancestorBody;
+            Builder(Body.Builder connectedAncestorBody, FunctionType signature, CodeType functionalInterface) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
                 this.isReflectable = false;
             }
 
-            Builder(Body.Builder ancestorBody, FunctionType signature, CodeType functionalInterface,
+            Builder(Body.Builder connectedAncestorBody, FunctionType signature, CodeType functionalInterface,
                     boolean isReflectable) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
                 this.isReflectable = isReflectable;
@@ -453,7 +453,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed lambda operation
              */
             public LambdaOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, signature);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, signature);
                 c.accept(body.entryBlock());
                 return new LambdaOp(functionalInterface, body, isReflectable);
             }
@@ -465,7 +465,7 @@ public sealed abstract class JavaOp extends Op {
              * @see Reflect
              */
             public Builder reflectable() {
-                return new Builder(ancestorBody, signature, functionalInterface, true);
+                return new Builder(connectedAncestorBody, signature, functionalInterface, true);
             }
         }
 
@@ -3302,11 +3302,11 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the initial predicate body of an if operation.
          */
         public static class IfBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<Body.Builder> bodies;
 
-            IfBuilder(Body.Builder ancestorBody) {
-                this.ancestorBody = ancestorBody;
+            IfBuilder(Body.Builder connectedAncestorBody) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.bodies = new ArrayList<>();
             }
 
@@ -3317,11 +3317,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder if_(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_SIGNATURE);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, PREDICATE_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
-                return new ThenBuilder(ancestorBody, bodies);
+                return new ThenBuilder(connectedAncestorBody, bodies);
             }
         }
 
@@ -3329,11 +3329,11 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the action body of an if operation.
          */
         public static class ThenBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<Body.Builder> bodies;
 
-            ThenBuilder(Body.Builder ancestorBody, List<Body.Builder> bodies) {
-                this.ancestorBody = ancestorBody;
+            ThenBuilder(Body.Builder connectedAncestorBody, List<Body.Builder> bodies) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.bodies = bodies;
             }
 
@@ -3344,11 +3344,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
-                return new ElseIfBuilder(ancestorBody, bodies);
+                return new ElseIfBuilder(connectedAncestorBody, bodies);
             }
 
             /**
@@ -3356,11 +3356,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for further predicate and action bodies
              */
             public ElseIfBuilder then() {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
                 body.entryBlock().op(core_yield());
                 bodies.add(body);
 
-                return new ElseIfBuilder(ancestorBody, bodies);
+                return new ElseIfBuilder(connectedAncestorBody, bodies);
             }
         }
 
@@ -3368,11 +3368,11 @@ public sealed abstract class JavaOp extends Op {
          * Builder for additional predicate and action bodies of an if operation.
          */
         public static class ElseIfBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<Body.Builder> bodies;
 
-            ElseIfBuilder(Body.Builder ancestorBody, List<Body.Builder> bodies) {
-                this.ancestorBody = ancestorBody;
+            ElseIfBuilder(Body.Builder connectedAncestorBody, List<Body.Builder> bodies) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.bodies = bodies;
             }
 
@@ -3383,11 +3383,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder to add an action body to the if operation
              */
             public ThenBuilder elseif(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, PREDICATE_SIGNATURE);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, PREDICATE_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
-                return new ThenBuilder(ancestorBody, bodies);
+                return new ThenBuilder(connectedAncestorBody, bodies);
             }
 
             /**
@@ -3397,7 +3397,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed if operation
              */
             public IfOp else_(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -3409,7 +3409,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed if operation
              */
             public IfOp else_() {
-                Body.Builder body = Body.Builder.of(ancestorBody, ACTION_SIGNATURE);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
                 body.entryBlock().op(core_yield());
                 bodies.add(body);
 
@@ -3893,12 +3893,12 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the initialization body of a for operation.
          */
         public static final class InitBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<? extends CodeType> initTypes;
 
-            InitBuilder(Body.Builder ancestorBody,
+            InitBuilder(Body.Builder connectedAncestorBody,
                         List<? extends CodeType> initTypes) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.initTypes = initTypes.stream().map(CoreType::varType).toList();
             }
 
@@ -3909,11 +3909,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying the loop predicate body
              */
             public ForOp.CondBuilder init(Consumer<Block.Builder> c) {
-                Body.Builder init = Body.Builder.of(ancestorBody,
+                Body.Builder init = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(CoreType.tupleType(initTypes)));
                 c.accept(init.entryBlock());
 
-                return new CondBuilder(ancestorBody, initTypes, init);
+                return new CondBuilder(connectedAncestorBody, initTypes, init);
             }
         }
 
@@ -3921,14 +3921,14 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the predicate body of a for operation.
          */
         public static final class CondBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<? extends CodeType> initTypes;
             final Body.Builder init;
 
-            CondBuilder(Body.Builder ancestorBody,
+            CondBuilder(Body.Builder connectedAncestorBody,
                                List<? extends CodeType> initTypes,
                                Body.Builder init) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.initTypes = initTypes;
                 this.init = init;
             }
@@ -3940,11 +3940,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying the update body
              */
             public ForOp.UpdateBuilder cond(Consumer<Block.Builder> c) {
-                Body.Builder cond = Body.Builder.of(ancestorBody,
+                Body.Builder cond = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(BOOLEAN, initTypes));
                 c.accept(cond.entryBlock());
 
-                return new UpdateBuilder(ancestorBody, initTypes, init, cond);
+                return new UpdateBuilder(connectedAncestorBody, initTypes, init, cond);
             }
         }
 
@@ -3952,15 +3952,15 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the update body of a for operation.
          */
         public static final class UpdateBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<? extends CodeType> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
 
-            UpdateBuilder(Body.Builder ancestorBody,
+            UpdateBuilder(Body.Builder connectedAncestorBody,
                                  List<? extends CodeType> initTypes,
                                  Body.Builder init, Body.Builder cond) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.initTypes = initTypes;
                 this.init = init;
                 this.cond = cond;
@@ -3973,11 +3973,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying the loop body
              */
             public ForOp.BodyBuilder update(Consumer<Block.Builder> c) {
-                Body.Builder update = Body.Builder.of(ancestorBody,
+                Body.Builder update = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(VOID, initTypes));
                 c.accept(update.entryBlock());
 
-                return new BodyBuilder(ancestorBody, initTypes, init, cond, update);
+                return new BodyBuilder(connectedAncestorBody, initTypes, init, cond, update);
             }
         }
 
@@ -3985,16 +3985,16 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the body (main logic) portion of a for-loop.
          */
         public static final class BodyBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<? extends CodeType> initTypes;
             final Body.Builder init;
             final Body.Builder cond;
             final Body.Builder update;
 
-            BodyBuilder(Body.Builder ancestorBody,
+            BodyBuilder(Body.Builder connectedAncestorBody,
                                List<? extends CodeType> initTypes,
                                Body.Builder init, Body.Builder cond, Body.Builder update) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.initTypes = initTypes;
                 this.init = init;
                 this.cond = cond;
@@ -4008,7 +4008,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed for-loop operation
              */
             public ForOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody,
+                Body.Builder body = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(VOID, initTypes));
                 c.accept(body.entryBlock());
 
@@ -4191,13 +4191,13 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the expression body of an enhanced-for operation.
          */
         public static final class ExpressionBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final CodeType iterableType;
             final CodeType elementType;
 
-            ExpressionBuilder(Body.Builder ancestorBody,
+            ExpressionBuilder(Body.Builder connectedAncestorBody,
                               CodeType iterableType, CodeType elementType) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.iterableType = iterableType;
                 this.elementType = elementType;
             }
@@ -4209,11 +4209,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying the definition body
              */
             public DefinitionBuilder expression(Consumer<Block.Builder> c) {
-                Body.Builder expression = Body.Builder.of(ancestorBody,
+                Body.Builder expression = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(iterableType));
                 c.accept(expression.entryBlock());
 
-                return new DefinitionBuilder(ancestorBody, elementType, expression);
+                return new DefinitionBuilder(connectedAncestorBody, elementType, expression);
             }
         }
 
@@ -4221,13 +4221,13 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the definition body of an enhanced-for operation.
          */
         public static final class DefinitionBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final CodeType elementType;
             final Body.Builder expression;
 
-            DefinitionBuilder(Body.Builder ancestorBody,
+            DefinitionBuilder(Body.Builder connectedAncestorBody,
                               CodeType elementType, Body.Builder expression) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
             }
@@ -4251,11 +4251,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying the loop body
              */
             public BodyBuilder definition(CodeType bodyElementType, Consumer<Block.Builder> c) {
-                Body.Builder definition = Body.Builder.of(ancestorBody,
+                Body.Builder definition = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(bodyElementType, elementType));
                 c.accept(definition.entryBlock());
 
-                return new BodyBuilder(ancestorBody, elementType, expression, definition);
+                return new BodyBuilder(connectedAncestorBody, elementType, expression, definition);
             }
         }
 
@@ -4263,14 +4263,14 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the loop body of an enhanced-for operation.
          */
         public static final class BodyBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final CodeType elementType;
             final Body.Builder expression;
             final Body.Builder definition;
 
-            BodyBuilder(Body.Builder ancestorBody,
+            BodyBuilder(Body.Builder connectedAncestorBody,
                         CodeType elementType, Body.Builder expression, Body.Builder definition) {
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.elementType = elementType;
                 this.expression = expression;
                 this.definition = definition;
@@ -4283,7 +4283,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed enhanced-for operation
              */
             public EnhancedForOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody,
+                Body.Builder body = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(VOID, elementType));
                 c.accept(body.entryBlock());
 
@@ -4477,10 +4477,10 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the predicate body of a while operation.
          */
         public static class PredicateBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
 
-            PredicateBuilder(Body.Builder ancestorBody) {
-                this.ancestorBody = ancestorBody;
+            PredicateBuilder(Body.Builder connectedAncestorBody) {
+                this.connectedAncestorBody = connectedAncestorBody;
             }
 
             /**
@@ -4490,10 +4490,10 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying the loop body
              */
             public WhileOp.BodyBuilder predicate(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
 
-                return new WhileOp.BodyBuilder(ancestorBody, body);
+                return new WhileOp.BodyBuilder(connectedAncestorBody, body);
             }
         }
 
@@ -4501,11 +4501,11 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the loop body of a while operation.
          */
         public static class BodyBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             private final Body.Builder predicate;
 
-            BodyBuilder(Body.Builder ancestorBody, Body.Builder predicate) {
-                this.ancestorBody = ancestorBody;
+            BodyBuilder(Body.Builder connectedAncestorBody, Body.Builder predicate) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.predicate = predicate;
             }
 
@@ -4516,7 +4516,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed while operation
              */
             public WhileOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(body.entryBlock());
 
                 return new WhileOp(List.of(predicate, body));
@@ -4640,11 +4640,11 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the predicate body of a do-while operation.
          */
         public static class PredicateBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             private final Body.Builder body;
 
-            PredicateBuilder(Body.Builder ancestorBody, Body.Builder body) {
-                this.ancestorBody = ancestorBody;
+            PredicateBuilder(Body.Builder connectedAncestorBody, Body.Builder body) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.body = body;
             }
 
@@ -4655,7 +4655,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed do-while operation
              */
             public DoWhileOp predicate(Consumer<Block.Builder> c) {
-                Body.Builder predicate = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
+                Body.Builder predicate = Body.Builder.of(connectedAncestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(predicate.entryBlock());
 
                 return new DoWhileOp(List.of(body, predicate));
@@ -4666,10 +4666,10 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the loop body of a do-while operation.
          */
         public static class BodyBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
 
-            BodyBuilder(Body.Builder ancestorBody) {
-                this.ancestorBody = ancestorBody;
+            BodyBuilder(Body.Builder connectedAncestorBody) {
+                this.connectedAncestorBody = connectedAncestorBody;
             }
 
             /**
@@ -4679,10 +4679,10 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying the predicate body
              */
             public DoWhileOp.PredicateBuilder body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(body.entryBlock());
 
-                return new DoWhileOp.PredicateBuilder(ancestorBody, body);
+                return new DoWhileOp.PredicateBuilder(connectedAncestorBody, body);
             }
         }
 
@@ -4891,11 +4891,11 @@ public sealed abstract class JavaOp extends Op {
          * Builder for conditional-and operations.
          */
         public static class Builder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<Body.Builder> bodies;
 
-            Builder(Body.Builder ancestorBody, Consumer<Block.Builder> lhs, Consumer<Block.Builder> rhs) {
-                this.ancestorBody = ancestorBody;
+            Builder(Body.Builder connectedAncestorBody, Consumer<Block.Builder> lhs, Consumer<Block.Builder> rhs) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.bodies = new ArrayList<>();
                 and(lhs);
                 and(rhs);
@@ -4908,7 +4908,7 @@ public sealed abstract class JavaOp extends Op {
              * @return this builder
              */
             public Builder and(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -4960,11 +4960,11 @@ public sealed abstract class JavaOp extends Op {
          * Builder for conditional-or operations.
          */
         public static class Builder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<Body.Builder> bodies;
 
-            Builder(Body.Builder ancestorBody, Consumer<Block.Builder> lhs, Consumer<Block.Builder> rhs) {
-                this.ancestorBody = ancestorBody;
+            Builder(Body.Builder connectedAncestorBody, Consumer<Block.Builder> lhs, Consumer<Block.Builder> rhs) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.bodies = new ArrayList<>();
                 or(lhs);
                 or(rhs);
@@ -4977,7 +4977,7 @@ public sealed abstract class JavaOp extends Op {
              * @return this builder
              */
             public Builder or(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, CoreType.functionType(BOOLEAN));
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(body.entryBlock());
                 bodies.add(body);
 
@@ -5170,12 +5170,12 @@ public sealed abstract class JavaOp extends Op {
          * Builder for the try body of a try operation.
          */
         public static final class BodyBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final List<? extends CodeType> resourceTypes;
             final Body.Builder resources;
 
-            BodyBuilder(Body.Builder ancestorBody, List<? extends CodeType> resourceTypes, Body.Builder resources) {
-                this.ancestorBody = ancestorBody;
+            BodyBuilder(Body.Builder connectedAncestorBody, List<? extends CodeType> resourceTypes, Body.Builder resources) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.resourceTypes = resourceTypes;
                 this.resources = resources;
             }
@@ -5187,11 +5187,11 @@ public sealed abstract class JavaOp extends Op {
              * @return a builder for specifying catch bodies and an optional finalizer
              */
             public CatchBuilder body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody,
+                Body.Builder body = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(VOID, resourceTypes));
                 c.accept(body.entryBlock());
 
-                return new CatchBuilder(ancestorBody, resources, body);
+                return new CatchBuilder(connectedAncestorBody, resources, body);
             }
         }
 
@@ -5199,13 +5199,13 @@ public sealed abstract class JavaOp extends Op {
          * Builder for specifying catch bodies and an optional finalizer body of a try operation.
          */
         public static final class CatchBuilder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final Body.Builder resources;
             final Body.Builder body;
             final List<Body.Builder> catchers;
 
-            CatchBuilder(Body.Builder ancestorBody, Body.Builder resources, Body.Builder body) {
-                this.ancestorBody = ancestorBody;
+            CatchBuilder(Body.Builder connectedAncestorBody, Body.Builder resources, Body.Builder body) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.resources = resources;
                 this.body = body;
                 this.catchers = new ArrayList<>();
@@ -5220,7 +5220,7 @@ public sealed abstract class JavaOp extends Op {
              * @return this builder
              */
             public CatchBuilder catch_(CodeType exceptionType, Consumer<Block.Builder> c) {
-                Body.Builder _catch = Body.Builder.of(ancestorBody,
+                Body.Builder _catch = Body.Builder.of(connectedAncestorBody,
                         CoreType.functionType(VOID, exceptionType));
                 c.accept(_catch.entryBlock());
                 catchers.add(_catch);
@@ -5235,7 +5235,7 @@ public sealed abstract class JavaOp extends Op {
              * @return the completed try operation
              */
             public TryOp finally_(Consumer<Block.Builder> c) {
-                Body.Builder _finally = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
+                Body.Builder _finally = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(_finally.entryBlock());
 
                 return new TryOp(resources, body, catchers, _finally);
@@ -6287,14 +6287,15 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a lambda operation.
      *
-     * @param ancestorBody        the ancestor of the body of the lambda operation
-     * @param signature           the lambda operation's signature, represented as a function type
-     * @param functionalInterface the lambda operation's functional interface type
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param signature             the lambda operation's signature, represented as a function type
+     * @param functionalInterface   the lambda operation's functional interface type
      * @return the lambda operation
      */
-    public static LambdaOp.Builder lambda(Body.Builder ancestorBody,
+    public static LambdaOp.Builder lambda(Body.Builder connectedAncestorBody,
                                           FunctionType signature, CodeType functionalInterface) {
-        return new LambdaOp.Builder(ancestorBody, signature, functionalInterface);
+        return new LambdaOp.Builder(connectedAncestorBody, signature, functionalInterface);
     }
 
     /**
@@ -7070,12 +7071,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an if operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
      * @return the if operation builder
      */
-    public static IfOp.IfBuilder if_(Body.Builder ancestorBody) {
-        return new IfOp.IfBuilder(ancestorBody);
+    public static IfOp.IfBuilder if_(Body.Builder connectedAncestorBody) {
+        return new IfOp.IfBuilder(connectedAncestorBody);
     }
 
     // Pairs of
@@ -7145,25 +7146,25 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a for operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
-     * @param initTypes    the types of initialized variables
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param initTypes             the types of initialized variables
      * @return the for operation builder
      */
-    public static ForOp.InitBuilder for_(Body.Builder ancestorBody, CodeType... initTypes) {
-        return for_(ancestorBody, List.of(initTypes));
+    public static ForOp.InitBuilder for_(Body.Builder connectedAncestorBody, CodeType... initTypes) {
+        return for_(connectedAncestorBody, List.of(initTypes));
     }
 
     /**
      * Creates a for operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
-     * @param initTypes    the types of initialized variables
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param initTypes             the types of initialized variables
      * @return the for operation builder
      */
-    public static ForOp.InitBuilder for_(Body.Builder ancestorBody, List<? extends CodeType> initTypes) {
-        return new ForOp.InitBuilder(ancestorBody, initTypes);
+    public static ForOp.InitBuilder for_(Body.Builder connectedAncestorBody, List<? extends CodeType> initTypes) {
+        return new ForOp.InitBuilder(connectedAncestorBody, initTypes);
     }
 
 
@@ -7190,15 +7191,15 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an enhanced for operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
-     * @param iterableType the iterable type
-     * @param elementType  the element type
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param iterableType          the iterable type
+     * @param elementType           the element type
      * @return the enhanced for operation builder
      */
-    public static EnhancedForOp.ExpressionBuilder enhancedFor(Body.Builder ancestorBody,
+    public static EnhancedForOp.ExpressionBuilder enhancedFor(Body.Builder connectedAncestorBody,
                                                               CodeType iterableType, CodeType elementType) {
-        return new EnhancedForOp.ExpressionBuilder(ancestorBody, iterableType, elementType);
+        return new EnhancedForOp.ExpressionBuilder(connectedAncestorBody, iterableType, elementType);
     }
 
     /**
@@ -7221,12 +7222,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a while operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
      * @return the while operation builder
      */
-    public static WhileOp.PredicateBuilder while_(Body.Builder ancestorBody) {
-        return new WhileOp.PredicateBuilder(ancestorBody);
+    public static WhileOp.PredicateBuilder while_(Body.Builder connectedAncestorBody) {
+        return new WhileOp.PredicateBuilder(connectedAncestorBody);
     }
 
     /**
@@ -7245,12 +7246,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a do operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
      * @return the do operation builder
      */
-    public static DoWhileOp.BodyBuilder doWhile(Body.Builder ancestorBody) {
-        return new DoWhileOp.BodyBuilder(ancestorBody);
+    public static DoWhileOp.BodyBuilder doWhile(Body.Builder connectedAncestorBody) {
+        return new DoWhileOp.BodyBuilder(connectedAncestorBody);
     }
 
     /**
@@ -7267,29 +7268,29 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a conditional-and operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
-     * @param lhs          a consumer that populates the first predicate body
-     * @param rhs          a consumer that populates the second predicate body
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param lhs                   a consumer that populates the first predicate body
+     * @param rhs                   a consumer that populates the second predicate body
      * @return the conditional-and operation builder
      */
-    public static ConditionalAndOp.Builder conditionalAnd(Body.Builder ancestorBody,
+    public static ConditionalAndOp.Builder conditionalAnd(Body.Builder connectedAncestorBody,
                                                           Consumer<Block.Builder> lhs, Consumer<Block.Builder> rhs) {
-        return new ConditionalAndOp.Builder(ancestorBody, lhs, rhs);
+        return new ConditionalAndOp.Builder(connectedAncestorBody, lhs, rhs);
     }
 
     /**
      * Creates a conditional-or operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
-     * @param lhs          a consumer that populates the first predicate body
-     * @param rhs          a consumer that populates the second predicate body
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param lhs                   a consumer that populates the first predicate body
+     * @param rhs                   a consumer that populates the second predicate body
      * @return the conditional-or operation builder
      */
-    public static ConditionalOrOp.Builder conditionalOr(Body.Builder ancestorBody,
+    public static ConditionalOrOp.Builder conditionalOr(Body.Builder connectedAncestorBody,
                                                         Consumer<Block.Builder> lhs, Consumer<Block.Builder> rhs) {
-        return new ConditionalOrOp.Builder(ancestorBody, lhs, rhs);
+        return new ConditionalOrOp.Builder(connectedAncestorBody, lhs, rhs);
     }
 
     /**
@@ -7342,34 +7343,34 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates try operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
-     * @param c            a consumer that populates the try body
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param c                     a consumer that populates the try body
      * @return the try operation builder
      */
-    public static TryOp.CatchBuilder try_(Body.Builder ancestorBody, Consumer<Block.Builder> c) {
-        Body.Builder _try = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
+    public static TryOp.CatchBuilder try_(Body.Builder connectedAncestorBody, Consumer<Block.Builder> c) {
+        Body.Builder _try = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
         c.accept(_try.entryBlock());
-        return new TryOp.CatchBuilder(ancestorBody, null, _try);
+        return new TryOp.CatchBuilder(connectedAncestorBody, null, _try);
     }
 
     /**
      * Creates try-with-resources operation builder.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     body builders for this operation
-     * @param resourceTypes the resource types used in the try-with-resources construct
-     * @param c            a consumer that populates the resources body
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param resourceTypes         the resource types used in the try-with-resources construct
+     * @param c                     a consumer that populates the resources body
      * @return the try-with-resources operation builder
      */
-    public static TryOp.BodyBuilder tryWithResources(Body.Builder ancestorBody,
+    public static TryOp.BodyBuilder tryWithResources(Body.Builder connectedAncestorBody,
                                                      List<? extends CodeType> resourceTypes,
                                                      Consumer<Block.Builder> c) {
         resourceTypes = resourceTypes.stream().map(CoreType::varType).toList();
-        Body.Builder resources = Body.Builder.of(ancestorBody,
+        Body.Builder resources = Body.Builder.of(connectedAncestorBody,
                 CoreType.functionType(CoreType.tupleType(resourceTypes)));
         c.accept(resources.entryBlock());
-        return new TryOp.BodyBuilder(ancestorBody, resourceTypes, resources);
+        return new TryOp.BodyBuilder(connectedAncestorBody, resourceTypes, resources);
     }
 
     // resources ()Tuple<Var<R1>, Var<R2>, ..., Var<RN>>, or null
