@@ -519,8 +519,8 @@ public final class Body implements CodeElement<Body, Block> {
          * Creates a body builder whose entry block {@link #entryBlock builder} uses the given code context and code
          * transformer.
          * <p>
-         * If {@code ancestorBody} is non-{@code null}, the created body builder is
-         * <a id="connected-builder"><i>connected</i></a> to {@code ancestorBody} as the
+         * If {@code connectedAncestorBody} is non-{@code null}, the created body builder is
+         * <a id="connected-builder"><i>connected</i></a> to {@code connectedAncestorBody} as the
          * {@link #connectedAncestorBody() nearest ancestor} body builder, builds an <i>open</i> body, and the following
          * apply:
          * <ul>
@@ -531,7 +531,7 @@ public final class Body implements CodeElement<Body, Block> {
          * the body built by the created body builder must have, as its nearest {@link Body#ancestorBody() ancestor body},
          * the body built by the nearest ancestor body builder.
          * </ul>
-         * If {@code ancestorBody} is {@code null}, the created body builder is
+         * If {@code connectedAncestorBody} is {@code null}, the created body builder is
          * <a id="isolated-builder"><i>isolated</i></a>, it has no nearest ancestor body builder, builds an
          * <i>isolated</i> body, and the following applies:
          * <ul>
@@ -553,7 +553,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @param cc            the code context for the entry block builder
          * @param ct            the code transformer for the entry block builder
          * @return the body builder
-         * @throws IllegalStateException if the ancestor body builder is finished
+         * @throws IllegalStateException if the connected ancestor body builder is finished
          */
         public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature,
                                  CodeContext cc, CodeTransformer ct) {
@@ -574,16 +574,16 @@ public final class Body implements CodeElement<Body, Block> {
         // True when finished
         boolean finished;
 
-        Builder(Builder ancestorBody, FunctionType bodySignature,
+        Builder(Builder connectedAncestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
             // Structural check
-            // The ancestor body should not be built before this body is built
-            if (ancestorBody != null) {
-                ancestorBody.check();
-                ancestorBody.addGreatgrandchild(this);
+            // The connected ancestor body should not be built before this body is built
+            if (connectedAncestorBody != null) {
+                connectedAncestorBody.check();
+                connectedAncestorBody.addGreatgrandchild(this);
             }
 
-            this.connectedAncestorBody = ancestorBody;
+            this.connectedAncestorBody = connectedAncestorBody;
             // Create entry block from the body's function type
             Block eb = Body.this.createBlock(bodySignature.parameterTypes());
             this.entryBlock = eb.new Builder(this, cc, ct);
