@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.function.Consumer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
@@ -43,63 +45,66 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestTryWithResources {
-    static StringBuilder log;
 
-    record Resource(String suffix, boolean throwOnClose) implements Closeable {
+    record Resource(Consumer<String> log, String suffix, boolean throwOnClose) implements Closeable {
 
         Resource {
-            log.append("open").append(suffix).append(';');
+            log.accept("open" + suffix);
         }
 
         @Override
         public void close() throws IOException {
-            log.append("close").append(suffix).append(';');
+            log.accept("close" + suffix);
             if (throwOnClose) {
-                log.append("throwClose").append(suffix).append(';');
+                log.accept("throwClose" + suffix);
                 throw new IOException();
             }
         }
     }
 
     @Reflect
-    public static void tryWithResources(boolean throwInBody, boolean throwOnClose1, boolean throwOnClose2, boolean throwOnClose3) throws IOException {
-        log = new StringBuilder();
+    public static void tryWithResources(Consumer<String> log, boolean throwInBody, boolean throwOnClose1, boolean throwOnClose2, boolean throwOnClose3) throws IOException {
+        var r2 = new Resource(log, "2", throwOnClose2);
         try {
-            try (var _ = new Resource("1", throwOnClose1)) {
-                log.append("outerBody;");
-                try (var _ = new Resource("2", throwOnClose2);
-                     var _ = new Resource("3", throwOnClose3)) {
-                    log.append("innerBody;");
+            try (var _ = new Resource(log, "1", throwOnClose1)) {
+                log.accept("outerBody");
+                try (var _ = r2;
+                     var _ = new Resource(log, "3", throwOnClose3)) {
+                    log.accept("innerBody");
                     if (throwInBody) {
-                        log.append("throwBody;");
+                        log.accept("throwBody");
                         throw new IllegalStateException("body");
                     }
                 } finally {
-                    log.append("innerFinally;");
+                    log.accept("innerFinally");
                 }
             } finally {
-                log.append("outerFinally;");
+                log.accept("outerFinally");
             }
         } finally {
-            log.append("end;");
+            log.accept("end");
         }
     }
 
     @Test
     public void testTryWithResources() throws Throwable {
-        Method m = TestTryWithResources.class.getDeclaredMethod("tryWithResources", boolean.class, boolean.class, boolean.class, boolean.class);
+        Method m = TestTryWithResources.class.getDeclaredMethod("tryWithResources", Consumer.class, boolean.class, boolean.class, boolean.class, boolean.class);
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), Op.ofMethod(m).orElseThrow());
-
-        mh.invoke(false, false, false, false);
-        assertEquals("open1;outerBody;open2;open3;innerBody;close3;close2;innerFinally;close1;outerFinally;end;", log.toString());
-
-        assertEquals(0, assertThrows(IOException.class, () -> mh.invoke(false, false, true, false)).getSuppressed().length);
-        assertEquals("open1;outerBody;open2;open3;innerBody;close3;close2;throwClose2;innerFinally;close1;outerFinally;end;", log.toString());
-
-        assertEquals(1, assertThrows(IOException.class, () -> mh.invoke(false, false, true, true)).getSuppressed().length);
-        assertEquals("open1;outerBody;open2;open3;innerBody;close3;throwClose3;close2;throwClose2;innerFinally;close1;outerFinally;end;", log.toString());
-
-        assertEquals(3, assertThrows(IllegalStateException.class, () -> mh.invoke(true, true, true, true)).getSuppressed().length);
-        assertEquals("open1;outerBody;open2;open3;innerBody;throwBody;close3;throwClose3;close2;throwClose2;innerFinally;close1;throwClose1;outerFinally;end;", log.toString());
+        for (int i = 0; i < 16; i++) {
+            boolean throwInBody = (i & 1) != 0;
+            boolean throwOnClose1 = (i & 2) != 0;
+            boolean throwOnClose2 = (i & 4) != 0;
+            boolean throwOnClose3 = (i & 8) != 0;
+            var expected = new ArrayList<String>();
+            var actual = new ArrayList<String>();
+            try {
+                tryWithResources(expected::add, throwInBody, throwOnClose1, throwOnClose2, throwOnClose3);
+                mh.invoke((Consumer<String>)actual::add, throwInBody, throwOnClose1, throwOnClose2, throwOnClose3);
+            } catch (Throwable t) {
+                assertEquals(t.getSuppressed().length,
+                        assertThrowsExactly(t.getClass(), () -> mh.invoke((Consumer<String>)actual::add, throwInBody, throwOnClose1, throwOnClose2, throwOnClose3)).getSuppressed().length);
+            }
+            assertIterableEquals(expected, actual);
+        }
     }
 }
