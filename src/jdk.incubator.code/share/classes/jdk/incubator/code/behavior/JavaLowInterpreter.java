@@ -98,81 +98,118 @@ public class JavaLowInterpreter extends Interpreter {
     @Override
     public OpEffect executeOp(Op op, Env e) {
         Object result;
-        try {
-            switch (op) {
-                case CoreOp.VarOp o -> {
-                    Object init = e.valueOf(o.initOperand());
-                    result = new Object[]{init};
-                }
-                case CoreOp.VarAccessOp.VarLoadOp o -> {
-                    Object[] variable = (Object[]) e.valueOf(o.varOperand());
-                    result = variable[0];
-                }
-                case CoreOp.VarAccessOp.VarStoreOp o -> {
-                    Object[] variable = (Object[]) e.valueOf(o.varOperand());
-                    Object v = e.valueOf(o.storeOperand());
-                    variable[0] = v;
-                    result = null;
-                }
-                case JavaOp.InvokeOp o -> {
-                    JavaEnv je = (JavaEnv) e;
-                    MethodType target = resolveToMethodType(je.l, o.opSignature());
-                    MethodHandles.Lookup il = switch (o.invokeKind()) {
-                        case STATIC, INSTANCE -> je.l;
-                        case SUPER -> je.l.in(target.parameterType(0));
-                    };
-                    MethodHandle mh = resolveToMethodHandle(il, o.invokeReference(), o.invokeKind());
-
-                    mh = mh.asType(target).asFixedArity();
-                    List<Object> operands = e.valuesOf(o.operands());
-                    try {
-                        result = mh.invokeWithArguments(operands.toArray());
-                    } catch (Throwable t) {
-                        throw new OpInterpretationException(t);
-                    }
-                }
-                case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
-                    JavaEnv je = (JavaEnv) e;
-                    MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
-                    List<Object> operands = e.valuesOf(op.operands());
-                    try {
-                        result = mh.invokeWithArguments(operands.toArray());
-                    } catch (Throwable t) {
-                        throw new OpInterpretationException(t);
-                    }
-                }
-                case CoreOp.ConstantOp o -> result = o.value();
-                case JavaOp.AssertOp o -> {
-                    TerminatingOpEffect perdEffect = executeBody(o.predicateBody(), List.of(), e);
-                    boolean b = switch (perdEffect.terminatingOp()) {
-                        case CoreOp.YieldOp _ -> (boolean) perdEffect.operands().getFirst();
-                        default -> throw new InternalError();
-                    };
-                    if (!b) {
-                        Body detailsBody = o.detailsBody();
-                        AssertionError ae;
-                        if (detailsBody != null) {
-                            TerminatingOpEffect messEffect = executeBody(detailsBody, List.of(), e);
-                            String message = switch (messEffect.terminatingOp()) {
-                                case JavaOp.YieldOp _ -> (String) messEffect.operands().getFirst();
-                                default -> throw new InternalError();
-                            };
-                            ae = new AssertionError(message);
-                        } else {
-                            ae = new AssertionError();
-                        }
-                        throw new OpInterpretationException(ae);
-                    }
-                    result = null;
-                }
-                default -> throw new UnsupportedOperationException(op.toString());
+        switch (op) {
+            case CoreOp.VarOp o -> {
+                Object init = e.valueOf(o.initOperand());
+                result = new Object[]{init};
             }
-            return new OpResultEffect(result, e);
-        } catch (OpInterpretationException ex) {
-            // execution of op throws
-            return new TerminatingOpEffect(fakeThrowOp, List.of(ex.getCause()), e);
+            case CoreOp.VarAccessOp.VarLoadOp o -> {
+                Object[] variable = (Object[]) e.valueOf(o.varOperand());
+                result = variable[0];
+            }
+            case CoreOp.VarAccessOp.VarStoreOp o -> {
+                Object[] variable = (Object[]) e.valueOf(o.varOperand());
+                Object v = e.valueOf(o.storeOperand());
+                variable[0] = v;
+                result = null;
+            }
+            case JavaOp.InvokeOp o -> {
+                JavaEnv je = (JavaEnv) e;
+                MethodType target = resolveToMethodType(je.l, o.opSignature());
+                MethodHandles.Lookup il = switch (o.invokeKind()) {
+                    case STATIC, INSTANCE -> je.l;
+                    case SUPER -> je.l.in(target.parameterType(0));
+                };
+                MethodHandle mh = resolveToMethodHandle(il, o.invokeReference(), o.invokeKind());
+
+                mh = mh.asType(target).asFixedArity();
+                List<Object> operands = e.valuesOf(o.operands());
+                try {
+                    result = mh.invokeWithArguments(operands.toArray());
+                } catch (Throwable t) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                }
+            }
+            case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
+                JavaEnv je = (JavaEnv) e;
+                MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
+                List<Object> operands = e.valuesOf(op.operands());
+                try {
+                    result = mh.invokeWithArguments(operands.toArray());
+                } catch (Throwable t) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                }
+            }
+            case CoreOp.ConstantOp o -> result = o.value();
+            case JavaOp.AssertOp o -> {
+                TerminatingOpEffect perdEffect = executeBody(o.predicateBody(), List.of(), e);
+                boolean b = switch (perdEffect.terminatingOp()) {
+                    case CoreOp.YieldOp _ -> (boolean) perdEffect.operands().getFirst();
+                    default -> throw new InternalError();
+                };
+                if (!b) {
+                    Body detailsBody = o.detailsBody();
+                    AssertionError ae;
+                    if (detailsBody != null) {
+                        TerminatingOpEffect messEffect = executeBody(detailsBody, List.of(), e);
+                        String message = switch (messEffect.terminatingOp()) {
+                            case JavaOp.YieldOp _ -> (String) messEffect.operands().getFirst();
+                            default -> throw new InternalError();
+                        };
+                        ae = new AssertionError(message);
+                    } else {
+                        ae = new AssertionError();
+                    }
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ae), e);
+                }
+                result = null;
+            }
+            case CoreOp.FuncCallOp o -> {
+                String name = o.funcName();
+
+                // Find top-level op
+                Op top = o;
+                while (top.ancestorBody() != null) {
+                    top = top.ancestorOp();
+                }
+
+                // Ensure top-level op is a module and function name
+                // is in the module's function table
+                if (top instanceof CoreOp.ModuleOp mop) {
+                    CoreOp.FuncOp funcOp = mop.functionTable().get(name);
+                    if (funcOp == null) {
+                        throw new InterpreterException("Function " + name + " cannot be resolved: not in module's function table");
+                    }
+                    try {
+                        Optional<Object> r = new JavaLowInterpreter().executeFuncOp(funcOp, e.valuesOf(o.operands()), ((JavaEnv) e).l);
+                        result = r.orElse(null);
+                    } catch (InterpreterException ex) {
+                        throw ex;
+                    } catch (Throwable t) {
+                        return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    }
+                } else {
+                    throw new InterpreterException("Function " + name + " cannot be resolved: top level op is not a module");
+                }
+            }
+            default -> throw new UnsupportedOperationException(op.toString());
+        }
+        return new OpResultEffect(result, e);
+    }
+
+    /**
+     * Exception thrown by the interpreter when execution fails.
+     */
+    @SuppressWarnings("serial")
+    public static final class InterpreterException extends RuntimeException {
+        private InterpreterException(Throwable cause) {
+            super(cause);
+        }
+        private InterpreterException(String message) {
+            super(message);
         }
     }
+
 
     private static final CoreOp.FuncOp fop = CoreOp.func("f",
             CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
