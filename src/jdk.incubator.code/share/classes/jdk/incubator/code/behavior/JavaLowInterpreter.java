@@ -6,6 +6,7 @@ import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -47,14 +48,10 @@ public class JavaLowInterpreter extends Interpreter {
         }
     }
 
-    static Object invoke(MethodHandle m, Object... args) {
-        try {
-            return m.invokeWithArguments(args);
-        } catch (RuntimeException | Error e) {
-            throw e;
-        } catch (Throwable e) {
-            eraseAndThrow(e);
-            throw new InternalError("should not reach here");
+    @SuppressWarnings("serial")
+    static class OpInterpretationException extends Throwable { // indicate the interpretation of an op throws
+        OpInterpretationException(Throwable cause) {
+            super(cause);
         }
     }
 
@@ -77,17 +74,17 @@ public class JavaLowInterpreter extends Interpreter {
         var op = block.firstOp();
         for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
             switch (executeOp(op, env)) {
-                case TerminatingOpEffect e -> {
+                case TerminatingOpEffect e when e.terminatingOp().equals(fakeThrowOp) -> {
                     // implicit throw
-                    if (!e.operands().isEmpty() && e.operands().getFirst() instanceof Throwable t) {
-                        JavaEnv jenv = (JavaEnv) env;
-                        R r = jenv.findCatchBlock(t);
-                        if (r.catchBlock().isPresent()) {
-                            return new SuccessorEffect(r.catchBlock().get(), e.operands(), r.javaEnv());
-                        } else {
-                            return new TerminatingOpEffect(e.terminatingOp(), e.operands(), r.javaEnv());
-                        }
+                    JavaEnv jenv = (JavaEnv) env;
+                    R r = jenv.findCatchBlock((Throwable) e.operands().getFirst());
+                    if (r.catchBlock().isPresent()) {
+                        return new SuccessorEffect(r.catchBlock().get(), e.operands(), r.javaEnv());
+                    } else {
+                        return new TerminatingOpEffect(e.terminatingOp(), e.operands(), r.javaEnv());
                     }
+                }
+                case TerminatingOpEffect e -> {
                     return e;
                 }
                 // op completed normally, bind op result in new env, pass control to next op
@@ -128,13 +125,21 @@ public class JavaLowInterpreter extends Interpreter {
 
                     mh = mh.asType(target).asFixedArity();
                     List<Object> operands = e.valuesOf(o.operands());
-                    result = invoke(mh, operands.toArray());
+                    try {
+                        result = mh.invokeWithArguments(operands.toArray());
+                    } catch (Throwable t) {
+                        throw new OpInterpretationException(t);
+                    }
                 }
                 case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
                     JavaEnv je = (JavaEnv) e;
                     MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
                     List<Object> operands = e.valuesOf(op.operands());
-                    result = invoke(mh, operands.toArray());
+                    try {
+                        result = mh.invokeWithArguments(operands.toArray());
+                    } catch (Throwable t) {
+                        throw new OpInterpretationException(t);
+                    }
                 }
                 case CoreOp.ConstantOp o -> result = o.value();
                 case JavaOp.AssertOp o -> {
@@ -145,28 +150,35 @@ public class JavaLowInterpreter extends Interpreter {
                     };
                     if (!b) {
                         Body detailsBody = o.detailsBody();
+                        AssertionError ae;
                         if (detailsBody != null) {
                             TerminatingOpEffect messEffect = executeBody(detailsBody, List.of(), e);
                             String message = switch (messEffect.terminatingOp()) {
                                 case JavaOp.YieldOp _ -> (String) messEffect.operands().getFirst();
                                 default -> throw new InternalError();
                             };
-                            // @@@ we may need to fake out a ThrowOp or a new kind of TerminatingOpEffect
-                            return new TerminatingOpEffect(o, List.of(new AssertionError(message)), e);
+                            ae = new AssertionError(message);
                         } else {
-                            return new TerminatingOpEffect(o, List.of(new AssertionError()), e);
+                            ae = new AssertionError();
                         }
+                        throw new OpInterpretationException(ae);
                     }
                     result = null;
                 }
                 default -> throw new UnsupportedOperationException(op.toString());
             }
             return new OpResultEffect(result, e);
-        } catch (Throwable t) {
+        } catch (OpInterpretationException ex) {
             // execution of op throws
-            return new TerminatingOpEffect(op, List.of(t), e);
+            return new TerminatingOpEffect(fakeThrowOp, List.of(ex.getCause()), e);
         }
     }
+
+    private static final CoreOp.FuncOp fop = CoreOp.func("f",
+            CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
+       b.op(JavaOp.throw_(b.parameters().get(0)));
+    });
+    private static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
 
     @Override
     public <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e) {
@@ -221,15 +233,15 @@ public class JavaLowInterpreter extends Interpreter {
     public Optional<Object> executeFuncOp(CoreOp.FuncOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
         Env e = new JavaEnv(new HashMap<>(), l);
 
-        var ancestorOpEffect = executeBody(op.body(), args, e);
-        switch (ancestorOpEffect.terminatingOp()) {
+        var effect = executeBody(op.body(), args, e);
+        switch (effect.terminatingOp()) {
             case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(ancestorOpEffect.operands().getFirst());
+                return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(effect.operands().getFirst());
             }
-            case JavaOp.ThrowOp _ -> throw (Throwable) ancestorOpEffect.operands().getFirst();
+            case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
             // implicit throw e.g. AssertOp or execution of an op throws
-            case Op _ when !ancestorOpEffect.operands().isEmpty() && ancestorOpEffect.operands().getFirst() instanceof Throwable t -> throw t;
-            default -> throw new InternalError(ancestorOpEffect.toString());
+            case Op o when o.equals(fakeThrowOp) -> throw (Throwable) effect.operands().getFirst();
+            default -> throw new InternalError(effect.toString());
         }
     }
 
