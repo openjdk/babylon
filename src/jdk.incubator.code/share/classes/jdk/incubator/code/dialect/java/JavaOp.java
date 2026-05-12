@@ -5707,7 +5707,7 @@ public sealed abstract class JavaOp extends Op {
         ///
         /// Keeps the primary exception from the try body and adds as suppressed an exception from resource close.
         ///
-        /// Use standalone synthetic body, so the lowerder model is complete and can be further transformed.
+        /// Use standalone synthetic body, so the lowered model is complete and can be further transformed.
         ///
         /// ```
         /// resource = acquire()
