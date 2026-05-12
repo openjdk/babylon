@@ -675,7 +675,8 @@ public final class Body implements CodeElement<Body, Block> {
                     // so num of arg is same or less than num of params
                     Block target = s.target;
                     if (s.arguments().size() > target.parameters().size()) {
-                        String m = String.format("Reference to block %s with %d arguments but the block has %d parameters", target, s.arguments().size(), target.parameters().size());
+                        String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
+                                target, s.arguments().size(), target.parameters().size());
                         throw new IllegalStateException(m);
                     }
                 }
