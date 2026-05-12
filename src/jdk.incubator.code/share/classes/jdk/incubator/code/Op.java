@@ -54,17 +54,22 @@ import java.util.function.BiFunction;
 /**
  * An operation modeling a unit of program behavior.
  * <p>
- * An operation has direct state and zero or more bodies. An operation's direct state consists of zero or more operands,
- * zero or more successors (references to other blocks), and operation-specific state.
+ * An operation uses zero or more values, exposed as a sequence of {@link #operands()}. A
+ * {@link Op.Terminating terminating} operation may have block references, exposed as a sequence of
+ * {@link #successors()}. An operation has zero or more bodies, exposed as a sequence of {@link #bodies()}.
+ *
+ * <h2>Operation construction</h2>
  * <p>
- * An operation might model the addition of two integers, or a method invocation expression. Alternatively an operation
- * may model something more complex like method declarations, lambda expressions, or try statements. In such cases an
- * operation will contain one or more bodies modeling the nested structure.
+ * Constructing an operation creates an <i>unattached</i> operation. An unattached operation is not yet part of a code
+ * model. The operation's operands, successors, bodies, and operation-specific state are fixed when construction
+ * completes.
  * <p>
- * The process of building an operation starts with construction of an <i>unattached</i> operation. The direct state and
- * any bodies of the unattached operation are fixed at construction.
+ * An operation can only be constructed with operands whose declaring block is being built, otherwise construction fails
+ * with an exception.
+ *
+ * <h2>Operation building</h2>
  * <p>
- * Building then progresses in one of two ways:
+ * Building an operation places an unattached operation in a code model in one of two ways:
  * <ol>
  * <li>
  * the unattached operation is <i>attached</i> to a block, as its parent block, by using a block builder to
@@ -83,11 +88,52 @@ import java.util.function.BiFunction;
  * The {@link #location} may be {@link #setLocation set} while the operation is unattached or attached to a block being
  * built.
  * <p>
- * An operation can only be constructed with operands whose declaring block is being built, otherwise construction fails
- * with an exception.
- * <p>
  * An unattached operation, or an operation attached to a block whose parent body builder has not
  * <a href="Body.Builder.html#body-building-finishing">finished</a>, is not thread-safe.
+ *
+ * <h2>Operation implementation requirements</h2>
+ * <p>
+ * A concrete operation class must satisfy the following requirements:
+ * <ul>
+ * <li>
+ * implement {@link #resultType()} to return the result type of operation instances;
+ * <li>
+ * implement {@link #transform(CodeContext, CodeTransformer)} to return a newly constructed, unattached copy whose
+ * concrete class is the same as the operation's concrete class;
+ * <li>
+ * call an appropriate {@code Op} superclass constructor from each concrete operation constructor. Constructors
+ * for new operations pass the operation's operands to {@link #Op(List)}. Constructors for transformed copies can
+ * pass the input operation and code context to {@link #Op(Op, CodeContext)};
+ * <li>
+ * override {@link #bodies()} if instances may have bodies. If the operation class implements {@link Op.Nested}, then
+ * {@code bodies()} must return one or more bodies;
+ * <li>
+ * override {@link #successors()} if instances may have successors. If the operation class implements
+ * {@link Op.BlockTerminating}, then {@code successors()} must return one or more successors;
+ * <li>
+ * copy mutable constructor arguments that define successors, bodies, and operation-specific state, ensuring
+ * they are all fixed when construction completes; and
+ * <li>
+ * return unmodifiable views or immutable values from accessors that expose successors, bodies, and operation-specific
+ * state.
+ * </ul>
+ * <p>
+ * A concrete operation class may additionally:
+ * <ul>
+ * <li>
+ * override {@link #externalizeOpName()} and {@link #externalize()} to define an external form;
+ * <li>
+ * implement {@link Op.Lowerable} to define a lowering; and
+ * <li>
+ * provide operation-specific accessors for operation-specific state.
+ * </ul>
+ *
+ * @apiNote
+ * An operation might model the {@link JavaOp.AddOp addition} of two integers, or a method
+ * {@link JavaOp.InvokeOp invocation} expression. Alternatively an operation may model something more complex like
+ * {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp method} declarations, {@link JavaOp.LambdaOp lambda}
+ * expressions, or {@link JavaOp.TryOp try} statements. In such cases an operation will contain one or more bodies
+ * modeling the nested structure.
  */
 public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
@@ -102,7 +148,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface Nested {
         /**
-         * {@return the bodies of the nested operation.}
+         * {@return the non-empty list of bodies of this nested operation.}
          */
         List<Body> bodies();
     }
@@ -112,7 +158,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface Loop extends Nested {
         /**
-         * {@return the body of the loop operation.}
+         * {@return the body of this loop operation.}
+         * <p>
+         * The returned body is one of this operation's {@link #bodies() bodies}.
          */
         Body loopBody();
     }
@@ -129,7 +177,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface Invokable extends Nested {
         /**
-         * {@return the body of the invokable operation.}
+         * {@return the body of this invokable operation.}
+         * <p>
+         * The returned body is one of this operation's {@linkplain #bodies() bodies}.
          */
         Body body();
 
@@ -242,7 +292,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
     /**
      * An operation characteristic indicating the operation is a terminating operation
-     * occurring as the last operation in a block.
+     * that occurs as the last operation in a block.
      * <p>
      * A terminating operation passes control to either another block within the same parent body
      * or to that parent body.
@@ -268,7 +318,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface BlockTerminating extends Terminating {
         /**
-         * {@return the list of successor blocks associated with this block terminating operation}
+         * {@return the non-empty list of successors of this block terminating operation.}
          */
         List<Block.Reference> successors();
     }
@@ -374,17 +424,18 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Transforms this operation.
+     * Transforms this operation, copying the operation and transforming any of its bodies.
      * <p>
-     * Implementations of this method return an unattached transformed copy of this operation.
+     * This method returns a newly constructed, unattached copy of this operation. The returned operation's concrete
+     * class is the same as this operation's concrete class.
      * <p>
-     * An implementation copies this operation's direct state and transforms this operation's bodies, if any. Operands
+     * The returned operation copies this operation's operands, successors, and any operation-specific state. Operands
      * are copied by mapping this operation's operands, in order, with the given code context. Successors are copied as
      * specified by {@link CodeContext#getReferenceOrCreate(Block.Reference)}. Operation-specific state is copied as
-     * appropriate for the operation.
+     * appropriate for the operation, preserving operation-specific behavior.
      * <p>
      * Bodies are {@link Body#transform(CodeContext, CodeTransformer) transformed} with the given code context and code
-     * transformer.
+     * transformer, and built with the returned operation as their parent.
      *
      * @apiNote
      * To copy an operation use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
@@ -434,7 +485,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if this operation is unattached to a block or a
+     * Returns this operation's parent block, otherwise {@code null} if this operation is unattached or a
      * root operation.
      * <p>
      * The operation's parent block is the same as the operation result's {@link Value#declaringBlock declaring block}.

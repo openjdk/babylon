@@ -276,6 +276,7 @@ public final class CodeContext {
      * @param input the input block
      * @return an optional containing the output block builder mapped to the given input block, otherwise an empty
      * optional
+     * @see #getBlock(Block) 
      */
     public Optional<Block.Builder> queryBlock(Block input) {
         Objects.requireNonNull(input);
