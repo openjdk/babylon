@@ -74,12 +74,12 @@ import java.util.function.BiFunction;
  * <li>
  * the operation is <i>placed</i> in a block, which becomes its parent block, by using a block builder to
  * {@link Block.Builder#op(Op) append} the operation to the block. The placed operation has a permanently
- * non-{@code null} {@link #result result} that can be used as an operand of subsequently constructed operations. The
+ * non-{@code null} {@link #result() result} that can be used as an operand of subsequently constructed operations. The
  * block being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this
  * operation and any attempt to access the block throws {@link IllegalStateException}.
  * <li>
  * the operation is <i>placed</i> as the {@link #isRoot() <i>root operation</i>} of a code model by using
- * {@link #buildAsRoot()}. The root operation's {@link #result result} and {@link #parent parent} are always
+ * {@link #buildAsRoot()}. The root operation's {@link #result() result} and {@link #parent() parent} are always
  * {@code null}.
  * </ol>
  * <p>
@@ -608,7 +608,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return {@code true} if this operation is a root operation.}
      * @see #buildAsRoot()
-     * @see #isAttached()
+     * @see #isPlacedInBlock()
      * */
     public final boolean isRoot() {
         return result == Result.ROOT_RESULT;
@@ -619,7 +619,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @see #buildAsRoot()
      * @see #isRoot()
      * */
-    public final boolean isAttached() {
+    public final boolean isPlacedInBlock() {
         return !isRoot() && result != null;
     }
 

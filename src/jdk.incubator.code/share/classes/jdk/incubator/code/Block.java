@@ -749,7 +749,7 @@ public final class Block implements CodeElement<Block, Op> {
             check();
 
             // Perform transform-on-append for a placed operation
-            Op outputOp = op.isAttached() || op.isRoot()
+            Op outputOp = op.isPlacedInBlock() || op.isRoot()
                     ? op.transform(cc, ct)
                     : op;
             assert outputOp.result == null;
