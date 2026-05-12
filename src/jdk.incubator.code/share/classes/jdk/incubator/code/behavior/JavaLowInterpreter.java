@@ -4,6 +4,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -16,6 +17,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.*;
+
+import static java.util.stream.Collectors.toMap;
 
 public class JavaLowInterpreter extends Interpreter {
     public JavaLowInterpreter() {
@@ -191,6 +194,11 @@ public class JavaLowInterpreter extends Interpreter {
                 } else {
                     throw new InterpreterException("Function " + name + " cannot be resolved: top level op is not a module");
                 }
+            }
+            case CoreOp.QuotedOp o -> {
+                SequencedMap<Value, Object> capturedValues = o.capturedValues().stream()
+                        .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
+                result = new Quoted<>(o.quotedOp(), capturedValues);
             }
             default -> throw new UnsupportedOperationException(op.toString());
         }
