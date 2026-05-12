@@ -58,7 +58,7 @@ public class TestBuild {
 
         var a = f.body().entryBlock().parameters().get(0);
         var b = f.body().entryBlock().parameters().get(1);
-        // Passing built values as operands to a new unattached operation
+        // Passing built values as operands to a new unplaced operation
         Assertions.assertThrows(IllegalArgumentException.class, () -> JavaOp.add(a, b));
     }
 
