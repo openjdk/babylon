@@ -477,12 +477,12 @@ public final class Block implements CodeElement<Block, Op> {
      * until the parent body builder <a href="Body.Builder.html#body-building-finishing">finishes</a>.
      * <p>
      * A block builder has a code {@link #context() context} and code {@link #transformer() transformer}. These are used
-     * when {@link #op appending} an attached or root operation, to <i>transform-on-append</i>. Any sibling block
-     * builder {@link #block(List) created} from a block builder will have the same code context and code transformer.
+     * to perform <i>transform-on-append</i> when {@link #op appending} a placed operation. Any sibling block builder
+     * {@link #block(List) created} from a block builder will have the same code context and code transformer.
      * <p>
      * A block builder may be obtained with a different code context and code transformer by calling
      * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}. Such a block builder builds the same block, and
-     * can be used to apply alternative transformations to attached or root operations that are appended.
+     * can be used to apply alternative transformations to placed operations that are appended.
      * <p>
      * During {@link CodeTransformer code transformation}, a block builder may also serve as the current output block
      * builder.
@@ -707,13 +707,12 @@ public final class Block implements CodeElement<Block, Op> {
         /**
          * Appends an operation to this block.
          * <p>
-         * If the operation is unattached, it is appended directly to this block.
+         * If the operation is unplaced, it is appended directly to this block.
          * <p>
-         * If the operation is attached to a block or is a root operation, this method performs
-         * <a id="transform-on-append"><i>transform-on-append</i></a>: the operation is first
-         * {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block builder's code context and
-         * code transformer; and then the resulting unattached operation is appended to this block.
-         * If the operation being appended has a result, it is implicitly
+         * If the operation is placed, this method performs <a id="transform-on-append"><i>transform-on-append</i></a>:
+         * the operation is first {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block
+         * builder's code context and code transformer; and then the resulting unplaced operation is appended to this
+         * block. If the operation being appended has a result, it is implicitly
          * {@link CodeContext#mapValue(Value, Value) mapped}, if no such mapping already exists, to the result of the
          * appended operation in this block builder's code context.
          * <p>
@@ -749,7 +748,7 @@ public final class Block implements CodeElement<Block, Op> {
         public Op.Result op(Op op) {
             check();
 
-            // Perform transform-on-append for an attached or root operation
+            // Perform transform-on-append for a placed operation
             Op outputOp = op.isAttached() || op.isRoot()
                     ? op.transform(cc, ct)
                     : op;

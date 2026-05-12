@@ -60,7 +60,7 @@ import java.util.function.BiFunction;
  *
  * <h2>Operation construction</h2>
  * <p>
- * Constructing an operation creates an <i>unattached</i> operation. An unattached operation is not yet part of a code
+ * Constructing an operation creates an <i>unplaced</i> operation. An unplaced operation is not yet part of a code
  * model. The operation's operands, successors, bodies, and operation-specific state are fixed when construction
  * completes.
  * <p>
@@ -69,26 +69,28 @@ import java.util.function.BiFunction;
  *
  * <h2>Operation building</h2>
  * <p>
- * Building an operation places an unattached operation in a code model in one of two ways:
+ * Building an operation places an unplaced operation in a code model in one of two ways:
  * <ol>
  * <li>
- * the unattached operation is <i>attached</i> to a block, as its parent block, by using a block builder to
- * {@link Block.Builder#op(Op) append} it to a block. The attached operation has a permanently non-{@code null}
- * {@link #result result} that can be used as an operand of subsequent constructed operations. The block being built is
- * not <a href="Body.Builder.html#body-building-observability">observable</a> through this operation and any attempt to
- * access the block throws {@link IllegalStateException}.
+ * the operation is <i>placed</i> in a block, which becomes its parent block, by using a block builder to
+ * {@link Block.Builder#op(Op) append} the operation to the block. The placed operation has a permanently
+ * non-{@code null} {@link #result result} that can be used as an operand of subsequently constructed operations. The
+ * block being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this
+ * operation and any attempt to access the block throws {@link IllegalStateException}.
  * <li>
- * the unattached operation is built as a {@link #isRoot() <i>root</i>} operation. The root operation's
- * {@link #result result} and {@link #parent parent} are always {@code null}.
+ * the operation is <i>placed</i> as the {@link #isRoot() <i>root operation</i>} of a code model by using
+ * {@link #buildAsRoot()}. The root operation's {@link #result result} and {@link #parent parent} are always
+ * {@code null}.
  * </ol>
  * <p>
- * Building finishes when the parent body builder of the block to which the operation is attached
- * <a href="Body.Builder.html#body-building-finishing">finishes</a>, or when the operation is built as a root operation.
+ * Building finishes when the parent body builder of the block in which the operation was placed
+ * <a href="Body.Builder.html#body-building-finishing">finishes</a>, after which the block becomes observable, or when
+ * the operation is placed as the root of a code model.
  * <p>
- * The {@link #location} may be {@link #setLocation set} while the operation is unattached or attached to a block being
- * built.
+ * The {@link #location} may be {@link #setLocation set} while the operation is unplaced or placed in a block whose
+ * parent body builder has not finished.
  * <p>
- * An unattached operation, or an operation attached to a block whose parent body builder has not
+ * An unplaced operation, or an operation placed in a block whose parent body builder has not
  * <a href="Body.Builder.html#body-building-finishing">finished</a>, is not thread-safe.
  *
  * <h2>Operation implementation requirements</h2>
@@ -98,7 +100,7 @@ import java.util.function.BiFunction;
  * <li>
  * implement {@link #resultType()} to return the result type of operation instances;
  * <li>
- * implement {@link #transform(CodeContext, CodeTransformer)} to return a newly constructed, unattached copy whose
+ * implement {@link #transform(CodeContext, CodeTransformer)} to return a newly constructed, unplaced copy whose
  * concrete class is the same as the operation's concrete class;
  * <li>
  * call an appropriate {@code Op} superclass constructor from each concrete operation constructor. Constructors
@@ -329,8 +331,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public static final class Result extends Value {
 
         /**
-         * If assigned to an operation result, it indicates the operation is a root operation
-        */
+         * If assigned to an operation's result field, indicates the operation is a root operation.
+         */
         private static final Result ROOT_RESULT = new Result();
 
         final Op op;
@@ -395,7 +397,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
-    // Set when op is attached to a block or root, otherwise null when unattached
+    // Set when op is placed in a block or as a root operation, otherwise null when unplaced
     // @@@ stable value?
     Result result;
 
@@ -426,7 +428,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Transforms this operation, copying the operation and transforming any of its bodies.
      * <p>
-     * This method returns a newly constructed, unattached copy of this operation. The returned operation's concrete
+     * This method returns a newly constructed, unplaced copy of this operation. The returned operation's concrete
      * class is the same as this operation's concrete class.
      * <p>
      * The returned operation copies this operation's operands, successors, and any operation-specific state. Operands
@@ -485,13 +487,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if this operation is unattached or a
+     * Returns this operation's parent block, otherwise {@code null} if this operation is unplaced or a
      * root operation.
      * <p>
      * The operation's parent block is the same as the operation result's {@link Value#declaringBlock declaring block}.
      *
-     * @return operation's parent block, or {@code null} if this operation is unattached or a root operation.
-     * @throws IllegalStateException if this operation is attached and its parent block is
+     * @return operation's parent block, or {@code null} if this operation is unplaced or a root operation.
+     * @throws IllegalStateException if this operation is placed in a block that is
      * <a href="Body.Builder.html#body-building-observability">unobservable</a>.
      * @see Value#declaringBlock()
      */
@@ -529,7 +531,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * {@return the operation's result, or {@code null} if this operation is unattached or a
+     * {@return the operation's result, or {@code null} if this operation is unplaced or a
      * root operation.}
      */
     public final Result result() {
@@ -585,12 +587,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Builds this operation to become a built root operation. After this operation is built its
+     * Builds this operation, placing it as the root operation of a code model. After this operation is built its
      * {@link #result result} and {@link #parent parent} will always be {@code null}.
      * <p>
      * This method is idempotent.
      *
-     * @throws IllegalStateException if this operation is attached to a block.
+     * @throws IllegalStateException if this operation is placed in a block.
      * @see #isRoot()
      */
     public final void buildAsRoot() {
@@ -598,7 +600,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             return;
         }
         if (result != null) {
-            throw new IllegalStateException("Operation is attached to a block");
+            throw new IllegalStateException("Operation is placed in a block");
         }
         result = Result.ROOT_RESULT;
     }
@@ -613,7 +615,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * {@return {@code true} if this operation is attached to a block.}
+     * {@return {@code true} if this operation is placed in a block.}
      * @see #buildAsRoot()
      * @see #isRoot()
      * */
