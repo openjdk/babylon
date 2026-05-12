@@ -5409,7 +5409,7 @@ public sealed abstract class JavaOp extends Op {
             // try-catch-finally -> lower-level try form.
             // There is no recursion here, each time it is structurally different TryOp.
             if (resourcesBody != null) {
-                b.body(!(resourcesBody.bodySignature().returnType() instanceof TupleType)
+                b.transformBody(!(resourcesBody.bodySignature().returnType() instanceof TupleType)
                         && catchBodies.isEmpty()
                         && finallyBody == null
                                 ? lowerBasicTryWithResources()
@@ -5680,7 +5680,8 @@ public sealed abstract class JavaOp extends Op {
                 Function<Block.Builder, TryOp> normalizedTry = block -> {
                     block.context().mapValues(capturedValues(), entryBlock.parameters());
                     return !(resourcesBody.bodySignature().returnType() instanceof TupleType)
-                            ? try_(resourcesBody.copy(block.context()), body.copy(block.context()), List.of(), null)
+                            ? try_(resourcesBody.transform(block.context(), CodeTransformer.COPYING_TRANSFORMER),
+                                   body.transform(block.context(), CodeTransformer.COPYING_TRANSFORMER), List.of(), null)
                             : normalizeExtendedTryWithResources(block.parentBody(), block.context(), 0);
                 };
                 if (catchBodies.isEmpty() && finallyBody == null) {
@@ -5692,12 +5693,12 @@ public sealed abstract class JavaOp extends Op {
                     });
                     for (Body catcher : catchBodies) {
                         catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
-                                catchB.body(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
+                                catchB.transformBody(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
                     }
                     entryBlock.op(finallyBody == null
                             ? catchBuilder.noFinalizer()
                             : catchBuilder.finally_(finB ->
-                                    finB.body(finallyBody, List.of(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER)));
+                                    finB.transformBody(finallyBody, List.of(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER)));
                 }
                 entryBlock.op(core_yield());
             });
@@ -5735,7 +5736,7 @@ public sealed abstract class JavaOp extends Op {
             assert !(resourceType instanceof TupleType);
             return syntheticBody(entryBlock -> {
                 Block.Builder afterAcquire = entryBlock.block(resourceType);
-                entryBlock.body(resourcesBody, List.of(), (block, op) -> {
+                entryBlock.transformBody(resourcesBody, List.of(), (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         block.op(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                     } else {
@@ -5747,7 +5748,7 @@ public sealed abstract class JavaOp extends Op {
                 Value primaryExceptionVar = afterAcquire.op(var(afterAcquire.op(constant(type(Throwable.class), null))));
                 // @@@ following builder code may be refactored into a reflected template method transformation
                 afterAcquire.op(try_(entryBlock.parentBody(), tryEntry -> {
-                    tryEntry.body(body, List.of(resource), afterAcquire.context(), CodeTransformer.COPYING_TRANSFORMER);
+                    tryEntry.transformBody(body, List.of(resource), afterAcquire.context(), CodeTransformer.COPYING_TRANSFORMER);
                 }).catch_(type(Throwable.class), catchB -> {
                     Block.Parameter thrown = catchB.parameters().getFirst();
                     catchB.op(varStore(primaryExceptionVar, thrown));
@@ -5792,9 +5793,9 @@ public sealed abstract class JavaOp extends Op {
         TryOp normalizeExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, int index) {
             List<Op> resourceOps = resourcesBody.entryBlock().ops();
             CodeType resourceType = ((TupleType)resourcesBody.bodySignature().returnType()).componentTypes().get(index);
-            List<Value> resourceValues = ((CoreOp.TupleOp)((CoreOp.YieldOp)(resourceOps.getLast())).yieldValue().result().op()).operands();
-            int fromIndex = index == 0 ? 0 : resourceOps.indexOf(resourceValues.get(index - 1).result().op()) + 1;
-            int toIndex = resourceOps.indexOf(resourceValues.get(index).result().op()) + 1;
+            List<Value> resourceValues = ((CoreOp.TupleOp)((CoreOp.YieldOp)(resourceOps.getLast())).yieldValue().asResult().op()).operands();
+            int fromIndex = index == 0 ? 0 : resourceOps.indexOf(resourceValues.get(index - 1).asResult().op()) + 1;
+            int toIndex = resourceOps.indexOf(resourceValues.get(index).asResult().op()) + 1;
             Body.Builder resourceBody = Body.Builder.of(ancestorBody, CoreType.functionType(resourceType), cc);
             Block.Builder bb = resourceBody.entryBlock();
             // @@@ assumption: resource initialization operations can be split into subsequent lists
@@ -5807,7 +5808,7 @@ public sealed abstract class JavaOp extends Op {
                 bodyB.op(normalizeExtendedTryWithResources(basicBody, cc, index + 1));
                 bodyB.op(core_yield());
             } else {
-                bodyB.body(body, cc.getValues(resourceValues), CodeTransformer.COPYING_TRANSFORMER);
+                bodyB.transformBody(body, cc.getValues(resourceValues), CodeTransformer.COPYING_TRANSFORMER);
             }
             return try_(resourceBody, basicBody, List.of(), null);
         }
