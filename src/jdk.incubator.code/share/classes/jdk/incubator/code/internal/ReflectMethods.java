@@ -2215,52 +2215,46 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitTry(JCTree.JCTry tree) {
-            List<JCVariableDecl> rVariableDecls = new ArrayList<>();
+            List<Symbol> rVariableDecls = new ArrayList<>();
             List<CodeType> rTypes = new ArrayList<>();
-            Body.Builder resources;
+            List<Body.Builder> resources = new ArrayList<>();
             if (!tree.resources.isEmpty()) {
-                // Resources body returns a tuple that contains the resource variables/values
-                // in order of declaration
+                // Resources bodies return the resource variables/values in order of declaration
                 for (JCTree resource : tree.resources) {
+                    CodeType rType;
                     if (resource instanceof JCVariableDecl vdecl) {
-                        rVariableDecls.add(vdecl);
-                        rTypes.add(CoreType.varType(typeToCodeType(vdecl.type)));
+                        rType = CoreType.varType(typeToCodeType(vdecl.type));
                     } else {
-                        rTypes.add(typeToCodeType(resource.type));
+                        rType = typeToCodeType(resource.type);
                     }
-                }
 
-                // Push resources body
-                pushBody(null, CoreType.functionType(CoreType.tupleType(rTypes)));
+                    // Push resources body
+                    pushBody(null, CoreType.functionType(rType, rTypes));
+                    for (int i = 0; i < rVariableDecls.size(); i++) {
+                        stack.localToOp.put(rVariableDecls.get(i), stack.block.parameters().get(i));
+                    }
 
-                List<Value> rValues = new ArrayList<>();
-                for (JCTree resource : tree.resources) {
                     if (resource instanceof JCTree.JCExpression e) {
-                        rValues.add(toValue(e));
+                        append(CoreOp.core_yield(toValue(e)));
                     } else if (resource instanceof JCTree.JCStatement s) {
-                        rValues.add(toValue(s));
+                        append(CoreOp.core_yield(toValue(s)));
                     }
+
+                    resources.add(stack.body);
+
+                    // Pop resources body
+                    popBody();
+
+                    rVariableDecls.add(resource instanceof JCVariableDecl vdecl ? vdecl.sym : null);
+                    rTypes.add(rType);
                 }
-
-                append(CoreOp.core_yield(append(CoreOp.tuple(rValues))));
-                resources = stack.body;
-
-                // Pop resources body
-                popBody();
-            } else {
-                resources = null;
             }
 
             // Push body
             // Try body accepts the resource variables (in order of declaration).
-            List<VarType> rVarTypes = rTypes.stream().<VarType>mapMulti((t, c) -> {
-                if (t instanceof VarType vt) {
-                    c.accept(vt);
-                }
-            }).toList();
-            pushBody(tree.body, CoreType.functionType(JavaType.VOID, rVarTypes));
+            pushBody(tree.body, CoreType.functionType(JavaType.VOID, rTypes));
             for (int i = 0; i < rVariableDecls.size(); i++) {
-                stack.localToOp.put(rVariableDecls.get(i).sym, stack.block.parameters().get(i));
+                stack.localToOp.put(rVariableDecls.get(i), stack.block.parameters().get(i));
             }
             scan(tree.body);
             appendTerminating(CoreOp::core_yield);
