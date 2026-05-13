@@ -711,8 +711,8 @@ public final class Block implements CodeElement<Block, Op> {
          * <p>
          * If the operation is placed, this method performs <a id="transform-on-append"><i>transform-on-append</i></a>:
          * the operation is first {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block
-         * builder's code context and code transformer; and then the resulting unplaced operation is appended to this
-         * block. If the operation being appended has a result, it is implicitly
+         * builder's code context and code transformer. The resulting unplaced operation is then appended to this block.
+         * If the operation being appended has a result, it is implicitly
          * {@link CodeContext#mapValue(Value, Value) mapped}, if no such mapping already exists, to the result of the
          * appended operation in this block builder's code context.
          * <p>
