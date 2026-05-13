@@ -14,8 +14,12 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.*;
 
 import static java.util.stream.Collectors.toMap;
@@ -184,7 +188,8 @@ public class JavaLowInterpreter extends Interpreter {
                         throw new InterpreterException("Function " + name + " cannot be resolved: not in module's function table");
                     }
                     try {
-                        Optional<Object> r = new JavaLowInterpreter().executeFuncOp(funcOp, e.valuesOf(o.operands()), ((JavaEnv) e).l);
+                        JavaEnv je = (JavaEnv) e;
+                        Optional<Object> r = new JavaLowInterpreter().executeFuncOp(funcOp, e.valuesOf(o.operands()), je.l);
                         result = r.orElse(null);
                     } catch (InterpreterException ex) {
                         throw ex;
@@ -199,6 +204,48 @@ public class JavaLowInterpreter extends Interpreter {
                 SequencedMap<Value, Object> capturedValues = o.capturedValues().stream()
                         .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
                 result = new Quoted<>(o.quotedOp(), capturedValues);
+            }
+            case JavaOp.LambdaOp o -> {
+                JavaEnv je = (JavaEnv) e;
+                SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
+                        .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
+                Class<?> fi = resolveToClass(je.l, o.functionalInterface());
+
+                Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
+                MethodHandle execLambdaWrapper;
+                try {
+                    execLambdaWrapper = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "execLambdaOpWrapper",
+                            MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
+                } catch (Throwable t) {
+                    throw new InterpreterException(t);
+                }
+                MethodHandle fProxy = execLambdaWrapper.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
+                        .asCollector(Object[].class, o.parameters().size());
+                Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
+
+                // If a reflectable lambda proxy again to add method Quoted quoted()
+                if (o.isReflectable()) {
+                    result = Proxy.newProxyInstance(je.l.lookupClass().getClassLoader(), new Class<?>[]{fi},
+                            new InvocationHandler() {
+                                private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(o, capturedValuesAndArguments);
+
+                                @Override
+                                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                                    if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
+                                        return __internal_quoted();
+                                    } else {
+                                        // Delegate to FI instance
+                                        return method.invoke(fiInstance, args);
+                                    }
+                                }
+
+                                private Quoted<JavaOp.LambdaOp> __internal_quoted() {
+                                    return quoted;
+                                }
+                            });
+                } else {
+                    result = fiInstance;
+                }
             }
             default -> throw new UnsupportedOperationException(op.toString());
         }
@@ -273,6 +320,27 @@ public class JavaLowInterpreter extends Interpreter {
             }
             default -> throw new UnsupportedOperationException(op.toString());
         };
+    }
+
+    private Object execLambdaOpWrapper(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
+        Optional<Object> opt = executeLambdaOp(lambdaOp, l, captures, args);
+        return opt.orElse(null);
+    }
+
+    public Optional<Object> executeLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
+        Env e = new JavaEnv(new HashMap<>(), l);
+        List<Object> arguments = new ArrayList<>(Arrays.asList(args));
+        arguments.addAll(Arrays.asList(captures));
+        var effect = executeBody(op.body(), arguments, e);
+        switch (effect.terminatingOp()) {
+            case CoreOp.ReturnOp rop -> {
+                return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(effect.operands().getFirst());
+            }
+            case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
+            // implicit throw e.g. AssertOp or execution of an op throws
+            case Op o when o.equals(fakeThrowOp) -> throw (Throwable) effect.operands().getFirst();
+            default -> throw new InternalError(effect.toString());
+        }
     }
 
     public Optional<Object> executeFuncOp(CoreOp.FuncOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
