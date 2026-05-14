@@ -5314,7 +5314,9 @@ public sealed abstract class JavaOp extends Op {
                     throw new IllegalArgumentException("Resource should not return void: " + _resource.bodySignature());
                 }
                 if (!_resource.bodySignature().parameterTypes().equals(resourceTypes)) {
-                    throw new IllegalArgumentException("Resource should have parameters matching preceding resource yields: " + _resource.bodySignature());
+                    throw new IllegalArgumentException(
+                            "Resource should have parameters matching preceding resource yields: "
+                                    + _resource.bodySignature());
                 }
                 resourceTypes.add(_resource.bodySignature().returnType());
             }
@@ -5324,7 +5326,8 @@ public sealed abstract class JavaOp extends Op {
                 throw new IllegalArgumentException("Try should return void: " + body.bodySignature());
             }
             if (!body.bodySignature().parameterTypes().equals(resourceTypes)) {
-                throw new IllegalArgumentException("Try should have parameters matching resource yields: " + body.bodySignature());
+                throw new IllegalArgumentException("Try should have parameters matching resource yields: "
+                        + body.bodySignature());
             }
 
             this.catchBodies = catchersC.stream().map(c -> c.build(this)).toList();
