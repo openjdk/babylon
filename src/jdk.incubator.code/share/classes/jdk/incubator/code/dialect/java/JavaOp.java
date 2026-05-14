@@ -5144,15 +5144,15 @@ public sealed abstract class JavaOp extends Op {
      * The try operation, that can model Java language try statements.
      * <p>
      * Try operations feature a <em>try body</em>, zero or more <em>catch bodies</em>, and an optional
-     * <em>finally body</em>. Try operations may also feature an optional <em>resources body</em>, modeling a
+     * <em>finally body</em>. Try operations may also feature zero or more <em>resources bodies</em>, modeling a
      * try-with-resources statement.
      * <p>
-     * The resources body, if present, accepts no arguments and yields a value of type {@code R}.
-     * For instance, a try-with-resources statement with two resources of type {@code X} and {@code Y},
-     * {@code R} is a {@linkplain TupleType tuple type}, such as {@code (X, Y)}.
+     * Each resource body yields a value. The first resource body accepts no arguments. A second resource body accepts
+     * an argument whose type is the same as the yield type of the first resource body. A subsequent resource accepts,
+     * in order, arguments whose types are the same as all the prior resource body yield types.
      * <p>
-     * The try body yields {@linkplain JavaType#VOID no value}. If a resources body is present then the try body should
-     * accept an argument of type {@code R}, otherwise it accepts no arguments.
+     * The try body yields {@linkplain JavaType#VOID no value}. If one or more resources bodies are present then
+     * the try body accepts, in order, arguments whose types are the same as the resource bodies yield types.
      * <p>
      * Each catch body should accept an exception value and yield {@linkplain JavaType#VOID no value}. The
      * finally body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
@@ -5167,17 +5167,31 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for the try body of a try operation.
+         * Builder for the resource bodies and the try body of a try operation.
          */
         public static final class BodyBuilder {
             final Body.Builder connectedAncestorBody;
-            final List<? extends CodeType> resourceTypes;
-            final Body.Builder resources;
+            final List<Body.Builder> resources;
 
-            BodyBuilder(Body.Builder connectedAncestorBody, List<? extends CodeType> resourceTypes, Body.Builder resources) {
+            BodyBuilder(Body.Builder connectedAncestorBody) {
                 this.connectedAncestorBody = connectedAncestorBody;
-                this.resourceTypes = resourceTypes;
-                this.resources = resources;
+                this.resources = new ArrayList<>();
+            }
+
+            /**
+             * Adds a resource body to a try-with-resources operation.
+             *
+             * @param yieldType the resource type for a resource expression, or the Var type for a resource declaration
+             * @param c a consumer that populates the resource body
+             * @return this builder
+             */
+            public BodyBuilder resource(CodeType yieldType, Consumer<Block.Builder> c) {
+                List<CodeType> paramTypes = resources.stream().map(r -> r.bodySignature().returnType()).toList();
+                Body.Builder resource = Body.Builder.of(connectedAncestorBody,
+                        CoreType.functionType(yieldType, paramTypes));
+                c.accept(resource.entryBlock());
+                resources.add(resource);
+                return this;
             }
 
             /**
@@ -5188,7 +5202,7 @@ public sealed abstract class JavaOp extends Op {
              */
             public CatchBuilder body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(connectedAncestorBody,
-                        CoreType.functionType(VOID, resourceTypes));
+                        CoreType.functionType(VOID, resources.stream().map(bb -> bb.bodySignature().returnType()).toList()));
                 c.accept(body.entryBlock());
 
                 return new CatchBuilder(connectedAncestorBody, resources, body);
@@ -5200,11 +5214,11 @@ public sealed abstract class JavaOp extends Op {
          */
         public static final class CatchBuilder {
             final Body.Builder connectedAncestorBody;
-            final Body.Builder resources;
+            final List<Body.Builder> resources;
             final Body.Builder body;
             final List<Body.Builder> catchers;
 
-            CatchBuilder(Body.Builder connectedAncestorBody, Body.Builder resources, Body.Builder body) {
+            CatchBuilder(Body.Builder connectedAncestorBody, List<Body.Builder> resources, Body.Builder body) {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.resources = resources;
                 this.body = body;
@@ -5255,33 +5269,28 @@ public sealed abstract class JavaOp extends Op {
         static final MethodRef AUTO_CLOSEABLE_CLOSE_METHOD = MethodRef.method(AutoCloseable.class, "close", void.class);
         static final MethodRef THROWABLE_ADD_SUPPRESSED_METHOD = MethodRef.method(Throwable.class, "addSuppressed", void.class, Throwable.class);
 
-        final Body resourcesBody;
+        final List<Body> resourcesBodies;
         final Body body;
         final List<Body> catchBodies;
         final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
             List<Body.Builder> bodies = def.bodyDefinitions();
-            Body.Builder first = bodies.getFirst();
-            Body.Builder resources;
-            Body.Builder body;
-            if (first.bodySignature().returnType().equals(VOID)) {
-                resources = null;
-                body = first;
-            } else {
-                resources = first;
-                body = bodies.get(1);
+            int bodyIndex = 0;
+            while (!bodies.get(bodyIndex).bodySignature().returnType().equals(VOID)) {
+                bodyIndex++;
             }
-
+            List<Body.Builder> resources = bodies.subList(0, bodyIndex);
+            Body.Builder body = bodies.get(bodyIndex);
             Body.Builder last = bodies.getLast();
             Body.Builder finalizer;
-            if (last.bodySignature().parameterTypes().isEmpty()) {
+            if (last != body && last.bodySignature().parameterTypes().isEmpty()) {
                 finalizer = last;
             } else {
                 finalizer = null;
             }
             List<Body.Builder> catchers = bodies.subList(
-                    resources == null ? 1 : 2,
+                    bodyIndex + 1,
                     bodies.size() - (finalizer == null ? 0 : 1));
 
             this(resources, body, catchers, finalizer);
@@ -5290,11 +5299,9 @@ public sealed abstract class JavaOp extends Op {
         TryOp(TryOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            if (that.resourcesBody != null) {
-                this.resourcesBody = that.resourcesBody.transform(cc, ct).build(this);
-            } else {
-                this.resourcesBody = null;
-            }
+            this.resourcesBodies = that.resourcesBodies.stream()
+                    .map(b -> b.transform(cc, ct).build(this))
+                    .toList();
             this.body = that.body.transform(cc, ct).build(this);
             this.catchBodies = that.catchBodies.stream()
                     .map(b -> b.transform(cc, ct).build(this))
@@ -5311,27 +5318,33 @@ public sealed abstract class JavaOp extends Op {
             return new TryOp(this, cc, ct);
         }
 
-        TryOp(Body.Builder resourcesC,
+        TryOp(List<Body.Builder> resourcesC,
               Body.Builder bodyC,
               List<Body.Builder> catchersC,
               Body.Builder finalizerC) {
             super(List.of());
 
-            if (resourcesC != null) {
-                this.resourcesBody = resourcesC.build(this);
-                if (resourcesBody.bodySignature().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Resources should not return void: " + resourcesBody.bodySignature());
+            this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
+            List<CodeType> resourceTypes = new ArrayList<>();
+            for (Body _resource : resourcesBodies) {
+                if (_resource.bodySignature().returnType().equals(VOID)) {
+                    throw new IllegalArgumentException("Resource should not return void: " + _resource.bodySignature());
                 }
-                if (!resourcesBody.bodySignature().parameterTypes().isEmpty()) {
-                    throw new IllegalArgumentException("Resources should have zero parameters: " + resourcesBody.bodySignature());
+                if (!_resource.bodySignature().parameterTypes().equals(resourceTypes)) {
+                    throw new IllegalArgumentException(
+                            "Resource should have parameters matching preceding resource yields: "
+                                    + _resource.bodySignature());
                 }
-            } else {
-                this.resourcesBody = null;
+                resourceTypes.add(_resource.bodySignature().returnType());
             }
 
             this.body = bodyC.build(this);
             if (!body.bodySignature().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Try should return void: " + body.bodySignature());
+            }
+            if (!body.bodySignature().parameterTypes().equals(resourceTypes)) {
+                throw new IllegalArgumentException("Try should have parameters matching resource yields: "
+                        + body.bodySignature());
             }
 
             this.catchBodies = catchersC.stream().map(c -> c.build(this)).toList();
@@ -5360,9 +5373,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public List<Body> bodies() {
             ArrayList<Body> bodies = new ArrayList<>();
-            if (resourcesBody != null) {
-                bodies.add(resourcesBody);
-            }
+            bodies.addAll(resourcesBodies);
             bodies.add(body);
             bodies.addAll(catchBodies);
             if (finallyBody != null) {
@@ -5372,10 +5383,10 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the resources body, or {@code null} if this try operation has no resources}
+         * {@return the resources bodies}
          */
-        public Body resourcesBody() {
-            return resourcesBody;
+        public List<Body> resourceBodies() {
+            return resourcesBodies;
         }
 
         /**
@@ -5408,8 +5419,8 @@ public sealed abstract class JavaOp extends Op {
             // the lower method: extended try-with-resources -> basic try-with-resources ->
             // try-catch-finally -> lower-level try form.
             // There is no recursion here, each time it is structurally different TryOp.
-            if (resourcesBody != null) {
-                b.transformBody(!(resourcesBody.bodySignature().returnType() instanceof TupleType)
+            if (!resourcesBodies.isEmpty()) {
+                b.transformBody(resourcesBodies.size() == 1
                         && catchBodies.isEmpty()
                         && finallyBody == null
                                 ? lowerBasicTryWithResources()
@@ -5679,10 +5690,7 @@ public sealed abstract class JavaOp extends Op {
             return syntheticBody(entryBlock -> {
                 Function<Block.Builder, TryOp> normalizedTry = block -> {
                     block.context().mapValues(capturedValues(), entryBlock.parameters());
-                    return !(resourcesBody.bodySignature().returnType() instanceof TupleType)
-                            ? try_(resourcesBody.transform(block.context(), CodeTransformer.COPYING_TRANSFORMER),
-                                   body.transform(block.context(), CodeTransformer.COPYING_TRANSFORMER), List.of(), null)
-                            : normalizeExtendedTryWithResources(block.parentBody(), block.context(), 0);
+                    return normalizeExtendedTryWithResources(block.parentBody(), block.context(), new ArrayList<>());
                 };
                 if (catchBodies.isEmpty() && finallyBody == null) {
                     entryBlock.op(normalizedTry.apply(entryBlock));
@@ -5732,11 +5740,11 @@ public sealed abstract class JavaOp extends Op {
         ///
         /// @jls 14.20.3.1 Basic try-with-resources
         Body lowerBasicTryWithResources() {
-            CodeType resourceType = resourcesBody.bodySignature().returnType();
-            assert !(resourceType instanceof TupleType);
+            assert resourcesBodies.size() == 1;
+            CodeType resourceType = resourcesBodies.getFirst().bodySignature().returnType();
             return syntheticBody(entryBlock -> {
                 Block.Builder afterAcquire = entryBlock.block(resourceType);
-                entryBlock.transformBody(resourcesBody, List.of(), (block, op) -> {
+                entryBlock.transformBody(resourcesBodies.getFirst(), List.of(), (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         block.op(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                     } else {
@@ -5787,30 +5795,21 @@ public sealed abstract class JavaOp extends Op {
         ///
         /// Resource `index` becomes the current outer basic try-with-resources.
         ///
-        /// Asumes the resources (uni)body can be split into slices per resource.
-        ///
         /// @jls 14.20.3.2 Extended try-with-resources
-        TryOp normalizeExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, int index) {
-            List<Op> resourceOps = resourcesBody.entryBlock().ops();
-            CodeType resourceType = ((TupleType)resourcesBody.bodySignature().returnType()).componentTypes().get(index);
-            List<Value> resourceValues = ((CoreOp.TupleOp)((CoreOp.YieldOp)(resourceOps.getLast())).yieldValue().asResult().op()).operands();
-            int fromIndex = index == 0 ? 0 : resourceOps.indexOf(resourceValues.get(index - 1).asResult().op()) + 1;
-            int toIndex = resourceOps.indexOf(resourceValues.get(index).asResult().op()) + 1;
-            Body.Builder resourceBody = Body.Builder.of(ancestorBody, CoreType.functionType(resourceType), cc);
-            Block.Builder bb = resourceBody.entryBlock();
-            // @@@ assumption: resource initialization operations can be split into subsequent lists
-            resourceOps.subList(fromIndex, toIndex).forEach(bb::op);
-            bb.op(core_yield(cc.getValue(resourceValues.get(index))));
-            Body.Builder basicBody = Body.Builder.of(ancestorBody, CoreType.functionType(VOID, List.of(resourceType)), cc);
+        TryOp normalizeExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, List<Value> resourceValues) {
+            Body resource = resourcesBodies.get(resourceValues.size());
+            Body.Builder resourceBody = Body.Builder.of(ancestorBody, CoreType.functionType(resource.yieldType()), cc);
+            resourceBody.entryBlock().transformBody(resource, resourceValues, cc, CodeTransformer.COPYING_TRANSFORMER);
+            Body.Builder basicBody = Body.Builder.of(ancestorBody, CoreType.functionType(VOID, List.of(resource.yieldType())), cc);
             Block.Builder bodyB = basicBody.entryBlock();
-            cc.mapValue(resourceValues.get(index), bodyB.parameters().getFirst());
-            if (index + 1 < resourceValues.size()) {
-                bodyB.op(normalizeExtendedTryWithResources(basicBody, cc, index + 1));
+            resourceValues.add(bodyB.parameters().getFirst());
+            if (resourceValues.size() < resourcesBodies.size()) {
+                bodyB.op(normalizeExtendedTryWithResources(basicBody, cc, resourceValues));
                 bodyB.op(core_yield());
             } else {
-                bodyB.transformBody(body, cc.getValues(resourceValues), CodeTransformer.COPYING_TRANSFORMER);
+                bodyB.transformBody(body, resourceValues, cc, CodeTransformer.COPYING_TRANSFORMER);
             }
-            return try_(resourceBody, basicBody, List.of(), null);
+            return try_(List.of(resourceBody), basicBody, List.of(), null);
         }
 
         Body syntheticBody(Consumer<Block.Builder> c) {
@@ -7603,7 +7602,7 @@ public sealed abstract class JavaOp extends Op {
     public static TryOp.CatchBuilder try_(Body.Builder connectedAncestorBody, Consumer<Block.Builder> c) {
         Body.Builder _try = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
         c.accept(_try.entryBlock());
-        return new TryOp.CatchBuilder(connectedAncestorBody, null, _try);
+        return new TryOp.CatchBuilder(connectedAncestorBody, List.of(), _try);
     }
 
     /**
@@ -7611,39 +7610,32 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
      *                              connected, or {@code null} if they are isolated
-     * @param resourceTypes         the resource types used in the try-with-resources construct
-     * @param c                     a consumer that populates the resources body
      * @return the try-with-resources operation builder
      */
-    public static TryOp.BodyBuilder tryWithResources(Body.Builder connectedAncestorBody,
-                                                     List<? extends CodeType> resourceTypes,
-                                                     Consumer<Block.Builder> c) {
-        resourceTypes = resourceTypes.stream().map(CoreType::varType).toList();
-        Body.Builder resources = Body.Builder.of(connectedAncestorBody,
-                CoreType.functionType(CoreType.tupleType(resourceTypes)));
-        c.accept(resources.entryBlock());
-        return new TryOp.BodyBuilder(connectedAncestorBody, resourceTypes, resources);
+    public static TryOp.BodyBuilder tryWithResources(Body.Builder connectedAncestorBody) {
+        return new TryOp.BodyBuilder(connectedAncestorBody);
     }
 
-    // resources ()Tuple<Var<R1>, Var<R2>, ..., Var<RN>>, or null
-    // try (Var<R1>, Var<R2>, ..., Var<RN>)void, or try ()void
+    // resources: ()T1, (T1)T2, ..., (T1, T2, ..., T{N-1})TN, or empty
+    // Ti is Ri for a resource expression, or Var<Ri> for a resource declaration
+    // try (T1, T2, ..., TN)void, or try ()void
     // catch (E )void, where E <: Throwable
     // finally ()void, or null
 
     /**
      * Creates a try or try-with-resources operation.
      *
-     * @param resourcesBody the resources body builder, may be {@code null}
-     * @param body          the try body builder
-     * @param catchBodies   the catch body builders
-     * @param finallyBody   the finalizer body builder, may be {@code null}
+     * @param resourceBodies the resources body builders
+     * @param body           the try body builder
+     * @param catchBodies    the catch body builders
+     * @param finallyBody    the finalizer body builder, may be {@code null}
      * @return the try or try-with-resources operation
      */
-    public static TryOp try_(Body.Builder resourcesBody,
+    public static TryOp try_(List<Body.Builder> resourceBodies,
                              Body.Builder body,
                              List<Body.Builder> catchBodies,
                              Body.Builder finallyBody) {
-        return new TryOp(resourcesBody, body, catchBodies, finallyBody);
+        return new TryOp(resourceBodies, body, catchBodies, finallyBody);
     }
 
     //

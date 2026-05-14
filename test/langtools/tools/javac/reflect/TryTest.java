@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -165,35 +165,40 @@ public class TryTest {
     @IR("""
             func @"test4" (%0 : java.type:"TryTest")java.type:"void" -> {
                 java.try
-                    ()Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> -> {
+                    ()Var<java.type:"TryTest$A"> -> {
                         %1 : java.type:"TryTest$A" = invoke %0 @java.ref:"TryTest::a():TryTest$A";
                         %2 : Var<java.type:"TryTest$A"> = var %1 @"a";
-                        %3 : java.type:"TryTest$A" = var.load %2;
-                        %4 : java.type:"TryTest$B" = field.load %3 @java.ref:"TryTest$A::b:TryTest$B";
-                        %5 : java.type:"TryTest$A" = var.load %2;
-                        %6 : java.type:"TryTest$B" = field.load %5 @java.ref:"TryTest$A::b:TryTest$B";
-                        %7 : java.type:"TryTest$C" = field.load %6 @java.ref:"TryTest$B::c:TryTest$C";
-                        %8 : Var<java.type:"TryTest$C"> = var %7 @"c";
-                        %9 : Tuple<Var<java.type:"TryTest$A">, java.type:"TryTest$B", Var<java.type:"TryTest$C">> = tuple %2 %4 %8;
-                        yield %9;
+                        yield %2;
                     }
-                    (%10 : Var<java.type:"TryTest$A">, %11 : Var<java.type:"TryTest$C">)java.type:"void" -> {
-                        %12 : java.type:"TryTest$A" = var.load %10;
-                        %13 : Var<java.type:"TryTest$A"> = var %12 @"_a";
-                        %14 : java.type:"TryTest$C" = var.load %11;
-                        %15 : Var<java.type:"TryTest$C"> = var %14 @"_c";
+                    (%3 : Var<java.type:"TryTest$A">)java.type:"TryTest$B" -> {
+                        %4 : java.type:"TryTest$A" = var.load %3;
+                        %5 : java.type:"TryTest$B" = field.load %4 @java.ref:"TryTest$A::b:TryTest$B";
+                        yield %5;
+                    }
+                    (%6 : Var<java.type:"TryTest$A">, %7 : java.type:"TryTest$B")Var<java.type:"TryTest$C"> -> {
+                        %8 : java.type:"TryTest$A" = var.load %6;
+                        %9 : java.type:"TryTest$B" = field.load %8 @java.ref:"TryTest$A::b:TryTest$B";
+                        %10 : java.type:"TryTest$C" = field.load %9 @java.ref:"TryTest$B::c:TryTest$C";
+                        %11 : Var<java.type:"TryTest$C"> = var %10 @"c";
+                        yield %11;
+                    }
+                    (%12 : Var<java.type:"TryTest$A">, %13 : java.type:"TryTest$B", %14 : Var<java.type:"TryTest$C">)java.type:"void" -> {
+                        %15 : java.type:"TryTest$A" = var.load %12;
+                        %16 : Var<java.type:"TryTest$A"> = var %15 @"_a";
+                        %17 : java.type:"TryTest$C" = var.load %14;
+                        %18 : Var<java.type:"TryTest$C"> = var %17 @"_c";
                         yield;
                     }
-                    (%16 : java.type:"java.lang.Throwable")java.type:"void" -> {
-                        %17 : Var<java.type:"java.lang.Throwable"> = var %16 @"t";
-                        %18 : java.type:"java.lang.Throwable" = var.load %17;
-                        invoke %18 @java.ref:"java.lang.Throwable::printStackTrace():void";
+                    (%19 : java.type:"java.lang.Throwable")java.type:"void" -> {
+                        %20 : Var<java.type:"java.lang.Throwable"> = var %19 @"t";
+                        %21 : java.type:"java.lang.Throwable" = var.load %20;
+                        invoke %21 @java.ref:"java.lang.Throwable::printStackTrace():void";
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %19 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %20 : java.type:"java.lang.String" = constant @"F";
-                        invoke %19 %20 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
+                        %22 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %23 : java.type:"java.lang.String" = constant @"F";
+                        invoke %22 %23 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                 return;
