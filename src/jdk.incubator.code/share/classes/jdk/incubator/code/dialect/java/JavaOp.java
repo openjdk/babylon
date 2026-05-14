@@ -7613,8 +7613,9 @@ public sealed abstract class JavaOp extends Op {
         return new TryOp.BodyBuilder(connectedAncestorBody, resources);
     }
 
-    // resources ()Tuple<Var<R1>, Var<R2>, ..., Var<RN>>, or null
-    // try (Var<R1>, Var<R2>, ..., Var<RN>)void, or try ()void
+    // resources: ()T1, (T1)T2, ..., (T1, T2, ..., T{N-1})TN, or empty
+    // Ti is Ri for a resource expression, or Var<Ri> for a resource declaration
+    // try (T1, T2, ..., TN)void, or try ()void
     // catch (E )void, where E <: Throwable
     // finally ()void, or null
 
@@ -7622,9 +7623,9 @@ public sealed abstract class JavaOp extends Op {
      * Creates a try or try-with-resources operation.
      *
      * @param resourceBodies the resources body builders
-     * @param body            the try body builder
-     * @param catchBodies     the catch body builders
-     * @param finallyBody     the finalizer body builder, may be {@code null}
+     * @param body           the try body builder
+     * @param catchBodies    the catch body builders
+     * @param finallyBody    the finalizer body builder, may be {@code null}
      * @return the try or try-with-resources operation
      */
     public static TryOp try_(List<Body.Builder> resourceBodies,
