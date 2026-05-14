@@ -44,6 +44,12 @@ import java.util.stream.Stream;
 
 public class TestLocation {
     @Test
+    void testLocationIsRelative() {
+        CoreOp.FuncOp f = getFuncOp(this.getClass(), "f");
+        Assertions.assertEquals("TestLocation.java", f.location().sourceRef());
+    }
+
+    @Test
     public void testLocation() {
         CoreOp.FuncOp f = getFuncOp(ClassWithReflectedMethod.class, "f");
         f.elements().forEach(ce -> {
