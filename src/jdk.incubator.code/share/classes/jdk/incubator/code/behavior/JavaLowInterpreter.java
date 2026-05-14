@@ -195,8 +195,7 @@ public class JavaLowInterpreter extends Interpreter {
                     }
                     try {
                         JavaEnv je = (JavaEnv) e;
-                        Optional<Object> r = new JavaLowInterpreter().executeFuncOp(funcOp, e.valuesOf(o.operands()), je.l);
-                        result = r.orElse(null);
+                        result = new JavaLowInterpreter().executeFuncOp(funcOp, e.valuesOf(o.operands()), je.l);
                     } catch (InterpreterException ex) {
                         throw ex;
                     } catch (Throwable t) {
@@ -387,11 +386,6 @@ public class JavaLowInterpreter extends Interpreter {
             }
             default -> throw new UnsupportedOperationException(op.toString());
         };
-    }
-
-    private Object execLambdaOpWrapper(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
-        Optional<Object> opt = executeLambdaOp(lambdaOp, l, captures, args);
-        return opt.orElse(null);
     }
 
     public Object executeLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
