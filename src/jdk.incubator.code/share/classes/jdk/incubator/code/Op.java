@@ -85,7 +85,8 @@ import java.util.function.BiFunction;
  * <p>
  * Building finishes when the parent body builder of the block in which the operation was placed
  * <a href="Body.Builder.html#body-building-finishing">finishes</a>, after which the block becomes observable, or when
- * the operation is placed as the root of a code model.
+ * the operation is placed as the root of a code model. After building finishes, the operation's placement and location
+ * are also fixed, and from then on the operation's observable state does not change.
  * <p>
  * The {@link #location} may be {@link #setLocation set} while the operation is unplaced or placed in a block whose
  * parent body builder has not finished.
