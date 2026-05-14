@@ -5147,7 +5147,9 @@ public sealed abstract class JavaOp extends Op {
      * <em>finally body</em>. Try operations may also feature zero or more <em>resources bodies</em>, modeling a
      * try-with-resources statement.
      * <p>
-     * Each resource body yields a value. The first resource body accepts no arguments. A second resource body accepts an argument whose type is the same as the yield type of the first resource body. A subsequent resource accepts, in order, arguments whose types are the same as all the prior resource body yield types.
+     * Each resource body yields a value. The first resource body accepts no arguments. A second resource body accepts
+     * an argument whose type is the same as the yield type of the first resource body. A subsequent resource accepts,
+     * in order, arguments whose types are the same as all the prior resource body yield types.
      * <p>
      * The try body yields {@linkplain JavaType#VOID no value}. If one or more resources bodies are present then
      * the try body accepts, in order, arguments whose types are the same as the resource bodies yield types.
