@@ -315,6 +315,17 @@ public class JavaLowInterpreter extends Interpreter {
                 }
                 result = null;
             }
+            case JavaOp.InstanceOfOp o -> {
+                JavaEnv je = (JavaEnv) e;
+                Object obj = e.valueOf(o.operands().get(0));
+                Class<?> c;
+                try {
+                    c = resolveToClass(je.l, o.targetType());
+                } catch (ReflectiveOperationException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                result = c.isInstance(obj);
+            }
             default -> throw new UnsupportedOperationException(op.toString());
         }
         return new OpResultEffect(result, e);
