@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,14 +45,14 @@ import java.util.function.Function;
  * By default, traversal transforms an input body by transforming each input block of the body, in order, and transforms
  * an input block by transforming each input operation of the block, in order. The single abstract method
  * {@link #acceptOp(Block.Builder, Op)} is the primitive transformation step. Implementations of that method may emit
- * output blocks and operations. Appending an attached or root operation using an output block builder may recursively
- * invoke the code transformer for descendant code elements.
+ * output blocks and operations. Appending a placed operation using an output block builder may recursively invoke the
+ * code transformer for descendant code elements.
  * <p>
  * A transformation uses the {@link CodeContext} of an output block builder to record correspondence between input
  * code items and outputs. Some mappings are established implicitly: by the default traversal of an input body,
  * for mappings between input blocks and output block builders and for mappings between input block parameters and
- * output values; and by appending attached or root operations, for mappings between appended operation results and
- * output operation results. By default, block reference mappings are never established implicitly.
+ * output values; and by appending placed operations, for mappings between appended operation results and output
+ * operation results. By default, block reference mappings are never established implicitly.
  * <p>
  * Transformations that drop, replace, or expand input code elements are responsible for explicitly establishing any
  * mappings required by the transformation of subsequent code elements.
@@ -94,7 +94,7 @@ public interface CodeTransformer {
          * The operation-building function encapsulates the current output block builder for this transformation step.
          * Applying the function {@link Block.Builder#op(Op) appends} an operation using the current output block
          * builder, which will perform <a href="Block.Builder.html#transform-on-append"><i>transform-on-append</i></a>
-         * when appending the input operation, or any other attached or root operation.
+         * when appending the input operation, or any other placed operation.
          *
          * @param builder  the operation-building function
          * @param op       the input operation to transform
@@ -129,7 +129,7 @@ public interface CodeTransformer {
         return (builder, inputOp) -> {
             // Allocate operation-building function capturing builder and inputOp
             // This is simpler and safer that using fields holding the builder and inputOp
-            // and protecting use against reentry of calls to builder.op for an attached
+            // and protecting use against reentry of calls to builder.op for a placed
             // operation that is transformed and contains bodies
             // @@@ If performance is an issue consider changing
             Function<Op, Op.Result> opBuilder = outputOp -> {
@@ -268,7 +268,7 @@ public interface CodeTransformer {
      * output operations and creating additional block builders.
      * <p>
      * A block builder will perform <a href="Block.Builder.html#transform-on-append"><i>transform-on-append</i></a> when
-     * appending the input operation, or any other attached or root operation. More specifically:
+     * appending the input operation, or any other placed operation. More specifically:
      * <ul>
      * <li>
      * if the block builder's code transformer is the same as this code transformer, as is the case for the current

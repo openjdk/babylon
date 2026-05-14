@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,6 +51,7 @@ import com.sun.tools.javac.comp.Flow;
 import com.sun.tools.javac.comp.Lower;
 import com.sun.tools.javac.comp.CodeReflectionTransformer;
 import com.sun.tools.javac.comp.TypeEnvs;
+import com.sun.tools.javac.file.PathFileObject;
 import com.sun.tools.javac.jvm.ByteCodes;
 import com.sun.tools.javac.jvm.Gen;
 import com.sun.tools.javac.resources.CompilerProperties.*;
@@ -700,7 +701,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             int col = log.currentSource().getColumnNumber(startPos, false);
             String path;
             if (includeSourceReference) {
-                path = log.currentSource().getFile().toUri().toString();
+                path = PathFileObject.getSimpleName(log.currentSourceFile());
             } else {
                 path = null;
             }

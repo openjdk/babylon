@@ -473,11 +473,13 @@
 /// ## <a id="transforming-heading"/>Transforming
 ///
 /// Code reflection supports the transformation of code models by combining traversing and building. A code model
-/// transformation is represented by a function that takes an operation, encountered in the (input) model being
-/// transformed, and a code model builder for the resulting transformed (output) model, and mediates how, if at all,
-/// that operation is transformed into other code elements that are built. We were inspired by the functional
-/// [transformation][cf-transformation] approach devised by the Class-File API and adapted that design to work on the
-/// nested structure of code models that are immutable trees of code elements.
+/// transformation is represented by a [CodeTransformer][jdk.incubator.code.CodeTransformer] that accepts input bodies,
+/// blocks, and operations while building an output code model with block builders. During transformation, a block
+/// builder may serve as the current output block builder. A transformer emits output operations by appending operations
+/// with output block builders, and emits output blocks by creating block builders for those blocks and appending
+/// operations using those builders. We were inspired by the functional [transformation][cf-transformation] approach
+/// devised by the Class-File API and adapted that design to work on the nested structure of code models that are
+/// immutable trees of code elements.
 ///
 /// [cf-transformation]: https://openjdk.org/jeps/484#Transforming-class-files
 ///
@@ -504,9 +506,10 @@
 /// The code transformation function, passed as lambda expression to
 /// [CodeTransformer.opTransformer][jdk.incubator.code.CodeTransformer#opTransformer], accepts as parameters a
 /// operation-building function, `builder`, an operation encountered when traversing the input code model, `inputOp`,
-/// and a list of values in the output model being built that are associated with input operation’s operands,
-/// `outputOperands`. We must have previously encountered and transformed the input operations whose results are
-/// associated with those values, since values can only be used after they have been declared.
+/// and `outputOperands`, a list with one entry for each input operation operand. Each entry is the output value
+/// currently mapped from the corresponding input operand, or `null` if no output value is mapped. In this example, the
+/// input operations that produce operands of the matched `add` operation have already been encountered and copied, so
+/// the corresponding output operands are mapped before the `add` operation is transformed.
 ///
 /// In the code transformer we switch over the input operation, and in this case we just match on `add` operation and
 /// by default any other operation. In the latter case we apply the input operation to the operation-building function,
