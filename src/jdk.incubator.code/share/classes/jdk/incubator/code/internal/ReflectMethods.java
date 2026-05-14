@@ -2231,7 +2231,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // Push resources body
                     pushBody(null, CoreType.functionType(rType, rTypes));
                     for (int i = 0; i < rVariableDecls.size(); i++) {
-                        stack.localToOp.put(rVariableDecls.get(i), stack.block.parameters().get(i));
+                        Symbol rVariableDecl = rVariableDecls.get(i);
+                        if (rVariableDecl != null) {
+                            stack.localToOp.put(rVariableDecl, stack.block.parameters().get(i));
+                        }
                     }
 
                     if (resource instanceof JCTree.JCExpression e) {
@@ -2245,6 +2248,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // Pop resources body
                     popBody();
 
+                    // Null entries preserve positions for resource expressions, which have no variable declaration.
                     rVariableDecls.add(resource instanceof JCVariableDecl vdecl ? vdecl.sym : null);
                     rTypes.add(rType);
                 }
