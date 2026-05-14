@@ -247,6 +247,28 @@ public class JavaLowInterpreter extends Interpreter {
                     result = fiInstance;
                 }
             }
+            case CoreOp.TupleOp o -> {
+                List<Object> values = o.operands().stream().map(e::valueOf).toList();
+                result = values.toArray();
+            }
+            case CoreOp.TupleLoadOp o -> {
+                Object[] arr = (Object[]) e.valueOf(o.operands().getFirst());
+                try {
+                    result = arr[o.index()];
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+            }
+            case CoreOp.TupleWithOp o -> {
+                Object[] arr = (Object[]) e.valueOf(o.operands().getFirst());
+                Object[] newArr = Arrays.copyOf(arr, arr.length);
+                try {
+                    newArr[o.index()] = e.valueOf(o.operands().get(1));
+                } catch (ArrayIndexOutOfBoundsException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                result = newArr;
+            }
             default -> throw new UnsupportedOperationException(op.toString());
         }
         return new OpResultEffect(result, e);
