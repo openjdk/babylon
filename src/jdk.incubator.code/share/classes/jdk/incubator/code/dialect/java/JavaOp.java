@@ -5151,7 +5151,6 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * The try body yields {@linkplain JavaType#VOID no value}. If one or more resources bodies are present then
      * the try body accepts, in order, arguments whose types are the same as the resource bodies yield types.
-     *,     
      * <p>
      * Each catch body should accept an exception value and yield {@linkplain JavaType#VOID no value}. The
      * finally body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
@@ -7632,7 +7631,7 @@ public sealed abstract class JavaOp extends Op {
                              Body.Builder body,
                              List<Body.Builder> catchBodies,
                              Body.Builder finallyBody) {
-        return new TryOp(resourcesBodies, body, catchBodies, finallyBody);
+        return new TryOp(resourceBodies, body, catchBodies, finallyBody);
     }
 
     //
