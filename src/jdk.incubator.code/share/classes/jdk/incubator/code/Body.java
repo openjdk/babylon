@@ -182,7 +182,8 @@ public final class Body implements CodeElement<Body, Block> {
                         break;
                     }
                 }
-                assert b.predecessors().isEmpty() || newIdom != null : b;
+                // This assert is too strong where there are unreferenced block
+//                assert b.predecessors().isEmpty() || newIdom != null : b;
 
                 // For all other predecessors, p, of b
                 for (Block p : b.predecessors()) {
@@ -618,17 +619,6 @@ public final class Body implements CodeElement<Body, Block> {
          * @throws IllegalStateException if any connected body builder is not finished
          * @throws IllegalStateException if a block has no terminating operation, unless unreferenced and empty
          */
-        // @@@ Check every operand dominates the operation result.
-        //     An operation in block B that uses a value declared in block B requires no special checks, since an
-        //     operation result does not exist until an operation is appended to a block, and B's parameters always
-        //     occur before any of its operations.
-        //     Similarly, when an operation uses a value declared in an ancestor no special checks are required due to
-        //     structural checks and reachability checks when building.
-        //     Therefore, a body with only one entry block requires no special checks when building.
-        //     A body with two or more blocks requires dominance checks. An operation in block C that uses a value
-        //     declared in block B, where C and B are siblings, requires that B dominates C.
-        //     Since blocks are already sorted in reverse postorder the work to compute the immediate dominator map
-        //     is incremental and can it be represented efficiently as an integer array of block indexes.
         public Body build(Op op) {
             Objects.requireNonNull(op);
 
@@ -667,6 +657,32 @@ public final class Body implements CodeElement<Body, Block> {
             }
 
             sortReversePostorder();
+
+            // Validate each use of a value declared in the body.
+            // The use's declaring block must be dominated by the value's declaring block
+            if (blocks.size() > 1) {
+                // Only need to check when there is more than one block, since for one block
+                // the use's declaring block will be the same as or a descendant of the
+                // value's declaring block
+                for (Block block : blocks) {
+                    for (Block.Parameter p : block.parameters()) {
+                        for (Op.Result use : p.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+
+                    for (Op o : block.ops()) {
+                        Op.Result r = o.result();
+                        for (Op.Result use : r.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+                }
+            }
 
             Body.this.parentOp = op;
             return Body.this;

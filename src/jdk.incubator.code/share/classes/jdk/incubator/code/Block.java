@@ -375,7 +375,8 @@ public final class Block implements CodeElement<Block, Op> {
      *
      * @apiNote
      * The method {@link Body#immediateDominators()} can be used to test for dominance, by repeatedly querying a block's
-     * immediately dominating block until {@code null} or {@code dom} is reached.
+     * immediately dominating block until {@code dom} is reached, in which case this block is dominated, or the
+     * entry block or {@code null} is encountered, in which case this block is not dominated.
      *
      * @param dom the dominating block
      * @return {@code true} if this block is dominated by the given block.
@@ -405,6 +406,9 @@ public final class Block implements CodeElement<Block, Op> {
         while (idom != entry) {
             if (idom == dom) {
                 return true;
+            } else if (idom == null) {
+                // Encountered unreferenced block
+                return false;
             }
 
             idom = idoms.get(idom);
