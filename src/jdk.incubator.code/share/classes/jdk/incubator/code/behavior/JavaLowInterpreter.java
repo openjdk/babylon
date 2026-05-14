@@ -19,6 +19,7 @@ import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -359,6 +360,34 @@ public class JavaLowInterpreter extends Interpreter {
                 } catch (Throwable t) {
                     return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
                 }
+            }
+            case JavaOp.ArrayLengthOp o -> {
+                Object a = e.valueOf(o.operands().get(0));
+                try {
+                    result = Array.getLength(a);
+                } catch (RuntimeException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+            }
+            case JavaOp.ArrayAccessOp.ArrayLoadOp o -> {
+                Object a = e.valueOf(o.operands().get(0));
+                Object index = e.valueOf(o.operands().get(1));
+                try {
+                    result = Array.get(a, (int) index);
+                } catch (RuntimeException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+            }
+            case JavaOp.ArrayAccessOp.ArrayStoreOp o -> {
+                Object a = e.valueOf(o.operands().get(0));
+                Object index = e.valueOf(o.operands().get(1));
+                Object v = e.valueOf(o.operands().get(2));
+                try {
+                    Array.set(a, (int) index, v);
+                } catch (RuntimeException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                result = null;
             }
             default -> throw new UnsupportedOperationException(op.toString());
         }
