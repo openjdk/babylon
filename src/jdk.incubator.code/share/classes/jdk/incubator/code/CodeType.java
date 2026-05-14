@@ -29,16 +29,50 @@ import jdk.incubator.code.extern.ExternalizedCodeType;
 /**
  * A code type that classifies values.
  * <p>
- * A {@link Value value}, one of {@link Block.Parameter} or {@link Op.Result}, has a
- * {@code CodeType} classifying that value.
- * A {@link Body} has a {@code CodeType}, the {@link Body#yieldType yield type},
- * classifying values yielded from the body.
+ * A {@link Value value}, one of {@link Block.Parameter} or {@link Op.Result}, has a {@code CodeType} classifying that
+ * value. A {@link Body} has a {@code CodeType}, the {@link Body#yieldType yield type}, classifying values yielded from
+ * the body.
  * <p>
  * The {@code equals} method should be used to compare code types.
  *
+ * <h2>Code type implementation requirements</h2>
+ * <p>
+ * Instances of a concrete code type class must be immutable.
+ * <p>
+ * A concrete code type class must satisfy the following requirements:
+ * <ul>
+ * <li>
+ * implement {@link #equals(Object)}, {@link #hashCode()}, and {@link #toString()} so that their results are solely
+ * computed from code type state, and not from an instance's identity;
+ * <li>
+ * treat equal instances as freely substitutable, so that interchanging two instances that are equal according to
+ * {@code equals} produces no visible change in the behavior of the code type's methods;
+ * <li>
+ * ensure equal instances have equal {@link #externalize() externalized content};
+ * <li>
+ * provide no creation mechanism that promises unique identity for created instances;
+ * <li>
+ * copy mutable constructor arguments that define code type state, ensuring they are all fixed when construction
+ * completes; and
+ * <li>
+ * return unmodifiable views or immutable values from accessors that expose code type state.
+ * </ul>
+ * <p>
+ * A concrete code type class may additionally:
+ * <ul>
+ * <li>
+ * override {@link #externalize()} to define an external form; and
+ * <li>
+ * provide accessors for code type state.
+ * </ul>
+ *
  * @apiNote
- * Code types enable reasoning statically about a code model, approximating
- * run time behavior.
+ * Code types enable reasoning statically about a code model, approximating run time behavior.
+ * <p>
+ * A code type might model a Java primitive type such as {@link jdk.incubator.code.dialect.java.JavaType#INT int},
+ * a specific Java class such as {@link jdk.incubator.code.dialect.java.JavaType#J_L_STRING String}, or more generally a
+ * {@link jdk.incubator.code.dialect.core.FunctionType function type} or a
+ * {@link jdk.incubator.code.dialect.core.TupleType tuple type}.
  *
  * @see Value
  * @see Block.Parameter
@@ -52,12 +86,22 @@ public non-sealed interface CodeType extends CodeItem {
     /**
      * Externalizes this code type's content.
      *
+     * @implSpec
+     * This implementation returns an externalized code type whose identifier is the result of invoking
+     * {@link #toString()} and whose argument list is empty.
+     *
      * @return the code type's content.
      */
-    ExternalizedCodeType externalize();
+    default ExternalizedCodeType externalize() {
+        return ExternalizedCodeType.of(toString());
+    }
 
     /**
      * Return a string representation of this code type.
+     * <p>
+     * An implementing class should avoid implementing this method by returning the result of
+     * {@code externalize().toString()} unless that class overrides the {@code externalize} method with its own
+     * implementation.
      */
     @Override
     String toString();
