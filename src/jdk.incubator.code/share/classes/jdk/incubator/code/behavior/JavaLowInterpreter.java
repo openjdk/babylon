@@ -326,6 +326,21 @@ public class JavaLowInterpreter extends Interpreter {
                 }
                 result = c.isInstance(obj);
             }
+            case JavaOp.CastOp o  -> {
+                Class<?> c;
+                try {
+                    JavaEnv je = (JavaEnv) e;
+                    c = resolveToClass(je.l, o.targetType());
+                } catch (ReflectiveOperationException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                try {
+                    Object v = e.valueOf(o.operands().get(0));
+                    result = c.cast(v);
+                } catch (ClassCastException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+            }
             default -> throw new UnsupportedOperationException(op.toString());
         }
         return new OpResultEffect(result, e);
