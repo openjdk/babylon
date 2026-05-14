@@ -46,15 +46,11 @@ public class JavaLowInterpreter extends Interpreter {
         }
     }
 
-    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
+    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) throws ReflectiveOperationException {
         if (!(d instanceof JavaType jt)) {
-            throw new InternalError();
+            throw new InternalError(); // @@@ can be Interpreter exception
         }
-        try {
-            return (Class<?>) jt.erasure().resolve(l);
-        } catch (ReflectiveOperationException e) {
-            throw new InternalError(e);
-        }
+        return (Class<?>) jt.erasure().resolve(l);
     }
 
     static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {
@@ -212,11 +208,17 @@ public class JavaLowInterpreter extends Interpreter {
             }
             case JavaOp.LambdaOp o -> {
                 JavaEnv je = (JavaEnv) e;
+                Class<?> fi;
+                try {
+                    fi = resolveToClass(je.l, o.functionalInterface());
+                } catch (ReflectiveOperationException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+
                 SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
                         .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
-                Class<?> fi = resolveToClass(je.l, o.functionalInterface());
-
                 Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
+
                 MethodHandle execLambdaOpMH;
                 try {
                     execLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "executeLambdaOp",
@@ -492,7 +494,13 @@ public class JavaLowInterpreter extends Interpreter {
             for (List<Block> blocks : catchBlocks) {
                 blockListToRemove++;
                 for (Block block : blocks) {
-                    if (resolveToClass(l, block.parameters().getFirst().type()).isInstance(t)) {
+                    Class<?> c;
+                    try {
+                        c = resolveToClass(l, block.parameters().getFirst().type());
+                    } catch (ReflectiveOperationException ex) {
+                        throw new InterpreterException(ex);
+                    }
+                    if (c.isInstance(t)) {
                         cb = block;
                         break l;
                     }
