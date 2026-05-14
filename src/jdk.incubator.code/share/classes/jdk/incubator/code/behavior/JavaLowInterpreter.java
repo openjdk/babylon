@@ -337,8 +337,6 @@ public class JavaLowInterpreter extends Interpreter {
                 return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(effect.operands().getFirst());
             }
             case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
-            // implicit throw e.g. AssertOp or execution of an op throws
-            case Op o when o.equals(fakeThrowOp) -> throw (Throwable) effect.operands().getFirst();
             default -> throw new InternalError(effect.toString());
         }
     }
@@ -352,8 +350,6 @@ public class JavaLowInterpreter extends Interpreter {
                 return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(effect.operands().getFirst());
             }
             case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
-            // implicit throw e.g. AssertOp or execution of an op throws
-            case Op o when o.equals(fakeThrowOp) -> throw (Throwable) effect.operands().getFirst();
             default -> throw new InternalError(effect.toString());
         }
     }
