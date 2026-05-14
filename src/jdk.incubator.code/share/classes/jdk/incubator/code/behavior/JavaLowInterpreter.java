@@ -24,6 +24,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -388,6 +389,12 @@ public class JavaLowInterpreter extends Interpreter {
                     return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
                 }
                 result = null;
+            }
+            case JavaOp.ConcatOp o -> {
+                result = o.operands().stream()
+                        .map(e::valueOf)
+                        .map(String::valueOf)
+                        .collect(Collectors.joining());
             }
             default -> throw new UnsupportedOperationException(op.toString());
         }
