@@ -57,6 +57,10 @@ public class JavaLowInterpreter extends Interpreter {
         return d.resolveToHandle(l);
     }
 
+    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
+        return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
+    }
+
     @SuppressWarnings("serial")
     static class OpInterpretationException extends Throwable { // indicate the interpretation of an op throws
         OpInterpretationException(Throwable cause) {
@@ -339,6 +343,21 @@ public class JavaLowInterpreter extends Interpreter {
                     result = c.cast(v);
                 } catch (ClassCastException ex) {
                     return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+            }
+            case JavaOp.NewOp o  -> {
+                Object[] values = o.operands().stream().map(e::valueOf).toArray();
+                MethodHandle mh;
+                try {
+                    JavaEnv je = (JavaEnv) e;
+                    mh = resolveToConstructorHandle(je.l, o.constructorReference());
+                } catch (ReflectiveOperationException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                try {
+                    result = mh.invokeWithArguments(values);
+                } catch (Throwable t) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
                 }
             }
             default -> throw new UnsupportedOperationException(op.toString());
