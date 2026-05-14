@@ -212,14 +212,14 @@ public class JavaLowInterpreter extends Interpreter {
                 Class<?> fi = resolveToClass(je.l, o.functionalInterface());
 
                 Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
-                MethodHandle execLambdaWrapper;
+                MethodHandle execLambdaOpMH;
                 try {
-                    execLambdaWrapper = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "execLambdaOpWrapper",
+                    execLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "executeLambdaOp",
                             MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
                 } catch (Throwable t) {
                     throw new InterpreterException(t);
                 }
-                MethodHandle fProxy = execLambdaWrapper.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
+                MethodHandle fProxy = execLambdaOpMH.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
                         .asCollector(Object[].class, o.parameters().size());
                 Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
@@ -327,27 +327,27 @@ public class JavaLowInterpreter extends Interpreter {
         return opt.orElse(null);
     }
 
-    public Optional<Object> executeLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
+    public Object executeLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
         Env e = new JavaEnv(new HashMap<>(), l);
         List<Object> arguments = new ArrayList<>(Arrays.asList(args));
         arguments.addAll(Arrays.asList(captures));
         var effect = executeBody(op.body(), arguments, e);
         switch (effect.terminatingOp()) {
             case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(effect.operands().getFirst());
+                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
             }
             case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
             default -> throw new InternalError(effect.toString());
         }
     }
 
-    public Optional<Object> executeFuncOp(CoreOp.FuncOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
+    public Object executeFuncOp(CoreOp.FuncOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
         Env e = new JavaEnv(new HashMap<>(), l);
 
         var effect = executeBody(op.body(), args, e);
         switch (effect.terminatingOp()) {
             case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? Optional.empty() : Optional.ofNullable(effect.operands().getFirst());
+                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
             }
             case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
             default -> throw new InternalError(effect.toString());
