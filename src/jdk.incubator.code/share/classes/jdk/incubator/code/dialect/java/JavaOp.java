@@ -5147,10 +5147,11 @@ public sealed abstract class JavaOp extends Op {
      * <em>finally body</em>. Try operations may also feature zero or more <em>resources bodies</em>, modeling a
      * try-with-resources statement.
      * <p>
-     * Each resources body, accepts all yield values from prepending resource bodies arguments and yields a value.
+     * Each resource body yields a value. The first resource body accepts no arguments. A second resource body accepts an argument whose type is the same as the yield type of the first resource body. A subsequent resource accepts, in order, arguments whose types are the same as all the prior resource body yield types.
      * <p>
      * The try body yields {@linkplain JavaType#VOID no value}. If one or more resources bodies are present then
-     * the try body should accept arguments of all resource bodies yield types.
+     * the try body accepts, in order, arguments whose types are the same as the resource bodies yield types.
+     *,     
      * <p>
      * Each catch body should accept an exception value and yield {@linkplain JavaType#VOID no value}. The
      * finally body, if present, should accept no arguments and yield {@linkplain JavaType#VOID no value}.
@@ -5364,7 +5365,7 @@ public sealed abstract class JavaOp extends Op {
         /**
          * {@return the resources bodies}
          */
-        public List<Body> resourcesBody() {
+        public List<Body> resourceBodies() {
             return resourcesBodies;
         }
 
@@ -7618,13 +7619,13 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates a try or try-with-resources operation.
      *
-     * @param resourcesBodies the resources body builders
+     * @param resourceBodies the resources body builders
      * @param body            the try body builder
      * @param catchBodies     the catch body builders
      * @param finallyBody     the finalizer body builder, may be {@code null}
      * @return the try or try-with-resources operation
      */
-    public static TryOp try_(List<Body.Builder> resourcesBodies,
+    public static TryOp try_(List<Body.Builder> resourceBodies,
                              Body.Builder body,
                              List<Body.Builder> catchBodies,
                              Body.Builder finallyBody) {
