@@ -5165,15 +5165,31 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Nested, Op.Lowerable, JavaStatement {
 
         /**
-         * Builder for the try body of a try operation.
+         * Builder for the resource bodies and the try body of a try operation.
          */
         public static final class BodyBuilder {
             final Body.Builder connectedAncestorBody;
             final List<Body.Builder> resources;
 
-            BodyBuilder(Body.Builder connectedAncestorBody, List<Body.Builder> resources) {
+            BodyBuilder(Body.Builder connectedAncestorBody) {
                 this.connectedAncestorBody = connectedAncestorBody;
-                this.resources = resources;
+                this.resources = new ArrayList<>();
+            }
+
+            /**
+             * Adds a resource body to a try-with-resources operation.
+             *
+             * @param yieldType the resource type for a resource expression, or the Var type for a resource declaration
+             * @param c a consumer that populates the resource body
+             * @return this builder
+             */
+            public BodyBuilder resource(CodeType yieldType, Consumer<Block.Builder> c) {
+                List<CodeType> paramTypes = resources.stream().map(r -> r.bodySignature().returnType()).toList();
+                Body.Builder resource = Body.Builder.of(connectedAncestorBody,
+                        CoreType.functionType(yieldType, paramTypes));
+                c.accept(resource.entryBlock());
+                resources.add(resource);
+                return this;
             }
 
             /**
@@ -7592,25 +7608,10 @@ public sealed abstract class JavaOp extends Op {
      *
      * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
      *                              connected, or {@code null} if they are isolated
-     * @param resourceTypes         the resource types used in the try-with-resources construct
-     * @param c                     a consumers that populate the resources bodies
      * @return the try-with-resources operation builder
      */
-    public static TryOp.BodyBuilder tryWithResources(Body.Builder connectedAncestorBody,
-                                                     List<? extends CodeType> resourceTypes,
-                                                     List<Consumer<Block.Builder>> c) {
-        assert resourceTypes.size() == c.size();
-        resourceTypes = resourceTypes.stream().map(CoreType::varType).toList();
-        List<Body.Builder> resources = new ArrayList<>();
-        List<CodeType> prefixTypes = new ArrayList<>();
-        for (int i = 0; i < resourceTypes.size(); i++) {
-            Body.Builder resource = Body.Builder.of(connectedAncestorBody,
-                    CoreType.functionType(resourceTypes.get(i), List.copyOf(prefixTypes)));
-            c.get(i).accept(resource.entryBlock());
-            resources.add(resource);
-            prefixTypes.add(resourceTypes.get(i));
-        }
-        return new TryOp.BodyBuilder(connectedAncestorBody, resources);
+    public static TryOp.BodyBuilder tryWithResources(Body.Builder connectedAncestorBody) {
+        return new TryOp.BodyBuilder(connectedAncestorBody);
     }
 
     // resources: ()T1, (T1)T2, ..., (T1, T2, ..., T{N-1})TN, or empty
