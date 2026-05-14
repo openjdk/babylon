@@ -9,6 +9,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -17,6 +18,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -53,6 +55,10 @@ public class JavaLowInterpreter extends Interpreter {
         } catch (ReflectiveOperationException e) {
             throw new InternalError(e);
         }
+    }
+
+    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {
+        return d.resolveToHandle(l);
     }
 
     @SuppressWarnings("serial")
@@ -268,6 +274,45 @@ public class JavaLowInterpreter extends Interpreter {
                     return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
                 }
                 result = newArr;
+            }
+            case JavaOp.FieldAccessOp.FieldLoadOp o -> {
+                JavaEnv je = (JavaEnv) e;
+                VarHandle vh;
+                try {
+                    vh = resolveToVarHandle(je.l, o.fieldReference());
+                } catch (ReflectiveOperationException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                Object[] args = o.operands().isEmpty() ? new Object[]{} : new Object[]{o.operands().getFirst()};
+                try {
+                    result = vh.get(args);
+                } catch (RuntimeException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+            }
+            case JavaOp.FieldAccessOp.FieldStoreOp o -> {
+                JavaEnv je = (JavaEnv) e;
+                VarHandle vh;
+                try {
+                    vh = resolveToVarHandle(je.l, o.fieldReference());
+                } catch (ReflectiveOperationException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                Object[] args;
+                if (o.operands().size() == 1) {
+                    Object v = e.valueOf(o.operands().get(0));
+                    args = new Object[]{v};
+                } else {
+                    Object r = e.valueOf(o.operands().get(0));
+                    Object v = e.valueOf(o.operands().get(1));
+                    args = new Object[]{r, v};
+                }
+                try {
+                    vh.set(args);
+                } catch (RuntimeException ex) {
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                }
+                result = null;
             }
             default -> throw new UnsupportedOperationException(op.toString());
         }
