@@ -242,8 +242,8 @@ public sealed abstract class JavaOp extends Op {
                         try {
                             field = fieldLoadOp.fieldReference().resolveToField(l);
                             vh = fieldLoadOp.fieldReference().resolveToHandle(l);
-                        } catch (ReflectiveOperationException e) {
-                            throw new IllegalArgumentException(e);
+                        } catch (ReflectiveOperationException | IllegalArgumentException e) {
+                            throw new NonConstantExpression();
                         }
                         // Requirement: the field must be a constant variable.
                         // Current checks:
