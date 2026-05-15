@@ -193,7 +193,7 @@ public final class Verifier {
     static final Class<?> CLASS_ARITHMETIC_AND_CONV_OP_IMPLS;
     static {
         try {
-            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS = Class.forName("ArithmeticAndConvOpImpls");
+            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS = Class.forName("jdk.incubator.code.internal.ArithmeticAndConvOpImpls");
         } catch (ReflectiveOperationException roe) {
             throw new InternalError(roe);
         }
