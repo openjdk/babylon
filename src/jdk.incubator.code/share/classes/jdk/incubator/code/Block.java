@@ -168,6 +168,10 @@ public final class Block implements CodeElement<Block, Op> {
     // Set when block's body has sorted its blocks and therefore set when built
     // Block is inoperable when < 0 i.e., when not built
     int index = -1;
+    // The component the block is a member of, corresponds to the root index
+    // in the graph of blocks
+    // Set when block's body has sorted its blocks
+    int component = -1;
 
     Block(Body parentBody) {
         this(parentBody, List.of());
