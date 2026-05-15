@@ -188,7 +188,7 @@ public sealed abstract class JavaOp extends Op {
             <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
                 try {
                     Object v = this.eval(op);
-                    return Optional.of(v);
+                    return Optional.ofNullable(v);
                 } catch (NonConstantExpression e) {
                     return Optional.empty();
                 }
@@ -197,7 +197,7 @@ public sealed abstract class JavaOp extends Op {
             Optional<Object> evaluate(Value v) {
                 try {
                     Object o = this.eval(v);
-                    return Optional.of(o);
+                    return Optional.ofNullable(o);
                 } catch (NonConstantExpression e) {
                     return Optional.empty();
                 }
