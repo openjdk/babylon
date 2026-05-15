@@ -152,6 +152,18 @@ public final class Body implements CodeElement<Body, Block> {
 
     // Called by LazyConstant field
     private Map<Block, Block> computeImmediateDominators() {
+        Map<Block, Block> idoms = new HashMap<>();
+
+        // Repeatedly compute for each graph
+        int start = 0;
+        while (start < blocks.size()) {
+            start = computeImmediateDominators(idoms, start);
+        }
+
+        return Collections.unmodifiableMap(idoms);
+    }
+
+    private int computeImmediateDominators(Map<Block, Block> doms, int start) {
         /*
          * Compute dominators of blocks in a body.
          * <p>
@@ -160,33 +172,39 @@ public final class Body implements CodeElement<Body, Block> {
          * Keith D. Cooper, Timothy J. Harvey, and Ken Kennedy
          */
 
-        // @@@ Compute the idoms as a block index mapping using int[]
-        // and wrap and a specific map implementation
+        Block root = blocks.get(start);
+        int component = root.component;
+        doms.put(root, root);
 
-        Map<Block, Block> doms = new HashMap<>();
-        doms.put(entryBlock(), entryBlock());
-
-        // Blocks are sorted in reverse postorder
+        int end = blocks.size();
         boolean changed;
         do {
             changed = false;
-            // Iterate through blocks in reverse postorder, except for entry block
-            for (int i = 1; i < blocks.size(); i++) {
+            // Iterate through blocks in reverse postorder, except for root block
+            for (int i = start + 1; i < end; i++) {
                 Block b = blocks.get(i);
+                if (b.component != component) {
+                    end = i;
+                    break;
+                }
 
                 // Find first processed predecessor of b
                 Block newIdom = null;
                 for (Block p : b.predecessors()) {
+                    if (p.component != b.component) {
+                        continue;
+                    }
+
                     if (doms.containsKey(p)) {
                         newIdom = p;
                         break;
                     }
                 }
-                assert b.predecessors().isEmpty() || newIdom != null : b;
+                assert newIdom != null : b;
 
                 // For all other predecessors, p, of b
                 for (Block p : b.predecessors()) {
-                    if (p == newIdom) {
+                    if (p.component != b.component || p == newIdom) {
                         continue;
                     }
 
@@ -203,7 +221,7 @@ public final class Body implements CodeElement<Body, Block> {
             }
         } while (changed);
 
-        return Collections.unmodifiableMap(doms);
+        return end;
     }
 
     static Block intersect(Map<Block, Block> doms, Block b1, Block b2) {
@@ -618,17 +636,6 @@ public final class Body implements CodeElement<Body, Block> {
          * @throws IllegalStateException if any connected body builder is not finished
          * @throws IllegalStateException if a block has no terminating operation, unless unreferenced and empty
          */
-        // @@@ Check every operand dominates the operation result.
-        //     An operation in block B that uses a value declared in block B requires no special checks, since an
-        //     operation result does not exist until an operation is appended to a block, and B's parameters always
-        //     occur before any of its operations.
-        //     Similarly, when an operation uses a value declared in an ancestor no special checks are required due to
-        //     structural checks and reachability checks when building.
-        //     Therefore, a body with only one entry block requires no special checks when building.
-        //     A body with two or more blocks requires dominance checks. An operation in block C that uses a value
-        //     declared in block B, where C and B are siblings, requires that B dominates C.
-        //     Since blocks are already sorted in reverse postorder the work to compute the immediate dominator map
-        //     is incremental and can it be represented efficiently as an integer array of block indexes.
         public Body build(Op op) {
             Objects.requireNonNull(op);
 
@@ -667,6 +674,32 @@ public final class Body implements CodeElement<Body, Block> {
             }
 
             sortReversePostorder();
+
+            // Validate each use of a value declared in the body.
+            // The use's declaring block must be dominated by the value's declaring block
+            if (blocks.size() > 1) {
+                // Only need to check when there is more than one block, since for one block
+                // the use's declaring block will be the same as or a descendant of the
+                // value's declaring block
+                for (Block block : blocks) {
+                    for (Block.Parameter p : block.parameters()) {
+                        for (Op.Result use : p.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+
+                    for (Op o : block.ops()) {
+                        Op.Result r = o.result();
+                        for (Op.Result use : r.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+                }
+            }
 
             Body.this.parentOp = op;
             return Body.this;
@@ -781,58 +814,88 @@ public final class Body implements CodeElement<Body, Block> {
         return bodyBuilder;
     }
 
-    // Sort blocks in reverse post order
-    // After sorting the following holds for a block
-    //   block.parentBody().blocks().indexOf(block) == block.index()
+    private static final int UNASSIGNED_INDEX = Integer.MIN_VALUE;
+    private static final int UNSORTED_INDEX = Integer.MAX_VALUE;
+
     private void sortReversePostorder() {
-        if (blocks.size() < 2) {
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
-            }
+        if (blocks.size() == 1) {
+            Block b = blocks.getFirst();
+            b.index = 0;
+            b.component = 0;
             return;
         }
 
-        // Reset block indexes
-        // Also ensuring blocks with no predecessors occur last
+        // Set block indexes and components to indicate unsorted state
         for (Block b : blocks) {
-            b.index = Integer.MAX_VALUE;
+            b.index = UNSORTED_INDEX;
+            b.component = -1;
         }
 
+        // Repeatedly sort for each graph
+        int start = 0;
+        while (start < blocks().size()) {
+            start = sortReversePostorder(start);
+        }
+    }
+
+    // Sort blocks in reverse post order
+    // After sorting the following holds for a block in the range of [start, end)
+    //   block.parentBody().blocks().indexOf(block) == block.index()
+    private int sortReversePostorder(int start) {
+        assert assertUnsorted(blocks, start);
+
         Deque<Block> stack = new ArrayDeque<>();
-        stack.push(blocks.get(0));
+        stack.push(blocks.get(start));
 
         // Postorder iteration
         int index = blocks.size();
         while (!stack.isEmpty()) {
             Block n = stack.peek();
-            if (n.index == Integer.MIN_VALUE) {
+            if (n.index == UNASSIGNED_INDEX) {
                 // If n's successor has been processed then add n
                 stack.pop();
                 n.index = --index;
-            } else if (n.index < Integer.MAX_VALUE) {
+            } else if (n.index != UNSORTED_INDEX) {
                 // If n has already been processed then ignore
                 stack.pop();
             } else {
                 // Mark before processing successors, a successor may refer back to n
-                n.index = Integer.MIN_VALUE;
+                n.index = UNASSIGNED_INDEX;
                 for (Block.Reference s : n.successors()) {
-                    if (s.target.index < Integer.MAX_VALUE) {
+                    Block target = s.target;
+                    if (target.index != UNSORTED_INDEX) {
                         continue;
                     }
 
-                    stack.push(s.target);
+                    stack.push(target);
                 }
             }
         }
 
-        blocks.sort(Comparator.comparingInt(b -> b.index));
-        if (blocks.get(0).index > 0) {
-            // There are blocks with no predecessors
-            // Reassign indexes to their natural indexes, sort order is preserved
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
+        // The number of blocks in the graph
+        int nBlocks = blocks.size() - blocks.get(start).index;
+        int end = start + nBlocks;
+
+        // Sort by indexes
+        List<Block> listToSort = (start == 0) ? blocks :  blocks.subList(start, blocks.size());
+        listToSort.sort(Comparator.comparingInt(b -> b.index));
+
+        // Reassign block indexes to their natural indexes, sort order is preserved
+        for (int i = start; i < end; i++) {
+            Block b = blocks.get(i);
+            b.index = i;
+            b.component = start;
+        }
+        return end;
+    }
+
+    private static boolean assertUnsorted(List<Block> blocks, int start) {
+        for (int i = start; i < blocks.size(); i++) {
+            if (blocks.get(i).index != UNSORTED_INDEX) {
+                return false;
             }
         }
+        return true;
     }
 
     // Modifying methods
