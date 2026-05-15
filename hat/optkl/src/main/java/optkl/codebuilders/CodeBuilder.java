@@ -776,11 +776,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
                 * questions."""
         );
     }
-    final public T varName(String name) {
+
+    public final T varName(String name) {
         return id(name);
     }
 
-    final public T varName(CoreOp.VarOp varOp) {
+    public final T varName(CoreOp.VarOp varOp) {
         return varName(varOp.varName());
     }
     final public T varName(CoreOp.VarAccessOp.VarLoadOp varOp) {

@@ -31,6 +31,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
@@ -39,7 +40,7 @@ import java.util.Objects;
 
 public record HATMathLibPhase() implements HATPhase {
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         Map<Op, Class<? extends S16ImplOfF16>> setTypeMap = new HashMap<>();
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid() && invoke.returnsClassType() && invoke.refIs(HATMath.class))
@@ -62,11 +63,11 @@ public record HATMathLibPhase() implements HATPhase {
         return Trxfmr.of(lookup, funcOp).transform(setTypeMap::containsKey, (blockBuilder, op) -> {
             if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
                 if (setTypeMap.get(varOp) == null) {
-                    // this varOp is not a special type we insert the varOp into the new tree
+                    // this varOp is not a special type (e.g., float16), then we insert the varOp into the new tree
                     blockBuilder.op(varOp);
                 } else {
                     // Add the special type as a VarOp
-                    HATFP16Phase.createF16VarOp(varOp, blockBuilder, setTypeMap.get(varOp));
+                    HATFP16Phase.createF16VarOp(funcOp.funcName(), varOp, blockBuilder, varTable);
                     // If we add HATMath ops for other special types in HAT (e.g., Vectors),
                     // we may need to also add the new <X>HATVarOps here as well.
                 }
@@ -74,6 +75,6 @@ public record HATMathLibPhase() implements HATPhase {
                 blockBuilder.op(op);
             }
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 }

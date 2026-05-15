@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.FuncOpParams;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 import optkl.ifacemapper.AccessType;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.MappableIface;
@@ -106,7 +107,7 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
     public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
 
 
-    public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         var transformer = Trxfmr.of(lookup,funcOp);
         if (config.minimizeCopies()) {
             var paramTable = new FuncOpParams(funcOp);
@@ -147,7 +148,7 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
                                             )
                                     );
                         }
-                    })
+                    }, varTable)
                     .when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE after injecting buffer tracking..."))
                     .funcOp();
         } else {

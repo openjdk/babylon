@@ -24,7 +24,8 @@
  */
 package hat.phases;
 
-import hat.dialect.*;
+import hat.dialect.HATPtrOp;
+import hat.dialect.HATVectorOp;
 import jdk.incubator.code.CodeType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
@@ -34,6 +35,8 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
+import optkl.VarTable;
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.ops.VarLikeOp;
 
 import java.lang.invoke.MethodHandles;
@@ -41,8 +44,16 @@ import java.util.*;
 
 import static hat.phases.HATPhaseUtils.findOpInResultFromFirstOperandsOrNull;
 import static optkl.IfaceValue.Vector.getVectorShape;
-import static optkl.OpHelper.*;
+import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.classTypeToTypeOrThrow;
+import static optkl.OpHelper.copyLocation;
+import static optkl.OpHelper.firstOperandOrThrow;
+import static optkl.OpHelper.opFromFirstOperandOrNull;
+import static optkl.OpHelper.opFromFirstOperandOrThrow;
+import static optkl.OpHelper.resultFromFirstOperandOrNull;
+import static optkl.OpHelper.resultFromFirstOperandOrThrow;
+import static optkl.OpHelper.resultFromOperandN;
 
 public record HATArrayViewPhase() implements HATPhase {
     public static boolean isVectorOp(MethodHandles.Lookup lookup, Op op) {
@@ -71,12 +82,12 @@ public record HATArrayViewPhase() implements HATPhase {
     }
 
 
-    static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, String opType, IfaceValue.Vector.Shape vectorShape, List<Value> outputOperands) {
+    static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, CodeType codeType, String opType, IfaceValue.Vector.Shape vectorShape, List<Value> outputOperands) {
         return switch (opType) {
-            case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName,  vectorShape, outputOperands);
-            case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName,  vectorShape, outputOperands);
-            case "mul" -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName,  vectorShape, outputOperands);
-            case "div" -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName,  vectorShape, outputOperands);
+            case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, codeType, vectorShape, outputOperands);
+            case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName, codeType, vectorShape, outputOperands);
+            case "mul" -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName, codeType, vectorShape, outputOperands);
+            case "div" -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName, codeType, vectorShape, outputOperands);
             default -> throw new IllegalStateException("Unexpected value: " + opType);
         };
     }
@@ -150,7 +161,7 @@ public record HATArrayViewPhase() implements HATPhase {
         return node;
     }
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         if (Invoke.stream(lookup, funcOp).noneMatch(
                 invoke -> isBufferArray(lookup, invoke.op())
         )) return funcOp;
@@ -159,11 +170,11 @@ public record HATArrayViewPhase() implements HATPhase {
 
         if (funcOp.elements().filter(e -> e instanceof CoreOp.VarOp).anyMatch(
                 e -> isVectorOp(lookup, ((CoreOp.VarOp) e))
-        )) funcOp = applyVectorView(lookup,funcOp);
+        )) funcOp = applyVectorView(lookup,funcOp, varTable);
         return funcOp;
     }
 
-    public CoreOp.FuncOp applyVectorView(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp applyVectorView(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         return Trxfmr.of(lookup,funcOp).transform((blockBuilder, op) -> {
             var context = blockBuilder.context();
             switch (op) {
@@ -171,6 +182,7 @@ public record HATArrayViewPhase() implements HATPhase {
                     if (isVectorBinaryOp(invoke.lookup(), invoke)){
                         var hatVectorBinaryOp = buildVectorBinaryOp(
                                 invoke.varOpFromFirstUseOrThrow().varName(),
+                                invoke.returnType(),
                                 invoke.name(),// so mul, sub etc
                                 getVectorShape(lookup,invoke.returnType()),
                                 blockBuilder.context().getValues(invoke.op().operands())
@@ -181,13 +193,9 @@ public record HATArrayViewPhase() implements HATPhase {
                 }
                 case CoreOp.VarOp varOp -> {
                     if (isVectorOp(lookup,varOp)) {
-                        var hatVectorVarOp = new HATVectorOp.HATVectorVarOp(
-                                varOp.varName(),
-                                varOp.resultType(),
-                                getVectorShape(lookup,varOp.resultType().valueType()),
-                                context.getValues(OpHelper.firstOperandAsListOrEmpty(varOp))
-                        );
-                        context.mapValue(varOp.result(), blockBuilder.op(copyLocation(varOp,hatVectorVarOp)));
+                        Op.Result op1 = blockBuilder.op(varOp);
+                        String functionName = funcOp.funcName();
+                        varTable.addIfNeededOrThrow(functionName, op1.op(), VarTable.HATOpAttribute.VECTOR);
                         return blockBuilder;
                     }
                 }

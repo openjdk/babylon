@@ -26,6 +26,7 @@
 package experiments;
 
 
+import optkl.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 import optkl.Trxfmr;
 import static optkl.OpHelper.Invoke;
@@ -92,8 +93,9 @@ public class SwapMath {
 
 
         System.out.println("Now using txfmr--------------------------");
-        var newAbs =Trxfmr.of(lookup,rsqrt)
-                .transform("usingAbs", ce-> invoke(lookup,ce) instanceof Invoke.Static $
+        VarTable varTable = new VarTable(rsqrt.funcName());
+        var newAbs =Trxfmr.of(lookup, rsqrt)
+                .transform("usingAbs", varTable, ce-> invoke(lookup,ce) instanceof Invoke.Static $
                                 && $.named("sqrt")
                                 && $.returns(double.class)
                                 && $.receives(double.class)
