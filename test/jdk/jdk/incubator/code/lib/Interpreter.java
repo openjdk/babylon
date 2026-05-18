@@ -208,6 +208,14 @@ public final class Interpreter {
         }
 
         void successor(Block b, Map<Value, Object> bValues) {
+            if (stack.stream().anyMatch(bc -> bc.b.equals(b))) {
+                // if block is already dominating pop back up from the back branch to the block
+                // before the successor block
+                while (!stack.peek().b.equals(b)) {
+                    stack.pop();
+                }
+                stack.pop();
+            }
             stack.push(new BlockContext(b, bValues));
         }
 
