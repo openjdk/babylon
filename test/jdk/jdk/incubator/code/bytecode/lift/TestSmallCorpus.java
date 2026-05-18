@@ -46,6 +46,7 @@ import java.util.stream.Stream;
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/java.lang.invoke:open
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../../lib
  * @enablePreview
  * @run junit TestSmallCorpus
  */
