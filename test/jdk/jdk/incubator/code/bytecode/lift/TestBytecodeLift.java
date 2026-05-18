@@ -524,6 +524,28 @@ public class TestBytecodeLift {
         return piece * piece;
     }
 
+    @Reflect
+    static int nestedFinallyLoopTryCatchAndExpression(int x) {
+        try {
+            for (int i = 0; ; ) {
+                try {
+                    if ((x & (1 << i++)) != 0) {
+                        return x + i;
+                    }
+                    throw new RuntimeException();
+                } catch (RuntimeException e) {
+                    if (i > 4) {
+                        return -1;
+                    }
+                }
+            }
+        } finally {
+            if (x < 0) {
+                throw new RuntimeException();
+            }
+        }
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
