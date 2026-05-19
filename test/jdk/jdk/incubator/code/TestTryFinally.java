@@ -33,7 +33,6 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -226,7 +225,7 @@ public class TestTryFinally {
             Throwable actualT = null;
             try {
                 actualR.accept(actualC.andThen(c));
-            } catch (JavaLowInterpreter.InterpreterException e) {
+            } catch (Interpreter.InterpreterException e) {
                 throw e;
             } catch (Throwable t) {
                 actualT = t;

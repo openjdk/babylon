@@ -176,7 +176,7 @@ public class TestLambdaCapture {
     @MethodSource("ints")
     public void testCaptureReferenceReceiver(int i) {
         int prevCount = Box.count;
-        IntUnaryOperator f = (@Reflect IntUnaryOperator)new Box(i)::add; // j -> new Box(i).add(j)
+        IntUnaryOperator f = (@Reflect IntUnaryOperator)new Box(i)::add;
         Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(prevCount + 1, Box.count); // no duplicate receiver computation!
         assertEquals(1, quoted.capturedValues().size());

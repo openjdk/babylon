@@ -430,19 +430,6 @@ public class JavaLowInterpreter extends Interpreter {
         return new OpResultEffect(result, e);
     }
 
-    /**
-     * Exception thrown by the interpreter when execution fails.
-     */
-    @SuppressWarnings("serial")
-    public static final class InterpreterException extends RuntimeException {
-        private InterpreterException(Throwable cause) {
-            super(cause);
-        }
-        private InterpreterException(String message) {
-            super(message);
-        }
-    }
-
 
     private static final CoreOp.FuncOp fop = CoreOp.func("f",
             CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {

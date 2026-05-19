@@ -114,4 +114,17 @@ public abstract class Interpreter {
     static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
         throw (E) e;
     }
+
+    /**
+     * Exception thrown by the interpreter when execution fails.
+     */
+    @SuppressWarnings("serial")
+    public static final class InterpreterException extends RuntimeException {
+        InterpreterException(Throwable cause) {
+            super(cause);
+        }
+        InterpreterException(String message) {
+            super(message);
+        }
+    }
 }
