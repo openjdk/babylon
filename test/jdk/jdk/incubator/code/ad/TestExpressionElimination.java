@@ -47,14 +47,14 @@ public class TestExpressionElimination {
     public void testAddZero() {
         JavaOp.LambdaOp lf = generate((@Reflect DoubleUnaryOperator) (double a) -> a + 0.0);
 
-        Assertions.assertEquals(1.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d));
+        Assertions.assertEquals(1.0d, (double) Util.interpretOp(MethodHandles.lookup(), lf, 1.0d));
     }
 
     @Test
     public void testF() {
         JavaOp.LambdaOp lf = generate((@Reflect DoubleBinaryOperator) (double a, double b) -> -a + b);
 
-        Assertions.assertEquals(0.0d, (double) Interpreter.invoke(MethodHandles.lookup(), lf, 1.0d, 1.0d));
+        Assertions.assertEquals(0.0d, (double) Util.interpretOp(MethodHandles.lookup(), lf, 1.0d, 1.0d));
     }
 
     static JavaOp.LambdaOp generate(Object q) {

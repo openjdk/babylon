@@ -28,6 +28,7 @@
  * @run junit TestExceptionRegionOps
  */
 
+import jdk.incubator.code.behavior.JavaLowInterpreter;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -105,7 +106,7 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
+                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
                 this::testF);
 
         test.accept(i -> {});
@@ -189,10 +190,13 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
+                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
                 this::testCatchThrowableF);
 
-        test.accept(i -> {});
+        IntConsumer c = i -> {};
+//        Interpreter.invoke(MethodHandles.lookup(), f, c);
+        Util.interpretOp(MethodHandles.lookup(), f, c);
+        test.accept(i -> {}); // interpretation of fmodel throws RuntimeException !!!
         test.accept(i -> {
             if (i == 0) throw new IllegalStateException();
         });
@@ -207,7 +211,7 @@ public class TestExceptionRegionOps {
             if (i == 0) throw new RuntimeException();
             if (i == 2) throw new RuntimeException();
         });
-        test.accept(i -> {
+        test.accept(i -> { // interpretation should throw ISE, we wrap it in RE to avoid handling in every use site, original Interpreter does a trick
             if (i == 3) throw new IllegalStateException();
         });
     }
@@ -291,7 +295,7 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
+                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
                 this::testNestedF);
 
         test.accept(i -> {});
@@ -404,7 +408,7 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
+                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
                 this::testCatchFinallyF
                 );
 
@@ -430,6 +434,7 @@ public class TestExceptionRegionOps {
     static final MethodRef INT_CONSUMER_ACCEPT_METHOD = MethodRef.method(type(IntConsumer.class), "accept",
             VOID, INT);
 
+    // model, method
     static Consumer<IntConsumer> testConsumer(Consumer<IntConsumer> actualR, Consumer<IntConsumer> expectedR) {
         return c -> {
             List<Integer> actual = new ArrayList<>();
@@ -437,7 +442,7 @@ public class TestExceptionRegionOps {
             Throwable actualT = null;
             try {
                 actualR.accept(actualC.andThen(c));
-            } catch (Interpreter.InterpreterException e) {
+            } catch (JavaLowInterpreter.InterpreterException e) {
                 throw e;
             } catch (Throwable t) {
                 actualT = t;

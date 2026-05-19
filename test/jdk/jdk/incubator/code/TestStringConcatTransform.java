@@ -104,8 +104,8 @@ public class TestStringConcatTransform {
         System.out.println(model.toText());
         System.out.println(f_transformed.toText());
 
-        var interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
-        var transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), f_transformed, args);
+        var interpreted = Util.interpretOp(MethodHandles.lookup(), model, args);
+        var transformed_interpreted = Util.interpretOp(MethodHandles.lookup(), f_transformed, args);
 
         Assertions.assertEquals(transformed_interpreted, interpreted);
 
@@ -140,10 +140,10 @@ public class TestStringConcatTransform {
         CoreOp.FuncOp ssa_model = generateSSA(model);
         CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
 
-        var model_interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
-        var transformed_model_interpreted = Interpreter.invoke(MethodHandles.lookup(), transformed_model, args);
-        var ssa_interpreted = Interpreter.invoke(MethodHandles.lookup(), ssa_model, args);
-        var ssa_transformed_interpreted = Interpreter.invoke(MethodHandles.lookup(), ssa_transformed_model, args);
+        var model_interpreted = Util.interpretOp(MethodHandles.lookup(), model, args);
+        var transformed_model_interpreted = Util.interpretOp(MethodHandles.lookup(), transformed_model, args);
+        var ssa_interpreted = Util.interpretOp(MethodHandles.lookup(), ssa_model, args);
+        var ssa_transformed_interpreted = Util.interpretOp(MethodHandles.lookup(), ssa_transformed_model, args);
         Object jvm_interpreted;
         try {
             jvm_interpreted = method.invoke(null, args);

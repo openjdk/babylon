@@ -78,6 +78,6 @@ public class TestBlockOp {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(f(), Util.interpretOp(MethodHandles.lookup(), lf));
     }
 }

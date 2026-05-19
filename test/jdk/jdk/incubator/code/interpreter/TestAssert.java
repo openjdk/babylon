@@ -166,7 +166,7 @@ public class TestAssert {
             //Ensure we're fully lowered before testing.
             final var fz = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
-            Interpreter.invoke(MethodHandles.lookup(), fz ,args);
+            Util.interpretOp(MethodHandles.lookup(), fz ,args);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
@@ -182,7 +182,7 @@ public class TestAssert {
             final var fz = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
 
-            AssertionError ae = (AssertionError) retCatch(() -> Interpreter.invoke(MethodHandles.lookup(), fz ,args));
+            AssertionError ae = (AssertionError) retCatch(() -> Util.interpretOp(MethodHandles.lookup(), fz ,args));
             Assertions.assertNotNull(ae);
             return ae;
         } catch (NoSuchMethodException e) {

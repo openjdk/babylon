@@ -58,7 +58,7 @@ public class TestStream {
 
         System.out.println(lf.toText());
 
-        Interpreter.invoke(MethodHandles.lookup(), lf,
+        Util.interpretOp(MethodHandles.lookup(), lf,
                 List.of(List.of(1, 2, 3, 4, 5, 100_000_000, 10_000, 100_000, 20)));
     }
 
@@ -90,7 +90,7 @@ public class TestStream {
                 .toList();
 
         @SuppressWarnings("unchecked")
-        List<String> actual = (List<String>) Interpreter.invoke(MethodHandles.lookup(), lf,
+        List<String> actual = (List<String>) Util.interpretOp(MethodHandles.lookup(), lf,
                 List.of(source));
 
         Assertions.assertEquals(actual, expected);

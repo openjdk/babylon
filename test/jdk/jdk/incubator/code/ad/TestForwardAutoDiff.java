@@ -57,8 +57,8 @@ public class TestForwardAutoDiff {
         f = SSA.transform(f);
         System.out.println(f.toText());
 
-        Assertions.assertEquals(f(0.0, 1.0), Interpreter.invoke(MethodHandles.lookup(), f, 0.0, 1.0));
-        Assertions.assertEquals(f(PI_4, PI_4), Interpreter.invoke(MethodHandles.lookup(), f, PI_4, PI_4));
+        Assertions.assertEquals(f(0.0, 1.0), Util.interpretOp(MethodHandles.lookup(), f, 0.0, 1.0));
+        Assertions.assertEquals(f(PI_4, PI_4), Util.interpretOp(MethodHandles.lookup(), f, PI_4, PI_4));
 
         Block.Parameter x = f.body().entryBlock().parameters().get(0);
         Block.Parameter y = f.body().entryBlock().parameters().get(1);
@@ -100,9 +100,9 @@ public class TestForwardAutoDiff {
         f = SSA.transform(f);
         System.out.println(f.toText());
 
-        Assertions.assertEquals(fcf(2.0, 6), Interpreter.invoke(MethodHandles.lookup(), f, 2.0, 6));
-        Assertions.assertEquals(fcf(2.0, 5), Interpreter.invoke(MethodHandles.lookup(), f, 2.0, 5));
-        Assertions.assertEquals(fcf(2.0, 4), Interpreter.invoke(MethodHandles.lookup(), f, 2.0, 4));
+        Assertions.assertEquals(fcf(2.0, 6), Util.interpretOp(MethodHandles.lookup(), f, 2.0, 6));
+        Assertions.assertEquals(fcf(2.0, 5), Util.interpretOp(MethodHandles.lookup(), f, 2.0, 5));
+        Assertions.assertEquals(fcf(2.0, 4), Util.interpretOp(MethodHandles.lookup(), f, 2.0, 4));
 
         Block.Parameter x = f.body().entryBlock().parameters().get(0);
 

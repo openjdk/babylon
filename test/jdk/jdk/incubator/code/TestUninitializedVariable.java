@@ -31,6 +31,7 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.behavior.JavaLowInterpreter;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
@@ -73,7 +74,7 @@ public class TestUninitializedVariable {
         CoreOp.FuncOp f = removeFirstStore(getFuncOp(method).transform(CodeTransformer.LOWERING_TRANSFORMER));
         System.out.println(f.toText());
 
-        Assertions.assertThrows(Interpreter.InterpreterException.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, 1));
+        Assertions.assertThrows(JavaLowInterpreter.InterpreterException.class, () -> Util.interpretOp(MethodHandles.lookup(), f, 1));
     }
 
     @ParameterizedTest

@@ -70,7 +70,7 @@ public class TestLiftExample {
 
         Function<Integer, Integer> f = i -> i;
         @SuppressWarnings("unchecked")
-        Function<Integer, Integer> pf = (Function<Integer, Integer>) Interpreter.invoke(MethodHandles.lookup(),
+        Function<Integer, Integer> pf = (Function<Integer, Integer>) Util.interpretOp(MethodHandles.lookup(),
                 flift, f);
 
         Assertions.assertEquals(2, (int) pf.apply(1));

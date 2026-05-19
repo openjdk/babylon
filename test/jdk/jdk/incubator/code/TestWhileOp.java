@@ -63,7 +63,7 @@ public class TestWhileOp {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(whileLoop(), Interpreter.invoke(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(whileLoop(), Util.interpretOp(MethodHandles.lookup(), lf));
     }
 
     @Reflect
@@ -85,7 +85,7 @@ public class TestWhileOp {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(doWhileLoop(), Interpreter.invoke(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(doWhileLoop(), Util.interpretOp(MethodHandles.lookup(), lf));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

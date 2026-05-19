@@ -170,7 +170,7 @@ public class TestPrimitiveCast {
     @MethodSource("fromMethods")
     public void testFromDouble(String name, Object value, Function<Object, String> m) {
         CoreOp.FuncOp f = getFuncOp(name);
-        Assertions.assertEquals(m.apply(value), Interpreter.invoke(MethodHandles.lookup(), f, value));
+        Assertions.assertEquals(m.apply(value), Util.interpretOp(MethodHandles.lookup(), f, value));
     }
 
 

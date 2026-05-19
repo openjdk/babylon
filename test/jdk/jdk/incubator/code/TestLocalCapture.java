@@ -60,7 +60,7 @@ public class TestLocalCapture {
     public void testLocalCapture(int y) throws ReflectiveOperationException {
         Method sum = TestLocalCapture.class.getDeclaredMethod("sum", int.class, int.class);
         FuncOp model = Op.ofMethod(sum).get();
-        int found = (int)Interpreter.invoke(MethodHandles.lookup(), model, this, y, 17);
+        int found = (int)Util.interpretOp(MethodHandles.lookup(), model, this, y, 17);
         int expected = sum(y, 17);
         Assertions.assertEquals(expected, found);
     }

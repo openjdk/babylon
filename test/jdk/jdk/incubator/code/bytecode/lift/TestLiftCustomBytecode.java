@@ -62,7 +62,7 @@ public class TestLiftCustomBytecode {
                        .goto_(l4);
                 })), "backJumps");
 
-        Assertions.assertEquals(42, (int) Interpreter.invoke(MethodHandles.lookup(), f, 42));
+        Assertions.assertEquals(42, (int) Util.interpretOp(MethodHandles.lookup(), f, 42));
     }
 
     @Test
@@ -77,7 +77,7 @@ public class TestLiftCustomBytecode {
                        .lreturn();
                 })), "deepStackJump");
 
-        Assertions.assertEquals(4, (long) Interpreter.invoke(MethodHandles.lookup(), f));
+        Assertions.assertEquals(4, (long) Util.interpretOp(MethodHandles.lookup(), f));
     }
 
     public record TestRecord(int i, String s) {
@@ -92,14 +92,14 @@ public class TestLiftCustomBytecode {
 
         TestRecord tr1 = new TestRecord(1, "hi"), tr2 = new TestRecord(2, "bye"), tr3 = new TestRecord(1, "hi");
         MethodHandles.Lookup lookup = MethodHandles.lookup();
-        Assertions.assertEquals(tr1.toString(), (String)Interpreter.invoke(lookup, toString, tr1));
-        Assertions.assertEquals(tr2.toString(), (String)Interpreter.invoke(lookup, toString, tr2));
-        Assertions.assertEquals(tr1.hashCode(), (int)Interpreter.invoke(lookup, hashCode, tr1));
-        Assertions.assertEquals(tr2.hashCode(), (int)Interpreter.invoke(lookup, hashCode, tr2));
-        Assertions.assertTrue((boolean)Interpreter.invoke(lookup, equals, tr1, tr1));
-        Assertions.assertFalse((boolean)Interpreter.invoke(lookup, equals, tr1, tr2));
-        Assertions.assertTrue((boolean)Interpreter.invoke(lookup, equals, tr1, tr3));
-        Assertions.assertFalse((boolean)Interpreter.invoke(lookup, equals, tr1, "hello"));
+        Assertions.assertEquals(tr1.toString(), (String)Util.interpretOp(lookup, toString, tr1));
+        Assertions.assertEquals(tr2.toString(), (String)Util.interpretOp(lookup, toString, tr2));
+        Assertions.assertEquals(tr1.hashCode(), (int)Util.interpretOp(lookup, hashCode, tr1));
+        Assertions.assertEquals(tr2.hashCode(), (int)Util.interpretOp(lookup, hashCode, tr2));
+        Assertions.assertTrue((boolean)Util.interpretOp(lookup, equals, tr1, tr1));
+        Assertions.assertFalse((boolean)Util.interpretOp(lookup, equals, tr1, tr2));
+        Assertions.assertTrue((boolean)Util.interpretOp(lookup, equals, tr1, tr3));
+        Assertions.assertFalse((boolean)Util.interpretOp(lookup, equals, tr1, "hello"));
     }
 
     @Test
@@ -115,7 +115,7 @@ public class TestLiftCustomBytecode {
         CoreOp.FuncOp primitiveInteger = getFuncOp(testCondy, "condyMethod");
 
         MethodHandles.Lookup lookup = MethodHandles.lookup();
-        Assertions.assertEquals(int.class, (Class)Interpreter.invoke(lookup, primitiveInteger));
+        Assertions.assertEquals(int.class, (Class)Util.interpretOp(lookup, primitiveInteger));
     }
 
     @Test
@@ -131,7 +131,7 @@ public class TestLiftCustomBytecode {
         CoreOp.FuncOp concatMethod = getFuncOp(testStringMakeConcat, "concatMethod");
 
         MethodHandles.Lookup lookup = MethodHandles.lookup();
-        Assertions.assertEquals("ABC", (String)Interpreter.invoke(lookup, concatMethod));
+        Assertions.assertEquals("ABC", (String)Util.interpretOp(lookup, concatMethod));
     }
 
     static CoreOp.FuncOp getFuncOp(byte[] classdata, String method) {

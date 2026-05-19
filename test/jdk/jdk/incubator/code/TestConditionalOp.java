@@ -92,7 +92,7 @@ public class TestConditionalOp {
             boolean b = (i & 2) != 0;
             boolean c = (i & 4) != 0;
             List<String> la = new ArrayList<>();
-            boolean ra = (boolean) Interpreter.invoke(MethodHandles.lookup(), lf, a, b, c, la);
+            boolean ra = (boolean) Util.interpretOp(MethodHandles.lookup(), lf, a, b, c, la);
 
             List<String> le = new ArrayList<>();
             boolean re = f(a, b, c, le);

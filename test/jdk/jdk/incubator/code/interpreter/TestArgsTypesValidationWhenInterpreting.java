@@ -49,15 +49,15 @@ public class TestArgsTypesValidationWhenInterpreting {
         CoreOp.FuncOp funcOp = Op.ofMethod(m).get();
         System.out.println(funcOp.toText());
 
-        double res = (double) Interpreter.invoke(MethodHandles.lookup(), funcOp, this, 2);
+        double res = (double) Util.interpretOp(MethodHandles.lookup(), funcOp, this, 2);
         Assertions.assertEquals(4d, res);
 
-        res = (double) Interpreter.invoke(MethodHandles.lookup(), funcOp,
+        res = (double) Util.interpretOp(MethodHandles.lookup(), funcOp,
                 new TestArgsTypesValidationWhenInterpreting(), 2);
         Assertions.assertEquals(4d, res);
 
-        Assertions.assertThrows(Throwable.class, () -> Interpreter.invoke(MethodHandles.lookup(), funcOp, new Object(), 2));
+        Assertions.assertThrows(Throwable.class, () -> Util.interpretOp(MethodHandles.lookup(), funcOp, new Object(), 2));
 
-        Assertions.assertThrows(Throwable.class, () -> Interpreter.invoke(MethodHandles.lookup(), funcOp, this, 2d));
+        Assertions.assertThrows(Throwable.class, () -> Util.interpretOp(MethodHandles.lookup(), funcOp, this, 2d));
     }
 }

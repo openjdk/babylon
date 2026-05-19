@@ -167,7 +167,7 @@ public class TestConstants {
 
             System.out.println(f.toText());
 
-            Assertions.assertEquals(m.invoke(null), Interpreter.invoke(MethodHandles.lookup(), f));
+            Assertions.assertEquals(m.invoke(null), Util.interpretOp(MethodHandles.lookup(), f));
         }
     }
 
@@ -190,7 +190,7 @@ public class TestConstants {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(compareNull(null), Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null));
+        Assertions.assertEquals(compareNull(null), Util.interpretOp(MethodHandles.lookup(), lf, (Object) null));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

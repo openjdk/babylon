@@ -63,7 +63,7 @@ public class TestForOp {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(f(), Util.interpretOp(MethodHandles.lookup(), lf));
     }
 
     @Reflect
@@ -86,7 +86,7 @@ public class TestForOp {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(f2(), Interpreter.invoke(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(f2(), Util.interpretOp(MethodHandles.lookup(), lf));
     }
 
     @Reflect
@@ -111,7 +111,7 @@ public class TestForOp {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(f3(), Interpreter.invoke(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(f3(), Util.interpretOp(MethodHandles.lookup(), lf));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

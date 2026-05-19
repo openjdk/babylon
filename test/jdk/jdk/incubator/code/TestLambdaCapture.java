@@ -60,7 +60,7 @@ public class TestLambdaCapture {
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
-        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+        int res = (int)Util.interpretOp(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
         assertEquals(x + 1, res);
     }
@@ -79,7 +79,7 @@ public class TestLambdaCapture {
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
-        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+        int res = (int)Util.interpretOp(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
         assertEquals(x + 1 + hashCode() + hello.length(), res);
     }
@@ -94,7 +94,7 @@ public class TestLambdaCapture {
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
-        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+        int res = (int)Util.interpretOp(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
         assertEquals(1 + hashCode(), res);
     }
@@ -111,7 +111,7 @@ public class TestLambdaCapture {
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
-        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+        int res = (int)Util.interpretOp(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
         assertEquals(1 + hashCode(), res);
     }
@@ -163,7 +163,7 @@ public class TestLambdaCapture {
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
-        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+        int res = (int)Util.interpretOp(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
         assertEquals(x + 1, res);
     }
@@ -176,7 +176,7 @@ public class TestLambdaCapture {
     @MethodSource("ints")
     public void testCaptureReferenceReceiver(int i) {
         int prevCount = Box.count;
-        IntUnaryOperator f = (@Reflect IntUnaryOperator)new Box(i)::add;
+        IntUnaryOperator f = (@Reflect IntUnaryOperator)new Box(i)::add; // j -> new Box(i).add(j)
         Quoted<?> quoted = Op.ofLambda(f).get();
         assertEquals(prevCount + 1, Box.count); // no duplicate receiver computation!
         assertEquals(1, quoted.capturedValues().size());
@@ -184,7 +184,7 @@ public class TestLambdaCapture {
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());
-        int res = (int)Interpreter.invoke(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
+        int res = (int)Util.interpretOp(MethodHandles.lookup(), (Op & Op.Invokable) quoted.op(),
                 arguments);
         assertEquals(i + 1, res);
     }

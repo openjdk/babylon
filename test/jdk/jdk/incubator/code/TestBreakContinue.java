@@ -77,7 +77,7 @@ public class TestBreakContinue {
             if (i <= 5) return 0;
             return 1;
         };
-        Assertions.assertEquals(forLoopBreakContinue(o), Interpreter.invoke(MethodHandles.lookup(), lf, o));
+        Assertions.assertEquals(forLoopBreakContinue(o), Util.interpretOp(MethodHandles.lookup(), lf, o));
     }
 
     @Reflect
@@ -119,7 +119,7 @@ public class TestBreakContinue {
         for (int r = -1; r < 4; r++) {
             int fr = r;
             IntUnaryOperator o = i -> fr;
-            Assertions.assertEquals(nestedForLoopBreakContinue(o), Interpreter.invoke(MethodHandles.lookup(), lf, o));
+            Assertions.assertEquals(nestedForLoopBreakContinue(o), Util.interpretOp(MethodHandles.lookup(), lf, o));
         }
     }
 
@@ -167,7 +167,7 @@ public class TestBreakContinue {
         for (int r = -1; r < 6; r++) {
             int fr = r;
             IntUnaryOperator o = i -> fr;
-            Assertions.assertEquals(forLoopLabeledBreakContinue(o), Interpreter.invoke(MethodHandles.lookup(), lf, o));
+            Assertions.assertEquals(forLoopLabeledBreakContinue(o), Util.interpretOp(MethodHandles.lookup(), lf, o));
         }
     }
 
@@ -217,7 +217,7 @@ public class TestBreakContinue {
         for (int i = 0; i < 7; i++) {
             int fi = i;
             IntUnaryOperator o = v -> v == fi ? 1 : 0;
-            Assertions.assertEquals(blockBreak(o), Interpreter.invoke(MethodHandles.lookup(), lf, o));
+            Assertions.assertEquals(blockBreak(o), Util.interpretOp(MethodHandles.lookup(), lf, o));
         }
     }
 

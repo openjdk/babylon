@@ -79,7 +79,7 @@ public class TestTransitiveInvokeModule {
         });
 
         List<Integer> r = new ArrayList<>();
-        Object result = Interpreter.invoke(MethodHandles.lookup(), module.functionTable().firstEntry().getValue(), 10, r);
+        Object result = Util.interpretOp(MethodHandles.lookup(), module.functionTable().firstEntry().getValue(), 10, r);
         Assertions.assertEquals(List.of(9, 7, 5, 3, 1, -1), r);
         Assertions.assertEquals(-2, result);
     }

@@ -281,7 +281,7 @@ public class TestEvaluation {
                 args = new Object[] {this};
             }
             // TODO use BytecodeGenerator instead of Interpreter
-            Object expected = Interpreter.invoke(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER), args);
+            Object expected = Util.interpretOp(l, f.transform(CodeTransformer.LOWERING_TRANSFORMER), args);
             Assertions.assertEquals(expected, v.get());
         }
     }
@@ -367,7 +367,7 @@ public class TestEvaluation {
                     Assertions.assertTrue(v.isEmpty(), from + " -> " + to);
                 } else {
                     Assertions.assertTrue(v.isPresent(), from + " -> " + to);
-                    Object expected = Interpreter.invoke(l, f);
+                    Object expected = Util.interpretOp(l, f);
                     Assertions.assertEquals(expected, v.get());
                 }
             }

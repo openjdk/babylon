@@ -47,7 +47,7 @@ public class ReflectableLambdaSameInstanceTest {
     public void testMultiThreadsViaInterpreter() throws NoSuchMethodException {
         var qm = this.getClass().getDeclaredMethod("q");
         var q = Op.ofMethod(qm).get();
-        IntSupplier quotable = (IntSupplier) Interpreter.invoke(MethodHandles.lookup(), q);
+        IntSupplier quotable = (IntSupplier) Util.interpretOp(MethodHandles.lookup(), q);
         Object[] quotedObjects = IntStream.range(0, 1024).parallel().mapToObj(__ -> Op.ofLambda(quotable).get()).toArray();
         for (int i = 1; i < quotedObjects.length; i++) {
             Assertions.assertSame(quotedObjects[i-1], quotedObjects[i]);

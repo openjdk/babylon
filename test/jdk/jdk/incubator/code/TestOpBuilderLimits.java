@@ -57,7 +57,7 @@ public class TestOpBuilderLimits {
     @Test
     public void testOpLimit() throws Exception {
         FuncOp fop = Op.ofMethod(TestOpBuilderLimits.class.getDeclaredMethod("bigModelBuilder", int.class)).orElseThrow();
-        Assertions.assertEquals(bigModelBuilder(0), (int)Interpreter.invoke(MethodHandles.lookup(), fop, 0));
+        Assertions.assertEquals(bigModelBuilder(0), (int)Util.interpretOp(MethodHandles.lookup(), fop, 0));
     }
 
     interface T<T0, T1, T2, T3, T4, T5, T6, T7> {}
@@ -124,7 +124,7 @@ public class TestOpBuilderLimits {
     @Test
     public void testTypeLimit() throws Exception {
         FuncOp fop = Op.ofMethod(TestOpBuilderLimits.class.getDeclaredMethod("manyTypes", int.class)).orElseThrow();
-        Assertions.assertEquals(manyTypes(42), (int)Interpreter.invoke(MethodHandles.lookup(), fop, 42));
+        Assertions.assertEquals(manyTypes(42), (int)Util.interpretOp(MethodHandles.lookup(), fop, 42));
     }
 
     @Test

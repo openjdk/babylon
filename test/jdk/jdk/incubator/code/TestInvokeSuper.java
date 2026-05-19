@@ -72,7 +72,7 @@ public class TestInvokeSuper {
 
         for (boolean invokeClass : new boolean[] {true, false}) {
             B b = new B(invokeClass);
-            Assertions.assertEquals(b.f(), Interpreter.invoke(MethodHandles.lookup(), f, b));
+            Assertions.assertEquals(b.f(), Util.interpretOp(MethodHandles.lookup(), f, b));
         }
     }
 

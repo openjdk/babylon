@@ -639,7 +639,7 @@ public class TestBytecodeLift {
         List argl = new ArrayList(args.length + 1);
         if (receiver != null) argl.add(receiver);
         argl.addAll(Arrays.asList(args));
-        Object ret = Interpreter.invoke(MethodHandles.lookup(), func, argl);
+        Object ret = Util.interpretOp(MethodHandles.lookup(), func, argl);
         if (ret instanceof Integer i) {
             CodeType rt = func.invokableSignature().returnType();
             if (rt.equals(JavaType.BOOLEAN)) {

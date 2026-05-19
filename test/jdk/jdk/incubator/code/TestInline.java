@@ -66,7 +66,7 @@ public class TestInline {
 
         System.out.println(f.toText());
 
-        int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
+        int ir = (int) Util.interpretOp(MethodHandles.lookup(), f, 1);
         Assertions.assertEquals(43, ir);
     }
 
@@ -94,7 +94,7 @@ public class TestInline {
 
         System.out.println(f.toText());
 
-        int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
+        int ir = (int) Util.interpretOp(MethodHandles.lookup(), f, 1);
         Assertions.assertEquals(43, ir);
     }
 
@@ -124,7 +124,7 @@ public class TestInline {
                 });
         System.out.println(f.toText());
 
-        int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
+        int ir = (int) Util.interpretOp(MethodHandles.lookup(), f, 1);
         Assertions.assertEquals(43, ir);
     }
 
@@ -159,7 +159,7 @@ public class TestInline {
                 });
         System.out.println(f.toText());
 
-        int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
+        int ir = (int) Util.interpretOp(MethodHandles.lookup(), f, 1);
         Assertions.assertEquals(43, ir);
     }
 
@@ -188,7 +188,7 @@ public class TestInline {
         f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
-        int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
+        int ir = (int) Util.interpretOp(MethodHandles.lookup(), f, 1);
         Assertions.assertEquals(43, ir);
     }
 
@@ -212,7 +212,7 @@ public class TestInline {
         System.out.println(f.toText());
 
         int[] a = new int[1];
-        Interpreter.invoke(MethodHandles.lookup(), f, a);
+        Util.interpretOp(MethodHandles.lookup(), f, a);
         Assertions.assertEquals(42, a[0]);
     }
 

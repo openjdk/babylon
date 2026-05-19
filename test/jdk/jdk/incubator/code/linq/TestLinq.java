@@ -56,7 +56,7 @@ public class TestLinq {
         System.out.println(qr.expression().toText());
 
         @SuppressWarnings("unchecked")
-        QueryResult<Stream<String>> qr2 = (QueryResult<Stream<String>>) Interpreter.invoke(MethodHandles.lookup(),
+        QueryResult<Stream<String>> qr2 = (QueryResult<Stream<String>>) Util.interpretOp(MethodHandles.lookup(),
                 qr.expression(), qp.query(Customer.class));
         System.out.println(qr2.expression().toText());
 
