@@ -335,7 +335,7 @@ public class CoreBinaryOpsTest {
     }
 
     private static Object interpret(Object left, Object right, CoreOp.FuncOp op) {
-        return Util.interpretOp(MethodHandles.lookup(), op, left, right);
+        return Interpreter.invoke(MethodHandles.lookup(), op, left, right);
     }
 
     private static Object bytecode(Object left, Object right, CoreOp.FuncOp op) throws Throwable {

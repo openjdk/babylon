@@ -383,7 +383,7 @@ public class TestConstantExpressionEvaluation {
                     Assertions.assertTrue(v.isEmpty(), from + " -> " + to);
                 } else {
                     Assertions.assertTrue(v.isPresent(), from + " -> " + to);
-                    Object expected = Util.interpretOp(l, f);
+                    Object expected = Interpreter.invoke(l, f);
                     Assertions.assertEquals(expected, v.get());
                 }
             }

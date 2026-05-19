@@ -68,7 +68,7 @@ public class TestRemoveFinalVars {
         FuncOp lf2 = lower(f2);
         System.out.println(lf2.toText());
 
-        Assertions.assertEquals(Util.interpretOp(MethodHandles.lookup(), lf2), Util.interpretOp(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(Interpreter.invoke(MethodHandles.lookup(), lf2), Interpreter.invoke(MethodHandles.lookup(), lf));
 
         Op op = SSA.transform(lower(f));
         System.out.println(op.toText());

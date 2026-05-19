@@ -128,7 +128,7 @@ public class TestCodeBuilder {
         CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(new LinkedHashMap<>(Map.of(fExpected.funcName(), fExpected)),
                 b -> b.op(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-        CoreOp.FuncOp fActual = (CoreOp.FuncOp) Util.interpretOp(MethodHandles.lookup(),
+        CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
                 module.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(fExpected.funcName()));
         Assertions.assertEquals(fExpected.toText(), fActual.toText());
     }

@@ -73,7 +73,7 @@ public class TestEnhancedForOp {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(f(), Util.interpretOp(MethodHandles.lookup(), lf));
+        Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), lf));
     }
 
 
@@ -97,6 +97,6 @@ public class TestEnhancedForOp {
         System.out.println(lf.toText());
 
         int[] ia = new int[] {1, 2, 3, 4};
-        Assertions.assertEquals(array(ia), Util.interpretOp(MethodHandles.lookup(), lf, ia));
+        Assertions.assertEquals(array(ia), Interpreter.invoke(MethodHandles.lookup(), lf, ia));
     }
 }

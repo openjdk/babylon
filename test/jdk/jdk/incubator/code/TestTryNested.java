@@ -33,7 +33,7 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.behavior.JavaLowInterpreter;
+
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -99,7 +99,7 @@ public class TestTryNested {
             int fra = ra;
 
             Consumer<IntConsumer> test = testConsumer(
-                    c -> Util.interpretOp(MethodHandles.lookup(), lf, c, fra),
+                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
                     c -> tryCatchFinally(c, fra)
             );
 
@@ -158,7 +158,7 @@ public class TestTryNested {
             int fra = ra;
 
             Consumer<IntConsumer> test = testConsumer(
-                    c -> Util.interpretOp(MethodHandles.lookup(), lf, c, fra),
+                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
                     c -> tryCatchBreak(c, fra)
             );
 
@@ -226,7 +226,7 @@ public class TestTryNested {
             int fra = ra;
 
             Consumer<IntConsumer> test = testConsumer(
-                    c -> Util.interpretOp(MethodHandles.lookup(), lf, c, fra),
+                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
                     c -> tryCatchFinallyBreak(c, fra)
             );
 
@@ -274,7 +274,7 @@ public class TestTryNested {
         System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), lf, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
                 TestTryNested::tryForLoop
         );
 
@@ -320,7 +320,7 @@ public class TestTryNested {
         System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), lf, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
                 TestTryNested::tryForLoopFinally
         );
 
@@ -372,7 +372,7 @@ public class TestTryNested {
         System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), lf, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
                 TestTryNested::tryLabeledForLoop
         );
 
@@ -413,7 +413,7 @@ public class TestTryNested {
         for (int ra = 0; ra < 2; ra++) {
             final int fra = ra;
             Consumer<IntConsumer> test = testConsumer(
-                    c -> Util.interpretOp(MethodHandles.lookup(), lf, c, fra),
+                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
                     c -> tryLambda(c, fra)
             );
             test.accept(i -> { });

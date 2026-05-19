@@ -44,7 +44,6 @@ module jdk.incubator.code {
     exports jdk.incubator.code.dialect.java;
     exports jdk.incubator.code.bytecode;
     exports jdk.incubator.code.runtime;
-    exports jdk.incubator.code.behavior;
 
     provides com.sun.tools.javac.comp.CodeReflectionTransformer with
             ReflectMethods.Provider;

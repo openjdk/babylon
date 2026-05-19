@@ -53,7 +53,7 @@ public class TestArrayCreation {
 
         System.out.println(f.toText());
 
-        Assertions.assertArrayEquals(f(), (Object[]) Util.interpretOp(MethodHandles.lookup(), f));
+        Assertions.assertArrayEquals(f(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     @Reflect
@@ -67,7 +67,7 @@ public class TestArrayCreation {
 
         System.out.println(f.toText());
 
-        Assertions.assertArrayEquals(f2(), (Object[]) Util.interpretOp(MethodHandles.lookup(), f));
+        Assertions.assertArrayEquals(f2(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     @Reflect
@@ -81,7 +81,7 @@ public class TestArrayCreation {
 
         System.out.println(f.toText());
 
-        Assertions.assertArrayEquals(f3(), (Object[]) Util.interpretOp(MethodHandles.lookup(), f));
+        Assertions.assertArrayEquals(f3(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     @Reflect
@@ -95,7 +95,7 @@ public class TestArrayCreation {
 
         System.out.println(f.toText());
 
-        Assertions.assertArrayEquals(f4(), (Object[]) Util.interpretOp(MethodHandles.lookup(), f));
+        Assertions.assertArrayEquals(f4(), (Object[]) Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

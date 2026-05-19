@@ -97,11 +97,11 @@ public class TestLocalTransformationsAdaption {
         f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
-        int x = (int) Util.interpretOp(MethodHandles.lookup(), f, 2);
+        int x = (int) Interpreter.invoke(MethodHandles.lookup(), f, 2);
         Assertions.assertEquals(f(2), x);
 
         try {
-            Util.interpretOp(MethodHandles.lookup(), f, -10);
+            Interpreter.invoke(MethodHandles.lookup(), f, -10);
             Assertions.fail();
         } catch (Throwable e) {
             Assertions.assertEquals(e.getClass(), IndexOutOfBoundsException.class);
@@ -141,11 +141,11 @@ public class TestLocalTransformationsAdaption {
         fc = fc.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(fc.toText());
 
-        int x = (int) Util.interpretOp(MethodHandles.lookup(), fc, 2);
+        int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assertions.assertEquals(f(2), x);
 
         try {
-            Util.interpretOp(MethodHandles.lookup(), fc, -10);
+            Interpreter.invoke(MethodHandles.lookup(), fc, -10);
             Assertions.fail();
         } catch (Throwable e) {
             Assertions.assertEquals(e.getClass(), IndexOutOfBoundsException.class);
@@ -193,7 +193,7 @@ public class TestLocalTransformationsAdaption {
         fc = fc.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(fc.toText());
 
-        int x = (int) Util.interpretOp(MethodHandles.lookup(), fc, 2);
+        int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assertions.assertEquals(f(2), x);
     }
 
@@ -220,7 +220,7 @@ public class TestLocalTransformationsAdaption {
         fc = fc.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(fc.toText());
 
-        int x = (int) Util.interpretOp(MethodHandles.lookup(), fc, 2);
+        int x = (int) Interpreter.invoke(MethodHandles.lookup(), fc, 2);
         Assertions.assertEquals(f(2), x);
     }
 

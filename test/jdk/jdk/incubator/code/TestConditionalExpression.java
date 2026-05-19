@@ -58,8 +58,8 @@ public class TestConditionalExpression {
 
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(simpleExpression(true, 1, 2), Util.interpretOp(MethodHandles.lookup(), lf, true, 1, 2));
-        Assertions.assertEquals(simpleExpression(false, 1, 2), Util.interpretOp(MethodHandles.lookup(), lf, false, 1, 2));
+        Assertions.assertEquals(simpleExpression(true, 1, 2), Interpreter.invoke(MethodHandles.lookup(), lf, true, 1, 2));
+        Assertions.assertEquals(simpleExpression(false, 1, 2), Interpreter.invoke(MethodHandles.lookup(), lf, false, 1, 2));
     }
 
 

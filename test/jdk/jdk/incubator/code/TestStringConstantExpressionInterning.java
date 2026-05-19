@@ -127,7 +127,7 @@ public class TestStringConstantExpressionInterning {
 
         FuncOp lop = op.transform(CodeTransformer.LOWERING_TRANSFORMER);
         FuncOp cfop = (FuncOp) ConstantExpressionTransformer.transform(l, lop);
-        Assertions.assertEquals(expected, Util.interpretOp(l, cfop));
+        Assertions.assertEquals(expected, Interpreter.invoke(l, cfop));
 
         Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invoke());
     }

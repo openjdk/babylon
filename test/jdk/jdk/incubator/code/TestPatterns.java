@@ -84,26 +84,26 @@ public class TestPatterns {
             Rectangle r = new Rectangle(
                     new ColoredPoint(new ConcretePoint(1, 2), Color.RED),
                     new ColoredPoint(new ConcretePoint(3, 4), Color.BLUE));
-            Assertions.assertEquals(recordPatterns(r), Util.interpretOp(MethodHandles.lookup(), lf, r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
 
         {
             Rectangle r = new Rectangle(
                     new ColoredPoint(new ConcretePoint(1, 2), Color.RED),
                     new ConcretePoint(3, 4));
-            Assertions.assertEquals(recordPatterns(r), Util.interpretOp(MethodHandles.lookup(), lf, r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
 
         {
             Rectangle r = new Rectangle(
                     new ConcretePoint(1, 2),
                     new ConcretePoint(3, 4));
-            Assertions.assertEquals(recordPatterns(r), Util.interpretOp(MethodHandles.lookup(), lf, r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
 
         {
             String r = "";;
-            Assertions.assertEquals(recordPatterns(r), Util.interpretOp(MethodHandles.lookup(), lf, r));
+            Assertions.assertEquals(recordPatterns(r), Interpreter.invoke(MethodHandles.lookup(), lf, r));
         }
     }
 
@@ -125,7 +125,7 @@ public class TestPatterns {
 
         Object[] objects = {new R(1), "str", null};
         for (Object o : objects) {
-            Assertions.assertEquals(recordPatterns2(o), Util.interpretOp(MethodHandles.lookup(), lf, o));
+            Assertions.assertEquals(recordPatterns2(o), Interpreter.invoke(MethodHandles.lookup(), lf, o));
         }
     }
 

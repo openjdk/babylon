@@ -63,8 +63,8 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(ifelse(0, 0, 1), (int) Util.interpretOp(MethodHandles.lookup(), lf, 0, 0, 1));
-        Assertions.assertEquals(ifelse(0, 0, 11), (int) Util.interpretOp(MethodHandles.lookup(), lf, 0, 0, 11));
+        Assertions.assertEquals(ifelse(0, 0, 1), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 1));
+        Assertions.assertEquals(ifelse(0, 0, 11), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 11));
     }
 
     @Reflect
@@ -94,7 +94,7 @@ public class TestSSA {
         CoreOp.FuncOp lf = generate(f);
 
         for (int i : new int[]{1, 11, 20, 21}) {
-            Assertions.assertEquals(ifelseNested(0, 0, 0, 0, i), (int) Util.interpretOp(MethodHandles.lookup(), lf, 0, 0, 0, 0, i));
+            Assertions.assertEquals(ifelseNested(0, 0, 0, 0, i), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 0, 0, 0, i));
         }
     }
 
@@ -113,7 +113,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(loop(10), (int) Util.interpretOp(MethodHandles.lookup(), lf, 10));
+        Assertions.assertEquals(loop(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @Reflect
@@ -133,7 +133,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(nestedLoop(10), (int) Util.interpretOp(MethodHandles.lookup(), lf, 10));
+        Assertions.assertEquals(nestedLoop(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @Reflect
@@ -152,7 +152,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(nestedLambdaCapture(10), (int) Util.interpretOp(MethodHandles.lookup(), lf, 10));
+        Assertions.assertEquals(nestedLambdaCapture(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @Reflect
@@ -180,7 +180,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(deadCode(10), (int) Util.interpretOp(MethodHandles.lookup(), lf, 10));
+        Assertions.assertEquals(deadCode(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @Reflect
@@ -213,7 +213,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(ifelseLoopNested(10), (int) Util.interpretOp(MethodHandles.lookup(), lf, 10));
+        Assertions.assertEquals(ifelseLoopNested(10), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 10));
     }
 
     @Reflect
@@ -234,7 +234,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(violaJones(0, 1, 0, 0), (int) Util.interpretOp(MethodHandles.lookup(), lf, 0, 1, 0, 0));
+        Assertions.assertEquals(violaJones(0, 1, 0, 0), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0));
     }
 
     @Reflect
@@ -257,7 +257,7 @@ public class TestSSA {
 
         CoreOp.FuncOp lf = generate(f);
 
-        Assertions.assertEquals(violaJonesTwo(0, 1, 0, 0), (int) Util.interpretOp(MethodHandles.lookup(), lf, 0, 1, 0, 0));
+        Assertions.assertEquals(violaJonesTwo(0, 1, 0, 0), (int) Interpreter.invoke(MethodHandles.lookup(), lf, 0, 1, 0, 0));
     }
 
     @Reflect
@@ -286,7 +286,7 @@ public class TestSSA {
 
         int[] arr = new int[]{1, 2, 4, 7, 11, 19, 21, 29, 30, 36};
 
-        Assertions.assertEquals(binarySearch(arr, 4), (boolean) Util.interpretOp(MethodHandles.lookup(), lf, arr, 4));
+        Assertions.assertEquals(binarySearch(arr, 4), (boolean) Interpreter.invoke(MethodHandles.lookup(), lf, arr, 4));
     }
 
     @Reflect
@@ -322,7 +322,7 @@ public class TestSSA {
         int[] arr1 = new int[]{5, 2, 7, 45, 34, 14, 0, 27, 43, 11, 38, 56, 81};
         int[] arr2 = new int[]{2, 11, 45, 34, 0, 27, 38, 56, 7, 43, 14, 5, 81};
 
-        Util.interpretOp(MethodHandles.lookup(), lf, arr1, 0, arr1.length - 1);
+        Interpreter.invoke(MethodHandles.lookup(), lf, arr1, 0, arr1.length - 1);
         quicksort(arr2, 0, arr2.length - 1);
         Assertions.assertArrayEquals(arr2, arr1);
     }

@@ -92,7 +92,7 @@ public class TestOverloads {
             Class<TestOverloads> clazz = TestOverloads.class;
             Method method = clazz.getDeclaredMethod("f", paramTypes);
             CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow();
-            var res1 = Util.interpretOp(MethodHandles.lookup(), f, params);
+            var res1 = Interpreter.invoke(MethodHandles.lookup(), f, params);
             var res2 = method.invoke(null, params);
 
             Assertions.assertEquals(res2, res1);

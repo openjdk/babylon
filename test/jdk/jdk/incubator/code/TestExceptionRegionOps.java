@@ -28,7 +28,7 @@
  * @run junit TestExceptionRegionOps
  */
 
-import jdk.incubator.code.behavior.JavaLowInterpreter;
+
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -106,7 +106,7 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
                 this::testF);
 
         test.accept(i -> {});
@@ -190,12 +190,12 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
                 this::testCatchThrowableF);
 
         IntConsumer c = i -> {};
 //        Interpreter.invoke(MethodHandles.lookup(), f, c);
-        Util.interpretOp(MethodHandles.lookup(), f, c);
+        Interpreter.invoke(MethodHandles.lookup(), f, c);
         test.accept(i -> {}); // interpretation of fmodel throws RuntimeException !!!
         test.accept(i -> {
             if (i == 0) throw new IllegalStateException();
@@ -295,7 +295,7 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
                 this::testNestedF);
 
         test.accept(i -> {});
@@ -408,7 +408,7 @@ public class TestExceptionRegionOps {
         System.out.println(f.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), f, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), f, c),
                 this::testCatchFinallyF
                 );
 

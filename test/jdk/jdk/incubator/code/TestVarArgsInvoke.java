@@ -107,7 +107,7 @@ public class TestVarArgsInvoke {
         String[] array = new String[]{"second", "third"};
         for (MethodKind mk : MethodKind.values()) {
             Assertions.assertEquals(
-                    fArray(array, mk), Util.interpretOp(MethodHandles.lookup(), f, this, array, mk)
+                    fArray(array, mk), Interpreter.invoke(MethodHandles.lookup(), f, this, array, mk)
             );
         }
     }
@@ -135,7 +135,7 @@ public class TestVarArgsInvoke {
         String[] array = new String[]{"second", "third"};
         for (MethodKind mk : MethodKind.values()) {
             Assertions.assertEquals(
-                    fEmpty(mk), Util.interpretOp(MethodHandles.lookup(), f, this, mk)
+                    fEmpty(mk), Interpreter.invoke(MethodHandles.lookup(), f, this, mk)
             );
         }
     }
@@ -162,7 +162,7 @@ public class TestVarArgsInvoke {
 
         for (MethodKind mk : MethodKind.values()) {
             Assertions.assertEquals(
-                    fOne("one", mk), Util.interpretOp(MethodHandles.lookup(), f, this, "one", mk)
+                    fOne("one", mk), Interpreter.invoke(MethodHandles.lookup(), f, this, "one", mk)
             );
         }
     }
@@ -189,7 +189,7 @@ public class TestVarArgsInvoke {
 
         for (MethodKind mk : MethodKind.values()) {
             Assertions.assertEquals(
-                    fMany("one", "two", mk), Util.interpretOp(MethodHandles.lookup(), f, this, "one", "two", mk)
+                    fMany("one", "two", mk), Interpreter.invoke(MethodHandles.lookup(), f, this, "one", "two", mk)
             );
         }
     }

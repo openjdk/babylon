@@ -1,7 +1,6 @@
-package jdk.incubator.code.behavior;
-
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
+
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 

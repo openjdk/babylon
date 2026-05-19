@@ -43,7 +43,7 @@ public class TestThrowing {
     @MethodSource("testData")
     public void testThrowsCorrectException(String methodName, Class<? extends Throwable> expectedExceptionType) throws NoSuchMethodException {
         Method method = TestThrowing.class.getDeclaredMethod(methodName);
-        Assertions.assertThrows(expectedExceptionType, () -> Util.interpretOp(MethodHandles.lookup(), Op.ofMethod(method).orElseThrow()));
+        Assertions.assertThrows(expectedExceptionType, () -> Interpreter.invoke(MethodHandles.lookup(), Op.ofMethod(method).orElseThrow()));
     }
 
     static Object[][] testData() {

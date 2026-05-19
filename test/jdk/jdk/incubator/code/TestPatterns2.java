@@ -61,7 +61,7 @@ public class TestPatterns2 {
 
         R[] args = {new R(1), new R(2d)};
         for (R arg : args) {
-            Assertions.assertEquals(f(arg), Util.interpretOp(MethodHandles.lookup(), lf, arg));
+            Assertions.assertEquals(f(arg), Interpreter.invoke(MethodHandles.lookup(), lf, arg));
         }
     }
 

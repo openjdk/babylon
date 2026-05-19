@@ -33,7 +33,7 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.behavior.JavaLowInterpreter;
+
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -76,7 +76,7 @@ public class TestTryFinally {
         System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), lf, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
                 TestTryFinally::tryCatchFinally
         );
 
@@ -112,7 +112,7 @@ public class TestTryFinally {
         System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), lf, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
                 TestTryFinally::tryReturn
                 );
 
@@ -148,7 +148,7 @@ public class TestTryFinally {
         System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), lf, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
                 TestTryFinally::catchThrow
         );
 
@@ -182,7 +182,7 @@ public class TestTryFinally {
         System.out.println(lf.toText());
 
         Consumer<IntConsumer> test = testConsumer(
-                c -> Util.interpretOp(MethodHandles.lookup(), lf, c),
+                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
                 TestTryFinally::finallyReturn
         );
 

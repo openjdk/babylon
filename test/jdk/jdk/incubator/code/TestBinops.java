@@ -54,8 +54,8 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(not(true), Util.interpretOp(MethodHandles.lookup(), f, true));
-        Assertions.assertEquals(not(false), Util.interpretOp(MethodHandles.lookup(), f, false));
+        Assertions.assertEquals(not(true), Interpreter.invoke(MethodHandles.lookup(), f, true));
+        Assertions.assertEquals(not(false), Interpreter.invoke(MethodHandles.lookup(), f, false));
     }
 
     @Reflect
@@ -69,7 +69,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(neg(42), Util.interpretOp(MethodHandles.lookup(), f, 42));
+        Assertions.assertEquals(neg(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
     }
 
     @Reflect
@@ -83,7 +83,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(compl(42), Util.interpretOp(MethodHandles.lookup(), f, 42));
+        Assertions.assertEquals(compl(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
     }
 
     @Reflect
@@ -97,7 +97,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(mod(10, 3), Util.interpretOp(MethodHandles.lookup(), f, 10, 3));
+        Assertions.assertEquals(mod(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @Reflect
@@ -111,7 +111,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(bitand(10, 3), Util.interpretOp(MethodHandles.lookup(), f, 10, 3));
+        Assertions.assertEquals(bitand(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @Reflect
@@ -125,7 +125,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(bitor(10, 3), Util.interpretOp(MethodHandles.lookup(), f, 10, 3));
+        Assertions.assertEquals(bitor(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @Reflect
@@ -139,7 +139,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(bitxor(10, 3), Util.interpretOp(MethodHandles.lookup(), f, 10, 3));
+        Assertions.assertEquals(bitxor(10, 3), Interpreter.invoke(MethodHandles.lookup(), f, 10, 3));
     }
 
     @Reflect
@@ -153,7 +153,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(booland(true, false), Util.interpretOp(MethodHandles.lookup(), f, true, false));
+        Assertions.assertEquals(booland(true, false), Interpreter.invoke(MethodHandles.lookup(), f, true, false));
     }
 
     @Reflect
@@ -167,7 +167,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(boolor(false, true), Util.interpretOp(MethodHandles.lookup(), f, false, true));
+        Assertions.assertEquals(boolor(false, true), Interpreter.invoke(MethodHandles.lookup(), f, false, true));
     }
 
     @Reflect
@@ -181,7 +181,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(boolxor(true, true), Util.interpretOp(MethodHandles.lookup(), f, true, true));
+        Assertions.assertEquals(boolxor(true, true), Interpreter.invoke(MethodHandles.lookup(), f, true, true));
     }
 
     @Reflect
@@ -195,7 +195,7 @@ public class TestBinops {
 
         System.out.println(f.toText());
 
-        Assertions.assertEquals(doublemod(15.6, 2.1), Util.interpretOp(MethodHandles.lookup(), f, 15.6, 2.1));
+        Assertions.assertEquals(doublemod(15.6, 2.1), Interpreter.invoke(MethodHandles.lookup(), f, 15.6, 2.1));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {
