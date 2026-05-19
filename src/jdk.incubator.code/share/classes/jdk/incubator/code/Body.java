@@ -27,6 +27,8 @@ package jdk.incubator.code;
 
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
+
 import java.util.*;
 
 /**
@@ -663,6 +665,21 @@ public final class Body implements CodeElement<Body, Block> {
                     i.remove();
                 } else if (!(block.ops.getLast() instanceof Op.Terminating)) {
                     throw noTerminatingOperation();
+                }
+            }
+
+            for (Block b : blocks) {
+                for (Block.Reference s : b.successors()) {
+                    // @@@ model implicit params ?
+                    // block may have optional/implicit params at the end
+                    // so num of arg is same or less than num of params
+                    // as the case for ExceptionRegionEnter, that reference catch blocks without the exception arg
+                    Block target = s.target;
+                    if (s.arguments().size() > target.parameters().size()) {
+                        String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
+                                target, s.arguments().size(), target.parameters().size());
+                        throw new IllegalStateException(m);
+                    }
                 }
             }
 
