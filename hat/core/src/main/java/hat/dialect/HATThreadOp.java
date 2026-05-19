@@ -410,5 +410,6 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
                 return new HAT_GSZ(this, copyContext);
             }
         }
+
     }
 }

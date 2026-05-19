@@ -28,13 +28,13 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
-import hat.types.BF16;
 import hat.types.F16;
+import optkl.codebuilders.CodeBuilder;
+import optkl.codebuilders.ScopedCodeBuilderContext;
+import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.PrimitiveType;
-import optkl.codebuilders.CodeBuilder;
-import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -306,7 +306,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
             semicolon().nl();
         } else {
-            sp().equals().sp();
+            assign();
         }
         return recurseResultOrThrow(operand);
     }

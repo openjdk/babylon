@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -232,7 +232,7 @@ public final class SSA {
         private Value resolveValue(CodeContext context, Val val) {
             return switch (val) {
                 case Uninitialized _ -> throw new IllegalStateException("Uninitialized variable");
-                case Holder holder -> context.getValueOrDefault(holder.value(), holder.value());
+                case Holder holder -> context.queryValue(holder.value()).orElse(holder.value());
                 case Phi phi -> {
                     List<Phi> phis = this.additionalParameters.get(phi.block());
                     int additionalParameterIndex = phis.indexOf(phi);
@@ -267,7 +267,7 @@ public final class SSA {
                         List<Value> values = context.getValues(successor.arguments());
                         values.addAll(additionalParams);
                         Block.Builder successorBlockBuilder = context.getBlock(successorBlock);
-                        context.mapSuccessor(successor, successorBlockBuilder.reference(values));
+                        context.mapReference(successor, successorBlockBuilder.reference(values));
                     }
                     block.op(op);
                 }
@@ -447,7 +447,7 @@ public final class SSA {
                             List<Value> toArgs = cc.getValues(s.arguments());
                             toArgs.addAll(values);
                             Block.Reference toS = cc.getBlock(s.targetBlock()).reference(toArgs);
-                            cc.mapSuccessor(s, toS);
+                            cc.mapReference(s, toS);
                         }
                     }
 

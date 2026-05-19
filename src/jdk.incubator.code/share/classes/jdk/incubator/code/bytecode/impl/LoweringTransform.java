@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -106,7 +106,7 @@ public final class LoweringTransform {
 
         for (int i = 0; i < targets.size(); i++) {
             Block.Builder curr = blocks.get(i);
-            curr.body(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
+            curr.transformBody(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
                 case YieldOp _ when swOp instanceof JavaOp.SwitchStatementOp -> {
                     b.op(branch(exit.reference()));
                     yield b;

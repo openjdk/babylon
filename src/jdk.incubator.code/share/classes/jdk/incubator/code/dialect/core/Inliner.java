@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.*;
@@ -28,18 +52,18 @@ public final class Inliner {
      * Inlines the invokable operation into the given block builder and returns the block builder from which to
      * continue building.
      * <p>
-     * This method {@link Block.Builder#body(Body, List, CodeContext, CodeTransformer) transforms} the
-     * body of the invokable operation with the given arguments, a new context, and an operation transformer that
+     * This method {@link Block.Builder#transformBody(Body, List, CodeContext, CodeTransformer) transforms} the
+     * body of the invokable operation with the given arguments, a new context, and an code transformer that
      * replaces return operations by applying the given consumer to a block builder and a return value.
      * <p>
-     * The operation transformer copies all operations except return operations whose nearest invokable operation
+     * The code transformer copies all operations except return operations whose nearest invokable operation
      * ancestor is the given the invokable operation. When such a return operation is encountered, then on
      * first encounter of its grandparent body a return block builder is computed and used for this return operation
      * and encounters of subsequent return operations with the same grandparent body.
      * <p>
-     * If the grandparent body has only one block then operation transformer's block builder is the return
+     * If the grandparent body has only one block then code transformer's block builder is the return
      * block builder. Otherwise, if the grandparent body has one or more blocks then the return block builder is
-     * created from the operation transformer's block builder. The created return block builder will have a block
+     * created from the code transformer's block builder. The created return block builder will have a block
      * parameter whose type corresponds to the return type, or will have no parameter for void return.
      * The computation finishes by applying the return block builder and a return value to the inlining consumer.
      * If the grandparent body has only one block then the return value is the value mapped from the return
@@ -47,8 +71,8 @@ public final class Inliner {
      * then the value is the block parameter of the created return block builder, or is null for void return.
      * <p>
      * For every encounter of a return operation the associated return block builder is compared against the
-     * operation transformer's block builder. If they are not equal then a branch operation is added to the
-     * operation transformer's block builder whose successor is the return block builder with a block argument
+     * code transformer's block builder. If they are not equal then a branch operation is added to the
+     * code transformer's block builder whose successor is the return block builder with a block argument
      * that is the value mapped from the return operation's operand, or with no block argument for void return.
      * @apiNote
      * It is easier to inline an invokable op if its body is in lowered form (there are no operations in the blocks
@@ -60,7 +84,7 @@ public final class Inliner {
      *
      * @param _this the block builder
      * @param invokableOp the invokable operation
-     * @param args the arguments to map to the invokable operation's parameters
+     * @param args the arguments to map, in order, from a prefix of the invokable operation's parameters
      * @param inlineConsumer the consumer applied to process the return from the invokable operation.
      *                       This is called once for each grandparent body of a return operation, with a block to
      *                       build replacement operations and the return value, or null for void return.
@@ -72,7 +96,7 @@ public final class Inliner {
                          BiConsumer<Block.Builder, Value> inlineConsumer) {
         Map<Body, Block.Builder> returnBlocks = new HashMap<>();
         // Create new context, ensuring inlining is isolated
-        _this.body(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
+        _this.transformBody(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
             // If the return operation is associated with the invokable operation
             if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
                 // Compute the return block

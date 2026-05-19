@@ -46,7 +46,6 @@ public class WorkStealer {
     volatile int range;
     volatile boolean running = true;
     final int chunkSize = 1024;
-    private KernelContext[] ranges;
 
     public WorkStealer(int threadCount) {
         super();
@@ -55,32 +54,33 @@ public class WorkStealer {
         if (threadCount > 1) {
             taskCount = new AtomicInteger(0);
             threads = new Thread[threadCount];
-            this.ranges = new KernelContext[threadCount];
             setupBarrier = new CyclicBarrier(threadCount + 1);
             startBarrier = new CyclicBarrier(threadCount + 1);
             doneBarrier = new CyclicBarrier(threadCount + 1);
             for (int i = 0; i < threadCount; i++) {
                 final int fini = i;
-                var ndRange1D = NDRange.of1D(range);
-                ranges[fini] = new KernelContext(ndRange1D);
                 threads[fini] = new Thread(() -> {
-
-                    hat.KernelContext kernelContext = ranges[fini];
                     while (running) {
                         rendezvous(setupBarrier);
                         //  System.out.println("Thread #"+Thread.currentThread()+" waiting start");
                         rendezvous(startBarrier);
                         //  System.out.println("Thread #"+Thread.currentThread()+" started");
 
-                        int myChunk;
-                        while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
-                            for (kernelContext.gix = myChunk * chunkSize; kernelContext.gix < (myChunk + 1) * chunkSize && kernelContext.gix < range; kernelContext.gix++) {
-                                rangeConsumer.accept(kernelContext);
+                        // The range should be initialised by now.
+                        var ndRange1D = NDRange.of1D(range);
+                        hat.KernelContext kernelContext = new KernelContext(ndRange1D);
+                        try {
+                            int myChunk;
+                            while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
+                                for (kernelContext.gix = myChunk * chunkSize; kernelContext.gix < (myChunk + 1) * chunkSize && kernelContext.gix < range; kernelContext.gix++) {
+                                    rangeConsumer.accept(kernelContext);
+                                }
                             }
+                        } finally {
+                            //  System.out.println("Thread #"+Thread.currentThread()+" done");
+                            rendezvous(doneBarrier);
+                            //  System.out.println("Thread #"+Thread.currentThread()+" pastDone");
                         }
-                        //  System.out.println("Thread #"+Thread.currentThread()+" done");
-                        rendezvous(doneBarrier);
-                        //  System.out.println("Thread #"+Thread.currentThread()+" pastDone");
                     }
                 });
                 threads[i].setDaemon(true);

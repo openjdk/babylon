@@ -273,7 +273,7 @@ public final class PartialEvaluator {
 
                         processBlock(bc, inBlock, nextInBlock, outBlock);
 
-                        outBlock.op(CoreOp.branch(outBlock.context().getSuccessorOrCreate(nextInBlockRef)));
+                        outBlock.op(CoreOp.branch(outBlock.context().getReferenceOrCreate(nextInBlockRef)));
                     } else {
                         // @@@ might be non-constant latch to loop
                         processBlock(bc, inBlock, cb.falseBranch().targetBlock(), outBlock);

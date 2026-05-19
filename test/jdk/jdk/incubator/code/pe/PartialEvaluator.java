@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -269,7 +269,7 @@ final class PartialEvaluator {
 
                         processBlock(bc, inBlock, nextInBlock, outBlock);
 
-                        outBlock.op(CoreOp.branch(outBlock.context().getSuccessorOrCreate(nextInBlockRef)));
+                        outBlock.op(CoreOp.branch(outBlock.context().getReferenceOrCreate(nextInBlockRef)));
                     } else {
                         // @@@ might be non-constant latch to loop
                         processBlock(bc, inBlock, cb.falseBranch().targetBlock(), outBlock);

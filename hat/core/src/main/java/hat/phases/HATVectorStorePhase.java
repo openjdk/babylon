@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -47,8 +46,7 @@ import static optkl.OpHelper.VarAccess;
 import static optkl.OpHelper.VarAccess.varAccess;
 import static optkl.OpHelper.copyLocation;
 
-public abstract sealed class HATVectorStorePhase implements HATPhase
-        permits HATVectorStorePhase.Float2StorePhase, HATVectorStorePhase.Float4StorePhase{
+public abstract sealed class HATVectorStorePhase implements HATPhase {
     abstract String storeViewName();
 
 
@@ -61,13 +59,12 @@ public abstract sealed class HATVectorStorePhase implements HATPhase
 
     //recursive
     private String findNameVector(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findNameVector(varLoadOp.operands().getFirst());
-        } else if (v instanceof CoreOp.Result r && r.op() instanceof HATVectorOp hatVectorOp) {
-            return hatVectorOp.varName();
-        }else{
-            throw new IllegalStateException("no name");
-        }
+        return switch (v) {
+            case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
+                    findNameVector(varLoadOp.operands().getFirst());
+            case CoreOp.Result r when r.op() instanceof HATVectorOp hatVectorOp -> hatVectorOp.varName();
+            default -> throw new IllegalStateException("no name");
+        };
     }
 
     //recursive

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -91,7 +91,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                     // Merge the successor's target block with this block
                     mergeBlock(b, br.targetBlock());
                 } else {
-                    b.op(CoreOp.branch(b.context().getSuccessorOrCreate(br)));
+                    b.op(CoreOp.branch(b.context().getReferenceOrCreate(br)));
                 }
 
                 // Remove the conditional dispatching block if all predecessor reference args are constants
@@ -189,7 +189,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
         }
         Block.Reference adjustedSuccessor = b.context().getBlock(successor.targetBlock())
                 .reference(arguments);
-        b.context().mapSuccessor(successor, adjustedSuccessor);
+        b.context().mapReference(successor, adjustedSuccessor);
     }
 
     void mergeBlock(Block.Builder b, CoreOp.BranchOp bop) {

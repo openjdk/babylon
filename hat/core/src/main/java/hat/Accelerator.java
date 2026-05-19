@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,6 @@
  * questions.
  */
 package hat;
-
 
 import hat.backend.Backend;
 
@@ -78,10 +77,9 @@ import static optkl.OpHelper.Lambda.lambda;
  */
 public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
 
-    private MethodHandles.Lookup lookup;
+    private final MethodHandles.Lookup lookup;
     @Override public MethodHandles.Lookup lookup(){return lookup;}
     public final Backend backend;
-
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
@@ -114,30 +112,30 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
     }
 
     @Override
-    public void preMutate(MappableIface b) {
-        if (backend instanceof BufferTracker) {
-            ((BufferTracker) backend).preMutate(b);
+    public void preMutate(MappableIface mappableIface) {
+        if (backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.preMutate(mappableIface);
         }
     }
 
     @Override
-    public void postMutate(MappableIface b) {
-        if (backend instanceof BufferTracker) {
-            ((BufferTracker) backend).postMutate(b);
+    public void postMutate(MappableIface mappableIface) {
+        if (backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.postMutate(mappableIface);
         }
     }
 
     @Override
-    public void preAccess(MappableIface b) {
-        if (backend instanceof BufferTracker) {
-            ((BufferTracker) backend).preAccess(b);
+    public void preAccess(MappableIface mappableIface) {
+        if (backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.preAccess(mappableIface);
         }
     }
 
     @Override
-    public void postAccess(MappableIface b) {
-        if (backend instanceof BufferTracker) {
-            ((BufferTracker) backend).postAccess(b);
+    public void postAccess(MappableIface mappableIface) {
+        if (backend instanceof BufferTracker bufferTracker) {
+            bufferTracker.postAccess(mappableIface);
         }
     }
 
@@ -198,7 +196,7 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
-        ComputeContext computeContext = cache.computeIfAbsent(method, (_) -> new ComputeContext(this, method));
+        ComputeContext computeContext = cache.computeIfAbsent(method, _ -> new ComputeContext(this, method));
         // Here we get the captured values from the lambda
         Object[] args = lambda(lookup,lambda).getQuotedCapturedValues( quoted, method);
         args[0] = computeContext;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -71,8 +71,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfLetOp(this, cc, ot);
+        public Op transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfLetOp(this, cc, ct);
         }
 
         public AnfLetOp(Body.Builder bodyBuilder) {
@@ -128,8 +128,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfLetRecOp(this, cc, ot);
+        public Op transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfLetRecOp(this, cc, ct);
         }
 
         public AnfLetRecOp(Body.Builder bodyBuilder) {
@@ -216,8 +216,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfIfOp(this, cc, ot);
+        public Op transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfIfOp(this, cc, ct);
         }
 
         AnfIfOp(Value test, Body.Builder thenBodyBuilder, Body.Builder elseBodyBuilder) {
@@ -301,8 +301,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public AnfFuncOp transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfFuncOp(this, cc, ot);
+        public AnfFuncOp transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfFuncOp(this, cc, ct);
         }
 
         AnfFuncOp(String funcName, Body.Builder bodyBuilder) {
@@ -353,7 +353,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ct) {
             return new AnfApply(this, cc);
         }
 
@@ -409,7 +409,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ct) {
             return new AnfApplyStub(this, cc);
         }
 

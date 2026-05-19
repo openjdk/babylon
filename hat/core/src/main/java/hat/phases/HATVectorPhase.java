@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.callgraph.KernelCallGraph;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATVectorOp;

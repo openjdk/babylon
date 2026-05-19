@@ -25,7 +25,6 @@
 package hat.dialect;
 
 import hat.device.DeviceSchema;
-import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import jdk.incubator.code.*;
 import optkl.util.ops.Precedence;
@@ -34,16 +33,15 @@ import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 
-public abstract sealed class HATPtrOp extends HATOp
-        permits HATPtrOp.HATPtrLengthOp, HATPtrOp.HATPtrLoadOp, HATPtrOp.HATPtrStoreOp {
+public abstract sealed class HATPtrOp extends HATOp {
 
     private CodeType resultType;
     private List<String> strides;
     private String name;
 
-    private static final String NAME = "HATPtrOp";
+    private static final String HATPTR_OP = "HATPtrOp";
 
-    public HATPtrOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
+    protected HATPtrOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
         this(operands);
         this.resultType = resultType;
         List<String> retValue = List.of();
@@ -59,9 +57,9 @@ public abstract sealed class HATPtrOp extends HATOp
                         retValue = retValue.subList(0, retValue.size() - 1);// remove the "array" field from the fields
                     }
                 }
-            } catch (IllegalAccessException | NoSuchFieldException e) {
+            } catch (IllegalAccessException | NoSuchFieldException _) {
                 try {
-                    if (bufferClass.getField("deviceSchema").get(null) instanceof DeviceSchema deviceSchema) {
+                    if (bufferClass.getField("deviceSchema").get(null) instanceof DeviceSchema) {
                         // We did find a device schema !  I think we should not be getting here with device schemas
                     } else {
                         throw new RuntimeException("No schema or deviceSchema field ");
@@ -75,11 +73,11 @@ public abstract sealed class HATPtrOp extends HATOp
         this.name = name;
     }
 
-    public HATPtrOp(List<Value> operands) {
+    protected HATPtrOp(List<Value> operands) {
         super(operands);
     }
 
-    public HATPtrOp(HATPtrOp op, CodeContext copyContext) {
+    protected HATPtrOp(HATPtrOp op, CodeContext copyContext) {
         super(op, copyContext);
         this.resultType = op.resultType;
         this.strides = op.strides;
@@ -101,7 +99,7 @@ public abstract sealed class HATPtrOp extends HATOp
 
     @Override
     public Map<String, Object> externalize() {
-        return Map.of("hat.dialect." + NAME, this.resultType());
+        return Map.of("hat.dialect." + HATPTR_OP, this.resultType());
     }
 
     public static final class HATPtrStoreOp extends HATPtrOp implements Precedence.Store {

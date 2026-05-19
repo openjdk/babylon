@@ -1,3 +1,26 @@
+/*
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -12,6 +35,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntBinaryOperator;
+import java.util.function.IntSupplier;
 
 /*
  * @test
@@ -145,7 +169,7 @@ public class TestTransform {
                     // add(x, constant(C)) -> sub(x, constant(-C))
                     // add(x, y) -> sub(x, neg(y))
                     List<Value> operands = op.operands().stream()
-                            .map(v -> builder.context().getValueOrDefault(v, null)).toList();
+                            .map(v -> builder.context().queryValue(v).orElse(null)).toList();
                     Op.Result rhs;
                     if (op.operands().get(1) instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop) {
                         // There is no mapping to the second operand, since it was associated
@@ -171,7 +195,70 @@ public class TestTransform {
     }
 
 
-     void testTransformer(String methodName, String transformedMethodName, CodeTransformer codeTransformer) throws Exception {
+    @Reflect
+    static int nested() {
+        return (true ? 1 : 2) + (true ? 3 : 4);
+    }
+
+
+    @Reflect
+    static int nestedReentranceOtherModel() {
+        return (true ? 5 : 6) + (true ? 3 : 4);
+    }
+
+    @Test
+    public void testOpTransformer_nestedReentranceOtherModel() throws Exception {
+        var codeTransformer = CodeTransformer.opTransformer((builder, op, operands) -> {
+            switch (op) {
+                case JavaOp.ConditionalExpressionOp cop -> {
+                    // Replace first conditional expression with that from another model
+                    if (cop.parent().nextOp(cop) instanceof JavaOp.ConditionalExpressionOp _) {
+                        @Reflect
+                        IntSupplier r = () -> true ? 5 : 6;
+                        JavaOp.ConditionalExpressionOp other = Op.ofLambda(r).orElseThrow().op().elements()
+                                .filter(JavaOp.ConditionalExpressionOp.class::isInstance)
+                                .map(JavaOp.ConditionalExpressionOp.class::cast)
+                                .findFirst()
+                                .orElseThrow();
+                        builder.apply(other);
+                    } else {
+                        builder.apply(cop);
+                    }
+                }
+                default ->
+                        builder.apply(op);
+            }
+        });
+
+        testTransformer("nested", "nestedReentranceOtherModel", codeTransformer);
+    }
+
+    @Reflect
+    static int nestedReentranceSameModel() {
+        return (true ? 3 : 4) + (true ? 3 : 4);
+    }
+
+    @Test
+    public void testOpTransformer_nestedReentranceSameModel() throws Exception {
+        var codeTransformer = CodeTransformer.opTransformer((builder, op, operands) -> {
+            switch (op) {
+                case JavaOp.ConditionalExpressionOp cop -> {
+                    // Replace first conditional expression with that from same model
+                    if (cop.parent().nextOp(cop) instanceof JavaOp.ConditionalExpressionOp second) {
+                        builder.apply(second);
+                    } else {
+                        builder.apply(cop);
+                    }
+                }
+                default ->
+                        builder.apply(op);
+            }
+        });
+
+        testTransformer("nested", "nestedReentranceSameModel", codeTransformer);
+    }
+
+    void testTransformer(String methodName, String transformedMethodName, CodeTransformer codeTransformer) throws Exception {
         Method fMethod = this.getClass().getDeclaredMethod(methodName);
         var fModel = Op.ofMethod(fMethod).orElseThrow();
 

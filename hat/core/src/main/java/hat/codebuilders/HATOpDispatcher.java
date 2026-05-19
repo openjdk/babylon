@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,11 +24,16 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.*;
+import hat.dialect.HATBarrierOp;
+import hat.dialect.HATF16Op;
+import hat.dialect.HATMemoryDefOp;
+import hat.dialect.HATMemoryVarOp;
+import hat.dialect.HATOp;
+import hat.dialect.HATPtrOp;
+import hat.dialect.HATThreadOp;
+import hat.dialect.HATVectorOp;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import optkl.codebuilders.BabylonOpDispatcher;
-import optkl.codebuilders.JavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -80,8 +85,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp);
 
     T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
-
-
 
     @Override
     default T recurse(Op op) {

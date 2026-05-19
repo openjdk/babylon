@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -304,12 +302,14 @@ final class UnresolvedTypesTransformer {
                 case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut ->
                     cc.mapValue(op.result(), block.op(vop.isUninitialized()
                             ? CoreOp.var(vop.varName(), resolvedMap.get(ut))
-                            : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
+                            : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.queryValue(vop.initOperand()).orElse(vop.initOperand()))));
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
                     List<Value> opers = alop.operands();
                     Value array = opers.getFirst();
                     Value index = opers.getLast();
-                    cc.mapValue(op.result(), block.op(JavaOp.arrayLoadOp(cc.getValueOrDefault(array, array), cc.getValueOrDefault(index, index))));
+                    cc.mapValue(op.result(), block.op(JavaOp.arrayLoadOp(
+                            cc.queryValue(array).orElse(array),
+                            cc.queryValue(index).orElse(index))));
                 }
                 default ->
                     block.op(op);
@@ -340,12 +340,12 @@ final class UnresolvedTypesTransformer {
         Value first = operands.getFirst();
         boolean changed = false;
         if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
-            cc.mapValue(first, block.op(JavaOp.conv(firstType, cc.getValueOrDefault(first, first))));
+            cc.mapValue(first, block.op(JavaOp.conv(firstType, cc.queryValue(first).orElse(first))));
             changed = true;
         }
         Value second = operands.get(1);
         if (second.type() instanceof PrimitiveType && !second.type().equals(secondType)) {
-            cc.mapValue(second, block.op(JavaOp.conv(secondType, cc.getValueOrDefault(second, second))));
+            cc.mapValue(second, block.op(JavaOp.conv(secondType, cc.queryValue(second).orElse(second))));
             changed = true;
         }
         if (changed) {

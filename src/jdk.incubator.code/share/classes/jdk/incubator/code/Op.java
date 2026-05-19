@@ -54,28 +54,89 @@ import java.util.function.BiFunction;
 /**
  * An operation modeling a unit of program behavior.
  * <p>
- * An operation might model the addition of two integers, or a method invocation expression.
- * Alternatively an operation may model something more complex like method declarations, lambda expressions, or
- * try statements. In such cases an operation will contain one or more bodies modeling the nested structure.
+ * An operation uses zero or more values, exposed as a sequence of {@link #operands()}. A
+ * {@link Op.Terminating terminating} operation may have block references, exposed as a sequence of
+ * {@link #successors()}. An operation has zero or more bodies, exposed as a sequence of {@link #bodies()}.
+ *
+ * <h2>Operation construction</h2>
  * <p>
- * An operation when initially constructed is unattached from any parent block.
- * An unattached operation's state and descendant elements are all immutable except for the operation's
- * {@link #result result}, {@link #parent parent} block, and {@link #location}, which are all initially {@code null}.
+ * Constructing an operation creates an <i>unplaced</i> operation. An unplaced operation is not yet part of a code
+ * model. The operation's operands, successors, bodies, and operation-specific state are fixed when construction
+ * completes.
  * <p>
- * An unattached operation can be attached to a block by {@link Block.Builder#op(Op) appending} it to a block that is
- * being built. Once attached the operation has a permanently non-{@code null} operation {@link #result} that can be
- * used as an operand of subsequent constructed operations.
- * After the block is built the operation has a permanently non-{@code null} {@link #parent}. Before then, the block
- * being built is not observable through this operation and any attempt to access the block results in an exception.
+ * An operation can only be constructed with operands whose declaring block is being built. Otherwise, construction
+ * fails with an exception.
+ *
+ * <h2>Operation building</h2>
  * <p>
- * An unattached operation can be built as a {@link #isRoot() root} operation. Once built the operation's
- * {@link #result result} and {@link #parent parent} are always {@code null}.
+ * Building an operation places an unplaced operation in a code model in one of two ways:
+ * <ol>
+ * <li>
+ * the operation is <i>placed</i> in a block, which becomes its parent block, by using a block builder to
+ * {@link Block.Builder#op(Op) append} the operation to the block. The placed operation has a permanently
+ * non-{@code null} {@link #result() result} that can be used as an operand of subsequently constructed operations. The
+ * block being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this
+ * operation and any attempt to access the block throws {@link IllegalStateException}.
+ * <li>
+ * the operation is <i>placed</i> as the {@link #isRoot() <i>root operation</i>} of a code model by using
+ * {@link #buildAsRoot()}. The root operation's {@link #result() result} and {@link #parent() parent} are always
+ * {@code null}.
+ * </ol>
  * <p>
- * The {@link #location} may be {@link #setLocation set} while the operation is unattached or attached to a block being
- * built.
+ * Building finishes when the parent body builder of the block in which the operation was placed
+ * <a href="Body.Builder.html#body-building-finishing">finishes</a>, after which the block becomes observable, or when
+ * the operation is placed as the root of a code model. After building finishes, the operation's placement and location
+ * are also fixed, and from then on the operation's observable state does not change.
  * <p>
- * An operation can only be constructed with operands whose declaring block is being built, otherwise construction fails
- * with an exception.
+ * The {@link #location} may be {@link #setLocation set} while the operation is unplaced or placed in a block whose
+ * parent body builder has not finished.
+ * <p>
+ * An unplaced operation, or an operation placed in a block whose parent body builder has not
+ * <a href="Body.Builder.html#body-building-finishing">finished</a>, is not thread-safe.
+ *
+ * <h2>Operation implementation requirements</h2>
+ * <p>
+ * A concrete operation class must satisfy the following requirements:
+ * <ul>
+ * <li>
+ * implement {@link #resultType()} to return the result type of operation instances;
+ * <li>
+ * implement {@link #transform(CodeContext, CodeTransformer)} to return a newly constructed, unplaced copy whose
+ * concrete class is the concrete operation class;
+ * <li>
+ * call an appropriate {@code Op} superclass constructor from each concrete operation constructor. Constructors
+ * for new operations pass the operation's operands to {@link #Op(List)}. Constructors for transformed copies can
+ * pass the input operation and code context to {@link #Op(Op, CodeContext)};
+ * <li>
+ * override {@link #bodies()} if instances may have bodies. If the operation class implements {@link Op.Nested}, then
+ * {@code bodies()} must return one or more bodies;
+ * <li>
+ * override {@link #successors()} if instances may have successors. If the operation class implements
+ * {@link Op.BlockTerminating}, then {@code successors()} must return one or more successors;
+ * <li>
+ * copy mutable constructor arguments that define successors, bodies, and operation-specific state, ensuring
+ * they are all fixed when construction completes; and
+ * <li>
+ * return unmodifiable views or immutable values from accessors that expose successors, bodies, and operation-specific
+ * state.
+ * </ul>
+ * <p>
+ * A concrete operation class may additionally:
+ * <ul>
+ * <li>
+ * override {@link #externalizeOpName()} and {@link #externalize()} to define an external form;
+ * <li>
+ * implement {@link Op.Lowerable} to define a lowering; and
+ * <li>
+ * provide operation-specific accessors for operation-specific state.
+ * </ul>
+ *
+ * @apiNote
+ * An operation might model the {@link JavaOp.AddOp addition} of two integers, or a method
+ * {@link JavaOp.InvokeOp invocation} expression. Alternatively an operation may model something more complex like
+ * {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp method} declarations, {@link JavaOp.LambdaOp lambda}
+ * expressions, or {@link JavaOp.TryOp try} statements. In such cases an operation will contain one or more bodies
+ * modeling the nested structure.
  */
 public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
@@ -90,17 +151,19 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface Nested {
         /**
-         * {@return the bodies of the nested operation.}
+         * {@return a non-empty list of this nested operation's bodies.}
          */
         List<Body> bodies();
     }
 
     /**
-     * An operation characteristic indicating the operation represents a loop
+     * An operation characteristic indicating the operation represents a loop.
      */
     public interface Loop extends Nested {
         /**
-         * {@return the body of the loop operation.}
+         * {@return the body of this loop operation.}
+         * <p>
+         * The returned body is one of this operation's {@link #bodies() bodies}.
          */
         Body loopBody();
     }
@@ -117,7 +180,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface Invokable extends Nested {
         /**
-         * {@return the body of the invokable operation.}
+         * {@return the body of this invokable operation.}
+         * <p>
+         * The returned body is one of this operation's {@linkplain #bodies() bodies}.
          */
         Body body();
 
@@ -153,77 +218,84 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * An operation characteristic indicating the operation can replace itself with a lowered form.
+     * An operation characteristic indicating the operation can lower itself by replacing itself with blocks and
+     * operations that represent the same behavior.
      */
     // @@@ Hide this abstraction within JavaOp?
     public interface Lowerable {
 
         /**
-         * Lowers this operation into the block builder, commonly replacing nested structure
-         * with interconnected basic blocks. The previous lowering code transformation
-         * is used to compose with a lowering transformation that is applied to bodies
-         * of this operation, ensuring lowering is applied consistently to nested content.
-         *
-         * @param b the block builder
-         * @param opT the previous lowering code transformation, may be {@code null}
-         * @return the block builder to use for further building
-         */
-        Block.Builder lower(Block.Builder b, CodeTransformer opT);
-
-        /**
-         * Returns a composed code transformer that composes with an operation transformer function adapted to lower
+         * Lowers this operation into the given block builder.
+         * <p>
+         * A lowering implementation emits the replacement blocks and operations into the given builder, and returns
+         * the block builder to use for subsequent operations in an enclosing transformation.
+         * <p>
+         * If this operation lowers one of its bodies, it should transform that body with a lowering code transformer
+         * produced by {@link #loweringTransformer(BiFunction, BiFunction)}. This ensures that lowerable operations
+         * encountered in that body are lowered recursively.
+         * The {@code inherited} transformer is the operation transformer inherited from an enclosing lowering, if any.
+         * A lowering implementation may pass it directly to {@code loweringTransformer}, or compose it with another
+         * transformer and pass the composed transformer. The transformer passed to {@code loweringTransformer} is then
+         * supplied as the inherited transformer when that lowering code transformer recursively lowers lowerable
          * operations.
-         * <p>
-         * This method behaves as if it returns the result of the following expression:
-         * {@snippet lang = java:
-         * CodeTransformer.andThen(before, lowering(before, f));
-         *}
          *
-         * @param before the code transformer to apply before
-         * @param f the operation transformer function to apply after
-         * @return the composed code transformer
+         * @param b the block builder into which this operation is lowered
+         * @param inherited the inherited operation transformer, may be {@code null}
+         * @return the block builder to use for subsequent building
          */
-        static CodeTransformer andThenLowering(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
-            return CodeTransformer.andThen(before, lowering(before, f));
-        }
+        Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited);
 
         /**
-         * Returns an adapted operation transformer function that adapts an operation transformer function
-         * {@code f} to also transform lowerable operations.
+         * Returns a lowering code transformer that partially composes the given operation transformers and, if
+         * required, lowers lowerable operations and appends non-lowerable operations.
          * <p>
-         * The adapted operation transformer function first applies a block builder and operation
-         * to the operation transformer function {@code f}.
-         * If the result is not {@code null} then the result is returned.
-         * Otherwise, if the operation is a lowerable operation then the result of applying the
-         * block builder and code transformer {@code before} to {@link Lowerable#lower lower}
-         * of the lowerable operation is returned.
-         * Otherwise, the operation is copied by applying it to {@link Block.Builder#op op} of the block builder,
-         * and the block builder is returned.
+         * The returned code transformer accepts an operation by first applying the partial composition of
+         * {@code current} with {@code inherited} in the first argument of {@code current}, as if by the following:
+         * {@snippet lang = "java":
+         * Block.Builder composedBlock = inherited == null
+         *         ? block
+         *         : inherited.apply(block, op);
+         * Block.Builder currentBlock = current.apply(composedBlock, op);
+         * }
+         * The returned continuation builder is then selected as if by the following:
+         * {@snippet lang = "java":
+         * if (currentBlock != null) {
+         *     return currentBlock;
+         * } else if (op instanceof Op.Lowerable lop) {
+         *     return lop.lower(composedBlock, inherited);
+         * } else {
+         *     composedBlock.op(op);
+         *     return composedBlock;
+         * }
+         * }
          *
-         * @param before the code transformer to apply for lowering
-         * @param f the operation transformer function to apply after
-         * @return the adapted operation transformer function
+         * @param inherited the inherited operation transformer, may be {@code null}
+         * @param current the current operation transformer
+         * @return the lowering code transformer
          */
-        static BiFunction<Block.Builder, Op, Block.Builder> lowering(CodeTransformer before, BiFunction<Block.Builder, Op, Block.Builder> f) {
+        static CodeTransformer loweringTransformer(BiFunction<Block.Builder, Op, Block.Builder> inherited,
+                                                   BiFunction<Block.Builder, Op, Block.Builder> current) {
+            Objects.requireNonNull(current);
             return (block, op) -> {
-                Block.Builder b = f.apply(block, op);
-                if (b == null) {
-                    if (op instanceof Lowerable lop) {
-                        block = lop.lower(block, before);
-                    } else {
-                        block.op(op);
-                    }
-                } else {
-                    block = b;
+                if (inherited != null) {
+                    block = inherited.apply(block, op);
                 }
-                return block;
+                Block.Builder currentBlock = current.apply(block, op);
+                if (currentBlock != null) {
+                    return currentBlock;
+                } else if (op instanceof Op.Lowerable lop) {
+                    return lop.lower(block, inherited);
+                } else {
+                    block.op(op);
+                    return block;
+                }
             };
         }
     }
 
     /**
      * An operation characteristic indicating the operation is a terminating operation
-     * occurring as the last operation in a block.
+     * that occurs as the last operation in a block.
      * <p>
      * A terminating operation passes control to either another block within the same parent body
      * or to that parent body.
@@ -232,16 +304,16 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * An operation characteristic indicating the operation is a body terminating operation
+     * An operation characteristic indicating the operation is a body-terminating operation
      * occurring as the last operation in a block.
      * <p>
-     * A body terminating operation passes control back to its nearest ancestor body.
+     * A body-terminating operation passes control back to its nearest ancestor body.
      */
     public interface BodyTerminating extends Terminating {
     }
 
     /**
-     * An operation characteristic indicating the operation is a block terminating operation
+     * An operation characteristic indicating the operation is a block-terminating operation
      * occurring as the last operation in a block.
      * <p>
      * The operation has one or more successors to other blocks within the same parent body, and passes
@@ -249,7 +321,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      */
     public interface BlockTerminating extends Terminating {
         /**
-         * {@return the list of successor blocks associated with this block terminating operation}
+         * {@return a non-empty list of this operation's successors.}
          */
         List<Block.Reference> successors();
     }
@@ -260,8 +332,8 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     public static final class Result extends Value {
 
         /**
-         * If assigned to an operation result, it indicates the operation is a root operation
-        */
+         * If assigned to an operation's result field, indicates the operation is a root operation.
+         */
         private static final Result ROOT_RESULT = new Result();
 
         final Op op;
@@ -316,7 +388,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         public static final Location NO_LOCATION = null;
 
         /**
-         * Constructions a location with line and column only.
+         * Constructs a location with line and column only.
          *
          * @param line the line in the source
          * @param column the column in the source
@@ -326,7 +398,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
-    // Set when op is attached to a block or root, otherwise null when unattached
+    // Set when op is placed in a block or as a root operation, otherwise null when unplaced
     // @@@ stable value?
     Result result;
 
@@ -337,14 +409,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     final List<Value> operands;
 
     /**
-     * Constructs an operation from a given operation.
+     * Constructs an operation with operands mapped from, and location copied from, the given operation.
      * <p>
-     * The constructor defers to the {@link Op#Op(List) operands} constructor passing a list of values computed, in
-     * order, by mapping the given operation's operands using the code context. The constructor also assigns the new
-     * operation's location to the given operation's location, if any.
+     * The constructed operation's operands are the values computed, in order, by mapping the given operation's operands
+     * using the given code context. The new operation's location is the given operation's location, if any.
      *
-     * @param that the given operation.
-     * @param cc   the code context.
+     * @param that the given operation
+     * @param cc   the code context
      */
     protected Op(Op that, CodeContext cc) {
         List<Value> outputOperands = cc.getValues(that.operands);
@@ -356,19 +427,28 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Copies this operation and transforms its bodies, if any.
+     * Transforms this operation, copying the operation and transforming any of its bodies.
      * <p>
-     * Bodies are {@link Body#transform(CodeContext, CodeTransformer) transformed} with the given code context and
-     * code transformer.
+     * This method returns a newly constructed, unplaced copy of this operation. The returned operation's concrete
+     * class is the same as this operation's concrete class.
+     * <p>
+     * The returned operation copies this operation's operands, successors, and any operation-specific state. Operands
+     * are copied by mapping this operation's operands, in order, with the given code context. Successors are copied as
+     * specified by {@link CodeContext#getReferenceOrCreate(Block.Reference)}. Operation-specific state is copied as
+     * appropriate for the operation, preserving operation-specific behavior.
+     * <p>
+     * Bodies are {@link Body#transform(CodeContext, CodeTransformer) transformed} with the given code context and code
+     * transformer, and built with the returned operation as their parent.
+     *
      * @apiNote
      * To copy an operation use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
      *
-     * @param cc the code context.
-     * @param ot the code transformer.
-     * @return the transformed operation.
+     * @param cc the code context
+     * @param ct the code transformer
+     * @return the transformed operation
      * @see CodeTransformer#COPYING_TRANSFORMER
      */
-    public abstract Op transform(CodeContext cc, CodeTransformer ot);
+    public abstract Op transform(CodeContext cc, CodeTransformer ct);
 
     /**
      * Constructs an operation with a list of operands.
@@ -386,10 +466,10 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Sets the originating source location of this operation, if this operation is not built.
+     * Sets the originating source location of this operation.
      *
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
-     * @throws IllegalStateException if this operation is built.
+     * @throws IllegalStateException if this operation is a root operation, or is placed in a built block.
      */
     public final void setLocation(Location l) {
         // @@@ Fail if location != null?
@@ -408,14 +488,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns this operation's parent block, otherwise {@code null} if this operation is unattached to a block or a
-     * root operation.
+     * Returns this operation's parent block, or {@code null} if this operation is unplaced or a root operation.
      * <p>
      * The operation's parent block is the same as the operation result's {@link Value#declaringBlock declaring block}.
      *
-     * @return operation's parent block, or {@code null} if this operation is unattached or a root operation.
-     * @throws IllegalStateException if this operation is attached and the parent block is being built and is not
-     * observable.
+     * @return operation's parent block, or {@code null} if this operation is unplaced or a root operation.
+     * @throws IllegalStateException if this operation is placed in a block that is
+     * <a href="Body.Builder.html#body-building-observability">unobservable</a>.
      * @see Value#declaringBlock()
      */
     @Override
@@ -425,7 +504,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
 
         if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Parent block is being built and is not observable");
+            throw new IllegalStateException("Parent block is unobservable");
         }
 
         return result.block;
@@ -452,7 +531,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
 
     /**
-     * {@return the operation's result, or {@code null} if this operation is unattached or a
+     * {@return the operation's result, or {@code null} if this operation is unplaced or a
      * root operation.}
      */
     public final Result result() {
@@ -488,14 +567,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Computes values captured by this operation. A captured value is a value that is used
-     * but not declared by any descendant operation of this operation.
+     * Computes values captured by this operation. A captured value is a value that is used but not declared by any
+     * descendant operation of this operation.
      * <p>
-     * The order of the captured values is first use encountered in depth
-     * first search of this operation's descendant operations.
+     * The order of the captured values is first use encountered in depth-first search of this operation's descendant
+     * operations.
      *
      * @return the list of captured values, modifiable
-     * @throws IllegalStateException if an encountered block is being built and is not observable.
      * @see Body#capturedValues()
      */
     public final List<Value> capturedValues() {
@@ -509,12 +587,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Builds this operation to become a built root operation. After this operation is built its
-     * {@link #result result} and {@link #parent parent} will always be {@code null}.
+     * Builds this operation, placing it as the root operation of a code model. After this operation is placed as a root
+     * operation, its {@link #result() result} and {@link #parent() parent} will always be {@code null}.
      * <p>
      * This method is idempotent.
      *
-     * @throws IllegalStateException if this operation is attached to a block.
+     * @throws IllegalStateException if this operation is placed in a block.
      * @see #isRoot()
      */
     public final void buildAsRoot() {
@@ -522,7 +600,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
             return;
         }
         if (result != null) {
-            throw new IllegalStateException("Operation is attached to a block");
+            throw new IllegalStateException("Operation is placed in a block");
         }
         result = Result.ROOT_RESULT;
     }
@@ -530,18 +608,18 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * {@return {@code true} if this operation is a root operation.}
      * @see #buildAsRoot()
-     * @see #isAttached()
-     * */
+     * @see #isPlacedInBlock()
+     */
     public final boolean isRoot() {
         return result == Result.ROOT_RESULT;
     }
 
     /**
-     * {@return {@code true} if this operation is attached to a block.}
+     * {@return {@code true} if this operation is placed in a block.}
      * @see #buildAsRoot()
      * @see #isRoot()
-     * */
-    public final boolean isAttached() {
+     */
+    public final boolean isPlacedInBlock() {
         return !isRoot() && result != null;
     }
 
@@ -571,7 +649,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Returns the code model text for this operation.
      * <p>
-     * The format of codel model text is unspecified.
+     * The format of code model text is unspecified.
      *
      * @return the code model text for this operation.
      * @apiNote Code model text is designed to be human-readable and is intended for debugging, testing,

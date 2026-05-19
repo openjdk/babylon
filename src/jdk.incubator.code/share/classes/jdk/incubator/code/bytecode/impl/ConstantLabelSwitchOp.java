@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -59,11 +59,11 @@ public final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminati
     ConstantLabelSwitchOp(ConstantLabelSwitchOp that, CodeContext cc) {
         super(that, cc);
         this.labels = that.labels;
-        this.targets = that.targets.stream().map(cc::getSuccessorOrCreate).toList();
+        this.targets = that.targets.stream().map(cc::getReferenceOrCreate).toList();
     }
 
     @Override
-    public ConstantLabelSwitchOp transform(CodeContext cc, CodeTransformer ot) {
+    public ConstantLabelSwitchOp transform(CodeContext cc, CodeTransformer ct) {
         return new ConstantLabelSwitchOp(this, cc);
     }
 

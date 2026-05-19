@@ -70,5 +70,4 @@ public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends 
         id(hatF16VarOp.varName());
         return self();
     }
-
 }

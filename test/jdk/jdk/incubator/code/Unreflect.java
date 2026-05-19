@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -185,7 +185,7 @@ public final class Unreflect {
                 Op o = ops.get(i);
                 bb.context().mapValue(o.result(), bb.op(o));
             }
-            bb.body(lambda.body(),
+            bb.transformBody(lambda.body(),
                     bb.parameters().subList(capturedValues, bb.parameters().size()),
                     bb.context(),
                     CodeTransformer.COPYING_TRANSFORMER);

@@ -161,7 +161,7 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
         blocksPerGridZ = (kernelContext->gsz + threadsPerBlockZ - 1) / threadsPerBlockZ;
     }
 
-    // Enable debug information with trace. Use HAT=INFO
+    // Enable debug information with info: HAT=INFO
     if (backend->config->info) {
         backend->shortDeviceInfo();
         std::cout << "[INFO] Dispatching the CUDA kernel" << std::endl;

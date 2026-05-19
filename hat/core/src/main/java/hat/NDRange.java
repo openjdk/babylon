@@ -36,6 +36,7 @@ package hat;
  * </ul>
  */
 public interface NDRange {
+
     Local local();
 
     Global global();
@@ -79,18 +80,15 @@ public interface NDRange {
         int z();
     }
 
-    sealed interface Range permits Local, Global, Block {
+    sealed interface Range permits Global, Local {
+    }
+
+
+    sealed interface Global extends Range {
+
     }
 
     sealed interface Local extends Range {
-
-    }
-
-    non-sealed interface Block extends Range {
-
-    }
-
-    sealed interface Global extends Range {
 
     }
 
@@ -165,15 +163,15 @@ public interface NDRange {
             return local() != Local1D.EMPTY;
         }
 
-        record Impl(int dimension, Global1D global, Local1D local) implements NDRange1D {
+        record Impl(Global1D global, Local1D local) implements NDRange1D {
         }
 
         static NDRange1D of(Global1D global, Local1D local) {
-            return new Impl(1, global, local);
+            return new Impl(global, local);
         }
 
         static NDRange1D of(Global1D global) {
-            return new Impl(1, global, Local1D.EMPTY);
+            return new Impl(global, Local1D.EMPTY);
         }
     }
 

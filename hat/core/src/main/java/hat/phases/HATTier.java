@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,14 +24,13 @@
  */
 package hat.phases;
 
-import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.util.Mutable;
 import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
 public class HATTier  {
+
     public static final  List<HATPhase> KernelPhases = List.of(
                 // barrier
                 new HATBarrierPhase(),
@@ -43,6 +42,7 @@ public class HATTier  {
                 new HATMemoryPhase.DeviceTypePhase(),
                 // ID's /thread access
                 new HATThreadsPhase(),
+
                 // MathLib phase
                 new HATMathLibPhase(),
                 // views for vector types
@@ -65,12 +65,16 @@ public class HATTier  {
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){
         phases.forEach(phase -> {
             if (showCompilationPhases) {
-                System.out.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
+                IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
             funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp()));
             if (showCompilationPhases) {
-                System.out.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
+                IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
         });
+    }
+
+    private HATTier() {
+        /* This utility class should not be instantiated */
     }
 }

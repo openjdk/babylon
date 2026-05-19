@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -57,7 +57,7 @@ public class TestVarOp {
         CoreOp.FuncOp f = getFuncOp("f");
         CoreOp.FuncOp ft = CoreOp.func("f", CoreType.functionType(JavaType.J_L_OBJECT, JavaType.type(CharSequence.class)))
                 .body(fb -> {
-                    fb.body(f.body(), fb.parameters(), CodeTransformer.COPYING_TRANSFORMER);
+                    fb.transformBody(f.body(), fb.parameters(), CodeTransformer.COPYING_TRANSFORMER);
                 });
 
         List<CoreOp.VarOp> vops = ft.elements()

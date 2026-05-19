@@ -40,21 +40,18 @@ import java.util.List;
 import java.util.Map;
 
 
-public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
-        permits HATVectorOp.HATVectorBinaryOp, HATVectorOp.HATVectorLoadOp, HATVectorOp.HATVectorMakeOfOp, HATVectorOp.HATVectorOfOp, HATVectorOp.HATVectorSelectLoadOp, HATVectorOp.HATVectorSelectStoreOp, HATVectorOp.HATVectorStoreView, HATVectorOp.HATVectorVarLoadOp, HATVectorOp.HATVectorVarOp {
+public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
+
     // TODO all these fields should be final
     private  String varName;
     private final CodeType resultType;
     private final Vector.Shape vectorShape;
 
-    public HATVectorOp(String varName, CodeType resultType, Vector.Shape vectorShape, List<Value> operands) {
+    protected HATVectorOp(String varName, CodeType resultType, Vector.Shape vectorShape, List<Value> operands) {
         super(operands);
         this.varName = varName;
         this.resultType = resultType;
         this.vectorShape = vectorShape;
-      //  if (!vectorShape.codeType().equals(resultType)){
-        //    System.out.println("resulttype = "+resultType+ " vectorshape.codeType = "+vectorShape.codeType());
-       // }
     }
 
     protected HATVectorOp(HATVectorOp that, CodeContext cc) {
@@ -64,10 +61,11 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         this.vectorShape = that.vectorShape;
     }
     @Override
-    final public String varName() {
+    public final String varName() {
         return varName;
     }
-    final public Vector.Shape vectorShape(){return vectorShape;}
+
+    public final Vector.Shape vectorShape(){return vectorShape;}
 
     //TODO all these fields should be final why do we allow this to be mutated.
     public void varName(String varName) {
@@ -84,18 +82,17 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
         };
     }
     @Override
-    final public CodeType resultType() {
+    public final CodeType resultType() {
         return resultType;
     }
     public String buildType() {
         return vectorShape.codeType().toString() + vectorShape.lanes();
     }
 
-    public abstract sealed static class HATVectorBinaryOp extends HATVectorOp
-            permits HATVectorBinaryOp.HATVectorAddOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorDivOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorMulOp, hat.dialect.HATVectorOp.HATVectorBinaryOp.HATVectorSubOp {
+    public abstract static sealed class HATVectorBinaryOp extends HATVectorOp {
 
         private final BinaryOpEnum operationType;
-        public HATVectorBinaryOp(String varName,  BinaryOpEnum operationType, Vector.Shape vectorShape, List<Value> operands) {
+        protected HATVectorBinaryOp(String varName,  BinaryOpEnum operationType, Vector.Shape vectorShape, List<Value> operands) {
             super(  varName /* this is clearly wrong binary ops have no name */,
                     vectorShape.codeType(), // also why does the base type need this twice?
                     vectorShape,
@@ -103,7 +100,7 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
             this.operationType = operationType;
         }
 
-        public HATVectorBinaryOp(HATVectorBinaryOp op, CodeContext copyContext) {
+        protected HATVectorBinaryOp(HATVectorBinaryOp op, CodeContext copyContext) {
             super(op, copyContext);
             this.operationType = op.operationType;
         }
@@ -180,7 +177,7 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
     public interface Private{
     }
 
-    public static abstract sealed class HATVectorLoadOp extends HATVectorOp implements Precedence.LoadOrConv permits HATVectorLoadOp.HATPrivateVectorLoadOp, HATVectorLoadOp.HATSharedVectorLoadOp {
+    public abstract static sealed class HATVectorLoadOp extends HATVectorOp implements Precedence.LoadOrConv {
 
 
         protected HATVectorLoadOp(String varName, CodeType codeType, Vector.Shape vectorShape,  List<Value> operands) {
@@ -336,8 +333,7 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp
 
     }
 
-    public static abstract sealed class HATVectorStoreView extends HATVectorOp
-            permits HATVectorStoreView.HATPrivateVectorStoreView, HATVectorStoreView.HATSharedVectorStoreView {
+    public abstract static sealed class HATVectorStoreView extends HATVectorOp {
 
         protected HATVectorStoreView(String varName, CodeType resultType, Vector.Shape vectorShape, /* boolean isSharedOrPrivate*/ List<Value> operands) {
             super(varName, resultType, vectorShape, operands);
