@@ -854,14 +854,12 @@ public final class Block implements CodeElement<Block, Op> {
             for (Value v : s.arguments()) {
                 v.uses.add(opr);
             }
-
-            s.target.predecessors.add(Block.this);
         }
 
         op.result = opr;
     }
 
-    // Determine if the parent body of value's block is an ancestor of this block
+    // Determine if the parent body of value's block is the same as or an ancestor of this block
     private boolean isReachable(Value v) {
         Body b = parentBody;
         while (b != null && b != v.block.parentBody) {

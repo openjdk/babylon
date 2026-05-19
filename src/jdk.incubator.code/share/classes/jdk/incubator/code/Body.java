@@ -28,6 +28,10 @@ package jdk.incubator.code;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Gatherers;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * A body containing a sequence of (basic) blocks.
@@ -647,32 +651,156 @@ public final class Body implements CodeElement<Body, Block> {
                 }
             }
 
-            Iterator<Block> i = blocks.iterator();
-            while (i.hasNext()) {
-                Block block = i.next();
+            sortReversePostorder();
 
-                // Structural check
-                // All referenced blocks should have a terminating operation as the last operation
-                if (block.ops.isEmpty()) {
-                    if (block.isEntryBlock() || !block.predecessors.isEmpty()) {
-                        throw noTerminatingOperation();
+            // Validate each use of a value declared in the body.
+            // The use's declaring block must be dominated by the value's declaring block
+            if (blocks.size() > 1) {
+                // Only need to check when there is more than one block, since for one block
+                // the use's declaring block will be the same as or a descendant of the
+                // value's declaring block
+                for (Block block : blocks) {
+                    for (Block.Parameter p : block.parameters()) {
+                        for (Op.Result use : p.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
                     }
 
-                    // Remove unreferenced empty block
-                    assert !block.isEntryBlock() && block.predecessors.isEmpty();
-                    i.remove();
-                } else if (!(block.ops.getLast() instanceof Op.Terminating)) {
-                    throw noTerminatingOperation();
+                    for (Op o : block.ops()) {
+                        Op.Result r = o.result();
+                        for (Op.Result use : r.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
                 }
             }
-
-            sortReversePostorder();
 
             Body.this.parentOp = op;
             return Body.this;
         }
 
-        static IllegalStateException noTerminatingOperation() {
+        private static final int UNASSIGNED_INDEX = Integer.MIN_VALUE;
+        private static final int UNSORTED_INDEX = Integer.MAX_VALUE;
+
+        // Sort blocks in reverse post order
+        // After sorting the following holds for a block
+        //   block.parentBody().blocks().indexOf(block) == block.index()
+        private void sortReversePostorder() {
+            if (blocks.size() == 1) {
+                Block e = blocks.getFirst();
+                checkBlock(e);
+
+                e.index = 0;
+                return;
+            }
+
+            // Reset block indexes
+            // Also ensuring blocks with no predecessors occur last
+            for (Block b : blocks) {
+                b.index = UNSORTED_INDEX;
+            }
+
+            Deque<Block> stack = new ArrayDeque<>();
+            stack.push(blocks.get(0));
+
+            // Postorder iteration
+            int index = blocks.size();
+            while (!stack.isEmpty()) {
+                Block n = stack.peek();
+                if (n.index == UNASSIGNED_INDEX) {
+                    // If n's successor has been processed then add n
+                    stack.pop();
+                    n.index = --index;
+                } else if (n.index != UNSORTED_INDEX) {
+                    // If n has already been processed then ignore
+                    stack.pop();
+                } else {
+                    checkBlock(n);
+
+                    // Mark before processing successors, a successor may refer back to n
+                    n.index = UNASSIGNED_INDEX;
+                    for (Block.Reference s : n.successors()) {
+                        Block target = s.target;
+                        target.predecessors.add(n);
+                        if (target.index != UNSORTED_INDEX) {
+                            continue;
+                        }
+
+                        stack.push(target);
+                    }
+                }
+            }
+
+            int nUnreferencedBlocks = blocks.get(0).index;
+            if (nUnreferencedBlocks == 0) {
+                blocks.sort(Comparator.comparingInt(b -> b.index));
+            } else {
+                // There are blocks that are unreferenced from the entry block
+                assert nUnreferencedBlocks == blocks.stream().filter(b -> b.index == UNSORTED_INDEX).count();
+                blocks.sort(Comparator.comparingInt(b -> b.index));
+
+                List<Block> unreferencedBlocks = blocks.subList(blocks.size() - nUnreferencedBlocks, blocks.size());
+                for (Block b : unreferencedBlocks) {
+                    assert b.index == UNSORTED_INDEX : blocks().size();
+
+                    // If an operation in a referenced block uses a value declared in an unreferenced block
+                    // then dominance checks will fail, since the unreferenced block will not be present in
+                    // the map of immediate dominators.
+
+                    // If an operation in an unreferenced block uses a value declared in a referenced block
+                    // then we need to check if the declaration is out of scope, and if so the use should
+                    // be removed or an exception is thrown
+                    // Outside the scope means:
+                    // 1. the value is not declared in this body, is declared in a block whose parent body is an
+                    // ancestor of this body; or
+                    // 2. the value is declared in a block of this body, and that block is referenced
+
+                    b.elements()
+                            .<Op>mapMulti((ce, consumer) -> {
+                                if (ce instanceof Op op) {
+                                    consumer.accept(op);
+                                }
+                            })
+                            .forEach(use -> {
+                                for (Value v : use.operands()) {
+                                    v.uses.remove(use);
+                                }
+
+                                for (Block.Reference s : use.successors()) {
+                                    for (Value v : s.arguments()) {
+                                        v.uses.remove(use);
+                                    }
+                                }
+                            });
+                }
+
+                blocks.removeIf(b -> b.index == UNSORTED_INDEX);
+
+                // Reassign indexes to their natural indexes, sort order is preserved
+                for (int i = 0; i < blocks.size(); i++) {
+                    blocks.get(i).index = i;
+                }
+            }
+            assert IntStream.range(0, blocks().size()).allMatch(i -> i == blocks.get(i).index);
+
+            assert blocks.stream().<List<Block>>mapMulti((b, consumer) -> {
+                for (Block.Reference s : b.successors()) {
+                    consumer.accept(List.of(s.target, b));
+                }
+            }).allMatch(l -> l.get(0).predecessors.contains(l.get(1)));
+        }
+
+        private static void checkBlock(Block b) {
+            if (b.ops.isEmpty() || !(b.ops.getLast() instanceof Op.Terminating)) {
+                throw noTerminatingOperation();
+            }
+        }
+
+        private static IllegalStateException noTerminatingOperation() {
             return new IllegalStateException("Block has no terminating operation as the last operation");
         }
 
@@ -779,60 +907,6 @@ public final class Body implements CodeElement<Body, Block> {
         // Transform body starting from the entry block builder
         ct.acceptBody(bodyBuilder.entryBlock, this, bodyBuilder.entryBlock.parameters());
         return bodyBuilder;
-    }
-
-    // Sort blocks in reverse post order
-    // After sorting the following holds for a block
-    //   block.parentBody().blocks().indexOf(block) == block.index()
-    private void sortReversePostorder() {
-        if (blocks.size() < 2) {
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
-            }
-            return;
-        }
-
-        // Reset block indexes
-        // Also ensuring blocks with no predecessors occur last
-        for (Block b : blocks) {
-            b.index = Integer.MAX_VALUE;
-        }
-
-        Deque<Block> stack = new ArrayDeque<>();
-        stack.push(blocks.get(0));
-
-        // Postorder iteration
-        int index = blocks.size();
-        while (!stack.isEmpty()) {
-            Block n = stack.peek();
-            if (n.index == Integer.MIN_VALUE) {
-                // If n's successor has been processed then add n
-                stack.pop();
-                n.index = --index;
-            } else if (n.index < Integer.MAX_VALUE) {
-                // If n has already been processed then ignore
-                stack.pop();
-            } else {
-                // Mark before processing successors, a successor may refer back to n
-                n.index = Integer.MIN_VALUE;
-                for (Block.Reference s : n.successors()) {
-                    if (s.target.index < Integer.MAX_VALUE) {
-                        continue;
-                    }
-
-                    stack.push(s.target);
-                }
-            }
-        }
-
-        blocks.sort(Comparator.comparingInt(b -> b.index));
-        if (blocks.get(0).index > 0) {
-            // There are blocks with no predecessors
-            // Reassign indexes to their natural indexes, sort order is preserved
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
-            }
-        }
     }
 
     // Modifying methods
