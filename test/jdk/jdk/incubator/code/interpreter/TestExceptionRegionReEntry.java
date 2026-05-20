@@ -35,9 +35,9 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
  * @test
  * @modules jdk.incubator.code
  * @library ../lib
- * @run junit TestExceptionRegionReEntryWhenInterpreting
+ * @run junit TestExceptionRegionReEntry
  */
-public class TestExceptionRegionReEntryWhenInterpreting {
+public class TestExceptionRegionReEntry {
 
     @Test
     void test() throws NoSuchMethodException {
