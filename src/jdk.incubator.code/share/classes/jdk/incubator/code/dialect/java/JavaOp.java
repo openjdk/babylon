@@ -255,15 +255,22 @@ public sealed abstract class JavaOp extends Op {
                                 !isConstantType(fieldLoadOp.fieldReference().type())) {
                             throw new NonConstantExpression();
                         }
-                        Object v;
                         if ((field.getModifiers() & Modifier.STATIC) != 0) {
-                            v = vh.get();
+                            Object v;
+                            try {
+                                v = vh.get();
+                            } catch (Throwable t) {
+                                throw new NonConstantExpression();
+                            }
+                            if (!isConstantValue(v)) {
+                                throw new NonConstantExpression();
+                            }
+                            yield v instanceof String s ? s.intern() : v;
                         } else {
                             // we can't get the value of an instance field from the model
                             // we need the value of the receiver
                             throw new NonConstantExpression();
                         }
-                        yield v instanceof String s ? s.intern() : v;
                     }
                     case ArithmeticOperation _ -> {
                         List<Object> values = op.operands().stream().map(this::eval).toList();
