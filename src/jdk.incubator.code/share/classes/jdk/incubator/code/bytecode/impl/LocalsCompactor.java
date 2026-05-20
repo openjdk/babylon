@@ -42,6 +42,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,7 +50,6 @@ import java.util.stream.Collectors;
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
 import static java.lang.constant.ConstantDescs.CD_double;
 import static java.lang.constant.ConstantDescs.CD_long;
-import java.util.IdentityHashMap;
 
 /**
  * LocalsCompactor transforms class to reduce allocation of local slots in the Code attribute (max_locals).
