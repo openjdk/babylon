@@ -27,7 +27,6 @@ package jdk.incubator.code;
 
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.*;
 import java.util.stream.IntStream;
@@ -661,8 +660,8 @@ public final class Body implements CodeElement<Body, Block> {
             return Body.this;
         }
 
-        private static final int UNASSIGNED_INDEX = Integer.MIN_VALUE;
-        private static final int UNSORTED_INDEX = Integer.MAX_VALUE;
+        private static final int UNSORTED_INDEX = Block.UNBUILT_BLOCK_INDEX;
+        private static final int UNASSIGNED_INDEX = -2;
 
         // Sort blocks in reverse post order, removing any unreachable blocks
         // After sorting the following holds for a block
@@ -674,12 +673,6 @@ public final class Body implements CodeElement<Body, Block> {
 
                 e.index = 0;
                 return;
-            }
-
-            // Reset block indexes
-            // Also ensuring unreachable blocks occur last after sorting by block index
-            for (Block b : blocks) {
-                b.index = UNSORTED_INDEX;
             }
 
             Deque<Block> stack = new ArrayDeque<>();
@@ -723,9 +716,9 @@ public final class Body implements CodeElement<Body, Block> {
             }
 
             // Sort blocks by their reverse postorder indexes
-            blocks.sort(Comparator.comparingInt(b -> b.index));
+            blocks.sort(Comparator.comparingInt(b -> b.index < 0 ? Integer.MAX_VALUE : b.index));
             // Remove unreachable blocks, those that are not dominated by the entry block
-            // They will be sorted at the end, sharing the same sort key UNSORTED_INDEX
+            // They will be sorted at the end
             int nUnreachableBlocks = blocks.get(0).index;
             if (nUnreachableBlocks > 0) {
                 removeUnreachableBlocksAndValueUses(nUnreachableBlocks);
@@ -750,10 +743,9 @@ public final class Body implements CodeElement<Body, Block> {
             // Remove uses of values in unreachable blocks
             for (Block b : unreachableBlocks) {
                 assert b.index == UNSORTED_INDEX;
-                // Set back to unobservable state
-                // @@@ change UNSORTED_INDEX to be -1 and adjust the
-                // sort function so that -ve indexes occur last
-                b.index = -1;
+
+                // It is ok to traverse the unobservable blocks via elements() prior to removal
+                // Direct access of the uses field is required since public access requires an observable block
 
                 // If an operation in an unreachable block uses a value not declared in an unreachable
                 // block, then the use needs to be removed.

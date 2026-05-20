@@ -166,7 +166,8 @@ public final class Block implements CodeElement<Block, Op> {
     // Reverse postorder index
     // Set when block's body has sorted its blocks and therefore set when built
     // Block is unobservable when < 0 i.e., when not built
-    int index = -1;
+    static final int UNBUILT_BLOCK_INDEX = -1;
+    int index = UNBUILT_BLOCK_INDEX;
 
     Block(Body parentBody) {
         this(parentBody, List.of());
