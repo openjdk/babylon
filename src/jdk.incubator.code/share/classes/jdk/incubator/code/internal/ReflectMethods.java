@@ -2390,8 +2390,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 Type lhsType = tree.lhs.type;
                 Type rhsType = tree.rhs.type;
 
-                Value lhs = toValue(tree.lhs, lhsType);
-                Value rhs = toValue(tree.rhs, rhsType);
+                Value lhs = toValue(tree.lhs, lhsType.hasTag(BOT) ? syms.stringType : lhsType);
+                Value rhs = toValue(tree.rhs, rhsType.hasTag(BOT) ? syms.stringType : rhsType);
 
                 result = append(JavaOp.concat(lhs, rhs));
             }
