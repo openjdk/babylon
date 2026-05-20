@@ -300,7 +300,7 @@ public class TestConstantExpressionEvaluation {
 
     @Reflect
     static String fcNullConcat() {
-        return "a" + null;
+        return (String) null + null;
     }
 
     @ParameterizedTest
