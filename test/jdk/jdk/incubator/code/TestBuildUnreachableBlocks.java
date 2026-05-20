@@ -94,12 +94,31 @@ public class TestBuildUnreachableBlocks {
     }
 
     @Test
-    public void testUnobservableUnreachableBlocks() throws Throwable {
-        Method m = TestBuildUnreachableBlocks.class.getDeclaredMethod("f");
-        CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
+    public void testNoUnreachablePredecessors() {
+        CoreOp.FuncOp f = CoreOp.func("f", CoreType.functionType(JavaType.VOID)).body(b -> {
+            Block.Builder reachableBlock1 = b.block();
 
+            b.op(branch(reachableBlock1.reference()));
+
+            reachableBlock1.op(CoreOp.return_());
+
+            Block.Builder unreachableBlock1 = b.block();
+            unreachableBlock1.op(branch(reachableBlock1.reference()));
+
+            Block.Builder unreachableBlock2 = b.block();
+            unreachableBlock2.op(branch(reachableBlock1.reference()));
+        });
+
+        Assertions.assertEquals(2, f.body().blocks().size());
+
+        Block reachableBlock = f.body().blocks().get(1);
+        Assertions.assertEquals(1, reachableBlock.predecessors().size());
+    }
+
+    @Test
+    public void testUnobservableUnreachableBlocks() {
         List<Op.Result> results = new ArrayList<>();
-        CoreOp.FuncOp g = CoreOp.func("g", CoreType.functionType(JavaType.VOID)).body(b -> {
+        CoreOp.FuncOp f = CoreOp.func("f", CoreType.functionType(JavaType.VOID)).body(b -> {
             b.op(CoreOp.return_());
 
             Block.Builder unreachableBlock1 = b.block();
@@ -109,8 +128,8 @@ public class TestBuildUnreachableBlocks {
             results.add(unreachableBlock2.op(return_()));
         });
 
-        Assertions.assertEquals(1, g.body().blocks().size());
-        Assertions.assertEquals(1, g.body().entryBlock().ops().size());
+        Assertions.assertEquals(1, f.body().blocks().size());
+        Assertions.assertEquals(1, f.body().entryBlock().ops().size());
 
         for (Op.Result r : results) {
             // Declaring block, an unreachable block, is not observable
