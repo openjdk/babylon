@@ -256,6 +256,21 @@ public class TestBuild {
     }
 
     @Test
+    public void testFailedBodyBuilder() {
+        var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block1 = body1.entryBlock();
+        block1.op(return_());
+
+        var body2 = Body.Builder.of(body1, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        // body2 finishes in failure
+        Assertions.assertThrows(IllegalStateException.class, () -> CoreOp.func("f", body2));
+
+        // Great-grandchild body finishes in failure
+        Assertions.assertThrows(IllegalStateException.class, () -> func("f", body1));
+    }
+
+    @Test
     public void testMistmatchedBody() {
         var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block1 = body1.entryBlock();

@@ -619,7 +619,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @param op the parent operation
          * @return the built body
          * @throws IllegalStateException if this body builder has finished
-         * @throws IllegalStateException if any connected body builder is not finished
+         * @throws IllegalStateException if any connected body builder is not successfully finished
          * @throws IllegalStateException if any connected body builder built and its parent operation is unplaced
          * @throws IllegalStateException if a reachable block has no terminating operation
          * @throws IllegalStateException if a reachable block has a successor whose number of arguments is greater than
@@ -639,7 +639,8 @@ public final class Body implements CodeElement<Body, Block> {
             // All great-grandchildren bodies should be built
             if (greatgrandchildren != null) {
                 for (Builder greatgrandchild : greatgrandchildren) {
-                    if (!greatgrandchild.finished) {
+                    if (!greatgrandchild.finished || greatgrandchild.target().parentOp == null) {
+                        // Building did not finish, or finished with an exception
                         throw new IllegalStateException("Descendant body builder is not built");
                     }
 
@@ -648,21 +649,6 @@ public final class Body implements CodeElement<Body, Block> {
                         throw new IllegalStateException("Parent operation of descendant body is unplaced");
                     }
                     assert Body.this == grandchild.block.parentBody;
-                }
-            }
-
-            for (Block b : blocks) {
-                for (Block.Reference s : b.successors()) {
-                    // @@@ model implicit params ?
-                    // block may have optional/implicit params at the end
-                    // so num of arg is same or less than num of params
-                    // as the case for ExceptionRegionEnter, that reference catch blocks without the exception arg
-                    Block target = s.target;
-                    if (s.arguments().size() > target.parameters().size()) {
-                        String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
-                                target, s.arguments().size(), target.parameters().size());
-                        throw new IllegalStateException(m);
-                    }
                 }
             }
 
@@ -715,6 +701,14 @@ public final class Body implements CodeElement<Body, Block> {
                     n.index = UNASSIGNED_INDEX;
                     for (Block.Reference s : n.successors()) {
                         Block target = s.target;
+
+                        // Check successor arity
+                        if (s.arguments().size() > target.parameters().size()) {
+                            String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
+                                    target, s.arguments().size(), target.parameters().size());
+                            throw new IllegalStateException(m);
+                        }
+
                         // Update target's predecessors with n
                         target.predecessors.add(n);
                         if (target.index != UNSORTED_INDEX) {
@@ -754,6 +748,11 @@ public final class Body implements CodeElement<Body, Block> {
             // Remove uses of values in unreachable blocks
             for (Block b : unreachableBlocks) {
                 assert b.index == UNSORTED_INDEX;
+                // Set back to unobservable state
+                // @@@ change UNSORTED_INDEX to be -1 and adjust the
+                // sort function so that -ve indexes occur last
+                b.index = -1;
+
                 // If an operation in an unreachable block uses a value not declared in an unreachable
                 // block, then the use needs to be removed.
                 // It is simpler to remove all uses, rather than check for specific uses.
@@ -786,13 +785,13 @@ public final class Body implements CodeElement<Body, Block> {
                     switch (ce) {
                         case Op op -> {
                             Op.Result use = op.result;
-                            if (!use.uses().isEmpty()) {
+                            if (!use.uses.isEmpty()) {
                                 throw new IllegalStateException("Use of an operation result is not dominated by the result");
                             }
                         }
                         case Block bb -> {
                             for (Block.Parameter p : bb.parameters()) {
-                                if (!p.uses().isEmpty()) {
+                                if (!p.uses.isEmpty()) {
                                     throw new IllegalStateException("Use of block parameter is not dominated by the parameter");
                                 }
                             }
@@ -801,7 +800,6 @@ public final class Body implements CodeElement<Body, Block> {
                         }
                     }
                 });
-
             }
             // Remove unreachable blocks
             unreachableBlocks.clear();
