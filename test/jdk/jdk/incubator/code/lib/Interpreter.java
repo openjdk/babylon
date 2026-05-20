@@ -67,7 +67,7 @@ public abstract class Interpreter {
             switch (executeOp(op, env)) {
                 // op completed abruptly, pass control to ancestor op
                 case TerminatingOpEffect e -> {
-                    return e;
+                    return env.onAbruptCompletion(e);
                 }
                 // op completed normally, bind op result in new env, pass control to next op
                 case OpResultEffect e -> env = env.bind(op.result(), e.result);
@@ -85,6 +85,8 @@ public abstract class Interpreter {
         List<Object> valuesOf(List<? extends Value> symbolicValues);
 
         Object valueOf(Value symbolicValue);
+
+        BlockEffect onAbruptCompletion(TerminatingOpEffect eff);
     }
 
     public sealed interface BlockEffect

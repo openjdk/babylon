@@ -95,32 +95,6 @@ public class JavaLowInterpreter extends Interpreter {
         throw (E) e;
     }
 
-    @Override
-    public BlockEffect executeBlock(Block block, Env env) {
-        var op = block.firstOp();
-        for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
-            switch (executeOp(op, env)) {
-                case TerminatingOpEffect e when e.terminatingOp().equals(fakeThrowOp) -> {
-                    // implicit throw
-                    JavaEnv jenv = (JavaEnv) env;
-                    R r = jenv.findCatchBlock((Throwable) e.operands().getFirst());
-                    if (r.catchBlock().isPresent()) {
-                        return new SuccessorEffect(r.catchBlock().get(), e.operands(), r.javaEnv());
-                    } else {
-                        return new TerminatingOpEffect(e.terminatingOp(), e.operands(), r.javaEnv());
-                    }
-                }
-                case TerminatingOpEffect e -> {
-                    return e;
-                }
-                // op completed normally, bind op result in new env, pass control to next op
-                case OpResultEffect e -> env = env.bind(op.result(), e.result());
-            }
-        }
-
-        return executeTerminatingOp((Op & Op.Terminating) op, env);
-    }
-
     private static final class VarBox
             implements CoreOp.Var<Object> {
         Object value;
@@ -479,15 +453,7 @@ public class JavaLowInterpreter extends Interpreter {
                 List<Object> operands = e.valuesOf(o.operands());
                 yield new TerminatingOpEffect(o, operands, e);
             }
-            case JavaOp.ThrowOp o -> {
-                JavaEnv jenv = (JavaEnv) e;
-                List<Object> operands = e.valuesOf(o.operands());
-                R r = jenv.findCatchBlock((Throwable) operands.getFirst());
-                if (r.catchBlock().isPresent()) {
-                    yield new SuccessorEffect(r.catchBlock().get(), operands, r.javaEnv());
-                }
-                yield new TerminatingOpEffect(o, operands, r.javaEnv());
-            }
+            case JavaOp.ThrowOp o -> e.onAbruptCompletion(new TerminatingOpEffect(o, e.valuesOf(o.operands()),e));
             case CoreOp.YieldOp o -> {
                 if (o.ancestorBody().ancestorBody() == null) {
                     throw new IllegalStateException("Yielding to no parent body");
@@ -658,7 +624,7 @@ public class JavaLowInterpreter extends Interpreter {
             return new JavaEnv(bindings, this.l, stack);
         }
 
-        public R findCatchBlock(Throwable t) {
+        private R findCatchBlock(Throwable t) {
             Block cb = null;
             int blockListToRemove = 0;
             l:
@@ -685,6 +651,17 @@ public class JavaLowInterpreter extends Interpreter {
             }
 
             return new R(new JavaEnv(bindings, l, cbs), Optional.ofNullable(cb));
+        }
+
+        @Override
+        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
+            R r = this.findCatchBlock((Throwable) eff.operands().getFirst());
+            if (r.catchBlock().isPresent()) {
+                return new SuccessorEffect(r.catchBlock().get(), eff.operands(), r.javaEnv());
+            } else {
+                // env is changed, so we need to construct a new effect with the new env
+                return new TerminatingOpEffect(eff.terminatingOp(), eff.operands(), r.javaEnv());
+            }
         }
     }
 
