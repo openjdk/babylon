@@ -25,6 +25,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
@@ -35,8 +36,7 @@ import java.util.function.IntBinaryOperator;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
-import static jdk.incubator.code.dialect.java.JavaType.INT;
-import static jdk.incubator.code.dialect.java.JavaType.type;
+import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /*
  * @test
@@ -241,6 +241,21 @@ public class TestBuild {
     }
 
     @Test
+    public void testBodyBuilderWithUnplacedOperation() {
+        var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block1 = body1.entryBlock();
+        block1.op(return_());
+
+        var body2 = Body.Builder.of(body1, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        block2.op(return_());
+        CoreOp.func("f", body2);
+
+        // Great-grandchild body is child of unplaced operation
+        Assertions.assertThrows(IllegalStateException.class, () -> func("f", body1));
+    }
+
+    @Test
     public void testMistmatchedBody() {
         var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block1 = body1.entryBlock();
@@ -254,6 +269,34 @@ public class TestBuild {
 
         // lambdaOp's grandparent body is not parent body of block1
         Assertions.assertThrows(IllegalStateException.class, () -> block1.op(lambdaOp));
+    }
+
+    @Test
+    public void testIsolatedBody() {
+        var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block1 = body1.entryBlock();
+
+        var body2 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        block2.op(return_());
+        var lambdaOp = JavaOp.lambda(type(Runnable.class), body2);
+
+        Assertions.assertDoesNotThrow(() -> block1.op(lambdaOp));
+        block1.op(return_());
+        Assertions.assertDoesNotThrow(() -> func("f", body1));
+    }
+
+    @Test
+    public void testValueUseInIsolatedBody() {
+        var body1 = Body.Builder.of(null, functionType(VOID, INT));
+        var block1 = body1.entryBlock();
+        var p = block1.parameters().get(0);
+        block1.op(return_());
+
+        var body2 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        // Value p is not reachable from block2
+        Assertions.assertThrows(IllegalStateException.class, () -> block2.op(JavaOp.neg(p)));
     }
 
     @Test

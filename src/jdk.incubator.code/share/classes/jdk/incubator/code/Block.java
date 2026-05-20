@@ -159,9 +159,8 @@ public final class Block implements CodeElement<Block, Op> {
 
     final List<Op> ops;
 
-    // @@@ In topological order
-    // @@@ Create lazily
-    //     Can the representation be more efficient e.g. an array?
+    // In topological order of reverse postorder traversal
+    // @@@ Use bitset of block indexes?
     final SequencedSet<Block> predecessors;
 
     // Reverse postorder index
