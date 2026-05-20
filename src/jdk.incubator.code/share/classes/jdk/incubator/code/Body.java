@@ -34,7 +34,7 @@ import java.util.stream.IntStream;
 /**
  * A body containing a sequence of blocks.
  * <p>
- * The sequence of blocks form a graph topologically sorted in reverse postorder.
+ * The sequence of blocks form a control-flow graph topologically sorted in reverse postorder.
  * The first block in the sequence is the entry block, and no other blocks refer to it as a successor.
  * The last operation in a block, a terminating operation, may refer to other blocks in the sequence as successors,
  * thus forming the graph. Otherwise, the last operation defines how the body passes control back to the parent
@@ -608,8 +608,11 @@ public final class Body implements CodeElement<Body, Block> {
          * Body builders connected to this body builder must finish building before this body builder finishes.
          * <p>
          * The entry block and all blocks reachable from it, by following successors, become children of the body. The
-         * reachable blocks are sorted in reverse postorder. Any unreachable blocks, those not reachable from the entry
-         * block by following successors, do not become children of the body.
+         * reachable blocks are sorted in reverse postorder and form a control-flow graph. In that graph, the entry
+         * block dominates every other block. Any block not reached from the entry block is unreachable, does not become
+         * a child of the body, and remains unobservable after building finishes. An unreachable block may have a
+         * successor whose target is a reachable block, and may use a value declared in a reachable block or an ancestor
+         * block being built.
          *
          * @apiNote
          * This method is commonly called from the parent operation's constructor, which holds a reference to the built
@@ -626,7 +629,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @throws IllegalStateException if an operation result or block parameter declared in an unreachable block is
          * used by an operation in a reachable block or a descendant block of a reachable block.
          * @throws IllegalStateException if an operation result or block parameter declared in a reachable block does
-         * not dominate a use of that value
+         * not {@link Value#isDominatedBy(Value) dominate} a use of that value
          */
         public Body build(Op op) {
             Objects.requireNonNull(op);
