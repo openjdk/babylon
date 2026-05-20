@@ -626,6 +626,8 @@ public final class Body implements CodeElement<Body, Block> {
          * the number of parameters of the successor's target block
          * @throws IllegalStateException if an operation result or block parameter declared in an unreachable block is
          * used by an operation in a reachable block or a descendant block of a reachable block.
+         * @throws IllegalStateException if an operation result or block parameter declared in a reachable block does
+         * not dominate a use of that value
          */
         public Body build(Op op) {
             Objects.requireNonNull(op);
