@@ -146,8 +146,8 @@ public final class Body implements CodeElement<Body, Block> {
     /**
      * Returns a map of block to its immediate dominator, for all blocks in this body.
      * <p>
-     * A block's immediate dominator is the unique block that strictly dominates that block, but does
-     * not strictly dominate any other block that strictly dominates that block.
+     * A block's immediate dominator is the unique block that strictly dominates that block, but does not strictly
+     * dominate any other block that strictly dominates that block.
      * <p>
      * The entry block has no immediate dominator, since it is not strictly dominated by any other block. Its
      * corresponding entry in the map has a {@code null} value.
