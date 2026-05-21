@@ -101,10 +101,10 @@ public final class StreamFuser {
                                                          Value iterable) {
             return enhancedFor(ancestorBody, iterable.type(), elementType)
                     .expression(b -> {
-                        b.op(core_yield(iterable));
+                        b.add(core_yield(iterable));
                     })
                     .definition(b -> {
-                        b.op(core_yield(b.parameters().get(0)));
+                        b.add(core_yield(b.parameters().get(0)));
                     });
         }
 
@@ -147,10 +147,10 @@ public final class StreamFuser {
                     Block.Builder _else = continueBlock;
                     if (continueBlock == null) {
                         _else = block.block();
-                        _else.op(JavaOp.continue_());
+                        _else.add(JavaOp.continue_());
                     }
 
-                    block.op(conditionalBranch(p, _if.reference(), _else.reference()));
+                    block.add(conditionalBranch(p, _if.reference(), _else.reference()));
 
                     fuseIntermediateOperation(i + 1, _if, element, _else, terminalConsumer);
                 });
@@ -159,10 +159,10 @@ public final class StreamFuser {
                     EnhancedForOp forOp = enhancedFor(block.parentBody(),
                             iterable.type(), ((ClassType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
-                                b.op(core_yield(iterable));
+                                b.add(core_yield(iterable));
                             })
                             .definition(b -> {
-                                b.op(core_yield(b.parameters().get(0)));
+                                b.add(core_yield(b.parameters().get(0)));
                             })
                             .body(b -> {
                                 fuseIntermediateOperation(i + 1,
@@ -171,8 +171,8 @@ public final class StreamFuser {
                                         null, terminalConsumer);
                             });
 
-                    block.op(forOp);
-                    block.op(JavaOp.continue_());
+                    block.add(forOp);
+                    block.add(JavaOp.continue_());
                 });
             }
         }
@@ -194,12 +194,12 @@ public final class StreamFuser {
                                         Inliner.inline(terminalBlock, consumer, List.of(resultValue),
                                                 (_, _) -> {
                                                 });
-                                        terminalBlock.op(JavaOp.continue_());
+                                        terminalBlock.add(JavaOp.continue_());
                                     });
 
                                 });
-                        b.op(sourceLoop);
-                        b.op(return_());
+                        b.add(sourceLoop);
+                        b.add(return_());
                     });
         }
 
@@ -227,11 +227,11 @@ public final class StreamFuser {
                                             Inliner.inline(terminalBlock, accumulator, List.of(collect, resultValue),
                                                     (_, _) -> {
                                                     });
-                                            terminalBlock.op(JavaOp.continue_());
+                                            terminalBlock.add(JavaOp.continue_());
                                         });
                                     });
-                            block.op(sourceLoop);
-                            block.op(return_(collect));
+                            block.add(sourceLoop);
+                            block.add(return_(collect));
                         });
                     });
         }

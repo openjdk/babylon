@@ -69,15 +69,15 @@ public class TestExceptionRegionReEntry {
             var catchBlock = entry.block(type(RuntimeException.class));
             var retry = entry.block();
             var done = entry.block();
-            var v = entry.op(var(entry.op(constant(BOOLEAN, false))));
-            entry.op(exceptionRegionEnter(tryBlock.reference(), catchBlock.reference()));
-            tryBlock.op(throw_(tryBlock.op(new_(MethodRef.constructor(RuntimeException.class)))));
-            var seen = catchBlock.op(varLoad(v));
-            var t = catchBlock.op(constant(BOOLEAN, true));
-            catchBlock.op(varStore(v, t));
-            catchBlock.op(conditionalBranch(seen, done.reference(), retry.reference()));
-            retry.op(exceptionRegionEnter(tryBlock.reference(), catchBlock.reference()));
-            done.op(return_(seen));
+            var v = entry.add(var(entry.add(constant(BOOLEAN, false))));
+            entry.add(exceptionRegionEnter(tryBlock.reference(), catchBlock.reference()));
+            tryBlock.add(throw_(tryBlock.add(new_(MethodRef.constructor(RuntimeException.class)))));
+            var seen = catchBlock.add(varLoad(v));
+            var t = catchBlock.add(constant(BOOLEAN, true));
+            catchBlock.add(varStore(v, t));
+            catchBlock.add(conditionalBranch(seen, done.reference(), retry.reference()));
+            retry.add(exceptionRegionEnter(tryBlock.reference(), catchBlock.reference()));
+            done.add(return_(seen));
         });
 
         System.out.println(funcOp.toText());

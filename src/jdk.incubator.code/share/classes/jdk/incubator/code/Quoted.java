@@ -186,13 +186,13 @@ public final class Quoted<T extends Op> {
                 Value inputValue = inputOperandsAndCaptures.get(i);
                 Value outputValue = b.parameters().get(i);
                 if (inputValue.type() instanceof VarType) {
-                    outputValue = b.op(CoreOp.var(String.valueOf(i), outputValue));
+                    outputValue = b.add(CoreOp.var(String.valueOf(i), outputValue));
                 }
                 outputOperandsAndCaptures.add(outputValue);
             }
 
             // Quoted the lambda expression
-            Value q = b.op(CoreOp.quoted(b.parentBody(), qb -> {
+            Value q = b.add(CoreOp.quoted(b.parentBody(), qb -> {
                 // Map the entry block of the op's ancestor body to the quoted block
                 // We are copying op in the context of the quoted block, the block mapping
                 // ensures the use of operands and captured values are reachable when building
@@ -202,7 +202,7 @@ public final class Quoted<T extends Op> {
                 // Return the op to be copied in the quoted operation
                 return op;
             }));
-            b.op(CoreOp.return_(q));
+            b.add(CoreOp.return_(q));
         });
     }
 

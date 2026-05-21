@@ -72,7 +72,7 @@ public class OpBuilder {
     static final MethodRef BLOCK_BUILDER_REFERENCE = MethodRef.method(Block.Builder.class, "reference",
             Block.Reference.class, Value[].class);
 
-    static final MethodRef BLOCK_BUILDER_OP = MethodRef.method(Block.Builder.class, "op",
+    static final MethodRef BLOCK_BUILDER_ADD = MethodRef.method(Block.Builder.class, "add",
             Op.Result.class, Op.class);
 
     // instance varargs
@@ -238,11 +238,11 @@ public class OpBuilder {
                 func(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
-                    b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.reference(), b2.reference()));
-                    b1.op(return_(b1.op(invoke(LIST_EMPTY))));
-                    b2.op(conditionalBranch(b2.op(instanceOf(J_U_LIST, arg)), b3.reference(), b4.reference()));
-                    b3.op(return_(b3.op(cast(J_U_LIST, arg))));
-                    b4.op(return_(b4.op(invoke(LIST_OF_OBJECT, arg))));
+                    b0.add(conditionalBranch(b0.add(eq(arg, b0.add(constant(J_L_OBJECT, null)))), b1.reference(), b2.reference()));
+                    b1.add(return_(b1.add(invoke(LIST_EMPTY))));
+                    b2.add(conditionalBranch(b2.add(instanceOf(J_U_LIST, arg)), b3.reference(), b4.reference()));
+                    b3.add(return_(b3.add(cast(J_U_LIST, arg))));
+                    b4.add(return_(b4.add(invoke(LIST_OF_OBJECT, arg))));
                 }),
                 // static Map $map(Object o) {
                 //     if (o == null) return Map.of();
@@ -252,11 +252,11 @@ public class OpBuilder {
                 func(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE).body(bb -> {
                     Block.Builder b0 = bb.entryBlock(), b1 = b0.block(), b2 = b0.block(), b3 = b0.block(), b4 = b0.block();
                     Value arg = b0.parameters().get(0);
-                    b0.op(conditionalBranch(b0.op(eq(arg, b0.op(constant(J_L_OBJECT, null)))), b1.reference(), b2.reference()));
-                    b1.op(return_(b1.op(invoke(MAP_EMPTY))));
-                    b2.op(conditionalBranch(b2.op(instanceOf(J_U_MAP, arg)), b3.reference(), b4.reference()));
-                    b3.op(return_(b3.op(cast(J_U_MAP, arg))));
-                    b4.op(return_(b4.op(invoke(MAP_OF_OBJECT_OBJECT, b4.op(constant(J_L_STRING, "")), arg))));
+                    b0.add(conditionalBranch(b0.add(eq(arg, b0.add(constant(J_L_OBJECT, null)))), b1.reference(), b2.reference()));
+                    b1.add(return_(b1.add(invoke(MAP_EMPTY))));
+                    b2.add(conditionalBranch(b2.add(instanceOf(J_U_MAP, arg)), b3.reference(), b4.reference()));
+                    b3.add(return_(b3.add(cast(J_U_MAP, arg))));
+                    b4.add(return_(b4.add(invoke(MAP_OF_OBJECT_OBJECT, b4.add(constant(J_L_STRING, "")), arg))));
                 }),
                 // static Op $op1(String name,
                 //                Location location,
@@ -277,16 +277,16 @@ public class OpBuilder {
                 func(OP_BUILDER_F_NAME_1, OP_BUILDER_F_OVERRIDE_1).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
-                    b.op(return_(b.op(invoke(OP_FACTORY_CONSTRUCT,
-                            b.op(invoke(DIALECT_FACTORY_OP_FACTORY, dialectFactoryF.apply(b))),
-                            b.op(new_(MethodRef.constructor(EXTERNALIZED_OP_F_TYPE),
+                    b.add(return_(b.add(invoke(OP_FACTORY_CONSTRUCT,
+                            b.add(invoke(DIALECT_FACTORY_OP_FACTORY, dialectFactoryF.apply(b))),
+                            b.add(new_(MethodRef.constructor(EXTERNALIZED_OP_F_TYPE),
                                     args.get(0),
                                     args.get(1),
-                                    b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(2))),
-                                    b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(3))),
-                                    b.op(funcCall(TYPE_BUILDER_F_NAME, TYPE_BUILDER_F_TYPE, args.get(4))),
-                                    b.op(funcCall(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE, args.get(5))),
-                                    b.op(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(6)))))))));
+                                    b.add(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(2))),
+                                    b.add(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(3))),
+                                    b.add(funcCall(TYPE_BUILDER_F_NAME, TYPE_BUILDER_F_TYPE, args.get(4))),
+                                    b.add(funcCall(MAP_BUILDER_F_NAME, MAP_BUILDER_F_TYPE, args.get(5))),
+                                    b.add(funcCall(LIST_BUILDER_F_NAME, LIST_BUILDER_F_TYPE, args.get(6)))))))));
                 }),
                 // static Op.Result $op2(Block.Builder b,
                 //                       String name,
@@ -307,9 +307,9 @@ public class OpBuilder {
                 func(OP_BUILDER_F_NAME_2, OP_BUILDER_F_OVERRIDE_2).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
-                    b.op(return_(b.op(invoke(BLOCK_BUILDER_OP,
+                    b.add(return_(b.add(invoke(BLOCK_BUILDER_ADD,
                             args.get(0),
-                            b.op(funcCall(OP_BUILDER_F_NAME_1, OP_BUILDER_F_OVERRIDE_1,
+                            b.add(funcCall(OP_BUILDER_F_NAME_1, OP_BUILDER_F_OVERRIDE_1,
                                     args.get(1),
                                     args.get(2),
                                     args.get(3),
@@ -339,10 +339,10 @@ public class OpBuilder {
                 func(OP_BUILDER_F_NAME_3, OP_BUILDER_F_OVERRIDE_3).body(bb -> {
                     Block.Builder b = bb.entryBlock();
                     List<Block.Parameter> args = b.parameters();
-                    b.op(return_(b.op(funcCall(OP_BUILDER_F_NAME_2, OP_BUILDER_F_OVERRIDE_2,
+                    b.add(return_(b.add(funcCall(OP_BUILDER_F_NAME_2, OP_BUILDER_F_OVERRIDE_2,
                             args.get(0),
                             args.get(1),
-                            b.op(new_(MethodRef.constructor(Op.Location.class, int.class, int.class), args.get(2), args.get(3))),
+                            b.add(new_(MethodRef.constructor(Op.Location.class, int.class, int.class), args.get(2), args.get(3))),
                             args.get(4),
                             args.get(5),
                             args.get(6),
@@ -354,32 +354,32 @@ public class OpBuilder {
                 //  }
                 func(TYPE_BUILDER_F_NAME, CoreType.functionType(type(CodeType.class))).body(b -> {
                     var i = b.parameter(INT);
-                    var codeTypeFactory = b.op(invoke(DIALECT_FACTORY_CODE_TYPE_FACTORY, dialectFactoryF.apply(b)));
-                    var exCodeType = b.op(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, i));
-                    var codeType = b.op(invoke(MethodRef.method(CodeTypeFactory.class, "constructType", CodeType.class, ExternalizedCodeType.class), codeTypeFactory, exCodeType));
-                    b.op(return_(codeType));
+                    var codeTypeFactory = b.add(invoke(DIALECT_FACTORY_CODE_TYPE_FACTORY, dialectFactoryF.apply(b)));
+                    var exCodeType = b.add(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, i));
+                    var codeType = b.add(invoke(MethodRef.method(CodeTypeFactory.class, "constructType", CodeType.class, ExternalizedCodeType.class), codeTypeFactory, exCodeType));
+                    b.add(return_(codeType));
                 }),
                 func(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID).body(b -> {
                     var compiletimeVersion = Runtime.version().feature();
                     // runtimeVersion = Runtime.version().feature()
-                    var version = b.op(invoke(MethodRef.method(Runtime.class, "version", Runtime.Version.class)));
-                    var runtimeVersion = b.op(invoke(MethodRef.method(Runtime.Version.class, "feature", int.class), version));
+                    var version = b.add(invoke(MethodRef.method(Runtime.class, "version", Runtime.Version.class)));
+                    var runtimeVersion = b.add(invoke(MethodRef.method(Runtime.Version.class, "feature", int.class), version));
                     IfOp ifop = if_(b.parentBody()).if_(c -> {
-                        var p = c.op(neq(runtimeVersion, b.op(constant(INT, compiletimeVersion))));
-                        c.op(core_yield(p));
+                        var p = c.add(neq(runtimeVersion, b.add(constant(INT, compiletimeVersion))));
+                        c.add(core_yield(p));
                     }).then(t -> {
                         var s = "The Java version used at compile time to generate and store the code model, Java " + compiletimeVersion +
                                 ", is not the same as the Java version used at runtime to load the code model, Java ";
-                        var errMessage = t.op(concat(
-                                t.op(constant(J_L_STRING, s)),
+                        var errMessage = t.add(concat(
+                                t.add(constant(J_L_STRING, s)),
                                 runtimeVersion
                         ));
-                        t.op(throw_(
-                                t.op(new_(MethodRef.constructor(UnsupportedOperationException.class, String.class), errMessage))
+                        t.add(throw_(
+                                t.add(new_(MethodRef.constructor(UnsupportedOperationException.class, String.class), errMessage))
                         ));
                     }).else_();
-                    b.op(ifop);
-                    b.op(return_());
+                    b.add(ifop);
+                    b.add(return_());
                 })
         );
     }
@@ -408,15 +408,15 @@ public class OpBuilder {
                     Body.Builder l = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
                     Block.Parameter target = l.entryBlock().parameter(INT);
                     Integer typeIndex = e.getValue().getLast();
-                    Result p = l.entryBlock().op(eq(target, l.entryBlock().op(constant(INT, typeIndex))));
-                    l.entryBlock().op(core_yield(p));
+                    Result p = l.entryBlock().add(eq(target, l.entryBlock().add(constant(INT, typeIndex))));
+                    l.entryBlock().add(core_yield(p));
 
                     Body.Builder expr = Body.Builder.of(b.parentBody(), EXTER_TYPE_BUILDER_F_TYPE);
                     List<Value> args = new ArrayList<>();
-                    args.add(expr.entryBlock().op(constant(J_L_STRING, e.getKey().identifier())));
+                    args.add(expr.entryBlock().add(constant(J_L_STRING, e.getKey().identifier())));
                     for (int j = 0; j < e.getValue().size() - 1; j++) {
-                        Value index = expr.entryBlock().op(constant(INT, e.getValue().get(j)));
-                        Result opr = expr.entryBlock().op(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, index));
+                        Value index = expr.entryBlock().add(constant(INT, e.getValue().get(j)));
+                        Result opr = expr.entryBlock().add(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, index));
                         args.add(opr);
                     }
                     MethodRef mr;
@@ -426,11 +426,11 @@ public class OpBuilder {
                         params.add(String.class);
                         params.addAll(Collections.nCopies(e.getKey().arguments().size(), ExternalizedCodeType.class));
                         mr = MethodRef.method(ExternalizedCodeType.class, "of", ExternalizedCodeType.class, params);
-                        type = expr.entryBlock().op(invoke(mr, args));
+                        type = expr.entryBlock().add(invoke(mr, args));
                     } else {
-                        type = expr.entryBlock().op(invoke(InvokeOp.InvokeKind.STATIC, true, EX_TYPE_ELEM, EX_TYPE_ELEM_OF_ARRAY, args));
+                        type = expr.entryBlock().add(invoke(InvokeOp.InvokeKind.STATIC, true, EX_TYPE_ELEM, EX_TYPE_ELEM_OF_ARRAY, args));
                     }
-                    expr.entryBlock().op(core_yield(type));
+                    expr.entryBlock().add(core_yield(type));
 
                     swBodies.add(l);
                     swBodies.add(expr);
@@ -439,20 +439,20 @@ public class OpBuilder {
                 // default case
                 Body.Builder dl = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
                 dl.entryBlock().parameter(INT);
-                dl.entryBlock().op(core_yield(dl.entryBlock().op(constant(BOOLEAN, true))));
+                dl.entryBlock().add(core_yield(dl.entryBlock().add(constant(BOOLEAN, true))));
                 Body.Builder de = Body.Builder.of(b.parentBody(), EXTER_TYPE_BUILDER_F_TYPE);
                 if (typesEnntryIterator.hasNext()) {
                     // forward to a follow-up builder method (we are over TYPE_LIMIT)
-                    de.entryBlock().op(core_yield(de.entryBlock().op(funcCall(followUpBuilderName, EXTER_TYPE_BUILDER_F_TYPE, i))));
+                    de.entryBlock().add(core_yield(de.entryBlock().add(funcCall(followUpBuilderName, EXTER_TYPE_BUILDER_F_TYPE, i))));
                 } else {
                     // throw
-                    de.entryBlock().op(throw_(de.entryBlock().op(new_(MethodRef.constructor(IllegalStateException.class)))));
+                    de.entryBlock().add(throw_(de.entryBlock().add(new_(MethodRef.constructor(IllegalStateException.class)))));
                 }
                 swBodies.add(dl);
                 swBodies.add(de);
 
-                var r = b.op(switchExpression(i, swBodies));
-                b.op(return_(r));
+                var r = b.add(switchExpression(i, swBodies));
+                b.add(return_(r));
             }));
             methodCounter++;
         } while (typesEnntryIterator.hasNext());
@@ -470,20 +470,20 @@ public class OpBuilder {
     }
 
     FuncOp build(String name, Op op) {
-        Value ancestorBody = builder.op(constant(type(Body.Builder.class), null));
+        Value ancestorBody = builder.add(constant(type(Body.Builder.class), null));
         // check if java version at compile time matches the java version at runtime
-        builder.op(funcCall(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID));
+        builder.add(funcCall(JAVA_VERSION_CHECKER_F_NAME, FunctionType.FUNCTION_TYPE_VOID));
         Value result = buildOp(null, ancestorBody, op);
         // build as root op
-        builder.op(invoke(MethodRef.method(Op.class, "buildAsRoot", void.class), result));
-        builder.op(return_(result));
+        builder.add(invoke(MethodRef.method(Op.class, "buildAsRoot", void.class), result));
+        builder.add(return_(result));
 
         // return from lambdas on stack
         while (!lambdaStack.isEmpty()) {
             var lambdaBuilder = builder;
             builder = lambdaStack.pop();
-            var l = builder.op(lambda(JavaType.parameterized(JavaType.type(Supplier.class), JavaType.type(Op.class)), lambdaBuilder.parentBody()));
-            builder.op(return_(builder.op(cast(JavaType.type(Op.class), builder.op(invoke(MethodRef.method(Supplier.class, "get", Object.class), l))))));
+            var l = builder.add(lambda(JavaType.parameterized(JavaType.type(Supplier.class), JavaType.type(Op.class)), lambdaBuilder.parentBody()));
+            builder.add(return_(builder.add(cast(JavaType.type(Op.class), builder.add(invoke(MethodRef.method(Supplier.class, "get", Object.class), l))))));
         }
 
         return func(name, builder.parentBody());
@@ -521,7 +521,7 @@ public class OpBuilder {
             List<Value> args = new ArrayList<>();
             args.add(referencedBlock);
             args.addAll(successorArgs);
-            Value successor = builder.op(invoke(
+            Value successor = builder.add(invoke(
                     InvokeOp.InvokeKind.INSTANCE, true,
                     BLOCK_BUILDER_REFERENCE.signature().returnType(),
                     BLOCK_BUILDER_REFERENCE, args));
@@ -557,26 +557,26 @@ public class OpBuilder {
         if (bb) {
             args.add(blockBuilder);
         }
-        args.add(builder.op(constant(J_L_STRING, name)));
+        args.add(builder.add(constant(J_L_STRING, name)));
         if (simpleLoc) {
-            args.add(builder.op(constant(INT, location.line())));
-            args.add(builder.op(constant(INT, location.column())));
+            args.add(builder.add(constant(INT, location.line())));
+            args.add(builder.add(constant(INT, location.column())));
         } else {
             args.add(buildLocation(location));
         }
         args.add(buildFlexibleList(type(Value.class), operands));
         args.add(buildFlexibleList(type(Block.Reference.class), successors));
-        args.add(builder.op(constant(INT, registerType(resultType.externalize()))));
+        args.add(builder.add(constant(INT, registerType(resultType.externalize()))));
         args.add(buildAttributeMap(inputOp, attributes));
         args.add(buildFlexibleList(type(Body.Builder.class), bodies));
-        return builder.op(bb ? simpleLoc ? funcCall(OP_BUILDER_F_NAME_3, OP_BUILDER_F_OVERRIDE_3, args)
+        return builder.add(bb ? simpleLoc ? funcCall(OP_BUILDER_F_NAME_3, OP_BUILDER_F_OVERRIDE_3, args)
                                          : funcCall(OP_BUILDER_F_NAME_2, OP_BUILDER_F_OVERRIDE_2, args)
                              : funcCall(OP_BUILDER_F_NAME_1, OP_BUILDER_F_OVERRIDE_1, args));
     }
 
     Value buildFlexibleList(JavaType javaType, List<Value> elements) {
         return switch (elements.size()) {
-            case 0 -> builder.op(constant(javaType, null));
+            case 0 -> builder.add(constant(javaType, null));
             case 1 -> elements.getFirst();
             default -> buildList(javaType, elements);
         };
@@ -584,31 +584,31 @@ public class OpBuilder {
 
     Value buildLocation(Op.Location l) {
         if (l == null) {
-            return builder.op(constant(J_C_LOCATION, null));
+            return builder.add(constant(J_C_LOCATION, null));
         } else {
-            return builder.op(new_(MethodRef.constructor(Op.Location.class, String.class, int.class, int.class),
-                    builder.op(constant(J_L_STRING, l.sourceRef())),
-                    builder.op(constant(INT, l.line())),
-                    builder.op(constant(INT, l.column()))));
+            return builder.add(new_(MethodRef.constructor(Op.Location.class, String.class, int.class, int.class),
+                    builder.add(constant(J_L_STRING, l.sourceRef())),
+                    builder.add(constant(INT, l.line())),
+                    builder.add(constant(INT, l.column()))));
         }
     }
 
     Value buildBody(Value ancestorBodyValue, Body inputBody) {
         Value yieldType = buildType(inputBody.yieldType());
-        Value bodyType = builder.op(invoke(
+        Value bodyType = builder.add(invoke(
                 InvokeOp.InvokeKind.STATIC, true,
                 FUNCTION_TYPE_FUNCTION_TYPE.signature().returnType(),
                 FUNCTION_TYPE_FUNCTION_TYPE, List.of(yieldType)));
-        Value body = builder.op(invoke(BODY_BUILDER_OF, ancestorBodyValue, bodyType));
+        Value body = builder.add(invoke(BODY_BUILDER_OF, ancestorBodyValue, bodyType));
 
         Value entryBlock = null;
         for (Block inputBlock : inputBody.blocks()) {
             Value block;
             if (inputBlock.isEntryBlock()) {
-                block = entryBlock = builder.op(invoke(BODY_BUILDER_ENTRY_BLOCK, body));
+                block = entryBlock = builder.add(invoke(BODY_BUILDER_ENTRY_BLOCK, body));
             } else {
                 assert entryBlock != null;
-                block = builder.op(invoke(InvokeOp.InvokeKind.INSTANCE, true,
+                block = builder.add(invoke(InvokeOp.InvokeKind.INSTANCE, true,
                         BLOCK_BUILDER_BLOCK.signature().returnType(),
                         BLOCK_BUILDER_BLOCK, List.of(entryBlock)));
             }
@@ -616,7 +616,7 @@ public class OpBuilder {
 
             for (Block.Parameter inputP : inputBlock.parameters()) {
                 Value type = buildType(inputP.type());
-                Value blockParameter = builder.op(invoke(BLOCK_BUILDER_PARAMETER, block, type));
+                Value blockParameter = builder.add(invoke(BLOCK_BUILDER_PARAMETER, block, type));
                 valueMap.put(inputP, blockParameter);
             }
         }
@@ -646,21 +646,21 @@ public class OpBuilder {
     Value buildType(CodeType _t) {
         return codeTypeMap.computeIfAbsent(_t, t -> {
             int typeIndex = registerType(_t.externalize());
-            Op.Result i = builder.op(constant(INT, typeIndex));
-            return builder.op(funcCall(TYPE_BUILDER_F_NAME, CoreType.functionType(type(CodeType.class)), i));
+            Op.Result i = builder.add(constant(INT, typeIndex));
+            return builder.add(funcCall(TYPE_BUILDER_F_NAME, CoreType.functionType(type(CodeType.class)), i));
         });
     }
 
     Value buildAttributeMap(Op inputOp, Map<String, Object> attributes) {
         if (attributes.isEmpty()) {
-            return builder.op(constant(type(Map.class), null));
+            return builder.add(constant(type(Map.class), null));
         }
         if (attributes.size() == 1 && attributes.get("") instanceof Object o) {
             return buildAttributeValue(o);
         }
         List<Value> keysAndValues = new ArrayList<>();
         for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-            Value key = builder.op(constant(J_L_STRING, entry.getKey()));
+            Value key = builder.add(constant(J_L_STRING, entry.getKey()));
             Value value = buildAttributeValue(entry.getValue());
             keysAndValues.add(key);
             keysAndValues.add(value);
@@ -669,39 +669,39 @@ public class OpBuilder {
     }
 
     private Value box(CodeType to, Value v) {
-        return builder.op(invoke(MethodRef.method(to, "valueOf", to, v.type()), v));
+        return builder.add(invoke(MethodRef.method(to, "valueOf", to, v.type()), v));
     }
 
     Value buildAttributeValue(Object value) {
         return switch (value) {
             case Boolean _ ->
-                box(J_L_BOOLEAN, builder.op(constant(BOOLEAN, value)));
+                box(J_L_BOOLEAN, builder.add(constant(BOOLEAN, value)));
             case Byte _ ->
-                box(J_L_BYTE, builder.op(constant(BYTE, value)));
+                box(J_L_BYTE, builder.add(constant(BYTE, value)));
             case Short _ ->
-                box(J_L_SHORT, builder.op(constant(SHORT, value)));
+                box(J_L_SHORT, builder.add(constant(SHORT, value)));
             case Character _ ->
-                box(J_L_CHARACTER, builder.op(constant(CHAR, value)));
+                box(J_L_CHARACTER, builder.add(constant(CHAR, value)));
             case Integer _ ->
-                box(J_L_INTEGER, builder.op(constant(INT, value)));
+                box(J_L_INTEGER, builder.add(constant(INT, value)));
             case Long _ ->
-                box(J_L_LONG, builder.op(constant(LONG, value)));
+                box(J_L_LONG, builder.add(constant(LONG, value)));
             case Float _ ->
-                box(J_L_FLOAT, builder.op(constant(FLOAT, value)));
+                box(J_L_FLOAT, builder.add(constant(FLOAT, value)));
             case Double _ ->
-                box(J_L_DOUBLE, builder.op(constant(DOUBLE, value)));
+                box(J_L_DOUBLE, builder.add(constant(DOUBLE, value)));
             case Class<?> v ->
                 buildType(JavaType.type(v));
             case String s ->
-                builder.op(constant(J_L_STRING, value));
+                builder.add(constant(J_L_STRING, value));
             case CodeType f ->
                 buildType(f);
             case InvokeOp.InvokeKind ik -> {
                 FieldRef enumValueRef = FieldRef.field(InvokeOp.InvokeKind.class, ik.name(), InvokeOp.InvokeKind.class);
-                yield builder.op(fieldLoad(enumValueRef));
+                yield builder.add(fieldLoad(enumValueRef));
             }
             case Object o when value == ExternalizedOp.NULL_ATTRIBUTE_VALUE ->
-                builder.op(fieldLoad(FieldRef.field(ExternalizedOp.class,
+                builder.add(fieldLoad(FieldRef.field(ExternalizedOp.class,
                         "NULL_ATTRIBUTE_VALUE", Object.class)));
             default -> {
                 // @@@ use the result of value.toString()?
@@ -716,18 +716,18 @@ public class OpBuilder {
         if (keysAndValues.size() < 21) {
             MethodRef mapOf = MethodRef.method(J_U_MAP, "of",
                     J_U_MAP, Collections.nCopies(keysAndValues.size(), J_L_OBJECT));
-            return builder.op(invoke(mapType, mapOf, keysAndValues));
+            return builder.add(invoke(mapType, mapOf, keysAndValues));
         } else {
             JavaType mapEntryType = parameterized(J_U_MAP_ENTRY, keyType, valueType);
             List<Value> elements = new ArrayList<>(keysAndValues.size() / 2);
             for (int i = 0; i < keysAndValues.size(); i += 2) {
                 Value key = keysAndValues.get(i);
                 Value value = keysAndValues.get(i + 1);
-                Value entry = builder.op(invoke(mapEntryType, MAP_ENTRY, key, value));
+                Value entry = builder.add(invoke(mapEntryType, MAP_ENTRY, key, value));
                 elements.add(entry);
             }
             Value array = buildArray(mapEntryType, elements);
-            return builder.op(invoke(mapType, MAP_OF_ARRAY, array));
+            return builder.add(invoke(mapType, MAP_OF_ARRAY, array));
         }
     }
 
@@ -737,21 +737,21 @@ public class OpBuilder {
         if (elements.size() < 11) {
             MethodRef listOf = MethodRef.method(J_U_LIST, "of",
                     J_U_LIST, Collections.nCopies(elements.size(), J_L_OBJECT));
-            return builder.op(invoke(listType, listOf, elements));
+            return builder.add(invoke(listType, listOf, elements));
         } else {
             Value array = buildArray(javaType, elements);
-            return builder.op(invoke(listType, LIST_OF_ARRAY, array));
+            return builder.add(invoke(listType, LIST_OF_ARRAY, array));
         }
     }
 
 
     Value buildArray(JavaType javaType, List<Value> elements) {
-        Value array = builder.op(newArray(JavaType.array(javaType),
-                builder.op(constant(INT, elements.size()))));
+        Value array = builder.add(newArray(JavaType.array(javaType),
+                builder.add(constant(INT, elements.size()))));
         for (int i = 0; i < elements.size(); i++) {
-            builder.op(arrayStoreOp(
+            builder.add(arrayStoreOp(
                     array,
-                    builder.op(constant(INT, i)),
+                    builder.add(constant(INT, i)),
                     elements.get(i)));
         }
         return array;

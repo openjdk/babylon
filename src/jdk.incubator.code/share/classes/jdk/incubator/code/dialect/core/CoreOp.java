@@ -207,7 +207,7 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).add(this);
             return b;
         }
 
@@ -360,9 +360,9 @@ public sealed abstract class CoreOp extends Op {
             Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             for (FuncOp f : functions) {
-                entryBlock.op(f);
+                entryBlock.add(f);
             }
-            entryBlock.op(CoreOp.unreachable());
+            entryBlock.add(CoreOp.unreachable());
 
             this(bodyC);
         }
@@ -386,7 +386,7 @@ public sealed abstract class CoreOp extends Op {
 
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
-            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).add(this);
             return b;
         }
 
@@ -448,7 +448,7 @@ public sealed abstract class CoreOp extends Op {
                             calledFuncs.add(calledFunc);
                             funcNames.computeIfAbsent(calledFunc,
                                     f -> f.funcName() + "_" + funcNames.size());
-                            Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                            Op.Result result = blockBuilder.add(CoreOp.funcCall(
                                     funcNames.get(calledFunc),
                                     calledFunc.invokableSignature(),
                                     blockBuilder.context().getValues(iop.operands())));
@@ -456,7 +456,7 @@ public sealed abstract class CoreOp extends Op {
                             return blockBuilder;
                         }
                     }
-                    blockBuilder.op(op);
+                    blockBuilder.add(op);
                     return blockBuilder;
                 }));
 
@@ -565,7 +565,7 @@ public sealed abstract class CoreOp extends Op {
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER).add(this);
             return b;
         }
 
@@ -1626,8 +1626,8 @@ public sealed abstract class CoreOp extends Op {
                                   Function<Block.Builder, Op> opFunc) {
         Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
         Block.Builder block = body.entryBlock();
-        block.op(core_yield(
-                block.op(opFunc.apply(block))));
+        block.add(core_yield(
+                block.add(opFunc.apply(block))));
         return new QuotedOp(body);
     }
 

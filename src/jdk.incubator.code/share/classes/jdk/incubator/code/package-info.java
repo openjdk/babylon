@@ -433,21 +433,21 @@
 ///
 ///         // int a
 ///         VarOp varOpA = var("a", builder.parameters().get(0)); // @link substring="var(" target="jdk.incubator.code.dialect.core.CoreOp#var"
-///         Op.Result varA = builder.op(varOpA); // @link substring="builder.op(" target="jdk.incubator.code.Block.Builder#op"
+///         Op.Result varA = builder.add(varOpA); // @link substring="builder.add(" target="jdk.incubator.code.Block.Builder#op"
 ///
 ///         // int b
 ///         VarOp varOpB = var("b", builder.parameters().get(1));
-///         Op.Result varB = builder.op(varOpB);
+///         Op.Result varB = builder.add(varOpB);
 ///
 ///         // IO.println("Example:method:add")
-///         builder.op(invoke(PRINTLN, // // @link substring="invoke(" target="jdk.incubator.code.dialect.java.JavaOp#invoke"
-///                 builder.op(constant(JavaType.J_L_STRING, "Example:method:add"))));
+///         builder.add(invoke(PRINTLN, // // @link substring="invoke(" target="jdk.incubator.code.dialect.java.JavaOp#invoke"
+///                 builder.add(constant(JavaType.J_L_STRING, "Example:method:add"))));
 ///
 ///         // return a + b;
-///         builder.op(return_(
-///                 builder.op(add( // @link substring="add(" target="jdk.incubator.code.dialect.java.JavaOp#add"
-///                         builder.op(varLoad(varA)),
-///                         builder.op(varLoad(varB))))));
+///         builder.add(return_(
+///                 builder.add(add( // @link substring="add(" target="jdk.incubator.code.dialect.java.JavaOp#add"
+///                         builder.add(varLoad(varA)),
+///                         builder.add(varLoad(varB))))));
 ///     });
 /// IO.println(builtCodeModel.toText());
 ///}
@@ -568,13 +568,13 @@
 ///             // Get output operands mapped to input op's operands
 ///             List<Value> outputOperands = builder.context().getValues(inputOp.operands());
 ///
-///             Op.Result r = builder.op(invoke(SUM, outputOperands));
+///             Op.Result r = builder.add(invoke(SUM, outputOperands));
 ///
 ///             // Map input op's result to output result of invocation operation
 ///             builder.context().mapValue(inputOp.result(), r);
 ///         }
 ///         // Copy operation
-///         default -> builder.op(inputOp);
+///         default -> builder.add(inputOp);
 ///     }
 ///     // Return the block builder to continue building from for next operation
 ///     return builder;

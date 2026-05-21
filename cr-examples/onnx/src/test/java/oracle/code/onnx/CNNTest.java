@@ -184,7 +184,7 @@ public class CNNTest {
             Block.Parameter fc3Biases = b.parameters().get(9);
             Block.Parameter ubyteImage = b.parameters().get(10);
 
-            var inputImage = b.op(OnnxOps.Cast(OnnxType.TENSOR_FLOAT32,
+            var inputImage = b.add(OnnxOps.Cast(OnnxType.TENSOR_FLOAT32,
                     ubyteImage,
                     empty(),
                     OnnxType.TENSOR_FLOAT32.eType().id(),
@@ -192,7 +192,7 @@ public class CNNTest {
             ));
 
             // Scaling the features
-            var scalingFactor = b.op(OnnxOps.Constant(OnnxType.TENSOR_FLOAT32,
+            var scalingFactor = b.add(OnnxOps.Constant(OnnxType.TENSOR_FLOAT32,
                     empty(),
                     empty(),
                     empty(),
@@ -201,10 +201,10 @@ public class CNNTest {
                     empty(),
                     empty(),
                     empty()));
-            var scaledInput = b.op(OnnxOps.Div(inputImage.type(), inputImage, scalingFactor));
+            var scaledInput = b.add(OnnxOps.Div(inputImage.type(), inputImage, scalingFactor));
 
             // First conv layer
-            var conv1 = b.op(OnnxOps.Conv(scaledInput.type(),
+            var conv1 = b.add(OnnxOps.Conv(scaledInput.type(),
                     scaledInput,
                     conv1Weights,
                     of(conv1Biases),
@@ -214,12 +214,12 @@ public class CNNTest {
                     of(new long[]{1, 1, 1, 1}),
                     of(1L),
                     of(new long[]{5,5})));
-            var relu1 = b.op(OnnxOps.Relu(conv1.type(),
+            var relu1 = b.add(OnnxOps.Relu(conv1.type(),
                     conv1));
 
             // First pooling layer
             // @@@ multiple results?
-            var pool1Result = b.op(OnnxOps.MaxPool(CoreType.tupleType(relu1.type(), OnnxType.TENSOR_INT64),
+            var pool1Result = b.add(OnnxOps.MaxPool(CoreType.tupleType(relu1.type(), OnnxType.TENSOR_INT64),
                     Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu1,
                     of(new long[4]),
@@ -231,8 +231,8 @@ public class CNNTest {
                     new long[]{2, 2}));
 
             // Second conv layer
-            var pool1 = b.op(CoreOp.tupleLoad(pool1Result, 0));
-            var conv2 = b.op(OnnxOps.Conv(pool1.type(),
+            var pool1 = b.add(CoreOp.tupleLoad(pool1Result, 0));
+            var conv2 = b.add(OnnxOps.Conv(pool1.type(),
                     pool1,
                     conv2Weights,
                     of(conv2Biases),
@@ -242,12 +242,12 @@ public class CNNTest {
                     of(new long[]{1, 1, 1, 1}),
                     of(1L),
                     of(new long[]{5,5})));
-            var relu2 = b.op(OnnxOps.Relu(conv2.type(),
+            var relu2 = b.add(OnnxOps.Relu(conv2.type(),
                     conv2));
 
             // Second pooling layer
             // @@@ multiple results?
-            var pool2Result = b.op(OnnxOps.MaxPool(CoreType.tupleType(relu2.type(), OnnxType.TENSOR_INT64),
+            var pool2Result = b.add(OnnxOps.MaxPool(CoreType.tupleType(relu2.type(), OnnxType.TENSOR_INT64),
                     Set.of(OnnxOps.MaxPool.OutputParameter.Indices),
                     relu2,
                     of(new long[4]),
@@ -259,13 +259,13 @@ public class CNNTest {
                     new long[]{2, 2}));
 
             // Flatten inputs
-            var pool2 = b.op(CoreOp.tupleLoad(pool2Result, 0));
-            var flatten = b.op(OnnxOps.Flatten(pool2.type(),
+            var pool2 = b.add(CoreOp.tupleLoad(pool2Result, 0));
+            var flatten = b.add(OnnxOps.Flatten(pool2.type(),
                     pool2,
                     of(1L)));
 
             // First fully connected layer
-            var fc1 = b.op(OnnxOps.Gemm(flatten.type(),
+            var fc1 = b.add(OnnxOps.Gemm(flatten.type(),
                     flatten,
                     fc1Weights,
                     of(fc1Biases),
@@ -273,11 +273,11 @@ public class CNNTest {
                     of(1L),
                     of(1f),
                     empty()));
-            var relu3 = b.op(OnnxOps.Relu(fc1.type(),
+            var relu3 = b.add(OnnxOps.Relu(fc1.type(),
                     fc1));
 
             // Second fully connected layer
-            var fc2 = b.op(OnnxOps.Gemm(relu3.type(),
+            var fc2 = b.add(OnnxOps.Gemm(relu3.type(),
                     relu3,
                     fc2Weights,
                     of(fc2Biases),
@@ -285,11 +285,11 @@ public class CNNTest {
                     of(1L),
                     of(1f),
                     empty()));
-            var relu4 = b.op(OnnxOps.Relu(fc2.type(),
+            var relu4 = b.add(OnnxOps.Relu(fc2.type(),
                     fc2));
 
             // Softmax layer
-            var fc3 = b.op(OnnxOps.Gemm(relu4.type(),
+            var fc3 = b.add(OnnxOps.Gemm(relu4.type(),
                     relu4,
                     fc3Weights,
                     of(fc3Biases),
@@ -297,11 +297,11 @@ public class CNNTest {
                     of(1L),
                     of(1f),
                     empty()));
-            var prediction = b.op(OnnxOps.Softmax(fc3.type(),
+            var prediction = b.add(OnnxOps.Softmax(fc3.type(),
                     fc3,
                     of(1L)));
 
-            b.op(CoreOp.return_(prediction));
+            b.add(CoreOp.return_(prediction));
         }));
     }
 

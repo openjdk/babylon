@@ -113,7 +113,7 @@ public class CodeReflectionTester {
         while (f.elements().skip(1).anyMatch(ce -> ce instanceof Op op && unused.test(op))) {
             f = f.transform((block, op) -> {
                 if (!unused.test(op)) {
-                    block.op(op);
+                    block.add(op);
                 }
                 return block;
             });

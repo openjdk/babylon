@@ -287,7 +287,7 @@ final class UnresolvedTypesTransformer {
 
             @Override
             public Block.Builder acceptOp(Block.Builder block, Op op) {
-                block.op(op);
+                block.add(op);
                 return block;
             }
         };
@@ -298,21 +298,21 @@ final class UnresolvedTypesTransformer {
             CodeContext cc = block.context();
             switch (op) {
                 case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.op(CoreOp.constant(resolvedMap.get(ut), convertValue(ut, cop.value()))));
+                    cc.mapValue(op.result(), block.add(CoreOp.constant(resolvedMap.get(ut), convertValue(ut, cop.value()))));
                 case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.op(vop.isUninitialized()
+                    cc.mapValue(op.result(), block.add(vop.isUninitialized()
                             ? CoreOp.var(vop.varName(), resolvedMap.get(ut))
                             : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.queryValue(vop.initOperand()).orElse(vop.initOperand()))));
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
                     List<Value> opers = alop.operands();
                     Value array = opers.getFirst();
                     Value index = opers.getLast();
-                    cc.mapValue(op.result(), block.op(JavaOp.arrayLoadOp(
+                    cc.mapValue(op.result(), block.add(JavaOp.arrayLoadOp(
                             cc.queryValue(array).orElse(array),
                             cc.queryValue(index).orElse(index))));
                 }
                 default ->
-                    block.op(op);
+                    block.add(op);
             }
             return block;
         };
@@ -328,7 +328,7 @@ final class UnresolvedTypesTransformer {
                 case JavaOp.BinaryOp _ ->
                     unify(block, op, op.resultType(), op.resultType());
                 default ->
-                    block.op(op);
+                    block.add(op);
             }
             return block;
         };
@@ -340,18 +340,18 @@ final class UnresolvedTypesTransformer {
         Value first = operands.getFirst();
         boolean changed = false;
         if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
-            cc.mapValue(first, block.op(JavaOp.conv(firstType, cc.queryValue(first).orElse(first))));
+            cc.mapValue(first, block.add(JavaOp.conv(firstType, cc.queryValue(first).orElse(first))));
             changed = true;
         }
         Value second = operands.get(1);
         if (second.type() instanceof PrimitiveType && !second.type().equals(secondType)) {
-            cc.mapValue(second, block.op(JavaOp.conv(secondType, cc.queryValue(second).orElse(second))));
+            cc.mapValue(second, block.add(JavaOp.conv(secondType, cc.queryValue(second).orElse(second))));
             changed = true;
         }
         if (changed) {
-            block.context().mapValue(op.result(), block.op(op.transform(cc, CodeTransformer.COPYING_TRANSFORMER)));
+            block.context().mapValue(op.result(), block.add(op.transform(cc, CodeTransformer.COPYING_TRANSFORMER)));
         } else {
-            block.op(op);
+            block.add(op);
         }
     }
 }

@@ -245,7 +245,7 @@ public class Trxfmr implements LookupCarrier{
                 public Op.Result replace(Op replacement, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
                     action(Action.REPLACE);
-                    var result = trxfmr.opToResultOp(op(),builder().op(OpHelper.copyLocation(op(), replacement)));
+                    var result = trxfmr.opToResultOp(op(),builder().add(OpHelper.copyLocation(op(), replacement)));
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
                     }else {
                         mapperConsumer.accept(Mapper.of(this).map(op().result(), result));
@@ -255,7 +255,7 @@ public class Trxfmr implements LookupCarrier{
                 public Op.Result add(Op newOne, Consumer<Mapper<?>> mapperConsumer) {
                     handled(true); // is this appropriate here?
                     action(Action.ADDED);
-                    var result = trxfmr.opToResultOp(op(),builder().op(OpHelper.copyLocation(op(), newOne)));
+                    var result = trxfmr.opToResultOp(op(),builder().add(OpHelper.copyLocation(op(), newOne)));
                     if (result.type() instanceof PrimitiveType primitiveType && primitiveType.isVoid()) {
 
                     }else{
@@ -268,7 +268,7 @@ public class Trxfmr implements LookupCarrier{
                 public Op.Result retain( Consumer<Mapper<?>> mapperConsumer) {
                     handled(true);
                     action(Action.RETAIN);
-                    return trxfmr.opToResultOp(op(),builder().op(op()));
+                    return trxfmr.opToResultOp(op(),builder().add(op()));
                 }
                 @Override
                 public void remove( Consumer<Mapper<?>> mapperConsumer) {
@@ -384,13 +384,13 @@ public class Trxfmr implements LookupCarrier{
                 Cursor cursor = Cursor.of(this, funcOp, blockBuilder,cursorOp);
                 cursorConsumer.accept(cursor);
                 if (!cursor.handled()){
-                    var result = blockBuilder.op(cursorOp);
+                    var result = blockBuilder.add(cursorOp);
                     var opFromResult= result.op();
                     biMap.add(cursorOp,opFromResult);
                 }
             } else {
                 try {
-                    var result = blockBuilder.op(cursorOp);
+                    var result = blockBuilder.add(cursorOp);
                     var opFromResult = result.op();
                     biMap.add(cursorOp, opFromResult);
                 }catch (Throwable t){
@@ -416,7 +416,7 @@ public class Trxfmr implements LookupCarrier{
             if (predicate.test(op)){
                 codeTransformer.acceptOp(blockBuilder,op);
             } else {
-                biMap.add(op,blockBuilder.op(op).op());
+                biMap.add(op,blockBuilder.add(op).op());
             }
             return blockBuilder;
         });

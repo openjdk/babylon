@@ -49,10 +49,10 @@ public class ConstantExpressionTransformer implements CodeTransformer {
     public Block.Builder acceptOp(Block.Builder b, Op op) {
         Optional<Object> v = constantExpressionEvaluator.evaluate(op.result());
         if (v.isPresent()) {
-            Op.Result c = b.op(constant(op.resultType(), v.get()));
+            Op.Result c = b.add(constant(op.resultType(), v.get()));
             b.context().mapValue(op.result(), c);
         } else {
-            b.op(op);
+            b.add(op);
         }
         return b;
     }

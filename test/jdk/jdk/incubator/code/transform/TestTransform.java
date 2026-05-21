@@ -91,11 +91,11 @@ public class TestTransform {
             switch (op) {
                 case JavaOp.AddOp _ -> {
                     List<Value> values = builder.context().getValues(op.operands());
-                    Op.Result r = builder.op(JavaOp.invoke(MethodRef.method(fAdd), values));
+                    Op.Result r = builder.add(JavaOp.invoke(MethodRef.method(fAdd), values));
                     builder.context().mapValue(op.result(), r);
                 }
                 default ->
-                        builder.op(op);
+                        builder.add(op);
             }
             return builder;
         };
@@ -162,7 +162,7 @@ public class TestTransform {
                     if (uses.size() == 1 && uses.iterator().next().op() instanceof JavaOp.AddOp) {
                         // Drop, this will be replaced later
                     } else {
-                        builder.op(op);
+                        builder.add(op);
                     }
                 }
                 case JavaOp.AddOp _ -> {
@@ -176,17 +176,17 @@ public class TestTransform {
                         // with the constant op which was dropped
                         Assertions.assertNull(operands.get(1));
 
-                        rhs = builder.op(CoreOp.constant(JavaType.INT, - (int) cop.value()));
+                        rhs = builder.add(CoreOp.constant(JavaType.INT, - (int) cop.value()));
                     } else {
                         Assertions.assertNotNull(operands.get(1));
 
-                        rhs = builder.op(JavaOp.neg(operands.get(1)));
+                        rhs = builder.add(JavaOp.neg(operands.get(1)));
                     }
-                    Op.Result result = builder.op(JavaOp.sub(operands.get(0), rhs));
+                    Op.Result result = builder.add(JavaOp.sub(operands.get(0), rhs));
                     builder.context().mapValue(op.result(), result);
                 }
                 default ->
-                        builder.op(op);
+                        builder.add(op);
             }
             return builder;
         };
