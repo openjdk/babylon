@@ -159,15 +159,15 @@ public final class Block implements CodeElement<Block, Op> {
 
     final List<Op> ops;
 
-    // @@@ In topological order
-    // @@@ Create lazily
-    //     Can the representation be more efficient e.g. an array?
+    // In topological order of reverse postorder traversal
+    // @@@ Use bitset of block indexes?
     final SequencedSet<Block> predecessors;
 
     // Reverse postorder index
     // Set when block's body has sorted its blocks and therefore set when built
-    // Block is inoperable when < 0 i.e., when not built
-    int index = -1;
+    // Block is unobservable when < 0 i.e., when not built
+    static final int UNBUILT_BLOCK_INDEX = -1;
+    int index = UNBUILT_BLOCK_INDEX;
 
     Block(Body parentBody) {
         this(parentBody, List.of());
@@ -854,14 +854,12 @@ public final class Block implements CodeElement<Block, Op> {
             for (Value v : s.arguments()) {
                 v.uses.add(opr);
             }
-
-            s.target.predecessors.add(Block.this);
         }
 
         op.result = opr;
     }
 
-    // Determine if the parent body of value's block is an ancestor of this block
+    // Determine if the parent body of value's block is the same as or an ancestor of this block
     private boolean isReachable(Value v) {
         Body b = parentBody;
         while (b != null && b != v.block.parentBody) {
