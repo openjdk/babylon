@@ -257,13 +257,16 @@ public sealed abstract class JavaOp extends Op {
                             throw new NonConstantExpression();
                         }
                         if ((field.getModifiers() & Modifier.STATIC) != 0) {
+                            Object v;
                             try {
-                                Object v = vh.get();
-                                yield v instanceof String s ? s.intern() : v;
-                            } catch (Throwable _) {
-                                // an error caused by constant initialization, when the value does not come from the class file
+                                v = vh.get();
+                            } catch (Throwable t) {
                                 throw new NonConstantExpression();
                             }
+                            if (!isConstantValue(v)) {
+                                throw new NonConstantExpression();
+                            }
+                            yield v instanceof String s ? s.intern() : v;
                         } else {
                             // we can't get the value of an instance field from the model
                             // we need the value of the receiver
