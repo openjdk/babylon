@@ -202,7 +202,7 @@ public final class BytecodeLift {
             if (e instanceof LabelTarget lt) {
                 BitSet newEreStack = null;
                 for (var er : ecs) {
-                    if (lt.label() == er.tryStart() || lt.label() == er.tryEnd()) {
+                    if (lt.label() == er.tryStart() ^ lt.label() == er.tryEnd()) {
                         if (newEreStack == null) newEreStack = (BitSet)eStack.clone();
 
                         newEreStack.set(exceptionHandlers.indexOf(er.handler()), lt.label() == er.tryStart());

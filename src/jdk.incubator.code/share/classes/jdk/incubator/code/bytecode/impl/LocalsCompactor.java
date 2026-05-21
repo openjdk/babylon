@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,6 +42,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -150,6 +151,7 @@ public final class LocalsCompactor {
     private final List<Slot> maps; // Intermediate slots liveness maps
     private final Map<Label, List<StackMapFrameInfo.VerificationTypeInfo>> frames;
     private final int[] slotMap; // Output mapping of the slots
+    private final Map<Label, Integer> labelPc; // Labels map
 
     private LocalsCompactor(CodeModel com, int fixedSlots) {
         frames = com.findAttribute(Attributes.stackMapTable()).map(
@@ -158,6 +160,7 @@ public final class LocalsCompactor {
                 .orElse(Map.of());
         var exceptionHandlers = com.exceptionHandlers();
         maps = new ArrayList<>();
+        labelPc = new IdentityHashMap<>();
         int pc = 0;
         // Initialization of fixed slots
         for (int slot = 0; slot < fixedSlots; slot++) {
@@ -167,6 +170,7 @@ public final class LocalsCompactor {
         for (var e : com) {
             switch(e) {
                 case LabelTarget lt -> {
+                    labelPc.put(lt.label(), pc);
                     for (var eh : exceptionHandlers) {
                         if (eh.tryStart() == lt.label()) {
                             mergeFrom(pc, eh.handler());
@@ -196,6 +200,29 @@ public final class LocalsCompactor {
                 default -> pc--;
             }
             pc++;
+        }
+        // Merge locals in exception handlers
+        for (var eh : exceptionHandlers) {
+            Integer start = labelPc.get(eh.tryStart());
+            Integer end = labelPc.get(eh.tryEnd());
+            if (start != null && end != null) {
+                var locals = frames.get(eh.handler());
+                if (locals != null) {
+                    int slot = 0;
+                    for (var vti : locals) {
+                        if (vti == LONG || vti == DOUBLE) {
+                            markRange(slot, start, end + 1).flags |= 1;
+                            markRange(slot + 1, start, end + 1).flags |= 2;
+                            slot += 2;
+                        } else {
+                            if (vti != TOP) {
+                                markRange(slot, start, end + 1);
+                            }
+                            slot++;
+                        }
+                    }
+                }
+            }
         }
         // Initialization of slots mapping
         slotMap = new int[maps.size()];
@@ -247,6 +274,12 @@ public final class LocalsCompactor {
                 }
             }
         }
+    }
+
+    private Slot markRange(int slot, int from, int to) {
+        Slot s = getMap(slot);
+        s.map.set(from, Math.max(from + 1, to));
+        return s;
     }
 
     private Slot getMap(int slot) {
