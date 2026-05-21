@@ -144,9 +144,16 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns a map of block to its immediate dominator.
+     * Returns a map of block to its immediate dominator, for all blocks in this body.
+     * <p>
+     * A block's immediate dominator is the unique block that strictly dominates that block, but does not strictly
+     * dominate any other block that strictly dominates that block.
+     * <p>
+     * The entry block has no immediate dominator, since it is not strictly dominated by any other block. Its
+     * corresponding entry in the map has a {@code null} value.
      *
      * @return a map of block to its immediate dominator, as an unmodifiable map
+     * @see Block#immediateDominator()
      */
     public Map<Block, Block> immediateDominators() {
         return idoms.get();
@@ -166,7 +173,7 @@ public final class Body implements CodeElement<Body, Block> {
         // and wrap and a specific map implementation
 
         Map<Block, Block> doms = new HashMap<>();
-        doms.put(entryBlock(), entryBlock());
+        doms.put(entryBlock(), null);
 
         // Blocks are sorted in reverse postorder
         boolean changed;
@@ -184,7 +191,7 @@ public final class Body implements CodeElement<Body, Block> {
                         break;
                     }
                 }
-                assert b.predecessors().isEmpty() || newIdom != null : b;
+                assert newIdom != null : b;
 
                 // For all other predecessors, p, of b
                 for (Block p : b.predecessors()) {
@@ -269,13 +276,21 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns a map of block to its immediate post dominator.
+     * Returns a map of block to its immediate post dominator, for all blocks in this body.
      * <p>
-     * If there are two or more blocks with no successors then
-     * a single exit point is synthesized using the {@link #IPDOM_EXIT}
-     * block, which represents the immediate post dominator of those blocks.
+     * If there are two or more blocks with no successors then a single exit block is synthesized using the
+     * {@link #IPDOM_EXIT} block, which represents the immediate post dominator of those blocks. The returned map
+     * will contain an entry mapping {@code IPDOM_EXIT} to {@code null}.
+     * <p>
+     * A block's immediate post dominator is the unique block that strictly post dominates that block, but does not
+     * strictly post dominate any other block that strictly post dominates that block.
+     * <p>
+     * The exit block has no immediate post dominator, since it is not strictly post dominated by any other block. Its
+     * corresponding entry in the map has a {@code null} value.
      *
      * @return a map of block to its immediate post dominator, as an unmodifiable map
+     * @throws IllegalStateException if there is no single exit block, synthesized or otherwise
+     * @see Block#immediatePostDominator()
      */
     public Map<Block, Block> immediatePostDominators() {
         Map<Block, Block> pdoms = new HashMap<>();
@@ -285,12 +300,11 @@ public final class Body implements CodeElement<Body, Block> {
         // the exit blocks
         boolean nSuccessors = blocks.stream().filter(b -> b.successors().isEmpty()).count() > 1;
 
-        if (nSuccessors) {
-            pdoms.put(IPDOM_EXIT, IPDOM_EXIT);
-        } else {
-            Block exit = blocks.getLast();
-            assert blocks.stream().filter(b -> b.successors().isEmpty()).findFirst().orElseThrow() == exit;
-            pdoms.put(exit, exit);
+        List<Block> exits = blocks.stream().filter(b -> b.successors().isEmpty()).toList();
+        switch (exits.size()) {
+            case 0 -> throw new IllegalStateException();
+            case 1 -> pdoms.put(exits.getFirst(), null);
+            default -> pdoms.put(IPDOM_EXIT, null);
         }
 
         // Blocks are sorted in reverse postorder
@@ -621,8 +635,9 @@ public final class Body implements CodeElement<Body, Block> {
          * @param op the parent operation
          * @return the built body
          * @throws IllegalStateException if this body builder has finished
-         * @throws IllegalStateException if any connected body builder is not successfully finished
-         * @throws IllegalStateException if any connected body builder built and its parent operation is unplaced
+         * @throws IllegalStateException if any connected body builder finishes unsuccessfully
+         * @throws IllegalStateException if any connected body builder finishes successfully and its body's parent
+         * operation is unplaced
          * @throws IllegalStateException if a reachable block has no terminating operation
          * @throws IllegalStateException if a reachable block has a successor whose number of arguments is greater than
          * the number of parameters of the successor's target block
