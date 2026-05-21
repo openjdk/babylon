@@ -454,7 +454,7 @@ public final class Block implements CodeElement<Block, Op> {
         return ancestorBody().immediatePostDominators().get(this);
     }
 
-    // @@@ isPostDominatedBy and immediatePostDominator
+    // @@@ isPostDominatedBy
 
     private static Block findBlockForDomBody(Block b, final Body domr) {
         Body rb = b.ancestorBody();
