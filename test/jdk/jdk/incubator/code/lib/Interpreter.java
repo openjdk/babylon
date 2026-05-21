@@ -182,42 +182,25 @@ public final class Interpreter {
             return ob.orElse(null);
         }
 
-        boolean contains(Block.Reference s) {
-            Block sb = s.targetBlock();
-            return stack.stream().anyMatch(bc -> bc.b.equals(sb));
+        void successor(Block.Reference sb) {
+            successor(sb.targetBlock(), sb.arguments().stream().map(this::getValue).toList());
         }
 
-        void successor(Block.Reference sb) {
-            List<Object> sbValues = sb.arguments().stream().map(this::getValue).toList();
-
-            Block b = sb.targetBlock();
+        void successor(Block sb, List<Object> sbValues) {
             Map<Value, Object> bValues = new HashMap<>();
             for (int i = 0; i < sbValues.size(); i++) {
-                bValues.put(b.parameters().get(i), sbValues.get(i));
+                bValues.put(sb.parameters().get(i), sbValues.get(i));
             }
 
-            if (contains(sb)) {
+            if (stack.stream().anyMatch(bc -> bc.b.equals(sb))) {
                 // if block is already dominating pop back up from the back branch to the block
                 // before the successor block
-                while (!stack.peek().b.equals(sb.targetBlock())) {
+                while (!stack.peek().b.equals(sb)) {
                     stack.pop();
                 }
                 stack.pop();
             }
-            stack.push(new BlockContext(b, bValues));
-        }
-
-        void successor(Block b, Map<Value, Object> bValues) {
-            // Same as successor(Block.Reference), pop back before re-entering an active block
-            if (stack.stream().anyMatch(bc -> bc.b.equals(b))) {
-                // if block is already dominating pop back up from the back branch to the block
-                // before the successor block
-                while (!stack.peek().b.equals(b)) {
-                    stack.pop();
-                }
-                stack.pop();
-            }
-            stack.push(new BlockContext(b, bValues));
+            stack.push(new BlockContext(sb, bValues));
         }
 
         void popTo(BlockContext bc) {
@@ -240,25 +223,28 @@ public final class Interpreter {
             });
         }
 
-        Block exception(MethodHandles.Lookup l, Throwable e) {
+        void processThrowable(MethodHandles.Lookup l, Throwable t) {
+            // Find a matching catch block
             // Find the first matching exception region
             // with a catch block whose argument type is assignable-compatible to the throwable
             ExceptionRegionRecord er;
             Block cb = null;
             while ((er = erStack.poll()) != null &&
-                    (cb = er.match(l, e)) == null) {
+                    (cb = er.match(l, t)) == null) {
             }
 
-            if (er == null) {
-                return null;
+            if (cb == null) {
+                // If there is no matching catch bock then rethrow back to the caller
+                eraseAndThrow(t);
+                throw new InternalError("should not reach here");
             }
 
-            // Pop the block context to the block defining the start of the exception region
-            popTo(er.mark);
             while (erStack.size() > er.erStackDepth()) {
                 erStack.pop();
             }
-            return cb;
+
+            // Add a new block context to the catch block with the exception as the argument
+            successor(cb, List.of(cb.parameters().get(0).type() instanceof VarType ? new VarBox(t) : t));
         }
     }
 
@@ -289,7 +275,7 @@ public final class Interpreter {
         }
     }
 
-    record ExceptionRegionRecord(BlockContext mark, int erStackDepth, Block catchBlock) {
+    record ExceptionRegionRecord(int erStackDepth, Block catchBlock) {
         Block match(MethodHandles.Lookup l, Throwable e) {
             List<Block.Parameter> args = catchBlock.parameters();
             if (args.size() != 1) {
@@ -354,7 +340,7 @@ public final class Interpreter {
             } catch (InterpreterException e) {
                 throw e;
             } catch (Throwable t) {
-                processThrowable(oc, l, t);
+                oc.processThrowable(l, t);
                 continue;
             }
 
@@ -382,7 +368,7 @@ public final class Interpreter {
                 oc.successor(sb);
             } else if (to instanceof JavaOp.ThrowOp _throw) {
                 Throwable t = (Throwable) oc.getValue(_throw.argumentOperand());
-                processThrowable(oc, l, t);
+                oc.processThrowable(l, t);
             } else if (to instanceof CoreOp.ReturnOp ret) {
                 Value rv = ret.returnValue();
                 return rv == null ? null : oc.getValue(rv);
@@ -398,7 +384,7 @@ public final class Interpreter {
             } else if (to instanceof JavaOp.ExceptionRegionEnter ers) {
                 int erStackDepth = oc.erStack.size();
                 ers.catchReferences().forEach(catchBlock -> {
-                    var er = new ExceptionRegionRecord(oc.stack.peek(), erStackDepth, catchBlock.targetBlock());
+                    var er = new ExceptionRegionRecord(erStackDepth, catchBlock.targetBlock());
                     oc.pushExceptionRegion(er);
                 });
 
@@ -412,26 +398,6 @@ public final class Interpreter {
                         new UnsupportedOperationException("Unsupported terminating operation: " + to));
             }
         }
-    }
-
-    static void processThrowable(OpContext oc, MethodHandles.Lookup l, Throwable t) {
-        // Find a matching catch block
-        Block cb = oc.exception(l, t);
-        if (cb == null) {
-            // If there is no matching catch bock then rethrow back to the caller
-            eraseAndThrow(t);
-            throw new InternalError("should not reach here");
-        }
-
-        // Add a new block context to the catch block with the exception as the argument
-        Map<Value, Object> bValues = new HashMap<>();
-        Block.Parameter eArg = cb.parameters().get(0);
-        if (eArg.type() instanceof VarType) {
-            bValues.put(eArg, new VarBox(t));
-        } else {
-            bValues.put(eArg, t);
-        }
-        oc.successor(cb, bValues);
     }
 
     @SuppressWarnings("unchecked")
