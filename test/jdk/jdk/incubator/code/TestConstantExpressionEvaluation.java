@@ -286,6 +286,23 @@ public class TestConstantExpressionEvaluation {
         return S;
     }
 
+    static final String T = null;
+    @Reflect
+    static String fcFieldNull() {
+        return T;
+    }
+
+    @Reflect
+    static String fcNullVar() {
+        String s = null;
+        return s;
+    }
+
+    @Reflect
+    static String fcNullConcat() {
+        return (String) null + null;
+    }
+
     @ParameterizedTest
     @MethodSource("cases")
     void test(Method m) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {

@@ -546,13 +546,13 @@ public final class BytecodeGenerator {
 
             oprOnStack = null;
 
+            exceptionRegionsChange(catchBlocks);
+
             // If b is a catch block then the exception argument will be represented on the stack
             if (allCatchBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
                 push(b.parameters().getFirst());
             }
-
-            exceptionRegionsChange(catchBlocks);
 
             List<Op> ops = b.ops();
             for (int i = 0; i < ops.size() - 1; i++) {
