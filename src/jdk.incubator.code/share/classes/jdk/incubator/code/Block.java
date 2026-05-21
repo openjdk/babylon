@@ -402,7 +402,7 @@ public final class Block implements CodeElement<Block, Op> {
         // Traverse the immediate dominators until dom is reached or the entry block
         Map<Block, Block> idoms = b.ancestorBody().immediateDominators();
         Block idom = idoms.get(b);
-        while (idom != entry) {
+        while (idom != null) {
             if (idom == dom) {
                 return true;
             }
@@ -419,37 +419,39 @@ public final class Block implements CodeElement<Block, Op> {
      * <p>
      * The immediate dominator is the unique block that strictly dominates this block, but does not strictly dominate
      * any other block that strictly dominates this block.
+     * <p>
+     * The entry block has no immediate dominator, since it is not strictly dominated by any other block.
      *
      * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
+     * @see Body#immediateDominators()
      */
     public Block immediateDominator() {
-        if (this == ancestorBody().entryBlock()) {
-            return null;
-        }
-
-        Map<Block, Block> idoms = ancestorBody().immediateDominators();
-        return idoms.get(this);
+        return ancestorBody().immediateDominators().get(this);
     }
 
     /**
      * Returns the immediate post dominator of this block.
      * <p>
-     * If this block has no successors then this method returns the synthetic block
-     * {@link Body#IPDOM_EXIT} representing the synthetic exit used to compute
-     * the immediate post dominators.
+     * If this block is one of many block's in the same body with no successors, then there are multiple exit blocks,
+     * and the immediate post dominator of those blocks is the synthetic block {@link Body#IPDOM_EXIT} representing the
+     * single exit block. Otherwise, if this block is the only block in the body with no successors, then that block is
+     * the single exit block, and this method returns {@code null}.
      * <p>
-     * Both this block and the immediate post dominator (if defined) have the same parent body,
-     * except for the synthetic block {@link Body#IPDOM_EXIT}.
+     * Both this block and the immediate post dominator (if defined) have the same parent body, except for the
+     * synthetic block {@link Body#IPDOM_EXIT}.
      * <p>
-     * The immediate post dominator is the unique block that strictly post dominates this block,
-     * but does not strictly post dominate any other block that strictly post dominates this block.
+     * The immediate post dominator is the unique block that strictly post dominates this block, but does not strictly
+     * post dominate any other block that strictly post dominates this block.
+     * <p>
+     * The exit block has no immediate post dominator, since it is not strictly post dominated by any other block.
      *
-     * @return the immediate post dominator of this block, otherwise {@code Body#IPDOM_EXIT}.
+     * @return the immediate post dominator of this block, {@code Body#IPDOM_EXIT} if the synthetic exit is this block's
+     * immediate post dominator, or {@code null} if this block is the single exit block.
+     * @throws IllegalStateException if there is no single exit block, synthesized or otherwise
+     * @see Body#immediatePostDominators()
      */
     public Block immediatePostDominator() {
-        Map<Block, Block> ipdoms = ancestorBody().immediatePostDominators();
-        Block ipdom = ipdoms.get(this);
-        return ipdom == this ? Body.IPDOM_EXIT : ipdom;
+        return ancestorBody().immediatePostDominators().get(this);
     }
 
     // @@@ isPostDominatedBy and immediatePostDominator

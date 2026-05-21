@@ -301,7 +301,7 @@ public class AnfTransformer {
 
             //Reverse the idom relation
             b.immediateDominators().forEach((dominated, dominator) -> {
-                if (!dominated.equals(dominator)) {
+                if (dominator != null) {
                     dominatesMap.compute(dominator, (k, v) -> {
                         if (v == null) {
                             var newList = new ArrayList<Block>();
