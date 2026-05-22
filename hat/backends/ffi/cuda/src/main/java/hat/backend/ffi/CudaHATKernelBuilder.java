@@ -30,16 +30,13 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.VarTable;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
@@ -53,11 +50,8 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    private final VarTable varTable;
-
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraph, scopedCodeBuilderContext);
-        varTable = kernelCallGraph.getVarTable();
     }
 
     private CudaHATKernelBuilder half2float() {
@@ -427,10 +421,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 
-    private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
-        return varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
-    }
-
     private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
         if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
             return category;
@@ -445,7 +435,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return null;
     }
 
-    private CudaHATKernelBuilder varOpForNarrowType(CoreOp.VarOp varOp) {
+    @Override
+    protected CudaHATKernelBuilder varOpForNarrowType(CoreOp.VarOp varOp) {
         Value first = varOp.operands().getFirst();
         Class<?> narrowCategory;
         if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
@@ -472,7 +463,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
     }
 
-    private CudaHATKernelBuilder varOpForVectors(CoreOp.VarOp varOp) {
+    @Override
+    protected CudaHATKernelBuilder varOpForVectors(CoreOp.VarOp varOp) {
         VarType resultType = varOp.resultType();
         if (!(resultType.valueType() instanceof PrimitiveType)) {
             IfaceValue.Vector.Shape vectorShape = null;
@@ -498,71 +490,29 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private void varOpInit(CoreOp.VarOp varOp) {
-        suffix_t((ClassType) varOp.varValueType()).sp()
+    @Override
+    protected CudaHATKernelBuilder varOpInit(CoreOp.VarOp varOp) {
+        return suffix_t((ClassType) varOp.varValueType()).sp()
                 .assign(
                         _ -> id(varOp.varName()),
                         _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
     }
 
-    private void varOpLocalMemory(CoreOp.VarOp varOp) {
+    @Override
+    protected CudaHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
         HAT_LOCAL_MEM().sp();
-        varOpPrivateMemory(varOp);
+        return varOpPrivateMemory(varOp);
     }
 
-    private void varOpPrivateMemory(CoreOp.VarOp varOp) {
+    @Override
+    protected CudaHATKernelBuilder varOpPrivateMemory(CoreOp.VarOp varOp) {
         VarType resultType = varOp.resultType();
         if (resultType.valueType() instanceof VarType varType) {
             suffix_t((ClassType) varType.valueType());
         } else if (resultType.valueType() instanceof ClassType classType) {
             suffix_t(classType);
         }
-        sp().varName(varOp);
-    }
-
-    private void genericVarOp(CoreOp.VarOp varOp) {
-        // Original varOp
-        if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
-            constKeyword().sp();
-        }
-        type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
-        var first = varOp.operands().getFirst();
-        switch (first) {
-            case Op.Result result -> parenthesisIfNeeded(varOp, result.op());
-            case Block.Parameter parameter -> {
-                // for debugging
-                var r = parameter.uses().iterator().next();
-                blockInlineComment("param " + r);
-            }
-            // for debugging
-            default -> blockInlineComment("look at varOp " + first);
-        }
-    }
-
-    @Override
-    public CudaHATKernelBuilder varOp(CoreOp.VarOp varOp) {
-        // Extended from the base class JavaOrC99StyleCodeBuilder
-        if (varOp.isUninitialized()) {
-            type((JavaType) varOp.varValueType()).sp().varName(varOp);
-        } else {
-            // First we look at the attribute for each varOp
-            VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
-            if (attribute != null) {
-                // If attribute exits, we apply codegen based on attribute since there is a pre-search and
-                // categorization about the corresponding OpenCL code to be generated.
-                switch (attribute) {
-                    case NARROW -> varOpForNarrowType(varOp);
-                    case VECTOR -> varOpForVectors(varOp);
-                    case INIT -> varOpInit(varOp);
-                    case SHARED -> varOpLocalMemory(varOp);
-                    case PRIVATE -> varOpPrivateMemory(varOp);
-                    default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
-                }
-            } else {
-                genericVarOp(varOp);
-            }
-        }
-        return self();
+        return sp().varName(varOp);
     }
 
 }

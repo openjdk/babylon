@@ -31,17 +31,14 @@ import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.VarTable;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
@@ -55,11 +52,8 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
-    private final VarTable varTable;
-
     protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(kernelCallGraph,scopedCodeBuilderContext);
-        varTable = kernelCallGraph.getVarTable();
+        super(kernelCallGraph, scopedCodeBuilderContext);
     }
 
     public OpenCLHATKernelBuilder vstore(int dims) {
@@ -265,11 +259,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return null;
     }
 
-    private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
-        return varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
-    }
-
-    private void varOpForNarrowType(CoreOp.VarOp varOp) {
+    @Override
+    protected OpenCLHATKernelBuilder varOpForNarrowType(CoreOp.VarOp varOp) {
         // obtain the category:
         Value first = varOp.operands().getFirst();
         Class<?> narrowCategory;
@@ -294,9 +285,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         f16OrBF16(narrowCategory).sp().assign(
                 _ -> id(varOp.varName()),
                 _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+        return self();
     }
 
-    private void varOpForVectors(CoreOp.VarOp varOp) {
+    @Override
+    protected OpenCLHATKernelBuilder varOpForVectors(CoreOp.VarOp varOp) {
         // build VectorType
         VarType resultType = varOp.resultType();
         if (!(resultType.valueType() instanceof PrimitiveType)) {
@@ -315,68 +308,32 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             sp().varName(varOp).sp().equals().sp();
             recurseResultOrThrow(varOp.operands().getFirst());
         }
+        return self();
     }
 
-    private void varOpInit(CoreOp.VarOp varOp) {
+    @Override
+    protected OpenCLHATKernelBuilder varOpInit(CoreOp.VarOp varOp) {
         suffix_t((ClassType) varOp.varValueType()).sp()
                 .assign(_ -> id(varOp.varName()),
                         _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+        return self();
     }
 
-    private void varOpLocalMemory(CoreOp.VarOp varOp) {
+    @Override
+    protected OpenCLHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
         HAT_LOCAL_MEM().sp();
-        varOpPrivateMemory(varOp);
+        return varOpPrivateMemory(varOp);
     }
 
-    private void varOpPrivateMemory(CoreOp.VarOp varOp) {
+    @Override
+    protected OpenCLHATKernelBuilder varOpPrivateMemory(CoreOp.VarOp varOp) {
         VarType resultType = varOp.resultType();
         if (resultType.valueType() instanceof VarType varType) {
             suffix_t((ClassType) varType.valueType());
         } else if (resultType.valueType() instanceof ClassType classType) {
             suffix_t(classType);
         }
-        sp().varName(varOp);
+        return sp().varName(varOp);
     }
 
-    private void genericVarOp(CoreOp.VarOp varOp) {
-        // Original varOp
-        if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
-            constKeyword().sp();
-        }
-        type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
-        var first = varOp.operands().getFirst();
-        switch (first) {
-            case Op.Result result -> parenthesisIfNeeded(varOp, result.op());
-            case Block.Parameter parameter -> {
-                var r = parameter.uses().iterator().next();
-                blockInlineComment("param " + r);
-            }
-            default -> blockInlineComment("look at varOp " + first);
-        }
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder varOp(CoreOp.VarOp varOp) {
-        if (varOp.isUninitialized()) {
-            type((JavaType) varOp.varValueType()).sp().varName(varOp);
-        } else {
-            // First, we look at the attribute table for each varOp
-            VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
-            if (attribute != null) {
-                // If attribute exits, we apply codegen based on attribute since there is a pre-search and
-                // categorization about the corresponding OpenCL code to be generated.
-                switch (attribute) {
-                    case NARROW -> varOpForNarrowType(varOp);
-                    case VECTOR -> varOpForVectors(varOp);
-                    case INIT -> varOpInit(varOp);
-                    case SHARED -> varOpLocalMemory(varOp);
-                    case PRIVATE -> varOpPrivateMemory(varOp);
-                    default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
-                }
-            } else {
-                genericVarOp(varOp);
-            }
-        }
-        return self();
-    }
 }

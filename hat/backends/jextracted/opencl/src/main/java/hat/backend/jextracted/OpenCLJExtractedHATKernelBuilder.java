@@ -28,13 +28,27 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
+import hat.types.BF16;
+import hat.types.F16;
+import hat.types.S16ImplOfF16;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.IfaceValue;
+import optkl.OpHelper;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCLJExtractedHATKernelBuilder> {
 
@@ -227,6 +241,97 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
+    }
+
+    private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    private Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder varOpForNarrowType(CoreOp.VarOp varOp) {
+        // obtain the category:
+        Value first = varOp.operands().getFirst();
+        Class<?> narrowCategory;
+        if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            // Find the category - This is the generic case, when ALL custom ops are removed
+            Stream<OpHelper.Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+            narrowCategory = reduceFloatType(invoke);
+            if (narrowCategory == null && isMathLib(invoke)) {
+                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+            }
+        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+            narrowCategory = hatf16BinaryOp.float16Class();
+        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
+            narrowCategory = hatf16ConvOp.float16Class();
+        } else {
+            throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
+        }
+        if (narrowCategory == null) {
+            throw new IllegalStateException("Narrow type can't be null: ");
+        }
+        f16OrBF16(narrowCategory).sp().assign(
+                _ -> id(varOp.varName()),
+                _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+        return self();
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder varOpForVectors(CoreOp.VarOp varOp) {
+        // build VectorType
+        VarType resultType = varOp.resultType();
+        if (!(resultType.valueType() instanceof PrimitiveType)) {
+            IfaceValue.Vector.Shape vectorShape = null;
+            if (resultType.valueType() instanceof ClassType classType) {
+                vectorShape = getVectorShape(kernelCallGraph.lookup(), classType);
+            } else if (resultType.valueType() instanceof VarType varType) {
+                vectorShape = getVectorShape(kernelCallGraph.lookup(), varType.valueType());
+            }
+            if (vectorShape == null) {
+                // guarantee we don't have a null shape. Otherwise. we can't generate the correct code
+                throw new IllegalStateException("Could not find vector shape");
+            }
+            // Emit
+            type(vectorShape.codeType().toString() + vectorShape.lanes());
+            sp().varName(varOp).sp().equals().sp();
+            recurseResultOrThrow(varOp.operands().getFirst());
+        }
+        return self();
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder varOpInit(CoreOp.VarOp varOp) {
+        suffix_t((ClassType) varOp.varValueType()).sp()
+                .assign(_ -> id(varOp.varName()),
+                        _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+        return self();
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
+        HAT_LOCAL_MEM().sp();
+        return varOpPrivateMemory(varOp);
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder varOpPrivateMemory(CoreOp.VarOp varOp) {
+        VarType resultType = varOp.resultType();
+        if (resultType.valueType() instanceof VarType varType) {
+            suffix_t((ClassType) varType.valueType());
+        } else if (resultType.valueType() instanceof ClassType classType) {
+            suffix_t(classType);
+        }
+        return sp().varName(varOp);
     }
 
 }

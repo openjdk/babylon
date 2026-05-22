@@ -37,6 +37,7 @@ import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -73,6 +74,7 @@ import static optkl.OpHelper.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
     protected  final KernelCallGraph kernelCallGraph;
+    private final VarTable varTable;
 
     protected static boolean isOperandF32(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
@@ -101,6 +103,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
         this.kernelCallGraph = kernelCallGraph;
+        this.varTable = kernelCallGraph.getVarTable();
     }
 
     public final T HAT_KERNEL() {
@@ -877,6 +880,60 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         return self();
     }
+
+    private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
+        return varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
+    }
+
+    private void genericVarOp(CoreOp.VarOp varOp) {
+        // Original varOp
+        if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
+            constKeyword().sp();
+        }
+        type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+        var first = varOp.operands().getFirst();
+        switch (first) {
+            case Op.Result result -> parenthesisIfNeeded(varOp, result.op());
+            case Block.Parameter parameter -> {
+                // for debugging
+                var r = parameter.uses().iterator().next();
+                blockInlineComment("param " + r);
+            }
+            // for debugging
+            default -> blockInlineComment("look at varOp " + first);
+        }
+    }
+
+    @Override
+    public T varOp(CoreOp.VarOp varOp) {
+        if (varOp.isUninitialized()) {
+            type((JavaType) varOp.varValueType()).sp().varName(varOp);
+        } else {
+            // First, we look at the attribute table for each varOp
+            VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
+            if (attribute != null) {
+                // If attribute exits, we apply codegen based on attribute since there is a pre-search and
+                // categorization about the corresponding OpenCL code to be generated.
+                switch (attribute) {
+                    case NARROW -> varOpForNarrowType(varOp);
+                    case VECTOR -> varOpForVectors(varOp);
+                    case INIT -> varOpInit(varOp);
+                    case SHARED -> varOpLocalMemory(varOp);
+                    case PRIVATE -> varOpPrivateMemory(varOp);
+                    default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
+                }
+            } else {
+                genericVarOp(varOp);
+            }
+        }
+        return self();
+    }
+
+    protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
+    protected abstract T varOpForVectors(CoreOp.VarOp varOp);
+    protected abstract T varOpInit(CoreOp.VarOp varOp);
+    protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
+    protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
     protected void genFieldAccess(Value operand, boolean isReference) {
         if (isReference) {
