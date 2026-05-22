@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,6 +42,9 @@ public class HATAsserts {
     }
 
     public static void assertEquals(String expected, String actual) {
+        if (expected == null || actual == null) {
+            throw new HATAssertionError("Null values are not allowed");
+        }
         if (!expected.equals(actual)) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
@@ -54,13 +57,13 @@ public class HATAsserts {
     }
 
     public static void assertEquals(float expected, float actual, float delta) {
-        if (Math.abs(expected - actual) > delta) {
+        if (Float.isNaN(expected) || Float.isNaN(actual) || Math.abs(expected - actual) > delta) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
 
     public static void assertEquals(double expected, double actual, double delta) {
-        if (Math.abs(expected - actual) > delta) {
+        if (Double.isNaN(expected) || Double.isNaN(actual) || Math.abs(expected - actual) > delta) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
@@ -71,7 +74,7 @@ public class HATAsserts {
         for (int i = 0; i < 4; i++) {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
-            if (Math.abs(expectedValue - actualValue) > delta) {
+            if (Float.isNaN(expectedValue) || Float.isNaN(actualValue) || Math.abs(expectedValue - actualValue) > delta) {
                 throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
             }
         }
@@ -83,7 +86,7 @@ public class HATAsserts {
         for (int i = 0; i < 2; i++) {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
-            if (Math.abs(expectedValue - actualValue) > delta) {
+            if (Float.isNaN(expectedValue) || Float.isNaN(actualValue) || Math.abs(expectedValue - actualValue) > delta) {
                 throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
             }
         }
@@ -100,4 +103,8 @@ public class HATAsserts {
             throw new HATAssertionError("Expected: " + isCorrect);
         }
     }
+
+    private HATAsserts() {
+    }
+
 }
