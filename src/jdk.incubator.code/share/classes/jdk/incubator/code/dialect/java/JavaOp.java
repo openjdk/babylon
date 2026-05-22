@@ -1892,8 +1892,9 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The exception region end operation, that can model exit from an exception region.
      * <p>
-     * An exception region end operation is a block-terminating operation whose first successor is the block that
-     * follows the exception region, and whose remaining successors are the catch blocks for that region.
+     * An exception region end operation is a block-terminating operation with one operand and one successor.
+     * The operand is the result of the dominant {@link ExceptionRegionEnter}. The successor is the block that
+     * follows the exception region.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
     public static final class ExceptionRegionExit extends JavaOp
@@ -1941,14 +1942,14 @@ public sealed abstract class JavaOp extends Op {
         }
 
         /**
-         * {@return the end block reference that of this exception region}
+         * {@return the block reference reached after exiting this exception region}
          */
         public Block.Reference endReference() {
             return end;
         }
 
         /**
-         * {@return the related exception region enter}
+         * {@return the dominant exception region enter operation}
          */
         public ExceptionRegionEnter enterOp() {
             return (ExceptionRegionEnter)operands().getFirst().asResult().op();
@@ -6614,8 +6615,8 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an exception region exit operation
      *
-     * @param enter the dominant exception region enter
-     * @param end   the reference to the block that exits the exception region
+     * @param enter the result of the dominant {@link ExceptionRegionEnter}
+     * @param end   the reference to the block reached after exiting the exception region
      * @return the exception region exit operation
      */
     public static ExceptionRegionExit exceptionRegionExit(Value enter, Block.Reference end) {

@@ -45,23 +45,23 @@ public class TestExceptionRegionReEntry {
         //func @"f" ()java.type:"boolean" -> {
         //    %0 : java.type:"boolean" = constant @false;
         //    %1 : Var<java.type:"boolean"> = var %0;
-        //    exception.region.enter ^block_1 ^block_2;
+        //    %2 : java.exception.region = exception.region.enter ^block_4 ^block_1;
         //
-        //  ^block_1:
-        //    %2 : java.type:"java.lang.RuntimeException" = new @java.ref:"java.lang.RuntimeException::()";
-        //    throw %2;
-        //
-        //  ^block_2(%3 : java.type:"java.lang.RuntimeException"):
+        //  ^block_1(%3 : java.type:"java.lang.RuntimeException"):
         //    %4 : java.type:"boolean" = var.load %1;
         //    %5 : java.type:"boolean" = constant @true;
         //    var.store %1 %5;
-        //    cbranch %4 ^block_3 ^block_4;
+        //    cbranch %4 ^block_2 ^block_3;
         //
-        //  ^block_3:
+        //  ^block_2:
         //    return %4;
         //
+        //  ^block_3:
+        //    %6 : java.exception.region = exception.region.enter ^block_4 ^block_1;
+        //
         //  ^block_4:
-        //    exception.region.enter ^block_1 ^block_2;
+        //    %7 : java.type:"java.lang.RuntimeException" = new @java.ref:"java.lang.RuntimeException::()";
+        //    throw %7;
         //};
         FuncOp funcOp = func("f", functionType(BOOLEAN)).body(body -> {
             var entry = body.entryBlock();

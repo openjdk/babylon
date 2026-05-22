@@ -149,6 +149,10 @@ public sealed interface JavaType extends CodeType
     /** {@link JavaType} representing {@link List} */
     ClassType J_U_LIST = new ClassType(ConstantDescs.CD_List);
 
+    /**
+     * A synthetic code type produced by {@link JavaOp.ExceptionRegionEnter} and consumed by
+     * {@link JavaOp.ExceptionRegionExit} to identify an exception region.
+     */
     CodeType EXCEPTION_REGION = new CodeType() {
         @Override
         public String toString() {
