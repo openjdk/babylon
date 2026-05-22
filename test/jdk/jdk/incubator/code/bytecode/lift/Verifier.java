@@ -225,7 +225,7 @@ public final class Verifier {
                     verifyCatchStack(b, ere, ere.startReference(), newCatchBlocks, map);
                 }
                 case JavaOp.ExceptionRegionExit ere -> {
-                    List<Block> exitedCatchBlocks = ere.catchReferences().stream().map(Block.Reference::targetBlock).toList();
+                    List<Block> exitedCatchBlocks = ere.enterOp().catchReferences().reversed().stream().map(Block.Reference::targetBlock).toList();
                     if (exitedCatchBlocks.size() > catchBlocks.size() || !catchBlocks.reversed().subList(0, exitedCatchBlocks.size()).equals(exitedCatchBlocks)) {
                         error("%s %s exited catch blocks %s does not match actual stack %s", b, ere, exitedCatchBlocks, catchBlocks);
                     } else {

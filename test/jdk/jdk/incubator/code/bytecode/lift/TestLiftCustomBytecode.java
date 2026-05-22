@@ -32,11 +32,9 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.StringConcatFactory;
 
 /*
- * @ignore
  * @test
- * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @library ../../lib
- * @enablePreview
+ * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @run junit TestLiftCustomBytecode
  */
 
