@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -218,9 +218,12 @@ public class TestDominate {
         Block b6 = entry.successors().get(0).targetBlock();
 
         for (Block b : f.body().blocks()) {
-            if (b == entry || b == b6) {
+            if (b == entry) {
+                Assertions.assertNull(idoms.get(b));
+                Assertions.assertNull(b.immediateDominator());
+            } else if (b == b6) {
                 Assertions.assertEquals(entry, idoms.get(b));
-                Assertions.assertEquals(b == entry ? null : entry, b.immediateDominator());
+                Assertions.assertEquals(entry, b.immediateDominator());
             } else {
                 Assertions.assertEquals(b6, idoms.get(b));
                 Assertions.assertEquals(b6, b.immediateDominator());
@@ -366,8 +369,25 @@ public class TestDominate {
 
         for (Block b : f.body().blocks()) {
             Block ipb = ipdoms.get(b);
-            Assertions.assertEquals(ipb == b ? Body.IPDOM_EXIT : ipb, b.immediatePostDominator());
+            Assertions.assertEquals(ipb, b.immediatePostDominator());
         }
+    }
+
+    @Test
+    public void testPostDominanceNoExit() {
+        String m = """
+                func @"f" (%0 : java.type:"boolean")java.type:"void" -> {
+                    %5 : java.type:"void" = branch ^LOOP;
+
+                  ^LOOP:
+                    %8 : java.type:"void" = branch ^LOOP;
+                };
+                """;
+        CoreOp.FuncOp f = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, m).get(0);
+
+        Assertions.assertThrows(IllegalStateException.class, () -> f.body().immediatePostDominators());
+        Assertions.assertThrows(IllegalStateException.class, () -> f.body().blocks().get(0).immediatePostDominator());
+        Assertions.assertThrows(IllegalStateException.class, () -> f.body().blocks().get(1).immediatePostDominator());
     }
 
     @Test
@@ -422,21 +442,23 @@ public class TestDominate {
         Assertions.assertEquals(dfExpected, df);
     }
 
-
     static Node<Block> buildDomTree(Block entryBlock, Map<Block, Block> idoms) {
-        Map<Block, Node<Block>> m = new HashMap<>();
+        Map<Block, Node<Block>> tree = new HashMap<>();
+        Node<Block> root = new Node<>(entryBlock, new HashSet<>());
+        tree.put(entryBlock, root);
         for (Map.Entry<Block, Block> e : idoms.entrySet()) {
-            Block id = e.getValue();
             Block b = e.getKey();
-            if (b == entryBlock) {
+            Block id = e.getValue();
+            if (id == null) {
+                assert b == entryBlock;
                 continue;
             }
 
-            Node<Block> parent = m.computeIfAbsent(id, _k -> new Node<>(_k, new HashSet<>()));
-            Node<Block> child = m.computeIfAbsent(b, _k -> new Node<>(_k, new HashSet<>()));
+            Node<Block> parent = tree.computeIfAbsent(id, _k -> new Node<>(_k, new HashSet<>()));
+            Node<Block> child = tree.computeIfAbsent(b, _k -> new Node<>(_k, new HashSet<>()));
             parent.children.add(child);
         }
-        return m.get(entryBlock);
+        return root;
     }
 
     @SafeVarargs

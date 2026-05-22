@@ -159,15 +159,15 @@ public final class Block implements CodeElement<Block, Op> {
 
     final List<Op> ops;
 
-    // @@@ In topological order
-    // @@@ Create lazily
-    //     Can the representation be more efficient e.g. an array?
+    // In topological order of reverse postorder traversal
+    // @@@ Use bitset of block indexes?
     final SequencedSet<Block> predecessors;
 
     // Reverse postorder index
     // Set when block's body has sorted its blocks and therefore set when built
-    // Block is inoperable when < 0 i.e., when not built
-    int index = -1;
+    // Block is unobservable when < 0 i.e., when not built
+    static final int UNBUILT_BLOCK_INDEX = -1;
+    int index = UNBUILT_BLOCK_INDEX;
 
     Block(Body parentBody) {
         this(parentBody, List.of());
@@ -402,7 +402,7 @@ public final class Block implements CodeElement<Block, Op> {
         // Traverse the immediate dominators until dom is reached or the entry block
         Map<Block, Block> idoms = b.ancestorBody().immediateDominators();
         Block idom = idoms.get(b);
-        while (idom != entry) {
+        while (idom != null) {
             if (idom == dom) {
                 return true;
             }
@@ -419,40 +419,42 @@ public final class Block implements CodeElement<Block, Op> {
      * <p>
      * The immediate dominator is the unique block that strictly dominates this block, but does not strictly dominate
      * any other block that strictly dominates this block.
+     * <p>
+     * The entry block has no immediate dominator, since it is not strictly dominated by any other block.
      *
      * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
+     * @see Body#immediateDominators()
      */
     public Block immediateDominator() {
-        if (this == ancestorBody().entryBlock()) {
-            return null;
-        }
-
-        Map<Block, Block> idoms = ancestorBody().immediateDominators();
-        return idoms.get(this);
+        return ancestorBody().immediateDominators().get(this);
     }
 
     /**
      * Returns the immediate post dominator of this block.
      * <p>
-     * If this block has no successors then this method returns the synthetic block
-     * {@link Body#IPDOM_EXIT} representing the synthetic exit used to compute
-     * the immediate post dominators.
+     * If this block is one of many block's in the same body with no successors, then there are multiple exit blocks,
+     * and the immediate post dominator of those blocks is the synthetic block {@link Body#IPDOM_EXIT} representing the
+     * single exit block. Otherwise, if this block is the only block in the body with no successors, then that block is
+     * the single exit block, and this method returns {@code null}.
      * <p>
-     * Both this block and the immediate post dominator (if defined) have the same parent body,
-     * except for the synthetic block {@link Body#IPDOM_EXIT}.
+     * Both this block and the immediate post dominator (if defined) have the same parent body, except for the
+     * synthetic block {@link Body#IPDOM_EXIT}.
      * <p>
-     * The immediate post dominator is the unique block that strictly post dominates this block,
-     * but does not strictly post dominate any other block that strictly post dominates this block.
+     * The immediate post dominator is the unique block that strictly post dominates this block, but does not strictly
+     * post dominate any other block that strictly post dominates this block.
+     * <p>
+     * The exit block has no immediate post dominator, since it is not strictly post dominated by any other block.
      *
-     * @return the immediate post dominator of this block, otherwise {@code Body#IPDOM_EXIT}.
+     * @return the immediate post dominator of this block, {@code Body#IPDOM_EXIT} if the synthetic exit is this block's
+     * immediate post dominator, or {@code null} if this block is the single exit block.
+     * @throws IllegalStateException if there is no single exit block, synthesized or otherwise
+     * @see Body#immediatePostDominators()
      */
     public Block immediatePostDominator() {
-        Map<Block, Block> ipdoms = ancestorBody().immediatePostDominators();
-        Block ipdom = ipdoms.get(this);
-        return ipdom == this ? Body.IPDOM_EXIT : ipdom;
+        return ancestorBody().immediatePostDominators().get(this);
     }
 
-    // @@@ isPostDominatedBy and immediatePostDominator
+    // @@@ isPostDominatedBy
 
     private static Block findBlockForDomBody(Block b, final Body domr) {
         Body rb = b.ancestorBody();
@@ -477,12 +479,12 @@ public final class Block implements CodeElement<Block, Op> {
      * until the parent body builder <a href="Body.Builder.html#body-building-finishing">finishes</a>.
      * <p>
      * A block builder has a code {@link #context() context} and code {@link #transformer() transformer}. These are used
-     * when {@link #op appending} an attached or root operation, to <i>transform-on-append</i>. Any sibling block
-     * builder {@link #block(List) created} from a block builder will have the same code context and code transformer.
+     * to perform <i>transform-on-append</i> when {@link #op appending} a placed operation. Any sibling block builder
+     * {@link #block(List) created} from a block builder will have the same code context and code transformer.
      * <p>
      * A block builder may be obtained with a different code context and code transformer by calling
      * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}. Such a block builder builds the same block, and
-     * can be used to apply alternative transformations to attached or root operations that are appended.
+     * can be used to apply alternative transformations to placed operations that are appended.
      * <p>
      * During {@link CodeTransformer code transformation}, a block builder may also serve as the current output block
      * builder.
@@ -707,12 +709,11 @@ public final class Block implements CodeElement<Block, Op> {
         /**
          * Appends an operation to this block.
          * <p>
-         * If the operation is unattached, it is appended directly to this block.
+         * If the operation is unplaced, it is appended directly to this block.
          * <p>
-         * If the operation is attached to a block or is a root operation, this method performs
-         * <a id="transform-on-append"><i>transform-on-append</i></a>: the operation is first
-         * {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block builder's code context and
-         * code transformer; and then the resulting unattached operation is appended to this block.
+         * If the operation is placed, this method performs <a id="transform-on-append"><i>transform-on-append</i></a>:
+         * the operation is first {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block
+         * builder's code context and code transformer. The resulting unplaced operation is then appended to this block.
          * If the operation being appended has a result, it is implicitly
          * {@link CodeContext#mapValue(Value, Value) mapped}, if no such mapping already exists, to the result of the
          * appended operation in this block builder's code context.
@@ -749,8 +750,8 @@ public final class Block implements CodeElement<Block, Op> {
         public Op.Result op(Op op) {
             check();
 
-            // Perform transform-on-append for an attached or root operation
-            Op outputOp = op.isAttached() || op.isRoot()
+            // Perform transform-on-append for a placed operation
+            Op outputOp = op.isPlacedInBlock() || op.isRoot()
                     ? op.transform(cc, ct)
                     : op;
             assert outputOp.result == null;
@@ -855,14 +856,12 @@ public final class Block implements CodeElement<Block, Op> {
             for (Value v : s.arguments()) {
                 v.uses.add(opr);
             }
-
-            s.target.predecessors.add(Block.this);
         }
 
         op.result = opr;
     }
 
-    // Determine if the parent body of value's block is an ancestor of this block
+    // Determine if the parent body of value's block is the same as or an ancestor of this block
     private boolean isReachable(Value v) {
         Body b = parentBody;
         while (b != null && b != v.block.parentBody) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,6 +46,7 @@ import java.util.stream.Stream;
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/java.lang.invoke:open
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../../lib
  * @enablePreview
  * @run junit TestSmallCorpus
  */
@@ -54,7 +55,8 @@ public class TestSmallCorpus {
     private static final String ROOT_PATH = "modules/java.base/";
     private static final String CLASS_NAME_SUFFIX = ".class";
     private static final String METHOD_NAME = null;
-    private static final int ROUNDS = 3;
+    private static final int ROUNDS = 1;
+    private static final boolean TEST_STABILITY = false;
 
     private static final FileSystem JRT = FileSystems.getFileSystem(URI.create("jrt:/"));
     private static final ClassFile CF = ClassFile.of();
@@ -75,7 +77,6 @@ public class TestSmallCorpus {
     private int stable, unstable;
     private Long[] stats = new Long[6];
 
-    @Disabled
     @Test
     public void testRoundTripStability() throws Exception {
         stable = 0;
@@ -84,21 +85,23 @@ public class TestSmallCorpus {
         for (Path p : Files.walk(JRT.getPath(ROOT_PATH))
                 .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(CLASS_NAME_SUFFIX))
                 .toList()) {
-            testRoundTripStability(p);
+            testRoundTrips(p);
         }
 
-        System.out.println("""
-        statistics     original  generated
-        code length: %1$,10d %4$,10d
-        max locals:  %2$,10d %5$,10d
-        max stack:   %3$,10d %6$,10d
-        """.formatted((Object[])stats));
+        if (TEST_STABILITY) {
+            System.out.println("""
+            statistics     original  generated
+            code length: %1$,10d %4$,10d
+            max locals:  %2$,10d %5$,10d
+            max stack:   %3$,10d %6$,10d
+            """.formatted((Object[])stats));
 
-        // Roundtrip is 100% stable after 3 rounds, no exceptions, no verification errors
-        Assertions.assertTrue(stable > 54500 && unstable == 0, String.format("stable: %d unstable: %d", stable, unstable));
+            // Roundtrip is 100% stable after 3 rounds, no exceptions, no verification errors
+            Assertions.assertTrue(stable > 54500 && unstable == 0, String.format("stable: %d unstable: %d", stable, unstable));
+        }
     }
 
-    private void testRoundTripStability(Path path) throws Exception {
+    private void testRoundTrips(Path path) throws Exception {
         var clm = CF.parse(path);
         for (var originalModel : clm.methods()) {
             if (originalModel.code().isPresent() && (METHOD_NAME == null || originalModel.methodName().equalsString(METHOD_NAME))) try {
@@ -119,7 +122,7 @@ public class TestSmallCorpus {
                     System.out.println(" at " + path + " " + originalModel.methodName() + originalModel.methodType() + " round " + round);
                     throw t;
                 }
-                if (ROUNDS > 0) {
+                if (TEST_STABILITY) {
                     var normPrevBytecode = normalize(prevBytecode);
                     var normBytecode = normalize(bytecode);
                     if (normPrevBytecode.equals(normBytecode)) {

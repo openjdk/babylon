@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -679,19 +679,21 @@ public final class SSA {
 
         static Node buildDomTree(Block entryBlock, Map<Block, Block> idoms) {
             Map<Block, Node> tree = new HashMap<>();
+            Node root = new Node(entryBlock, new HashSet<>());
+            tree.put(entryBlock, root);
             for (Map.Entry<Block, Block> e : idoms.entrySet()) {
-                Block id = e.getValue();
                 Block b = e.getKey();
-
-                Node parent = tree.computeIfAbsent(id, _k -> new Node(_k, new HashSet<>()));
-                if (b == entryBlock) {
+                Block id = e.getValue();
+                if (id == null) {
+                    assert b == entryBlock;
                     continue;
                 }
 
+                Node parent = tree.computeIfAbsent(id, _k -> new Node(_k, new HashSet<>()));
                 Node child = tree.computeIfAbsent(b, _k -> new Node(_k, new HashSet<>()));
                 parent.children.add(child);
             }
-            return tree.get(entryBlock);
+            return root;
         }
     }
 }

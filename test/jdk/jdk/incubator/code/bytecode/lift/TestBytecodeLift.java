@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -522,6 +522,28 @@ public class TestBytecodeLift {
     static long doubleUseOfOperand(int x) {
         long piece = x;
         return piece * piece;
+    }
+
+    @Reflect
+    static int nestedFinallyLoopTryCatchAndExpression(int x) {
+        try {
+            for (int i = 0; ; ) {
+                try {
+                    if ((x & (1 << i++)) != 0) {
+                        return x + i;
+                    }
+                    throw new RuntimeException();
+                } catch (RuntimeException e) {
+                    if (i > 4) {
+                        return -1;
+                    }
+                }
+            }
+        } finally {
+            if (x < 0) {
+                throw new RuntimeException();
+            }
+        }
     }
 
     record TestData(Method testMethod) {

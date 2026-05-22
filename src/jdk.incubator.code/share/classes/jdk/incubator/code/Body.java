@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,12 +27,14 @@ package jdk.incubator.code;
 
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+
 import java.util.*;
+import java.util.stream.IntStream;
 
 /**
- * A body containing a sequence of (basic) blocks.
+ * A body containing a sequence of blocks.
  * <p>
- * The sequence of blocks form a graph topologically sorted in reverse postorder.
+ * The sequence of blocks form a control-flow graph topologically sorted in reverse postorder.
  * The first block in the sequence is the entry block, and no other blocks refer to it as a successor.
  * The last operation in a block, a terminating operation, may refer to other blocks in the sequence as successors,
  * thus forming the graph. Otherwise, the last operation defines how the body passes control back to the parent
@@ -142,9 +144,16 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns a map of block to its immediate dominator.
+     * Returns a map of block to its immediate dominator, for all blocks in this body.
+     * <p>
+     * A block's immediate dominator is the unique block that strictly dominates that block, but does not strictly
+     * dominate any other block that strictly dominates that block.
+     * <p>
+     * The entry block has no immediate dominator, since it is not strictly dominated by any other block. Its
+     * corresponding entry in the map has a {@code null} value.
      *
      * @return a map of block to its immediate dominator, as an unmodifiable map
+     * @see Block#immediateDominator()
      */
     public Map<Block, Block> immediateDominators() {
         return idoms.get();
@@ -164,7 +173,7 @@ public final class Body implements CodeElement<Body, Block> {
         // and wrap and a specific map implementation
 
         Map<Block, Block> doms = new HashMap<>();
-        doms.put(entryBlock(), entryBlock());
+        doms.put(entryBlock(), null);
 
         // Blocks are sorted in reverse postorder
         boolean changed;
@@ -182,7 +191,7 @@ public final class Body implements CodeElement<Body, Block> {
                         break;
                     }
                 }
-                assert b.predecessors().isEmpty() || newIdom != null : b;
+                assert newIdom != null : b;
 
                 // For all other predecessors, p, of b
                 for (Block p : b.predecessors()) {
@@ -267,13 +276,21 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns a map of block to its immediate post dominator.
+     * Returns a map of block to its immediate post dominator, for all blocks in this body.
      * <p>
-     * If there are two or more blocks with no successors then
-     * a single exit point is synthesized using the {@link #IPDOM_EXIT}
-     * block, which represents the immediate post dominator of those blocks.
+     * If there are two or more blocks with no successors then a single exit block is synthesized using the
+     * {@link #IPDOM_EXIT} block, which represents the immediate post dominator of those blocks. The returned map
+     * will contain an entry mapping {@code IPDOM_EXIT} to {@code null}.
+     * <p>
+     * A block's immediate post dominator is the unique block that strictly post dominates that block, but does not
+     * strictly post dominate any other block that strictly post dominates that block.
+     * <p>
+     * The exit block has no immediate post dominator, since it is not strictly post dominated by any other block. Its
+     * corresponding entry in the map has a {@code null} value.
      *
      * @return a map of block to its immediate post dominator, as an unmodifiable map
+     * @throws IllegalStateException if there is no single exit block, synthesized or otherwise
+     * @see Block#immediatePostDominator()
      */
     public Map<Block, Block> immediatePostDominators() {
         Map<Block, Block> pdoms = new HashMap<>();
@@ -283,12 +300,11 @@ public final class Body implements CodeElement<Body, Block> {
         // the exit blocks
         boolean nSuccessors = blocks.stream().filter(b -> b.successors().isEmpty()).count() > 1;
 
-        if (nSuccessors) {
-            pdoms.put(IPDOM_EXIT, IPDOM_EXIT);
-        } else {
-            Block exit = blocks.getLast();
-            assert blocks.stream().filter(b -> b.successors().isEmpty()).findFirst().orElseThrow() == exit;
-            pdoms.put(exit, exit);
+        List<Block> exits = blocks.stream().filter(b -> b.successors().isEmpty()).toList();
+        switch (exits.size()) {
+            case 0 -> throw new IllegalStateException();
+            case 1 -> pdoms.put(exits.getFirst(), null);
+            default -> pdoms.put(IPDOM_EXIT, null);
         }
 
         // Blocks are sorted in reverse postorder
@@ -519,8 +535,8 @@ public final class Body implements CodeElement<Body, Block> {
          * Creates a body builder whose entry block {@link #entryBlock builder} uses the given code context and code
          * transformer.
          * <p>
-         * If {@code ancestorBody} is non-{@code null}, the created body builder is
-         * <a id="connected-builder"><i>connected</i></a> to {@code ancestorBody} as the
+         * If {@code connectedAncestorBody} is non-{@code null}, the created body builder is
+         * <a id="connected-builder"><i>connected</i></a> to {@code connectedAncestorBody} as the
          * {@link #connectedAncestorBody() nearest ancestor} body builder, builds an <i>open</i> body, and the following
          * apply:
          * <ul>
@@ -531,7 +547,7 @@ public final class Body implements CodeElement<Body, Block> {
          * the body built by the created body builder must have, as its nearest {@link Body#ancestorBody() ancestor body},
          * the body built by the nearest ancestor body builder.
          * </ul>
-         * If {@code ancestorBody} is {@code null}, the created body builder is
+         * If {@code connectedAncestorBody} is {@code null}, the created body builder is
          * <a id="isolated-builder"><i>isolated</i></a>, it has no nearest ancestor body builder, builds an
          * <i>isolated</i> body, and the following applies:
          * <ul>
@@ -553,7 +569,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @param cc            the code context for the entry block builder
          * @param ct            the code transformer for the entry block builder
          * @return the body builder
-         * @throws IllegalStateException if the ancestor body builder is finished
+         * @throws IllegalStateException if the connected ancestor body builder is finished
          */
         public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature,
                                  CodeContext cc, CodeTransformer ct) {
@@ -574,16 +590,16 @@ public final class Body implements CodeElement<Body, Block> {
         // True when finished
         boolean finished;
 
-        Builder(Builder ancestorBody, FunctionType bodySignature,
+        Builder(Builder connectedAncestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
             // Structural check
-            // The ancestor body should not be built before this body is built
-            if (ancestorBody != null) {
-                ancestorBody.check();
-                ancestorBody.addGreatgrandchild(this);
+            // The connected ancestor body should not be built before this body is built
+            if (connectedAncestorBody != null) {
+                connectedAncestorBody.check();
+                connectedAncestorBody.addGreatgrandchild(this);
             }
 
-            this.connectedAncestorBody = ancestorBody;
+            this.connectedAncestorBody = connectedAncestorBody;
             // Create entry block from the body's function type
             Block eb = Body.this.createBlock(bodySignature.parameterTypes());
             this.entryBlock = eb.new Builder(this, cc, ct);
@@ -605,8 +621,12 @@ public final class Body implements CodeElement<Body, Block> {
          * <p>
          * Body builders connected to this body builder must finish building before this body builder finishes.
          * <p>
-         * Any unreferenced empty blocks are ignored and do not become children of the body. An unreferenced block is
-         * a non-entry block with no predecessors.
+         * The entry block and all blocks reachable from it, by following successors, become children of the body. The
+         * reachable blocks are sorted in reverse postorder and form a control-flow graph. In that graph, the entry
+         * block dominates every other block. Any block not reached from the entry block is unreachable, does not become
+         * a child of the body, and remains unobservable after building finishes. An unreachable block may have a
+         * successor whose target is a reachable block, and may use a value declared in a reachable block or an ancestor
+         * block being built.
          *
          * @apiNote
          * This method is commonly called from the parent operation's constructor, which holds a reference to the built
@@ -615,20 +635,17 @@ public final class Body implements CodeElement<Body, Block> {
          * @param op the parent operation
          * @return the built body
          * @throws IllegalStateException if this body builder has finished
-         * @throws IllegalStateException if any connected body builder is not finished
-         * @throws IllegalStateException if a block has no terminating operation, unless unreferenced and empty
+         * @throws IllegalStateException if any connected body builder finishes unsuccessfully
+         * @throws IllegalStateException if any connected body builder finishes successfully and its body's parent
+         * operation is unplaced
+         * @throws IllegalStateException if a reachable block has no terminating operation
+         * @throws IllegalStateException if a reachable block has a successor whose number of arguments is greater than
+         * the number of parameters of the successor's target block
+         * @throws IllegalStateException if an operation result or block parameter declared in an unreachable block is
+         * used by an operation in a reachable block or a descendant block of a reachable block.
+         * @throws IllegalStateException if an operation result or block parameter declared in a reachable block does
+         * not {@link Value#isDominatedBy(Value) dominate} a use of that value
          */
-        // @@@ Check every operand dominates the operation result.
-        //     An operation in block B that uses a value declared in block B requires no special checks, since an
-        //     operation result does not exist until an operation is appended to a block, and B's parameters always
-        //     occur before any of its operations.
-        //     Similarly, when an operation uses a value declared in an ancestor no special checks are required due to
-        //     structural checks and reachability checks when building.
-        //     Therefore, a body with only one entry block requires no special checks when building.
-        //     A body with two or more blocks requires dominance checks. An operation in block C that uses a value
-        //     declared in block B, where C and B are siblings, requires that B dominates C.
-        //     Since blocks are already sorted in reverse postorder the work to compute the immediate dominator map
-        //     is incremental and can it be represented efficiently as an integer array of block indexes.
         public Body build(Op op) {
             Objects.requireNonNull(op);
 
@@ -641,39 +658,198 @@ public final class Body implements CodeElement<Body, Block> {
             // All great-grandchildren bodies should be built
             if (greatgrandchildren != null) {
                 for (Builder greatgrandchild : greatgrandchildren) {
-                    if (!greatgrandchild.finished) {
+                    if (!greatgrandchild.finished || greatgrandchild.target().parentOp == null) {
+                        // Building did not finish, or finished with an exception
                         throw new IllegalStateException("Descendant body builder is not built");
                     }
-                }
-            }
 
-            Iterator<Block> i = blocks.iterator();
-            while (i.hasNext()) {
-                Block block = i.next();
-
-                // Structural check
-                // All referenced blocks should have a terminating operation as the last operation
-                if (block.ops.isEmpty()) {
-                    if (block.isEntryBlock() || !block.predecessors.isEmpty()) {
-                        throw noTerminatingOperation();
+                    Op.Result grandchild = greatgrandchild.target().parentOp.result;
+                    if (grandchild == null) {
+                        throw new IllegalStateException("Parent operation of descendant body is unplaced");
                     }
-
-                    // Remove unreferenced empty block
-                    assert !block.isEntryBlock() && block.predecessors.isEmpty();
-                    i.remove();
-                } else if (!(block.ops.getLast() instanceof Op.Terminating)) {
-                    throw noTerminatingOperation();
+                    assert Body.this == grandchild.block.parentBody;
                 }
             }
 
             sortReversePostorder();
+            checkValueUse();
 
             Body.this.parentOp = op;
             return Body.this;
         }
 
-        static IllegalStateException noTerminatingOperation() {
-            return new IllegalStateException("Block has no terminating operation as the last operation");
+        private static final int UNSORTED_INDEX = Block.UNBUILT_BLOCK_INDEX;
+        private static final int UNASSIGNED_INDEX = -2;
+
+        // Sort blocks in reverse post order, removing any unreachable blocks
+        // After sorting the following holds for a block
+        //   block.parentBody().blocks().indexOf(block) == block.index()
+        private void sortReversePostorder() {
+            if (blocks.size() == 1) {
+                Block e = blocks.getFirst();
+                checkBlock(e);
+
+                e.index = 0;
+                return;
+            }
+
+            Deque<Block> stack = new ArrayDeque<>();
+            stack.push(blocks.get(0));
+
+            // Postorder iteration, starting from the entry block
+            int index = blocks.size();
+            while (!stack.isEmpty()) {
+                Block n = stack.peek();
+                if (n.index == UNASSIGNED_INDEX) {
+                    // If n's successor has been processed then add n
+                    stack.pop();
+                    n.index = --index;
+                } else if (n.index != UNSORTED_INDEX) {
+                    // If n has already been processed then ignore
+                    stack.pop();
+                } else {
+                    checkBlock(n);
+
+                    // Mark before processing successors, a successor may refer back to n
+                    n.index = UNASSIGNED_INDEX;
+                    for (Block.Reference s : n.successors()) {
+                        Block target = s.target;
+
+                        // Check successor arity
+                        if (s.arguments().size() > target.parameters().size()) {
+                            String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
+                                    target, s.arguments().size(), target.parameters().size());
+                            throw new IllegalStateException(m);
+                        }
+
+                        // Update target's predecessors with n
+                        target.predecessors.add(n);
+                        if (target.index != UNSORTED_INDEX) {
+                            continue;
+                        }
+
+                        stack.push(target);
+                    }
+                }
+            }
+
+            // Sort blocks by their reverse postorder indexes
+            blocks.sort(Comparator.comparingInt(b -> b.index < 0 ? Integer.MAX_VALUE : b.index));
+            // Remove unreachable blocks, those that are not dominated by the entry block
+            // They will be sorted at the end
+            int nUnreachableBlocks = blocks.get(0).index;
+            if (nUnreachableBlocks > 0) {
+                removeUnreachableBlocksAndValueUses(nUnreachableBlocks);
+            }
+
+            assert IntStream.range(0, blocks().size()).allMatch(i -> i == blocks.get(i).index);
+            assert blocks.stream().<List<Block>>mapMulti((b, consumer) -> {
+                for (Block.Reference s : b.successors()) {
+                    consumer.accept(List.of(s.target, b));
+                }
+            }).allMatch(l -> l.get(0).predecessors.contains(l.get(1)));
+        }
+
+        private static void checkBlock(Block b) {
+            if (b.ops.isEmpty() || !(b.ops.getLast() instanceof Op.Terminating)) {
+                throw new IllegalStateException("Block has no terminating operation as the last operation");
+            }
+        }
+
+        private void removeUnreachableBlocksAndValueUses(int nUnreachableBlocks) {
+            List<Block> unreachableBlocks = blocks.subList(blocks.size() - nUnreachableBlocks, blocks.size());
+            // Remove uses of values in unreachable blocks
+            for (Block b : unreachableBlocks) {
+                assert b.index == UNSORTED_INDEX;
+
+                // It is ok to traverse the unobservable blocks via elements() prior to removal
+                // Direct access of the uses field is required since public access requires an observable block
+
+                // If an operation in an unreachable block uses a value not declared in an unreachable
+                // block, then the use needs to be removed.
+                // It is simpler to remove all uses, rather than check for specific uses.
+                b.elements().forEach(ce -> {
+                    switch (ce) {
+                        case Op op -> {
+                            Op.Result use = op.result;
+                            for (Value v : op.operands()) {
+                                v.uses.remove(use);
+                            }
+
+                            for (Block.Reference s : op.successors()) {
+                                for (Value v : s.arguments()) {
+                                    v.uses.remove(use);
+                                }
+                            }
+                        }
+                        default -> {
+                        }
+                    }
+                });
+            }
+            // Check uses of values declared in unreachable blocks
+            for (Block b : unreachableBlocks) {
+                // If an operation result or block parameter declared in an unreachable block is used by an operation
+                // in block that is not an unreachable block, then such use is invalid.
+                // Given the prior removal of all uses we only need to check if a declared value has uses or not.
+                // If so they must be from a block that is not unreachable and therefore the is invalid
+                b.elements().forEach(ce -> {
+                    switch (ce) {
+                        case Op op -> {
+                            Op.Result use = op.result;
+                            if (!use.uses.isEmpty()) {
+                                throw new IllegalStateException("Use of an operation result is not dominated by the result");
+                            }
+                        }
+                        case Block bb -> {
+                            for (Block.Parameter p : bb.parameters()) {
+                                if (!p.uses.isEmpty()) {
+                                    throw new IllegalStateException("Use of block parameter is not dominated by the parameter");
+                                }
+                            }
+                        }
+                        default -> {
+                        }
+                    }
+                });
+            }
+            // Remove unreachable blocks
+            unreachableBlocks.clear();
+
+            // Reassign indexes to their natural indexes, sort order is preserved
+            for (int i = 0; i < blocks.size(); i++) {
+                blocks.get(i).index = i;
+            }
+        }
+
+        // Validate each use of a value declared in the body.
+        // The use's declaring block must be dominated by the value's declaring block
+        private void checkValueUse() {
+            if (blocks.size() > 1) {
+                // Only need to check when there is more than one block, since for one block
+                // the use's declaring block will be the same as or a descendant of the
+                // value's declaring block.
+                // No need to check use within the same block, since operation results
+                // cannot be used until an operation is appended.
+                for (Block block : blocks) {
+                    for (Block.Parameter p : block.parameters()) {
+                        for (Op.Result use : p.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+
+                    for (Op o : block.ops()) {
+                        Op.Result r = o.result();
+                        for (Op.Result use : r.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /**
@@ -779,60 +955,6 @@ public final class Body implements CodeElement<Body, Block> {
         // Transform body starting from the entry block builder
         ct.acceptBody(bodyBuilder.entryBlock, this, bodyBuilder.entryBlock.parameters());
         return bodyBuilder;
-    }
-
-    // Sort blocks in reverse post order
-    // After sorting the following holds for a block
-    //   block.parentBody().blocks().indexOf(block) == block.index()
-    private void sortReversePostorder() {
-        if (blocks.size() < 2) {
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
-            }
-            return;
-        }
-
-        // Reset block indexes
-        // Also ensuring blocks with no predecessors occur last
-        for (Block b : blocks) {
-            b.index = Integer.MAX_VALUE;
-        }
-
-        Deque<Block> stack = new ArrayDeque<>();
-        stack.push(blocks.get(0));
-
-        // Postorder iteration
-        int index = blocks.size();
-        while (!stack.isEmpty()) {
-            Block n = stack.peek();
-            if (n.index == Integer.MIN_VALUE) {
-                // If n's successor has been processed then add n
-                stack.pop();
-                n.index = --index;
-            } else if (n.index < Integer.MAX_VALUE) {
-                // If n has already been processed then ignore
-                stack.pop();
-            } else {
-                // Mark before processing successors, a successor may refer back to n
-                n.index = Integer.MIN_VALUE;
-                for (Block.Reference s : n.successors()) {
-                    if (s.target.index < Integer.MAX_VALUE) {
-                        continue;
-                    }
-
-                    stack.push(s.target);
-                }
-            }
-        }
-
-        blocks.sort(Comparator.comparingInt(b -> b.index));
-        if (blocks.get(0).index > 0) {
-            // There are blocks with no predecessors
-            // Reassign indexes to their natural indexes, sort order is preserved
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
-            }
-        }
     }
 
     // Modifying methods

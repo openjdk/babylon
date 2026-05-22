@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -158,12 +158,12 @@ public final class Quoted<T extends Op> {
      *
      * @param op the operation
      * @return the quoting code model.
-     * @throws IllegalArgumentException if {@code op} is unattached or a root operation.
+     * @throws IllegalArgumentException if {@code op} is not placed in a block.
      * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     public static CoreOp.FuncOp embedOp(Op op) {
         if (op.result() == null) {
-            throw new IllegalArgumentException("Operation is unattached or a root operation");
+            throw new IllegalArgumentException("Operation is not placed in a block");
         }
 
         // if we don't remove duplicate operands we will have unused params in the new model

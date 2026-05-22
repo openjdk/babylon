@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -88,12 +88,12 @@ public sealed abstract class CoreOp extends Op {
          * A builder for constructing a function operation.
          */
         public static class Builder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final String funcName;
             final FunctionType signature;
 
-            Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
-                this.ancestorBody = ancestorBody;
+            Builder(Body.Builder connectedAncestorBody, String funcName, FunctionType signature) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.funcName = funcName;
                 this.signature = signature;
             }
@@ -105,7 +105,7 @@ public sealed abstract class CoreOp extends Op {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, signature);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, signature);
                 c.accept(body.entryBlock());
                 return new FuncOp(funcName, body);
             }
@@ -1616,14 +1616,15 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a quoted operation.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     the body builder for this operation
-     * @param opFunc       a function that accepts a builder for the quoted operation body and returns the operation to be quoted
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param opFunc                a function that accepts a builder for the quoted operation body and returns the
+     *                              operation to be quoted
      * @return the quoted operation
      */
-    public static QuotedOp quoted(Body.Builder ancestorBody,
+    public static QuotedOp quoted(Body.Builder connectedAncestorBody,
                                   Function<Block.Builder, Op> opFunc) {
-        Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
+        Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
         Block.Builder block = body.entryBlock();
         block.op(core_yield(
                 block.op(opFunc.apply(block))));

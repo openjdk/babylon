@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -546,13 +546,13 @@ public final class BytecodeGenerator {
 
             oprOnStack = null;
 
+            exceptionRegionsChange(catchBlocks);
+
             // If b is a catch block then the exception argument will be represented on the stack
             if (allCatchBlocks.get(b.index())) {
                 // Retain block argument for exception table generation
                 push(b.parameters().getFirst());
             }
-
-            exceptionRegionsChange(catchBlocks);
 
             List<Op> ops = b.ops();
             for (int i = 0; i < ops.size() - 1; i++) {

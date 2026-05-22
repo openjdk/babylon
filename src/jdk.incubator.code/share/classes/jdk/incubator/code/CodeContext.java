@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -276,6 +276,7 @@ public final class CodeContext {
      * @param input the input block
      * @return an optional containing the output block builder mapped to the given input block, otherwise an empty
      * optional
+     * @see #getBlock(Block)
      */
     public Optional<Block.Builder> queryBlock(Block input) {
         Objects.requireNonNull(input);

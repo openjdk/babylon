@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -190,19 +190,10 @@ public final class Verifier {
         return Object.class;
     }
 
-    static final Class<?> CLASS_ARITHMETIC_AND_CONV_OP_IMPLS;
-    static {
-        try {
-            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS = Class.forName("ArithmeticAndConvOpImpls");
-        } catch (ReflectiveOperationException roe) {
-            throw new InternalError(roe);
-        }
-    }
-
     private void verifyOpHandleExists(Op op, String opName) {
         try {
             var mt = MethodRef.toNominalDescriptor(op.opSignature()).resolveConstantDesc(lookup).erase();
-            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS.getDeclaredMethod(opName, mt.parameterArray());
+            ArithmeticAndConvOpImpls.class.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
             error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opSignature());
         } catch (ReflectiveOperationException roe) {
