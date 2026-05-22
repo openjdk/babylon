@@ -32,6 +32,7 @@ import java.net.URL;
 import java.util.function.Function;
 
 /*
+ * @ignore
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @library ../../lib

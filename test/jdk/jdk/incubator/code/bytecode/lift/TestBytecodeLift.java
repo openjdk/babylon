@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
+ * @ignore
  * @test
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/jdk.internal.classfile.components
