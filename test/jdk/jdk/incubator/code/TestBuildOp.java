@@ -75,7 +75,7 @@ public class TestBuildOp {
     @Test
     void testBuildAsRoot() {
         CoreOp.FuncOp funcOp = CoreOp.func("f", FunctionType.FUNCTION_TYPE_VOID).body(b -> {
-            b.op(CoreOp.return_());
+            b.add(CoreOp.return_());
         });
 
         Assertions.assertFalse(funcOp.isRoot());
@@ -102,8 +102,8 @@ public class TestBuildOp {
     @Test
     void testOpPlaced() {
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
-        Op.Result r = body.entryBlock().op(CoreOp.constant(JavaType.DOUBLE, 1d));
-        body.entryBlock().op(CoreOp.return_());
+        Op.Result r = body.entryBlock().add(CoreOp.constant(JavaType.DOUBLE, 1d));
+        body.entryBlock().add(CoreOp.return_());
 
         Assertions.assertThrows(IllegalStateException.class, () -> r.op().buildAsRoot());
         Assertions.assertTrue(r.op().isPlacedInBlock());
@@ -128,8 +128,8 @@ public class TestBuildOp {
 
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
         Body.Builder body = Body.Builder.of(null, FunctionType.FUNCTION_TYPE_VOID);
-        body.entryBlock().op(op);
-        body.entryBlock().op(CoreOp.return_());
+        body.entryBlock().add(op);
+        body.entryBlock().add(CoreOp.return_());
         CoreOp.FuncOp funcOp = CoreOp.func("t", body);
         boolean b = funcOp.body().entryBlock().ops().stream().allMatch(o -> o != op);
         Assertions.assertTrue(b);

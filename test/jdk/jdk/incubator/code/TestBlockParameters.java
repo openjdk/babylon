@@ -45,13 +45,13 @@ public class TestBlockParameters {
                 .body(fe -> {
                     JavaOp.LambdaOp lop = JavaOp.lambda(fe.parentBody(), functionType(INT, INT), JavaType.type(FunctionType.class))
                             .body(le -> {
-                                le.op(return_(le.parameters().get(0)));
+                                le.add(return_(le.parameters().get(0)));
                             });
-                    fe.op(lop);
+                    fe.add(lop);
                     Block.Builder b = fe.block(INT, INT);
-                    fe.op(branch(b.reference(fe.parameters())));
+                    fe.add(branch(b.reference(fe.parameters())));
 
-                    b.op(return_(b.parameters().get(0)));
+                    b.add(return_(b.parameters().get(0)));
                 });
     }
 

@@ -125,10 +125,10 @@ public class TritonOps {
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
-                entryBlock.op(f);
+                entryBlock.add(f);
                 table.put(f.funcName(), f);
             }
-            entryBlock.op(CoreOp.unreachable());
+            entryBlock.add(CoreOp.unreachable());
             this.table = Collections.unmodifiableMap(table);
             this.body = bodyC.build(this);
         }
@@ -250,7 +250,7 @@ public class TritonOps {
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER).add(this);
             return b;
         }
     }

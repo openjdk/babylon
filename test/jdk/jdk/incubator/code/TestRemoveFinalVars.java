@@ -83,7 +83,7 @@ public class TestRemoveFinalVars {
             // Is the variable stored to? If not we can remove it
             // otherwise, it's not considered final and we copy it
             if (isValueUsedWithOp(varOp.result(), o -> o instanceof VarStoreOp)) {
-                block.op(varOp);
+                block.add(varOp);
             }
         } else if (op instanceof VarLoadOp varLoadOp) {
             // If the variable is not stored to
@@ -94,10 +94,10 @@ public class TestRemoveFinalVars {
                 CodeContext cc = block.context();
                 cc.mapValue(varLoadOp.result(), cc.getValue(varLoadOp.varOp().operands().get(0)));
             } else {
-                block.op(varLoadOp);
+                block.add(varLoadOp);
             }
         } else {
-            block.op(op);
+            block.add(op);
         }
         return block;
     }

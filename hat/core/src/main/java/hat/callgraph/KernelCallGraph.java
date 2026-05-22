@@ -105,7 +105,7 @@ public class KernelCallGraph implements LookupCarrier {
                     changed.set(true);
                     return exitBlockBuilder.withContextAndTransformer(blockbuilder.context(), blockbuilder.transformer());
                 }
-                blockbuilder.op(op);
+                blockbuilder.add(op);
                 return blockbuilder;
             });
         }

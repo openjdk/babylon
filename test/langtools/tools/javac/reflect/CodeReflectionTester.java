@@ -150,9 +150,9 @@ public class CodeReflectionTester {
             // captured values mapped to the function's parameters
             // are reachable
             cc.mapBlock(qOp.ancestorBody().entryBlock(), fblock);
-            fblock.op(qOp);
+            fblock.add(qOp);
 
-            fblock.op(CoreOp.return_());
+            fblock.add(CoreOp.return_());
         });
     }
 }

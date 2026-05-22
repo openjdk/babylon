@@ -29,12 +29,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * A (basic) block containing an ordered sequence of operations, where the last operation is
- * a {@link Op.Terminating terminating} operation.
+ * A block containing an ordered sequence of operations, where the last operation is a
+ * {@link Op.Terminating terminating} operation.
  * <p>
- * The terminating operation, according to its specification, may branch to other blocks contained in the
- * same parent body, by way of its {@link Op#successors() successors}, or exit the parent body and optionally
- * yield a result.
+ * The terminating operation, according to its specification, may branch to other blocks contained in the same parent
+ * body, by way of its {@link Op#successors() successors}, or exit the parent body and optionally yield a result.
  * <p>
  * Blocks declare zero or more block parameters.
  * <p>
@@ -479,7 +478,7 @@ public final class Block implements CodeElement<Block, Op> {
      * until the parent body builder <a href="Body.Builder.html#body-building-finishing">finishes</a>.
      * <p>
      * A block builder has a code {@link #context() context} and code {@link #transformer() transformer}. These are used
-     * to perform <i>transform-on-append</i> when {@link #op appending} a placed operation. Any sibling block builder
+     * to perform <i>transform-on-append</i> when {@link #add appending} a placed operation. Any sibling block builder
      * {@link #block(List) created} from a block builder will have the same code context and code transformer.
      * <p>
      * A block builder may be obtained with a different code context and code transformer by calling
@@ -707,7 +706,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Appends an operation to this block.
+         * Appends an operation to the end of this block.
          * <p>
          * If the operation is unplaced, it is appended directly to this block.
          * <p>
@@ -747,7 +746,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @throws IllegalStateException if the operation is structurally invalid
          * @see Op#transform(CodeContext, CodeTransformer)
          */
-        public Op.Result op(Op op) {
+        public Op.Result add(Op op) {
             check();
 
             // Perform transform-on-append for a placed operation

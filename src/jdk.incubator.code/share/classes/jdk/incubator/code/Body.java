@@ -472,7 +472,7 @@ public final class Body implements CodeElement<Body, Block> {
      * and likewise those block builders can also be used to create block builders for additional sibling blocks and so
      * on;
      * <li>
-     * a block builder is used to {@link Block.Builder#op(Op) append} operations to the block,
+     * a block builder is used to {@link Block.Builder#add(Op) append} operations to the block,
      * {@link Block.Builder#parameter(CodeType) append} parameters to the block's parameters, and
      * {@link Block.Builder#reference(List) create} references to the block, which can be used as successors of a
      * terminating operation that is the last operation that is appended to the block or a sibling block; and

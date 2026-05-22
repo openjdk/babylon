@@ -68,14 +68,14 @@ public class TestParse {
                                 Block.Builder lblock = lbody.entryBlock();
                                 Block.Parameter li = lblock.parameters().get(0);
 
-                                lblock.op(return_(
-                                        lblock.op(add(i, li))));
+                                lblock.add(return_(
+                                        lblock.add(add(i, li))));
                             });
 
-                    Op.Result fi = block.op(lambda);
-                    Op.Result fortyTwo = block.op(constant(INT, 42));
-                    Op.Result or = block.op(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
-                    block.op(return_(or));
+                    Op.Result fi = block.add(lambda);
+                    Op.Result fortyTwo = block.add(constant(INT, 42));
+                    Op.Result or = block.add(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
+                    block.add(return_(or));
                 });
 
         List<Op> ops = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, f.toText());

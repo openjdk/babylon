@@ -56,14 +56,14 @@ public class TestDominate {
             Block.Builder elseBlock = entry.block();
             Block.Builder end = entry.block();
 
-            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(conditionalBranch(p, ifBlock.reference(), elseBlock.reference()));
+            Op.Result p = entry.add(constant(JavaType.BOOLEAN, true));
+            entry.add(conditionalBranch(p, ifBlock.reference(), elseBlock.reference()));
 
-            ifBlock.op(branch(end.reference()));
+            ifBlock.add(branch(end.reference()));
 
-            elseBlock.op(branch(end.reference()));
+            elseBlock.add(branch(end.reference()));
 
-            end.op(CoreOp.return_());
+            end.add(CoreOp.return_());
         });
 
         Map<Block, Block> idoms = f.body().immediateDominators();
@@ -86,14 +86,14 @@ public class TestDominate {
             Block.Builder elseBlock = entry.block();
             Block.Builder end = entry.block();
 
-            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(conditionalBranch(p, ifBlock.reference(), elseBlock.reference()));
+            Op.Result p = entry.add(constant(JavaType.BOOLEAN, true));
+            entry.add(conditionalBranch(p, ifBlock.reference(), elseBlock.reference()));
 
-            ifBlock.op(branch(end.reference()));
+            ifBlock.add(branch(end.reference()));
 
-            elseBlock.op(branch(end.reference()));
+            elseBlock.add(branch(end.reference()));
 
-            end.op(CoreOp.return_());
+            end.add(CoreOp.return_());
         });
 
         boolean[][] bvs = new boolean[][]{
@@ -115,18 +115,18 @@ public class TestDominate {
             Block.Builder b4 = entry.block();
             Block.Builder b5 = entry.block();
 
-            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(conditionalBranch(p, b4.reference(), b2.reference()));
+            Op.Result p = entry.add(constant(JavaType.BOOLEAN, true));
+            entry.add(conditionalBranch(p, b4.reference(), b2.reference()));
 
-            b4.op(conditionalBranch(p, b5.reference(), b3.reference()));
+            b4.add(conditionalBranch(p, b5.reference(), b3.reference()));
 
-            b2.op(conditionalBranch(p, b5.reference(), b1.reference()));
+            b2.add(conditionalBranch(p, b5.reference(), b1.reference()));
 
-            b5.op(CoreOp.return_());
+            b5.add(CoreOp.return_());
 
-            b3.op(branch(b1.reference()));
+            b3.add(branch(b1.reference()));
 
-            b1.op(CoreOp.return_());
+            b1.add(CoreOp.return_());
         });
 
         System.out.println(f.toText());
@@ -150,16 +150,16 @@ public class TestDominate {
             Block.Builder update = entry.block();
             Block.Builder end = entry.block();
 
-            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(branch(cond.reference()));
+            Op.Result p = entry.add(constant(JavaType.BOOLEAN, true));
+            entry.add(branch(cond.reference()));
 
-            cond.op(conditionalBranch(p, body.reference(), end.reference()));
+            cond.add(conditionalBranch(p, body.reference(), end.reference()));
 
-            body.op(branch(update.reference()));
+            body.add(branch(update.reference()));
 
-            update.op(branch(cond.reference()));
+            update.add(branch(cond.reference()));
 
-            end.op(CoreOp.return_());
+            end.add(CoreOp.return_());
 
         });
 
@@ -195,20 +195,20 @@ public class TestDominate {
             Block.Builder b2 = entry.block();
             Block.Builder b1 = entry.block();
 
-            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
-            entry.op(branch(b6.reference()));
+            Op.Result p = entry.add(constant(JavaType.BOOLEAN, true));
+            entry.add(branch(b6.reference()));
 
-            b6.op(conditionalBranch(p, b5.reference(), b4.reference()));
+            b6.add(conditionalBranch(p, b5.reference(), b4.reference()));
 
-            b5.op(branch(b1.reference()));
+            b5.add(branch(b1.reference()));
 
-            b4.op(conditionalBranch(p, b2.reference(), b3.reference()));
+            b4.add(conditionalBranch(p, b2.reference(), b3.reference()));
 
-            b1.op(branch(b2.reference()));
+            b1.add(branch(b2.reference()));
 
-            b2.op(conditionalBranch(p, b1.reference(), b3.reference()));
+            b2.add(conditionalBranch(p, b1.reference(), b3.reference()));
 
-            b3.op(branch(b2.reference()));
+            b3.add(branch(b2.reference()));
         });
         System.out.println(f.toText());
         Map<Block, Block> idoms = f.body().immediateDominators();
@@ -248,35 +248,35 @@ public class TestDominate {
             Block.Builder b2 = entry.block();
             Block.Builder b1 = entry.block();
 
-            Op.Result p = entry.op(constant(JavaType.BOOLEAN, true));
+            Op.Result p = entry.add(constant(JavaType.BOOLEAN, true));
 
-            entry.op(conditionalBranch(p, exit.reference(), b1.reference()));
+            entry.add(conditionalBranch(p, exit.reference(), b1.reference()));
 
-            b1.op(branch(b2.reference()));
+            b1.add(branch(b2.reference()));
 
-            b2.op(conditionalBranch(p, b3.reference(), b7.reference()));
+            b2.add(conditionalBranch(p, b3.reference(), b7.reference()));
 
-            b3.op(conditionalBranch(p, b4.reference(), b5.reference()));
+            b3.add(conditionalBranch(p, b4.reference(), b5.reference()));
 
-            b4.op(branch(b6.reference()));
+            b4.add(branch(b6.reference()));
 
-            b5.op(branch(b6.reference()));
+            b5.add(branch(b6.reference()));
 
-            b6.op(branch(b8.reference()));
+            b6.add(branch(b8.reference()));
 
-            b7.op(branch(b8.reference()));
+            b7.add(branch(b8.reference()));
 
-            b8.op(branch(b9.reference()));
+            b8.add(branch(b9.reference()));
 
-            b9.op(conditionalBranch(p, b10.reference(), b11.reference()));
+            b9.add(conditionalBranch(p, b10.reference(), b11.reference()));
 
-            b10.op(branch(b11.reference()));
+            b10.add(branch(b11.reference()));
 
-            b11.op(conditionalBranch(p, b12.reference(), b9.reference()));
+            b11.add(conditionalBranch(p, b12.reference(), b9.reference()));
 
-            b12.op(conditionalBranch(p, exit.reference(), b2.reference()));
+            b12.add(conditionalBranch(p, exit.reference(), b2.reference()));
 
-            exit.op(CoreOp.return_());
+            exit.add(CoreOp.return_());
         });
 
         System.out.println(f.toText());

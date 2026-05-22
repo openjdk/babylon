@@ -60,39 +60,39 @@ public class TestSlotOps {
 
             // Entry block
             {
-                Value nullConstant = b.op(CoreOp.constant(JavaType.J_L_OBJECT, null));
-                b.op(SlotOp.store(0, nullConstant));
+                Value nullConstant = b.add(CoreOp.constant(JavaType.J_L_OBJECT, null));
+                b.add(SlotOp.store(0, nullConstant));
 
-                b.op(CoreOp.conditionalBranch(b.op(CoreOp.constant(JavaType.BOOLEAN, true)),
+                b.add(CoreOp.conditionalBranch(b.add(CoreOp.constant(JavaType.BOOLEAN, true)),
                         trueBlock.reference(), falseBlock.reference()));
             }
 
             // True block
             {
-                Value oneConstant = trueBlock.op(CoreOp.constant(JavaType.INT, 1));
-                trueBlock.op(SlotOp.store(0, oneConstant));
+                Value oneConstant = trueBlock.add(CoreOp.constant(JavaType.INT, 1));
+                trueBlock.add(SlotOp.store(0, oneConstant));
 
-                Value loadValue = trueBlock.op(SlotOp.load(0, JavaType.INT));
-                trueBlock.op(JavaOp.invoke(MethodRef.method(TestSlots.class, "m", void.class, int.class), loadValue));
+                Value loadValue = trueBlock.add(SlotOp.load(0, JavaType.INT));
+                trueBlock.add(JavaOp.invoke(MethodRef.method(TestSlots.class, "m", void.class, int.class), loadValue));
 
-                Value stringConstant = trueBlock.op(CoreOp.constant(JavaType.J_L_STRING, "TRUE"));
-                trueBlock.op(SlotOp.store(0, stringConstant));
+                Value stringConstant = trueBlock.add(CoreOp.constant(JavaType.J_L_STRING, "TRUE"));
+                trueBlock.add(SlotOp.store(0, stringConstant));
 
-                trueBlock.op(CoreOp.branch(exitBlock.reference()));
+                trueBlock.add(CoreOp.branch(exitBlock.reference()));
             }
 
             // False block
             {
-                Value stringConstant = falseBlock.op(CoreOp.constant(JavaType.J_L_STRING, "FALSE"));
-                falseBlock.op(SlotOp.store(0, stringConstant));
+                Value stringConstant = falseBlock.add(CoreOp.constant(JavaType.J_L_STRING, "FALSE"));
+                falseBlock.add(SlotOp.store(0, stringConstant));
 
-                falseBlock.op(CoreOp.branch(exitBlock.reference()));
+                falseBlock.add(CoreOp.branch(exitBlock.reference()));
             }
 
             // Exit block
             {
-                Value loadValue = exitBlock.op(SlotOp.load(0, JavaType.J_L_STRING));
-                exitBlock.op(CoreOp.return_(loadValue));
+                Value loadValue = exitBlock.add(SlotOp.load(0, JavaType.J_L_STRING));
+                exitBlock.add(CoreOp.return_(loadValue));
             }
         });
     }
