@@ -181,7 +181,7 @@
 ///         void.class, Object.class);
 /// static Optional<String> isPrintConstantString(CodeElement<?, ?> e) {
 ///     if (e instanceof InvokeOp i && // @link substring="InvokeOp" target="jdk.incubator.code.dialect.java.JavaOp.InvokeOp"
-///             i.invokeDescriptor().equals(PRINTLN) &&
+///             i.invokeReference().equals(PRINTLN) &&
 ///             i.operands().get(0).declaringElement() instanceof ConstantOp cop && // @link substring="ConstantOp" target="jdk.incubator.code.dialect.core.CoreOp.ConstantOp"
 ///             cop.value() instanceof String s) {
 ///         return Optional.of(s);
@@ -433,7 +433,7 @@
 ///
 ///         // int a
 ///         VarOp varOpA = var("a", builder.parameters().get(0)); // @link substring="var(" target="jdk.incubator.code.dialect.core.CoreOp#var"
-///         Op.Result varA = builder.add(varOpA); // @link substring="builder.add(" target="jdk.incubator.code.Block.Builder#op"
+///         Op.Result varA = builder.add(varOpA); // @link substring="builder.add(" target="jdk.incubator.code.Block.Builder#add"
 ///
 ///         // int b
 ///         VarOp varOpB = var("b", builder.parameters().get(1));
