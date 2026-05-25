@@ -57,13 +57,15 @@ public class HATAsserts {
     }
 
     public static void assertEquals(float expected, float actual, float delta) {
-        if (Float.isNaN(expected) || Float.isNaN(actual) || Math.abs(expected - actual) > delta) {
+        float diff = Math.abs(expected - actual);
+        if (Float.isNaN(diff) || (diff > delta)) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
 
     public static void assertEquals(double expected, double actual, double delta) {
-        if (Double.isNaN(expected) || Double.isNaN(actual) || Math.abs(expected - actual) > delta) {
+        double diff = Math.abs(expected - actual);
+        if (Double.isNaN(diff) || (diff > delta)) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
@@ -71,24 +73,20 @@ public class HATAsserts {
     public static void assertEquals(Float4 expected, Float4 actual, float delta) {
         float[] arrayExpected = expected.toArray();
         float[] arrayActual = actual.toArray();
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < Float4.shape.lanes(); i++) {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
-            if (Float.isNaN(expectedValue) || Float.isNaN(actualValue) || Math.abs(expectedValue - actualValue) > delta) {
-                throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
-            }
+            assertEquals(expectedValue, actualValue, delta);
         }
     }
 
     public static void assertEquals(Float2 expected, Float2 actual, float delta) {
         float[] arrayExpected = expected.toArray();
         float[] arrayActual = actual.toArray();
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < Float2.shape.lanes(); i++) {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
-            if (Float.isNaN(expectedValue) || Float.isNaN(actualValue) || Math.abs(expectedValue - actualValue) > delta) {
-                throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
-            }
+            assertEquals(expectedValue, actualValue, delta);
         }
     }
 
