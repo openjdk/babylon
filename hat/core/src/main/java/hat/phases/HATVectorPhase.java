@@ -111,7 +111,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                 Stream<Invoke> stream = OpHelper.Invoke.stream(lookup, invoke);
                 Optional<Invoke> invokeOptional = stream.findFirst();
                 // Check for the right class
-                if (invokeOptional.get().refIs(NonMappableIface.class)) {
+                if (invokeOptional.isPresent() && invokeOptional.get().refIs(NonMappableIface.class)) {
                     // check for the method name
                     String lowerCase = invoke.invokeReference().name().toLowerCase();
                     yield NON_MAPPABLE_IFACE.contains(lowerCase);

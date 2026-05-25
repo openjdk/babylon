@@ -445,7 +445,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected boolean isMathLib(Optional<Invoke> invoke) {
-        return !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
+        return invoke.isPresent() && !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
     }
 
      protected T f16OrBF16(Class<?> float16Class){
@@ -641,7 +641,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     Stream<Invoke> stream = OpHelper.Invoke.stream(scopedCodeBuilderContext.lookup(), invokeOp);
                     Optional<Invoke> invoke = stream.findFirst();
                     // Check for the right class
-                    if (invoke.get().refIs(NonMappableIface.class)) {
+                    if (invoke.isPresent() && invoke.get().refIs(NonMappableIface.class)) {
                         // check for the method name
                         String lowerCase = invokeOp.invokeReference().name().toLowerCase();
                         isLocalOrPrivateDS = NON_MAPPABLE_IFACE.contains(lowerCase);

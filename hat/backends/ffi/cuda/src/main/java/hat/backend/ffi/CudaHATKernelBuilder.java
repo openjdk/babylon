@@ -37,6 +37,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
+import optkl.OpHelper.Invoke;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
@@ -295,15 +296,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    private static final String VALUE = "value";
+
     @Override
     public CudaHATKernelBuilder hatF16ToFloatConvOp(HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
         buildFloat16Class(hatF16ToFloatConvOp.float16Class());
         paren(_ -> {
             recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
             if (!hatF16ToFloatConvOp.isLocal()) {
-                rarrow().id("value");
+                rarrow().id(VALUE);
             } else if (!hatF16ToFloatConvOp.wasFloat()) {
-                dot().id("value");
+                dot().id(VALUE);
             }
         });
         return self();
@@ -339,9 +342,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     }
                     recurseResultOrThrow(op1);
                     if (isFirstOperandReference) {
-                        rarrow().id("value");
+                        rarrow().id(VALUE);
                     } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id("value");
+                        dot().id(VALUE);
                     }
                     if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
                         cparen();
@@ -352,9 +355,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     }
                     recurseResultOrThrow(op2);
                     if (isSecondOperandReference) {
-                        rarrow().id("value");
+                        rarrow().id(VALUE);
                     } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id("value");
+                        dot().id(VALUE);
                     }
                     if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
                         cparen();
@@ -421,15 +424,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
 
-    private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
-        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
+    private Class<?> reduceFloatType(Optional<Invoke> invoke) {
+        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
             return category;
         }
         return null;
     }
 
-    private Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
-        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
+    private Class<?> reduceFloatTypeFromReturnType(Optional<Invoke> invoke) {
+        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
             return category;
         }
         return null;
@@ -441,8 +444,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Class<?> narrowCategory;
         if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
             // Find the category - This is the generic case, when ALL custom ops are removed
-            Stream<OpHelper.Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
-            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+            Stream<Invoke> stream = Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+            Optional<Invoke> invoke = stream.findFirst();
             narrowCategory = reduceFloatType(invoke);
             if (narrowCategory == null && isMathLib(invoke)) {
                 narrowCategory = reduceFloatTypeFromReturnType(invoke);
@@ -452,10 +455,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
             narrowCategory = hatf16ConvOp.float16Class();
         } else {
-            throw new RuntimeException("Expected an invoke, but found: " + first.declaringElement().getClass());
+            throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
         }
         if (narrowCategory == null) {
-            throw new RuntimeException("Narrow type can't be null: ");
+            throw new IllegalStateException("Narrow type can't be null: ");
         }
         // handle narrow types (F16 and BFloat)
         return f16OrBF16(narrowCategory).sp().assign(
@@ -475,7 +478,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }
             if (vectorShape == null) {
                 // guarantee we don't have a null shape. Otherwise. we can't generate the correct code
-                throw new RuntimeException("Could not find vector shape");
+                throw new IllegalStateException("Could not find vector shape");
             }
 
             type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().varName(varOp);
