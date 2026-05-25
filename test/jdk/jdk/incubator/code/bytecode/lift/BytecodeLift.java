@@ -156,7 +156,7 @@ public final class BytecodeLift {
     }
 
     private Op.Result op(Op op) {
-        return currentBlock.op(op);
+        return currentBlock.add(op);
     }
 
     // Lift to core dialect
@@ -482,13 +482,13 @@ public final class BytecodeLift {
                         } else {
                             // lambda call to a MH
                             stack.push(op(lambda.body(eb -> {
-                                Op.Result ret = eb.op(JavaOp.invoke(
+                                Op.Result ret = eb.add(JavaOp.invoke(
                                         MethodRef.method(JavaType.type(dmhd.owner()),
                                                          dmhd.methodName(),
                                                          lambdaFunc.returnType(),
                                                          lambdaFunc.parameterTypes()),
                                         Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)));
-                                eb.op(ret.type().equals(JavaType.VOID) ? CoreOp.return_() : CoreOp.return_(ret));
+                                eb.add(ret.type().equals(JavaType.VOID) ? CoreOp.return_() : CoreOp.return_(ret));
                             })));
                         }
                     } else if (bsmOwner.equals(CD_StringConcatFactory)) {
@@ -893,7 +893,7 @@ public final class BytecodeLift {
 
         if (transits.isEmpty()) {
             // Join with branch
-            initialBlock.op(CoreOp.branch(targetBlock.reference(values)));
+            initialBlock.add(CoreOp.branch(targetBlock.reference(values)));
         } else {
             // Insert ERE transitions
             Block.Builder currentBlock = initialBlock;
@@ -915,7 +915,7 @@ public final class BytecodeLift {
         Block.Reference catcher = (ehi == targetExceptionHandlerIndex
                 ? initialBlock
                 : targetBlockForExceptionHandler(handlerEreStack, ehi)).reference();
-        currentBlock.op(enter ? JavaOp.exceptionRegionEnter(ref, catcher) : JavaOp.exceptionRegionExit(ref, catcher));
+        currentBlock.add(enter ? JavaOp.exceptionRegionEnter(ref, catcher) : JavaOp.exceptionRegionExit(ref, catcher));
     }
 
     Block.Reference successorWithStack(Block.Builder next) {

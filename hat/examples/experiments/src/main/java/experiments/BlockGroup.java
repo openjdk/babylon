@@ -88,8 +88,8 @@ public class BlockGroup {
 
                 // Add ops to the entry block
                 Block.Builder groupBlockBuilder = groupBodyBuilder.entryBlock();
-                opsToGroup.forEach(groupBlockBuilder::op); // transfers all to this builder?
-                groupBlockBuilder.op(CoreOp.core_yield());
+                opsToGroup.forEach(groupBlockBuilder::add); // transfers all to this builder?
+                groupBlockBuilder.add(CoreOp.core_yield());
 
                 c.replace(JavaOp.block(groupBodyBuilder)); // Replace all those added ops with the block op
             }else{

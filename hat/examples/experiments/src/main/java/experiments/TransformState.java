@@ -52,11 +52,11 @@ public class TransformState {
             if (op instanceof JavaOp.AddOp) {
                 CodeContext cc = block.context();
                 var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
-                Op.Result result = block.op(newSubOp);
+                Op.Result result = block.add(newSubOp);
                 cc.mapValue(op.result(), result);
                 oldOpToNewOpMap.put(op,newSubOp);// <-- this maps op -> new subOp
             } else {
-                var result = block.op(op);
+                var result = block.add(op);
                 oldOpToNewOpMap.put(op,result.op()); //<-- this maps op ->  op'
             }
             return block;
@@ -83,11 +83,11 @@ public class TransformState {
             if (op instanceof JavaOp.AddOp) {
                 CodeContext cc = block.context();
                 var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
-                Op.Result result = block.op(newSubOp);
+                Op.Result result = block.add(newSubOp);
                 cc.mapValue(op.result(), result);
                 transformedOpMapState.put(op,newSubOp);// <-- this maps op -> new subOp
             } else {
-                var result = block.op(op);
+                var result = block.add(op);
                 transformedOpMapState.put(op,result.op()); //<-- this maps op ->  op'
             }
             return block;
@@ -97,11 +97,11 @@ public class TransformState {
                     if (op instanceof JavaOp.AddOp) {
                         CodeContext cc = block.context();
                         var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
-                        Op.Result r = block.op(newSubOp);
+                        Op.Result r = block.add(newSubOp);
                         cc.mapValue(op.result(), r);
                         transformedOpMapState.put(op,newSubOp);
                     } else {
-                        var r = block.op(op);
+                        var r = block.add(op);
                         transformedOpMapState.put(op,r.op());
                     }
                     return block;
@@ -155,12 +155,12 @@ public class TransformState {
                 (block, op) -> {
                     if (op instanceof JavaOp.AddOp) {
                         CodeContext cc = block.context();
-                        Op.Result r = block.op(JavaOp.sub(
+                        Op.Result r = block.add(JavaOp.sub(
                                 cc.getValue(op.operands().get(0)),
                                 cc.getValue(op.operands().get(1))));
                         cc.mapValue(op.result(), r);
                     } else {
-                        block.op(op);
+                        block.add(op);
                     }
                     return block;
                 },

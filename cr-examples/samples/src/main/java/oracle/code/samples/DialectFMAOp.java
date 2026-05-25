@@ -149,7 +149,7 @@ public class DialectFMAOp {
         CoreOp.FuncOp dialectModel = functionModel.transform((builder, op) -> {
             CodeContext context = builder.context();
             if (!nodesInvolved.contains(op)) {
-                builder.op(op);
+                builder.add(op);
             } else if (op instanceof JavaOp.MulOp  mulOp) {
                 // In this case, we can eliminate the node (we don't insert it into the builder)
                 context.mapValue(mulOp.result(), context.getValue(mulOp.operands().getFirst()));
@@ -176,7 +176,7 @@ public class DialectFMAOp {
                     FMA myFMAOp = new FMA(outFMA, addOp.resultType());
 
                     // 8. Attach the new Op to the builder
-                    Op.Result resultFMA = builder.op(myFMAOp);
+                    Op.Result resultFMA = builder.add(myFMAOp);
 
                     // 9. Propagate the location of the new op
                     myFMAOp.setLocation(addOp.location());

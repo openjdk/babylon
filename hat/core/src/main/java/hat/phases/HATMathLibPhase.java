@@ -64,7 +64,7 @@ public record HATMathLibPhase() implements HATPhase {
             if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
                 if (setTypeMap.get(varOp) == null) {
                     // this varOp is not a special type (e.g., float16), then we insert the varOp into the new tree
-                    blockBuilder.op(varOp);
+                    blockBuilder.add(varOp);
                 } else {
                     // Add the special type as a VarOp
                     HATFP16Phase.createF16VarOp(funcOp.funcName(), varOp, blockBuilder, varTable);
@@ -72,7 +72,7 @@ public record HATMathLibPhase() implements HATPhase {
                     // we may need to also add the new <X>HATVarOps here as well.
                 }
             } else {
-                blockBuilder.op(op);
+                blockBuilder.add(op);
             }
             return blockBuilder;
         }, varTable).funcOp();

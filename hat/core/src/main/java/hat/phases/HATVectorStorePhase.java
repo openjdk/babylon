@@ -110,7 +110,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
                                 invoke.returnType(),
                                 vectorShape,
                                 context.getValues(invoke.op().operands()));
-                context.mapValue(invoke.op().result(), blockBuilder.op(copyLocation(invoke.op(),storeView)));
+                context.mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(),storeView)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 // pass value
                 context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));

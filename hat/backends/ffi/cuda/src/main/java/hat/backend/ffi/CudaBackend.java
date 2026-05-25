@@ -455,16 +455,16 @@ public class CudaBackend extends C99FFIBackend {
                    // Op.Result inputResult = invokeOp.result();
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(buffer);
                     PTXPtrOp ptxOp = new PTXPtrOp(invoke.returnType(), invoke.name(), outputOperands, boundSchema);
-                    Op.Result outputResult = block.op(ptxOp);
+                    Op.Result outputResult = block.add(ptxOp);
                     cc.mapValue(invoke.op().result(), outputResult);
                 } else if (invoke.refIs(Math.class) && mathFns.containsKey(invoke.name() + "_" + invoke.returnType().toString())){
                     usedMathFns.add(invoke.name() + "_" + invoke.returnType().toString());
-                    block.op(op);
+                    block.add(op);
                 } else {
-                    block.op(op);
+                    block.add(op);
                 }
             } else {
-                block.op(op);
+                block.add(op);
             }
             return block;
         }, varTable).funcOp();

@@ -58,7 +58,7 @@ public class TestBuildUnreachableBlocks {
         CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
 
         CoreOp.FuncOp g = CoreOp.func("g", CoreType.functionType(JavaType.VOID)).body(b -> {
-            b.op(CoreOp.return_());
+            b.add(CoreOp.return_());
 
             Block.Builder unreachableBlock1 = b.block();
             unreachableBlock1.transformBody(f.body(), List.of(), CodeTransformer.COPYING_TRANSFORMER);
@@ -78,7 +78,7 @@ public class TestBuildUnreachableBlocks {
         CoreOp.FuncOp f = Op.ofMethod(m).orElseThrow();
 
         CoreOp.FuncOp g = CoreOp.func("g", CoreType.functionType(JavaType.VOID)).body(b -> {
-            b.op(CoreOp.return_());
+            b.add(CoreOp.return_());
 
             CoreOp.FuncOp fLowered = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
 
@@ -98,15 +98,15 @@ public class TestBuildUnreachableBlocks {
         CoreOp.FuncOp f = CoreOp.func("f", CoreType.functionType(JavaType.VOID)).body(b -> {
             Block.Builder reachableBlock1 = b.block();
 
-            b.op(branch(reachableBlock1.reference()));
+            b.add(branch(reachableBlock1.reference()));
 
-            reachableBlock1.op(CoreOp.return_());
+            reachableBlock1.add(CoreOp.return_());
 
             Block.Builder unreachableBlock1 = b.block();
-            unreachableBlock1.op(branch(reachableBlock1.reference()));
+            unreachableBlock1.add(branch(reachableBlock1.reference()));
 
             Block.Builder unreachableBlock2 = b.block();
-            unreachableBlock2.op(branch(reachableBlock1.reference()));
+            unreachableBlock2.add(branch(reachableBlock1.reference()));
         });
 
         Assertions.assertEquals(2, f.body().blocks().size());
@@ -119,13 +119,13 @@ public class TestBuildUnreachableBlocks {
     public void testUnobservableUnreachableBlocks() {
         List<Op.Result> results = new ArrayList<>();
         CoreOp.FuncOp f = CoreOp.func("f", CoreType.functionType(JavaType.VOID)).body(b -> {
-            b.op(CoreOp.return_());
+            b.add(CoreOp.return_());
 
             Block.Builder unreachableBlock1 = b.block();
-            results.add(unreachableBlock1.op(return_()));
+            results.add(unreachableBlock1.add(return_()));
 
             Block.Builder unreachableBlock2 = b.block();
-            results.add(unreachableBlock2.op(return_()));
+            results.add(unreachableBlock2.add(return_()));
         });
 
         Assertions.assertEquals(1, f.body().blocks().size());
@@ -140,20 +140,20 @@ public class TestBuildUnreachableBlocks {
     @Test
     public void testNestedUsesInUnreachableBlock() {
         CoreOp.FuncOp g = CoreOp.func("f", CoreType.functionType(JavaType.VOID)).body(b -> {
-            Op.Result zeroValue = b.op(CoreOp.constant(JavaType.INT, 0));
-            Op.Result oneValue = b.op(CoreOp.constant(JavaType.INT, 1));
-            b.op(CoreOp.return_());
+            Op.Result zeroValue = b.add(CoreOp.constant(JavaType.INT, 0));
+            Op.Result oneValue = b.add(CoreOp.constant(JavaType.INT, 1));
+            b.add(CoreOp.return_());
 
             JavaType.type(Runnable.class);
 
             Block.Builder unreachableBlock1 = b.block();
             JavaOp.LambdaOp lop = JavaOp.lambda(b.parentBody(), FunctionType.FUNCTION_TYPE_VOID, JavaType.type(Runnable.class)).body(lb -> {
-                lb.op(JavaOp.neg(zeroValue));
-                lb.op(JavaOp.neg(oneValue));
-                lb.op(CoreOp.return_());
+                lb.add(JavaOp.neg(zeroValue));
+                lb.add(JavaOp.neg(oneValue));
+                lb.add(CoreOp.return_());
             });
-            unreachableBlock1.op(lop);
-            unreachableBlock1.op(CoreOp.return_());
+            unreachableBlock1.add(lop);
+            unreachableBlock1.add(CoreOp.return_());
         });
 
         Assertions.assertEquals(1, g.body().blocks().size());
@@ -169,19 +169,19 @@ public class TestBuildUnreachableBlocks {
     @Test
     public void testUsesInUnreachableBlocks() {
         CoreOp.FuncOp g = CoreOp.func("f", CoreType.functionType(JavaType.VOID)).body(b -> {
-            Op.Result zeroValue = b.op(CoreOp.constant(JavaType.INT, 0));
-            Op.Result oneValue = b.op(CoreOp.constant(JavaType.INT, 1));
-            b.op(CoreOp.return_());
+            Op.Result zeroValue = b.add(CoreOp.constant(JavaType.INT, 0));
+            Op.Result oneValue = b.add(CoreOp.constant(JavaType.INT, 1));
+            b.add(CoreOp.return_());
 
             Block.Builder unreachableBlock1 = b.block();
-            unreachableBlock1.op(JavaOp.neg(zeroValue));
-            unreachableBlock1.op(JavaOp.neg(oneValue));
-            unreachableBlock1.op(CoreOp.return_());
+            unreachableBlock1.add(JavaOp.neg(zeroValue));
+            unreachableBlock1.add(JavaOp.neg(oneValue));
+            unreachableBlock1.add(CoreOp.return_());
 
             Block.Builder unreachableBlock2 = b.block();
-            unreachableBlock2.op(JavaOp.neg(zeroValue));
-            unreachableBlock2.op(JavaOp.neg(oneValue));
-            unreachableBlock2.op(CoreOp.return_());
+            unreachableBlock2.add(JavaOp.neg(zeroValue));
+            unreachableBlock2.add(JavaOp.neg(oneValue));
+            unreachableBlock2.add(CoreOp.return_());
         });
 
         Assertions.assertEquals(1, g.body().blocks().size());
@@ -201,12 +201,12 @@ public class TestBuildUnreachableBlocks {
         Block.Builder entryBlock = body.entryBlock();
 
         Block.Builder unreachableBlock = entryBlock.block();
-        Op.Result zeroValue = unreachableBlock.op(CoreOp.constant(JavaType.INT, 0));
-        unreachableBlock.op(return_());
+        Op.Result zeroValue = unreachableBlock.add(CoreOp.constant(JavaType.INT, 0));
+        unreachableBlock.add(return_());
 
         // Uses operation result declared in unreachable block
-        entryBlock.op(JavaOp.neg(zeroValue));
-        entryBlock.op(return_());
+        entryBlock.add(JavaOp.neg(zeroValue));
+        entryBlock.add(return_());
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -218,11 +218,11 @@ public class TestBuildUnreachableBlocks {
         Block.Builder entryBlock = body.entryBlock();
 
         Block.Builder unreachableBlock = entryBlock.block(JavaType.INT);
-        unreachableBlock.op(return_());
+        unreachableBlock.add(return_());
 
         // Uses block parameter declared in unreachable block
-        entryBlock.op(JavaOp.neg(unreachableBlock.parameters().getFirst()));
-        entryBlock.op(return_());
+        entryBlock.add(JavaOp.neg(unreachableBlock.parameters().getFirst()));
+        entryBlock.add(return_());
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }

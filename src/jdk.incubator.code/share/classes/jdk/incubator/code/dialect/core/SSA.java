@@ -269,9 +269,9 @@ public final class SSA {
                         Block.Builder successorBlockBuilder = context.getBlock(successorBlock);
                         context.mapReference(successor, successorBlockBuilder.reference(values));
                     }
-                    block.op(op);
+                    block.add(op);
                 }
-                default -> block.op(op);
+                default -> block.add(op);
             }
             return block;
         }
@@ -451,9 +451,9 @@ public final class SSA {
                         }
                     }
 
-                    block.op(op);
+                    block.add(op);
                 } else {
-                    block.op(op);
+                    block.add(op);
                 }
 
                 return block;

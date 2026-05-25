@@ -73,12 +73,12 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         return Trxfmr.of(lookup,funcOp).transform(ce->mapMe.contains(ce)||nodesInvolved.contains(ce), (blockBuilder, op) -> {
             if (invoke(lookup,op) instanceof Invoke invoke && mapMe.contains(invoke.op())) {
                 // pass the invoke for reference. This is important for analysis later
-                blockBuilder.op(invoke.op());
+                blockBuilder.add(invoke.op());
             } else if (OpHelper.Named.Variable.var(lookup,op) instanceof OpHelper.Named.Variable variable && nodesInvolved.contains(variable.op())) {
-                Op.Result op1 = blockBuilder.op(variable.op());
+                Op.Result op1 = blockBuilder.add(variable.op());
                 varTable.addIfNeededOrThrow(functionName, op1.op(), getAttribute());
             } else {
-                blockBuilder.op(op);
+                blockBuilder.add(op);
             }
             return blockBuilder;
         }, varTable).funcOp();
@@ -151,7 +151,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                 if (invoke(lookup, op) instanceof Invoke invoke) {
                     blockBuilder.context().mapValue(invoke.op().result(),
-                            blockBuilder.op(copyLocation(invoke.op(),
+                            blockBuilder.add(copyLocation(invoke.op(),
                                     new HATMemoryDefOp.HATMemoryLoadOp(invoke.returnType(),
                                             invoke.refType(),
                                             invoke.name(),
@@ -159,7 +159,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                             )
                     );
                 } else if (op instanceof CoreOp.VarOp varOp) {
-                    Op.Result opResult = blockBuilder.op(varOp);
+                    Op.Result opResult = blockBuilder.add(varOp);
                     varTable.addIfNeededOrThrow(functionName, opResult.op(), VarTable.HATOpAttribute.INIT);
                 }
                 return blockBuilder;

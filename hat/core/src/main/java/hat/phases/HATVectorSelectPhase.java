@@ -123,7 +123,7 @@ public record HATVectorSelectPhase() implements HATPhase {
                                 context.getValues(invokeVar.invokeOp.operands())
                         );
 
-                context.mapValue(invokeVar.invokeOp.result(), blockBuilder.op(
+                context.mapValue(invokeVar.invokeOp.result(), blockBuilder.add(
                         copyLocation(invokeVar.invokeOp, newOp)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));

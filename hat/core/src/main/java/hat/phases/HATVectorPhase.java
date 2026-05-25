@@ -158,7 +158,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
     }
 
     private void addVectorVarOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, Vector.Shape vectorShape, VarTable varTable) {
-        Op.Result result = blockBuilder.op(varOp);
+        Op.Result result = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, result.op(), VarTable.HATOpAttribute.VECTOR);
     }
 
@@ -198,7 +198,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                                         shape,
                                         blockBuilder.context().getValues(invoke.op().operands()));
                 }
-                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(copyLocation(varOp, memoryViewOp)));
+                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(varOp, memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
@@ -241,7 +241,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                         vectorShapeMap.get(invokeOp),
                         blockBuilder.context().getValues(invokeOp.operands())
                 );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeToVar.get(invokeOp), memoryViewOp)));
+                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
@@ -275,7 +275,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                         vectorShape,
                         blockBuilder.context().getValues(invokeOp.operands())
                 );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeOp, memoryViewOp)));
+                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, memoryViewOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
@@ -294,7 +294,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                         vectorShape.lanes(),
                         blockBuilder.context().getValues(invokeOp.operands())
                 );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeOp, makeOf)));
+                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, makeOf)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
             }
@@ -333,7 +333,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                         getVectorShape(invoke.lookup(), invoke.returnType()),
                         blockBuilder.context().getValues(invoke.op().operands())
                 );
-                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(copyLocation(invoke.op(), memoryViewOp)));
+                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), memoryViewOp)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 HATVectorOp memoryViewOp = new HATVectorOp.HATVectorVarLoadOp(
                         findVectorVarNameOrNull(varLoadOp),
@@ -341,7 +341,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                         getVectorShapeOrNullFromVarLoad(varLoadOp),
                         blockBuilder.context().getValues(varLoadOp.operands())
                 );
-                blockBuilder.context().mapValue(varLoadOp.result(), blockBuilder.op(copyLocation(varLoadOp, memoryViewOp)));
+                blockBuilder.context().mapValue(varLoadOp.result(), blockBuilder.add(copyLocation(varLoadOp, memoryViewOp)));
             }
             return blockBuilder;
         }, varTable).funcOp();

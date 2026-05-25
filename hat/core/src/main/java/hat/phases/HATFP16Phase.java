@@ -88,13 +88,13 @@ public record HATFP16Phase() implements HATPhase {
     }
 
     public static void createF16VarOp(String functionName, CoreOp.VarOp varOp, Block.Builder blockBuilder, VarTable varTable) {
-        Op.Result op = blockBuilder.op(varOp);
+        Op.Result op = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, op.op(), VarTable.HATOpAttribute.NARROW);
     }
 
     private void createF16ConvOP(Invoke invoke, Block.Builder blockBuilder, Class<?> reducedFloatType) {
         blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.op(copyLocation(invoke.op(), new HATF16Op.HATF16ConvOp(
+                blockBuilder.add(copyLocation(invoke.op(), new HATF16Op.HATF16ConvOp(
                                 invoke.returnType(),      // We need to update the return type from VOID to the actual type to avoid a hanging varLoadOp value
                                 reducedFloatType,
                                 blockBuilder.context().getValues(invoke.op().operands()))
@@ -105,7 +105,7 @@ public record HATFP16Phase() implements HATPhase {
 
     private void createF16VarLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp, Block.Builder blockBuilder) {
         blockBuilder.context().mapValue(varLoadOp.result(),
-                blockBuilder.op(copyLocation(varLoadOp,
+                blockBuilder.add(copyLocation(varLoadOp,
                                 new HATF16Op.HATF16VarLoadOp(
                                         findVarNameOrNull(varLoadOp),
                                         varLoadOp.varType(),
@@ -117,7 +117,7 @@ public record HATFP16Phase() implements HATPhase {
 
     private void createFloatFromF16(Invoke invoke, Block.Builder blockBuilder, Class<?> reducedFloatType) {
         blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.op(copyLocation(invoke.op(), new HATF16Op.HATF16ToFloatConvOp(
+                blockBuilder.add(copyLocation(invoke.op(), new HATF16Op.HATF16ToFloatConvOp(
                                 JavaType.FLOAT,
                                 reducedFloatType,
                                 isF16Local(invoke.op().operands().getFirst()),
@@ -139,7 +139,7 @@ public record HATFP16Phase() implements HATPhase {
             case MUL -> new HATF16Op.HATF16BinaryOp.HATF16MulOp(codeType, reducedFloatType, outputOperands);
             case DIV -> new HATF16Op.HATF16BinaryOp.HATF16DivOp(codeType, reducedFloatType, outputOperands);
         };
-        blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.op(copyLocation(invokeOp, binaryOp)));
+        blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, binaryOp)));
     }
 
     private CoreOp.FuncOp dialectifyF16Ops(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, BinaryOpEnum binaryOpEnum, VarTable varTable) {

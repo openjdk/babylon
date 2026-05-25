@@ -192,7 +192,7 @@ public final class BytecodeGenerator {
             if (!modelsToBuild.isEmpty()) {
                 var module = OpBuilder.createBuilderFunctions(
                         modelsToBuild,
-                        b -> b.op(JavaOp.fieldLoad(
+                        b -> b.add(JavaOp.fieldLoad(
                                 FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
 
                 for (var e : module.functionTable().sequencedEntrySet()) {

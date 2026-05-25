@@ -61,24 +61,24 @@ public class AddArbitraryBlock {
         Trxfmr.of(lookup,hackMeFuncOp)
                 .toJava("Before injecting")
                 .transform("withNewBlock", varTable, ce -> invoke(lookup,ce) instanceof Invoke $ && $.named("printf"), c -> {
-                    var beforeString = c.builder().op(CoreOp.constant(JavaType.J_L_STRING, "Before ...."));
-                    var afterString = c.builder().op(CoreOp.constant(JavaType.J_L_STRING, "After ...."));
+                    var beforeString = c.builder().add(CoreOp.constant(JavaType.J_L_STRING, "Before ...."));
+                    var afterString = c.builder().add(CoreOp.constant(JavaType.J_L_STRING, "After ...."));
                     c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
-                        b.op(CoreOp.core_yield(b.op(CoreOp.constant(JavaType.BOOLEAN, true))));
+                        b.add(CoreOp.core_yield(b.add(CoreOp.constant(JavaType.BOOLEAN, true))));
                     }).then(b -> {
-                        b.op(JavaOp.invoke( JavaType.VOID, Println, beforeString));
-                        b.op(CoreOp.core_yield());
+                        b.add(JavaOp.invoke( JavaType.VOID, Println, beforeString));
+                        b.add(CoreOp.core_yield());
                     }).else_(e->
-                            e.op(CoreOp.core_yield()))
+                            e.add(CoreOp.core_yield()))
                     );
                     c.retain();
                     c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
-                        b.op(CoreOp.core_yield(b.op(CoreOp.constant(JavaType.BOOLEAN, true))));
+                        b.add(CoreOp.core_yield(b.add(CoreOp.constant(JavaType.BOOLEAN, true))));
                     }).then(b -> {
-                        b.op(JavaOp.invoke( JavaType.VOID, Println, afterString));
-                        b.op(CoreOp.core_yield());
+                        b.add(JavaOp.invoke( JavaType.VOID, Println, afterString));
+                        b.add(CoreOp.core_yield());
                     }).else_(e->
-                            e.op(CoreOp.core_yield()))
+                            e.add(CoreOp.core_yield()))
                     );
                 })
                 .toJava( "After injecting")
