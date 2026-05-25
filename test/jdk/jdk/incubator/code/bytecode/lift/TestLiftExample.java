@@ -33,8 +33,8 @@ import java.util.function.Function;
 
 /*
  * @test
- * @library ../../lib
  * @modules jdk.incubator.code/jdk.incubator.code.internal
+ * @library ../../lib
  * @run junit TestLiftExample
  */
 

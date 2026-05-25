@@ -47,9 +47,10 @@ import java.util.stream.Stream;
 
 /*
  * @test
- * @library ../../lib
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../../lib
+ * @enablePreview
  * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestBytecodeLift
  */
 

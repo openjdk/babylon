@@ -1885,7 +1885,7 @@ public sealed abstract class JavaOp extends Op {
 
         @Override
         public CodeType resultType() {
-            return JavaType.VOID;
+            return VOID;
         }
     }
 

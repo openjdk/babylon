@@ -25,6 +25,7 @@ import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.lang.classfile.*;
@@ -42,10 +43,11 @@ import java.util.stream.Stream;
 
 /*
  * @test
- * @library ../../lib
  * @modules jdk.incubator.code/jdk.incubator.code.internal
  * @modules java.base/java.lang.invoke:open
  * @modules java.base/jdk.internal.classfile.components
+ * @library ../../lib
+ * @enablePreview
  * @run junit TestSmallCorpus
  */
 public class TestSmallCorpus {
