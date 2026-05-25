@@ -72,24 +72,24 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_INPUT = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.exception.region = exception.region.enter ^block_1 ^block_8 ^block_3;
+                exception.region.enter ^block_1 ^block_8 ^block_3;
 
               ^block_1:
                 %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
                 branch ^block_2;
 
               ^block_2:
-                exception.region.exit %2 ^block_6;
+                exception.region.exit ^block_6;
 
               ^block_3(%4 : java.type:"java.lang.RuntimeException"):
-                %5 : java.exception.region = exception.region.enter ^block_4 ^block_8;
+                exception.region.enter ^block_4 ^block_8;
 
               ^block_4:
                 %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
                 branch ^block_5;
 
               ^block_5:
-                exception.region.exit %5 ^block_6;
+                exception.region.exit ^block_6;
 
               ^block_6:
                 %7 : java.type:"int" = invoke @java.ref:"A::finally_():int";
@@ -106,26 +106,26 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_EXPECTED = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.exception.region = exception.region.enter ^block_1 ^block_5 ^block_2;
+                exception.region.enter ^block_1 ^block_5 ^block_2;
 
               ^block_1:
-                %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
-                exception.region.exit %2 ^block_4;
+                %2 : java.type:"int" = invoke @java.ref:"A::try_():int";
+                exception.region.exit ^block_4;
 
-              ^block_2(%4 : java.type:"java.lang.RuntimeException"):
-                %5 : java.exception.region = exception.region.enter ^block_3 ^block_5;
+              ^block_2(%3 : java.type:"java.lang.RuntimeException"):
+                exception.region.enter ^block_3 ^block_5;
 
               ^block_3:
-                %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
-                exception.region.exit %5 ^block_4;
+                %4 : Var<java.type:"java.lang.RuntimeException"> = var %3 @"e";
+                exception.region.exit ^block_4;
 
               ^block_4:
-                %7 : java.type:"int" = invoke @java.ref:"A::finally_():int";
+                %5 : java.type:"int" = invoke @java.ref:"A::finally_():int";
                 return;
 
-              ^block_5(%8 : java.type:"java.lang.Throwable"):
-                %9 : java.type:"int" = invoke @java.ref:"A::finally_():int";
-                throw %8;
+              ^block_5(%6 : java.type:"java.lang.Throwable"):
+                %7 : java.type:"int" = invoke @java.ref:"A::finally_():int";
+                throw %6;
             };""";
 
     static final String TEST3_INPUT = """
@@ -214,14 +214,14 @@ public class TestNormalizeBlocksTransformer {
 
     static final String TEST5_INPUT = """
             func @"f" ()java.type:"void" -> {
-                %0 : java.exception.region = exception.region.enter ^block_1 ^block_4;
+                exception.region.enter ^block_1 ^block_4;
 
               ^block_1:
                 invoke @java.ref:"A::m():void";
                 branch ^block_2;
 
               ^block_2:
-                exception.region.exit %0 ^block_3;
+                exception.region.exit ^block_3;
 
               ^block_3:
                 branch ^block_5;
@@ -235,16 +235,16 @@ public class TestNormalizeBlocksTransformer {
             """;
     static final String TEST5_EXPECTED = """
             func @"f" ()java.type:"void" -> {
-                %0 : java.exception.region = exception.region.enter ^block_1 ^block_3;
+                exception.region.enter ^block_1 ^block_3;
 
               ^block_1:
                 invoke @java.ref:"A::m():void";
-                exception.region.exit %0 ^block_2;
+                exception.region.exit ^block_2;
 
               ^block_2:
                 branch ^block_4;
 
-              ^block_3(%1 : java.type:"java.lang.Throwable"):
+              ^block_3(%0 : java.type:"java.lang.Throwable"):
                 branch ^block_4;
 
               ^block_4:

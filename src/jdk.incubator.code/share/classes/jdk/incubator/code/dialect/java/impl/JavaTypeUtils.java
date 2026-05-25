@@ -89,9 +89,6 @@ public class JavaTypeUtils {
     /** Flattened Java reference name */
     public static final String JAVA_REF_FLAT_NAME_PREFIX = "java.ref:";
 
-    /** Exception region type name */
-    public static final String JAVA_EXCEPTION_REGION = "java.exception.region";
-
     /**
      * An enum modeling the Java type form kind. Useful for switching.
      */
@@ -104,8 +101,6 @@ public class JavaTypeUtils {
         INFLATED_TYPE,
         /** An inflated reference form */
         INFLATED_REF,
-        /** Exception region */
-        EXCEPTION_REGION,
         /** Some other form */
         OTHER;
 
@@ -121,7 +116,6 @@ public class JavaTypeUtils {
                      JAVA_TYPE_VAR_NAME -> INFLATED_TYPE;
                 case JAVA_REF_FIELD_NAME, JAVA_REF_CONSTRUCTOR_NAME,
                      JAVA_REF_METHOD_NAME, JAVA_REF_RECORD_NAME -> INFLATED_REF;
-                case JAVA_EXCEPTION_REGION -> EXCEPTION_REGION;
                 case String s when s.startsWith(JAVA_TYPE_FLAT_NAME_PREFIX) -> FLATTENED_TYPE;
                 case String s when s.startsWith(JAVA_REF_FLAT_NAME_PREFIX) -> FLATTENED_REF;
                 default -> OTHER;

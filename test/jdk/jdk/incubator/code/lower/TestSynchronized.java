@@ -44,29 +44,29 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
-                %6 : java.exception.region = exception.region.enter ^block_2 ^block_4;
+                exception.region.enter ^block_2 ^block_4;
 
               ^block_2:
-                %7 : java.type:"int" = var.load %3;
-                %8 : java.type:"int" = constant @1;
-                %9 : java.type:"int" = add %7 %8;
-                var.store %3 %9;
+                %6 : java.type:"int" = var.load %3;
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"int" = add %6 %7;
+                var.store %3 %8;
                 monitor.exit %5;
-                exception.region.exit %6 ^block_3;
+                exception.region.exit ^block_3;
 
               ^block_3:
-                %10 : java.type:"int" = var.load %3;
-                return %10;
+                %9 : java.type:"int" = var.load %3;
+                return %9;
 
-              ^block_4(%11 : java.type:"java.lang.Throwable"):
-                %12 : java.exception.region = exception.region.enter ^block_5 ^block_4;
+              ^block_4(%10 : java.type:"java.lang.Throwable"):
+                exception.region.enter ^block_5 ^block_4;
 
               ^block_5:
                 monitor.exit %5;
-                exception.region.exit %12 ^block_6;
+                exception.region.exit ^block_6;
 
               ^block_6:
-                throw %11;
+                throw %10;
             };
             """, ssa = false)
     static int test1(Object m, int i) {
@@ -87,46 +87,46 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
-                %6 : java.exception.region = exception.region.enter ^block_2 ^block_8;
+                exception.region.enter ^block_2 ^block_8;
 
               ^block_2:
-                %7 : java.type:"int" = var.load %3;
-                %8 : java.type:"int" = constant @0;
-                %9 : java.type:"boolean" = gt %7 %8;
-                cbranch %9 ^block_3 ^block_5;
+                %6 : java.type:"int" = var.load %3;
+                %7 : java.type:"int" = constant @0;
+                %8 : java.type:"boolean" = gt %6 %7;
+                cbranch %8 ^block_3 ^block_5;
 
               ^block_3:
-                %10 : java.type:"int" = constant @-1;
+                %9 : java.type:"int" = constant @-1;
                 monitor.exit %5;
-                exception.region.exit %6 ^block_4;
+                exception.region.exit ^block_4;
 
               ^block_4:
-                return %10;
+                return %9;
 
               ^block_5:
                 branch ^block_6;
 
               ^block_6:
-                %11 : java.type:"int" = var.load %3;
-                %12 : java.type:"int" = constant @1;
-                %13 : java.type:"int" = add %11 %12;
-                var.store %3 %13;
+                %10 : java.type:"int" = var.load %3;
+                %11 : java.type:"int" = constant @1;
+                %12 : java.type:"int" = add %10 %11;
+                var.store %3 %12;
                 monitor.exit %5;
-                exception.region.exit %6 ^block_7;
+                exception.region.exit ^block_7;
 
               ^block_7:
-                %14 : java.type:"int" = var.load %3;
-                return %14;
+                %13 : java.type:"int" = var.load %3;
+                return %13;
 
-              ^block_8(%15 : java.type:"java.lang.Throwable"):
-                %16 : java.exception.region = exception.region.enter ^block_9 ^block_8;
+              ^block_8(%14 : java.type:"java.lang.Throwable"):
+                exception.region.enter ^block_9 ^block_8;
 
               ^block_9:
                 monitor.exit %5;
-                exception.region.exit %16 ^block_10;
+                exception.region.exit ^block_10;
 
               ^block_10:
-                throw %15;
+                throw %14;
             };
             """, ssa = false)
     static int test2(Object m, int i) {

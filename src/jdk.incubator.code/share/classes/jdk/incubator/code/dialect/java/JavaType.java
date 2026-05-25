@@ -149,17 +149,6 @@ public sealed interface JavaType extends CodeType
     /** {@link JavaType} representing {@link List} */
     ClassType J_U_LIST = new ClassType(ConstantDescs.CD_List);
 
-    /**
-     * A synthetic code type produced by {@link JavaOp.ExceptionRegionEnter} and consumed by
-     * {@link JavaOp.ExceptionRegionExit} to identify an exception region.
-     */
-    CodeType EXCEPTION_REGION = new CodeType() {
-        @Override
-        public String toString() {
-            return JavaTypeUtils.JAVA_EXCEPTION_REGION;
-        }
-    };
-
     // Conversions
 
     /**
@@ -203,7 +192,6 @@ public sealed interface JavaType extends CodeType
     CodeTypeFactory JAVA_ONLY_TYPE_FACTORY = tree -> switch (JavaTypeUtils.Kind.of(tree)) {
         case INFLATED_TYPE -> JavaTypeUtils.toJavaType(tree);
         case INFLATED_REF -> JavaTypeUtils.toJavaRef(tree);
-        case EXCEPTION_REGION -> EXCEPTION_REGION;
         default -> throw new UnsupportedOperationException("Unsupported: " + tree);
     };
 
