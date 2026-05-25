@@ -63,10 +63,10 @@ public class TestBlockIndexes {
                 // Create some blocks without predecessors
                 for (int i = 0; i < 5; i++) {
                     Block.Builder redundant = block.block();
-                    redundant.op(CoreOp.return_());
+                    redundant.add(CoreOp.return_());
                 }
             }
-            block.op(op);
+            block.add(op);
             return block;
         });
         assertBlockIndexes(f);

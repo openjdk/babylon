@@ -84,16 +84,16 @@ public class TestLambdaOps {
                                 .body(lblock -> {
                                     Block.Parameter li = lblock.parameters().get(0);
 
-                                    lblock.op(return_(
+                                    lblock.add(return_(
                                             // capture i from function's body
-                                            lblock.op(JavaOp.add(i, li))
+                                            lblock.add(JavaOp.add(i, li))
                                     ));
                                 });
                     });
-                    Op.Result lquoted = block.op(qop);
+                    Op.Result lquoted = block.add(qop);
 
-                    Op.Result or = block.op(JavaOp.invoke(Builder.ACCEPT_METHOD, lquoted));
-                    block.op(return_(or));
+                    Op.Result or = block.add(JavaOp.invoke(Builder.ACCEPT_METHOD, lquoted));
+                    block.add(return_(or));
                 });
 
         System.out.println(f.toText());
@@ -121,14 +121,14 @@ public class TestLambdaOps {
                             .body(lblock -> {
                                 Block.Parameter li = lblock.parameters().get(0);
 
-                                lblock.op(return_(
-                                        lblock.op(JavaOp.add(i, li))));
+                                lblock.add(return_(
+                                        lblock.add(JavaOp.add(i, li))));
                             });
-                    Op.Result fi = block.op(lambda);
+                    Op.Result fi = block.add(lambda);
 
-                    Op.Result fortyTwo = block.op(constant(INT, 42));
-                    Op.Result or = block.op(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
-                    block.op(return_(or));
+                    Op.Result fortyTwo = block.add(constant(INT, 42));
+                    Op.Result or = block.add(JavaOp.invoke(INT_UNARY_OPERATOR_METHOD, fi, fortyTwo));
+                    block.add(return_(or));
                 });
 
         System.out.println(f.toText());

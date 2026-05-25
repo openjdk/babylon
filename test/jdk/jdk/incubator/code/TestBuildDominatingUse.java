@@ -46,12 +46,12 @@ public class TestBuildDominatingUse {
         Block.Builder entryBlock = body.entryBlock();
         Block.Builder block1 = entryBlock.block();
 
-        Op.Result zeroValue = block1.op(CoreOp.constant(JavaType.INT, 0));
-        block1.op(return_());
+        Op.Result zeroValue = block1.add(CoreOp.constant(JavaType.INT, 0));
+        block1.add(return_());
 
         // Use of operation result as operand is not dominated by its declaration
-        entryBlock.op(JavaOp.neg(zeroValue));
-        entryBlock.op(branch(block1.reference()));
+        entryBlock.add(JavaOp.neg(zeroValue));
+        entryBlock.add(branch(block1.reference()));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -64,10 +64,10 @@ public class TestBuildDominatingUse {
         Block.Builder block1 = entryBlock.block(JavaType.INT);
         Block.Parameter p = block1.parameters().getFirst();
 
-        block1.op(return_());
+        block1.add(return_());
 
         // Use of block parameter as block argument is not dominated by its declaration
-        entryBlock.op(branch(block1.reference(p)));
+        entryBlock.add(branch(block1.reference(p)));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -79,16 +79,16 @@ public class TestBuildDominatingUse {
         Block.Builder entryBlock = body.entryBlock();
         Block.Builder block1 = entryBlock.block();
 
-        Op.Result zeroValue = block1.op(CoreOp.constant(JavaType.INT, 0));
-        block1.op(return_());
+        Op.Result zeroValue = block1.add(CoreOp.constant(JavaType.INT, 0));
+        block1.add(return_());
 
-        entryBlock.op(JavaOp.lambda(body, FUNCTION_TYPE_VOID, JavaType.type(Runnable.class))
+        entryBlock.add(JavaOp.lambda(body, FUNCTION_TYPE_VOID, JavaType.type(Runnable.class))
                 .body(block2 -> {
                     // Use of operation result as operand is not dominated by its declaration
-                    block2.op(JavaOp.neg(zeroValue));
-                    block2.op(return_());
+                    block2.add(JavaOp.neg(zeroValue));
+                    block2.add(return_());
                 }));
-        entryBlock.op(branch(block1.reference()));
+        entryBlock.add(branch(block1.reference()));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -101,18 +101,18 @@ public class TestBuildDominatingUse {
         Block.Builder block1 = entryBlock.block(JavaType.INT);
         Block.Parameter p = block1.parameters().getFirst();
 
-        block1.op(return_());
+        block1.add(return_());
 
-        entryBlock.op(JavaOp.lambda(body, FUNCTION_TYPE_VOID, JavaType.type(Runnable.class))
+        entryBlock.add(JavaOp.lambda(body, FUNCTION_TYPE_VOID, JavaType.type(Runnable.class))
                 .body(block2 -> {
                     Block.Builder block3 = block2.block(JavaType.INT);
-                    block3.op(return_());
+                    block3.add(return_());
 
                     // Use of block parameter as block argument is not dominated by its declaration
-                    block2.op(branch(block3.reference(p)));
+                    block2.add(branch(block3.reference(p)));
                 }));
-        Op.Result zero = entryBlock.op(constant(JavaType.INT, 0));
-        entryBlock.op(branch(block1.reference(zero)));
+        Op.Result zero = entryBlock.add(constant(JavaType.INT, 0));
+        entryBlock.add(branch(block1.reference(zero)));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }

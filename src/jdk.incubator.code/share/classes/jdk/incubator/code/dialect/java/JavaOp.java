@@ -535,7 +535,7 @@ public sealed abstract class JavaOp extends Op {
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).add(this);
             return b;
         }
 
@@ -666,7 +666,7 @@ public sealed abstract class JavaOp extends Op {
                 int idx = this.invokableSignature().parameterTypes().size();
                 for (Value v : capturedValues()) {
                     Block.Parameter p = builder.parameters().get(idx++);
-                    Value functionValue = v.type() instanceof VarType ? builder.op(CoreOp.var(p)) : p;
+                    Value functionValue = v.type() instanceof VarType ? builder.add(CoreOp.var(p)) : p;
                     builder.context().mapValue(v, functionValue);
                 }
                 List<Block.Parameter> outputValues = builder.parameters().subList(0, this.invokableSignature().parameterTypes().size());
@@ -2755,7 +2755,7 @@ public sealed abstract class JavaOp extends Op {
             Op opt = target();
             BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
             if (t != null) {
-                b.op(branch(f.apply(t).reference()));
+                b.add(branch(f.apply(t).reference()));
             } else {
                 throw new IllegalStateException("No branch target for operation: " + opt);
             }
@@ -2900,7 +2900,7 @@ public sealed abstract class JavaOp extends Op {
             Op opt = target();
             BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
             if (t != null) {
-                b.op(branch(f.apply(t).reference(b.context().getValue(yieldOperand()))));
+                b.add(branch(f.apply(t).reference(b.context().getValue(yieldOperand()))));
             } else {
                 throw new IllegalStateException("No branch target for operation: " + opt);
             }
@@ -2993,7 +2993,7 @@ public sealed abstract class JavaOp extends Op {
 
             b.transformBody(body, List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
-                    block.op(branch(exit.reference()));
+                    block.add(branch(exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -3093,7 +3093,7 @@ public sealed abstract class JavaOp extends Op {
             Value monitorTarget = b.parameters().get(0);
 
             // Monitor enter
-            b.op(monitorEnter(monitorTarget));
+            b.add(monitorEnter(monitorTarget));
 
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
@@ -3101,17 +3101,17 @@ public sealed abstract class JavaOp extends Op {
             // Exception region for the body
             Block.Builder syncRegionEnter = b.block();
             Block.Builder catcherFinally = b.block();
-            Op.Result enter = b.op(exceptionRegionEnter(
+            Op.Result enter = b.add(exceptionRegionEnter(
                     syncRegionEnter.reference(), catcherFinally.reference()));
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
                     (op instanceof StatementTargetOp lop && ifExitFromSynchronized(lop))) {
                     // Monitor exit
-                    block.op(monitorExit(monitorTarget));
+                    block.add(monitorExit(monitorTarget));
                     // Exit the exception region
                     Block.Builder exitRegion = block.block();
-                    block.op(exceptionRegionExit(enter, exitRegion.reference()));
+                    block.add(exceptionRegionExit(enter, exitRegion.reference()));
                     return exitRegion;
                 } else {
                     return block;
@@ -3121,9 +3121,9 @@ public sealed abstract class JavaOp extends Op {
             syncRegionEnter.transformBody(blockBody, List.of(), loweringTransformer(syncExitTransformer, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     // Monitor exit
-                    block.op(monitorExit(monitorTarget));
+                    block.add(monitorExit(monitorTarget));
                     // Exit the exception region
-                    block.op(exceptionRegionExit(enter, exit.reference()));
+                    block.add(exceptionRegionExit(enter, exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -3132,18 +3132,18 @@ public sealed abstract class JavaOp extends Op {
 
             // The catcher, with an exception region back branching to itself
             Block.Builder catcherFinallyRegionEnter = b.block();
-            Op.Result catcherEnter = catcherFinally.op(exceptionRegionEnter(
+            Op.Result catcherEnter = catcherFinally.add(exceptionRegionEnter(
                     catcherFinallyRegionEnter.reference(), catcherFinally.reference()));
 
             // Monitor exit
-            catcherFinallyRegionEnter.op(monitorExit(monitorTarget));
+            catcherFinallyRegionEnter.add(monitorExit(monitorTarget));
             Block.Builder catcherFinallyRegionExit = b.block();
             // Exit the exception region
-            catcherFinallyRegionEnter.op(exceptionRegionExit(
+            catcherFinallyRegionEnter.add(exceptionRegionExit(
                     catcherEnter, catcherFinallyRegionExit.reference()));
             // Rethrow outside of region
             Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
-            catcherFinallyRegionExit.op(throw_(t));
+            catcherFinallyRegionExit.add(throw_(t));
 
             return exit;
         }
@@ -3153,7 +3153,7 @@ public sealed abstract class JavaOp extends Op {
             b.transformBody(exprBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     Value monitorTarget = block.context().getValue(yop.yieldValue());
-                    block.op(branch(exprExit.reference(monitorTarget)));
+                    block.add(branch(exprExit.reference(monitorTarget)));
                     return block;
                 } else {
                     return null;
@@ -3272,7 +3272,7 @@ public sealed abstract class JavaOp extends Op {
                 }
 
                 if (op instanceof CoreOp.YieldOp) {
-                    block.op(branch(exit.reference()));
+                    block.add(branch(exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -3372,7 +3372,7 @@ public sealed abstract class JavaOp extends Op {
              */
             public ElseIfBuilder then() {
                 Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
-                body.entryBlock().op(core_yield());
+                body.entryBlock().add(core_yield());
                 bodies.add(body);
 
                 return new ElseIfBuilder(connectedAncestorBody, bodies);
@@ -3425,7 +3425,7 @@ public sealed abstract class JavaOp extends Op {
              */
             public IfOp else_() {
                 Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
-                body.entryBlock().op(core_yield());
+                body.entryBlock().add(core_yield());
                 bodies.add(body);
 
                 return new IfOp(bodies);
@@ -3466,7 +3466,7 @@ public sealed abstract class JavaOp extends Op {
                 bodyCs = new ArrayList<>(bodyCs);
                 Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
                         CoreType.FUNCTION_TYPE_VOID);
-                end.entryBlock().op(core_yield());
+                end.entryBlock().add(core_yield());
                 bodyCs.add(end);
             }
 
@@ -3529,7 +3529,7 @@ public sealed abstract class JavaOp extends Op {
 
                     pred.transformBody(predBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yo) {
-                            block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
+                            block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
                                     action.reference(), next.reference()));
                             return block;
                         } else {
@@ -3540,7 +3540,7 @@ public sealed abstract class JavaOp extends Op {
 
                 action.transformBody(actionBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(exit.reference()));
+                        block.add(branch(exit.reference()));
                         return block;
                     } else {
                         return null;
@@ -3607,15 +3607,15 @@ public sealed abstract class JavaOp extends Op {
             // if no case null, add one that throws NPE
             if (!(selectorExpression.type() instanceof PrimitiveType) && !haveNullCase()) {
                 Block.Builder throwBlock = b.block();
-                throwBlock.op(throw_(
-                        throwBlock.op(new_(MethodRef.constructor(NullPointerException.class)))
+                throwBlock.add(throw_(
+                        throwBlock.add(new_(MethodRef.constructor(NullPointerException.class)))
                 ));
 
                 Block.Builder continueBlock = b.block();
 
-                Result p = b.op(invoke(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                        selectorExpression, b.op(constant(J_L_OBJECT, null))));
-                b.op(conditionalBranch(p, throwBlock.reference(), continueBlock.reference()));
+                Result p = b.add(invoke(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
+                        selectorExpression, b.add(constant(J_L_OBJECT, null))));
+                b.add(conditionalBranch(p, throwBlock.reference(), continueBlock.reference()));
 
                 b = continueBlock;
             }
@@ -3692,7 +3692,7 @@ public sealed abstract class JavaOp extends Op {
                                 } else {
                                     falseTarget = exit.reference();
                                 }
-                                block.op(conditionalBranch(block.context().getValue(yop.yieldValue()),
+                                block.add(conditionalBranch(block.context().getValue(yop.yieldValue()),
                                         statement.reference(), falseTarget));
                                 yield block;
                             }
@@ -3703,7 +3703,7 @@ public sealed abstract class JavaOp extends Op {
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
                                 List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
-                                block.op(branch(exit.reference(args)));
+                                block.add(branch(exit.reference(args)));
                                 yield block;
                             }
                             default -> null;
@@ -3715,7 +3715,7 @@ public sealed abstract class JavaOp extends Op {
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
                                 List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
-                                block.op(branch(exit.reference(args)));
+                                block.add(branch(exit.reference(args)));
                                 yield block;
                             }
                             default -> null;
@@ -3873,7 +3873,7 @@ public sealed abstract class JavaOp extends Op {
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
             BranchTarget t = BranchTarget.getBranchTarget(b.context(), ancestorBody());
             if (t != null) {
-                b.op(branch(f.apply(t).reference()));
+                b.add(branch(f.apply(t).reference()));
             } else {
                 throw new IllegalStateException("No branch target for operation: " + this);
             }
@@ -4127,13 +4127,13 @@ public sealed abstract class JavaOp extends Op {
                     boolean isResult = op.result().uses().size() == 1 &&
                             op.result().uses().stream().allMatch(r -> r.op() instanceof CoreOp.YieldOp);
                     if (!isResult) {
-                        block.op(op);
+                        block.add(op);
                     }
                     yield block;
                 }
                 case CoreOp.YieldOp yop -> {
                     if (yop.yieldValue() == null) {
-                        block.op(branch(header.reference()));
+                        block.add(branch(header.reference()));
                         yield block;
                     } else if (yop.yieldValue() instanceof Result or) {
                         if (or.op() instanceof TupleOp top) {
@@ -4141,7 +4141,7 @@ public sealed abstract class JavaOp extends Op {
                         } else {
                             initValues.addAll(block.context().getValues(yop.operands()));
                         }
-                        block.op(branch(header.reference()));
+                        block.add(branch(header.reference()));
                         yield block;
                     }
 
@@ -4152,7 +4152,7 @@ public sealed abstract class JavaOp extends Op {
 
             header.transformBody(condBody, initValues, loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
-                    block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
+                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.reference(), exit.reference()));
                     return block;
                 } else {
@@ -4166,7 +4166,7 @@ public sealed abstract class JavaOp extends Op {
 
             update.transformBody(this.updateBody, initValues, loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
-                    block.op(branch(header.reference()));
+                    block.add(branch(header.reference()));
                     return block;
                 } else {
                     return null;
@@ -4401,7 +4401,7 @@ public sealed abstract class JavaOp extends Op {
             b.transformBody(exprBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop) {
                     Value loopSource = block.context().getValue(yop.yieldValue());
-                    block.op(branch(preHeader.reference(loopSource)));
+                    block.add(branch(preHeader.reference(loopSource)));
                     return block;
                 } else {
                     return null;
@@ -4410,20 +4410,20 @@ public sealed abstract class JavaOp extends Op {
 
             if (isArray) {
                 Value array = preHeader.parameters().get(0);
-                Value arrayLength = preHeader.op(arrayLength(array));
-                Value i = preHeader.op(constant(INT, 0));
-                preHeader.op(branch(header.reference(i)));
+                Value arrayLength = preHeader.add(arrayLength(array));
+                Value i = preHeader.add(constant(INT, 0));
+                preHeader.add(branch(header.reference(i)));
 
                 i = header.parameters().get(0);
-                Value p = header.op(lt(i, arrayLength));
-                header.op(conditionalBranch(p, init.reference(), exit.reference()));
+                Value p = header.add(lt(i, arrayLength));
+                header.add(conditionalBranch(p, init.reference(), exit.reference()));
 
-                Value e = init.op(arrayLoadOp(array, i));
+                Value e = init.add(arrayLoadOp(array, i));
                 List<Value> initValues = new ArrayList<>();
                 init.transformBody(this.initBody, List.of(e), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         initValues.addAll(block.context().getValues(yop.operands()));
-                        block.op(branch(body.reference()));
+                        block.add(branch(body.reference()));
                         return block;
                     } else {
                         return null;
@@ -4435,22 +4435,22 @@ public sealed abstract class JavaOp extends Op {
 
                 body.transformBody(this.loopBody, initValues, loweringTransformer(inherited, (_, _) -> null));
 
-                i = update.op(add(i, update.op(constant(INT, 1))));
-                update.op(branch(header.reference(i)));
+                i = update.add(add(i, update.add(constant(INT, 1))));
+                update.add(branch(header.reference(i)));
             } else {
                 JavaType iterable = parameterized(type(Iterator.class), elementType);
-                Value iterator = preHeader.op(invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
-                preHeader.op(branch(header.reference()));
+                Value iterator = preHeader.add(invoke(iterable, ITERABLE_ITERATOR, preHeader.parameters().get(0)));
+                preHeader.add(branch(header.reference()));
 
-                Value p = header.op(invoke(ITERATOR_HAS_NEXT, iterator));
-                header.op(conditionalBranch(p, init.reference(), exit.reference()));
+                Value p = header.add(invoke(ITERATOR_HAS_NEXT, iterator));
+                header.add(conditionalBranch(p, init.reference(), exit.reference()));
 
-                Value e = init.op(invoke(elementType, ITERATOR_NEXT, iterator));
+                Value e = init.add(invoke(elementType, ITERATOR_NEXT, iterator));
                 List<Value> initValues = new ArrayList<>();
                 init.transformBody(this.initBody, List.of(e), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         initValues.addAll(block.context().getValues(yop.operands()));
-                        block.op(branch(body.reference()));
+                        block.add(branch(body.reference()));
                         return block;
                     } else {
                         return null;
@@ -4608,11 +4608,11 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder body = b.block();
             Block.Builder exit = b.block();
 
-            b.op(branch(header.reference()));
+            b.add(branch(header.reference()));
 
             header.transformBody(predicateBody(), List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
-                    block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
+                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.reference(), exit.reference()));
                     return block;
                 } else {
@@ -4770,7 +4770,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder header = b.block();
             Block.Builder exit = b.block();
 
-            b.op(branch(body.reference()));
+            b.add(branch(body.reference()));
 
             BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
@@ -4778,7 +4778,7 @@ public sealed abstract class JavaOp extends Op {
 
             header.transformBody(predicateBody(), List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
-                    block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
+                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             body.reference(), exit.reference()));
                     return block;
                 } else {
@@ -4853,7 +4853,7 @@ public sealed abstract class JavaOp extends Op {
                     bodyTransformer = loweringTransformer(before, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
-                            block.op(branch(exit.reference(p)));
+                            block.add(branch(exit.reference(p)));
                             return block;
                         } else {
                             return null;
@@ -4865,9 +4865,9 @@ public sealed abstract class JavaOp extends Op {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             if (cop instanceof ConditionalAndOp) {
-                                block.op(conditionalBranch(p, nextPred.reference(), exit.reference(p)));
+                                block.add(conditionalBranch(p, nextPred.reference(), exit.reference(p)));
                             } else {
-                                block.op(conditionalBranch(p, exit.reference(p), nextPred.reference()));
+                                block.add(conditionalBranch(p, exit.reference(p), nextPred.reference()));
                             }
                             return block;
                         } else {
@@ -5127,7 +5127,7 @@ public sealed abstract class JavaOp extends Op {
             List<Block.Builder> builders = List.of(b.block(), b.block());
             b.transformBody(bodies.get(0), List.of(), loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yo) {
-                    block.op(conditionalBranch(block.context().getValue(yo.yieldValue()),
+                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
                             builders.get(0).reference(), builders.get(1).reference()));
                     return block;
                 } else {
@@ -5138,7 +5138,7 @@ public sealed abstract class JavaOp extends Op {
             for (int i = 0; i < 2; i++) {
                 builders.get(i).transformBody(bodies.get(i + 1), List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
-                        block.op(branch(exit.reference(block.context().getValue(yop.yieldValue()))));
+                        block.add(branch(exit.reference(block.context().getValue(yop.yieldValue()))));
                         return block;
                     } else {
                         return null;
@@ -5443,7 +5443,7 @@ public sealed abstract class JavaOp extends Op {
                         b.context().getValues(capturedValues()),
                         loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(exit.reference()));
+                        block.add(branch(exit.reference()));
                         return block;
                     } else {
                         return null;
@@ -5456,7 +5456,7 @@ public sealed abstract class JavaOp extends Op {
             if (catchBodies.isEmpty() && finallyBody == null) {
                 b.transformBody(body, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(exit.reference()));
+                        block.add(branch(exit.reference()));
                         return block;
                     } else {
                         return null;
@@ -5485,7 +5485,7 @@ public sealed abstract class JavaOp extends Op {
             List<Block.Reference> exitHandlers = catchers.stream()
                     .map(Block.Builder::reference)
                     .toList();
-            Op.Result enter = b.op(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
+            Op.Result enter = b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
@@ -5502,7 +5502,7 @@ public sealed abstract class JavaOp extends Op {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
-                        block.op(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
+                        block.add(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
                         return tryRegionReturnExit;
                     } else {
                         return block;
@@ -5514,7 +5514,7 @@ public sealed abstract class JavaOp extends Op {
             tryRegionEnter.transformBody(body, List.of(), loweringTransformer(tryExitTransformer, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     hasTryRegionExit.set(true);
-                    block.op(branch(tryRegionExit.reference()));
+                    block.add(branch(tryRegionExit.reference()));
                     return block;
                 } else {
                     return null;
@@ -5526,11 +5526,11 @@ public sealed abstract class JavaOp extends Op {
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
-                    tryRegionExit.op(exceptionRegionExit(enter, finallyEnter.reference()));
+                    tryRegionExit.add(exceptionRegionExit(enter, finallyEnter.reference()));
                 }
             } else if (hasTryRegionExit.get()) {
                 // Exit the try exception region
-                tryRegionExit.op(exceptionRegionExit(enter, exit.reference()));
+                tryRegionExit.add(exceptionRegionExit(enter, exit.reference()));
             }
 
             // Inline the catch bodies
@@ -5545,7 +5545,7 @@ public sealed abstract class JavaOp extends Op {
                     Block.Builder catchRegionExit = b.block();
 
                     // Enter the catch exception region
-                    Result catchExceptionRegion = catcher.op(
+                    Result catchExceptionRegion = catcher.add(
                             exceptionRegionEnter(catchRegionEnter.reference(), catcherFinally.reference()));
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
@@ -5562,7 +5562,7 @@ public sealed abstract class JavaOp extends Op {
                     catchRegionEnter.transformBody(catcherBody, List.of(t), loweringTransformer(catchExitTransformer, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp) {
                             hasCatchRegionExit.set(true);
-                            block.op(branch(catchRegionExit.reference()));
+                            block.add(branch(catchRegionExit.reference()));
                             return block;
                         } else {
                             return null;
@@ -5572,13 +5572,13 @@ public sealed abstract class JavaOp extends Op {
                     // Exit the catch exception region
                     if (hasCatchRegionExit.get()) {
                         hasTryRegionExit.set(true);
-                        catchRegionExit.op(exceptionRegionExit(catchExceptionRegion, finallyEnter.reference()));
+                        catchRegionExit.add(exceptionRegionExit(catchExceptionRegion, finallyEnter.reference()));
                     }
                 } else {
                     // Inline the catch body
                     catcher.transformBody(catcherBody, List.of(t), loweringTransformer(inherited, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp) {
-                            block.op(branch(exit.reference()));
+                            block.add(branch(exit.reference()));
                             return block;
                         } else {
                             return null;
@@ -5591,7 +5591,7 @@ public sealed abstract class JavaOp extends Op {
                 // Inline the finally body
                 finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(exit.reference()));
+                        block.add(branch(exit.reference()));
                         return block;
                     } else {
                         return null;
@@ -5606,7 +5606,7 @@ public sealed abstract class JavaOp extends Op {
 
                 catcherFinally.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(throw_(t));
+                        block.add(throw_(t));
                         return block;
                     } else {
                         return null;
@@ -5708,22 +5708,22 @@ public sealed abstract class JavaOp extends Op {
                     return normalizeExtendedTryWithResources(block.parentBody(), block.context(), new ArrayList<>());
                 };
                 if (catchBodies.isEmpty() && finallyBody == null) {
-                    entryBlock.op(normalizedTry.apply(entryBlock));
+                    entryBlock.add(normalizedTry.apply(entryBlock));
                 } else {
                     CatchBuilder catchBuilder = try_(entryBlock.parentBody(), tryB -> {
-                        tryB.op(normalizedTry.apply(tryB));
-                        tryB.op(core_yield());
+                        tryB.add(normalizedTry.apply(tryB));
+                        tryB.add(core_yield());
                     });
                     for (Body catcher : catchBodies) {
                         catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
                                 catchB.transformBody(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
                     }
-                    entryBlock.op(finallyBody == null
+                    entryBlock.add(finallyBody == null
                             ? catchBuilder.noFinalizer()
                             : catchBuilder.finally_(finB ->
                                     finB.transformBody(finallyBody, List.of(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER)));
                 }
-                entryBlock.op(core_yield());
+                entryBlock.add(core_yield());
             });
         }
 
@@ -5761,48 +5761,48 @@ public sealed abstract class JavaOp extends Op {
                 Block.Builder afterAcquire = entryBlock.block(resourceType);
                 entryBlock.transformBody(resourcesBodies.getFirst(), List.of(), (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
-                        block.op(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
+                        block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                     } else {
-                        block.op(op);
+                        block.add(op);
                     }
                     return block;
                 });
                 Value resource = afterAcquire.parameters().getFirst();
-                Value primaryExceptionVar = afterAcquire.op(var(afterAcquire.op(constant(type(Throwable.class), null))));
+                Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
                 // @@@ following builder code may be refactored into a reflected template method transformation
-                afterAcquire.op(try_(entryBlock.parentBody(), tryEntry -> {
+                afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
                     tryEntry.transformBody(body, List.of(resource), afterAcquire.context(), CodeTransformer.COPYING_TRANSFORMER);
                 }).catch_(type(Throwable.class), catchB -> {
                     Block.Parameter thrown = catchB.parameters().getFirst();
-                    catchB.op(varStore(primaryExceptionVar, thrown));
-                    catchB.op(throw_(thrown));
+                    catchB.add(varStore(primaryExceptionVar, thrown));
+                    catchB.add(throw_(thrown));
                 }).finally_(finB -> {
-                    Value nullObj = finB.op(constant(J_L_OBJECT, null));
-                    finB.op(if_(finB.parentBody()).if_(predB -> {
-                                predB.op(core_yield(predB.op(neq(resource, nullObj))));
+                    Value nullObj = finB.add(constant(J_L_OBJECT, null));
+                    finB.add(if_(finB.parentBody()).if_(predB -> {
+                                predB.add(core_yield(predB.add(neq(resource, nullObj))));
                     }).then(closeB -> {
-                        Value primaryException = closeB.op(varLoad(primaryExceptionVar));
-                        closeB.op(if_(closeB.parentBody()).if_(predB -> {
-                            predB.op(core_yield(predB.op(neq(primaryException, nullObj))));
+                        Value primaryException = closeB.add(varLoad(primaryExceptionVar));
+                        closeB.add(if_(closeB.parentBody()).if_(predB -> {
+                            predB.add(core_yield(predB.add(neq(primaryException, nullObj))));
                         }).then(suppB -> {
-                            suppB.op(try_(suppB.parentBody(), tryB -> {
-                                tryB.op(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
-                                tryB.op(core_yield());
+                            suppB.add(try_(suppB.parentBody(), tryB -> {
+                                tryB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                                tryB.add(core_yield());
                             }).catch_(type(Throwable.class), catchB -> {
                                 Block.Parameter closeException = catchB.parameters().getFirst();
-                                catchB.op(invoke(THROWABLE_ADD_SUPPRESSED_METHOD, primaryException, closeException));
-                                catchB.op(core_yield());
+                                catchB.add(invoke(THROWABLE_ADD_SUPPRESSED_METHOD, primaryException, closeException));
+                                catchB.add(core_yield());
                             }).noFinalizer());
-                            suppB.op(core_yield());
+                            suppB.add(core_yield());
                         }).else_(normB -> {
-                            normB.op(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
-                            normB.op(core_yield());
+                            normB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                            normB.add(core_yield());
                         }));
-                        closeB.op(core_yield());
+                        closeB.add(core_yield());
                     }).else_());
-                    finB.op(core_yield());
+                    finB.add(core_yield());
                 }));
-                afterAcquire.op(core_yield());
+                afterAcquire.add(core_yield());
             });
         }
 
@@ -5819,8 +5819,8 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder bodyB = basicBody.entryBlock();
             resourceValues.add(bodyB.parameters().getFirst());
             if (resourceValues.size() < resourcesBodies.size()) {
-                bodyB.op(normalizeExtendedTryWithResources(basicBody, cc, resourceValues));
-                bodyB.op(core_yield());
+                bodyB.add(normalizeExtendedTryWithResources(basicBody, cc, resourceValues));
+                bodyB.add(core_yield());
             } else {
                 bodyB.transformBody(body, resourceValues, cc, CodeTransformer.COPYING_TRANSFORMER);
             }
@@ -5845,12 +5845,12 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
-            block1.op(exceptionRegionExit(enter, finallyEnter.reference()));
+            block1.add(exceptionRegionExit(enter, finallyEnter.reference()));
 
             // Inline the finally body
             finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block2, op2) -> {
                 if (op2 instanceof CoreOp.YieldOp) {
-                    block2.op(branch(finallyExit.reference()));
+                    block2.add(branch(finallyExit.reference()));
                     return block2;
                 } else {
                     return null;
@@ -6262,19 +6262,19 @@ public sealed abstract class JavaOp extends Op {
                         patternValues,
                         rootPatternValue.op(),
                         b.context().getValue(targetOperand()));
-                currentBlock.op(branch(endMatchBlock.reference()));
+                currentBlock.add(branch(endMatchBlock.reference()));
 
                 // No match block
                 // Pass false
-                endNoMatchBlock.op(branch(endBlock.reference(
-                        endNoMatchBlock.op(constant(BOOLEAN, false)))));
+                endNoMatchBlock.add(branch(endBlock.reference(
+                        endNoMatchBlock.add(constant(BOOLEAN, false)))));
 
                 // Match block
                 // Lower match body and pass true
                 endMatchBlock.transformBody(matchBody, patternValues, loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.op(branch(endBlock.reference(
-                                block.op(constant(BOOLEAN, true)))));
+                        block.add(branch(endBlock.reference(
+                                block.add(constant(BOOLEAN, true)))));
                         return block;
                     } else {
                         return null;
@@ -6303,19 +6303,19 @@ public sealed abstract class JavaOp extends Op {
                 Block.Builder nextBlock = currentBlock.block();
 
                 // Check if instance of target type
-                Op.Result isInstance = currentBlock.op(instanceOf(targetType, target));
-                currentBlock.op(conditionalBranch(isInstance, nextBlock.reference(), endNoMatchBlock.reference()));
+                Op.Result isInstance = currentBlock.add(instanceOf(targetType, target));
+                currentBlock.add(conditionalBranch(isInstance, nextBlock.reference(), endNoMatchBlock.reference()));
 
                 currentBlock = nextBlock;
 
-                target = currentBlock.op(cast(targetType, target));
+                target = currentBlock.add(cast(targetType, target));
 
                 // Access component values of record and match on each as nested target
                 List<Value> dArgs = rpOp.operands();
                 for (int i = 0; i < dArgs.size(); i++) {
                     Op.Result nestedPattern = (Op.Result) dArgs.get(i);
                     // @@@ Handle exceptions?
-            Value nestedTarget = currentBlock.op(invoke(rpOp.recordReference().methodForComponent(i), target));
+            Value nestedTarget = currentBlock.add(invoke(rpOp.recordReference().methodForComponent(i), target));
 
                     currentBlock = lower(endNoMatchBlock, currentBlock, bindings, nestedPattern.op(), nestedTarget);
                 }
@@ -6387,10 +6387,10 @@ public sealed abstract class JavaOp extends Op {
                     if (p != null) {
                         // p != null, we need to perform type check at runtime
                         Block.Builder nextBlock = currentBlock.block();
-                        currentBlock.op(conditionalBranch(currentBlock.op(p), nextBlock.reference(), endNoMatchBlock.reference()));
+                        currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), endNoMatchBlock.reference()));
                         currentBlock = nextBlock;
                     }
-                    target = currentBlock.op(c);
+                    target = currentBlock.add(c);
                 }
 
                 bindings.add(target);

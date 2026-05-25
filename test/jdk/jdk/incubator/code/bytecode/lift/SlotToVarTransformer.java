@@ -192,7 +192,7 @@ final class SlotToVarTransformer {
                 for (var it = toInitialize.iterator(); it.hasNext();) {
                     Var var = it.next();
                     if (var.parentBody == op.ancestorBody()) {
-                        var.value = block.op(CoreOp.var(toCodeType(var.typeKind)));
+                        var.value = block.add(CoreOp.var(toCodeType(var.typeKind)));
                         it.remove();
                     }
                 }
@@ -205,7 +205,7 @@ final class SlotToVarTransformer {
                         System.out.println(slo);
                         throw new AssertionError();
                     }
-                    cc.mapValue(op.result(), var.single ? var.value : block.op(CoreOp.varLoad(var.value)));
+                    cc.mapValue(op.result(), var.single ? var.value : block.add(CoreOp.varLoad(var.value)));
                 }
                 case SlotOp.SlotStoreOp sso -> {
                     Var var = varMap.get(sso);
@@ -219,13 +219,13 @@ final class SlotToVarTransformer {
                             case UnresolvedType.Int _ -> UnresolvedType.unresolvedInt();
                             default -> val.type();
                         };
-                        var.value = block.op(CoreOp.var(null, varType, val));
+                        var.value = block.add(CoreOp.var(null, varType, val));
                     } else {
-                        block.op(CoreOp.varStore(var.value, val));
+                        block.add(CoreOp.varStore(var.value, val));
                     }
                 }
                 default ->
-                    block.op(op);
+                    block.add(op);
             }
             return block;
         });

@@ -211,7 +211,7 @@ public final class BytecodeLift {
     }
 
     private Op.Result op(Op op) {
-        return currentBlock.op(op);
+        return currentBlock.add(op);
     }
 
     // Lift to core dialect
@@ -521,13 +521,13 @@ public final class BytecodeLift {
                         } else {
                             // lambda call to a MH
                             stack.push(op(lambda.body(eb -> {
-                                Op.Result ret = eb.op(JavaOp.invoke(
+                                Op.Result ret = eb.add(JavaOp.invoke(
                                         MethodRef.method(JavaType.type(dmhd.owner()),
                                                          dmhd.methodName(),
                                                          lambdaFunc.returnType(),
                                                          lambdaFunc.parameterTypes()),
                                         Stream.concat(Arrays.stream(capturedValues), eb.parameters().stream()).toArray(Value[]::new)));
-                                eb.op(ret.type().equals(JavaType.VOID) ? CoreOp.return_() : CoreOp.return_(ret));
+                                eb.add(ret.type().equals(JavaType.VOID) ? CoreOp.return_() : CoreOp.return_(ret));
                             })));
                         }
                     } else if (bsmOwner.equals(CD_StringConcatFactory)) {
@@ -922,7 +922,7 @@ public final class BytecodeLift {
             Block.Builder nextBlock = last ? targetBlock : newBlock(targetBlock.parameters());
             Block.Reference nextReference = nextBlock.reference(currentBlock.parameters());
             ExceptionRegion entered = targetEreStack.get(i);
-            Op.Result enter = currentBlock.op(JavaOp.exceptionRegionEnter(
+            Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(
                     nextReference,
                     catchReferences(ereStack, entered)));
             enteredRegionMap.put(enter, entered);
@@ -937,7 +937,7 @@ public final class BytecodeLift {
     private void exitRegions(List<Op.Result> initialEreStack, Block.Builder initialBlock,
                              Block.Builder targetBlock, List<? extends Value> values) {
         if (initialEreStack.isEmpty()) {
-            initialBlock.op(CoreOp.branch(targetBlock.reference(values)));
+            initialBlock.add(CoreOp.branch(targetBlock.reference(values)));
             return;
         }
 
@@ -946,7 +946,7 @@ public final class BytecodeLift {
             boolean last = i == 0;
             Block.Builder nextBlock = last ? targetBlock : entryBlock.block();
             Block.Reference nextReference = last ? nextBlock.reference(values) : nextBlock.reference();
-            currentBlock.op(JavaOp.exceptionRegionExit(initialEreStack.get(i), nextReference));
+            currentBlock.add(JavaOp.exceptionRegionExit(initialEreStack.get(i), nextReference));
             currentBlock = nextBlock;
         }
     }
@@ -963,7 +963,7 @@ public final class BytecodeLift {
         int enters = targetEreStack.size() - common;
         if (exits == 0 && enters == 0) {
             // Join with branch
-            initialBlock.op(CoreOp.branch(targetBlock.reference(values)));
+            initialBlock.add(CoreOp.branch(targetBlock.reference(values)));
             enteredRegionStacks.putIfAbsent(targetBlock, initialEreStack);
             return initialEreStack;
         }
@@ -976,10 +976,10 @@ public final class BytecodeLift {
             Block.Reference nextReference = last ? nextBlock.reference(values) : nextBlock.reference();
             if (t < exits) {
                 Op.Result exited = ereStack.removeLast();
-                currentBlock.op(JavaOp.exceptionRegionExit(exited, nextReference));
+                currentBlock.add(JavaOp.exceptionRegionExit(exited, nextReference));
             } else {
                 ExceptionRegion entered = targetEreStack.get(common + t - exits);
-                Op.Result enter = currentBlock.op(JavaOp.exceptionRegionEnter(nextReference,
+                Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(nextReference,
                                                                               catchReferences(ereStack, entered)));
                 enteredRegionMap.put(enter, entered);
                 ereStack.add(enter);

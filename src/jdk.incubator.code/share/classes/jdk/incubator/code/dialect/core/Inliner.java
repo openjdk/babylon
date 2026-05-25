@@ -45,7 +45,7 @@ public final class Inliner {
      * An inline consumer that inserts a return operation with a value, if non-null.
      */
     public static final BiConsumer<Block.Builder, Value> INLINE_RETURN = (block, value) -> {
-        block.op(value != null ? return_(value) : CoreOp.return_());
+        block.add(value != null ? return_(value) : CoreOp.return_());
     };
 
     /**
@@ -134,13 +134,13 @@ public final class Inliner {
                     List<Value> arg = rop.returnValue() != null
                             ? List.of(block.context().getValue(rop.returnValue()))
                             : List.of();
-                    block.op(branch(returnBlock.reference(arg)));
+                    block.add(branch(returnBlock.reference(arg)));
                 }
 
                 return block;
             }
 
-            block.op(op);
+            block.add(op);
             return block;
         });
 

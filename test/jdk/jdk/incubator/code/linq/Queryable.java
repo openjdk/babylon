@@ -68,13 +68,13 @@ public interface Queryable<T> {
         FuncOp nextQueryExpression = func("query",
                 functionType(queryableType, queryExpression.invokableSignature().parameterTypes()))
                 .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
-                    Op.Result fi = block.op(lambdaOp);
+                    Op.Result fi = block.add(lambdaOp);
 
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(Queryable.TYPE, ((ClassType) lambdaOp.functionalInterface()).rawType()));
-                    Op.Result queryable = block.op(JavaOp.invoke(queryableType, md, query, fi));
+                    Op.Result queryable = block.add(JavaOp.invoke(queryableType, md, query, fi));
 
-                    block.op(return_(queryable));
+                    block.add(return_(queryable));
                 }));
 
         return provider().createQuery(elementType, nextQueryExpression);
@@ -101,9 +101,9 @@ public interface Queryable<T> {
                 .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(QueryResult.TYPE));
-                    Op.Result queryResult = block.op(JavaOp.invoke(queryResultType, md, query));
+                    Op.Result queryResult = block.add(JavaOp.invoke(queryResultType, md, query));
 
-                    block.op(return_(queryResult));
+                    block.add(return_(queryResult));
                 }));
 
         return provider().createQueryResult(resultType, queryResultExpression);

@@ -289,7 +289,7 @@ public class OnnxModelTest {
                         returnType,
                         extOp.attributes(),
                         extOp.bodyDefinitions());
-                Op.Result res = fb.op((OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp));
+                Op.Result res = fb.add((OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp));
 
                 // map outputs
                 if (outputNames.size() == 1) {
@@ -297,17 +297,17 @@ public class OnnxModelTest {
                 } else {
                     valueMap.put(n.name(), res);
                     for (int i = 0; i < outputNames.size(); i++) {
-                        valueMap.put(outputNames.get(i), fb.op(CoreOp.tupleLoad(res, i)));
+                        valueMap.put(outputNames.get(i), fb.add(CoreOp.tupleLoad(res, i)));
                     }
                 }
             }
 
             if (g.output().size() == 1) {
-                fb.op(CoreOp.return_(valueMap.get(g.output().getFirst().name())));
+                fb.add(CoreOp.return_(valueMap.get(g.output().getFirst().name())));
             } else {
-                Op.Result ret = fb.op(CoreOp.tuple(g.output().stream().map(OnnxModel.ValueInfoProto::name).map(valueMap::get).toList()));
+                Op.Result ret = fb.add(CoreOp.tuple(g.output().stream().map(OnnxModel.ValueInfoProto::name).map(valueMap::get).toList()));
                 valueMap.put(g.name() + "_return", ret);
-                fb.op(CoreOp.return_(ret));
+                fb.add(CoreOp.return_(ret));
             }
         });
 
@@ -409,7 +409,7 @@ public class OnnxModelTest {
             OpWithNames<CoreOp.FuncOp> cnnFuncOp = toFuncOp(protoModel.graph());
 
             System.out.println(cnnFuncOp.toText());
-//            System.out.println(cnnFuncOp.op().toText());
+//            System.out.println(cnnFuncOp.add().toText());
 
             // test the lifted model
             try (Arena a = Arena.ofConfined()) {

@@ -688,7 +688,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         private Op.Result append(Op op, Op.Location l, BodyStack stack) {
             lastOp = op;
             op.setLocation(l);
-            return stack.block.op(op);
+            return stack.block.add(op);
         }
 
         Op.Location generateLocation(DiagnosticPosition pos, boolean includeSourceReference) {
@@ -1394,9 +1394,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             for (int i = 0; i < variables.size(); i++) {
                 Value v = matchBuilder.parameters().get(i);
                 Value var = variablesStack.localToOp.get(variables.get(i).sym);
-                matchBuilder.op(CoreOp.varStore(var, v));
+                matchBuilder.add(CoreOp.varStore(var, v));
             }
-            matchBuilder.op(CoreOp.core_yield());
+            matchBuilder.add(CoreOp.core_yield());
 
             // Create the match operation
             return append(JavaOp.match(target, patternBody, matchBody));
@@ -2765,7 +2765,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(
                         rmcdef.ops,
-                        b -> b.op(JavaOp.fieldLoad(
+                        b -> b.add(JavaOp.fieldLoad(
                                 FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
                 byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
                 // inject InnerClassesAttribute and NestHostAttribute

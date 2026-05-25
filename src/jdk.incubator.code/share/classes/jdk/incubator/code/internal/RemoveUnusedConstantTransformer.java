@@ -43,7 +43,7 @@ public class RemoveUnusedConstantTransformer implements CodeTransformer {
         if (op instanceof CoreOp.ConstantOp && op.result() != null && op.result().uses().isEmpty()) {
             return builder;
         }
-        builder.op(op);
+        builder.add(op);
         return builder;
     }
 }

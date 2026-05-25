@@ -59,15 +59,15 @@ public class TestTransformQuotedOp {
                                 .body(lblock -> {
                                     Block.Parameter li = lblock.parameters().get(0);
 
-                                    lblock.op(return_(
+                                    lblock.add(return_(
                                             // capture i from function's body
-                                            lblock.op(JavaOp.add(i, li))
+                                            lblock.add(JavaOp.add(i, li))
                                     ));
                                 });
                     });
-                    Op.Result lquoted = block.op(qop);
+                    Op.Result lquoted = block.add(qop);
 
-                    block.op(return_(lquoted));
+                    block.add(return_(lquoted));
                 });
 
         System.out.println(f.toText());

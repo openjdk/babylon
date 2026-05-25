@@ -76,12 +76,12 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                         .filter(result->result.op() instanceof CoreOp.VarOp)
                         .map(r->(CoreOp.VarOp)r.op())
                         .forEach(varOp->
-                            blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.op(create(blockBuilder, varOp, invoke.op())))
+                            blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(create(blockBuilder, varOp, invoke.op())))
                         );
             } else if (OpHelper.Named.Variable.var(lookup,op) instanceof OpHelper.Named.Variable variable && nodesInvolved.contains(variable.op())) {
                 blockBuilder.context().mapValue(variable.op().result(), blockBuilder.context().getValue(variable.op().operands().getFirst()));
             } else {
-                blockBuilder.op(op);
+                blockBuilder.add(op);
             }
             return blockBuilder;
         }).funcOp();
@@ -158,7 +158,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             return Trxfmr.of(lookup,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
                if (invoke(lookup,op) instanceof Invoke invoke) {
                    blockBuilder.context().mapValue(invoke.op().result(),
-                           blockBuilder.op(copyLocation(invoke.op(),
+                           blockBuilder.add(copyLocation(invoke.op(),
                                    new HATMemoryDefOp.HATMemoryLoadOp(invoke.returnType(),
                                            invoke.refType(),
                                            invoke.name(),
@@ -178,7 +178,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
                     varOp.resultType(),
                     invokeOp.invokeReference().refType(),
                     blockBuilder.context().getValues(varOp.operands())));
-            blockBuilder.context().mapValue(varOp.result(), blockBuilder.op(privateVarOp));
+            blockBuilder.context().mapValue(varOp.result(), blockBuilder.add(privateVarOp));
             return privateVarOp;
         }
     }
