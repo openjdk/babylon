@@ -1909,8 +1909,8 @@ public sealed abstract class JavaOp extends Op {
                 throw new IllegalArgumentException("Operation must have one operand" + def.name());
             }
 
-            if (def.operands().getFirst().type() != JavaType.EXCEPTION_REGION) {
-                throw new IllegalArgumentException("Value's type is not an exception region entry type: " + def.operands().getFirst());
+            if (!(def.operands().getFirst().asResult().op() instanceof ExceptionRegionEnter)) {
+                throw new IllegalArgumentException("Value's is not an exception region entry: " + def.operands().getFirst());
             }
 
             if (def.successors().size() != 1) {

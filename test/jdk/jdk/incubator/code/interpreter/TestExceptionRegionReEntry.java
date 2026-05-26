@@ -45,7 +45,7 @@ public class TestExceptionRegionReEntry {
         //func @"f" ()java.type:"boolean" -> {
         //    %0 : java.type:"boolean" = constant @false;
         //    %1 : Var<java.type:"boolean"> = var %0;
-        //    %2 : java.exception.region = exception.region.enter ^block_4 ^block_1;
+        //    %2 : java.type:"void" = exception.region.enter ^block_4 ^block_1;
         //
         //  ^block_1(%3 : java.type:"java.lang.RuntimeException"):
         //    %4 : java.type:"boolean" = var.load %1;
@@ -57,7 +57,7 @@ public class TestExceptionRegionReEntry {
         //    return %4;
         //
         //  ^block_3:
-        //    %6 : java.exception.region = exception.region.enter ^block_4 ^block_1;
+        //    %6 : java.type:"void" = exception.region.enter ^block_4 ^block_1;
         //
         //  ^block_4:
         //    %7 : java.type:"java.lang.RuntimeException" = new @java.ref:"java.lang.RuntimeException::()";

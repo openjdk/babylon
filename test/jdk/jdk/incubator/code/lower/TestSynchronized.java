@@ -44,7 +44,7 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
-                %6 : java.exception.region = exception.region.enter ^block_2 ^block_4;
+                %6 : java.type:"void" = exception.region.enter ^block_2 ^block_4;
 
               ^block_2:
                 %7 : java.type:"int" = var.load %3;
@@ -59,7 +59,7 @@ public class TestSynchronized {
                 return %10;
 
               ^block_4(%11 : java.type:"java.lang.Throwable"):
-                %12 : java.exception.region = exception.region.enter ^block_5 ^block_4;
+                %12 : java.type:"void" = exception.region.enter ^block_5 ^block_4;
 
               ^block_5:
                 monitor.exit %5;
@@ -87,7 +87,7 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
-                %6 : java.exception.region = exception.region.enter ^block_2 ^block_8;
+                %6 : java.type:"void" = exception.region.enter ^block_2 ^block_8;
 
               ^block_2:
                 %7 : java.type:"int" = var.load %3;
@@ -119,7 +119,7 @@ public class TestSynchronized {
                 return %14;
 
               ^block_8(%15 : java.type:"java.lang.Throwable"):
-                %16 : java.exception.region = exception.region.enter ^block_9 ^block_8;
+                %16 : java.type:"void" = exception.region.enter ^block_9 ^block_8;
 
               ^block_9:
                 monitor.exit %5;
