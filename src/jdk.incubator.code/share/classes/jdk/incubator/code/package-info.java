@@ -716,15 +716,17 @@
 ///
 /// If the selected operation is a non-terminating operation then the non-terminating operation is executed:
 ///
-/// - If execution of the operation produces an operation result effect then the next operation becomes the selected
-/// operation, and the current environment is updated by binding the operation's result to the effect's run time value.
-/// Execution of the selected operation then proceeds as previously described.
+/// - If execution of the operation completes normally it produces an operation result effect. The next operation
+/// becomes the selected operation, and the current environment is updated by binding the operation's result to the
+/// effect's run time value. Execution of the selected operation then proceeds as previously described.
 ///
-/// - If execution of the operation produces a terminating operation effect then execution of the block completes and
-/// it produces that effect (passing the effect to execution of the parent body, which in turn passes the effect to the
-/// execution of the parent operation, and which may result in execution completing abruptly).
+/// - If execution of the operation completes abruptly it produces a terminating operation effect. The current
+/// environment is queried with the operation and the terminating operation effect to produce a block effect, and
+/// execution of the block completes abruptly with that block effect (passing the effect to execution of the parent
+/// body). When queried the environment will, according to the operation's specified behavior, return the terminating
+/// operation effect it was given or translate it to a successor effect.
 ///
-/// If the selected operation is a terminating operation then the terminating operation is executed, producing an
+/// If the selected operation is a terminating operation then the terminating operation is executed, producing a block
 /// effect, and execution of the block completes with that effect (passing the effect to execution of the parent body).
 ///
 /// ### Implementing code model behavior
@@ -740,6 +742,7 @@
 ///     Env bind(Value symbolicValue, Object runtimeValue);
 ///     List<Object> valuesOf(List<? extends Value> symbolicValues);
 ///     Object valueOf(Value symbolicValue);
+///     BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff);
 /// }
 /// }
 ///
@@ -796,11 +799,12 @@
 ///         switch (executeOp(op, e)) {
 ///             // operation completed normally, pass control to next operation
 ///             case OpResultEffect eff -> e = e.bind(op.result(), eff.result);
-///             // operation completed abruptly, pass control to parent body
-///             case TerminatingOpEffect eff -> { return eff; }
+///             // operation completed abruptly, pass control to parent body or a sibling block
+///             case TerminatingOpEffect eff -> { return e.onAbruptCompletion(op, eff); }
 ///         }
 ///     }
 ///
+///     // pass control to parent body or a sibling block
 ///     return executeTerminatingOp((Op & Op.Terminating) op, e);
 /// }
 /// }
