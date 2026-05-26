@@ -28,15 +28,16 @@ import hat.HATMath;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.callgraph.KernelCallGraph;
+import hat.device.NonMappableIface;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATMemoryDefOp;
-import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -45,6 +46,7 @@ import hat.types.S16ImplOfF16;
 import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
+import optkl.VarTable;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
@@ -56,10 +58,14 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.SequencedSet;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 import static hat.buffer.F16Array.F16Impl;
 import static java.lang.invoke.MethodHandles.lookup;
 import static optkl.OpHelper.Invoke;
@@ -68,6 +74,7 @@ import static optkl.OpHelper.Invoke.invoke;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
     protected  final KernelCallGraph kernelCallGraph;
+    private final VarTable varTable;
 
     protected static boolean isOperandF32(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
@@ -96,6 +103,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
         this.kernelCallGraph = kernelCallGraph;
+        this.varTable = kernelCallGraph.getVarTable();
     }
 
     public final T HAT_KERNEL() {
@@ -329,34 +337,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public record LocalArrayDeclaration(ClassType classType, HATMemoryVarOp varOp) {}
-
-
-    public final T privateDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        return suffix_t(localArrayDeclaration.classType()).sp().varName(localArrayDeclaration.varOp());
-    }
-
-    public final T localDeclaration(LocalArrayDeclaration localArrayDeclaration) {
-        return HAT_LOCAL_MEM()
-                .sp() // we should be able to compose-call to privateDeclaration?
-                .suffix_t(localArrayDeclaration.classType())
-                .sp()
-                .varName(localArrayDeclaration.varOp());
-    }
-
     @Override
     public final T hatBarrierOp(HATBarrierOp barrierOp) {
         return HAT_BARRIER();
-    }
-
-    @Override
-    public final T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp hatLocalVarOp) {
-        return   localDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
-    }
-
-    @Override
-    public final T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp) {
-        return privateDeclaration(new LocalArrayDeclaration(hatLocalVarOp.classType(), hatLocalVarOp));
     }
 
     public abstract T defines();
@@ -387,9 +370,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final  T type( JavaType javaType) {
+        // TODO: I would not include this method in the visitor, rather just the tree-nodes. Types can be resolved when needed directly.
+
         if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(),javaType)){
             C99VecAndMatHandler.handleType(self(),javaType);
-        }else if (javaType instanceof ClassType classType
+        } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
         ) {
@@ -459,6 +444,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return suffix_t(BF16.class);
     }
 
+    protected boolean isMathLib(Optional<Invoke> invoke) {
+        return invoke.isPresent() && !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
+    }
+
      protected T f16OrBF16(Class<?> float16Class){
         if (F16.class.isAssignableFrom(float16Class)){
             return f16Type();
@@ -467,14 +456,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }else {
             throw new IllegalStateException("Unexpected value: " + float16Class);
         }
-    }
-
-    @Override
-    public final T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp) {
-        var float16Class = hatF16VarOp.float16Class();
-        return f16OrBF16(float16Class).sp().assign(
-                _-> id(hatF16VarOp.varName()),
-                _->recurse( OpHelper.asResultOrThrow(hatF16VarOp.operands().getFirst()).op()));
     }
 
     protected boolean isMixedFirstOperand(byte f32Mixed) {
@@ -495,7 +476,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public static final String VALUE = "value";
 
-    private final T binaryOperationsForBfloat16( HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+    private T binaryOperationsForBfloat16(HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
 
         boolean isFirstOperandReference = isArrayReference(hatf16BinaryOp.operands().get(0));
         boolean isSecondOperandReference = isArrayReference(hatf16BinaryOp.operands().get(1));
@@ -583,7 +564,25 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     @Override
     public final T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
-        return id(hatF16VarLoadOp.varName()).dot().id(VALUE);
+        id(hatF16VarLoadOp.varName());
+
+        // Since all VarOps now are the same, we need to distinguish if it comes from a global load,
+        // or private/shared load.
+        if (hatF16VarLoadOp.operands().getFirst().declaringElement() instanceof CoreOp.VarOp varOp
+                && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            // VarLoad from Global Memory with an InvokeOp
+
+            Stream<Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+            if (isMathLib(invoke)) {
+                dot();
+            } else {
+                rarrow();
+            }
+        } else {
+            dot();
+        }
+        return id(VALUE);
     }
 
     @Override
@@ -600,14 +599,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         hatVectorOp.operands(),
                         operand -> recurse( OpHelper.asResultOrThrow(operand).op()))
                 );
-    }
-
-    @Override
-    public final T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp) {
-        return suffix_t(hatPrivateInitVarOp.classType()).sp()
-                .assign(
-                        _-> id(hatPrivateInitVarOp.varName()),
-                        _->recurse(OpHelper.asResultOrThrow(hatPrivateInitVarOp.operands().getFirst()).op()));
     }
 
     @Override
@@ -636,21 +627,35 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    private static final Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
+
     private T ptrAccess(HATPtrOp hatPtrOp) {
         id(hatPtrOp.name());
         boolean isLocalOrPrivateDS = false;
         if (((Op.Result) hatPtrOp.operands().getFirst()).op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
-            if (resolve instanceof HATMemoryVarOp) {
-                isLocalOrPrivateDS = true;
+            if (resolve instanceof CoreOp.VarOp varOp) {
+                Value value = varOp.operands().getFirst();
+                if (value.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+
+                    Stream<Invoke> stream = OpHelper.Invoke.stream(scopedCodeBuilderContext.lookup(), invokeOp);
+                    Optional<Invoke> invoke = stream.findFirst();
+                    // Check for the right class
+                    if (invoke.isPresent() && invoke.get().refIs(NonMappableIface.class)) {
+                        // check for the method name
+                        String lowerCase = invokeOp.invokeReference().name().toLowerCase();
+                        isLocalOrPrivateDS = NON_MAPPABLE_IFACE.contains(lowerCase);
+                    }
+                }
             }
         }
+
         either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
         if (hatPtrOp instanceof HATPtrOp.HATPtrLengthOp) {
             id("length");
         } else {
-            boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;// ?
+            final boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;
             id("array").sbrace(_ -> {
                 paren(_ -> id("long")); // is this a cast (long)  maybe cast(_->typeName("long"))?
                 paren(_ -> {
@@ -736,13 +741,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
-            case HATMemoryVarOp $ -> varName($);
-            case HATVectorOp.HATVectorVarOp $ -> varName($);
-            case HATVectorOp.HATVectorLoadOp $ -> varName($);
-            case HATVectorOp.HATVectorBinaryOp $ -> varName($);
-            case HATF16Op.HATF16VarOp $ -> varName($);
-            case null, default -> {
-            }
+            case null, default -> {}
         }
         return self();
     }
@@ -760,11 +759,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
             case CoreOp.VarOp varOp -> varName(varOp);
-            case HATF16Op.HATF16VarOp hatf16VarOp -> varName(hatf16VarOp);
-            case HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp -> varName(hatPrivateInitVarOp);
-            case HATMemoryVarOp.HATPrivateVarOp hatPrivateVarOp -> varName(hatPrivateVarOp);
-            case HATMemoryVarOp.HATLocalVarOp hatLocalVarOp -> varName(hatLocalVarOp);
-            case HATVectorOp.HATVectorVarOp hatVectorVarOp -> varName(hatVectorVarOp);
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
         equals().parenthesisIfNeeded( varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
@@ -786,6 +780,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract  T atomicInc( Op.Result instanceResult, String name);
 
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
+
+    private boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute) {
+        return attribute == VarTable.HATOpAttribute.INIT || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED;
+    }
 
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
@@ -831,8 +829,17 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             });
 
                     // Check if the varOpLoad that could follow corresponds to a local/private type
-                    boolean isLocalOrPrivateDS = (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof HATMemoryVarOp);
+                    // We need to check for the HATMemoryVarOp until we replace all HAT<>VarOps with CoreOp.VarOp
+                    boolean isLocalOrPrivateDS = false;
+                    VarTable varTable = kernelCallGraph.getVarTable();
+                    // Once we do the transition, the following condition applies.
+                    if (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                            && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof CoreOp.VarOp varOp
+                            && varTable.doesVarOpExist(scopedCodeBuilderContext.funcOp().funcName(), varOp)) {
+                        VarTable.HATOpAttribute attribute = varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
+                        isLocalOrPrivateDS = isAttributeSharedOrPrivate(attribute);
+                    }
+
                     either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 
                     funcName(invoke.op());
@@ -873,6 +880,60 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         return self();
     }
+
+    private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
+        return varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
+    }
+
+    private void genericVarOp(CoreOp.VarOp varOp) {
+        // Original varOp
+        if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
+            constKeyword().sp();
+        }
+        type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+        var first = varOp.operands().getFirst();
+        switch (first) {
+            case Op.Result result -> parenthesisIfNeeded(varOp, result.op());
+            case Block.Parameter parameter -> {
+                // for debugging
+                var r = parameter.uses().iterator().next();
+                blockInlineComment("param " + r);
+            }
+            // for debugging
+            default -> blockInlineComment("look at varOp " + first);
+        }
+    }
+
+    @Override
+    public T varOp(CoreOp.VarOp varOp) {
+        if (varOp.isUninitialized()) {
+            type((JavaType) varOp.varValueType()).sp().varName(varOp);
+        } else {
+            // First, we look at the attribute table for each varOp
+            VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
+            if (attribute != null) {
+                // If attribute exits, we apply codegen based on attribute since there is a pre-search and
+                // categorization about the corresponding OpenCL code to be generated.
+                switch (attribute) {
+                    case NARROW -> varOpForNarrowType(varOp);
+                    case VECTOR -> varOpForVectors(varOp);
+                    case INIT -> varOpInit(varOp);
+                    case SHARED -> varOpLocalMemory(varOp);
+                    case PRIVATE -> varOpPrivateMemory(varOp);
+                    default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
+                }
+            } else {
+                genericVarOp(varOp);
+            }
+        }
+        return self();
+    }
+
+    protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
+    protected abstract T varOpForVectors(CoreOp.VarOp varOp);
+    protected abstract T varOpInit(CoreOp.VarOp varOp);
+    protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
+    protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
     protected void genFieldAccess(Value operand, boolean isReference) {
         if (isReference) {

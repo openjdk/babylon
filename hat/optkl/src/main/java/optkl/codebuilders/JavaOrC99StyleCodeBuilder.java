@@ -136,30 +136,29 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return self();
     }
 
-
     @Override
-    public final T varOp( CoreOp.VarOp varOp) {
+    public T varOp(CoreOp.VarOp varOp) {
         if (varOp.isUninitialized()) {
-            type( (JavaType) varOp.varValueType()).sp().varName(varOp);
+            type((JavaType) varOp.varValueType()).sp().varName(varOp);
         } else {
             if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
                 constKeyword().sp();
             }
-            type( (JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+
             var first = varOp.operands().getFirst();
             if (first instanceof Op.Result result) {
-                parenthesisIfNeeded( varOp, result.op());
-            }else if (first instanceof Block.Parameter parameter) {
-               var p1 =  parameter.declaringBlock().parameters().getFirst();
+                parenthesisIfNeeded(varOp, result.op());
+            } else if (first instanceof Block.Parameter parameter) {
+                var p1 = parameter.declaringBlock().parameters().getFirst();
 
                 var r = parameter.uses().iterator().next();
                 //parenthesisIfNeeded( varOp, r.op());
-               // if (r.op() instanceof CoreOp.VarOp varOp1){
-                 //   identifier(varOp1.varName());
-               // }
-              blockInlineComment("param "+r);
-            }else{
-                blockInlineComment("look at varOp "+first);
+                // if (r.op() instanceof CoreOp.VarOp varOp1){
+                //   identifier(varOp1.varName());
+                // }
+                blockInlineComment("param " + r);
+            } else {
+                blockInlineComment("look at varOp " + first);
             }
         }
         return self();

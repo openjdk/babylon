@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import optkl.VarTable;
 import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
@@ -34,8 +35,10 @@ public class HATTier  {
     public static final  List<HATPhase> KernelPhases = List.of(
                 // barrier
                 new HATBarrierPhase(),
+
                 // array views
                 new HATArrayViewPhase(),
+
                 // Memory
                 new HATMemoryPhase.LocalMemoryPhase(),
                 new HATMemoryPhase.PrivateMemoryPhase(),
@@ -45,6 +48,7 @@ public class HATTier  {
 
                 // MathLib phase
                 new HATMathLibPhase(),
+
                 // views for vector types
                 new HATVectorPhase.Float4LoadPhase(),
                 new HATVectorPhase.Float2LoadPhase(),
@@ -56,18 +60,20 @@ public class HATTier  {
                 new HATVectorPhase.MakeMutable(),
                 new HATVectorStorePhase.Float4StorePhase(),
                 new HATVectorStorePhase.Float2StorePhase(),
+
                 // Vector Select individual lines
                 new HATVectorSelectPhase(),
+
                 // F16 type
                 new HATFP16Phase()
         );
 
-    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, boolean showCompilationPhases){
+    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
         phases.forEach(phase -> {
             if (showCompilationPhases) {
                 IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
-            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp()));
+            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp(), varTable));
             if (showCompilationPhases) {
                 IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
