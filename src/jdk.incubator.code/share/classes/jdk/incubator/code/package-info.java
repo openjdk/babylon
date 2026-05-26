@@ -800,11 +800,8 @@
 ///         switch (executeOp(op, e)) {
 ///             // operation completed normally, pass control to next operation
 ///             case OpResultEffect eff -> e = e.bind(op.result(), eff.result);
-///             // operation completed abruptly,
-///             // pass control to parent body or a sibling block
-///             case TerminatingOpEffect eff -> {
-///                 return e.onAbruptCompletion(op, eff);
-///             }
+///             // operation completed abruptly, pass control to parent body or a sibling block
+///             case TerminatingOpEffect eff -> { return e.onAbruptCompletion(op, eff); }
 ///         }
 ///     }
 ///
