@@ -723,12 +723,11 @@
 /// - If execution of the operation completes abruptly it produces a terminating operation effect. The current
 /// environment is queried with the operation and the terminating operation effect to produce a block effect, and
 /// execution of the block completes abruptly with that block effect (passing the effect to execution of the parent
-/// body). When queried the environment will, according to the operation's specificed behavior, return the terminating
+/// body). When queried the environment will, according to the operation's specified behavior, return the terminating
 /// operation effect it was given or translate it to a successor effect.
 ///
-/// If the selected operation is a terminating operation then the terminating operation is executed, producing a
-/// block effect, and execution of the block completes with that effect (passing the effect to execution
-/// of the parent body).
+/// If the selected operation is a terminating operation then the terminating operation is executed, producing a block
+/// effect, and execution of the block completes with that effect (passing the effect to execution of the parent body).
 ///
 /// ### Implementing code model behavior
 ///
