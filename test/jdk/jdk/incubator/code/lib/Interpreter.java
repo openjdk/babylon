@@ -214,7 +214,7 @@ public final class Interpreter {
         }
 
         void popExceptionRegion(JavaOp.ExceptionRegionExit ere) {
-            ere.catchReferences().forEach(catchBlock -> {
+            ere.enterOp().catchReferences().reversed().forEach(catchBlock -> {
                 if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
                     // @@@ Use internal exception type
                     throw interpreterException(new IllegalStateException("Mismatched exception regions"));

@@ -1892,26 +1892,38 @@ public sealed abstract class JavaOp extends Op {
     /**
      * The exception region end operation, that can model exit from an exception region.
      * <p>
-     * An exception region end operation is a block-terminating operation whose first successor is the block that
-     * follows the exception region, and whose remaining successors are the catch blocks for that region.
+     * An exception region end operation is a block-terminating operation with one operand and one successor.
+     * The operand is the result of the dominant {@link ExceptionRegionEnter}. The successor is the block that
+     * follows the exception region.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
     public static final class ExceptionRegionExit extends JavaOp
             implements BlockTerminating {
         static final String NAME = "exception.region.exit";
 
-        // First successor is the non-exceptional successor whose target indicates
-        // the first block following the exception region.
-        final List<Block.Reference> references;
+        // Non-exceptional successor
+        final Block.Reference end;
 
         ExceptionRegionExit(ExternalizedOp def) {
-            this(def.successors());
+            if (def.operands().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one operand" + def.name());
+            }
+
+            if (!(def.operands().getFirst().asResult().op() instanceof ExceptionRegionEnter)) {
+                throw new IllegalArgumentException("Value's is not an exception region entry: " + def.operands().getFirst());
+            }
+
+            if (def.successors().size() != 1) {
+                throw new IllegalArgumentException("Operation must have one successor" + def.name());
+            }
+
+            this(def.operands().getFirst(), def.successors().getFirst());
         }
 
         ExceptionRegionExit(ExceptionRegionExit that, CodeContext cc) {
             super(that, cc);
 
-            this.references = that.references.stream().map(cc::getReferenceOrCreate).toList();
+            this.end = cc.getReferenceOrCreate(that.end);
         }
 
         @Override
@@ -1919,33 +1931,28 @@ public sealed abstract class JavaOp extends Op {
             return new ExceptionRegionExit(this, cc);
         }
 
-        ExceptionRegionExit(List<Block.Reference> references) {
-            super(List.of());
-
-            if (references.size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors " + this);
-            }
-
-            this.references = List.copyOf(references);
+        ExceptionRegionExit(Value enter, Block.Reference end) {
+            super(List.of(enter));
+            this.end = end;
         }
 
         @Override
         public List<Block.Reference> successors() {
-            return references;
+            return List.of(end);
         }
 
         /**
-         * {@return the end block reference that of this exception region}
+         * {@return the block reference reached after exiting this exception region}
          */
         public Block.Reference endReference() {
-            return references.get(0);
+            return end;
         }
 
         /**
-         * {@return the catch block references of this exception region}
+         * {@return the dominant exception region enter operation}
          */
-        public List<Block.Reference> catchReferences() {
-            return references.subList(1, references.size());
+        public ExceptionRegionEnter enterOp() {
+            return (ExceptionRegionEnter)operands().getFirst().asResult().op();
         }
 
         @Override
@@ -3094,7 +3101,7 @@ public sealed abstract class JavaOp extends Op {
             // Exception region for the body
             Block.Builder syncRegionEnter = b.block();
             Block.Builder catcherFinally = b.block();
-            b.add(exceptionRegionEnter(
+            Op.Result enter = b.add(exceptionRegionEnter(
                     syncRegionEnter.reference(), catcherFinally.reference()));
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
@@ -3104,7 +3111,7 @@ public sealed abstract class JavaOp extends Op {
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
                     Block.Builder exitRegion = block.block();
-                    block.add(exceptionRegionExit(exitRegion.reference(), catcherFinally.reference()));
+                    block.add(exceptionRegionExit(enter, exitRegion.reference()));
                     return exitRegion;
                 } else {
                     return block;
@@ -3116,7 +3123,7 @@ public sealed abstract class JavaOp extends Op {
                     // Monitor exit
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
-                    block.add(exceptionRegionExit(exit.reference(), catcherFinally.reference()));
+                    block.add(exceptionRegionExit(enter, exit.reference()));
                     return block;
                 } else {
                     return null;
@@ -3125,7 +3132,7 @@ public sealed abstract class JavaOp extends Op {
 
             // The catcher, with an exception region back branching to itself
             Block.Builder catcherFinallyRegionEnter = b.block();
-            catcherFinally.add(exceptionRegionEnter(
+            Op.Result catcherEnter = catcherFinally.add(exceptionRegionEnter(
                     catcherFinallyRegionEnter.reference(), catcherFinally.reference()));
 
             // Monitor exit
@@ -3133,7 +3140,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder catcherFinallyRegionExit = b.block();
             // Exit the exception region
             catcherFinallyRegionEnter.add(exceptionRegionExit(
-                    catcherFinallyRegionExit.reference(), catcherFinally.reference()));
+                    catcherEnter, catcherFinallyRegionExit.reference()));
             // Rethrow outside of region
             Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
             catcherFinallyRegionExit.add(throw_(t));
@@ -5478,14 +5485,14 @@ public sealed abstract class JavaOp extends Op {
             List<Block.Reference> exitHandlers = catchers.stream()
                     .map(Block.Builder::reference)
                     .toList();
-            b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
+            Op.Result enter = b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
-                        return inlineFinalizer(block, exitHandlers, inherited);
+                        return inlineFinalizer(block, enter, inherited);
                     } else {
                         return block;
                     }
@@ -5495,7 +5502,7 @@ public sealed abstract class JavaOp extends Op {
                     if (op instanceof CoreOp.ReturnOp ||
                             (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
                         Block.Builder tryRegionReturnExit = block.block();
-                        block.add(exceptionRegionExit(tryRegionReturnExit.reference(), exitHandlers));
+                        block.add(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
                         return tryRegionReturnExit;
                     } else {
                         return block;
@@ -5519,11 +5526,11 @@ public sealed abstract class JavaOp extends Op {
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
-                    tryRegionExit.add(exceptionRegionExit(finallyEnter.reference(), exitHandlers));
+                    tryRegionExit.add(exceptionRegionExit(enter, finallyEnter.reference()));
                 }
             } else if (hasTryRegionExit.get()) {
                 // Exit the try exception region
-                tryRegionExit.add(exceptionRegionExit(exit.reference(), exitHandlers));
+                tryRegionExit.add(exceptionRegionExit(enter, exit.reference()));
             }
 
             // Inline the catch bodies
@@ -5543,9 +5550,9 @@ public sealed abstract class JavaOp extends Op {
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
-                            return inlineFinalizer(block, List.of(catcherFinally.reference()), inherited);
+                            return inlineFinalizer(block, catchExceptionRegion, inherited);
                         } else if (op instanceof StatementTargetOp lop && ifExitFromTry(lop)) {
-                            return inlineFinalizer(block, List.of(catcherFinally.reference()), inherited);
+                            return inlineFinalizer(block, catchExceptionRegion, inherited);
                         } else {
                             return block;
                         }
@@ -5565,7 +5572,7 @@ public sealed abstract class JavaOp extends Op {
                     // Exit the catch exception region
                     if (hasCatchRegionExit.get()) {
                         hasTryRegionExit.set(true);
-                        catchRegionExit.add(exceptionRegionExit(finallyEnter.reference(), catcherFinally.reference()));
+                        catchRegionExit.add(exceptionRegionExit(catchExceptionRegion, finallyEnter.reference()));
                     }
                 } else {
                     // Inline the catch body
@@ -5834,11 +5841,11 @@ public sealed abstract class JavaOp extends Op {
             return target == this || target.isAncestorOf(this);
         }
 
-        Block.Builder inlineFinalizer(Block.Builder block1, List<Block.Reference> tryHandlers, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+        Block.Builder inlineFinalizer(Block.Builder block1, Value enter, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
-            block1.add(exceptionRegionExit(finallyEnter.reference(), tryHandlers));
+            block1.add(exceptionRegionExit(enter, finallyEnter.reference()));
 
             // Inline the finally body
             finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block2, op2) -> {
@@ -6608,26 +6615,12 @@ public sealed abstract class JavaOp extends Op {
     /**
      * Creates an exception region exit operation
      *
-     * @param end      the reference to the block that exits the exception region
-     * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
+     * @param enter the result of the dominant {@link ExceptionRegionEnter}
+     * @param end   the reference to the block reached after exiting the exception region
      * @return the exception region exit operation
      */
-    public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, Block.Reference... catchers) {
-        return exceptionRegionExit(end, List.of(catchers));
-    }
-
-    /**
-     * Creates an exception region exit operation
-     *
-     * @param end      the reference to the block that exits the exception region
-     * @param catchers the references to blocks handling exceptions thrown by blocks within the exception region
-     * @return the exception region exit operation
-     */
-    public static ExceptionRegionExit exceptionRegionExit(Block.Reference end, List<Block.Reference> catchers) {
-        List<Block.Reference> s = new ArrayList<>();
-        s.add(end);
-        s.addAll(catchers);
-        return new ExceptionRegionExit(s);
+    public static ExceptionRegionExit exceptionRegionExit(Value enter, Block.Reference end) {
+        return new ExceptionRegionExit(enter, end);
     }
 
     /**

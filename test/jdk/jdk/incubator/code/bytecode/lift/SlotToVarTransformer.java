@@ -80,7 +80,7 @@ final class SlotToVarTransformer {
                 }
                 case JavaOp.ExceptionRegionExit ere -> {
                     excStack = (BitSet) excStack.clone();
-                    for (Block.Reference cbr : ere.catchReferences()) {
+                    for (Block.Reference cbr : ere.enterOp().catchReferences()) {
                         excStack.clear(catchBlocks.indexOf(cbr.targetBlock()));
                     }
                     map.put(ere.endReference().targetBlock(), excStack);

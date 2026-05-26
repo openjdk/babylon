@@ -1059,7 +1059,7 @@ public final class BytecodeGenerator {
                     cob.goto_(getLabel(op.startReference()));
                 }
                 case ExceptionRegionExit op -> {
-                    List<Block.Reference> exitingCatchBlocks = op.catchReferences();
+                    List<Block.Reference> exitingCatchBlocks = op.enterOp().catchReferences().reversed();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length - exitingCatchBlocks.size());
                     setCatchStack(op.endReference(), activeCatchBlocks);
 
