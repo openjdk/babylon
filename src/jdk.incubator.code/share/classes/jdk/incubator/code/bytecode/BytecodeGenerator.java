@@ -413,8 +413,12 @@ public final class BytecodeGenerator {
     }
 
     // Var load can be deferred when not used as immediate operand
+    // and when they do not dominate a var store (conservative deferral refusal).
     private boolean canDefer(VarAccessOp.VarLoadOp op) {
-        return !isNextUse(op.result());
+        return !isNextUse(op.result())
+                && op.varOperand().uses().stream()
+                        .filter(u -> u.op() instanceof VarAccessOp.VarStoreOp)
+                        .noneMatch(store -> store.isDominatedBy(op.result()));
     }
 
     // This method narrows the first operand inconveniences of some operations
