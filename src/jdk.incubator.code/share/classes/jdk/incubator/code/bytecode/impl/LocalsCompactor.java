@@ -25,7 +25,7 @@
 package jdk.incubator.code.bytecode.impl;
 
 import java.lang.classfile.Attributes;
-import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassTransform;
 import java.lang.classfile.CodeModel;
 import java.lang.classfile.Label;
 import java.lang.classfile.MethodModel;
@@ -104,11 +104,10 @@ public final class LocalsCompactor {
 
     /**
      * LocalsCompactor transformation requires complete class file binary
-     * @param classBytes class file binary to transform
-     * @return transformed class file binary
+     * @return LocalsCompactor class transform instance
      */
-    public static byte[] transform(byte[] classBytes) {
-        return ClassFile.of().transformClass(ClassFile.of().parse(classBytes), (clb,cle) -> {
+    public static ClassTransform instance() {
+        return (clb,cle) -> {
             if (cle instanceof MethodModel mm) {
                 clb.transformMethod(mm, (mb, me) -> {
                     if (me instanceof CodeModel com) {
@@ -132,7 +131,7 @@ public final class LocalsCompactor {
             } else {
                 clb.with(cle);
             }
-        });
+        };
     }
 
     private static int countParamSlots(MethodModel mm) {
