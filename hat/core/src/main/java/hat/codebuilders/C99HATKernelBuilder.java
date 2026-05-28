@@ -835,13 +835,30 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T generateVectorLoad(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape,  boolean deviceAllocated);
 
+    // recursive
+    public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findVectorVarNameOrNull(varLoadOp.operands().getFirst());
+    }
+
+    // recursive
+    public static String findVectorVarNameOrNull(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findVectorVarNameOrNull(varLoadOp);
+        } else {
+            // Leaf of tree -
+            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+                return varOp.varName();
+            }
+            return null;
+        }
+    }
+
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
         if (C99VecAndMatHandler.isVecInvoke(invoke)) { // hacked for vec op calls.
             C99VecAndMatHandler.handleInvoke(self(), invoke);
         } else if (isVectorOperation(invokeOp)) {
-            lineComment("Vector Operation found: " + invoke.name());
             IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
             if (invoke.name().equalsIgnoreCase("float4view")
                     || invoke.name().equalsIgnoreCase("float2view")) {
@@ -851,7 +868,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else if (invoke.name().equalsIgnoreCase("of")) {
                 generateVectorOf(invokeOp, vectorShape);
             } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
-                generateVectorOf(invokeOp, vectorShape);
+                var name = findVectorVarNameOrNull(invokeOp.operands().getFirst());
+                id(name);
+
             } else {
                 throw  new IllegalStateException("Vector Operation found: " + invoke.name());
             }
