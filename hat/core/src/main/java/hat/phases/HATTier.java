@@ -34,21 +34,21 @@ public class HATTier  {
 
     public static final  List<HATPhase> KernelPhases = List.of(
                 // barrier
-                new HATBarrierPhase(),
+                new HATBarrierPhase(),   // Let's keep the dialect for barriers
 
                 // array views
-                new HATArrayViewPhase(),
+                new HATArrayViewPhase(),  // This phase gets refactored along with the vector phase
 
                 // Memory
-                new HATMemoryPhase.LocalMemoryPhase(),
-                new HATMemoryPhase.PrivateMemoryPhase(),
-                new HATMemoryPhase.DeviceTypePhase(),
+                new HATMemoryPhase.LocalMemoryPhase(),  // custom nodes removed - OK
+                new HATMemoryPhase.PrivateMemoryPhase(),// custom nodes removed - OK
+                new HATMemoryPhase.DeviceTypePhase(),   // custom nodes removed - OK
 
                 // ID's /thread access
-                new HATThreadsPhase(),
+                new HATThreadsPhase(),  // Let's keep the dialect for barriers
 
                 // MathLib phase
-                new HATMathLibPhase(),
+                new HATMathLibPhase(), // custom nodes removed - OK
 
                 // views for vector types
                 new HATVectorPhase.Float4LoadPhase(),

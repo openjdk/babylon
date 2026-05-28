@@ -87,7 +87,7 @@ public record HATFP16Phase() implements HATPhase {
         return isF16Local(varLoadOp.operands().getFirst());
     }
 
-    public static void createF16VarOp(String functionName, CoreOp.VarOp varOp, Block.Builder blockBuilder, VarTable varTable) {
+    public static void copyVarOpWithUpdateVarTable(String functionName, CoreOp.VarOp varOp, Block.Builder blockBuilder, VarTable varTable) {
         Op.Result op = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, op.op(), VarTable.HATOpAttribute.NARROW);
     }
@@ -162,7 +162,7 @@ public record HATFP16Phase() implements HATPhase {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16BinaryOp(invokeOp, blockBuilder, binaryOpEnum, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                createF16VarOp(funcOp.funcName(), varOp, blockBuilder, varTable);
+                copyVarOpWithUpdateVarTable(funcOp.funcName(), varOp, blockBuilder, varTable);
             }
             return blockBuilder;
         }, varTable).funcOp();
@@ -216,7 +216,7 @@ public record HATFP16Phase() implements HATPhase {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 createF16ConvOP(invoke(lookup, invokeOp), blockBuilder, reducedFloatsType.get(invokeOp));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                createF16VarOp(funcOp.funcName(), varOp, blockBuilder, varTable);
+                copyVarOpWithUpdateVarTable(funcOp.funcName(), varOp, blockBuilder, varTable);
             }
             return blockBuilder;
         }, varTable).funcOp();
