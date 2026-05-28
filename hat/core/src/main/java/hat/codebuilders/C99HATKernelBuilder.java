@@ -34,7 +34,6 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
-import hat.phases.HATVectorStorePhase;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.Block;
@@ -877,6 +876,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return null;
     }
 
+    private boolean findIsSharedOrPrivateSpace(Value v) {
+        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst());
+        } else if (v.declaringElement() instanceof CoreOp.VarOp varOp) {
+            return findIsSharedOrPrivateSpace(varOp.operands().getFirst());
+        } else {
+            return !(v instanceof Block.Parameter);
+        }
+    }
+
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -899,7 +908,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
         } else if (isVectorView(invokeOp)) {
             IfaceValue.Vector.Shape vectorShape  = getVectorShapeFromOperandN(invoke.lookup(), invoke.op(), 1);
-            boolean isShared = HATVectorStorePhase.findIsSharedOrPrivateSpace(invoke.op().operands().getFirst());
+            boolean isShared = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst());
             String vectorName = findVectorVarNameOrNull(invokeOp.operands().get(1));
             hatVectorStoreOp(invokeOp, vectorShape, vectorName, isShared);
         } else if (invoke.refIs(IfaceValue.class)) {
