@@ -196,11 +196,11 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         }
         return self();
     }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
-        return paren(_-> id(hatVectorOfOp.buildType()));
-    }
+//
+//    @Override
+//    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
+//        return paren(_-> id(hatVectorOfOp.buildType()));
+//    }
 
     @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
@@ -335,6 +335,11 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     public OpenCLJExtractedHATKernelBuilder generateVectorLoad(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
         return null;
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
+        return paren(_-> id(vectorShape.codeType().toString() + vectorShape.lanes()));
     }
 
 }

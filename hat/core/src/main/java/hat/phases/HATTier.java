@@ -37,7 +37,7 @@ public class HATTier  {
                 new HATBarrierPhase(),   // Let's keep the dialect for barriers
 
                 // array views
-                new HATArrayViewPhase(),  // This phase gets refactored along with the vector phase
+                new HATArrayViewPhase(),  // pending
 
                 // Memory
                 new HATMemoryPhase.LocalMemoryPhase(),  // custom nodes removed - OK
@@ -51,14 +51,14 @@ public class HATTier  {
                 new HATMathLibPhase(), // custom nodes removed - OK
 
                 // views for vector types
-                new HATVectorPhase.Float4LoadPhase(),
-                new HATVectorPhase.Float2LoadPhase(),
-                new HATVectorPhase.Float4OfPhase(),
+                new HATVectorPhase.Float4LoadPhase(),   // done
+                new HATVectorPhase.Float2LoadPhase(),   // done
+                new HATVectorPhase.Float4OfPhase(),     // done
                 new HATVectorPhase.AddPhase(),
                 new HATVectorPhase.SubPhase(),
                 new HATVectorPhase.MulPhase(),
                 new HATVectorPhase.DivPhase(),
-                new HATVectorPhase.MakeMutable(),
+                new HATVectorPhase.MakeMutable(),       // done
                 new HATVectorStorePhase.Float4StorePhase(),
                 new HATVectorStorePhase.Float2StorePhase(),
 

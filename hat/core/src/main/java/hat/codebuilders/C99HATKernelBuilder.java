@@ -589,20 +589,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id(VALUE);
     }
 
-    @Override
-    public final T hatVectorMakeOf( HATVectorOp.HATVectorMakeOfOp hatVectorMakeOfOp) {
-        return id(hatVectorMakeOfOp.varName());
-    }
+    public abstract T genVectorIdentifier(IfaceValue.Vector.Shape vectorShape);
 
-    public abstract T genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp);
-
-    @Override
-    public final T hatVectorOfOps( HATVectorOp.HATVectorOfOp hatVectorOp) {
-        return genVectorIdentifier( hatVectorOp)
-                .paren(_->commaSpaceSeparated(
-                        hatVectorOp.operands(),
-                        operand -> recurse( OpHelper.asResultOrThrow(operand).op()))
-                );
+    public final T generateVectorOf(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape) {
+        return genVectorIdentifier(vectorShape)
+                .paren(_ -> commaSpaceSeparated(invokeOp.operands(),operand -> recurse(OpHelper.asResultOrThrow(operand).op())));
     }
 
     public final T generateOnChipMemoryLoad(JavaOp.InvokeOp invoke) {
@@ -851,12 +842,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             C99VecAndMatHandler.handleInvoke(self(), invoke);
         } else if (isVectorOperation(invokeOp)) {
             lineComment("Vector Operation found: " + invoke.name());
+            IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
             if (invoke.name().equalsIgnoreCase("float4view")
                     || invoke.name().equalsIgnoreCase("float2view")) {
                 // could be share or global
-                IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
                 boolean isSharedOrPrivate = isSharedOrPrivate(invoke.lookup(), invoke.op());
                 generateVectorLoad(invokeOp, vectorShape, isSharedOrPrivate);
+            } else if (invoke.name().equalsIgnoreCase("of")) {
+                generateVectorOf(invokeOp, vectorShape);
+            } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
+                generateVectorOf(invokeOp, vectorShape);
             } else {
                 throw  new IllegalStateException("Vector Operation found: " + invoke.name());
             }

@@ -44,7 +44,9 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static optkl.IfaceValue.Vector.getVectorShape;
@@ -333,8 +335,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder genVectorIdentifier(HATVectorOp.HATVectorOfOp hatVectorOfOp) {
-        return id("make_" + hatVectorOfOp.buildType());
+    public CudaHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
+        return id("make_" + vectorShape.codeType().toString() + vectorShape.lanes());
     }
 
     @Override

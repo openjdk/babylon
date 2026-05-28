@@ -193,8 +193,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
-        return paren(_-> id(hatVectorOfOp.buildType()));
+    public OpenCLHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
+        return paren(_-> id(vectorShape.codeType().toString() + vectorShape.lanes()));
     }
 
     @Override

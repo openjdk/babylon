@@ -227,49 +227,7 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
             public Map<String, Object> externalize() {
                 return Map.of("hat.dialect.vectorSharedLoad." + varName(), resultType());
             }
-
         }
-    }
-
-    public static final class HATVectorOfOp extends HATVectorOp {
-        public HATVectorOfOp(CodeType resultType, Vector.Shape vectorShape, List<Value> operands) {
-            super("", resultType, vectorShape, operands);
-        }
-
-        public HATVectorOfOp(HATVectorOfOp op, CodeContext copyContext) {
-            super(op, copyContext);
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorOfOp(this, copyContext);
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.vectorOf." + varName(), resultType());
-        }
-
-    }
-
-    public static final class HATVectorMakeOfOp extends HATVectorOp {
-        public HATVectorMakeOfOp(String varName, CodeType resultType, int vectorWidth, List<Value> operands) {
-            super(varName, resultType,  Vector.Shape.of(resultType,vectorWidth), operands);
-        }
-
-        public HATVectorMakeOfOp(HATVectorMakeOfOp op, CodeContext copyContext) {
-            super(op, copyContext);
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorMakeOfOp(this, copyContext);
-        }
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.makeOf." + varName(), resultType());
-        }
-
     }
 
     public static final class HATVectorSelectLoadOp extends HATVectorOp implements Precedence.LoadOrConv {
