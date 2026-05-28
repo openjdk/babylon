@@ -31,7 +31,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
-import hat.dialect.HATMemoryDefOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
@@ -90,7 +89,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(varLoadOp); // recurse
             case CoreOp.VarOp varOp ->
                     varOp.operands().getFirst() instanceof Op.Result varOpResult
-                            && invoke(lookup(),varOpResult.op()) instanceof OpHelper.Invoke invoke && invoke.named("array");
+                            && invoke(lookup(),varOpResult.op()) instanceof OpHelper.Invoke invoke
+                            && invoke.named("array")
+                            && !isInvokeLoadingFromOnChipMemory(invoke.op());
             default -> false;
         };
     }
@@ -569,7 +570,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // Since all VarOps now are the same, we need to distinguish if it comes from a global load,
         // or private/shared load.
         if (hatF16VarLoadOp.operands().getFirst().declaringElement() instanceof CoreOp.VarOp varOp
-                && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp
+                && !isInvokeLoadingFromOnChipMemory(invokeOp)) {
             // VarLoad from Global Memory with an InvokeOp
 
             Stream<Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
@@ -601,12 +603,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 );
     }
 
-    @Override
-    public final T hatMemoryLoadOp( HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp) {
-        return recurse( OpHelper.asResultOrThrow(hatMemoryLoadOp.operands().getFirst()).op())
-                .dot().id(hatMemoryLoadOp.memberName())
-                .when(hatMemoryLoadOp.operands().size() > 1,_->// If the hatMemoryLoadOp has more than 1 operand, the second is the index
-                   sbrace(_-> recurse( OpHelper.asResultOrThrow(hatMemoryLoadOp.operands().get(1)).op()))
+    public final T generateOnChipMemoryLoad(JavaOp.InvokeOp invoke) {
+        return recurse(OpHelper.asResultOrThrow(invoke.operands().getFirst()).op())
+                .dot().id(invoke.invokeReference().name())
+                .when(invoke.operands().size() > 1,_-> // If the hatMemoryLoadOp has more than 1 operand, the second is the index
+                        sbrace(_-> recurse( OpHelper.asResultOrThrow(invoke.operands().get(1)).op()))
                 );
     }
 
@@ -785,18 +786,30 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return attribute == VarTable.HATOpAttribute.INIT || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED;
     }
 
+    private boolean isInvokeLoadingFromOnChipMemory(JavaOp.InvokeOp invokeOp) {
+        Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
+        if (invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS)) {
+            SequencedSet<Op.Result> uses = invoke.op().result().uses();
+            return uses.stream().filter(use -> use.op() instanceof CoreOp.VarOp)
+                    .map(use -> (CoreOp.VarOp) use.op()).anyMatch(_ -> true);
+        }
+        return false;
+    }
+
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-        if (C99VecAndMatHandler.isVecInvoke( invoke)){ // hacked for vec op calls.
-            C99VecAndMatHandler.handleInvoke(self(),invoke);
-        }else if (invoke.refIs(IfaceValue.class)) {
+        if (C99VecAndMatHandler.isVecInvoke(invoke)) { // hacked for vec op calls.
+            C99VecAndMatHandler.handleInvoke(self(), invoke);
+        } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
                     atomicInc(instanceResult,
                             ((Regex.Match) atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
                     );
                 }
+            } else if (isInvokeLoadingFromOnChipMemory(invokeOp)) {
+                generateOnChipMemoryLoad(invokeOp);
             } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
                 // Attention: Since F16.toFloat operations are supported, it should be possible to
                 // implement a load from global memory from an F16Array and directly use it for a math operation.
@@ -860,25 +873,28 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             default -> throw new IllegalStateException("How ");
                         }
                     } else if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
-                            sbrace(_ -> recurse(op));
+                        sbrace(_ -> recurse(op));
                     }
                 });
             }
         } else if (!invoke.returnsVoid() && invoke.refIs(HATMath.class)) {
-                // codegen for the math operation
-                generateMathIntrinsicOperation(invoke);
-            } else {
-                funcName(invoke.op()).paren(_ ->
-                        commaSpaceSeparated(invoke.op().operands(),
-                                op -> {
-                                    if (op instanceof Op.Result result) {
-                                        recurse(result.op());
-                                    }
-                                })
-                );
-            }
-
+            // codegen for the math operation
+            generateMathIntrinsicOperation(invoke);
+        } else {
+            generateFunctionCall(invoke);
+        }
         return self();
+    }
+
+    private void generateFunctionCall(Invoke invoke) {
+        funcName(invoke.op()).paren(_ ->
+                commaSpaceSeparated(invoke.op().operands(),
+                        op -> {
+                            if (op instanceof Op.Result result) {
+                                recurse(result.op());
+                            }
+                        })
+        );
     }
 
     private VarTable.HATOpAttribute getDeviceRegion(CoreOp.VarOp varOp) {
