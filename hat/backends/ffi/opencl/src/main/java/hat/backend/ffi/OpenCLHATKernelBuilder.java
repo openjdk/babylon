@@ -122,6 +122,22 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    public OpenCLHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
+        vstore(vectorShape.lanes()).paren(_-> {
+            // if the value to be stored is an operation, recurse on the operation
+            if (invokeOp.operands().get(1).asResult().op() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
+                recurse(binOp);
+            } else {
+                varName(name);
+            }
+            csp().intConstZero().csp().ampersand().recurseResultOrThrow(invokeOp.operands().get(0));
+            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
+            id("array").sbrace(_ ->recurseResultOrThrow(invokeOp.operands().get(2)));
+        });
+        return self();
+    }
+
+    @Override
     public OpenCLHATKernelBuilder hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         vstore(hatVectorStoreView.vectorShape().lanes()).paren(_-> {
             // if the value to be stored is an operation, recurse on the operation

@@ -49,8 +49,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static hat.dialect.HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp;
-import static hat.dialect.HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;

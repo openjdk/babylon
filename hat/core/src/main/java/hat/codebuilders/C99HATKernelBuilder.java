@@ -34,9 +34,11 @@ import hat.dialect.HATF16Op;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
+import hat.phases.HATVectorStorePhase;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -72,6 +74,7 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.VarAccess.varAccess;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
     protected  final KernelCallGraph kernelCallGraph;
@@ -853,6 +856,27 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+
+    private boolean isVectorView(JavaOp.InvokeOp invokeOp) {
+        var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+        return (invoke.named("storeFloat4View") || invoke.named("storeFloat2View"))
+                && varAccess(scopedCodeBuilderContext.lookup(), invoke.opFromOperandNOrNull(1)) instanceof OpHelper.VarAccess varAccess
+                && varAccess.isLoad() && varAccess.isTypeAssignable(IfaceValue.Vector.class);
+    }
+
+    public abstract T hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated);
+
+    public static IfaceValue.Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
+        if (invokeOp.operands().get(idx) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+            if (varLoadOp.resultType() instanceof VarType varType) {
+                return getVectorShape(lookup, varType.valueType());
+            } else {
+                return getVectorShape(lookup, varLoadOp.resultType());
+            }
+        }
+        return null;
+    }
+
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -870,10 +894,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
                 var name = findVectorVarNameOrNull(invokeOp.operands().getFirst());
                 id(name);
-
             } else {
-                throw  new IllegalStateException("Vector Operation found: " + invoke.name());
+                throw new IllegalStateException("Vector Operation found: " + invoke.name());
             }
+        } else if (isVectorView(invokeOp)) {
+            IfaceValue.Vector.Shape vectorShape  = getVectorShapeFromOperandN(invoke.lookup(), invoke.op(), 1);
+            boolean isShared = HATVectorStorePhase.findIsSharedOrPrivateSpace(invoke.op().operands().getFirst());
+            String vectorName = findVectorVarNameOrNull(invokeOp.operands().get(1));
+            hatVectorStoreOp(invokeOp, vectorShape, vectorName, isShared);
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {

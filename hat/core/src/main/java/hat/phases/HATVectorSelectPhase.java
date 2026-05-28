@@ -89,9 +89,7 @@ public record HATVectorSelectPhase() implements HATPhase {
                 .filter(invoke -> invoke.nameMatchesRegex("[xyzw]")
                                 && invoke.refIs(Vector.class)
                                 && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp)
-                .map(invoke ->
-                        new InvokeVar(invoke.op(),invoke.varLoadOpFromFirstOperandOrNull())
-                )
+                .map(invoke -> new InvokeVar(invoke.op(),invoke.varLoadOpFromFirstOperandOrNull()))
                 .forEach(invokeVar ->{
                     ceToInvokeVar.put(invokeVar.invokeOp,invokeVar);
                     ceToInvokeVar.put(invokeVar.varLoadOp,invokeVar);
@@ -110,8 +108,7 @@ public record HATVectorSelectPhase() implements HATPhase {
                                 invokeVar.laneIdx(),
                                 invokeVar.varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName():null,
                                 context.getValues(invokeVar.invokeOp.operands())
-                        )
-                        :
+                        ):
                         // Pattern from the code mode:
                         // %20 : java.type:"hat.types.Float4" = var.load %15 @loc="64:13";
                         // %21 : java.type:"float" = var.load %19 @loc="64:18";
@@ -122,7 +119,6 @@ public record HATVectorSelectPhase() implements HATPhase {
                                 invokeVar.laneIdx(),
                                 context.getValues(invokeVar.invokeOp.operands())
                         );
-
                 context.mapValue(invokeVar.invokeOp.result(), blockBuilder.add(
                         copyLocation(invokeVar.invokeOp, newOp)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {

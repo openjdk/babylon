@@ -342,4 +342,9 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         return paren(_-> id(vectorShape.codeType().toString() + vectorShape.lanes()));
     }
 
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
+        return self();
+    }
+
 }

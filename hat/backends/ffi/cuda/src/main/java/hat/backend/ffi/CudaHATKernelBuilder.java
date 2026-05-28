@@ -179,6 +179,27 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
+        Value dest = invokeOp.operands().get(0);
+        Value index = invokeOp.operands().get(2);
+        keyword("reinterpret_cast").ltgt(_ -> type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().asterisk());
+        paren(_ -> {
+            ampersand().recurseResultOrThrow(dest);
+            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
+            id("array").sbrace(_ -> recurseResultOrThrow(index));
+        });
+        sbrace(_ -> intConstZero());
+        sp().equals().sp();
+        // if the value to be stored is an operation, recurse on the operation
+        if (invokeOp.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
+            recurse(r.op());
+        } else {
+            varName(name);
+        }
+        return self();
+    }
+
+    @Override
     public CudaHATKernelBuilder hatVectorStoreOp(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         Value dest = hatVectorStoreView.operands().get(0);
         Value index = hatVectorStoreView.operands().get(2);

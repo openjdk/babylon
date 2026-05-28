@@ -59,8 +59,9 @@ public class HATTier  {
                 new HATVectorPhase.MulPhase(),
                 new HATVectorPhase.DivPhase(),
                 new HATVectorPhase.MakeMutable(),       // done
-                new HATVectorStorePhase.Float4StorePhase(),
-                new HATVectorStorePhase.Float2StorePhase(),
+
+                //new HATVectorStorePhase.Float4StorePhase(), // done
+                //new HATVectorStorePhase.Float2StorePhase(), // done
 
                 // Vector Select individual lines
                 new HATVectorSelectPhase(),

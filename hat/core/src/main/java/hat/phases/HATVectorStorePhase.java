@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.dialect.HATVectorOp;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -46,7 +45,6 @@ import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.VarAccess;
 import static optkl.OpHelper.VarAccess.varAccess;
-import static optkl.OpHelper.copyLocation;
 
 public abstract sealed class HATVectorStorePhase implements HATPhase {
     abstract String storeViewName();
@@ -75,7 +73,7 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
     }
 
     //recursive
-    private boolean findIsSharedOrPrivateSpace(Value v) {
+    public static boolean findIsSharedOrPrivateSpace(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst());
         } else if (v.declaringElement() instanceof CoreOp.VarOp varOp) {
@@ -98,22 +96,24 @@ public abstract sealed class HATVectorStorePhase implements HATPhase {
         return Trxfmr.of(lookup,funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (invoke(lookup,op) instanceof Invoke invoke) {
-                Vector.Shape vectorShape  = getVectorShapeFromOperandN(lookup,invoke.op(), 1);
-                HATVectorOp storeView = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst())
-                        ? new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(
-                                findNameVector(invoke.resultFromOperandNOrThrow(1)),
-                                invoke.returnType(),
-                                vectorShape,
-                                context.getValues(invoke.op().operands()))
-                        : new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(    // It seems we mean From global -> To Global
-                                findNameVector(invoke.resultFromOperandNOrThrow(1)),
-                                invoke.returnType(),
-                                vectorShape,
-                                context.getValues(invoke.op().operands()));
-                context.mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(),storeView)));
+                blockBuilder.add(invoke.op());
+//               Vector.Shape vectorShape  = getVectorShapeFromOperandN(lookup,invoke.op(), 1);
+//                HATVectorOp storeView = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst())
+//                        ? new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(
+//                                findNameVector(invoke.resultFromOperandNOrThrow(1)),
+//                                invoke.returnType(),
+//                                vectorShape,
+//                                context.getValues(invoke.op().operands()))
+//                        : new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(    // It seems we mean From global -> To Global
+//                                findNameVector(invoke.resultFromOperandNOrThrow(1)),
+//                                invoke.returnType(),
+//                                vectorShape,
+//                                context.getValues(invoke.op().operands()));
+//                context.mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(),storeView)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
                 // pass value
-                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+                //context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+                blockBuilder.add(varLoadOp);
             }
             return blockBuilder;
         }, varTable).funcOp();
