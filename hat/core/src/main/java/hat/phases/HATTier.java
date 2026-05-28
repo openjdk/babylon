@@ -43,6 +43,7 @@ public class HATTier  {
                 new HATMemoryPhase.LocalMemoryPhase(),
                 new HATMemoryPhase.PrivateMemoryPhase(),
                 new HATMemoryPhase.DeviceTypePhase(),
+
                 // ID's /thread access
                 new HATThreadsPhase(),
 
