@@ -84,8 +84,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                 .hashDefine("HAT_BIY", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstOne())))
                 .hashDefine("HAT_BIZ", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstTwo())))
                 .hashDefine("HAT_BARRIER", _ -> id("barrier").oparen().id("CLK_LOCAL_MEM_FENCE").cparen());
-        //         )
-        // );
     }
 
     @Override
@@ -332,6 +330,11 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
             suffix_t(classType);
         }
         return sp().varName(varOp);
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder generateVectorLoad(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
+        return null;
     }
 
 }

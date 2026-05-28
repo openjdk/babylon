@@ -66,7 +66,8 @@ import java.util.stream.Stream;
 public sealed interface OpHelper<T extends Op> extends LookupCarrier
         permits OpHelper.Binary, OpHelper.Lambda, OpHelper.LoadOrStore, OpHelper.Named, OpHelper.Ternary {
 
-    Regex RESERVED_METHODS = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
+    Regex RESERVED_METHODS_MEMORY_REGIONS = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
+    Regex RESERVED_METHOD_VECTORS = Regex.of("(float4View|float2View)");
 
     static <F extends Op, T extends Op> T copyLocation(F from, T to) {
         to.setLocation(from.location());

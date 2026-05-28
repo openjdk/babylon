@@ -56,6 +56,7 @@ import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Optional;
 import java.util.SequencedSet;
@@ -67,6 +68,7 @@ import java.util.stream.Stream;
 
 import static hat.buffer.F16Array.F16Impl;
 import static java.lang.invoke.MethodHandles.lookup;
+import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
@@ -788,7 +790,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private boolean isInvokeLoadingFromOnChipMemory(JavaOp.InvokeOp invokeOp) {
         Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
-        if (invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS)) {
+        if (invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS_MEMORY_REGIONS)) {
             SequencedSet<Op.Result> uses = invoke.op().result().uses();
             return uses.stream().filter(use -> use.op() instanceof CoreOp.VarOp)
                     .map(use -> (CoreOp.VarOp) use.op()).anyMatch(_ -> true);
@@ -796,11 +798,68 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return false;
     }
 
+    private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
+        Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
+        return invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex(OpHelper.RESERVED_METHOD_VECTORS);
+    }
+
+    private boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Op op) {
+        return isSharedOrPrivate(lookup, op.operands().getFirst());
+    }
+
+    public boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Value v) {
+        return v instanceof Op.Result result && switch (result.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isSharedOrPrivate(lookup, varLoadOp); //recurse
+            case CoreOp.VarOp varOp -> {
+                // extra analysis
+                Value first = varOp.operands().getFirst();
+                if (first instanceof Block.Parameter) {
+                    // if the var comes from a parameter, then it is global memory
+                    yield false;
+                }
+                // otherwise we continue traversal
+                yield isSharedOrPrivate(lookup, varOp);
+            }
+            case JavaOp.InvokeOp invoke -> {
+                // If we get an invoke, we need to get method name, and check the following
+
+                // warp to Invoke
+                if (lookup == null) {
+                    throw new IllegalStateException("Lookup has not been initialized");
+                }
+
+                Stream<Invoke> stream = OpHelper.Invoke.stream(lookup, invoke);
+                Optional<Invoke> invokeOptional = stream.findFirst();
+                // Check for the right class
+                if (invokeOptional.isPresent() && invokeOptional.get().refIs(NonMappableIface.class)) {
+                    // check for the method name
+                    String lowerCase = invoke.invokeReference().name().toLowerCase();
+                    yield NON_MAPPABLE_IFACE.contains(lowerCase);
+                }
+                yield false;
+            }
+            default -> false;
+        };
+    }
+
+    public abstract T generateVectorLoad(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape,  boolean deviceAllocated);
+
     @Override
     public final T invokeOp( JavaOp.InvokeOp invokeOp) {
-        var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
+        var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
         if (C99VecAndMatHandler.isVecInvoke(invoke)) { // hacked for vec op calls.
             C99VecAndMatHandler.handleInvoke(self(), invoke);
+        } else if (isVectorOperation(invokeOp)) {
+            lineComment("Vector Operation found: " + invoke.name());
+            if (invoke.name().equalsIgnoreCase("float4view")
+                    || invoke.name().equalsIgnoreCase("float2view")) {
+                // could be share or global
+                IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
+                boolean isSharedOrPrivate = isSharedOrPrivate(invoke.lookup(), invoke.op());
+                generateVectorLoad(invokeOp, vectorShape, isSharedOrPrivate);
+            } else {
+                throw  new IllegalStateException("Vector Operation found: " + invoke.name());
+            }
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {

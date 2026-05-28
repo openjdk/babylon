@@ -166,41 +166,17 @@ public abstract sealed class HATVectorPhase implements HATPhase {
     private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
         this.lookup = lookup;
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
             if (variable.firstOperandAsInvoke() instanceof Invoke invoke
                     && invoke.returns(Vector.class)
                     && invoke.named(vectorOperation.methodName)) {
                 Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                vectorShapeMap.put(invoke.op(), vectorShape);
                 vectorShapeMap.put(variable.op(), vectorShape);
-                invokeToVar.put(invoke.op(), variable.op());
             }
         });
 
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (invoke(lookup, op) instanceof Invoke invoke) {
-                var varOp = invokeToVar.get(invoke.op());
-                Vector.Shape shape = getVectorShape(invoke.lookup(), invoke.returnType());
-
-                HATVectorOp memoryViewOp;
-                if (isSharedOrPrivate(invoke.resultFromFirstOperandOrNull())) {
-                    // this should be considered shared or private
-                    memoryViewOp = new HATSharedVectorLoadOp(
-                                        varOp.varName(),
-                                        varOp.resultType(),
-                                        shape,
-                                        blockBuilder.context().getValues(invoke.op().operands()));
-                } else {
-                    // this should be considered global instead
-                    memoryViewOp = new HATPrivateVectorLoadOp(
-                                        varOp.varName(),
-                                        varOp.resultType(),
-                                        shape,
-                                        blockBuilder.context().getValues(invoke.op().operands()));
-                }
-                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(varOp, memoryViewOp)));
-            } else if (op instanceof CoreOp.VarOp varOp) {
+            if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, varTable);
             }
             return blockBuilder;

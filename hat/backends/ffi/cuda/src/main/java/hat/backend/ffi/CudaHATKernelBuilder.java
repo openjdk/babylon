@@ -249,6 +249,26 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    public String buildTypeVector(IfaceValue.Vector.Shape vectorShape) {
+        return vectorShape.codeType().toString() + vectorShape.lanes();
+    }
+
+    @Override
+    public CudaHATKernelBuilder generateVectorLoad(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape,  boolean deviceAllocated) {
+        Value source = invokeOp.operands().get(0);
+        Value index = invokeOp.operands().get(1);
+
+        reinterpret_cast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
+        paren(_ -> {
+            ampersand();
+            recurseResultOrThrow(source);
+            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
+            id("array").sbrace(_ -> recurseResultOrThrow(index));
+        });
+        sbrace(_ -> intConstZero());
+        return self();
+    }
+
     @Override
     public CudaHATKernelBuilder hatVectorLoadOp(HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
         Value source = hatVectorLoadOp.operands().get(0);

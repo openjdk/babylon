@@ -125,7 +125,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
             this.functionName = funcOp.funcName();
             Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
             Invoke.stream(lookup, funcOp)
-                    .filter(invoke -> invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS))
+                    .filter(invoke -> invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS_MEMORY_REGIONS))
                     .forEach(invoke -> invoke.op().result().uses().stream()
                             .filter(use -> use.op() instanceof CoreOp.VarOp)
                             .map(use -> (CoreOp.VarOp) use.op())

@@ -36,7 +36,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.*;
 import optkl.VarTable;
-import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.ops.VarLikeOp;
 
 import java.lang.invoke.MethodHandles;
@@ -128,8 +127,6 @@ public record HATArrayViewPhase() implements HATPhase {
         }
     }
 
-
-
     static HATArrayViewPhase.ArrayAccessInfo arrayAccessInfo(Value value, Map<Op.Result, Op.Result> replaced) {
         return expressionGraph(value).getInfo(replaced);
     }
@@ -207,7 +204,7 @@ public record HATArrayViewPhase() implements HATPhase {
                         var vectorShape = getVectorShape(lookup,arrayLoadOp.resultType());
                         List<Value> operands = context.getValues(List.of(buffer, arrayLoadOp.operands().getLast()));
                         HATVectorOp vLoadOp = buildArrayViewVector(arrayLoadOp, name, resultType, vectorShape, operands);
-                        context.mapValue(arrayLoadOp.result(), blockBuilder.add(copyLocation(arrayLoadOp,vLoadOp)));
+                        context.mapValue(arrayLoadOp.result(), blockBuilder.add(copyLocation(arrayLoadOp, vLoadOp)));
                     }
                     return blockBuilder;
                 }
