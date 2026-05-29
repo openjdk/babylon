@@ -309,25 +309,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatSelectLoadOp(HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
-        id(hatVSelectLoadOp.varName()).dot().id(hatVSelectLoadOp.mapLane());
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatSelectStoreOp(HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
-        id(hatVSelectStoreOp.varName()).dot().id(hatVSelectStoreOp.mapLane()).sp().equals().sp();
-        if (hatVSelectStoreOp.resolvedName() != null) {
-            // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resolvedName());
-        } else {
-            // otherwise, we traverse to resolve the expression
-            recurseResultOrThrow(hatVSelectStoreOp.operands().get(1));
-        }
-        return self();
-    }
-
-    @Override
     public CudaHATKernelBuilder hatSelectStoreOp(Invoke invoke, InvokeVar invokeVar) {
         id(invokeVar.name()).dot().id(mapLane(invokeVar.laneIdx())).sp().equals().sp();
         String resolvedName = invokeVar.resolveName();

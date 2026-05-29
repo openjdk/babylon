@@ -230,69 +230,6 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
         }
     }
 
-    public static final class HATVectorSelectLoadOp extends HATVectorOp implements Precedence.LoadOrConv {
-
-        private final int lane;
-
-        public HATVectorSelectLoadOp(String varName, CodeType resultType, int lane, List<Value> operands) {
-            super(varName, resultType, Vector.Shape.of(JavaType.VOID, -1), operands); // looks like we have a hiearchy mixup
-            this.lane = lane;
-        }
-
-        public HATVectorSelectLoadOp(HATVectorSelectLoadOp that, CodeContext cc) {
-            super(that, cc);
-            this.lane = that.lane;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorSelectLoadOp(this, copyContext);
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.vselect." + lane, resultType());
-        }
-
-        public String mapLane() {
-            return super.mapLane(lane);
-        }
-    }
-
-    public static final class HATVectorSelectStoreOp extends HATVectorOp {
-        private final int lane;
-        private final String resolvedName;
-
-        public HATVectorSelectStoreOp(String varName, int lane, String resolvedName, List<Value> operands) {
-            super(varName, JavaType.VOID, Vector.Shape.of(JavaType.VOID, -1), operands); // This seems so wrong.
-            this.lane = lane;
-            this.resolvedName = resolvedName;
-        }
-
-        public HATVectorSelectStoreOp(HATVectorSelectStoreOp that, CodeContext cc) {
-            super(that, cc);
-            this.lane = that.lane;
-            this.resolvedName = that.resolvedName;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new HATVectorSelectStoreOp(this, copyContext);
-        }
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("hat.dialect.vselect.store." + lane, resultType());
-        }
-
-        public String mapLane() {
-            return super.mapLane(lane);
-        }
-
-        public String resolvedName(){
-            return resolvedName;
-        }
-    }
-
     public abstract static sealed class HATVectorStoreView extends HATVectorOp {
 
         protected HATVectorStoreView(String varName, CodeType resultType, Vector.Shape vectorShape, /* boolean isSharedOrPrivate*/ List<Value> operands) {

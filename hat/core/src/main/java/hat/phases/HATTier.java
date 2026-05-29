@@ -51,13 +51,10 @@ public class HATTier  {
                 new HATMathLibPhase(), // custom nodes removed - OK
 
                 // views for vector types
-                new HATVectorPhase(), // In progress
-
-                // Vector Select individual lines
-                //new HATVectorSelectPhase(),
+                new HATVectorPhase(), // Pending binOps
 
                 // F16 type
-                new HATFP16Phase()
+                new HATFP16Phase()  // In progress
         );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){

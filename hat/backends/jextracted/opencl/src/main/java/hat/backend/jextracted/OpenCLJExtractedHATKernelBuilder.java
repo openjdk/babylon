@@ -165,30 +165,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
-        id(hatVSelectLoadOp.varName())
-                .dot()
-                .id(hatVSelectLoadOp.mapLane());
-        return self();
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
-        id(hatVSelectStoreOp.varName())
-                .dot()
-                .id(hatVSelectStoreOp.mapLane())
-                .sp().equals().sp();
-        if (hatVSelectStoreOp.resolvedName() != null) {
-            // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resolvedName());
-        } else if (hatVSelectStoreOp.operands().get(1) instanceof Op.Result r) {
-                recurse( r.op());
-
-        }
-        return self();
-    }
-
-    @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
         paren(_-> type("half"));
         if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
@@ -196,11 +172,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         }
         return self();
     }
-//
-//    @Override
-//    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier( HATVectorOp.HATVectorOfOp hatVectorOfOp) {
-//        return paren(_-> id(hatVectorOfOp.buildType()));
-//    }
 
     @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {

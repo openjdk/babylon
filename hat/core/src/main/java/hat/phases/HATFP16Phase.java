@@ -207,7 +207,7 @@ public record HATFP16Phase() implements HATPhase {
                             reducedFloatsType.put(varOp, reducedFloatType);
                         }
                         reducedFloatsType.put(invoke.op(), reducedFloatType);
-                    }else {
+                    } else {
                         throw new RuntimeException("No reduced float type");
                     }
                 });
