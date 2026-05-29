@@ -28,7 +28,6 @@ import hat.device.NonMappableIface;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATVectorOp;
 import jdk.incubator.code.CodeType;
-import jdk.incubator.vector.VectorOperators;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -293,7 +292,6 @@ public final class HATVectorPhase implements HATPhase {
         vectorTransformers.put(VOp.SUB, this::transformBinaryOperation);
         vectorTransformers.put(VOp.MUL, this::transformBinaryOperation);
         vectorTransformers.put(VOp.DIV, this::transformBinaryOperation);
-
     }
 
     @Override

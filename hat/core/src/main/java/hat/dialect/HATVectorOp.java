@@ -30,13 +30,11 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.ops.Precedence;
 import optkl.util.ops.VarLikeOp;
 
 import java.util.List;
 import java.util.Map;
-
 
 public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
 
@@ -58,12 +56,15 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
         this.resultType = that.resultType;
         this.vectorShape = that.vectorShape;
     }
+
     @Override
     public final String varName() {
         return varName;
     }
 
-    public final Vector.Shape vectorShape(){return vectorShape;}
+    public final Vector.Shape vectorShape() {
+        return vectorShape;
+    }
 
     //TODO all these fields should be final why do we allow this to be mutated.
     public void varName(String varName) {
