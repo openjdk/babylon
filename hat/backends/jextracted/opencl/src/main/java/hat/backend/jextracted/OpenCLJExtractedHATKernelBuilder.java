@@ -362,4 +362,15 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         );
     }
 
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
+        if (invoke.op().operands().getFirst().declaringElement() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+            recurse( vLoadOp);
+        } else {
+            id(invokeVar.name());
+        }
+        dot().id(mapLane(invokeVar.laneIdx()));
+        return self();
+    }
+
 }

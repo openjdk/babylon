@@ -185,6 +185,17 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    public OpenCLHATKernelBuilder hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
+        if (invoke.op().operands().getFirst().declaringElement() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+            recurse( vLoadOp);
+        } else {
+            id(invokeVar.name());
+        }
+        dot().id(mapLane(invokeVar.laneIdx()));
+        return self();
+    }
+
+    @Override
     public OpenCLHATKernelBuilder hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
         if (hatVSelectStoreOp.operands().getFirst().asResult().op() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
             recurse(vLoadOp);

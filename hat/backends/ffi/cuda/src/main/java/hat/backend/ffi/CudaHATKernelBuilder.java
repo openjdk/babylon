@@ -315,6 +315,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder hatSelectLoadOp(Invoke invoke, InvokeVar invokeVar) {
+        id(invoke.name()).dot().id(mapLane(invokeVar.laneIdx()));
+        return self();
+    }
+
+    @Override
     public CudaHATKernelBuilder hatSelectStoreOp(HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
         id(hatVSelectStoreOp.varName()).dot().id(hatVSelectStoreOp.mapLane()).sp().equals().sp();
         if (hatVSelectStoreOp.resolvedName() != null) {

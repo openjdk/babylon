@@ -893,6 +893,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
 
+    public abstract T hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
+
     public record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
         // recursive
         public static String vectorNameOrThrow(Value v) {
@@ -961,12 +963,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (invoke.nameMatchesRegex("[xyzw]") && invoke.refIs(IfaceValue.Vector.class) && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp) {
             InvokeVar invokeVar = new InvokeVar(invokeOp, invoke.varLoadOpFromFirstOperandOrNull());
             if (invoke.returnsVoid()) {
-                // vector select store
                 hatSelectStoreOp(invoke, invokeVar);
             } else {
-                throw new IllegalStateException("Vector Operation found: " + invoke.name());
+                hatSelectLoadOp(invoke, invokeVar);
             }
-
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {

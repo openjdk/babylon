@@ -54,7 +54,7 @@ public class HATTier  {
                 new HATVectorPhase(), // In progress
 
                 // Vector Select individual lines
-                new HATVectorSelectPhase(),
+                //new HATVectorSelectPhase(),
 
                 // F16 type
                 new HATFP16Phase()
