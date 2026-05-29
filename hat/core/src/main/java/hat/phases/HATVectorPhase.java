@@ -28,6 +28,7 @@ import hat.device.NonMappableIface;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATVectorOp;
 import jdk.incubator.code.CodeType;
+import jdk.incubator.vector.VectorOperators;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -249,23 +250,19 @@ public final class HATVectorPhase implements HATPhase {
         return dialectifyVectorBinaryWithConcatenationOps(lookup, funcOp, varTable, vectorOperation);
     }
 
+    private boolean isVectorOperation(CodeElement<?, ?> codeElement, VOp vectorOperation) {
+        return invoke(lookup, codeElement) instanceof Invoke invoke && invoke.returns(Vector.class) && invoke.named(vectorOperation.methodName);
+    }
+
     private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
         Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
         funcOp.elements().forEach(codeElement -> {
-            if (invoke(lookup, codeElement) instanceof Invoke invoke
-                    && invoke.returns(Vector.class) && invoke.named(vectorOperation.methodName)) {
+            if (isVectorOperation(codeElement, vectorOperation)) {
+                Invoke invoke = invoke(lookup, codeElement);
                 invoke.op().operands().stream()// this can't be replaced with findFirst
                         .filter(operand -> operand instanceof Op.Result && ((Op.Result) operand).op() instanceof CoreOp.VarAccessOp.VarLoadOp)
                         .map(operand -> (CoreOp.VarAccessOp.VarLoadOp) ((Op.Result) operand).op())
-                        .forEach(varLoadOp -> {
-                            nodesInvolved.add(varLoadOp);
-                            nodesInvolved.add(invoke.op());
-                        });
-            } else if (codeElement instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
-                hatVectorBinaryOp.operands().stream()
-                        .filter(operand -> operand instanceof Op.Result && ((Op.Result) operand).op() instanceof CoreOp.VarAccessOp.VarLoadOp)
-                        .map(operand -> (CoreOp.VarAccessOp.VarLoadOp) ((Op.Result) operand).op())
-                        .forEach(nodesInvolved::add);
+                        .forEach(_ -> nodesInvolved.add(invoke.op()));
             }
         });
 
@@ -279,15 +276,6 @@ public final class HATVectorPhase implements HATPhase {
                         blockBuilder.context().getValues(invoke.op().operands())
                 );
                 blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), memoryViewOp)));
-            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                blockBuilder.add(varLoadOp);
-//                HATVectorOp memoryViewOp = new HATVectorOp.HATVectorVarLoadOp(
-//                        findVectorVarNameOrNull(varLoadOp),
-//                        varLoadOp.resultType(),
-//                        getVectorShapeOrNullFromVarLoad(varLoadOp),
-//                        blockBuilder.context().getValues(varLoadOp.operands())
-//                );
-//                blockBuilder.context().mapValue(varLoadOp.result(), blockBuilder.add(copyLocation(varLoadOp, memoryViewOp)));
             }
             return blockBuilder;
         }, varTable).funcOp();

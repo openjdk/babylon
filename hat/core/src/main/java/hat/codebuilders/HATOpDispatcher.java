@@ -44,7 +44,6 @@ import static hat.dialect.HATVectorOp.HATVectorLoadOp;
 import static hat.dialect.HATVectorOp.HATVectorSelectLoadOp;
 import static hat.dialect.HATVectorOp.HATVectorSelectStoreOp;
 import static hat.dialect.HATVectorOp.HATVectorStoreView;
-//import static hat.dialect.HATVectorOp.HATVectorVarLoadOp;
 
 /* this should not be too C99 specific but can reference HAT ops.  */
 public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
@@ -62,8 +61,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     T hatSelectLoadOp( HATVectorSelectLoadOp hatVSelectLoadOp);
 
     T hatSelectStoreOp( HATVectorSelectStoreOp hatVSelectStoreOp);
-
-//    T hatVectorVarLoadOp( HATVectorVarLoadOp hatVectorVarLoadOp);
 
     T hatF16BinaryOp( HATF16BinaryOp hatF16BinaryOp);
 
@@ -90,7 +87,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATVectorLoadOp $ -> hatVectorLoadOp($);
                 case HATVectorSelectLoadOp $ -> hatSelectLoadOp($);
                 case HATVectorSelectStoreOp $ -> hatSelectStoreOp($);
-//                case HATVectorVarLoadOp $ -> hatVectorVarLoadOp($);
                 case HATF16BinaryOp $ -> hatF16BinaryOp($);
                 case HATF16VarLoadOp $ -> hatF16VarLoadOp($);
                 case HATF16ConvOp $ -> hatF16ConvOp($);

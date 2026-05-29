@@ -257,7 +257,6 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
         public String mapLane() {
             return super.mapLane(lane);
         }
-
     }
 
     public static final class HATVectorSelectStoreOp extends HATVectorOp {
@@ -288,10 +287,10 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
         public String mapLane() {
             return super.mapLane(lane);
         }
+
         public String resolvedName(){
             return resolvedName;
         }
-
     }
 
     public abstract static sealed class HATVectorStoreView extends HATVectorOp {
@@ -347,25 +346,4 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
         }
 
     }
-//
-//    public static final class HATVectorVarLoadOp extends HATVectorOp {
-//
-//        public HATVectorVarLoadOp(String varName, CodeType resultType, Vector.Shape vectorShape,  List<Value> operands) {
-//            super(varName, resultType, vectorShape, operands);
-//        }
-//
-//        public HATVectorVarLoadOp(HATVectorVarLoadOp op, CodeContext copyContext) {
-//            super(op, copyContext);
-//        }
-//
-//        @Override
-//        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-//            return new HATVectorVarLoadOp(this, copyContext);
-//        }
-//
-//        @Override
-//        public Map<String, Object> externalize() {
-//            return Map.of("hat.dialect.vectorVarLoadOp." + varName(), resultType());
-//        }
-//    }
 }

@@ -74,7 +74,6 @@ import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.RESERVED_BINARY_OPS_VECTORS;
-import static optkl.OpHelper.RESERVED_METHOD_VECTORS;
 import static optkl.OpHelper.VarAccess.varAccess;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
@@ -437,12 +436,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-//
-//    @Override
-//    public final T hatVectorVarLoadOp( HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
-//        return varName(hatVectorVarLoadOp);
-//    }
-
     public final T f16Type() {
         return suffix_t(F16.class);
     }
@@ -731,22 +724,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         .ifTrueCondition(_ -> id("round").sp().ne().sp().intConstZero().condAnd().paren(_ -> paren(_ -> id("lsb").bitwiseOR().id("sticky")).ne().intConstZero()),
                                 _ -> id("bits").sp().plusEquals().sp().constant("0x10000"))
                         .returnKeyword( _ -> cast( _ ->u16Type()).paren( _ -> paren( _ -> paren( _-> id("bits").rightShift(16)).bitwiseOR().id("sign_bit")).ampersand().constant("0xffff"))));
-    }
-
-    private boolean isVectorBinaryVarLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        SequencedSet<Op.Result> uses = varLoadOp.result().uses();
-        for (Op.Result use : uses) {
-            if (use.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
-                var invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
-                if (invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex(RESERVED_BINARY_OPS_VECTORS)) {
-                    // it is a vector load for a binary operation
-                    return true;
-                }
-            } else if (use.declaringElement() instanceof HATVectorOp.HATVectorBinaryOp) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override

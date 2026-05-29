@@ -48,9 +48,4 @@ public abstract class C99HATCodeBuilder<T extends C99HATCodeBuilder<T>> extends 
         id(hatVectorBinaryOp.varName());
         return self();
     }
-
-//    public final T varName(HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
-//        id(hatVectorVarLoadOp.varName());
-//        return self();
-//    }
 }
