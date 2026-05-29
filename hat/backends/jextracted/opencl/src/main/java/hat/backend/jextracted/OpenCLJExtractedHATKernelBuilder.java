@@ -164,14 +164,14 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         return self();
     }
 
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        paren(_-> type("half"));
-        if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
-            recurse( r.op());
-        }
-        return self();
-    }
+//    @Override
+//    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
+//        paren(_-> type("half"));
+//        if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
+//            recurse( r.op());
+//        }
+//        return self();
+//    }
 
     @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
@@ -241,8 +241,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
             }
         } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
             narrowCategory = hatf16BinaryOp.float16Class();
-        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
-            narrowCategory = hatf16ConvOp.float16Class();
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
         }
@@ -331,5 +329,14 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                 _-> varName(resolvedName),
                 _-> recurseResultOrThrow(invoke.op().operands().get(1))
         );
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reduceFloatType) {
+        return paren(_-> f16OrBF16(reduceFloatType)).brace(_->
+                either (BF16.class.isAssignableFrom(reduceFloatType),
+                        _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(invokeOp.operands().getFirst())),
+                        _-> recurseResultOrThrow(invokeOp.operands().getFirst())
+                ));
     }
 }

@@ -36,6 +36,7 @@ import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types.F32;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.VarType;
@@ -573,10 +574,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp
                 && !isInvokeLoadingFromOnChipMemory(invokeOp)) {
             // VarLoad from Global Memory with an InvokeOp
-
             Stream<Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
             Optional<OpHelper.Invoke> invoke = stream.findFirst();
             if (isMathLib(invoke)) {
+                dot();
+            } else if (invoke.isPresent() && invoke.get().refIs(S16ImplOfF16.class)) {
+                // This extra condition is due to all operation are implemented via invoke.
+                // Thus, we need to make sure the type to know if it is a reference from
+                // global memory.
                 dot();
             } else {
                 rarrow();
@@ -773,7 +778,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
 
     private boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute) {
-        return attribute == VarTable.HATOpAttribute.INIT || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED;
+        return attribute == VarTable.HATOpAttribute.INIT_SHARED || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED;
     }
 
     private boolean isInvokeLoadingFromOnChipMemory(JavaOp.InvokeOp invokeOp) {
@@ -943,6 +948,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+    private static boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
+        return invoke.refIs(S16ImplOfF16.class) && invoke.nameMatchesRegex(methodName);
+    }
+
+
+    public abstract T hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType);
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -975,6 +987,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else {
                 hatSelectLoadOp(invoke, invokeVar);
             }
+        } else if (!invoke.returnsVoid() && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)")) && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp) {
+            // F16
+            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
+                hatF16ConvOp(invokeOp, reducedFloatType);
+            } else {
+                throw new IllegalStateException("Unhandled op: " + invoke.name());
+            }
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
@@ -983,6 +1002,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     );
                 }
             } else if (isInvokeLoadingFromOnChipMemory(invokeOp)) {
+                // equivalent to custom ops for private and shared memory
                 generateOnChipMemoryLoad(invokeOp);
             } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
                 // Attention: Since F16.toFloat operations are supported, it should be possible to
@@ -1107,7 +1127,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 switch (attribute) {
                     case NARROW -> varOpForNarrowType(varOp);
                     case VECTOR -> varOpForVectors(varOp);
-                    case INIT -> varOpInit(varOp);
+                    case INIT_SHARED -> varOpInit(varOp);
                     case SHARED -> varOpLocalMemory(varOp);
                     case PRIVATE -> varOpPrivateMemory(varOp);
                     default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);

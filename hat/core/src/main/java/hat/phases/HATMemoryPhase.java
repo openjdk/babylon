@@ -89,7 +89,7 @@ public final class HATMemoryPhase implements HATPhase {
         return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             if (op instanceof CoreOp.VarOp varOp) {
                 Op.Result opResult = blockBuilder.add(varOp);
-                varTable.addIfNeededOrThrow(functionName, opResult.op(), VarTable.HATOpAttribute.INIT);
+                varTable.addIfNeededOrThrow(functionName, opResult.op(), VarTable.HATOpAttribute.INIT_SHARED);
             }
             return blockBuilder;
         }, varTable).funcOp();
@@ -109,7 +109,7 @@ public final class HATMemoryPhase implements HATPhase {
         this.containers = new ArrayList<>();
         containers.add(new MemoryRegion("createPrivate", VarTable.HATOpAttribute.PRIVATE, this::analyzeOnChipDataStructures));
         containers.add(new MemoryRegion("createLocal", VarTable.HATOpAttribute.SHARED, this::analyzeOnChipDataStructures));
-        containers.add(new MemoryRegion("createLocal", VarTable.HATOpAttribute.INIT, this::initOnChipDataStructures));
+        containers.add(new MemoryRegion("createLocal", VarTable.HATOpAttribute.INIT_SHARED, this::initOnChipDataStructures));
     }
 
     @Override

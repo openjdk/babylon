@@ -68,7 +68,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
 
     Regex RESERVED_METHODS_MEMORY_REGIONS = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
     Regex RESERVED_METHOD_VECTORS = Regex.of("(float4View|float2View|of|makeMutable|storeFloat4View|storeFloat2View|add|sub|mul|div)");
-    Regex RESERVED_BINARY_OPS_VECTORS = Regex.of("(add|sub|mul|div)");
 
     static <F extends Op, T extends Op> T copyLocation(F from, T to) {
         to.setLocation(from.location());

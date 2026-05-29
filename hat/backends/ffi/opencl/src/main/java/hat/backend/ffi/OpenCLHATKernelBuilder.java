@@ -189,14 +189,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        var reducedFloatType = hatF16ConvOp.float16Class();
-        return paren(_-> f16OrBF16(reducedFloatType)).brace(_->
-                either (BF16.class.isAssignableFrom(reducedFloatType),
-                _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(hatF16ConvOp.operands().getFirst())),
-                _-> recurseResultOrThrow( hatF16ConvOp.operands().getFirst())
-        ));
+    public OpenCLHATKernelBuilder hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reduceFloatType) {
+        return paren(_-> f16OrBF16(reduceFloatType)).brace(_->
+                either (BF16.class.isAssignableFrom(reduceFloatType),
+                        _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(invokeOp.operands().getFirst())),
+                        _-> recurseResultOrThrow(invokeOp.operands().getFirst())
+                ));
     }
+
+//    @Override
+//    public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
+//        var reducedFloatType = hatF16ConvOp.float16Class();
+//        return paren(_-> f16OrBF16(reducedFloatType)).brace(_->
+//                either (BF16.class.isAssignableFrom(reducedFloatType),
+//                _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(hatF16ConvOp.operands().getFirst())),
+//                _-> recurseResultOrThrow( hatF16ConvOp.operands().getFirst())
+//        ));
+//    }
 
     @Override
     public OpenCLHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
@@ -291,8 +300,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             }
         } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
             narrowCategory = hatf16BinaryOp.float16Class();
-        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
-            narrowCategory = hatf16ConvOp.float16Class();
+//        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
+//            narrowCategory = hatf16ConvOp.float16Class();
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
         }

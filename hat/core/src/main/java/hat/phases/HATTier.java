@@ -32,28 +32,28 @@ import java.util.List;
 
 public class HATTier  {
 
-    public static final  List<HATPhase> KernelPhases = List.of(
-                // barrier
-                new HATBarrierPhase(),   // Let's keep the dialect for barriers
+    public static final List<HATPhase> KernelPhases = List.of(
+            // barrier
+            new HATBarrierPhase(),   // Let's keep the dialect for barriers
 
-                // array views
-                new HATArrayViewPhase(),  // pending
+            // array views
+            new HATArrayViewPhase(),  // pending
 
-                // Memory
-                new HATMemoryPhase(), // ok
+            // Memory
+            new HATMemoryPhase(), // ok
 
-                // ID's /thread access
-                new HATThreadsPhase(),  // Let's keep the dialect for barriers
+            // ID's /thread access
+            new HATThreadsPhase(),  // Let's keep the dialect for barriers
 
-                // MathLib phase
-                new HATMathLibPhase(), // custom nodes removed - OK
+            // MathLib phase
+            new HATMathLibPhase(), // custom nodes removed - OK
 
-                // views for vector types
-                new HATVectorPhase(), // Pending binOps
+            // views for vector types
+            new HATVectorPhase(), // Pending binOps
 
-                // F16 type
-                new HATFP16Phase()  // In progress
-        );
+            // F16 type
+            new HATFP16Phase()  // In progress
+    );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
         phases.forEach(phase -> {

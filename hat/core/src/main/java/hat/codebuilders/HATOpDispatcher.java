@@ -33,7 +33,7 @@ import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import static hat.dialect.HATF16Op.HATF16BinaryOp;
-import static hat.dialect.HATF16Op.HATF16ConvOp;
+//import static hat.dialect.HATF16Op.HATF16ConvOp;
 import static hat.dialect.HATF16Op.HATF16ToFloatConvOp;
 import static hat.dialect.HATF16Op.HATF16VarLoadOp;
 import static hat.dialect.HATPtrOp.HATPtrLengthOp;
@@ -60,7 +60,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatF16VarLoadOp( HATF16VarLoadOp hatF16VarLoadOp);
 
-    T hatF16ConvOp( HATF16ConvOp hatF16ConvOp);
+//    T hatF16ConvOp( HATF16ConvOp hatF16ConvOp);
 
     T hatF16ToFloatConvOp( HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
@@ -81,7 +81,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATVectorLoadOp $ -> hatVectorLoadOp($);
                 case HATF16BinaryOp $ -> hatF16BinaryOp($);
                 case HATF16VarLoadOp $ -> hatF16VarLoadOp($);
-                case HATF16ConvOp $ -> hatF16ConvOp($);
+//                case HATF16ConvOp $ -> hatF16ConvOp($);
                 case HATPtrLoadOp $ -> hatPtrLoadOp($);
                 case HATPtrStoreOp $ -> hatPtrStoreOp($);
                 case HATPtrLengthOp $ -> hatPtrLengthOp($);
