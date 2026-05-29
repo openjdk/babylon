@@ -37,6 +37,7 @@ import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -880,6 +881,58 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+    public String mapLane(int lane) {
+        return switch (lane) {
+            case 0 -> "x";
+            case 1 -> "y";
+            case 2 -> "z";
+            case 3 -> "w";
+            default -> throw new InternalError("Invalid lane: " + lane);
+        };
+    }
+
+    public abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
+
+    public record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
+        // recursive
+        public static String vectorNameOrThrow(Value v) {
+            return switch (OpHelper.asOpFromResultOrNull(v)) {
+                case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
+                        vectorNameOrThrow(varLoadOp.operands().getFirst()); // recurse
+                case CoreOp.VarOp varOp -> varOp.varName();
+                case null -> null;
+                default -> throw new IllegalStateException("failed to find vector name");
+            };
+        }
+        public String name(){
+            return vectorNameOrThrow(varLoadOp.operands().getFirst());
+        }
+        //recursive
+        public CoreOp.VarOp findVarOpOrNull(Value v) {
+            return switch (OpHelper.asOpFromResultOrNull(v)){
+                case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findVarOpOrNull(varLoadOp.operands().getFirst()); //recurse
+                case CoreOp.VarOp varOp -> varOp;
+                case null -> null;
+                default ->  null;
+            };
+        }
+
+        public CoreOp.VarOp varOpFromOperand(int idx){
+            return findVarOpOrNull(invokeOp.operands().get(idx));
+        }
+        public CodeType returnType() {
+            return invokeOp.resultType();
+        }
+
+        public int laneIdx() {
+            return "xyzw".indexOf(invokeOp.invokeReference().name().charAt(0));
+        }
+
+        public String resolveName() {
+            return varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName() : null;
+        }
+    }
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -901,10 +954,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 throw new IllegalStateException("Vector Operation found: " + invoke.name());
             }
         } else if (isVectorView(invokeOp)) {
-            IfaceValue.Vector.Shape vectorShape  = getVectorShapeFromOperandN(invoke.lookup(), invoke.op(), 1);
+            IfaceValue.Vector.Shape vectorShape = getVectorShapeFromOperandN(invoke.lookup(), invoke.op(), 1);
             boolean isShared = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst());
             String vectorName = findVectorVarNameOrNull(invokeOp.operands().get(1));
             hatVectorStoreOp(invokeOp, vectorShape, vectorName, isShared);
+        } else if (invoke.nameMatchesRegex("[xyzw]") && invoke.refIs(IfaceValue.Vector.class) && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp) {
+            InvokeVar invokeVar = new InvokeVar(invokeOp, invoke.varLoadOpFromFirstOperandOrNull());
+            if (invoke.returnsVoid()) {
+                // vector select store
+                hatSelectStoreOp(invoke, invokeVar);
+            } else {
+                throw new IllegalStateException("Vector Operation found: " + invoke.name());
+            }
+
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {

@@ -347,4 +347,19 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         return self();
     }
 
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
+        if (invoke.op().operands().getFirst().declaringElement() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+            recurse(vLoadOp);
+        } else {
+            id(invokeVar.name());
+        }
+        dot().id(mapLane(invokeVar.laneIdx())).assign();
+        String resolvedName = invokeVar.varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName():null;
+        return either (resolvedName != null,
+                _-> varName(resolvedName),
+                _-> recurseResultOrThrow(invoke.op().operands().get(1))
+        );
+    }
+
 }

@@ -328,6 +328,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder hatSelectStoreOp(Invoke invoke, InvokeVar invokeVar) {
+        id(invokeVar.name()).dot().id(mapLane(invokeVar.laneIdx())).sp().equals().sp();
+        String resolvedName = invokeVar.resolveName();
+        if (resolvedName != null) {
+            // We have detected a direct resolved result (resolved name)
+            varName(resolvedName);
+        } else {
+            // otherwise, we traverse to resolve the expression
+            recurseResultOrThrow(invoke.op().operands().get(1));
+        }
+        return self();
+    }
+
+    @Override
     public CudaHATKernelBuilder hatF16ConvOp(HATF16Op.HATF16ConvOp hatF16ConvOp) {
         var float16Class = hatF16ConvOp.float16Class();
         paren(_ -> f16OrBF16(float16Class)).brace(_ -> {

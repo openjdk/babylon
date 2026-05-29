@@ -98,31 +98,36 @@ public record HATVectorSelectPhase() implements HATPhase {
         return Trxfmr.of(lookup,funcOp).transform(ceToInvokeVar::containsKey,(blockBuilder, op) -> {
             CodeContext context = blockBuilder.context();
             if (invoke(lookup,op) instanceof Invoke invoke && ceToInvokeVar.get(invoke.op()) instanceof InvokeVar invokeVar) {
-                Op newOp = invoke.returnsVoid() ?
-                        // Code Model Pattern:
-                        //  %16 : java.type:"hat.types.Float4" = var.load %15 @loc="63:28";
-                        //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.types.Float4::x():float";
-
-                        new HATVectorOp.HATVectorSelectStoreOp(
-                                invokeVar.name(),
-                                invokeVar.laneIdx(),
-                                invokeVar.varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName():null,
-                                context.getValues(invokeVar.invokeOp.operands())
-                        ):
-                        // Pattern from the code mode:
-                        // %20 : java.type:"hat.types.Float4" = var.load %15 @loc="64:13";
-                        // %21 : java.type:"float" = var.load %19 @loc="64:18";
-                        // invoke %20 %21 @loc="64:13" @java.ref:"hat.types.Float4::x(float):void";
-                        new HATVectorOp.HATVectorSelectLoadOp(
-                                invokeVar.name(),
-                                invokeVar.returnType(),
-                                invokeVar.laneIdx(),
-                                context.getValues(invokeVar.invokeOp.operands())
-                        );
-                context.mapValue(invokeVar.invokeOp.result(), blockBuilder.add(
-                        copyLocation(invokeVar.invokeOp, newOp)));
+                boolean b = invoke.returnsVoid();
+                if (b) {
+                    blockBuilder.add(op);
+                } else {
+//                Op newOp = invoke.returnsVoid() ?
+//                        // Code Model Pattern:
+//                        //  %16 : java.type:"hat.types.Float4" = var.load %15 @loc="63:28";
+//                        //  %17 : java.type:"float" = invoke %16 @loc="63:28" @java.ref:"hat.types.Float4::x():float";
+//
+//                        new HATVectorOp.HATVectorSelectStoreOp(
+//                                invokeVar.name(),
+//                                invokeVar.laneIdx(),
+//                                invokeVar.varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName():null,
+//                                context.getValues(invokeVar.invokeOp.operands())
+//                        ):
+                    // Pattern from the code mode:
+                    // %20 : java.type:"hat.types.Float4" = var.load %15 @loc="64:13";
+                    // %21 : java.type:"float" = var.load %19 @loc="64:18";
+                    // invoke %20 %21 @loc="64:13" @java.ref:"hat.types.Float4::x(float):void";
+                    HATVectorOp.HATVectorSelectLoadOp newOp = new HATVectorOp.HATVectorSelectLoadOp(
+                            invokeVar.name(),
+                            invokeVar.returnType(),
+                            invokeVar.laneIdx(),
+                            context.getValues(invokeVar.invokeOp.operands())
+                    );
+                    context.mapValue(invokeVar.invokeOp.result(), blockBuilder.add(copyLocation(invokeVar.invokeOp, newOp)));
+                }
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
+                blockBuilder.add(varLoadOp);
+                //context.mapValue(varLoadOp.result(), context.getValue(varLoadOp.operands().getFirst()));
             }
             return blockBuilder;
         }, varTable).funcOp();
