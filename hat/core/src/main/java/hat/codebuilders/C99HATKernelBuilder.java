@@ -73,6 +73,8 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
+import static optkl.OpHelper.RESERVED_BINARY_OPS_VECTORS;
+import static optkl.OpHelper.RESERVED_METHOD_VECTORS;
 import static optkl.OpHelper.VarAccess.varAccess;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
@@ -435,11 +437,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-
-    @Override
-    public final T hatVectorVarLoadOp( HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
-        return varName(hatVectorVarLoadOp);
-    }
+//
+//    @Override
+//    public final T hatVectorVarLoadOp( HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp) {
+//        return varName(hatVectorVarLoadOp);
+//    }
 
     public final T f16Type() {
         return suffix_t(F16.class);
@@ -731,9 +733,24 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         .returnKeyword( _ -> cast( _ ->u16Type()).paren( _ -> paren( _ -> paren( _-> id("bits").rightShift(16)).bitwiseOR().id("sign_bit")).ampersand().constant("0xffff"))));
     }
 
+    private boolean isVectorBinaryVarLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        SequencedSet<Op.Result> uses = varLoadOp.result().uses();
+        for (Op.Result use : uses) {
+            if (use.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                var invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
+                if (invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex(RESERVED_BINARY_OPS_VECTORS)) {
+                    // it is a vector load for a binary operation
+                    return true;
+                }
+            } else if (use.declaringElement() instanceof HATVectorOp.HATVectorBinaryOp) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Override
-    public final T varLoadOp( CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+    public final T varLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp $ -> varName($);
@@ -887,7 +904,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public final T invokeOp( JavaOp.InvokeOp invokeOp) {
+    public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
         if (C99VecAndMatHandler.isVecInvoke(invoke)) { // hacked for vec op calls.
             C99VecAndMatHandler.handleInvoke(self(), invoke);

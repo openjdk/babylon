@@ -280,13 +280,14 @@ public final class HATVectorPhase implements HATPhase {
                 );
                 blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), memoryViewOp)));
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                HATVectorOp memoryViewOp = new HATVectorOp.HATVectorVarLoadOp(
-                        findVectorVarNameOrNull(varLoadOp),
-                        varLoadOp.resultType(),
-                        getVectorShapeOrNullFromVarLoad(varLoadOp),
-                        blockBuilder.context().getValues(varLoadOp.operands())
-                );
-                blockBuilder.context().mapValue(varLoadOp.result(), blockBuilder.add(copyLocation(varLoadOp, memoryViewOp)));
+                blockBuilder.add(varLoadOp);
+//                HATVectorOp memoryViewOp = new HATVectorOp.HATVectorVarLoadOp(
+//                        findVectorVarNameOrNull(varLoadOp),
+//                        varLoadOp.resultType(),
+//                        getVectorShapeOrNullFromVarLoad(varLoadOp),
+//                        blockBuilder.context().getValues(varLoadOp.operands())
+//                );
+//                blockBuilder.context().mapValue(varLoadOp.result(), blockBuilder.add(copyLocation(varLoadOp, memoryViewOp)));
             }
             return blockBuilder;
         }, varTable).funcOp();
