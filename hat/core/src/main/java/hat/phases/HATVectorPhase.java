@@ -42,9 +42,9 @@ import optkl.VarTable;
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -54,11 +54,11 @@ import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.copyLocation;
 
-public abstract sealed class HATVectorPhase implements HATPhase {
+public final class HATVectorPhase implements HATPhase {
 
     private String functionName;
 
-    protected MethodHandles.Lookup lookup = null;
+    private MethodHandles.Lookup lookup = null;
 
     // recursive
     public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -134,7 +134,8 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         }
         return null;
     }
-    public enum VectorOperation {
+
+    public enum VOp {
         FLOAT4_LOAD("float4View"),
         FLOAT2_LOAD("float2View"),
         OF("of"),
@@ -145,15 +146,9 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         MAKE_MUTABLE("makeMutable");
         final String methodName;
 
-        VectorOperation(String methodName) {
+        VOp(String methodName) {
             this.methodName = methodName;
         }
-    }
-
-    private final VectorOperation vectorOperation;
-
-    protected HATVectorPhase(VectorOperation vectorOperation) {
-        this.vectorOperation = vectorOperation;
     }
 
     private void addVectorVarOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, VarTable varTable) {
@@ -161,7 +156,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         varTable.addIfNeededOrThrow(functionName, result.op(), VarTable.HATOpAttribute.VECTOR);
     }
 
-    private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
+    private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
         this.lookup = lookup;
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
@@ -181,6 +176,17 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         }, varTable).funcOp();
     }
 
+    private CoreOp.FuncOp dialectifyVectorOf(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
+        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup, funcOp, vectorOperation);
+        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
+            if (op instanceof CoreOp.VarOp varOp) {
+                addVectorVarOp(blockBuilder, varOp, varTable);
+            } else {
+                blockBuilder.add(op);
+            }
+            return blockBuilder;
+        }, varTable).funcOp();
+    }
 
     private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, BinaryOpEnum opType, CodeType codeType,
                                                               Vector.Shape vectorShape, List<Value> outputOperands) {
@@ -192,7 +198,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         };
     }
 
-    private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
+    private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
@@ -224,7 +230,7 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         }, varTable).funcOp();
     }
 
-    private Map<Op, Vector.Shape> getVectorShapeMap(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
+    private Map<Op, Vector.Shape> getVectorShapeMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VOp vectorOperation) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Invoke.stream(lookup, funcOp).
                 filter(i -> i.returns(Vector.class)
@@ -238,40 +244,12 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         return vectorShapeMap;
     }
 
-    private CoreOp.FuncOp dialectifyVectorOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, varTable);
-            } else {
-                blockBuilder.add(op);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
+    private CoreOp.FuncOp transformBinaryOperation(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
+        funcOp = dialectifyVectorBinaryOps(lookup, funcOp, varTable, vectorOperation);
+        return dialectifyVectorBinaryWithConcatenationOps(lookup, funcOp, varTable, vectorOperation);
     }
 
-    private CoreOp.FuncOp dialectifyMutableOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                blockBuilder.add(invokeOp);
-//                var vectorShape = vectorShapeMap.get(invokeOp);
-//                HATVectorOp.HATVectorMakeOfOp makeOf = new HATVectorOp.HATVectorMakeOfOp(
-//                        findVectorVarNameOrNull(invokeOp.operands().getFirst()),
-//                        invokeOp.resultType(),
-//                        vectorShape.lanes(),
-//                        blockBuilder.context().getValues(invokeOp.operands())
-//                );
-//                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, makeOf)));
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-
-    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
+    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
         Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
         funcOp.elements().forEach(codeElement -> {
             if (invoke(lookup, codeElement) instanceof Invoke invoke
@@ -290,7 +268,6 @@ public abstract sealed class HATVectorPhase implements HATPhase {
                         .forEach(nodesInvolved::add);
             }
         });
-
 
         return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             if (invoke(lookup, op) instanceof Invoke invoke) {
@@ -315,75 +292,33 @@ public abstract sealed class HATVectorPhase implements HATPhase {
         }, varTable).funcOp();
     }
 
+    @FunctionalInterface
+    public interface VectorTransformer {
+        CoreOp.FuncOp apply(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation);
+    }
+
+    private final Map<VOp, VectorTransformer> vectorTransformers;
+
+    public HATVectorPhase() {
+        vectorTransformers = new LinkedHashMap<>();
+        vectorTransformers.put(VOp.FLOAT4_LOAD, this::dialectifyVectorLoad); // done
+        vectorTransformers.put(VOp.FLOAT2_LOAD, this::dialectifyVectorLoad); // done
+        vectorTransformers.put(VOp.OF, this::dialectifyVectorOf);            // done
+        vectorTransformers.put(VOp.MAKE_MUTABLE, this::dialectifyVectorOf);  // done
+        vectorTransformers.put(VOp.ADD, this::transformBinaryOperation);
+        vectorTransformers.put(VOp.SUB, this::transformBinaryOperation);
+        vectorTransformers.put(VOp.MUL, this::transformBinaryOperation);
+        vectorTransformers.put(VOp.DIV, this::transformBinaryOperation);
+
+    }
+
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         this.functionName = funcOp.funcName();
-        switch (Objects.requireNonNull(vectorOperation)) {
-            case FLOAT4_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp, varTable);
-            case FLOAT2_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp, varTable);
-            case OF -> funcOp = dialectifyVectorOf(lookup,funcOp, varTable);
-            case MAKE_MUTABLE -> funcOp = dialectifyMutableOf(lookup,funcOp, varTable);
-            default -> {
-                // Find binary operations
-                funcOp = dialectifyVectorBinaryOps(lookup,funcOp, varTable);
-                funcOp = dialectifyVectorBinaryWithConcatenationOps(lookup,funcOp, varTable);
-            }
+        for (VOp vectorOperation : vectorTransformers.keySet()) {
+            VectorTransformer transformer = vectorTransformers.get(vectorOperation);
+            funcOp = transformer.apply(lookup, funcOp, varTable, vectorOperation);
         }
         return funcOp;
-    }
-
-    public static final class AddPhase extends HATVectorPhase {
-        public AddPhase() {
-            super( VectorOperation.ADD);
-        }
-    }
-
-    public static final class DivPhase extends HATVectorPhase {
-
-        public DivPhase() {
-            super(VectorOperation.DIV);
-        }
-    }
-
-    public static final class MakeMutable extends HATVectorPhase {
-
-        public MakeMutable() {
-            super(VectorOperation.MAKE_MUTABLE);
-        }
-    }
-
-    public static final class Float4LoadPhase extends HATVectorPhase {
-
-        public Float4LoadPhase() {
-            super(VectorOperation.FLOAT4_LOAD);
-        }
-    }
-
-    public static final class Float2LoadPhase extends HATVectorPhase {
-
-        public Float2LoadPhase() {
-            super( VectorOperation.FLOAT2_LOAD);
-        }
-    }
-
-    public static final class Float4OfPhase extends HATVectorPhase {
-
-        public Float4OfPhase() {
-            super( VectorOperation.OF);
-        }
-    }
-
-    public static final class MulPhase extends HATVectorPhase {
-
-        public MulPhase() {
-            super( VectorOperation.MUL);
-        }
-    }
-
-    public static final class SubPhase extends HATVectorPhase {
-
-        public SubPhase() {
-            super( VectorOperation.SUB);
-        }
     }
 }

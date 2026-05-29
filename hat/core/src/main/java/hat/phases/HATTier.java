@@ -51,17 +51,7 @@ public class HATTier  {
                 new HATMathLibPhase(), // custom nodes removed - OK
 
                 // views for vector types
-                new HATVectorPhase.Float4LoadPhase(),   // done
-                new HATVectorPhase.Float2LoadPhase(),   // done
-                new HATVectorPhase.Float4OfPhase(),     // done
-                new HATVectorPhase.AddPhase(),
-                new HATVectorPhase.SubPhase(),
-                new HATVectorPhase.MulPhase(),
-                new HATVectorPhase.DivPhase(),
-                new HATVectorPhase.MakeMutable(),       // done
-
-                //new HATVectorStorePhase.Float4StorePhase(), // done
-                //new HATVectorStorePhase.Float2StorePhase(), // done
+                new HATVectorPhase(), // In progress
 
                 // Vector Select individual lines
                 new HATVectorSelectPhase(),
