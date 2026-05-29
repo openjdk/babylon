@@ -35,30 +35,31 @@ import optkl.Trxfmr;
 import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 
-public abstract sealed class HATMemoryPhase implements HATPhase {
+public final class HATMemoryPhase implements HATPhase {
 
-    protected abstract boolean isIntrinsicForDeviceMemoryType(Invoke invoke);
+    String functionName;
 
-    protected String functionName;
+    boolean isIntrinsicForDeviceMemoryType(Invoke invoke, String intrinsicName) {
+        return invoke.refIs(IfaceValue.class) && invoke.named(intrinsicName);
+    }
 
-    protected abstract VarTable.HATOpAttribute getAttribute();
-
-    @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+    private CoreOp.FuncOp analyzeOnChipDataStructures(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, String intrinsicName, VarTable.HATOpAttribute attribute) {
         functionName = funcOp.funcName();
         Set<CodeElement<?, ?>> nodesInvolved = new LinkedHashSet<>();
         OpHelper.Variable.stream(lookup, funcOp)
                 .forEach(variable -> variable.op().operands().stream()
                         .filter(operand -> operand instanceof Op.Result result
                                 && invoke(lookup, result.op()) instanceof Invoke invoke
-                                && isIntrinsicForDeviceMemoryType(invoke))
+                                && isIntrinsicForDeviceMemoryType(invoke, intrinsicName))
                         .map(r -> (JavaOp.InvokeOp) (((Op.Result) r).op()))
                         .findFirst().ifPresent(remove -> nodesInvolved.add(variable.op()))
                 );
@@ -66,7 +67,7 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             if (OpHelper.Named.Variable.var(lookup, op) instanceof OpHelper.Named.Variable variable) {
                 Op.Result op1 = blockBuilder.add(variable.op());
-                varTable.addIfNeededOrThrow(functionName, op1.op(), getAttribute());
+                varTable.addIfNeededOrThrow(functionName, op1.op(), attribute);
             } else {
                 blockBuilder.add(op);
             }
@@ -74,71 +75,48 @@ public abstract sealed class HATMemoryPhase implements HATPhase {
         }, varTable).funcOp();
     }
 
-    public static final class PrivateMemoryPhase extends HATMemoryPhase {
-        public static final String INTRINSIC_NAME = "createPrivate";
+    private CoreOp.FuncOp initOnChipDataStructures(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, String intrinsincName, VarTable.HATOpAttribute attribute) {
+        this.functionName = funcOp.funcName();
+        Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
+        Invoke.stream(lookup, funcOp)
+                .filter(invoke -> invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS_MEMORY_REGIONS))
+                .forEach(invoke -> invoke.op().result().uses().stream()
+                        .filter(use -> use.op() instanceof CoreOp.VarOp)
+                        .map(use -> (CoreOp.VarOp) use.op())
+                        .forEach(nodesInvolved::add)
+                );
 
-        @Override
-        protected boolean isIntrinsicForDeviceMemoryType(Invoke invoke) {
-            return invoke.refIs(IfaceValue.class /*DeviceType.class, MappableIface.class, HAType.class*/)
-                    && invoke.named(INTRINSIC_NAME);
-        }
-
-        @Override
-        protected VarTable.HATOpAttribute getAttribute() {
-            return VarTable.HATOpAttribute.PRIVATE;
-        }
+        return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+            if (op instanceof CoreOp.VarOp varOp) {
+                Op.Result opResult = blockBuilder.add(varOp);
+                varTable.addIfNeededOrThrow(functionName, opResult.op(), VarTable.HATOpAttribute.INIT);
+            }
+            return blockBuilder;
+        }, varTable).funcOp();
     }
 
-    public static final class LocalMemoryPhase extends HATMemoryPhase {
-        public static final String INTRINSIC_NAME = "createLocal";
-
-        @Override
-        protected boolean isIntrinsicForDeviceMemoryType(Invoke invoke) {
-            return invoke.refIs(IfaceValue.class) && invoke.named(INTRINSIC_NAME);
-        }
-
-        @Override
-        protected VarTable.HATOpAttribute getAttribute() {
-            return VarTable.HATOpAttribute.SHARED;
-        }
+    @FunctionalInterface
+    public interface MemoryRegionTransformer {
+        CoreOp.FuncOp apply(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, String intrinsicName, VarTable.HATOpAttribute attribute);
     }
 
-    /**
-     * This phase sets the corresponding loadOp for obtaining a value that was stored either in local memory or private memory.
-     * Thus, we need to load from local/private into private.
-     */
-    public static final class DeviceTypePhase extends HATMemoryPhase {
-        public static final String INTRINSIC_NAME = "createLocal";
+    private record MemoryRegion(String intrinsicName, VarTable.HATOpAttribute attribute, MemoryRegionTransformer f){
+    }
 
-        @Override
-        protected boolean isIntrinsicForDeviceMemoryType(Invoke invoke) {
-            return invoke.refIs(IfaceValue.class) && invoke.named(INTRINSIC_NAME);
+    private final List<MemoryRegion> containers;
+
+    public HATMemoryPhase() {
+        this.containers = new ArrayList<>();
+        containers.add(new MemoryRegion("createPrivate", VarTable.HATOpAttribute.PRIVATE, this::analyzeOnChipDataStructures));
+        containers.add(new MemoryRegion("createLocal", VarTable.HATOpAttribute.SHARED, this::analyzeOnChipDataStructures));
+        containers.add(new MemoryRegion("createLocal", VarTable.HATOpAttribute.INIT, this::initOnChipDataStructures));
+    }
+
+    @Override
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+        for (MemoryRegion container : containers) {
+            funcOp = container.f().apply(lookup, funcOp, varTable, container.intrinsicName, container.attribute);
         }
-
-        @Override
-        protected VarTable.HATOpAttribute getAttribute() {
-            return VarTable.HATOpAttribute.INIT;
-        }
-
-        @Override
-        public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-            this.functionName = funcOp.funcName();
-            Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
-            Invoke.stream(lookup, funcOp)
-                    .filter(invoke -> invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS_MEMORY_REGIONS))
-                    .forEach(invoke -> invoke.op().result().uses().stream()
-                            .filter(use -> use.op() instanceof CoreOp.VarOp)
-                            .map(use -> (CoreOp.VarOp) use.op())
-                            .forEach(nodesInvolved::add)
-                    );
-
-            return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
-                if (op instanceof CoreOp.VarOp varOp) {
-                    Op.Result opResult = blockBuilder.add(varOp);
-                    varTable.addIfNeededOrThrow(functionName, opResult.op(), VarTable.HATOpAttribute.INIT);
-                }
-                return blockBuilder;
-            }, varTable).funcOp();
-        }
+        return funcOp;
     }
 }

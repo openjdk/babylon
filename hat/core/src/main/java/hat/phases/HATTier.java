@@ -40,9 +40,7 @@ public class HATTier  {
                 new HATArrayViewPhase(),  // pending
 
                 // Memory
-                new HATMemoryPhase.LocalMemoryPhase(),  // custom nodes removed - OK
-                new HATMemoryPhase.PrivateMemoryPhase(),// custom nodes removed - OK
-                new HATMemoryPhase.DeviceTypePhase(),   // custom nodes removed - OK
+                new HATMemoryPhase(), // ok
 
                 // ID's /thread access
                 new HATThreadsPhase(),  // Let's keep the dialect for barriers

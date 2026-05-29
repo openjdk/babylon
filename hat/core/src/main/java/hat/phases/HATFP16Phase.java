@@ -239,7 +239,6 @@ public record HATFP16Phase() implements HATPhase {
                         }
                 );
 
-
         return Trxfmr.of(lookup, funcOp).transform(reducedFloatsType::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp && invoke(lookup, invokeOp) instanceof Invoke invoke) {
                 createFloatFromF16(invoke, blockBuilder, reducedFloatsType.get(invoke.op()));
