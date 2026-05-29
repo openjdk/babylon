@@ -87,10 +87,10 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
         return vectorShape.codeType().toString() + vectorShape.lanes();
     }
 
-    public abstract static sealed class HATVectorBinaryOp extends HATVectorOp {
+    public static non-sealed class HATVectorBinaryOp extends HATVectorOp {
 
         private final BinaryOpEnum operationType;
-        protected HATVectorBinaryOp(String varName,  BinaryOpEnum operationType, CodeType codeType, Vector.Shape vectorShape, List<Value> operands) {
+        public HATVectorBinaryOp(String varName,  BinaryOpEnum operationType, CodeType codeType, Vector.Shape vectorShape, List<Value> operands) {
             super(  varName /* this is clearly wrong binary ops have no name */,
                     codeType,
                     vectorShape,
@@ -98,7 +98,7 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
             this.operationType = operationType;
         }
 
-        protected HATVectorBinaryOp(HATVectorBinaryOp op, CodeContext copyContext) {
+        public HATVectorBinaryOp(HATVectorBinaryOp op, CodeContext copyContext) {
             super(op, copyContext);
             this.operationType = op.operationType;
         }
@@ -108,70 +108,13 @@ public abstract sealed class HATVectorOp extends HATOp implements VarLikeOp {
             return Map.of("hat.dialect.HATVectorBinaryOp." + operationType() + "--" + varName(), resultType());
         }
 
+        @Override
+        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
+            return new HATVectorBinaryOp(this, copyContext);
+        }
+
         public BinaryOpEnum operationType() {
             return operationType;
-        }
-
-        public static final class HATVectorAddOp extends HATVectorBinaryOp implements Precedence.Additive {
-            public HATVectorAddOp(String varName, CodeType codeType, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName, BinaryOpEnum.ADD, codeType, vectorShape, operands);
-            }
-
-            public HATVectorAddOp(HATVectorAddOp op, CodeContext copyContext) {
-                super(op, copyContext);
-            }
-
-            @Override
-            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-                return new HATVectorAddOp(this, copyContext);
-            }
-        }
-
-        public static final class HATVectorDivOp extends HATVectorBinaryOp implements Precedence.Multiplicative {
-            public HATVectorDivOp(String varName, CodeType codeType, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName,BinaryOpEnum.DIV, codeType, vectorShape, operands);
-            }
-
-            public HATVectorDivOp(HATVectorDivOp op, CodeContext copyContext) {
-                super(op, copyContext);
-            }
-
-            @Override
-            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-                return new HATVectorDivOp(this, copyContext);
-            }
-        }
-
-        public static final class HATVectorMulOp extends HATVectorBinaryOp implements Precedence.Multiplicative {
-
-            public HATVectorMulOp(String varName, CodeType codeType, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName, BinaryOpEnum.MUL, codeType, vectorShape, operands);
-            }
-
-            public HATVectorMulOp(HATVectorMulOp op, CodeContext copyContext) {
-                super(op, copyContext);
-            }
-
-            @Override
-            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-                return new HATVectorMulOp(this, copyContext);
-            }
-        }
-
-        public static final class HATVectorSubOp extends HATVectorBinaryOp implements Precedence.Additive {
-
-            public HATVectorSubOp(String varName, CodeType codeType, Vector.Shape vectorShape, List<Value> operands) {
-                super(varName, BinaryOpEnum.SUB, codeType, vectorShape, operands);
-            }
-
-            public HATVectorSubOp(HATVectorSubOp op, CodeContext copyContext) {
-                super(op, copyContext);
-            }
-
-            @Override
-            public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-                return new HATVectorSubOp(this, copyContext);
-            }
         }
     }
     public interface Shared{

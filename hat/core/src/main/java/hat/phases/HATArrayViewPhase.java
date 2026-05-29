@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATVectorOp;
 import jdk.incubator.code.CodeType;
@@ -83,10 +84,10 @@ public record HATArrayViewPhase() implements HATPhase {
 
     static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, CodeType codeType, String opType, IfaceValue.Vector.Shape vectorShape, List<Value> outputOperands) {
         return switch (opType) {
-            case "add" -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, codeType, vectorShape, outputOperands);
-            case "sub" -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName, codeType, vectorShape, outputOperands);
-            case "mul" -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName, codeType, vectorShape, outputOperands);
-            case "div" -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName, codeType, vectorShape, outputOperands);
+            case "add" -> new HATVectorOp.HATVectorBinaryOp(varName, BinaryOpEnum.ADD, codeType, vectorShape, outputOperands);
+            case "sub" -> new HATVectorOp.HATVectorBinaryOp(varName, BinaryOpEnum.SUB, codeType, vectorShape, outputOperands);
+            case "mul" -> new HATVectorOp.HATVectorBinaryOp(varName, BinaryOpEnum.MUL, codeType, vectorShape, outputOperands);
+            case "div" -> new HATVectorOp.HATVectorBinaryOp(varName, BinaryOpEnum.DIV, codeType, vectorShape, outputOperands);
             default -> throw new IllegalStateException("Unexpected value: " + opType);
         };
     }

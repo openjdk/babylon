@@ -191,12 +191,7 @@ public final class HATVectorPhase implements HATPhase {
 
     private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, BinaryOpEnum opType, CodeType codeType,
                                                               Vector.Shape vectorShape, List<Value> outputOperands) {
-        return switch (opType) {
-            case ADD -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, codeType, vectorShape, outputOperands);
-            case SUB -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName, codeType, vectorShape, outputOperands);
-            case MUL -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName, codeType, vectorShape, outputOperands);
-            case DIV -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName, codeType, vectorShape, outputOperands);
-        };
+            return new HATVectorOp.HATVectorBinaryOp(varName, opType, codeType, vectorShape, outputOperands);
     }
 
     private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
