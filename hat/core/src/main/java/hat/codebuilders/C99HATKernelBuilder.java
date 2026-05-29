@@ -893,7 +893,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
 
-    public abstract T hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
+    public T hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
+        if (invoke.op().operands().getFirst().declaringElement() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+            recurse( vLoadOp);
+        } else {
+            id(invokeVar.name());
+        }
+        dot().id(mapLane(invokeVar.laneIdx()));
+        return self();
+    }
 
     public record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
         // recursive
