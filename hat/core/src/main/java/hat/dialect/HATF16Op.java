@@ -141,44 +141,6 @@ public abstract sealed class HATF16Op extends HATOp implements VarLikeOp {
 
     }
 
-//    public static final class HATF16ConvOp extends HATF16Op implements Precedence.LoadOrConv {
-//
-//        private final CodeType codeType;
-//        private final Class<?> float16Class;
-//
-//        public HATF16ConvOp(CodeType codeType, Class<?> float16Class, List<Value> operands) {
-//            super("", operands);
-//            this.codeType = codeType;
-//            this.float16Class = float16Class;
-//        }
-//
-//        public HATF16ConvOp(HATF16ConvOp op, CodeContext copyContext) {
-//            super(op, copyContext);
-//            this.codeType = op.codeType;
-//            this.float16Class = op.float16Class;
-//        }
-//
-//        @Override
-//        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-//            return new HATF16ConvOp(this, copyContext);
-//        }
-//
-//        @Override
-//        public CodeType resultType() {
-//            return codeType;
-//        }
-//
-//        @Override
-//        public Map<String, Object> externalize() {
-//            return Map.of("hat.dialect.f16Conv", codeType);
-//        }
-//
-//        public Class<?> float16Class() {
-//            return float16Class;
-//        }
-//
-//    }
-
     public abstract static sealed class HATF16BinaryOp extends HATF16Op {
 
         protected final CodeType codeType;

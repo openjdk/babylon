@@ -333,18 +333,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-//    @Override
-//    public CudaHATKernelBuilder hatF16ConvOp(HATF16Op.HATF16ConvOp hatF16ConvOp) {
-//        var float16Class = hatF16ConvOp.float16Class();
-//        paren(_ -> f16OrBF16(float16Class)).brace(_ -> {
-//            buildFloat16Class(float16Class);
-//            paren(_ ->
-//                    recurseResultOrThrow(hatF16ConvOp.operands().getFirst())
-//            );
-//        });
-//        return self();
-//    }
-
     private static final String VALUE = "value";
 
     @Override
@@ -501,8 +489,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }
         } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
             narrowCategory = hatf16BinaryOp.float16Class();
-//        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
-//            narrowCategory = hatf16ConvOp.float16Class();
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
         }

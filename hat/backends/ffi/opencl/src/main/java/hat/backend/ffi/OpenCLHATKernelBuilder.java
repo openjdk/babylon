@@ -197,16 +197,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 ));
     }
 
-//    @Override
-//    public OpenCLHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-//        var reducedFloatType = hatF16ConvOp.float16Class();
-//        return paren(_-> f16OrBF16(reducedFloatType)).brace(_->
-//                either (BF16.class.isAssignableFrom(reducedFloatType),
-//                _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(hatF16ConvOp.operands().getFirst())),
-//                _-> recurseResultOrThrow( hatF16ConvOp.operands().getFirst())
-//        ));
-//    }
-
     @Override
     public OpenCLHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
         return paren(_-> id(vectorShape.codeType().toString() + vectorShape.lanes()));

@@ -196,7 +196,8 @@ public record HATFP16Phase() implements HATPhase {
         Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid()
                         && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)"))
-                        && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp)
+                        && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp
+                )
                 .forEach(invoke -> {
                     if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
                         Op.Result first = invoke.op().result().uses().getFirst();
