@@ -27,7 +27,6 @@ package hat.phases;
 import hat.device.NonMappableIface;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATVectorOp;
-import jdk.incubator.code.CodeType;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
@@ -43,7 +42,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -64,7 +62,7 @@ public final class HATVectorPhase implements HATPhase {
         return isSharedOrPrivate(op.operands().getFirst());
     }
 
-    private static final Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
+    private static final Set<String> NON_MAPPABLE_IFACE_INSTANCES = Set.of("createshared", "createlocal", "createprivate");
 
     public boolean isSharedOrPrivate(Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
@@ -93,7 +91,7 @@ public final class HATVectorPhase implements HATPhase {
                 if (invokeOptional.isPresent() && invokeOptional.get().refIs(NonMappableIface.class)) {
                     // check for the method name
                     String lowerCase = invoke.invokeReference().name().toLowerCase();
-                    yield NON_MAPPABLE_IFACE.contains(lowerCase);
+                    yield NON_MAPPABLE_IFACE_INSTANCES.contains(lowerCase);
                 }
                 yield false;
             }
@@ -168,11 +166,6 @@ public final class HATVectorPhase implements HATPhase {
         }, varTable).funcOp();
     }
 
-    private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, BinaryOpEnum opType, CodeType codeType,
-                                                              Vector.Shape vectorShape, List<Value> outputOperands) {
-            return new HATVectorOp.HATVectorBinaryOp(varName, opType, codeType, vectorShape, outputOperands);
-    }
-
     private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
         Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
@@ -190,14 +183,14 @@ public final class HATVectorPhase implements HATPhase {
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
                 var varOp = invokeToVar.get(invokeOp);
-                HATVectorOp memoryViewOp = buildVectorBinaryOp(
+                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
                         varOp.varName(),
                         BinaryOpEnum.of(invokeOp),
                         invokeOp.resultType(),
                         vectorShapeMap.get(invokeOp),
                         blockBuilder.context().getValues(invokeOp.operands())
                 );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), memoryViewOp)));
+                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), vectorOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 addVectorVarOp(blockBuilder, varOp, varTable);
             }
@@ -242,14 +235,14 @@ public final class HATVectorPhase implements HATPhase {
 
         return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             if (invoke(lookup, op) instanceof Invoke invoke) {
-                HATVectorOp memoryViewOp = buildVectorBinaryOp(
+                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
                         OpHelper.findVectorVarNameOrNull(invoke.op().operands().getFirst()),
                         BinaryOpEnum.of(invoke.op()),
                         invoke.returnType(),
                         getVectorShape(invoke.lookup(), invoke.returnType()),
                         blockBuilder.context().getValues(invoke.op().operands())
                 );
-                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), memoryViewOp)));
+                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), vectorOp)));
             }
             return blockBuilder;
         }, varTable).funcOp();

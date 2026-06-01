@@ -82,11 +82,6 @@ public record HATArrayViewPhase() implements HATPhase {
         return isVectorOp(lookup, invoke.op()) && invoke.nameMatchesRegex("(add|sub|mul|div)");
     }
 
-    static HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, CodeType codeType, String opType, IfaceValue.Vector.Shape vectorShape, List<Value> outputOperands) {
-        BinaryOpEnum operation = BinaryOpEnum.of(opType);
-        return new HATVectorOp.HATVectorBinaryOp(varName, operation, codeType, vectorShape, outputOperands);
-    }
-
     public static boolean isBufferArray(Op op) {
         JavaOp.InvokeOp iop = (JavaOp.InvokeOp) findOpInResultFromFirstOperandsOrNull(op, JavaOp.InvokeOp.class);
         return iop != null && iop.invokeReference().name().toLowerCase().contains("arrayview"); // we need a better way
@@ -159,13 +154,14 @@ public record HATArrayViewPhase() implements HATPhase {
             var context = blockBuilder.context();
             switch (op) {
                 case JavaOp.InvokeOp iOp when invoke(lookup, iOp) instanceof Invoke invoke && isVectorBinaryOp(invoke.lookup(), invoke) -> {
-                    var hatVectorBinaryOp = buildVectorBinaryOp(
-                            invoke.varOpFromFirstUseOrThrow().varName(),
-                            invoke.returnType(),
-                            invoke.name(),// so mul, sub etc
-                            getVectorShape(lookup, invoke.returnType()),
-                            blockBuilder.context().getValues(invoke.op().operands())
-                    );
+                    var hatVectorBinaryOp =
+                     new HATVectorOp.HATVectorBinaryOp(
+                             invoke.varOpFromFirstUseOrThrow().varName(),
+                             BinaryOpEnum.of(invoke.name()),
+                             invoke.returnType(),
+                             getVectorShape(lookup, invoke.returnType()),
+                             blockBuilder.context().getValues(invoke.op().operands())
+                     );
                     context.mapValue(invoke.returnResult(), blockBuilder.add(copyLocation(invoke.op(), hatVectorBinaryOp)));
                     return blockBuilder;
                 }

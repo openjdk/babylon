@@ -25,6 +25,7 @@
 package hat.callgraph;
 
 import hat.BufferTagger;
+import hat.Config;
 import hat.KernelContext;
 import hat.device.NonMappableIface;
 import hat.phases.HATTier;
@@ -145,9 +146,6 @@ public class KernelCallGraph implements LookupCarrier {
                                 && invoke.returnsInt()
                                 && invoke.nameMatchesRegex("(atomic.*)Inc"));
 
-
-
-
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
         var entrypoint = new FuncOpCarrier.Impl(e);
@@ -155,6 +153,15 @@ public class KernelCallGraph implements LookupCarrier {
         varTable.addFunction(entrypoint.funcOp().funcName());
 
         HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
+
+        // We might do this a mandatory check in near future
+        if (computeCallGraph.computeContext.config().checkSSALowering()) {
+            CoreOp.FuncOp loweredCodeModel = entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+            CoreOp.FuncOp ssaCodeModel = SSA.transform(loweredCodeModel);
+            if (ssaCodeModel == null) {
+                throw new IllegalStateException("SSA code model is null");
+            }
+        }
 
         this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
         callDag.rankOrdered.forEach(f -> {
@@ -167,8 +174,8 @@ public class KernelCallGraph implements LookupCarrier {
 
         this.ifaceDag = new IfaceDataDag<>(dag->
             entrypoint.funcOp().elements()
-                    .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
-                    .filter(codeType -> codeType instanceof ClassType).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
+                    .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
+                    .filter(ClassType.class::isInstance).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
                     .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
                     .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
                             .forEach(retType -> dag.addEdge(iface, retType))
@@ -178,7 +185,7 @@ public class KernelCallGraph implements LookupCarrier {
             this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }
         if (showKernelIfaceDagProposedTypedefs) {
-            ifaceDag.rankOrdered.forEach(ifaceInfo -> System.out.println("create typedef " + ifaceInfo.classType()));
+            ifaceDag.rankOrdered.forEach(ifaceInfo -> IO.println("create typedef " + ifaceInfo.classType()));
         }
     }
 
