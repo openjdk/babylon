@@ -21,690 +21,109 @@
  * questions.
  */
 
-import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 
-import java.lang.invoke.*;
-import java.lang.reflect.Array;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+import java.util.List;
 
-import static java.util.stream.Collectors.toMap;
-
-/**
- * A code model interpreter that sequentially executes operations contained in an
- * {@link Op.Invokable} operation, such as a function operation.
- */
-public final class Interpreter {
-    private Interpreter() {
+public abstract class Interpreter {
+    public Interpreter() {
     }
 
-    /**
-     * Invokes an invokable operation by interpreting the code elements within
-     * the operations body.
-     * <p>
-     * The sequence of arguments must consists of objects corresponding, in order,
-     * to the invokable operation's {@link Op.Invokable#parameters() parameters}.
-     * If the invokable operation {@link Op.Invokable#capturedValues() captures values}
-     * then the sequence of arguments must be appended with objects corresponding,
-     * in order, to the captured values.
-     *
-     * @param l the lookup to use for interpreting reflective operations.
-     * @param op the invokeable operation to interpret.
-     * @param args the invokeable's arguments appended with captured arguments, if any.
-     * @return the interpreter result of invokable operation.
-     * @param <T> the type of Invokable.
-     * @throws InterpreterException if there is a failure to interpret
-     */
-    public static <T extends Op & Op.Invokable>
-    Object invoke(MethodHandles.Lookup l, T op,
-                  Object... args) {
-        // Arguments can contain null values so we cannot use List.of
+    public abstract OpEffect executeOp(Op op, Env env);
+
+    public abstract <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env env);
+
+    public TerminatingOpEffect executeBody(Body body, List<Object> args, Env env) {
+        Block block = body.entryBlock();
+        while (true) {
+            // bind block parameters in new env
+            env = env.bind(block.parameters(), args);
+            switch (executeBlock(block, env)) {
+                // pass control to ancestor op
+                case TerminatingOpEffect e -> {
+                    return e;
+                }
+                // pass control to successor block
+                case SuccessorEffect e -> {
+                    block = e.successor();
+                    args = e.args();
+                    env = e.e();
+                }
+            }
+        }
+    }
+
+    public BlockEffect executeBlock(Block block, Env env) {
+        var op = block.firstOp();
+        for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
+            switch (executeOp(op, env)) {
+                // op completed abruptly, pass control to ancestor op
+                case TerminatingOpEffect e -> {
+                    return env.onAbruptCompletion(e);
+                }
+                // op completed normally, bind op result in new env, pass control to next op
+                case OpResultEffect e -> env = env.bind(op.result(), e.result);
+            }
+        }
+
+        return executeTerminatingOp((Op & Op.Terminating) op, env);
+    }
+
+    public interface Env {
+        Env bind(List<? extends Value> symbolicValues, List<Object> runtimeValues);
+
+        Env bind(Value symbolicValue, Object runtimeValue);
+
+        List<Object> valuesOf(List<? extends Value> symbolicValues);
+
+        Object valueOf(Value symbolicValue);
+
+        BlockEffect onAbruptCompletion(TerminatingOpEffect eff);
+    }
+
+    public sealed interface BlockEffect
+            permits SuccessorEffect, TerminatingOpEffect {
+    }
+
+    public sealed interface OpEffect
+            permits OpResultEffect, TerminatingOpEffect {
+    }
+
+    public record SuccessorEffect(Block successor, List<Object> args, Env e)
+            implements BlockEffect {
+    }
+
+    public record TerminatingOpEffect(Op terminatingOp, List<Object> operands, Env e)
+            implements BlockEffect, OpEffect {
+    }
+
+    public record OpResultEffect(Object result, Env e)
+            implements OpEffect {
+    }
+
+    static <T extends Op & Op.Invokable> Object invoke(MethodHandles.Lookup l, T op, Object... args) {
         return invoke(l, op, Arrays.asList(args));
     }
 
-    /**
-     * Invokes an invokable operation by interpreting the code elements within
-     * the operations body.
-     * <p>
-     * The list of arguments must consists of objects corresponding, in order,
-     * to the invokable operation's {@link Op.Invokable#parameters() parameters}.
-     * If the invokable operation {@link Op.Invokable#capturedValues() captures values}
-     * then the list of arguments must be appended with objects corresponding,
-     * in order, to the captured values.
-     *
-     * @param l the lookup to use for interpreting reflective operations.
-     * @param op the invokeable operation to interpret.
-     * @param args the invokeable's arguments appended with captured arguments, if any.
-     * @return the interpreter result of invokable operation.
-     * @param <T> the type of Invokable.
-     * @throws InterpreterException if there is a failure to interpret
-     */
-    public static <T extends Op & Op.Invokable>
-    Object invoke(MethodHandles.Lookup l, T op,
-                  List<Object> args) {
-        List<Block.Parameter> parameters = op.parameters();
-        List<Value> capturedValues = op.capturedValues();
-        if (parameters.size() + capturedValues.size() != args.size()) {
-            throw interpreterException(new IllegalArgumentException(
-                    String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
-                            args.size(), parameters.size(), capturedValues.size())));
-        }
-        // validate runtime args types
-        List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
-        for (int i = 0; i < symbolicValues.size(); i++) {
-            Value sv = symbolicValues.get(i);
-            Object rv = args.get(i);
-            try {
-                JavaType typeToResolve = switch (sv.type()) {
-                    // @@@ Deconstruct and test what the var holds
-                    case VarType _ -> JavaType.type(CoreOp.Var.class);
-                    // Allow reflection to convert between primitive values
-                    // @@@ Check conversion compatible
-                    case PrimitiveType _ -> JavaType.J_L_OBJECT;
-                    case JavaType jt -> jt;
-                    default -> throw new IllegalStateException("Unexpected type: " + sv.type());
-                };
-                Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
-                if (rv != null && !c.isInstance(rv)) {
-                    throw interpreterException(new IllegalArgumentException(("Runtime argument at position %d has type %s " +
-                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), sv.type())));
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        // Map symbolic parameters to runtime arguments
-        Map<Value, Object> valuesAndArguments = new HashMap<>();
-        for (int i = 0; i < parameters.size(); i++) {
-            valuesAndArguments.put(parameters.get(i), args.get(i));
-        }
-        // Map symbolic captured values to the additional runtime arguments
-        for (int i = 0; i < capturedValues.size(); i++) {
-            valuesAndArguments.put(capturedValues.get(i), args.get(parameters.size() + i));
-        }
-
-        return interpretEntryBlock(l, op.body().entryBlock(), new OpContext(), valuesAndArguments);
+    static <T extends Op & Op.Invokable> Object invoke(MethodHandles.Lookup l, T op, List<Object> argsAndCaptures) {
+        return new JavaLowInterpreter().interpret(op, argsAndCaptures, l);
     }
-
 
     /**
      * Exception thrown by the interpreter when execution fails.
      */
     @SuppressWarnings("serial")
     public static final class InterpreterException extends RuntimeException {
-        private InterpreterException(Throwable cause) {
+        InterpreterException(Throwable cause) {
             super(cause);
         }
-    }
-
-    static InterpreterException interpreterException(Throwable cause) {
-        return new InterpreterException(cause);
-    }
-
-    record BlockContext(Block b, Map<Value, Object> valuesAndArguments) {
-    }
-
-    static final class OpContext {
-        final Map<Object, ReentrantLock> locks = new HashMap<>();
-        final Deque<BlockContext> stack = new ArrayDeque<>();
-        final Deque<ExceptionRegionRecord> erStack = new ArrayDeque<>();
-
-        Object getValue(Value v) {
-            // @@@ Only dominating values are accessible
-            BlockContext bc = findContext(v);
-            if (bc != null) {
-                return bc.valuesAndArguments.get(v);
-            } else {
-                throw interpreterException(new IllegalArgumentException("Undefined value: " + v));
-            }
-        }
-
-        Object setValue(Value v, Object o) {
-            BlockContext bc = findContext(v);
-            if (bc != null) {
-                throw interpreterException(new IllegalArgumentException("Value already defined: " + v));
-            }
-            stack.peek().valuesAndArguments.put(v, o);
-            return o;
-        }
-
-        BlockContext findContext(Value v) {
-            Optional<BlockContext> ob = stack.stream().filter(b -> b.valuesAndArguments.containsKey(v)).findFirst();
-            return ob.orElse(null);
-        }
-
-        void successor(Block.Reference sb) {
-            successor(sb.targetBlock(), sb.arguments().stream().map(this::getValue).toList());
-        }
-
-        void successor(Block sb, List<Object> sbValues) {
-            Map<Value, Object> bValues = new HashMap<>();
-            for (int i = 0; i < sbValues.size(); i++) {
-                bValues.put(sb.parameters().get(i), sbValues.get(i));
-            }
-
-            if (stack.stream().anyMatch(bc -> bc.b.equals(sb))) {
-                // if block is already dominating pop back up from the back branch to the block
-                // before the successor block
-                while (!stack.peek().b.equals(sb)) {
-                    stack.pop();
-                }
-                stack.pop();
-            }
-            stack.push(new BlockContext(sb, bValues));
-        }
-
-        void popTo(BlockContext bc) {
-            while (!stack.peek().equals(bc)) {
-                stack.pop();
-            }
-        }
-
-        void pushExceptionRegion(ExceptionRegionRecord erb) {
-            erStack.push(erb);
-        }
-
-        void popExceptionRegion(JavaOp.ExceptionRegionExit ere) {
-            ere.enterOp().catchReferences().reversed().forEach(catchBlock -> {
-                if (erStack.peek().catchBlock != catchBlock.targetBlock()) {
-                    // @@@ Use internal exception type
-                    throw interpreterException(new IllegalStateException("Mismatched exception regions"));
-                }
-                erStack.pop();
-            });
-        }
-
-        void processThrowable(MethodHandles.Lookup l, Throwable t) {
-            // Find a matching catch block
-            // Find the first matching exception region
-            // with a catch block whose argument type is assignable-compatible to the throwable
-            ExceptionRegionRecord er;
-            Block cb = null;
-            while ((er = erStack.poll()) != null &&
-                    (cb = er.match(l, t)) == null) {
-            }
-
-            if (cb == null) {
-                // If there is no matching catch bock then rethrow back to the caller
-                eraseAndThrow(t);
-                throw new InternalError("should not reach here");
-            }
-
-            while (erStack.size() > er.erStackDepth()) {
-                erStack.pop();
-            }
-
-            // Add a new block context to the catch block with the exception as the argument
-            successor(cb, List.of(cb.parameters().get(0).type() instanceof VarType ? new VarBox(t) : t));
-        }
-    }
-
-    static final class VarBox
-            implements CoreOp.Var<Object> {
-        Object value;
-
-        public Object value() {
-            return value;
-        }
-
-        VarBox(Object value) {
-            this.value = value;
-        }
-
-        static final Object UINITIALIZED = new Object();
-    }
-
-    record TupleRecord(List<Object> components) {
-        Object getComponent(int index) {
-            return components.get(index);
-        }
-
-        TupleRecord with(int index, Object value) {
-            List<Object> copy = new ArrayList<>(components);
-            copy.set(index, value);
-            return new TupleRecord(copy);
-        }
-    }
-
-    record ExceptionRegionRecord(int erStackDepth, Block catchBlock) {
-        Block match(MethodHandles.Lookup l, Throwable e) {
-            List<Block.Parameter> args = catchBlock.parameters();
-            if (args.size() != 1) {
-                throw interpreterException(new IllegalStateException("Catch block must have one argument"));
-            }
-            CodeType et = args.get(0).type();
-            if (et instanceof VarType vt) {
-                et = vt.valueType();
-            }
-            if (resolveToClass(l, et).isInstance(e)) {
-                return catchBlock;
-            }
-            return null;
-        }
-    }
-
-    static Object interpretBody(MethodHandles.Lookup l, Body body,
-                                OpContext oc,
-                                List<Object> args) {
-        List<Block.Parameter> parameters = body.entryBlock().parameters();
-        if (parameters.size() != args.size()) {
-            throw interpreterException(new IllegalArgumentException(
-                    "Incorrect number of arguments arguments"));
-        }
-
-        // Map symbolic parameters to runtime arguments
-        Map<Value, Object> arguments = new HashMap<>();
-        for (int i = 0; i < parameters.size(); i++) {
-            arguments.put(parameters.get(i), args.get(i));
-        }
-
-        return interpretEntryBlock(l, body.entryBlock(), oc, arguments);
-    }
-
-    static Object interpretEntryBlock(MethodHandles.Lookup l, Block entry,
-                                      OpContext oc,
-                                      Map<Value, Object> valuesAndArguments) {
-        assert entry.isEntryBlock();
-
-        // If the stack is not empty it means we are interpreting
-        // an entry block with a parent body whose nearest ancestor body
-        // is the current context block's parent body
-        BlockContext yieldContext = oc.stack.peek();
-        assert yieldContext == null ||
-                yieldContext.b().ancestorBody() == entry.ancestorBody().ancestorBody();
-
-        // Note that first block cannot have any successors so the queue will have at least one entry
-        oc.stack.push(new BlockContext(entry, valuesAndArguments));
-        while (true) {
-            BlockContext bc = oc.stack.peek();
-
-            // Execute all but the terminating operation
-            int nops = bc.b.ops().size();
-            try {
-                for (int i = 0; i < nops - 1; i++) {
-                    Op op = bc.b.ops().get(i);
-                    assert !(op instanceof Op.Terminating) : op;
-
-                    Object result = interpretOp(l, oc, op);
-                    oc.setValue(op.result(), result);
-                }
-            } catch (InterpreterException e) {
-                throw e;
-            } catch (Throwable t) {
-                oc.processThrowable(l, t);
-                continue;
-            }
-
-            // Execute the terminating operation
-            Op to = bc.b.terminatingOp();
-            if (to instanceof CoreOp.ConditionalBranchOp cb) {
-                boolean p;
-                Object bop = oc.getValue(cb.predicateOperand());
-                if (bop instanceof Boolean bp) {
-                    p = bp;
-                } else if (bop instanceof Integer ip) {
-                    // @@@ This is required when lifting up from bytecode, since boolean values
-                    // are erased to int values, abd the bytecode lifting implementation is not currently
-                    // sophisticated enough to recover the type information
-                    p = ip != 0;
-                } else {
-                    throw interpreterException(
-                            new UnsupportedOperationException("Unsupported type input to operation: " + cb));
-                }
-                Block.Reference sb = p ? cb.trueBranch() : cb.falseBranch();
-                oc.successor(sb);
-            } else if (to instanceof CoreOp.BranchOp b) {
-                Block.Reference sb = b.branch();
-
-                oc.successor(sb);
-            } else if (to instanceof JavaOp.ThrowOp _throw) {
-                Throwable t = (Throwable) oc.getValue(_throw.argumentOperand());
-                oc.processThrowable(l, t);
-            } else if (to instanceof CoreOp.ReturnOp ret) {
-                Value rv = ret.returnValue();
-                return rv == null ? null : oc.getValue(rv);
-            } else if (to instanceof CoreOp.YieldOp yop) {
-                if (yieldContext == null) {
-                    throw interpreterException(
-                            new IllegalStateException("Yielding to no parent body"));
-                }
-                Value yv = yop.yieldValue();
-                Object yr = yv == null ? null : oc.getValue(yv);
-                oc.popTo(yieldContext);
-                return yr;
-            } else if (to instanceof JavaOp.ExceptionRegionEnter ers) {
-                int erStackDepth = oc.erStack.size();
-                ers.catchReferences().forEach(catchBlock -> {
-                    var er = new ExceptionRegionRecord(erStackDepth, catchBlock.targetBlock());
-                    oc.pushExceptionRegion(er);
-                });
-
-                oc.successor(ers.startReference());
-            } else if (to instanceof JavaOp.ExceptionRegionExit ere) {
-                oc.popExceptionRegion(ere);
-
-                oc.successor(ere.endReference());
-            } else {
-                throw interpreterException(
-                        new UnsupportedOperationException("Unsupported terminating operation: " + to));
-            }
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
-        throw (E) e;
-    }
-
-    static Object interpretOp(MethodHandles.Lookup l, OpContext oc, Op o) {
-        if (o instanceof CoreOp.ConstantOp co) {
-            if (co.resultType().equals(JavaType.J_L_CLASS)) {
-                return resolveToClass(l, (JavaType) co.value());
-            } else {
-                return co.value();
-            }
-        } else if (o instanceof CoreOp.FuncCallOp fco) {
-            String name = fco.funcName();
-
-            // Find top-level op
-            Op top = fco;
-            while (top.ancestorBody() != null) {
-                top = top.ancestorOp();
-            }
-
-            // Ensure top-level op is a module and function name
-            // is in the module's function table
-            if (top instanceof CoreOp.ModuleOp mop) {
-                CoreOp.FuncOp funcOp = mop.functionTable().get(name);
-                if (funcOp == null) {
-                    throw interpreterException(
-                            new IllegalStateException
-                                    ("Function " + name + " cannot be resolved: not in module's function table"));
-                }
-
-                List<Object> values = o.operands().stream().map(oc::getValue).toList();
-                return Interpreter.invoke(l, funcOp, values);
-            } else {
-                throw interpreterException(
-                        new IllegalStateException(
-                                "Function " + name + " cannot be resolved: top level op is not a module"));
-            }
-        } else if (o instanceof JavaOp.InvokeOp co) {
-            MethodType target = resolveToMethodType(l, o.opSignature());
-            MethodHandles.Lookup il = switch (co.invokeKind()) {
-                case STATIC, INSTANCE -> l;
-                case SUPER -> l.in(target.parameterType(0));
-            };
-        MethodHandle mh = resolveToMethodHandle(il, co.invokeReference(), co.invokeKind());
-
-            mh = mh.asType(target).asFixedArity();
-            Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            return invoke(mh, values);
-        } else if (o instanceof JavaOp.NewOp no) {
-            Object[] values = o.operands().stream().map(oc::getValue).toArray();
-        MethodHandle mh = resolveToConstructorHandle(l, no.constructorReference());
-            return invoke(mh, values);
-        } else if (o instanceof CoreOp.QuotedOp qo) {
-            SequencedMap<Value, Object> capturedValues = qo.capturedValues().stream()
-                    .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
-            return new Quoted<>(qo.quotedOp(), capturedValues);
-        } else if (o instanceof JavaOp.LambdaOp lo) {
-            SequencedMap<Value, Object> capturedValuesAndArguments = lo.capturedValues().stream()
-                    .collect(toMap(v -> v, oc::getValue, (v, _) -> v, LinkedHashMap::new));
-            Class<?> fi = resolveToClass(l, lo.functionalInterface());
-
-            Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
-            MethodHandle fProxy = INVOKE_LAMBDA_MH.bindTo(l).bindTo(lo).bindTo(capturedArguments)
-                    .asCollector(Object[].class, lo.parameters().size());
-            Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
-
-            // If a reflectable lambda proxy again to add method Quoted quoted()
-            if (lo.isReflectable()) {
-                return Proxy.newProxyInstance(l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                        new InvocationHandler() {
-                            private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(lo, capturedValuesAndArguments);
-                            @Override
-                            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                                if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
-                                    return __internal_quoted();
-                                } else {
-                                    // Delegate to FI instance
-                                    return method.invoke(fiInstance, args);
-                                }
-                            }
-
-                            private Quoted<JavaOp.LambdaOp> __internal_quoted() {
-                                return quoted;
-                            }
-                        });
-            } else {
-                return fiInstance;
-            }
-        } else if (o instanceof CoreOp.VarOp vo) {
-            Object v = vo.isUninitialized()
-                    ? VarBox.UINITIALIZED
-                    : oc.getValue(o.operands().get(0));
-            return new VarBox(v);
-        } else if (o instanceof CoreOp.VarAccessOp.VarLoadOp vlo) {
-            // Cast to CoreOp.Var, since the instance may have originated as an external instance
-            // via a captured value map
-            CoreOp.Var<?> vb = (CoreOp.Var<?>) oc.getValue(o.operands().get(0));
-            Object value = vb.value();
-            if (value == VarBox.UINITIALIZED) {
-                throw interpreterException(new IllegalStateException("Loading from uninitialized variable"));
-            }
-            return value;
-        } else if (o instanceof CoreOp.VarAccessOp.VarStoreOp vso) {
-            VarBox vb = (VarBox) oc.getValue(o.operands().get(0));
-            vb.value = oc.getValue(o.operands().get(1));
-            return null;
-        } else if (o instanceof CoreOp.TupleOp to) {
-            List<Object> values = o.operands().stream().map(oc::getValue).toList();
-            return new TupleRecord(values);
-        } else if (o instanceof CoreOp.TupleLoadOp tlo) {
-            TupleRecord tb = (TupleRecord) oc.getValue(o.operands().get(0));
-            return tb.getComponent(tlo.index());
-        } else if (o instanceof CoreOp.TupleWithOp two) {
-            TupleRecord tb = (TupleRecord) oc.getValue(o.operands().get(0));
-            return tb.with(two.index(), oc.getValue(o.operands().get(1)));
-        } else if (o instanceof JavaOp.FieldAccessOp.FieldLoadOp fo) {
-            if (fo.operands().isEmpty()) {
-        VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
-                return vh.get();
-            } else {
-                Object v = oc.getValue(o.operands().get(0));
-        VarHandle vh = fieldHandle(l, fo.fieldReference());
-                return vh.get(v);
-            }
-        } else if (o instanceof JavaOp.FieldAccessOp.FieldStoreOp fo) {
-            if (fo.operands().size() == 1) {
-                Object v = oc.getValue(o.operands().get(0));
-        VarHandle vh = fieldStaticHandle(l, fo.fieldReference());
-                vh.set(v);
-            } else {
-                Object r = oc.getValue(o.operands().get(0));
-                Object v = oc.getValue(o.operands().get(1));
-        VarHandle vh = fieldHandle(l, fo.fieldReference());
-                vh.set(r, v);
-            }
-            return null;
-        } else if (o instanceof JavaOp.InstanceOfOp io) {
-            Object v = oc.getValue(o.operands().get(0));
-            return isInstance(l, io.targetType(), v);
-        } else if (o instanceof JavaOp.CastOp co) {
-            Object v = oc.getValue(o.operands().get(0));
-            return cast(l, co.targetType(), v);
-        } else if (o instanceof JavaOp.ArrayLengthOp) {
-            Object a = oc.getValue(o.operands().get(0));
-            return Array.getLength(a);
-        } else if (o instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
-            Object a = oc.getValue(o.operands().get(0));
-            Object index = oc.getValue(o.operands().get(1));
-            return Array.get(a, (int) index);
-        } else if (o instanceof JavaOp.ArrayAccessOp.ArrayStoreOp) {
-            Object a = oc.getValue(o.operands().get(0));
-            Object index = oc.getValue(o.operands().get(1));
-            Object v = oc.getValue(o.operands().get(2));
-            Array.set(a, (int) index, v);
-            return null;
-        } else if (o instanceof JavaOp.ArithmeticOperation) {
-            // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
-            Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            return invoke(mh, values);
-        } else if (o instanceof JavaOp.ConvOp) {
-            // @@@ avoid use of opName
-            MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
-            Object[] values = o.operands().stream().map(oc::getValue).toArray();
-            return invoke(mh, values);
-        } else if (o instanceof JavaOp.AssertOp _assert) {
-            Body testBody = _assert.bodies().get(0);
-            boolean testResult = (boolean) interpretBody(l, testBody, oc, List.of());
-            if (!testResult) {
-                if (_assert.bodies().size() > 1) {
-                    Body messageBody = _assert.bodies().get(1);
-                    String message = String.valueOf(interpretBody(l, messageBody, oc, List.of()));
-                    throw new AssertionError(message);
-                } else {
-                    throw new AssertionError();
-                }
-            }
-            return null;
-        } else if (o instanceof JavaOp.ConcatOp) {
-            return o.operands().stream()
-                    .map(oc::getValue)
-                    .map(String::valueOf)
-                    .collect(Collectors.joining());
-        } else if (o instanceof JavaOp.MonitorOp.MonitorEnterOp) {
-            Object monitorTarget = oc.getValue(o.operands().get(0));
-            if (monitorTarget == null) {
-                throw new NullPointerException();
-            }
-            ReentrantLock lock = oc.locks.computeIfAbsent(monitorTarget, _ -> new ReentrantLock());
-            lock.lock();
-            return null;
-        } else if (o instanceof JavaOp.MonitorOp.MonitorExitOp) {
-            Object monitorTarget = oc.getValue(o.operands().get(0));
-            if (monitorTarget == null) {
-                throw new NullPointerException();
-            }
-            ReentrantLock lock = oc.locks.get(monitorTarget);
-            if (lock == null) {
-                throw new IllegalMonitorStateException();
-            }
-            lock.unlock();
-            return null;
-        } else {
-            throw interpreterException(
-                    new UnsupportedOperationException("Unsupported operation: " + o));
-        }
-    }
-
-    static final MethodHandle INVOKE_LAMBDA_MH;
-    static {
-        try {
-            INVOKE_LAMBDA_MH = MethodHandles.lookup().findStatic(Interpreter.class, "invokeLambda",
-                    MethodType.methodType(Object.class, MethodHandles.Lookup.class,
-                            JavaOp.LambdaOp.class, Object[].class, Object[].class));
-        } catch (Throwable t) {
-            throw new InternalError(t);
-        }
-    }
-
-    static Object invokeLambda(MethodHandles.Lookup l, JavaOp.LambdaOp op, Object[] capturedArgs, Object[] args) {
-        List<Object> arguments = new ArrayList<>(Arrays.asList(args));
-        arguments.addAll(Arrays.asList(capturedArgs));
-        return invoke(l, op, arguments);
-    }
-
-    static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
-        MethodType mt = resolveToMethodType(l, ft).erase();
-        try {
-            return MethodHandles.lookup().findStatic(ArithmeticAndConvOpImpls.class, opName, mt);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw interpreterException(e);
-        }
-    }
-
-    static VarHandle fieldStaticHandle(MethodHandles.Lookup l, FieldRef d) {
-        return resolveToVarHandle(l, d);
-    }
-
-    static VarHandle fieldHandle(MethodHandles.Lookup l, FieldRef d) {
-        return resolveToVarHandle(l, d);
-    }
-
-    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
-        Class<?> c = resolveToClass(l, d);
-        return c.isInstance(v);
-    }
-
-    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
-        Class<?> c = resolveToClass(l, d);
-        return c.cast(v);
-    }
-
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
-        try {
-            return d.resolveToHandle(l, kind);
-        } catch (ReflectiveOperationException e) {
-            throw interpreterException(e);
-        }
-    }
-
-    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) {
-        try {
-            return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
-        } catch (ReflectiveOperationException e) {
-            throw interpreterException(e);
-        }
-    }
-
-    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) {
-        try {
-            return d.resolveToHandle(l);
-        } catch (ReflectiveOperationException e) {
-            throw interpreterException(e);
-        }
-    }
-
-    static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
-        try {
-            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
-        } catch (ReflectiveOperationException e) {
-            throw interpreterException(e);
-        }
-    }
-
-    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
-        try {
-            if (d instanceof JavaType jt) {
-                return (Class<?>)jt.erasure().resolve(l);
-            } else {
-                throw new ReflectiveOperationException();
-            }
-        } catch (ReflectiveOperationException e) {
-            throw interpreterException(e);
-        }
-    }
-
-    static Object invoke(MethodHandle m, Object... args) {
-        try {
-            return m.invokeWithArguments(args);
-        } catch (RuntimeException | Error e) {
-            throw e;
-        } catch (Throwable e) {
-            eraseAndThrow(e);
-            throw new InternalError("should not reach here");
+        InterpreterException(String message) {
+            super(message);
         }
     }
 }
