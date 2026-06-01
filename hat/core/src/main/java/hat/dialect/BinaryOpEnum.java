@@ -43,7 +43,7 @@ public enum BinaryOpEnum {
             case "sub" -> BinaryOpEnum.SUB;
             case "mul" -> BinaryOpEnum.MUL;
             case "div" -> BinaryOpEnum.DIV;
-            default -> throw new RuntimeException("Unknown binary op " + invokeOp.invokeReference().name());
+            default -> throw new IllegalStateException("Unknown binary op " + invokeOp.invokeReference().name());
         };
     }
     public String symbol() {

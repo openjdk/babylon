@@ -602,35 +602,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id(VALUE);
     }
 
-
-    @Override
-    public final T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
-        id(hatF16VarLoadOp.varName());
-
-        // Since all VarOps now are the same, we need to distinguish if it comes from a global load,
-        // or private/shared load.
-        if (hatF16VarLoadOp.operands().getFirst().declaringElement() instanceof CoreOp.VarOp varOp
-                && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp
-                && !isInvokeLoadingFromOnChipMemory(invokeOp)) {
-            // VarLoad from Global Memory with an InvokeOp
-            Stream<Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
-            Optional<OpHelper.Invoke> invoke = stream.findFirst();
-            if (isMathLib(invoke)) {
-                dot();
-            } else if (invoke.isPresent() && invoke.get().refIs(S16ImplOfF16.class)) {
-                // This extra condition is due to all operation are implemented via invoke.
-                // Thus, we need to make sure the type to know if it is a reference from
-                // global memory.
-                dot();
-            } else {
-                rarrow();
-            }
-        } else {
-            dot();
-        }
-        return id(VALUE);
-    }
-
     public abstract T genVectorIdentifier(IfaceValue.Vector.Shape vectorShape);
 
     public final T generateVectorOf(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape) {
