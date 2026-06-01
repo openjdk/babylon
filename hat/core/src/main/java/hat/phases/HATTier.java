@@ -46,13 +46,13 @@ public class HATTier  {
             new HATThreadsPhase(),  // Let's keep the dialect for barriers
 
             // MathLib phase
-            new HATMathLibPhase(), // custom nodes removed - OK
+            new HATMathLibPhase(), // OK
 
             // views for vector types
             new HATVectorPhase(), // Pending binOps
 
             // F16 type
-            new HATFP16Phase()  // In progress
+            new HATFP16Phase()  // Done
     );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){

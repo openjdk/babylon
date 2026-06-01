@@ -108,7 +108,7 @@ public record HATFP16Phase() implements HATPhase {
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         for (BinaryOpEnum binaryOpEnum : BinaryOpEnum.values()) {
             // F16 BinarybOperations
-            funcOp = processBinaryOps(lookup, funcOp, binaryOpEnum, varTable); // pending
+            funcOp = processBinaryOps(lookup, funcOp, binaryOpEnum, varTable); // done
         }
         // Init analysis before the store
         funcOp = processInitOps(lookup, funcOp, varTable);   // done
