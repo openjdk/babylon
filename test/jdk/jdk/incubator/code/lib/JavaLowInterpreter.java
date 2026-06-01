@@ -624,7 +624,18 @@ public class JavaLowInterpreter extends Interpreter {
             return new JavaEnv(bindings, this.l, stack);
         }
 
-        private R findCatchBlock(Throwable t) {
+        @Override
+        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
+            Optional<SuccessorEffect> opt = this.findCatchBlock((Throwable) eff.operands().getFirst());
+            if (opt.isPresent()) {
+                return opt.get();
+            } else {
+                JavaEnv newEnv = this.removeAllCatchBlocks();
+                return new TerminatingOpEffect(eff.terminatingOp(), eff.operands(), newEnv);
+            }
+        }
+
+        private Optional<SuccessorEffect> findCatchBlock(Throwable t) {
             Block cb = null;
             int blockListToRemove = 0;
             l:
@@ -644,27 +655,21 @@ public class JavaLowInterpreter extends Interpreter {
                 }
             }
 
+            if (cb == null) {
+                return Optional.empty();
+            }
+
             var cbs = new ArrayDeque<>(catchBlocks);
             while (blockListToRemove > 0) {
                 cbs.removeFirst();
                 blockListToRemove--;
             }
 
-            return new R(new JavaEnv(bindings, l, cbs), Optional.ofNullable(cb));
+            return Optional.of(new SuccessorEffect(cb, List.of(t), new JavaEnv(bindings, l, cbs)));
         }
 
-        @Override
-        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
-            R r = this.findCatchBlock((Throwable) eff.operands().getFirst());
-            if (r.catchBlock().isPresent()) {
-                return new SuccessorEffect(r.catchBlock().get(), eff.operands(), r.javaEnv());
-            } else {
-                // env is changed, so we need to construct a new effect with the new env
-                return new TerminatingOpEffect(eff.terminatingOp(), eff.operands(), r.javaEnv());
-            }
+        private JavaEnv removeAllCatchBlocks() {
+            return new JavaEnv(bindings, l);
         }
     }
-
-    // @@@ find a meaningful name
-    record R(JavaEnv javaEnv, Optional<Block> catchBlock) {};
 }
