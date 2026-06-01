@@ -43,6 +43,16 @@ public class JavaLowInterpreter extends Interpreter {
     public JavaLowInterpreter() {
     }
 
+    private static final MethodHandle execLambdaOpMH;
+    static {
+        try {
+            execLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "executeLambdaOp",
+                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
+        } catch (Throwable t) {
+            throw new InternalError();
+        }
+    }
+
     static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
         try {
             return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
@@ -249,13 +259,6 @@ public class JavaLowInterpreter extends Interpreter {
                         .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
                 Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
 
-                MethodHandle execLambdaOpMH;
-                try {
-                    execLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "executeLambdaOp",
-                            MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
-                } catch (Throwable t) {
-                    throw new InterpreterException(t);
-                }
                 MethodHandle fProxy = execLambdaOpMH.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
                         .asCollector(Object[].class, o.parameters().size());
                 Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
