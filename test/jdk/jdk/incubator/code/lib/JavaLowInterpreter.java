@@ -46,7 +46,7 @@ public class JavaLowInterpreter extends Interpreter {
     private static final MethodHandle execLambdaOpMH;
     static {
         try {
-            execLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "executeLambdaOp",
+            execLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "interpretLambdaOp",
                     MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
         } catch (Throwable t) {
             throw new InternalError();
@@ -98,11 +98,6 @@ public class JavaLowInterpreter extends Interpreter {
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
-        throw (E) e;
     }
 
     private static final class VarBox
@@ -231,7 +226,7 @@ public class JavaLowInterpreter extends Interpreter {
                     }
                     try {
                         JavaEnv je = (JavaEnv) e;
-                        result = new JavaLowInterpreter().executeFuncOp(funcOp, e.valuesOf(o.operands()), je.l);
+                        result = new JavaLowInterpreter().interpret(funcOp, e.valuesOf(o.operands()), je.l);
                     } catch (InterpreterException ex) {
                         throw ex;
                     } catch (Throwable t) {
@@ -480,7 +475,7 @@ public class JavaLowInterpreter extends Interpreter {
         };
     }
 
-    private Object executeLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
+    private Object interpretLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
         Env e = new JavaEnv(new HashMap<>(), l);
         e = e.bind(op.capturedValues(), Arrays.asList(captures));
         var effect = executeBody(op.body(), Arrays.asList(args), e);
@@ -493,19 +488,19 @@ public class JavaLowInterpreter extends Interpreter {
         }
     }
 
-    private <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> args, MethodHandles.Lookup l) {
+    private static  <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
         List<Block.Parameter> parameters = op.parameters();
         List<Value> capturedValues = op.capturedValues();
-        if (parameters.size() + capturedValues.size() != args.size()) {
+        if (parameters.size() + capturedValues.size() != argsAndCaptures.size()) {
             throw new InterpreterException(
                     String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
-                            args.size(), parameters.size(), capturedValues.size()));
+                            argsAndCaptures.size(), parameters.size(), capturedValues.size()));
         }
-        // validate runtime args types
+        // validate runtime args and captures types
         List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
         for (int i = 0; i < symbolicValues.size(); i++) {
             Value sv = symbolicValues.get(i);
-            Object rv = args.get(i);
+            Object rv = argsAndCaptures.get(i);
             try {
                 JavaType typeToResolve = switch (sv.type()) {
                     // @@@ Deconstruct and test what the var holds
@@ -527,35 +522,28 @@ public class JavaLowInterpreter extends Interpreter {
         }
     }
 
-    public Object executeLambdaOp(JavaOp.LambdaOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
-        validateTypes(op, args, l);
+    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
+        validateTypes(op, argsAndCaptures, l);
 
         Env e = new JavaEnv(new HashMap<>(), l);
-        // args = op args + op captures
-        e = e.bind(op.capturedValues(), args.subList(op.parameters().size(), args.size()));
-        List<Object> arguments = args.subList(0, op.parameters().size());
-        var effect = executeBody(op.body(), arguments, e);
-        switch (effect.terminatingOp()) {
-            case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
-            }
-            case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
-            default -> throw new InternalError(effect.toString());
-        }
-    }
-
-    public Object executeFuncOp(CoreOp.FuncOp op, List<Object> args, MethodHandles.Lookup l) throws Throwable {
-        validateTypes(op, args, l);
-
-        Env e = new JavaEnv(new HashMap<>(), l);
+        e = e.bind(op.capturedValues(), argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()));
+        List<Object> args = argsAndCaptures.subList(0, op.parameters().size());
         var effect = executeBody(op.body(), args, e);
         switch (effect.terminatingOp()) {
             case CoreOp.ReturnOp rop -> {
                 return rop.operands().isEmpty() ? null : effect.operands().getFirst();
             }
-            case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
+            case JavaOp.ThrowOp _ -> {
+                eraseAndThrow((Throwable) effect.operands().getFirst());
+                throw new InternalError(); // @@@ shouldn't reach here
+            }
             default -> throw new InternalError(effect.toString());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
+        throw (E) e;
     }
 
     static final class JavaEnv implements Env {

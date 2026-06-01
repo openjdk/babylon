@@ -26,9 +26,6 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
-
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.List;
@@ -113,31 +110,8 @@ public abstract class Interpreter {
         return invoke(l, op, Arrays.asList(args));
     }
 
-    static <T extends Op & Op.Invokable> Object invoke(MethodHandles.Lookup l, T op, List<Object> args) {
-        return switch (op) {
-            case CoreOp.FuncOp fop -> {
-                try {
-                    yield new JavaLowInterpreter().executeFuncOp(fop, args, l);
-                } catch (Throwable t) {
-                    eraseAndThrow(t);
-                    throw new InternalError(); // @@@ shouldn't reach here
-                }
-            }
-            case JavaOp.LambdaOp lop -> {
-                try {
-                    yield new JavaLowInterpreter().executeLambdaOp(lop, args, l);
-                } catch (Throwable e) {
-                    eraseAndThrow(e); // @@@ we can do this trick in JavaLowInterpreter to avoid handling
-                    throw new InternalError();
-                }
-            }
-            case null, default -> throw new IllegalArgumentException("Can't interpret " + op);
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
-        throw (E) e;
+    static <T extends Op & Op.Invokable> Object invoke(MethodHandles.Lookup l, T op, List<Object> argsAndCaptures) {
+        return new JavaLowInterpreter().interpret(op, argsAndCaptures, l);
     }
 
     /**
