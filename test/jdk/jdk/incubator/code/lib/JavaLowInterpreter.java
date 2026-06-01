@@ -165,10 +165,15 @@ public class JavaLowInterpreter extends Interpreter {
     public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
         validateTypes(op, argsAndCaptures, l);
 
+        return interpret_(op, l,
+                argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()).toArray(),
+                argsAndCaptures.subList(0, op.parameters().size()).toArray());
+    }
+
+    private <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
         Env e = new JavaEnv(new HashMap<>(), l);
-        e = e.bind(op.capturedValues(), argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()));
-        List<Object> args = argsAndCaptures.subList(0, op.parameters().size());
-        var effect = executeBody(op.body(), args, e);
+        e = e.bind(op.capturedValues(), Arrays.asList(captures));
+        var effect = executeBody(op.body(), Arrays.asList(args), e);
         switch (effect.terminatingOp()) {
             case CoreOp.ReturnOp rop -> {
                 return rop.operands().isEmpty() ? null : effect.operands().getFirst();
@@ -585,7 +590,7 @@ public class JavaLowInterpreter extends Interpreter {
     }
 
     private Object interpretLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        return interpret(op, Arrays.asList(args, captures), l);
+        return interpret_(op, l, captures, args);
     }
 
     private static final class VarBox
