@@ -33,7 +33,7 @@ import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import static hat.dialect.HATF16Op.HATF16BinaryOp;
-import static hat.dialect.HATF16Op.HATF16ToFloatConvOp;
+//import static hat.dialect.HATF16Op.HATF16ToFloatConvOp;
 import static hat.dialect.HATF16Op.HATF16VarLoadOp;
 import static hat.dialect.HATPtrOp.HATPtrLengthOp;
 import static hat.dialect.HATPtrOp.HATPtrLoadOp;
@@ -59,7 +59,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatF16VarLoadOp( HATF16VarLoadOp hatF16VarLoadOp);
 
-    T hatF16ToFloatConvOp( HATF16ToFloatConvOp hatF16ToFloatConvOp);
+//    T hatF16ToFloatConvOp( HATF16ToFloatConvOp hatF16ToFloatConvOp);
 
     T hatPtrLoadOp(HATPtrLoadOp hatPtrLoadOp);
 
@@ -81,7 +81,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrLoadOp $ -> hatPtrLoadOp($);
                 case HATPtrStoreOp $ -> hatPtrStoreOp($);
                 case HATPtrLengthOp $ -> hatPtrLengthOp($);
-                case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
+//                case HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {

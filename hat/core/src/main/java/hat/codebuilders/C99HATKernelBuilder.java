@@ -36,7 +36,6 @@ import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types.F32;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.VarType;
@@ -955,6 +954,49 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType);
 
+    private boolean isVectorSelectOperation(Invoke invoke) {
+        return invoke.nameMatchesRegex("[xyzw]") && invoke.refIs(IfaceValue.Vector.class) && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp;
+    }
+
+    private boolean isS16Conversion(Invoke invoke) {
+        return !invoke.returnsVoid() && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)")) && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp;
+    }
+
+    private boolean isS16ToFloatConversion(Invoke invoke) {
+        return invoke instanceof Invoke.Static && invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)") && invoke.returnsFloat();
+    }
+
+    private static boolean isF16Local(Value v) {
+        return v instanceof Op.Result r && switch (r.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
+            case CoreOp.VarOp varOp ->
+                    !(varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp)
+                            || !invokeOp.invokeReference().name().equals("array");
+            default -> false;
+        };
+    }
+
+    //recursive
+    private static boolean isF16Local(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return isF16Local(varLoadOp.operands().getFirst());
+    }
+
+    public abstract T hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local);
+
+    private boolean isInvokeFromNarrowTypeConversion(JavaOp.InvokeOp invoke) {
+        SequencedSet<Op.Result> uses = invoke.result().uses();
+        boolean[] result = new boolean[1];
+        uses.forEach(usage -> {
+            if (usage.declaringElement() instanceof JavaOp.InvokeOp invokeOp2) {
+                var invoke2 = invoke(scopedCodeBuilderContext().lookup(), invokeOp2);
+                if (invoke2.nameMatchesRegex("(f16ToFloat|bfloat162float)")) {
+                    result[0] = true;
+                }
+            }
+        });
+        return result[0];
+    }
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -973,26 +1015,37 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 var name = findVectorVarNameOrNull(invokeOp.operands().getFirst());
                 id(name);
             } else {
-                throw new IllegalStateException("Vector Operation found: " + invoke.name());
+                throw new IllegalStateException("[CodeGen] Vector Operation found: " + invoke.name());
             }
         } else if (isVectorView(invokeOp)) {
             IfaceValue.Vector.Shape vectorShape = getVectorShapeFromOperandN(invoke.lookup(), invoke.op(), 1);
             boolean isShared = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst());
             String vectorName = findVectorVarNameOrNull(invokeOp.operands().get(1));
             hatVectorStoreOp(invokeOp, vectorShape, vectorName, isShared);
-        } else if (invoke.nameMatchesRegex("[xyzw]") && invoke.refIs(IfaceValue.Vector.class) && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp) {
+        } else if (isVectorSelectOperation(invoke)) {
             InvokeVar invokeVar = new InvokeVar(invokeOp, invoke.varLoadOpFromFirstOperandOrNull());
             if (invoke.returnsVoid()) {
                 hatSelectStoreOp(invoke, invokeVar);
             } else {
                 hatSelectLoadOp(invoke, invokeVar);
             }
-        } else if (!invoke.returnsVoid() && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)")) && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp) {
+        } else if (isS16Conversion(invoke)) {
             // F16
             if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
                 hatF16ConvOp(invokeOp, reducedFloatType);
             } else {
-                throw new IllegalStateException("Unhandled op: " + invoke.name());
+                throw new IllegalStateException("[CodeGen] Unhandled op: " + invoke.name());
+            }
+        } else if (isS16ToFloatConversion(invoke)) {
+            // s16 type -> float conversion
+            // Obtain the reducedFLoatType
+            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
+                boolean isF16Local = isF16Local(invoke.op().operands().getFirst());
+                boolean wasFloat = invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp && varLoadOp.resultType().equals(JavaType.FLOAT);
+                // generate
+                hatF16ToFloatConvOp(invoke, reducedFloatType, wasFloat, isF16Local);
+            } else {
+                throw new IllegalStateException("[CodeGen] No reduced float type");
             }
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
@@ -1008,8 +1061,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 // Attention: Since F16.toFloat operations are supported, it should be possible to
                 // implement a load from global memory from an F16Array and directly use it for a math operation.
                 // In this case, we need to add an extra parenthesis.
-                SequencedSet<Op.Result> uses = invokeOp.result().uses();
-                boolean narrowTypeCast = uses.stream().anyMatch(node -> node.op() instanceof HATF16Op.HATF16ToFloatConvOp);
+                boolean narrowTypeCast = isInvokeFromNarrowTypeConversion(invokeOp);
                 parenWhen(narrowTypeCast, _ -> {
                     parenWhen(
                             invoke.operandCount() > 1

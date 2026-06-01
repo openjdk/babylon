@@ -336,18 +336,33 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private static final String VALUE = "value";
 
     @Override
-    public CudaHATKernelBuilder hatF16ToFloatConvOp(HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        buildFloat16Class(hatF16ToFloatConvOp.float16Class());
+    public CudaHATKernelBuilder hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
+        buildFloat16Class(reducedFloatType);
         paren(_ -> {
-            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
-            if (!hatF16ToFloatConvOp.isLocal()) {
+            recurseResultOrThrow(invoke.op().operands().getFirst());
+            if (!isF16Local) {
                 rarrow().id(VALUE);
-            } else if (!hatF16ToFloatConvOp.wasFloat()) {
+            } else if (!wasFloat) {
                 dot().id(VALUE);
             }
         });
         return self();
     }
+
+
+//    @Override
+//    public CudaHATKernelBuilder hatF16ToFloatConvOp(HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+//        buildFloat16Class(hatF16ToFloatConvOp.float16Class());
+//        paren(_ -> {
+//            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
+//            if (!hatF16ToFloatConvOp.isLocal()) {
+//                rarrow().id(VALUE);
+//            } else if (!hatF16ToFloatConvOp.wasFloat()) {
+//                dot().id(VALUE);
+//            }
+//        });
+//        return self();
+//    }
 
     @Override
     public CudaHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {

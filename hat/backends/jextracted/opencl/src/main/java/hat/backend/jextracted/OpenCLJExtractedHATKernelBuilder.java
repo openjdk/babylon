@@ -172,11 +172,11 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
 //        }
 //        return self();
 //    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        return paren(_-> f16Type()).id(hatF16ToFloatConvOp.varName());
-    }
+//
+//    @Override
+//    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
+//        return paren(_-> f16Type()).id(hatF16ToFloatConvOp.varName());
+//    }
 
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
     static {
@@ -339,4 +339,26 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
                         _-> recurseResultOrThrow(invokeOp.operands().getFirst())
                 ));
     }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp(OpHelper.Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
+        if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
+            paren(_->f32Type());
+        } else if (BF16.class.isAssignableFrom(reducedFloatType)) {// bfloat16 -> float
+            builtin_bfloat16ToFloat();
+        }
+        parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
+            recurseResultOrThrow(invoke.op().operands().getFirst());
+            if (!isF16Local) {
+                rarrow();
+            } else if (!wasFloat) {
+                dot();
+            } else{
+                throw new RuntimeException("Can we get here");
+            }
+            id("value");
+        });
+        return self();
+    }
+
 }
