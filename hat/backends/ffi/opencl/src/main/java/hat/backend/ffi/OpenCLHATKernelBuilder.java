@@ -110,15 +110,16 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder generateVectorLoad(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
+    public OpenCLHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
         vload(vectorShape.lanes()).paren(_ -> {
             intConstZero().comma().sp().ampersand();
-            recurseResultOrThrow(invokeOp.operands().get(0));
+            recurseResultOrThrow(source);
             either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(invokeOp.operands().get(1)));
+            id("array").sbrace(_ -> recurseResultOrThrow(index));
         });
         return self();
     }
+
 
     @Override
     public OpenCLHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
@@ -137,10 +138,30 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatVectorStoreView) {
+    public OpenCLHATKernelBuilder hatVectorStoreOp(JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp, IfaceValue.Vector.Shape vectorShape, boolean isDeviceAllocated, String name) {
+        Op.Result buffer = OpHelper.resultFromFirstOperandOrThrow(arrayStoreOp);
+        Value a = buffer;
+        Value b = arrayStoreOp.operands().getLast();
+        Value c = arrayStoreOp.operands().get(1);
+        vstore(vectorShape.lanes()).paren(_-> {
+            // if the value to be stored is an operation, recurse on the operation
+            if (b.declaringElement() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
+                recurse(binOp);
+            } else {
+                varName(name);
+            }
+            csp().intConstZero().csp().ampersand().recurseResultOrThrow(a);
+            either(isDeviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
+            id("array").sbrace(_ ->recurseResultOrThrow(c));
+        });
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatVectorStoreOp(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
         vstore(hatVectorStoreView.vectorShape().lanes()).paren(_-> {
             // if the value to be stored is an operation, recurse on the operation
-            if (hatVectorStoreView.operands().get(1).asResult().op() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
+            if (hatVectorStoreView.operands().get(1).declaringElement() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
                 recurse(binOp);
             } else {
                 varName(hatVectorStoreView);

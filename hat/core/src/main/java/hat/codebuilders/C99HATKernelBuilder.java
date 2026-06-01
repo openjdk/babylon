@@ -33,11 +33,13 @@ import hat.dialect.HATBarrierOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
+import hat.phases.HATArrayViewPhase;
 import hat.phases.HATFP16Phase;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeType;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -63,6 +65,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -76,6 +79,10 @@ import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
 
 import static optkl.OpHelper.VarAccess.varAccess;
+import static optkl.OpHelper.opFromFirstOperandOrNull;
+import static optkl.OpHelper.opFromFirstOperandOrThrow;
+import static optkl.OpHelper.resultFromFirstOperandOrNull;
+import static optkl.OpHelper.resultFromFirstOperandOrThrow;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
     protected  final KernelCallGraph kernelCallGraph;
@@ -857,7 +864,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         };
     }
 
-    public abstract T generateVectorLoad(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape,  boolean deviceAllocated);
+    public abstract T generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape,  boolean deviceAllocated);
 
     // recursive
     public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -1047,7 +1054,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     || invoke.name().equalsIgnoreCase("float2view")) {
                 // could be share or global
                 boolean isSharedOrPrivate = isSharedOrPrivate(invoke.lookup(), invoke.op());
-                generateVectorLoad(invokeOp, vectorShape, isSharedOrPrivate);
+                Value source = invoke.op().operands().getFirst();
+                Value index = invoke.op().operands().get(1);
+                generateVectorLoad(source, index, vectorShape, isSharedOrPrivate);
             } else if (invoke.name().equalsIgnoreCase("of")) {
                 generateVectorOf(invokeOp, vectorShape);
             } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
@@ -1226,6 +1235,39 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else {
                 genericVarOp(varOp);
             }
+        }
+        return self();
+    }
+
+    @Override
+    public T arrayLoadOp( JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp) {
+        if (HATArrayViewPhase.isVectorOp(scopedCodeBuilderContext.lookup(), arrayLoadOp)) {
+            var vectorShape = getVectorShape(scopedCodeBuilderContext.lookup(), arrayLoadOp.resultType());
+            boolean deviceAllocated = HATArrayViewPhase.isLocalSharedOrPrivate(arrayLoadOp);
+            // generate
+            generateVectorLoad(arrayLoadOp.arrayOperand(), arrayLoadOp.indexOperand(), vectorShape, deviceAllocated);
+        } else {
+            recurse(((Op.Result) arrayLoadOp.operands().get(0)).op());
+            sbrace(_ -> recurse(((Op.Result) arrayLoadOp.operands().get(1)).op()));
+        }
+        return self();
+    }
+
+    public abstract T hatVectorStoreOp(JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp, IfaceValue.Vector.Shape vectorShape, boolean isLocal, String name);
+
+    @Override
+    public T arrayStoreOp(JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp) {
+        if (HATArrayViewPhase.isVectorOp(scopedCodeBuilderContext.lookup(), arrayStoreOp)) {
+            Op varOp = opFromFirstOperandOrNull(((Op.Result) arrayStoreOp.operands().getLast()).op());
+            String name = HATArrayViewPhase.hatPtrName(varOp);
+            var vectorShape = getVectorShape(scopedCodeBuilderContext.lookup(), arrayStoreOp.operands().getLast().type());
+            boolean deviceAllocated = HATArrayViewPhase.isLocalSharedOrPrivate(arrayStoreOp);
+            hatVectorStoreOp(arrayStoreOp, vectorShape, deviceAllocated , name);
+        } else {
+            recurse(((Op.Result) arrayStoreOp.operands().get(0)).op());
+            sbrace(_ -> recurse(((Op.Result) arrayStoreOp.operands().get(1)).op()));
+            sp().equals().sp();
+            recurse(((Op.Result) arrayStoreOp.operands().get(2)).op());
         }
         return self();
     }

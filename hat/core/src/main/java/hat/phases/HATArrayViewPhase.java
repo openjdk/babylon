@@ -108,19 +108,19 @@ public record HATArrayViewPhase() implements HATPhase {
         );
     }
 
-    public static HATVectorOp buildArrayViewVector(Op op, String name, CodeType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operands) {
-        if (isLocalSharedOrPrivate(op)) {
-            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
-                return new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(name, resultType, vectorShape, operands);
-            }
-            return new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(name, resultType, vectorShape, operands);
-        } else {
-            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
-                return new HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp(name, resultType, vectorShape, operands);
-            }
-            return new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(name, resultType, vectorShape, operands);
-        }
-    }
+//    public static HATVectorOp buildArrayViewVector(Op op, String name, CodeType resultType, IfaceValue.Vector.Shape vectorShape, List<Value> operands) {
+//        if (isLocalSharedOrPrivate(op)) {
+//            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
+//                return new HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp(name, resultType, vectorShape, operands);
+//            }
+//            return new HATVectorOp.HATVectorStoreView.HATSharedVectorStoreView(name, resultType, vectorShape, operands);
+//        } else {
+//            if (op instanceof JavaOp.ArrayAccessOp.ArrayLoadOp) {
+//                return new HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp(name, resultType, vectorShape, operands);
+//            }
+//            return new HATVectorOp.HATVectorStoreView.HATPrivateVectorStoreView(name, resultType, vectorShape, operands);
+//        }
+//    }
 
     static HATArrayViewPhase.ArrayAccessInfo arrayAccessInfo(Value value, Map<Op.Result, Op.Result> replaced) {
         return expressionGraph(value).getInfo(replaced);
@@ -190,26 +190,21 @@ public record HATArrayViewPhase() implements HATPhase {
                 }
                 case JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp -> {
                     if (isVectorOp(lookup, arrayLoadOp)) {
-                        Op.Result buffer = resultFromFirstOperandOrNull(arrayLoadOp);
-                        String name = hatPtrName(opFromFirstOperandOrThrow(buffer.op()));
-                        var resultType = CoreType.varType(arrayLoadOp.resultType());
-                        var vectorShape = getVectorShape(lookup, arrayLoadOp.resultType());
-                        List<Value> operands = context.getValues(List.of(buffer, arrayLoadOp.operands().getLast()));
-                        HATVectorOp vLoadOp = buildArrayViewVector(arrayLoadOp, name, resultType, vectorShape, operands);
-                        context.mapValue(arrayLoadOp.result(), blockBuilder.add(copyLocation(arrayLoadOp, vLoadOp)));
+                        blockBuilder.add(op);
                     }
                     return blockBuilder;
                 }
                 case JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp -> {
                     if (isVectorOp(lookup, arrayStoreOp)) {
                         Op.Result buffer = resultFromFirstOperandOrThrow(arrayStoreOp);
-                        Op varOp = opFromFirstOperandOrNull(((Op.Result) arrayStoreOp.operands().getLast()).op());
-                        String name = hatPtrName(varOp);
-                        var resultType = (varOp).resultType();
-                        var vectorShape = getVectorShape(lookup, arrayStoreOp.operands().getLast().type());
-                        List<Value> operands = context.getValues(List.of(buffer, arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)));
-                        HATVectorOp vStoreOp = buildArrayViewVector(arrayStoreOp, name, resultType, vectorShape, operands);
-                        context.mapValue(arrayStoreOp.result(), blockBuilder.add(copyLocation(arrayStoreOp, vStoreOp)));
+//                        Op varOp = opFromFirstOperandOrNull(((Op.Result) arrayStoreOp.operands().getLast()).op());
+//                        String name = hatPtrName(varOp);
+//                        var resultType = (varOp).resultType();
+//                        var vectorShape = getVectorShape(lookup, arrayStoreOp.operands().getLast().type());
+//                        List<Value> operands = context.getValues(List.of(buffer, arrayStoreOp.operands().getLast(), arrayStoreOp.operands().get(1)));
+//                        HATVectorOp vStoreOp = buildArrayViewVector(arrayStoreOp, name, resultType, vectorShape, operands);
+//                        context.mapValue(arrayStoreOp.result(), blockBuilder.add(copyLocation(arrayStoreOp, vStoreOp)));
+                        blockBuilder.add(op);
                     }
                     return blockBuilder;
                 }
