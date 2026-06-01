@@ -43,76 +43,142 @@ public class JavaLowInterpreter extends Interpreter {
     public JavaLowInterpreter() {
     }
 
-    private static final MethodHandle execLambdaOpMH;
-    static {
-        try {
-            execLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "interpretLambdaOp",
-                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
-        } catch (Throwable t) {
-            throw new InternalError();
+    static final class JavaEnv implements Env {
+        final Map<Value, Object> bindings;
+        final MethodHandles.Lookup l;
+        final Deque<List<Block>> catchBlocks;
+
+        public JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l) {
+            this.bindings = bindings;
+            this.l = l;
+            this.catchBlocks = new ArrayDeque<>();
+        }
+        private JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
+            this.bindings = bindings;
+            this.l = l;
+            this.catchBlocks = catchBlocks;
+        }
+
+        Map<Value, Object> newBindings() {
+            return new HashMap<>(bindings);
+        }
+
+        @Override
+        public Env bind(List<? extends Value> symbolicValues, List<Object> runtimeValues) {
+            Map<Value, Object> m = newBindings();
+            int l = symbolicValues.size();
+            for (int i = 0; i < l; i++) {
+                m.put(symbolicValues.get(i), runtimeValues.get(i));
+            }
+            return new JavaEnv(m, this.l, this.catchBlocks);
+        }
+
+        @Override
+        public Env bind(Value symbolicValue, Object runtimeValue) {
+            Map<Value, Object> m = newBindings();
+            m.put(symbolicValue, runtimeValue);
+            return new JavaEnv(m, l, this.catchBlocks);
+        }
+
+        @Override
+        public List<Object> valuesOf(List<? extends Value> symbolicValues) {
+            List<Object> runtimeValues = new ArrayList<>();
+            for (Value symbolicValue : symbolicValues) {
+                runtimeValues.add(valueOf(symbolicValue));
+            }
+
+            return runtimeValues;
+        }
+
+        @Override
+        public Object valueOf(Value symbolicValue) {
+            if (!bindings.containsKey(symbolicValue)) {
+                throw new IllegalArgumentException("Unknown binding for " + symbolicValue);
+            }
+            return bindings.get(symbolicValue);
+        }
+
+        public JavaEnv registerCatchBlocks(List<Block> catchBlocks) {
+            var stack = new ArrayDeque<>(this.catchBlocks);
+            stack.addFirst(catchBlocks);
+            return new JavaEnv(bindings, l, stack);
+        }
+
+        public JavaEnv removeCatchBlocks(List<Block> catchBlocks) {
+            var stack = new ArrayDeque<>(this.catchBlocks);
+            List<Block> l = stack.removeFirst();
+            if (!l.equals(catchBlocks)) {
+                throw new InternalError();
+            }
+            return new JavaEnv(bindings, this.l, stack);
+        }
+
+        @Override
+        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
+            Optional<SuccessorEffect> opt = this.findCatchBlock((Throwable) eff.operands().getFirst());
+            if (opt.isPresent()) {
+                return opt.get();
+            } else {
+                JavaEnv newEnv = this.removeAllCatchBlocks();
+                return new TerminatingOpEffect(eff.terminatingOp(), eff.operands(), newEnv);
+            }
+        }
+
+        private Optional<SuccessorEffect> findCatchBlock(Throwable t) {
+            Block cb = null;
+            int blockListToRemove = 0;
+            l:
+            for (List<Block> blocks : catchBlocks) {
+                blockListToRemove++;
+                for (Block block : blocks) {
+                    Class<?> c;
+                    try {
+                        c = resolveToClass(l, block.parameters().getFirst().type());
+                    } catch (ReflectiveOperationException ex) {
+                        throw new InterpreterException(ex);
+                    }
+                    if (c.isInstance(t)) {
+                        cb = block;
+                        break l;
+                    }
+                }
+            }
+
+            if (cb == null) {
+                return Optional.empty();
+            }
+
+            var cbs = new ArrayDeque<>(catchBlocks);
+            while (blockListToRemove > 0) {
+                cbs.removeFirst();
+                blockListToRemove--;
+            }
+
+            return Optional.of(new SuccessorEffect(cb, List.of(t), new JavaEnv(bindings, l, cbs)));
+        }
+
+        private JavaEnv removeAllCatchBlocks() {
+            return new JavaEnv(bindings, l);
         }
     }
 
-    static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
-        try {
-            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
+        validateTypes(op, argsAndCaptures, l);
+
+        Env e = new JavaEnv(new HashMap<>(), l);
+        e = e.bind(op.capturedValues(), argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()));
+        List<Object> args = argsAndCaptures.subList(0, op.parameters().size());
+        var effect = executeBody(op.body(), args, e);
+        switch (effect.terminatingOp()) {
+            case CoreOp.ReturnOp rop -> {
+                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
+            }
+            case JavaOp.ThrowOp _ -> {
+                eraseAndThrow((Throwable) effect.operands().getFirst());
+                throw new InternalError(); // @@@ shouldn't reach here
+            }
+            default -> throw new InternalError(effect.toString());
         }
-    }
-
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
-        try {
-            return d.resolveToHandle(l, kind);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) throws ReflectiveOperationException {
-        if (!(d instanceof JavaType jt)) {
-            throw new InternalError(); // @@@ can be Interpreter exception
-        }
-        return (Class<?>) jt.erasure().resolve(l);
-    }
-
-    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {
-        return d.resolveToHandle(l);
-    }
-
-    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
-        return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
-    }
-
-    @SuppressWarnings("serial")
-    static class OpInterpretationException extends Throwable { // indicate the interpretation of an op throws
-        OpInterpretationException(Throwable cause) {
-            super(cause);
-        }
-    }
-
-    static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
-        MethodType mt = resolveToMethodType(l, ft).erase();
-        try {
-            return MethodHandles.lookup().findStatic(ArithmeticAndConvOpImpls.class, opName, mt);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static final class VarBox
-            implements CoreOp.Var<Object> {
-        Object value;
-
-        public Object value() {
-            return value;
-        }
-
-        VarBox(Object value) {
-            this.value = value;
-        }
-
-        static final Object UNINITIALIZED = new Object();
     }
 
     @Override
@@ -254,7 +320,7 @@ public class JavaLowInterpreter extends Interpreter {
                         .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
                 Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
 
-                MethodHandle fProxy = execLambdaOpMH.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
+                MethodHandle fProxy = interpretLambdaOpMH.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
                         .asCollector(Object[].class, o.parameters().size());
                 Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
 
@@ -425,14 +491,6 @@ public class JavaLowInterpreter extends Interpreter {
         return new OpResultEffect(result, e);
     }
 
-
-    private static final CoreOp.FuncOp fop = CoreOp.func("f",
-            CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
-       b.add(JavaOp.throw_(b.parameters().get(0)));
-    });
-    // to treat implicit and explicit exceptions the same
-    private static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
-
     @Override
     public <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e) {
         return switch (op) {
@@ -475,19 +533,6 @@ public class JavaLowInterpreter extends Interpreter {
         };
     }
 
-    private Object interpretLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) throws Throwable {
-        Env e = new JavaEnv(new HashMap<>(), l);
-        e = e.bind(op.capturedValues(), Arrays.asList(captures));
-        var effect = executeBody(op.body(), Arrays.asList(args), e);
-        switch (effect.terminatingOp()) {
-            case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
-            }
-            case JavaOp.ThrowOp _ -> throw (Throwable) effect.operands().getFirst();
-            default -> throw new InternalError(effect.toString());
-        }
-    }
-
     private static  <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
         List<Block.Parameter> parameters = op.parameters();
         List<Value> capturedValues = op.capturedValues();
@@ -522,23 +567,40 @@ public class JavaLowInterpreter extends Interpreter {
         }
     }
 
-    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
-        validateTypes(op, argsAndCaptures, l);
+    private static final CoreOp.FuncOp fop = CoreOp.func("f",
+            CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
+        b.add(JavaOp.throw_(b.parameters().get(0)));
+    });
+    // to treat implicit and explicit exceptions the same
+    private static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
 
-        Env e = new JavaEnv(new HashMap<>(), l);
-        e = e.bind(op.capturedValues(), argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()));
-        List<Object> args = argsAndCaptures.subList(0, op.parameters().size());
-        var effect = executeBody(op.body(), args, e);
-        switch (effect.terminatingOp()) {
-            case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
-            }
-            case JavaOp.ThrowOp _ -> {
-                eraseAndThrow((Throwable) effect.operands().getFirst());
-                throw new InternalError(); // @@@ shouldn't reach here
-            }
-            default -> throw new InternalError(effect.toString());
+    private static final MethodHandle interpretLambdaOpMH;
+    static {
+        try {
+            interpretLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "interpretLambdaOp",
+                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
+        } catch (Throwable t) {
+            throw new InternalError();
         }
+    }
+
+    private Object interpretLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+        return interpret(op, Arrays.asList(args, captures), l);
+    }
+
+    private static final class VarBox
+            implements CoreOp.Var<Object> {
+        Object value;
+
+        public Object value() {
+            return value;
+        }
+
+        VarBox(Object value) {
+            this.value = value;
+        }
+
+        static final Object UNINITIALIZED = new Object();
     }
 
     @SuppressWarnings("unchecked")
@@ -546,122 +608,43 @@ public class JavaLowInterpreter extends Interpreter {
         throw (E) e;
     }
 
-    static final class JavaEnv implements Env {
-        final Map<Value, Object> bindings;
-        final MethodHandles.Lookup l;
-        final Deque<List<Block>> catchBlocks;
-
-        public JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l) {
-            this.bindings = bindings;
-            this.l = l;
-            this.catchBlocks = new ArrayDeque<>();
+    static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+        try {
+            return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
         }
-        private JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
-            this.bindings = bindings;
-            this.l = l;
-            this.catchBlocks = catchBlocks;
+    }
+
+    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
+        try {
+            return d.resolveToHandle(l, kind);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
         }
+    }
 
-        Map<Value, Object> newBindings() {
-            return new HashMap<>(bindings);
+    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) throws ReflectiveOperationException {
+        if (!(d instanceof JavaType jt)) {
+            throw new InternalError(); // @@@ can be Interpreter exception
         }
+        return (Class<?>) jt.erasure().resolve(l);
+    }
 
-        @Override
-        public Env bind(List<? extends Value> symbolicValues, List<Object> runtimeValues) {
-            Map<Value, Object> m = newBindings();
-            int l = symbolicValues.size();
-            for (int i = 0; i < l; i++) {
-                m.put(symbolicValues.get(i), runtimeValues.get(i));
-            }
-            return new JavaEnv(m, this.l, this.catchBlocks);
-        }
+    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {
+        return d.resolveToHandle(l);
+    }
 
-        @Override
-        public Env bind(Value symbolicValue, Object runtimeValue) {
-            Map<Value, Object> m = newBindings();
-            m.put(symbolicValue, runtimeValue);
-            return new JavaEnv(m, l, this.catchBlocks);
-        }
+    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
+        return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
+    }
 
-        @Override
-        public List<Object> valuesOf(List<? extends Value> symbolicValues) {
-            List<Object> runtimeValues = new ArrayList<>();
-            for (Value symbolicValue : symbolicValues) {
-                runtimeValues.add(valueOf(symbolicValue));
-            }
-
-            return runtimeValues;
-        }
-
-        @Override
-        public Object valueOf(Value symbolicValue) {
-            if (!bindings.containsKey(symbolicValue)) {
-                throw new IllegalArgumentException("Unknown binding for " + symbolicValue);
-            }
-            return bindings.get(symbolicValue);
-        }
-
-        public JavaEnv registerCatchBlocks(List<Block> catchBlocks) {
-            var stack = new ArrayDeque<>(this.catchBlocks);
-            stack.addFirst(catchBlocks);
-            return new JavaEnv(bindings, l, stack);
-        }
-
-        public JavaEnv removeCatchBlocks(List<Block> catchBlocks) {
-            var stack = new ArrayDeque<>(this.catchBlocks);
-            List<Block> l = stack.removeFirst();
-            if (!l.equals(catchBlocks)) {
-                throw new InternalError();
-            }
-            return new JavaEnv(bindings, this.l, stack);
-        }
-
-        @Override
-        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
-            Optional<SuccessorEffect> opt = this.findCatchBlock((Throwable) eff.operands().getFirst());
-            if (opt.isPresent()) {
-                return opt.get();
-            } else {
-                JavaEnv newEnv = this.removeAllCatchBlocks();
-                return new TerminatingOpEffect(eff.terminatingOp(), eff.operands(), newEnv);
-            }
-        }
-
-        private Optional<SuccessorEffect> findCatchBlock(Throwable t) {
-            Block cb = null;
-            int blockListToRemove = 0;
-            l:
-            for (List<Block> blocks : catchBlocks) {
-                blockListToRemove++;
-                for (Block block : blocks) {
-                    Class<?> c;
-                    try {
-                        c = resolveToClass(l, block.parameters().getFirst().type());
-                    } catch (ReflectiveOperationException ex) {
-                        throw new InterpreterException(ex);
-                    }
-                    if (c.isInstance(t)) {
-                        cb = block;
-                        break l;
-                    }
-                }
-            }
-
-            if (cb == null) {
-                return Optional.empty();
-            }
-
-            var cbs = new ArrayDeque<>(catchBlocks);
-            while (blockListToRemove > 0) {
-                cbs.removeFirst();
-                blockListToRemove--;
-            }
-
-            return Optional.of(new SuccessorEffect(cb, List.of(t), new JavaEnv(bindings, l, cbs)));
-        }
-
-        private JavaEnv removeAllCatchBlocks() {
-            return new JavaEnv(bindings, l);
+    static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
+        MethodType mt = resolveToMethodType(l, ft).erase();
+        try {
+            return MethodHandles.lookup().findStatic(ArithmeticAndConvOpImpls.class, opName, mt);
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 }
