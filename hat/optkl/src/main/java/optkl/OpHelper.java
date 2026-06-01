@@ -961,4 +961,24 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     }
 */
 
+    // recursive
+    static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findVectorVarNameOrNull(varLoadOp.operands().getFirst());
+    }
+
+    // recursive
+    static String findVectorVarNameOrNull(Value v) {
+        switch (v) {
+            case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
+                return findVectorVarNameOrNull(varLoadOp);
+            }
+            case null, default -> {
+                if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+                    return varOp.varName();
+                }
+                return null;
+            }
+        }
+    }
+
 }

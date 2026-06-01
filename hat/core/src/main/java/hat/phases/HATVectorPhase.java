@@ -60,26 +60,6 @@ public final class HATVectorPhase implements HATPhase {
 
     private MethodHandles.Lookup lookup = null;
 
-    // recursive
-    public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVectorVarNameOrNull(varLoadOp.operands().getFirst());
-    }
-
-    // recursive
-    public static String findVectorVarNameOrNull(Value v) {
-        switch (v) {
-            case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
-                return findVectorVarNameOrNull(varLoadOp);
-            }
-            case null, default -> {
-                if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarOp varOp) {
-                    return varOp.varName();
-                }
-                return null;
-            }
-        }
-    }
-
     public boolean isSharedOrPrivate(Op op) {
         return isSharedOrPrivate(op.operands().getFirst());
     }
@@ -263,7 +243,7 @@ public final class HATVectorPhase implements HATPhase {
         return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             if (invoke(lookup, op) instanceof Invoke invoke) {
                 HATVectorOp memoryViewOp = buildVectorBinaryOp(
-                        findVectorVarNameOrNull(invoke.op().operands().getFirst()),
+                        OpHelper.findVectorVarNameOrNull(invoke.op().operands().getFirst()),
                         BinaryOpEnum.of(invoke.op()),
                         invoke.returnType(),
                         getVectorShape(invoke.lookup(), invoke.returnType()),
