@@ -30,21 +30,21 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.VarTable;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import static optkl.OpHelper.Invoke;
 
 public record HATFP16Phase() implements HATPhase {
+
+    public static final byte FIRST_OP = 0x01;
+    public static final byte LAST_OP = 0x10;
 
     private static boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
         return invoke.refIs(S16ImplOfF16.class) && invoke.nameMatchesRegex(methodName);
@@ -54,19 +54,6 @@ public record HATFP16Phase() implements HATPhase {
         Op.Result op = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, op.op(), VarTable.HATOpAttribute.NARROW);
     }
-
-//    private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpEnum binaryOpEnum, Class<?> reducedFloatType) {
-//        List<Value> operands = invokeOp.operands();
-//        CodeType codeType = invokeOp.resultType();
-//        List<Value> outputOperands = blockBuilder.context().getValues(operands);
-//        HATF16Op.HATF16BinaryOp binaryOp = switch (binaryOpEnum) {
-//            case ADD -> new HATF16Op.HATF16BinaryOp.HATF16AddOp(codeType, reducedFloatType, outputOperands);
-//            case SUB -> new HATF16Op.HATF16BinaryOp.HATF16SubOp(codeType, reducedFloatType, outputOperands);
-//            case MUL -> new HATF16Op.HATF16BinaryOp.HATF16MulOp(codeType, reducedFloatType, outputOperands);
-//            case DIV -> new HATF16Op.HATF16BinaryOp.HATF16DivOp(codeType, reducedFloatType, outputOperands);
-//        };
-//        blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, binaryOp)));
-//    }
 
     private CoreOp.FuncOp processBinaryOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, BinaryOpEnum binaryOpEnum, VarTable varTable) {
         Set<Op> reducedFloatsType = new HashSet<>();

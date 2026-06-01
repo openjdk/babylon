@@ -29,12 +29,11 @@ import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
-import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATBarrierOp;
-import hat.dialect.HATF16Op;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.dialect.HATVectorOp;
+import hat.phases.HATFP16Phase;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.Block;
@@ -461,11 +460,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected boolean isMixedFirstOperand(byte f32Mixed) {
-        return f32Mixed != 0 && f32Mixed != HATF16Op.HATF16BinaryOp.FIRST_OP;
+        return f32Mixed != 0 && f32Mixed != HATFP16Phase.FIRST_OP;
     }
 
     private boolean isMixedSecondOperand(byte f32Mixed) {
-        return f32Mixed != 0 && f32Mixed != HATF16Op.HATF16BinaryOp.LAST_OP;
+        return f32Mixed != 0 && f32Mixed != HATFP16Phase.LAST_OP;
     }
 
     public final T builtin_float2bfloat16() {
@@ -486,9 +485,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         boolean isSecondOperandReference = isArrayReference(invoke.op().operands().get(1));
         final byte f32Mixed;
         if (!isFirstOperandReference && isOperandF32(invoke.op().operands().get(0))) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
+            f32Mixed = HATFP16Phase.FIRST_OP;
         } else if (!isSecondOperandReference && isOperandF32(invoke.op().operands().get(1))) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
+            f32Mixed = HATFP16Phase.LAST_OP;
         } else {
             f32Mixed = 0x00;
         }
@@ -522,62 +521,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 if (isSecondOperandReference) {
                     rarrow().id(VALUE);
                 } else if (!OpHelper.isPrimitiveResult(invoke.op().operands().get(1))) {
-                    dot().id(VALUE);
-                }
-
-                if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
-                    cparen();
-                }
-            });
-            cparen();
-        });
-        return self();
-    }
-
-
-
-    private T binaryOperationsForBfloat16(HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
-
-        boolean isFirstOperandReference = isArrayReference(hatf16BinaryOp.operands().get(0));
-        boolean isSecondOperandReference = isArrayReference(hatf16BinaryOp.operands().get(1));
-        final byte f32Mixed;
-        if (!isFirstOperandReference && isOperandF32(hatf16BinaryOp.operands().get(0))) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
-        } else if (!isSecondOperandReference && isOperandF32(hatf16BinaryOp.operands().get(1))) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
-        } else {
-            f32Mixed = 0x00;
-        }
-
-        paren(_-> bf16Type());
-        brace(_-> {
-            paren(_-> {
-                builtin_float2bfloat16();
-                oparen();
-                if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
-                    builtin_bfloat16ToFloat().oparen();// open
-                }
-                recurse( OpHelper.asResultOrThrow(hatf16BinaryOp.operands().getFirst()).op());
-
-                if (isFirstOperandReference) {
-                    rarrow().id(VALUE);
-                } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().getFirst())) {
-                    dot().id(VALUE);
-                }
-
-                if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
-                    cparen(); //closed
-                }
-                sp().id(hatf16BinaryOp.binaryOperationType().symbol()).sp();
-
-                if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
-                    builtin_bfloat16ToFloat().oparen();
-                }
-
-                recurse(OpHelper.asResultOrThrow(hatf16BinaryOp.operands().get(1)).op());
-                if (isSecondOperandReference) {
-                    rarrow().id(VALUE);
-                } else if (!OpHelper.isPrimitiveResult(hatf16BinaryOp.operands().get(1))) {
                     dot().id(VALUE);
                 }
 
@@ -627,38 +570,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         blockComment("hatF16BinaryOp not a value !!");
                     }
                 })
-        );
-    }
-
-    @Override
-    public T hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
-        var float16Class = hatF16BinaryOp.float16Class();
-        if (BF16.class.isAssignableFrom(float16Class)) {
-            return binaryOperationsForBfloat16( hatF16BinaryOp);
-        }
-        paren(_-> f16Type());
-        return brace(_->
-            paren(_-> {
-                recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().getFirst()).op());
-                boolean isFirstOperandReference = isArrayReference( hatF16BinaryOp.operands().get(0));
-                boolean isSecondOperandReference = isArrayReference(hatF16BinaryOp.operands().get(1));
-                if (isFirstOperandReference) {
-                    rarrow().id(VALUE);
-                } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().getFirst())) {
-                    dot().id(VALUE);
-                } else {
-                    blockComment("hatF16BinaryOp not a result !!");
-                }
-                sp().id(hatF16BinaryOp.binaryOperationType().symbol()).sp();
-                recurse( OpHelper.asResultOrThrow(hatF16BinaryOp.operands().get(1)).op());
-                if (isSecondOperandReference) {
-                    rarrow().id(VALUE);
-                } else if (!OpHelper.isPrimitiveResult(hatF16BinaryOp.operands().get(1))) {
-                    dot().id(VALUE);
-                }else {
-                    blockComment("hatF16BinaryOp not a value !!");
-                }
-            })
         );
     }
 

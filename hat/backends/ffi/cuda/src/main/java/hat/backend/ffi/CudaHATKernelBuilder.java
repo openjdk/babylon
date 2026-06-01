@@ -26,8 +26,8 @@ package hat.backend.ffi;
 
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
+import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -363,16 +363,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         final byte f32Mixed;
         if (!isFirstOperandReference && isOperandF32(op1)) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
+            f32Mixed = HATFP16Phase.FIRST_OP;
         } else if (!isSecondOperandReference && isOperandF32(op2)) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
+            f32Mixed = HATFP16Phase.LAST_OP;
         } else {
             f32Mixed = 0x00;
         }
         paren(_ -> f16OrBF16(reducedFloatType));
         brace(_ ->
                 paren(_ -> {
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
+                    if (f32Mixed == HATFP16Phase.LAST_OP) {
                         generateFloat16ConversionToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op1);
@@ -381,11 +381,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
                         dot().id(VALUE);
                     }
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
+                    if (f32Mixed == HATFP16Phase.LAST_OP) {
                         cparen();
                     }
                     sp().id(matchSymbol(invoke.name())).sp();
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
+                    if (f32Mixed == HATFP16Phase.FIRST_OP) {
                         generateFloat16ConversionToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op2);
@@ -394,57 +394,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
                         dot().id(VALUE);
                     }
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
-                        cparen();
-                    }
-
-                })
-        );
-        return self();
-    }
-    @Override
-    public CudaHATKernelBuilder hatF16BinaryOp(HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
-
-        Value op1 = hatF16BinaryOp.operands().get(0);
-        Value op2 = hatF16BinaryOp.operands().get(1);
-        boolean isFirstOperandReference = isArrayReference(op1);
-        boolean isSecondOperandReference = isArrayReference(op2);
-
-        final byte f32Mixed;
-        if (!isFirstOperandReference && isOperandF32(op1)) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
-        } else if (!isSecondOperandReference && isOperandF32(op2)) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
-        } else {
-            f32Mixed = 0x00;
-        }
-        var float16Class = hatF16BinaryOp.float16Class();
-        paren(_ -> f16OrBF16(float16Class));
-        brace(_ ->
-                paren(_ -> {
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
-                        generateFloat16ConversionToFloat(float16Class).oparen();
-                    }
-                    recurseResultOrThrow(op1);
-                    if (isFirstOperandReference) {
-                        rarrow().id(VALUE);
-                    } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id(VALUE);
-                    }
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
-                        cparen();
-                    }
-                    sp().id(hatF16BinaryOp.binaryOperationType().symbol()).sp();
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
-                        generateFloat16ConversionToFloat(float16Class).oparen();
-                    }
-                    recurseResultOrThrow(op2);
-                    if (isSecondOperandReference) {
-                        rarrow().id(VALUE);
-                    } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id(VALUE);
-                    }
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
+                    if (f32Mixed == HATFP16Phase.FIRST_OP) {
                         cparen();
                     }
 
@@ -535,8 +485,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             if (narrowCategory == null && isMathLib(invoke)) {
                 narrowCategory = reduceFloatTypeFromReturnType(invoke);
             }
-        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
-            narrowCategory = hatf16BinaryOp.float16Class();
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
         }

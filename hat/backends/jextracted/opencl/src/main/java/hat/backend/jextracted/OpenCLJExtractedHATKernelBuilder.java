@@ -26,7 +26,6 @@ package hat.backend.jextracted;
 
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
@@ -225,8 +224,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
             if (narrowCategory == null && isMathLib(invoke)) {
                 narrowCategory = reduceFloatTypeFromReturnType(invoke);
             }
-        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
-            narrowCategory = hatf16BinaryOp.float16Class();
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
         }
