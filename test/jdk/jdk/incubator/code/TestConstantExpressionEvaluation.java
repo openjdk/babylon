@@ -286,6 +286,23 @@ public class TestConstantExpressionEvaluation {
         return S;
     }
 
+    static final String T = null;
+    @Reflect
+    static String fcFieldNull() {
+        return T;
+    }
+
+    @Reflect
+    static String fcNullVar() {
+        String s = null;
+        return s;
+    }
+
+    @Reflect
+    static String fcNullConcat() {
+        return (String) null + null;
+    }
+
     @ParameterizedTest
     @MethodSource("cases")
     void test(Method m) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
@@ -343,9 +360,9 @@ public class TestConstantExpressionEvaluation {
 
     static CoreOp.FuncOp conversionModel(CodeType source, CodeType target) {
         return CoreOp.func("conv", CoreType.functionType(target)).body(b -> {
-            var v = b.op(CoreOp.constant(source, valueOne(source)));
-            var r = b.op(JavaOp.conv(target, v));
-            b.op(CoreOp.return_(r));
+            var v = b.add(CoreOp.constant(source, valueOne(source)));
+            var r = b.add(JavaOp.conv(target, v));
+            b.add(CoreOp.return_(r));
         });
     }
 
@@ -394,10 +411,10 @@ public class TestConstantExpressionEvaluation {
     void testInvalidConversion() {
         CoreOp.FuncOp funcOp = CoreOp.func("ic", CoreType.FUNCTION_TYPE_VOID).body(b -> {
             // String -> int
-            b.op(JavaOp.conv(INT, b.op(CoreOp.constant(J_L_STRING, "A"))));
+            b.add(JavaOp.conv(INT, b.add(CoreOp.constant(J_L_STRING, "A"))));
             // int -> String
-            b.op(JavaOp.conv(J_L_STRING, b.op(CoreOp.constant(INT, 1))));
-            b.op(CoreOp.return_());
+            b.add(JavaOp.conv(J_L_STRING, b.add(CoreOp.constant(INT, 1))));
+            b.add(CoreOp.return_());
         });
 
         List<Op> convOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.ConvOp).toList();
@@ -411,12 +428,12 @@ public class TestConstantExpressionEvaluation {
     void testInvalidConstants() {
         CoreOp.FuncOp funcOp = CoreOp.func("ic", CoreType.FUNCTION_TYPE_VOID).body(b -> {
             // valid constant op result type but invalid values
-            b.op(CoreOp.constant(J_L_STRING, null));
-            b.op(CoreOp.constant(INT, new Object()));
+            b.add(CoreOp.constant(J_L_STRING, null));
+            b.add(CoreOp.constant(INT, new Object()));
             // invalid constant op result type but valid values
-            b.op(CoreOp.constant(J_L_OBJECT, 1));
-            b.op(CoreOp.constant(J_L_BOOLEAN, true));
-            b.op(CoreOp.return_());
+            b.add(CoreOp.constant(J_L_OBJECT, 1));
+            b.add(CoreOp.constant(J_L_BOOLEAN, true));
+            b.add(CoreOp.return_());
         });
 
         List<Op> constantOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.ConstantOp).toList();
@@ -433,8 +450,8 @@ public class TestConstantExpressionEvaluation {
             // we can have cast to String but the value we cast has a non-type String
             // this will not be allowed by the Java language
             // e.g. String s = (String) 1;
-            b.op(JavaOp.cast(J_L_STRING, b.op(CoreOp.constant(INT, 1))));
-            b.op(CoreOp.return_());
+            b.add(JavaOp.cast(J_L_STRING, b.add(CoreOp.constant(INT, 1))));
+            b.add(CoreOp.return_());
         });
         List<JavaOp.CastOp> castOps = iv.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
                 .map(op -> (JavaOp.CastOp) op).toList();
@@ -446,12 +463,12 @@ public class TestConstantExpressionEvaluation {
         // valid
         CoreOp.FuncOp v = CoreOp.func("vc", CoreType.FUNCTION_TYPE_VOID).body(b -> {
             // cast of str literal
-            b.op(JavaOp.cast(J_L_STRING, b.op(CoreOp.constant(J_L_STRING, "1"))));
+            b.add(JavaOp.cast(J_L_STRING, b.add(CoreOp.constant(J_L_STRING, "1"))));
             // cast of value of type String
-            b.op(JavaOp.cast(J_L_STRING,
-                    b.op(JavaOp.concat(
-                            b.op(CoreOp.constant(INT, 1)), b.op(CoreOp.constant(J_L_STRING, "2"))))));
-            b.op(CoreOp.return_());
+            b.add(JavaOp.cast(J_L_STRING,
+                    b.add(JavaOp.concat(
+                            b.add(CoreOp.constant(INT, 1)), b.add(CoreOp.constant(J_L_STRING, "2"))))));
+            b.add(CoreOp.return_());
         });
         List<JavaOp.CastOp> castOps2 = v.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
                 .map(op -> (JavaOp.CastOp) op).toList();

@@ -435,7 +435,7 @@ public final class OpWriter {
     public void writeOp(Op op) {
         if (op.parent() != null) {
             Op.Result opr = op.result();
-            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)) {
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID) || !opr.uses().isEmpty()) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }

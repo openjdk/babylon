@@ -230,15 +230,15 @@ final class PartialEvaluator {
                     if (op instanceof CoreOp.VarOp) {
                         // @@@ Do not turn into constant to avoid conflicts with the interpreter
                         // and its runtime representation of vars
-                        outBlock.op(op);
+                        outBlock.add(op);
                     } else {
                         // Result was evaluated, replace with constant operation
-                        Op.Result constantResult = outBlock.op(CoreOp.constant(op.resultType(), result));
+                        Op.Result constantResult = outBlock.add(CoreOp.constant(op.resultType(), result));
                         outBlock.context().mapValue(op.result(), constantResult);
                     }
                 } else {
                     // Copy unevaluated operation
-                    Op.Result r = outBlock.op(op);
+                    Op.Result r = outBlock.add(op);
                     // Explicitly remap result, since the op can be copied more than once in pealed loops
                     // @@@ See comment Block.op code which implicitly limits this
                     outBlock.context().mapValue(op.result(), r);
@@ -269,13 +269,13 @@ final class PartialEvaluator {
 
                         processBlock(bc, inBlock, nextInBlock, outBlock);
 
-                        outBlock.op(CoreOp.branch(outBlock.context().getReferenceOrCreate(nextInBlockRef)));
+                        outBlock.add(CoreOp.branch(outBlock.context().getReferenceOrCreate(nextInBlockRef)));
                     } else {
                         // @@@ might be non-constant latch to loop
                         processBlock(bc, inBlock, cb.falseBranch().targetBlock(), outBlock);
                         processBlock(bc, inBlock, cb.trueBranch().targetBlock(), outBlock);
 
-                        outBlock.op(to);
+                        outBlock.add(to);
                     }
                 }
                 case CoreOp.BranchOp b -> {
@@ -294,9 +294,9 @@ final class PartialEvaluator {
 
                     processBlock(bc, inBlock, nextInBlock, outBlock);
 
-                    outBlock.op(b);
+                    outBlock.add(b);
                 }
-                case CoreOp.ReturnOp _ -> outBlock.op(to);
+                case CoreOp.ReturnOp _ -> outBlock.add(to);
                 default -> throw evaluationException(
                         new UnsupportedOperationException("Unsupported terminating operation: " + to));
             }

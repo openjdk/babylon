@@ -14,8 +14,8 @@ The toolkit offers:
 - An API for Combining multiple kernels into a compute-graph.
 - An API for Java object mapping to hardware accelerators using Panama FFM.
 - An extensible backend system for multiple accelerators:
-  - OpenCL
-  - CUDA
+  - OpenCL C
+  - CUDA C
   - Java
 
 ## Prerequisites
@@ -25,17 +25,17 @@ The toolkit offers:
 - A GPU SDK (one or more of the SDKs below) to be able to run on GPUs:
   - An OpenCL implementation (e.g., Intel, Apple Silicon, CUDA SDK)
     - OpenCL >= 1.2
-  - CUDA SDK >= 12.9
+  - CUDA SDK >= 13.0
 - `cmake` >= `3.22.1`
 - `gcc` >= 12.0, or `clang` >= 17.0
 
 ## Compatible systems
 
-We actively develop and run tests on the following systems:
+We actively develop and run benchmarks on the following systems:
 
 - Apple Silicon M1-M4
-- Linux Fedora >= 42
-- Oracle Linux 10
+- Linux Fedora >= 43
+- Oracle Linux >= 10.0
 - Ubuntu >= 22.04
 
 ## Quick Start
@@ -207,7 +207,12 @@ java --enable-preview \
 If you run with `HAT=INFO` you can see which accelerator was used:
 
 ```bash
-$ HAT=INFO java --enable-preview ... ExampleHAT.java
+$ HAT=INFO java --enable-preview \
+   --add-modules=jdk.incubator.code \
+   --enable-native-access=ALL-UNNAMED \
+   --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar \
+   -Djava.library.path=/Users/juanfumero/repos/babylon/hat/build \
+  ExampleHAT.java
 
 [INFO] Config Bits = 8000
 [INFO] Platform :"Apple"
@@ -236,12 +241,12 @@ Contributions are welcome. Please see the [OpenJDK Developers' Guide](https://op
 2. Create a feature branch: `git checkout -b <branch>`
 3. Commit with clear messages
 4. Run formatting and tests:
-   1. For OpenCL: `java @.est-suite ffi-opencl`
+   1. For OpenCL: `java @.test-suite ffi-opencl`
    1. For CUDA: `java @.test-suite ffi-cuda`
 5. Submit a pull request
 
 
 ## Contacts/Questions
 
-You can interact, provide feedback and ask questions using the [babylon-dev](https://mail.openjdk.org/pipermail/babylon-dev/) mailing list.
+You can interact, provide feedback and ask questions using the [babylon-dev](https://mail.openjdk.org/archives/list/babylon-dev@openjdk.org/) mailing list.
 

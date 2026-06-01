@@ -430,7 +430,7 @@ public class JavaLowInterpreter extends Interpreter {
 
     private static final CoreOp.FuncOp fop = CoreOp.func("f",
             CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
-       b.op(JavaOp.throw_(b.parameters().get(0)));
+       b.add(JavaOp.throw_(b.parameters().get(0)));
     });
     // to treat implicit and explicit exceptions the same
     private static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
@@ -464,12 +464,13 @@ public class JavaLowInterpreter extends Interpreter {
             case JavaOp.ExceptionRegionEnter o -> {
                 JavaEnv je = (JavaEnv) e;
                 List<Block> catchBlocks = o.catchReferences().stream().map(Block.Reference::targetBlock).toList();
-                je = je.registerCatchBlocks(catchBlocks);
+                je = je.registerCatchBlocks(catchBlocks.reversed()); // store catch block from specific to general
                 yield new SuccessorEffect(o.startReference().targetBlock(), je.valuesOf(o.startReference().arguments()), je);
             }
             case JavaOp.ExceptionRegionExit o -> {
                 JavaEnv je = (JavaEnv) e;
-                je = je.removeCatchBlocks(o.catchReferences().stream().map(Block.Reference::targetBlock).toList());
+                List<Block> catchBlocks = o.enterOp().catchReferences().stream().map(Block.Reference::targetBlock).toList();
+                je = je.removeCatchBlocks(catchBlocks.reversed());
                 yield new SuccessorEffect(o.endReference().targetBlock(), je.valuesOf(o.endReference().arguments()), je);
             }
             default -> throw new UnsupportedOperationException(op.toString());
@@ -611,7 +612,7 @@ public class JavaLowInterpreter extends Interpreter {
 
         public JavaEnv registerCatchBlocks(List<Block> catchBlocks) {
             var stack = new ArrayDeque<>(this.catchBlocks);
-            stack.addFirst(catchBlocks.reversed()); // store catch block from specific to general
+            stack.addFirst(catchBlocks);
             return new JavaEnv(bindings, l, stack);
         }
 

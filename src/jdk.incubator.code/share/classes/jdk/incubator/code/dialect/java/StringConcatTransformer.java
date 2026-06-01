@@ -50,16 +50,16 @@ public final class StringConcatTransformer implements CodeTransformer {
         switch (op) {
             case JavaOp.ConcatOp cz when isRootConcat(cz) -> {
                 // Create a string builder and build by traversing tree of operands
-                Op.Result builder = block.op(JavaOp.new_(MethodRef.constructor(J_L_STRING_BUILDER)));
+                Op.Result builder = block.add(JavaOp.new_(MethodRef.constructor(J_L_STRING_BUILDER)));
                 buildFromTree(block, builder, cz);
                 // Convert to string
-                Value s = block.op(JavaOp.invoke(SB_TO_STRING_REF, builder));
+                Value s = block.add(JavaOp.invoke(SB_TO_STRING_REF, builder));
                 block.context().mapValue(cz.result(), s);
             }
             case JavaOp.ConcatOp _ -> {
                 // Process later when building from root concat
             }
-            default -> block.op(op);
+            default -> block.add(op);
         }
         return block;
     }
@@ -86,7 +86,7 @@ public final class StringConcatTransformer implements CodeTransformer {
         } else {
             // Leaf of tree, append value to builder
             // Note leaf can be the result of a ConcatOp with multiple uses
-            block.op(append(block, builder, block.context().getValue(v)));
+            block.add(append(block, builder, block.context().getValue(v)));
         }
     }
 
@@ -97,7 +97,7 @@ public final class StringConcatTransformer implements CodeTransformer {
         if (type instanceof PrimitiveType) {
             //Widen Short and Byte to Int.
             if (type.equals(JavaType.BYTE) || type.equals(JavaType.SHORT)) {
-                arg = block.op(JavaOp.conv(JavaType.INT, arg));
+                arg = block.add(JavaOp.conv(JavaType.INT, arg));
                 type = JavaType.INT;
             }
         } else if (!type.equals(JavaType.J_L_STRING)){

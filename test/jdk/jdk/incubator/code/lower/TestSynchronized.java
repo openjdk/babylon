@@ -44,7 +44,7 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
-                exception.region.enter ^block_2 ^block_4;
+                %6 : java.type:"void" = exception.region.enter ^block_2 ^block_4;
 
               ^block_2:
                 %7 : java.type:"int" = var.load %3;
@@ -52,18 +52,18 @@ public class TestSynchronized {
                 %9 : java.type:"int" = add %7 %8;
                 var.store %3 %9;
                 monitor.exit %5;
-                exception.region.exit ^block_3 ^block_4;
+                exception.region.exit %6 ^block_3;
 
               ^block_3:
                 %10 : java.type:"int" = var.load %3;
                 return %10;
 
               ^block_4(%11 : java.type:"java.lang.Throwable"):
-                exception.region.enter ^block_5 ^block_4;
+                %12 : java.type:"void" = exception.region.enter ^block_5 ^block_4;
 
               ^block_5:
                 monitor.exit %5;
-                exception.region.exit ^block_6 ^block_4;
+                exception.region.exit %12 ^block_6;
 
               ^block_6:
                 throw %11;
@@ -87,7 +87,7 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
-                exception.region.enter ^block_2 ^block_8;
+                %6 : java.type:"void" = exception.region.enter ^block_2 ^block_8;
 
               ^block_2:
                 %7 : java.type:"int" = var.load %3;
@@ -98,7 +98,7 @@ public class TestSynchronized {
               ^block_3:
                 %10 : java.type:"int" = constant @-1;
                 monitor.exit %5;
-                exception.region.exit ^block_4 ^block_8;
+                exception.region.exit %6 ^block_4;
 
               ^block_4:
                 return %10;
@@ -112,18 +112,18 @@ public class TestSynchronized {
                 %13 : java.type:"int" = add %11 %12;
                 var.store %3 %13;
                 monitor.exit %5;
-                exception.region.exit ^block_7 ^block_8;
+                exception.region.exit %6 ^block_7;
 
               ^block_7:
                 %14 : java.type:"int" = var.load %3;
                 return %14;
 
               ^block_8(%15 : java.type:"java.lang.Throwable"):
-                exception.region.enter ^block_9 ^block_8;
+                %16 : java.type:"void" = exception.region.enter ^block_9 ^block_8;
 
               ^block_9:
                 monitor.exit %5;
-                exception.region.exit ^block_10 ^block_8;
+                exception.region.exit %16 ^block_10;
 
               ^block_10:
                 throw %15;

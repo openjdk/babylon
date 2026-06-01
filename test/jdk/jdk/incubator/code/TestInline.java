@@ -58,7 +58,7 @@ public class TestInline {
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
-                    Op.Result fortyTwo = fblock.op(constant(INT, 42));
+                    Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
                     var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
                     Assertions.assertEquals(cb, fblock);
@@ -80,16 +80,16 @@ public class TestInline {
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
-                    Op.Result fortyTwo = fblock.op(constant(INT, 42));
+                    Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
-                    Op.Result v = fblock.op(var(fblock.op(constant(INT, 0))));
+                    Op.Result v = fblock.add(var(fblock.add(constant(INT, 0))));
 
                     var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), (b, value) -> {
-                        b.op(varStore(v, value));
+                        b.add(varStore(v, value));
                     });
                     Assertions.assertEquals(cb, fblock);
 
-                    fblock.op(return_(fblock.op(varLoad(v))));
+                    fblock.add(return_(fblock.add(varLoad(v))));
                 });
 
         System.out.println(f.toText());
@@ -117,7 +117,7 @@ public class TestInline {
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
-                    Op.Result fortyTwo = fblock.op(constant(INT, 42));
+                    Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
                     var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
                     Assertions.assertNotEquals(fblock, cb);
@@ -146,16 +146,16 @@ public class TestInline {
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
-                    Op.Result fortyTwo = fblock.op(constant(INT, 42));
+                    Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
-                    Op.Result v = fblock.op(var(fblock.op(constant(INT, 0))));
+                    Op.Result v = fblock.add(var(fblock.add(constant(INT, 0))));
 
                     var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), (b, value) -> {
-                        b.op(varStore(v, value));
+                        b.add(varStore(v, value));
                     });
                     Assertions.assertNotEquals(fblock, cb);
 
-                    cb.op(return_(cb.op(varLoad(v))));
+                    cb.add(return_(cb.add(varLoad(v))));
                 });
         System.out.println(f.toText());
 
@@ -178,7 +178,7 @@ public class TestInline {
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
-                    Op.Result fortyTwo = fblock.op(constant(INT, 42));
+                    Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
                     var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
                     Assertions.assertEquals(cb, fblock);

@@ -61,7 +61,7 @@ import java.util.function.Function;
  * and code contexts that are not thread-safe.
  *
  * @see Block.Builder#block(List)
- * @see Block.Builder#op(Op)
+ * @see Block.Builder#add(Op)
  * @see CodeContext
  */
 @FunctionalInterface
@@ -92,7 +92,7 @@ public interface CodeTransformer {
          * has no mapped output value, the corresponding output value is {@code null}.
          * <p>
          * The operation-building function encapsulates the current output block builder for this transformation step.
-         * Applying the function {@link Block.Builder#op(Op) appends} an operation using the current output block
+         * Applying the function {@link Block.Builder#add(Op) appends} an operation using the current output block
          * builder, which will perform <a href="Block.Builder.html#transform-on-append"><i>transform-on-append</i></a>
          * when appending the input operation, or any other placed operation.
          *
@@ -133,7 +133,7 @@ public interface CodeTransformer {
             // operation that is transformed and contains bodies
             // @@@ If performance is an issue consider changing
             Function<Op, Op.Result> opBuilder = outputOp -> {
-                Op.Result result = builder.op(outputOp);
+                Op.Result result = builder.add(outputOp);
                 builder.context().mapValue(inputOp.result(), result);
                 return result;
             };
@@ -150,7 +150,7 @@ public interface CodeTransformer {
      * A copying transformer that appends the operation using the block builder, and returns the block builder.
      */
     CodeTransformer COPYING_TRANSFORMER = (builder, op) -> {
-        builder.op(op);
+        builder.add(op);
         return builder;
     };
 
@@ -158,7 +158,7 @@ public interface CodeTransformer {
      * A transformer that drops location information from operations.
      */
     CodeTransformer DROP_LOCATION_TRANSFORMER = (builder, op) -> {
-        Op.Result r = builder.op(op);
+        Op.Result r = builder.add(op);
         r.op().setLocation(Op.Location.NO_LOCATION);
         return builder;
     };
@@ -171,7 +171,7 @@ public interface CodeTransformer {
         if (op instanceof Op.Lowerable lop) {
             return lop.lower(builder, null);
         } else {
-            builder.op(op);
+            builder.add(op);
             return builder;
         }
     };
@@ -257,7 +257,7 @@ public interface CodeTransformer {
      * block builder created for this transformation. Such a block builder can be used to:
      * <ul>
      * <li>
-     * emit an output operation, by using the block builder to {@link Block.Builder#op(Op) append} the operation; and
+     * emit an output operation, by using the block builder to {@link Block.Builder#add(Op) append} the operation; and
      * <li>
      * emit an output block, by using the builder to {@link Block.Builder#block(List) create} a block builder for that
      * output block and appending operations using the created block builder.
@@ -295,10 +295,10 @@ public interface CodeTransformer {
      * implemented as follows:
      * {@snippet lang = "java":
      * CodeTransformer copyingTransformer = (builder, inputOp) -> {
-     *     builder.op(inputOp);
+     *     builder.add(inputOp);
      *     return builder;
      * };
-     * }
+     *}
      * The call to {@code builder.op(inputOp)} performs transform-on-append. If the input operation has descendant code
      * elements, this code transformer is recursively invoked to transform those elements. The result is that all input
      * code elements are copied into the output model.
@@ -309,7 +309,7 @@ public interface CodeTransformer {
      * @param builder the current output block builder.
      * @param op      the input operation to transform.
      * @return the continuation builder to use to transform subsequent input operations from the same input block
-     * @see Block.Builder#op(Op)
+     * @see Block.Builder#add(Op)
      * @see CodeTransformer#COPYING_TRANSFORMER
      */
     Block.Builder acceptOp(Block.Builder builder, Op op);

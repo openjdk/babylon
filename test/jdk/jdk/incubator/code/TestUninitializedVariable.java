@@ -91,7 +91,7 @@ public class TestUninitializedVariable {
             if (op instanceof CoreOp.VarAccessOp.VarStoreOp vop && !b.getAndSet(true)) {
                 // Drop first encountered var store
             } else {
-                block.op(op);
+                block.add(op);
             }
             return block;
         });

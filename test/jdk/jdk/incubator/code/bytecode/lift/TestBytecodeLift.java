@@ -23,6 +23,7 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -32,9 +33,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
-import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
@@ -524,6 +526,45 @@ public class TestBytecodeLift {
         return piece * piece;
     }
 
+    @Reflect
+    static int branchToExceptionBoundary(boolean b) {
+        int result = 0;
+        try (Closeable _ = () -> {}) {
+            for (Object _ : List.of(new Object())) {
+                try (Closeable _ = () -> {}) {
+                    result++;
+                } catch (IOException _) {
+                    throw new RuntimeException();
+                }
+            }
+        } catch (IOException _) {
+            throw new RuntimeException();
+        }
+        return b ? result : -result;
+    }
+
+    @Reflect
+    static int nestedFinallyLoopTryCatchAndExpression(int x) {
+        try {
+            for (int i = 0; ; ) {
+                try {
+                    if ((x & (1 << i++)) != 0) {
+                        return x + i;
+                    }
+                    throw new RuntimeException();
+                } catch (RuntimeException e) {
+                    if (i > 4) {
+                        return -1;
+                    }
+                }
+            }
+        } finally {
+            if (x < 0) {
+                throw new RuntimeException();
+            }
+        }
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
@@ -548,14 +589,6 @@ public class TestBytecodeLift {
         CLASS_DATA = TestBytecodeLift.class.getResourceAsStream("TestBytecodeLift.class").readAllBytes();
         CLASS_MODEL = ClassFile.of().parse(CLASS_DATA);
     }
-
-    private static MethodTypeDesc toMethodTypeDesc(Method m) {
-        return MethodTypeDesc.of(
-                m.getReturnType().describeConstable().orElseThrow(),
-                Arrays.stream(m.getParameterTypes())
-                        .map(cls -> cls.describeConstable().orElseThrow()).toList());
-    }
-
 
     private static final Map<Class<?>, Object[]> TEST_ARGS = new IdentityHashMap<>();
     private static Object[] values(Object... values) {
@@ -604,33 +637,44 @@ public class TestBytecodeLift {
     @ParameterizedTest
     @MethodSource("testMethods")
     public void testLift(TestData d) throws Throwable {
-        CoreOp.FuncOp flift;
+        CoreOp.FuncOp flift = lift(CLASS_DATA, d);
+        CoreOp.FuncOp secondRound = lift(BytecodeGenerator.generateClassData(MethodHandles.lookup(), flift), d);
         try {
-            flift = BytecodeLift.lift(CLASS_DATA, d.testMethod.getName(), toMethodTypeDesc(d.testMethod));
-        } catch (Throwable e) {
-            ClassPrinter.toYaml(ClassFile.of().parse(TestBytecodeLift.class.getResourceAsStream("TestBytecodeLift.class").readAllBytes())
-                    .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
-                    ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.out::print);
-            System.out.println("Lift failed, compiled model:");
-            Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
-            throw e;
-        }
-        try {
-            Object receiver1, receiver2;
+            Object receiver1, receiver2, receiver3;
             if (d.testMethod.accessFlags().contains(AccessFlag.STATIC)) {
                 receiver1 = null;
                 receiver2 = null;
+                receiver3 = null;
             } else {
                 receiver1 = new TestBytecodeLift();
                 receiver2 = new TestBytecodeLift();
+                receiver3 = new TestBytecodeLift();
             }
-            permutateAllArgs(d.testMethod.getParameterTypes(), args ->
-                    assertEquals(d.testMethod.invoke(receiver2, args), invokeAndConvert(flift, receiver1, args)));
+            permutateAllArgs(d.testMethod.getParameterTypes(), args -> {
+                var expected = d.testMethod.invoke(receiver1, args);
+                assertEquals(expected, invokeAndConvert(flift, receiver2, args));
+                assertEquals(expected, invokeAndConvert(secondRound, receiver3, args));
+            });
         } catch (Throwable e) {
             System.out.println("Compiled model:");
             Op.ofMethod(d.testMethod).ifPresent(f -> System.out.println(f.toText()));
             System.out.println("Lifted model:");
             System.out.println(flift.toText());
+            System.out.println("Second round:");
+            System.out.println(secondRound.toText());
+            throw e;
+        }
+    }
+
+    static CoreOp.FuncOp lift(byte[] classData, TestData d) throws Exception {
+        try {
+            return BytecodeLift.lift(classData, d.testMethod.getName());
+        } catch (Throwable e) {
+            ClassPrinter.toYaml(ClassFile.of().parse(classData)
+                    .methods().stream().filter(m -> m.methodName().equalsString(d.testMethod().getName())).findAny().get(),
+                    ClassPrinter.Verbosity.CRITICAL_ATTRIBUTES, System.err::print);
+            System.err.println("Lift failed, compiled model:");
+            Op.ofMethod(d.testMethod).ifPresent(f -> System.err.println(f.toText()));
             throw e;
         }
     }

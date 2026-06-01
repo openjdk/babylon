@@ -32,6 +32,7 @@ import java.lang.invoke.MethodHandles;
 
 import static optkl.OpHelper.Invoke.invoke;
 import optkl.OpHelper.Invoke.Virtual;
+import optkl.VarTable;
 
 public class UnpackingFluentBinaryOps {
 
@@ -43,8 +44,10 @@ public class UnpackingFluentBinaryOps {
     }
 
 
-    public static void main(String[] args) throws NoSuchMethodException {
+    static void main() throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
+
+        VarTable varTable = new VarTable("center");
 
          Trxfmr.of(lookup, UnpackingFluentBinaryOps.class, "center", S32x2.class, S32x2.class)
                  .toText("// (Code Model) before transform", "//-------")
@@ -63,7 +66,7 @@ public class UnpackingFluentBinaryOps {
                             default -> throw new IllegalStateException("how");
                         });
                     }
-                })
+                }, varTable)
                  .toText("// (Code Model) after transform", "// -------")
                  .toJava("// (Java) after transform ", "// -------");
     }

@@ -73,7 +73,7 @@ import java.util.function.BiFunction;
  * <ol>
  * <li>
  * the operation is <i>placed</i> in a block, which becomes its parent block, by using a block builder to
- * {@link Block.Builder#op(Op) append} the operation to the block. The placed operation has a permanently
+ * {@link Block.Builder#add(Op) append} the operation to the block. The placed operation has a permanently
  * non-{@code null} {@link #result() result} that can be used as an operand of subsequently constructed operations. The
  * block being built is not <a href="Body.Builder.html#body-building-observability">observable</a> through this
  * operation and any attempt to access the block throws {@link IllegalStateException}.
@@ -286,7 +286,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
                 } else if (op instanceof Op.Lowerable lop) {
                     return lop.lower(block, inherited);
                 } else {
-                    block.op(op);
+                    block.add(op);
                     return block;
                 }
             };

@@ -81,7 +81,7 @@ public interface IfaceValue {
           static Shape getVectorShape(MethodHandles.Lookup lookup, CodeType codeType) {
              try {
                  return (Shape)((Class<?>)OpHelper.classTypeToTypeOrThrow(lookup,(ClassType) codeType)).getField("shape").get(null);
-             }catch (NoSuchFieldException|IllegalAccessException e) {
+             } catch (NoSuchFieldException|IllegalAccessException e) {
                  throw new RuntimeException(e);
              }
          }

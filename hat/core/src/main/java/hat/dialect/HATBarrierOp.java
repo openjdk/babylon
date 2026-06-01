@@ -28,7 +28,6 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -38,9 +37,6 @@ import java.util.Map;
 public final class HATBarrierOp extends HATOp {
     public static final String NAME = "barrier";
 
-    public HATBarrierOp(List<Value> operands) {
-        super(operands);
-    }
     public HATBarrierOp() {
         super(List.of());
     }

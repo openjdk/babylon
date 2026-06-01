@@ -91,7 +91,7 @@ public final class ForwardDifferentiation {
                         // so that it can be used when differentiating subsequent operations
                         diffValueMapping.put(op.result(), dor);
                     } else {
-                        block.op(op);
+                        block.add(op);
                     }
                     return block;
                 });
@@ -101,9 +101,9 @@ public final class ForwardDifferentiation {
 
     void processBlocks(Block.Builder block) {
         // Declare constants at start
-        zero = block.op(constant(ind.type(), 0.0d));
+        zero = block.add(constant(ind.type(), 0.0d));
         // The differential of ind is 1
-        Value one = block.op(constant(ind.type(), 1.0d));
+        Value one = block.add(constant(ind.type(), 1.0d));
         diffValueMapping.put(ind, one);
 
         // Append differential block parameters to blocks
@@ -132,27 +132,27 @@ public final class ForwardDifferentiation {
         return switch (op) {
             case JavaOp.NegOp _ -> {
                 // Copy input operation
-                block.op(op);
+                block.add(op);
 
                 // -diff(expr)
                 Value a = op.operands().get(0);
                 Value da = diffValueMapping.getOrDefault(a, zero);
-                yield block.op(JavaOp.neg(da));
+                yield block.add(JavaOp.neg(da));
             }
             case JavaOp.AddOp _ -> {
                 // Copy input operation
-                block.op(op);
+                block.add(op);
 
                 // diff(l) + diff(r)
                 Value lhs = op.operands().get(0);
                 Value rhs = op.operands().get(1);
                 Value dlhs = diffValueMapping.getOrDefault(lhs, zero);
                 Value drhs = diffValueMapping.getOrDefault(rhs, zero);
-                yield block.op(JavaOp.add(dlhs, drhs));
+                yield block.add(JavaOp.add(dlhs, drhs));
             }
             case JavaOp.MulOp _ -> {
                 // Copy input operation
-                block.op(op);
+                block.add(op);
 
                 // Product rule
                 // diff(l) * r + l * diff(r)
@@ -162,13 +162,13 @@ public final class ForwardDifferentiation {
                 Value drhs = diffValueMapping.getOrDefault(rhs, zero);
                 Value outputLhs = block.context().getValue(lhs);
                 Value outputRhs = block.context().getValue(rhs);
-                yield block.op(JavaOp.add(
-                        block.op(JavaOp.mul(dlhs, outputRhs)),
-                        block.op(JavaOp.mul(outputLhs, drhs))));
+                yield block.add(JavaOp.add(
+                        block.add(JavaOp.mul(dlhs, outputRhs)),
+                        block.add(JavaOp.mul(outputLhs, drhs))));
             }
             case CoreOp.ConstantOp _ -> {
                 // Copy input operation
-                block.op(op);
+                block.add(op);
                 // Differential of constant is zero
                 yield zero;
             }
@@ -181,15 +181,15 @@ public final class ForwardDifferentiation {
                 // Differentiate sin(x)
                 if ("sin".equals(operationName)) {
                     // Copy input operation
-                    block.op(op);
+                    block.add(op);
 
                     // Chain rule
                     // cos(expr) * diff(expr)
                     Value a = op.operands().get(0);
                     Value da = diffValueMapping.getOrDefault(a, zero);
                     Value outputA = block.context().getValue(a);
-                    Op.Result cosx = block.op(JavaOp.invoke(J_L_MATH_COS, outputA));
-                    yield block.op(JavaOp.mul(cosx, da));
+                    Op.Result cosx = block.add(JavaOp.invoke(J_L_MATH_COS, outputA));
+                    yield block.add(JavaOp.mul(cosx, da));
                 } else {
                     throw new UnsupportedOperationException("Operation not supported: " + op);
                 }
@@ -198,12 +198,12 @@ public final class ForwardDifferentiation {
                 // Replace with return of differentiated value
                 Value a = op.operands().get(0);
                 Value da = diffValueMapping.getOrDefault(a, zero);
-                yield block.op(return_(da));
+                yield block.add(return_(da));
             }
             case Op.BlockTerminating _ -> {
                 // Update with differentiated block arguments
                 op.successors().forEach(s -> adaptSuccessor(block.context(), s));
-                yield block.op(op);
+                yield block.add(op);
             }
             default -> throw new UnsupportedOperationException("Operation not supported: " + op);
         };

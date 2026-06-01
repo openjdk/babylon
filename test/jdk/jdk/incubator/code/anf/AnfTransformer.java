@@ -100,7 +100,7 @@ public class AnfTransformer {
         var letBody = Body.Builder.of(newBodyBuilder, CoreType.functionType(blockReturnType, List.of()), CodeContext.create(newBodyBuilder.entryBlock().context()));
 
         AnfDialect.AnfLetOp let = transformOps(b, letBody);
-        newBodyBuilder.entryBlock().op(let);
+        newBodyBuilder.entryBlock().add(let);
         return AnfDialect.func(b.toString(), newBodyBuilder);
     }
 
@@ -132,7 +132,7 @@ public class AnfTransformer {
         List<Block> dominates = idomMap.idominates(b);
         for (Block dblock : dominates) {
             var res = transformDomBlock(dblock, letrecBody);
-            var fval = letrecBody.entryBlock().op(res);
+            var fval = letrecBody.entryBlock().add(res);
             funMap2.put(dblock, fval);
         }
 
@@ -140,10 +140,10 @@ public class AnfTransformer {
         transformBlockOps(b, letBody.entryBlock());
         var let = AnfDialect.let(letBody);
 
-        letrecBody.entryBlock().op(let);
+        letrecBody.entryBlock().add(let);
 
         var letrec = AnfDialect.letrec(letrecBody);
-        funcBodyBuilder.entryBlock().op(letrec);
+        funcBodyBuilder.entryBlock().add(letrec);
         return AnfDialect.func(b.toString(), funcBodyBuilder);
 
     }
@@ -216,7 +216,7 @@ public class AnfTransformer {
                             .if_((bodyBuilder) -> bindFunApp(bodyBuilder, trueArgs, c.trueBranch().targetBlock()))
                             .else_((bodyBuilder) -> bindFunApp(bodyBuilder, falseArgs, c.falseBranch().targetBlock()));
 
-                    b.op(ifExp);
+                    b.add(ifExp);
 
                     return b;
                 }
@@ -232,12 +232,12 @@ public class AnfTransformer {
                 }
                 case CoreOp.ReturnOp ro -> {
                     var rval = b.context().getValue(ro.returnValue());
-                    b.op(CoreOp.core_yield(rval));
+                    b.add(CoreOp.core_yield(rval));
                     return b;
                 }
                 case CoreOp.YieldOp y ->  {
                     var rval = b.context().getValue(y.yieldValue());
-                    b.op(CoreOp.core_yield(rval));
+                    b.add(CoreOp.core_yield(rval));
                     return b;
                 }
                 default -> {
@@ -245,7 +245,7 @@ public class AnfTransformer {
                 }
             }
         } else {
-            b.op(op);
+            b.add(op);
             return b;
         }
     }
@@ -259,7 +259,7 @@ public class AnfTransformer {
         synthArgs.addAll(args);
         synthArgs.addFirst(funMap.get(target));
         try {
-            b.op(AnfDialect.apply(synthArgs));
+            b.add(AnfDialect.apply(synthArgs));
             return;
         } catch (RuntimeException e) {}
 
@@ -267,7 +267,7 @@ public class AnfTransformer {
         synthArgs.addFirst(funMap2.get(target));
 
         try {
-            b.op(AnfDialect.apply(synthArgs));
+            b.add(AnfDialect.apply(synthArgs));
         } catch (RuntimeException e) {
             throw new IllegalStateException("No valid mapping to FuncOp for apply");
         }
@@ -301,7 +301,7 @@ public class AnfTransformer {
 
             //Reverse the idom relation
             b.immediateDominators().forEach((dominated, dominator) -> {
-                if (!dominated.equals(dominator)) {
+                if (dominator != null) {
                     dominatesMap.compute(dominator, (k, v) -> {
                         if (v == null) {
                             var newList = new ArrayList<Block>();

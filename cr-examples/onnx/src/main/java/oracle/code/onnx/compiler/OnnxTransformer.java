@@ -79,7 +79,7 @@ public final class OnnxTransformer {
                 if (inputCapture instanceof Op.Result r &&
                         r.op() instanceof CoreOp.VarOp vop &&
                         vop.initOperand() instanceof Block.Parameter) {
-                    output = b.op(CoreOp.var(b.parameters().get(i)));
+                    output = b.add(CoreOp.var(b.parameters().get(i)));
                 } else {
                     output = b.parameters().get(i);
                 }
@@ -136,13 +136,13 @@ public final class OnnxTransformer {
         return f.transform(fname, (bb, op) -> {
             if (op instanceof JavaOp.InvokeOp io && funcs.get(io.invokeReference()) instanceof CoreOp.FuncOp fo) {
                 if (doNotInline.contains(fo)) {
-                    bb.context().mapValue(op.result(), bb.op(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
+                    bb.context().mapValue(op.result(), bb.add(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
                 } else {
                     LOG.log(System.Logger.Level.DEBUG, "Inlining " + fo.funcName() + " into " + fname);
                     Inliner.inline(bb, mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()), (_, v) -> bb.context().mapValue(io.result(), v));
                 }
             } else {
-                bb.op(op);
+                bb.add(op);
             }
             return bb;
         });
@@ -190,11 +190,11 @@ public final class OnnxTransformer {
                                 FunctionType newType = CoreType.functionType(fco.opSignature().returnType(),
                                         Stream.concat(fco.opSignature().parameterTypes().stream(), initTypes.stream()).toList());
                                 List<Value> newOperands = Stream.concat(bb.context().getValues(fco.operands()).stream(), initArgs.stream()).toList();
-                                Op.Result newCall = bb.op(CoreOp.funcCall(fco.funcName(), newType, newOperands));
+                                Op.Result newCall = bb.add(CoreOp.funcCall(fco.funcName(), newType, newOperands));
                                 bb.context().mapValue(op.result(), newCall);
                             }
                             default -> {
-                                bb.op(op);
+                                bb.add(op);
                             }
                         }
                         return bb;
@@ -249,7 +249,7 @@ public final class OnnxTransformer {
         while (f.elements().skip(1).anyMatch(ce -> ce instanceof Op op && unused.test(op))) {
             f = f.transform((block, op) -> {
                 if (!unused.test(op)) {
-                    block.op(op);
+                    block.add(op);
                 }
                 return block;
             });
@@ -339,9 +339,9 @@ public final class OnnxTransformer {
                                                             CoreType.functionType(fco.opSignature().returnType(),
                                                                                       newOperands.stream().map(Value::type).toList()),
                                                             newOperands);
-                cc.mapValue(op.result(), bb.op(newCall));
+                cc.mapValue(op.result(), bb.add(newCall));
             } else {
-                bb.op(op);
+                bb.add(op);
             }
             return bb;
         });
@@ -367,7 +367,7 @@ public final class OnnxTransformer {
             bob.transformBody(func.body(), List.of(), (b, op) -> {
                 // Drop any non-terminating operation whose result is not used
                 if (op instanceof Op.Terminating || !op.result().uses().isEmpty() || op instanceof CoreOp.FuncOp || op instanceof CoreOp.VarAccessOp.VarStoreOp) {
-                    b.op(op);
+                    b.add(op);
                 }
                 return b;
             });
@@ -465,28 +465,28 @@ public final class OnnxTransformer {
                     } catch (ReflectiveOperationException | RuntimeException e) {
                         throw new RuntimeException(e);
                     }
-                    Op.Result result = bb.op(onnxOp);
+                    Op.Result result = bb.add(onnxOp);
                     bb.context().mapValue(io.result(), result);
                 }
                 // Transform access to the result of an operator that is a record access
                 case JavaOp.InvokeOp io when
                         tc.recordComponentAccessToTupleIndex(io.invokeReference()) instanceof Integer index -> {
-                    Op.Result result = bb.op(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
+                    Op.Result result = bb.add(CoreOp.tupleLoad(bb.context().getValue(io.operands().getFirst()), index));
                     bb.context().mapValue(io.result(), result);
                 }
                 // Transform constant array load access
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alo -> {
                     var tuple = bb.context().getValue(alo.operands().getFirst());
                     int index = (Integer)((CoreOp.ConstantOp)((Op.Result)alo.operands().get(1)).op()).value();
-                    Op.Result result = bb.op(CoreOp.tupleLoad(tuple, index));
+                    Op.Result result = bb.add(CoreOp.tupleLoad(tuple, index));
                     bb.context().mapValue(alo.result(), result);
                 }
                 // Transform record construction
                 case JavaOp.NewOp no when tc.isRecord(no.resultType()) -> {
-                    Op.Result result = bb.op(CoreOp.tuple(no.operands().stream().map(v -> {
+                    Op.Result result = bb.add(CoreOp.tuple(no.operands().stream().map(v -> {
                         Value mv = bb.context().queryValue(v).orElse(null);
                         if (mv == null && bb.context().getProperty(skipVars(v)) instanceof List list) {
-                            mv = bb.op(CoreOp.tuple(bb.context().getValues((List<Value>) list)));
+                            mv = bb.add(CoreOp.tuple(bb.context().getValues((List<Value>) list)));
                         }
                         return mv;
                     }).toList()));
@@ -495,25 +495,25 @@ public final class OnnxTransformer {
                 // Transform access to the result of an operator that is a list access
                 // @@@ raw use of List::get with constant argument
                 case JavaOp.InvokeOp io when io.invokeReference().refType().equals(LIST_CLASS) && io.invokeReference().name().equals("get") -> {
-                    Op.Result result = bb.op(JavaOp.invoke(
+                    Op.Result result = bb.add(JavaOp.invoke(
                             io.invokeReference(),
                             bb.context().getValue(io.operands().getFirst()),
-                            bb.op(CoreOp.constant(JavaType.INT, pe.evaluatedAttributes.get(io).getLast()))));
+                            bb.add(CoreOp.constant(JavaType.INT, pe.evaluatedAttributes.get(io).getLast()))));
                     bb.context().mapValue(io.result(), result);
                 }
                 // Skip nested lambdas
                 case JavaOp.LambdaOp _ -> {
                 }
                 case CoreOp.FuncCallOp fco -> {
-                    Op.Result result = bb.op(CoreOp.funcCall(fco.funcName(), tc.convertType(fco.opSignature()), bb.context().getValues(fco.operands())));
+                    Op.Result result = bb.add(CoreOp.funcCall(fco.funcName(), tc.convertType(fco.opSignature()), bb.context().getValues(fco.operands())));
                     bb.context().mapValue(fco.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo when flo.operands().isEmpty() -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldReference()));
+                    Op.Result result = bb.add(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldReference()));
                     bb.context().mapValue(flo.result(), result);
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flo -> {
-                    Op.Result result = bb.op(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldReference(), bb.context().getValue(flo.operands().getFirst())));
+                    Op.Result result = bb.add(JavaOp.fieldLoad(tc.convertType(flo.result()), flo.fieldReference(), bb.context().getValue(flo.operands().getFirst())));
                     bb.context().mapValue(flo.result(), result);
                 }
                 case JavaOp.ArrayAccessOp.ArrayStoreOp aso when aso.operands().get(1) instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp cop -> {
@@ -523,11 +523,11 @@ public final class OnnxTransformer {
                     list.set(index, aso.operands().get(2));
                 }
                 case CoreOp.ReturnOp ro when bb.context().getProperty(skipVars(ro.operands().getFirst())) instanceof List list -> {
-                    bb.op(CoreOp.return_(bb.op(CoreOp.tuple(bb.context().getValues(list)))));
+                    bb.add(CoreOp.return_(bb.add(CoreOp.tuple(bb.context().getValues(list)))));
                 }
                 // Copy remaining operations, which may be removed later transformations
                 default -> {
-                    bb.op(op);
+                    bb.add(op);
                 }
             }
             return bb;

@@ -269,9 +269,9 @@ public final class SSA {
                         Block.Builder successorBlockBuilder = context.getBlock(successorBlock);
                         context.mapReference(successor, successorBlockBuilder.reference(values));
                     }
-                    block.op(op);
+                    block.add(op);
                 }
-                default -> block.op(op);
+                default -> block.add(op);
             }
             return block;
         }
@@ -451,9 +451,9 @@ public final class SSA {
                         }
                     }
 
-                    block.op(op);
+                    block.add(op);
                 } else {
-                    block.op(op);
+                    block.add(op);
                 }
 
                 return block;
@@ -679,19 +679,21 @@ public final class SSA {
 
         static Node buildDomTree(Block entryBlock, Map<Block, Block> idoms) {
             Map<Block, Node> tree = new HashMap<>();
+            Node root = new Node(entryBlock, new HashSet<>());
+            tree.put(entryBlock, root);
             for (Map.Entry<Block, Block> e : idoms.entrySet()) {
-                Block id = e.getValue();
                 Block b = e.getKey();
-
-                Node parent = tree.computeIfAbsent(id, _k -> new Node(_k, new HashSet<>()));
-                if (b == entryBlock) {
+                Block id = e.getValue();
+                if (id == null) {
+                    assert b == entryBlock;
                     continue;
                 }
 
+                Node parent = tree.computeIfAbsent(id, _k -> new Node(_k, new HashSet<>()));
                 Node child = tree.computeIfAbsent(b, _k -> new Node(_k, new HashSet<>()));
                 parent.children.add(child);
             }
-            return tree.get(entryBlock);
+            return root;
         }
     }
 }

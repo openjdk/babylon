@@ -29,15 +29,25 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATVectorOp;
 import hat.types.F16;
+import hat.types.S16ImplOfF16;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.IfaceValue;
+import optkl.OpHelper;
+import optkl.OpHelper.Invoke;
 import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Stream;
+
+import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -246,7 +256,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         reinterpret_cast().ltgt(_ -> type(hatVectorLoadOp.buildType()).sp().asterisk());
         paren(_ -> {
-            ampersand();recurseResultOrThrow(source);
+            ampersand();
+            recurseResultOrThrow(source);
             either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
             id("array").sbrace(_ -> recurseResultOrThrow(index));
         });
@@ -279,11 +290,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         paren(_ -> f16OrBF16(float16Class)).brace(_ -> {
             buildFloat16Class(float16Class);
             paren(_ ->
-                recurseResultOrThrow(hatF16ConvOp.operands().getFirst())
+                    recurseResultOrThrow(hatF16ConvOp.operands().getFirst())
             );
         });
         return self();
     }
+
+    private static final String VALUE = "value";
 
     @Override
     public CudaHATKernelBuilder hatF16ToFloatConvOp(HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
@@ -291,24 +304,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         paren(_ -> {
             recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
             if (!hatF16ToFloatConvOp.isLocal()) {
-                rarrow().id("value");
+                rarrow().id(VALUE);
             } else if (!hatF16ToFloatConvOp.wasFloat()) {
-                dot().id("value");
+                dot().id(VALUE);
             }
         });
         return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatVectorVarOp(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp);
-        Value operand = hatVectorVarOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-            semicolon().nl();
-        } else {
-            assign();
-        }
-        return recurseResultOrThrow(operand);
     }
 
     @Override
@@ -341,9 +342,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     }
                     recurseResultOrThrow(op1);
                     if (isFirstOperandReference) {
-                        rarrow().id("value");
+                        rarrow().id(VALUE);
                     } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id("value");
+                        dot().id(VALUE);
                     }
                     if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
                         cparen();
@@ -354,9 +355,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     }
                     recurseResultOrThrow(op2);
                     if (isSecondOperandReference) {
-                        rarrow().id("value");
+                        rarrow().id(VALUE);
                     } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id("value");
+                        dot().id(VALUE);
                     }
                     if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
                         cparen();
@@ -422,4 +423,99 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
     }
+
+    private Class<?> reduceFloatType(Optional<Invoke> invoke) {
+        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    private Class<?> reduceFloatTypeFromReturnType(Optional<Invoke> invoke) {
+        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpForNarrowType(CoreOp.VarOp varOp) {
+        Value first = varOp.operands().getFirst();
+        Class<?> narrowCategory;
+        if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            // Find the category - This is the generic case, when ALL custom ops are removed
+            Stream<Invoke> stream = Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+            Optional<Invoke> invoke = stream.findFirst();
+            narrowCategory = reduceFloatType(invoke);
+            if (narrowCategory == null && isMathLib(invoke)) {
+                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+            }
+        } else if (first.declaringElement() instanceof HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
+            narrowCategory = hatf16BinaryOp.float16Class();
+        } else if (first.declaringElement() instanceof HATF16Op.HATF16ConvOp hatf16ConvOp) {
+            narrowCategory = hatf16ConvOp.float16Class();
+        } else {
+            throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
+        }
+        if (narrowCategory == null) {
+            throw new IllegalStateException("Narrow type can't be null: ");
+        }
+        // handle narrow types (F16 and BFloat)
+        return f16OrBF16(narrowCategory).sp().assign(
+                _ -> id(varOp.varName()),
+                _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpForVectors(CoreOp.VarOp varOp) {
+        VarType resultType = varOp.resultType();
+        if (!(resultType.valueType() instanceof PrimitiveType)) {
+            IfaceValue.Vector.Shape vectorShape = null;
+            if (resultType.valueType() instanceof ClassType classType) {
+                vectorShape = getVectorShape(kernelCallGraph.lookup(), classType);
+            } else if (resultType.valueType() instanceof VarType varType) {
+                vectorShape = getVectorShape(kernelCallGraph.lookup(), varType.valueType());
+            }
+            if (vectorShape == null) {
+                // guarantee we don't have a null shape. Otherwise. we can't generate the correct code
+                throw new IllegalStateException("Could not find vector shape");
+            }
+
+            type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().varName(varOp);
+            Value operand = varOp.operands().getFirst();
+            if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
+                semicolon().nl();
+            } else {
+                assign();
+            }
+            return recurseResultOrThrow(operand);
+        }
+        return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpInit(CoreOp.VarOp varOp) {
+        return suffix_t((ClassType) varOp.varValueType()).sp()
+                .assign(
+                        _ -> id(varOp.varName()),
+                        _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
+        HAT_LOCAL_MEM().sp();
+        return varOpPrivateMemory(varOp);
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpPrivateMemory(CoreOp.VarOp varOp) {
+        VarType resultType = varOp.resultType();
+        if (resultType.valueType() instanceof VarType varType) {
+            suffix_t((ClassType) varType.valueType());
+        } else if (resultType.valueType() instanceof ClassType classType) {
+            suffix_t(classType);
+        }
+        return sp().varName(varOp);
+    }
+
 }

@@ -400,21 +400,21 @@ public class TestPrimitiveTypePatterns {
 
             var paramVal = fblock.parameters().get(0);
 
-            var patternVar = fblock.op(var(fblock.op(constant(targetType, defaultValue(targetType)))));
+            var patternVar = fblock.add(var(fblock.add(constant(targetType, defaultValue(targetType)))));
 
             var pattern = Body.Builder.of(fblock.parentBody(), functionType(JavaOp.Pattern.bindingType(targetType)));
-            pattern.entryBlock().op(core_yield(
-                    pattern.entryBlock().op(typePattern(targetType, null))
+            pattern.entryBlock().add(core_yield(
+                    pattern.entryBlock().add(typePattern(targetType, null))
             ));
 
             var match = Body.Builder.of(fblock.parentBody(), functionType(JavaType.VOID, targetType));
             var binding = match.entryBlock().parameters().get(0);
-            match.entryBlock().op(varStore(patternVar, binding));
-            match.entryBlock().op(core_yield());
+            match.entryBlock().add(varStore(patternVar, binding));
+            match.entryBlock().add(core_yield());
 
-            var result = fblock.op(match(paramVal, pattern, match));
+            var result = fblock.add(match(paramVal, pattern, match));
 
-            fblock.op(return_(result));
+            fblock.add(return_(result));
         });
     }
 

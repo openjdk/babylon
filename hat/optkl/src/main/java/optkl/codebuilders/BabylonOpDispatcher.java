@@ -34,6 +34,7 @@ import optkl.exceptions.CodeGenException;
 
 /* this should not be too C99 specific also cannot reference HAT Ops. */
 public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>, SCBC extends ScopedCodeBuilderContext> {
+
     T type( JavaType javaType);
 
     T varLoadOp( CoreOp.VarAccessOp.VarLoadOp varLoadOp);
@@ -140,9 +141,7 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
             case JavaOp.EnhancedForOp $ -> enhancedForOp($);
             case JavaOp.BlockOp   $ -> blockOp($);
             case JavaOp.ConcatOp $ -> concatOp($);
-            case CoreOp.UnreachableOp $ -> {;}
-                //throw new IllegalStateException("Found CoreOp.Unreachable"+op);
-           // }
+            case CoreOp.UnreachableOp _ -> { }
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

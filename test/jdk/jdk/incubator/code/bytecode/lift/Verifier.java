@@ -190,19 +190,10 @@ public final class Verifier {
         return Object.class;
     }
 
-    static final Class<?> CLASS_ARITHMETIC_AND_CONV_OP_IMPLS;
-    static {
-        try {
-            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS = Class.forName("ArithmeticAndConvOpImpls");
-        } catch (ReflectiveOperationException roe) {
-            throw new InternalError(roe);
-        }
-    }
-
     private void verifyOpHandleExists(Op op, String opName) {
         try {
             var mt = MethodRef.toNominalDescriptor(op.opSignature()).resolveConstantDesc(lookup).erase();
-            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS.getDeclaredMethod(opName, mt.parameterArray());
+            ArithmeticAndConvOpImpls.class.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
             error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opSignature());
         } catch (ReflectiveOperationException roe) {
@@ -234,7 +225,7 @@ public final class Verifier {
                     verifyCatchStack(b, ere, ere.startReference(), newCatchBlocks, map);
                 }
                 case JavaOp.ExceptionRegionExit ere -> {
-                    List<Block> exitedCatchBlocks = ere.catchReferences().stream().map(Block.Reference::targetBlock).toList();
+                    List<Block> exitedCatchBlocks = ere.enterOp().catchReferences().reversed().stream().map(Block.Reference::targetBlock).toList();
                     if (exitedCatchBlocks.size() > catchBlocks.size() || !catchBlocks.reversed().subList(0, exitedCatchBlocks.size()).equals(exitedCatchBlocks)) {
                         error("%s %s exited catch blocks %s does not match actual stack %s", b, ere, exitedCatchBlocks, catchBlocks);
                     } else {

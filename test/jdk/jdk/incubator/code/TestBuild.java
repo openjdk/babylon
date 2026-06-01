@@ -25,6 +25,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
@@ -35,8 +36,7 @@ import java.util.function.IntBinaryOperator;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
-import static jdk.incubator.code.dialect.java.JavaType.INT;
-import static jdk.incubator.code.dialect.java.JavaType.type;
+import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /*
  * @test
@@ -85,7 +85,7 @@ public class TestBuild {
 
         var freturnOp = f.body().entryBlock().terminatingOp();
         // Unmapped built value that is operand of the built return op
-        Assertions.assertThrows(IllegalArgumentException.class, () -> block.op(freturnOp));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> block.add(freturnOp));
     }
 
     @Test
@@ -109,14 +109,14 @@ public class TestBuild {
 
         var a = block.parameters().get(0);
         var b = block.parameters().get(1);
-        var result = block.op(JavaOp.add(a, b));
+        var result = block.add(JavaOp.add(a, b));
         // Map the built value used as the operand to the built return op to
         // the above value
         block.context().mapValue(f.body().entryBlock().firstOp().result(), result);
 
         var freturnOp = f.body().entryBlock().terminatingOp();
         // No error since values (operands) are mapped
-        block.op(freturnOp);
+        block.add(freturnOp);
     }
 
     @Test
@@ -126,7 +126,7 @@ public class TestBuild {
 
         Block.Parameter a = block.parameters().get(0);
         Block.Parameter b = block.parameters().get(1);
-        Op.Result result = block.op(JavaOp.add(a, b));
+        Op.Result result = block.add(JavaOp.add(a, b));
 
         // Declaring block is being built
         Assertions.assertThrows(IllegalStateException.class, a::declaringBlock);
@@ -137,7 +137,7 @@ public class TestBuild {
         // Access to set of users while declaring block is being built
         Assertions.assertThrows(IllegalStateException.class, a::uses);
 
-        block.op(return_(result));
+        block.add(return_(result));
 
         func("f", body);
 
@@ -159,12 +159,12 @@ public class TestBuild {
         Block.Reference successor = anotherBlock.reference(a, b);
         // Target block is being built
         Assertions.assertThrows(IllegalStateException.class, successor::targetBlock);
-        block.op(branch(anotherBlock.reference(a, b)));
+        block.add(branch(anotherBlock.reference(a, b)));
 
         a = anotherBlock.parameters().get(0);
         b = anotherBlock.parameters().get(1);
-        var result = anotherBlock.op(JavaOp.add(a, b));
-        anotherBlock.op(return_(result));
+        var result = anotherBlock.add(JavaOp.add(a, b));
+        anotherBlock.add(return_(result));
 
         func("f", body);
 
@@ -183,7 +183,7 @@ public class TestBuild {
 
         // Operation uses values from another model
         var addOp = JavaOp.add(aa, ab);
-        Assertions.assertThrows(IllegalStateException.class, () -> bblock.op(addOp));
+        Assertions.assertThrows(IllegalStateException.class, () -> bblock.add(addOp));
     }
 
     @Test
@@ -196,7 +196,7 @@ public class TestBuild {
 
         // Operation uses header with target block from another model
         var brOp = branch(ablock.reference());
-        Assertions.assertThrows(IllegalStateException.class, () -> bblock.op(brOp));
+        Assertions.assertThrows(IllegalStateException.class, () -> bblock.add(brOp));
     }
 
     @Test
@@ -210,7 +210,7 @@ public class TestBuild {
     public void testBuiltBodyBuilder() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(return_());
+        block.add(return_());
         func("f", body);
 
         // Body is built
@@ -221,7 +221,7 @@ public class TestBuild {
     public void testBodyBuilderWithBuiltAncestor() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(return_());
+        block.add(return_());
         func("f", body);
 
         // ancestor body is built
@@ -232,12 +232,42 @@ public class TestBuild {
     public void testBodyBuilderWithUnbuiltChildren() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(return_());
+        block.add(return_());
 
         Body.Builder.of(body, FUNCTION_TYPE_VOID);
 
         // Great-grandchild body is not built
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
+    }
+
+    @Test
+    public void testBodyBuilderWithUnplacedOperation() {
+        var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block1 = body1.entryBlock();
+        block1.add(return_());
+
+        var body2 = Body.Builder.of(body1, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        block2.add(return_());
+        CoreOp.func("f", body2);
+
+        // Great-grandchild body is child of unplaced operation
+        Assertions.assertThrows(IllegalStateException.class, () -> func("f", body1));
+    }
+
+    @Test
+    public void testFailedBodyBuilder() {
+        var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block1 = body1.entryBlock();
+        block1.add(return_());
+
+        var body2 = Body.Builder.of(body1, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        // body2 finishes in failure
+        Assertions.assertThrows(IllegalStateException.class, () -> CoreOp.func("f", body2));
+
+        // Great-grandchild body finishes in failure
+        Assertions.assertThrows(IllegalStateException.class, () -> func("f", body1));
     }
 
     @Test
@@ -249,28 +279,56 @@ public class TestBuild {
 
         var body2 = Body.Builder.of(anotherBody, FUNCTION_TYPE_VOID);
         var block2 = body2.entryBlock();
-        block2.op(return_());
+        block2.add(return_());
         var lambdaOp = JavaOp.lambda(type(Runnable.class), body2);
 
         // lambdaOp's grandparent body is not parent body of block1
-        Assertions.assertThrows(IllegalStateException.class, () -> block1.op(lambdaOp));
+        Assertions.assertThrows(IllegalStateException.class, () -> block1.add(lambdaOp));
+    }
+
+    @Test
+    public void testIsolatedBody() {
+        var body1 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block1 = body1.entryBlock();
+
+        var body2 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        block2.add(return_());
+        var lambdaOp = JavaOp.lambda(type(Runnable.class), body2);
+
+        Assertions.assertDoesNotThrow(() -> block1.add(lambdaOp));
+        block1.add(return_());
+        Assertions.assertDoesNotThrow(() -> func("f", body1));
+    }
+
+    @Test
+    public void testValueUseInIsolatedBody() {
+        var body1 = Body.Builder.of(null, functionType(VOID, INT));
+        var block1 = body1.entryBlock();
+        var p = block1.parameters().get(0);
+        block1.add(return_());
+
+        var body2 = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var block2 = body2.entryBlock();
+        // Value p is not reachable from block2
+        Assertions.assertThrows(IllegalStateException.class, () -> block2.add(JavaOp.neg(p)));
     }
 
     @Test
     public void testAppendAfterTerminatingOperation() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(return_());
+        block.add(return_());
 
         // Append operation after terminating operation
-        Assertions.assertThrows(IllegalStateException.class, () -> block.op(return_()));
+        Assertions.assertThrows(IllegalStateException.class, () -> block.add(return_()));
     }
 
     @Test
     public void testNoTerminatingOperation() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(constant(INT, 0));
+        block.add(constant(INT, 0));
 
         // No terminating operation
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
@@ -280,7 +338,7 @@ public class TestBuild {
     public void testUnreferencedBlocksRemoved() {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
-        block.op(return_());
+        block.add(return_());
 
         // Create empty blocks
         block.block();
@@ -304,7 +362,7 @@ public class TestBuild {
         var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var block = body.entryBlock();
         // No terminating op
-        block.op(constant(INT, 0));
+        block.add(constant(INT, 0));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -316,7 +374,7 @@ public class TestBuild {
         // Create empty block
         var block = entryBlock.block();
         // Branch to empty block
-        entryBlock.op(branch(block.reference()));
+        entryBlock.add(branch(block.reference()));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }
@@ -328,9 +386,9 @@ public class TestBuild {
         // Create empty block
         var block = entryBlock.block();
         // Branch to empty block
-        entryBlock.op(branch(block.reference()));
+        entryBlock.add(branch(block.reference()));
         // No terminating op
-        block.op(constant(INT, 0));
+        block.add(constant(INT, 0));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
     }

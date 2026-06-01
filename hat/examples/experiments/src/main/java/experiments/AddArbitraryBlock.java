@@ -35,6 +35,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.Trxfmr;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 
@@ -51,32 +52,33 @@ public class AddArbitraryBlock {
         System.out.println("Also ignore");
     }
 
-    public static void main(String[] args) throws Throwable {
+    static void main() throws Throwable {
         var hackMeMethodRef= MethodRef.method(AddArbitraryBlock.class, "hackMe", void.class, ComputeContext.class, S32Array.class);
         var lookup = MethodHandles.lookup();
         var hackMeFuncOp = CoreOp.FuncOp.ofMethod(hackMeMethodRef.resolveToMethod(lookup)).get();
         MethodRef Println = MethodRef.method(IO.class, "println", void.class, Object.class);
+        VarTable varTable = new VarTable(hackMeFuncOp.funcName());
         Trxfmr.of(lookup,hackMeFuncOp)
                 .toJava("Before injecting")
-                .transform("withNewBlock", ce -> invoke(lookup,ce) instanceof Invoke $ && $.named("printf"), c -> {
-                    var beforeString = c.builder().op(CoreOp.constant(JavaType.J_L_STRING, "Before ...."));
-                    var afterString = c.builder().op(CoreOp.constant(JavaType.J_L_STRING, "After ...."));
+                .transform("withNewBlock", varTable, ce -> invoke(lookup,ce) instanceof Invoke $ && $.named("printf"), c -> {
+                    var beforeString = c.builder().add(CoreOp.constant(JavaType.J_L_STRING, "Before ...."));
+                    var afterString = c.builder().add(CoreOp.constant(JavaType.J_L_STRING, "After ...."));
                     c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
-                        b.op(CoreOp.core_yield(b.op(CoreOp.constant(JavaType.BOOLEAN, true))));
+                        b.add(CoreOp.core_yield(b.add(CoreOp.constant(JavaType.BOOLEAN, true))));
                     }).then(b -> {
-                        b.op(JavaOp.invoke( JavaType.VOID, Println, beforeString));
-                        b.op(CoreOp.core_yield());
+                        b.add(JavaOp.invoke( JavaType.VOID, Println, beforeString));
+                        b.add(CoreOp.core_yield());
                     }).else_(e->
-                            e.op(CoreOp.core_yield()))
+                            e.add(CoreOp.core_yield()))
                     );
                     c.retain();
                     c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
-                        b.op(CoreOp.core_yield(b.op(CoreOp.constant(JavaType.BOOLEAN, true))));
+                        b.add(CoreOp.core_yield(b.add(CoreOp.constant(JavaType.BOOLEAN, true))));
                     }).then(b -> {
-                        b.op(JavaOp.invoke( JavaType.VOID, Println, afterString));
-                        b.op(CoreOp.core_yield());
+                        b.add(JavaOp.invoke( JavaType.VOID, Println, afterString));
+                        b.add(CoreOp.core_yield());
                     }).else_(e->
-                            e.op(CoreOp.core_yield()))
+                            e.add(CoreOp.core_yield()))
                     );
                 })
                 .toJava( "After injecting")

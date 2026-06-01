@@ -43,9 +43,9 @@ public class TestSuccessorValidation {
     private static CoreOp.FuncOp numArgsGtNumParams() {
         return CoreOp.func("invalid", CoreType.functionType(JavaType.INT, JavaType.INT)).body(eb -> {
             Block.Builder b1 = eb.block(JavaType.INT);
-            b1.op(CoreOp.return_(b1.parameters().get(0)));
+            b1.add(CoreOp.return_(b1.parameters().get(0)));
 
-            eb.op(CoreOp.branch(b1.reference(eb.parameters().get(0), eb.parameters().get(0))));
+            eb.add(CoreOp.branch(b1.reference(eb.parameters().get(0), eb.parameters().get(0))));
         });
     }
 
@@ -58,9 +58,9 @@ public class TestSuccessorValidation {
         return CoreOp.func("valid", CoreType.functionType(JavaType.INT, JavaType.INT, JavaType.BOOLEAN))
                 .body(eb -> {
                     Block.Builder b1 = eb.block(JavaType.INT);
-                    b1.op(CoreOp.return_(b1.parameters().get(0)));
+                    b1.add(CoreOp.return_(b1.parameters().get(0)));
 
-                    eb.op(CoreOp.conditionalBranch(
+                    eb.add(CoreOp.conditionalBranch(
                             eb.parameters().get(1),
                             b1.reference(eb.parameters().get(0)),
                             b1.reference()

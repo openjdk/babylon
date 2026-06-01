@@ -29,6 +29,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
@@ -119,14 +120,15 @@ public class LanewiseBinaryOpExtraction {
         return min.add(max).div(S32x2.of(2,2));
     }
 
-    public static void main(String[] args) throws NoSuchMethodException {
+    static void main() throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
+        VarTable varTable = new VarTable("center");
         Trxfmr.of(lookup, LanewiseBinaryOpExtraction.class, "center", S32x2.class, S32x2.class)
                 .toJava("// (Java) before mapping", "//-------")
                 .transform(ce -> invoke(lookup,ce) instanceof Virtual v && v.returns(S32x2.class) && v.receives(S32x2.class), c -> {
                         c.replace(createBinaryOp(invoke(lookup,c.op()), c.mappedOperand(0), c.mappedOperand(1)));
 
-                })
+                }, varTable)
                 .toJava("// (Java) after transform ", "// -------");
     }
 

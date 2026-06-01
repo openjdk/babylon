@@ -26,6 +26,7 @@ package hat;
 
 import hat.backend.Backend;
 
+import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;

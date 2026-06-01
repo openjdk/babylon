@@ -39,6 +39,7 @@ import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.Trxfmr;
+import optkl.VarTable;
 import optkl.util.OpCodeBuilder;
 
 import java.lang.invoke.MethodHandles;
@@ -152,41 +153,42 @@ public class CreateFuncOp {
                 .body(builder -> {// double rsqrt(double arg){return 1 / Math.sqrt(qrg)}
                     // var arg = builder.parameters().getFirst();
                     var argOp = CoreOp.var("arg", builder.parameters().getFirst());
-                    var arg = builder.op(argOp);
+                    var arg = builder.add(argOp);
                     // var arg = builder.parameters().getFirst();
                     var sqrtInvoke = JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathSqrt, arg);
-                    var _1f = builder.op(CoreOp.constant(JavaType.DOUBLE, 1.0));
+                    var _1f = builder.add(CoreOp.constant(JavaType.DOUBLE, 1.0));
 
-                    Op.Result invokeResult = builder.op(sqrtInvoke);
-                    Op.Result divResult = builder.op(
+                    Op.Result invokeResult = builder.add(sqrtInvoke);
+                    Op.Result divResult = builder.add(
                             JavaOp.div(_1f, invokeResult)
                     );
-                    builder.op(CoreOp.return_(divResult));
+                    builder.add(CoreOp.return_(divResult));
                 });
 
         System.out.println(OpCodeBuilder.toText(rsqrtFuncOp));
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrtFuncOp).invoke(100));
-        Trxfmr.of(lookup,rsqrtFuncOp)
-                .transform("usingAbs", ce -> invoke(lookup,ce) instanceof Invoke.Static $
+        VarTable varTable = new VarTable(rsqrtFuncOp.funcName());
+        Trxfmr.of(lookup, rsqrtFuncOp)
+                .transform("usingAbs", varTable, ce -> invoke(lookup,ce) instanceof Invoke.Static $
                         && $.named("sqrt")
                         && $.returns(double.class)
                         && $.receives(double.class), c -> {
                     c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
-                        var lhs = b.op(CoreOp.constant(JavaType.BOOLEAN, false));
-                        var rhs = b.op(CoreOp.constant(JavaType.BOOLEAN, true));
-                        b.op(CoreOp.core_yield(b.op(JavaOp.or(lhs, rhs))));
+                        var lhs = b.add(CoreOp.constant(JavaType.BOOLEAN, false));
+                        var rhs = b.add(CoreOp.constant(JavaType.BOOLEAN, true));
+                        b.add(CoreOp.core_yield(b.add(JavaOp.or(lhs, rhs))));
                     }).then(b -> {
-                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Then \"With this text\""));
-                        b.op(new Pre(List.of()));
-                        b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
-                        b.op(new Post(List.of()));
-                        b.op(CoreOp.core_yield());
+                        var msg = b.add(CoreOp.constant(JavaType.J_L_STRING, "Then \"With this text\""));
+                        b.add(new Pre(List.of()));
+                        b.add(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
+                        b.add(new Post(List.of()));
+                        b.add(CoreOp.core_yield());
                     }).else_(b -> {
-                        var msg = b.op(CoreOp.constant(JavaType.J_L_STRING, "Else"));
-                        b.op(new Pre(List.of()));
-                        b.op(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
-                        b.op(new Post(List.of()));
-                        b.op(CoreOp.core_yield());
+                        var msg = b.add(CoreOp.constant(JavaType.J_L_STRING, "Else"));
+                        b.add(new Pre(List.of()));
+                        b.add(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.VOID, Println, msg));
+                        b.add(new Post(List.of()));
+                        b.add(CoreOp.core_yield());
                     }));
                     c.add(new Pre(List.of()));
                     c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand(0)));
@@ -194,7 +196,7 @@ public class CreateFuncOp {
                 })
                 .toText()
                 // We need to remove our injected ops from the model to execute
-                .transform(ce -> ce instanceof Inject, c -> c.remove())
+                .transform(ce -> ce instanceof Inject, c -> c.remove(), varTable)
                 .toText()
                 .run(trxfmr -> {
                     trxfmr.toJava();

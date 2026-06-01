@@ -132,7 +132,7 @@ public class TestLocalTransformationsAdaption {
                 default:
             }
 
-            block.op(op);
+            block.add(op);
 
             return block;
         });
@@ -153,9 +153,9 @@ public class TestLocalTransformationsAdaption {
     }
 
     static void printConstantString(Block.Builder opBuilder, String s) {
-        Op.Result c = opBuilder.op(constant(J_L_STRING, s));
-        Value System_out = opBuilder.op(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
-        opBuilder.op(JavaOp.invoke(method(PrintStream.class, "println", void.class, String.class), System_out, c));
+        Op.Result c = opBuilder.add(constant(J_L_STRING, s));
+        Value System_out = opBuilder.add(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
+        opBuilder.add(JavaOp.invoke(method(PrintStream.class, "println", void.class, String.class), System_out, c));
     }
 
     static Op getNearestInvokeableAncestorOp(Op op) {
@@ -176,14 +176,14 @@ public class TestLocalTransformationsAdaption {
                 case JavaOp.InvokeOp invokeOp when invokeOp.invokeReference().equals(ADD_METHOD): {
                     // Get the adapted operands, and pass those to the new call method
                     List<Value> adaptedOperands = block.context().getValues(op.operands());
-                    Op.Result adaptedResult = block.op(JavaOp.invoke(ADD_WITH_PRINT_METHOD, adaptedOperands));
+                    Op.Result adaptedResult = block.add(JavaOp.invoke(ADD_WITH_PRINT_METHOD, adaptedOperands));
                     // Map the old call result to the new call result, so existing operations can be
                     // adapted to use the new result
                     block.context().mapValue(invokeOp.result(), adaptedResult);
                     break;
                 }
                 default: {
-                    block.op(op);
+                    block.add(op);
                 }
             }
             return block;
@@ -210,7 +210,7 @@ public class TestLocalTransformationsAdaption {
                     break;
                 }
                 default: {
-                    block.op(op);
+                    block.add(op);
                 }
             }
             return block;
@@ -229,58 +229,58 @@ public class TestLocalTransformationsAdaption {
 
         String prefix = "ENTER";
 
-        Value arrayLength = opBuilder.op(
+        Value arrayLength = opBuilder.add(
                 constant(INT, adaptedInvokeOperands.size()));
-        Value formatArray = opBuilder.op(
+        Value formatArray = opBuilder.add(
                 newArray(type(Object[].class), arrayLength));
 
         Value indexZero = null;
         for (int i = 0; i < adaptedInvokeOperands.size(); i++) {
             Value operand = adaptedInvokeOperands.get(i);
 
-            Value index = opBuilder.op(
+            Value index = opBuilder.add(
                     constant(INT, i));
             if (i == 0) {
                 indexZero = index;
             }
 
             if (operand.type().equals(INT)) {
-                operand = opBuilder.op(
+                operand = opBuilder.add(
                         JavaOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), operand));
                 // @@@ Other primitive types
             }
-            opBuilder.op(
+            opBuilder.add(
                     arrayStoreOp(formatArray, index, operand));
         }
 
-        Op.Result formatString = opBuilder.op(
+        Op.Result formatString = opBuilder.add(
                 constant(J_L_STRING,
                         prefix + ": " + invokeOp.invokeReference() + "(" + formatString(adaptedInvokeOperands) + ")%n"));
-        Value System_out = opBuilder.op(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
-        opBuilder.op(
+        Value System_out = opBuilder.add(fieldLoad(FieldRef.field(System.class, "out", PrintStream.class)));
+        opBuilder.add(
                 JavaOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));
 
         // Method call
 
-        Op.Result adaptedInvokeResult = opBuilder.op(invokeOp);
+        Op.Result adaptedInvokeResult = opBuilder.add(invokeOp);
 
         // After method call
 
         prefix = "EXIT";
 
         if (adaptedInvokeResult.type().equals(INT)) {
-            adaptedInvokeResult = opBuilder.op(
+            adaptedInvokeResult = opBuilder.add(
                     JavaOp.invoke(method(Integer.class, "valueOf", Integer.class, int.class), adaptedInvokeResult));
             // @@@ Other primitive types
         }
-        opBuilder.op(
+        opBuilder.add(
                 arrayStoreOp(formatArray, indexZero, adaptedInvokeResult));
 
-        formatString = opBuilder.op(
+        formatString = opBuilder.add(
                 constant(J_L_STRING,
                         prefix + ": " + invokeOp.invokeReference() + " -> " + formatString(adaptedInvokeResult.type()) + "%n"));
-        opBuilder.op(
+        opBuilder.add(
                 JavaOp.invoke(method(PrintStream.class, "printf", PrintStream.class, String.class, Object[].class),
                         System_out, formatString, formatArray));
     }
