@@ -223,31 +223,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
-//
-//    @Override
-//    public OpenCLHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-//        // Type conversions: half,bfloat16 -> float
-//        var reducedFloatType = hatF16ToFloatConvOp.float16Class();
-//
-//        if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
-//            paren(_->f32Type());
-//        } else if (BF16.class.isAssignableFrom(reducedFloatType)) {// bfloat16 -> float
-//            builtin_bfloat16ToFloat();
-//        }
-//        parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
-//            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
-//            if (!hatF16ToFloatConvOp.isLocal()) {
-//                rarrow();
-//            } else if (!hatF16ToFloatConvOp.wasFloat()) {
-//                dot();
-//            } else{
-//                throw new RuntimeException("Can we get here");
-//            }
-//            id("value");
-//        });
-//        return self();
-//    }
-
     // Mapping between API function names and OpenCL intrinsics for the math operations
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
     static {

@@ -349,21 +349,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-
-//    @Override
-//    public CudaHATKernelBuilder hatF16ToFloatConvOp(HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-//        buildFloat16Class(hatF16ToFloatConvOp.float16Class());
-//        paren(_ -> {
-//            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
-//            if (!hatF16ToFloatConvOp.isLocal()) {
-//                rarrow().id(VALUE);
-//            } else if (!hatF16ToFloatConvOp.wasFloat()) {
-//                dot().id(VALUE);
-//            }
-//        });
-//        return self();
-//    }
-
     @Override
     public CudaHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
         return id("make_" + vectorShape.codeType().toString() + vectorShape.lanes());

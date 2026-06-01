@@ -86,60 +86,7 @@ public abstract sealed class HATF16Op extends HATOp implements VarLikeOp {
         public Map<String, Object> externalize() {
             return Map.of("hat.dialect.fp16VarOp." + varName(), codeType);
         }
-
     }
-
-//    public static final class HATF16ToFloatConvOp extends HATF16Op implements Precedence.LoadOrConv {
-//
-//        private final CodeType codeType;
-//        private final boolean isLocal;
-//        private final boolean wasFloat;
-//        private final Class<?> float16Class;
-//
-//        public HATF16ToFloatConvOp(CodeType codeType, Class<?> float16Class, boolean isLocal, boolean wasFloat, List<Value> operands) {
-//            super("", operands);
-//            this.codeType = codeType;
-//            this.isLocal = isLocal;
-//            this.wasFloat = wasFloat;
-//            this.float16Class = float16Class;
-//        }
-//
-//        public HATF16ToFloatConvOp(HATF16ToFloatConvOp op, CodeContext copyContext) {
-//            super(op, copyContext);
-//            this.codeType = op.codeType;
-//            this.isLocal = op.isLocal;
-//            this.wasFloat = op.wasFloat;
-//            this.float16Class = op.float16Class;
-//        }
-//
-//        @Override
-//        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-//            return new HATF16ToFloatConvOp(this, copyContext);
-//        }
-//
-//        @Override
-//        public CodeType resultType() {
-//            return codeType;
-//        }
-//
-//        @Override
-//        public Map<String, Object> externalize() {
-//            return Map.of("hat.dialect.f16ToFloat", codeType);
-//        }
-//
-//        public boolean isLocal() {
-//            return isLocal;
-//        }
-//
-//        public boolean wasFloat() {
-//            return wasFloat;
-//        }
-//
-//        public Class<?> float16Class() {
-//            return float16Class;
-//        }
-//
-//    }
 
     public abstract static sealed class HATF16BinaryOp extends HATF16Op {
 

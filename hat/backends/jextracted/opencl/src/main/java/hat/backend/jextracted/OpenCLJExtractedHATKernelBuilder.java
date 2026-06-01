@@ -164,20 +164,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         return self();
     }
 
-//    @Override
-//    public OpenCLJExtractedHATKernelBuilder hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp) {
-//        paren(_-> type("half"));
-//        if (hatF16ConvOp.operands().getFirst() instanceof Op.Result r) {
-//            recurse( r.op());
-//        }
-//        return self();
-//    }
-//
-//    @Override
-//    public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-//        return paren(_-> f16Type()).id(hatF16ToFloatConvOp.varName());
-//    }
-
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
     static {
         MATH_FUNCTIONS.put("maxf", "max");
