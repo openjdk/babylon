@@ -355,6 +355,54 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder hatF16BinaryOp(Invoke invoke, Class<?> reducedFloatType) {
+        Value op1 = invoke.op().operands().get(0);
+        Value op2 = invoke.op().operands().get(1);
+        boolean isFirstOperandReference = isArrayReference(op1);
+        boolean isSecondOperandReference = isArrayReference(op2);
+
+        final byte f32Mixed;
+        if (!isFirstOperandReference && isOperandF32(op1)) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
+        } else if (!isSecondOperandReference && isOperandF32(op2)) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
+        } else {
+            f32Mixed = 0x00;
+        }
+        paren(_ -> f16OrBF16(reducedFloatType));
+        brace(_ ->
+                paren(_ -> {
+                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
+                        generateFloat16ConversionToFloat(reducedFloatType).oparen();
+                    }
+                    recurseResultOrThrow(op1);
+                    if (isFirstOperandReference) {
+                        rarrow().id(VALUE);
+                    } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+                        dot().id(VALUE);
+                    }
+                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
+                        cparen();
+                    }
+                    sp().id(matchSymbol(invoke.name())).sp();
+                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
+                        generateFloat16ConversionToFloat(reducedFloatType).oparen();
+                    }
+                    recurseResultOrThrow(op2);
+                    if (isSecondOperandReference) {
+                        rarrow().id(VALUE);
+                    } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
+                        dot().id(VALUE);
+                    }
+                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
+                        cparen();
+                    }
+
+                })
+        );
+        return self();
+    }
+    @Override
     public CudaHATKernelBuilder hatF16BinaryOp(HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
 
         Value op1 = hatF16BinaryOp.operands().get(0);

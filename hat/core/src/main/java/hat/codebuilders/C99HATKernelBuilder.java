@@ -29,6 +29,7 @@ import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
+import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATF16Op;
 import hat.dialect.HATPtrOp;
@@ -477,6 +478,64 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public static final String VALUE = "value";
 
+
+
+    private T binaryOperationsForBfloat16(Invoke invoke) {
+
+        boolean isFirstOperandReference = isArrayReference(invoke.op().operands().get(0));
+        boolean isSecondOperandReference = isArrayReference(invoke.op().operands().get(1));
+        final byte f32Mixed;
+        if (!isFirstOperandReference && isOperandF32(invoke.op().operands().get(0))) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
+        } else if (!isSecondOperandReference && isOperandF32(invoke.op().operands().get(1))) {
+            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
+        } else {
+            f32Mixed = 0x00;
+        }
+
+        paren(_-> bf16Type());
+        brace(_-> {
+            paren(_-> {
+                builtin_float2bfloat16();
+                oparen();
+                if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
+                    builtin_bfloat16ToFloat().oparen();// open
+                }
+                recurse( OpHelper.asResultOrThrow(invoke.op().operands().getFirst()).op());
+
+                if (isFirstOperandReference) {
+                    rarrow().id(VALUE);
+                } else if (!OpHelper.isPrimitiveResult(invoke.op().operands().getFirst())) {
+                    dot().id(VALUE);
+                }
+
+                if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
+                    cparen(); //closed
+                }
+                sp().id(matchSymbol(invoke.name())).sp();
+
+                if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
+                    builtin_bfloat16ToFloat().oparen();
+                }
+
+                recurse(OpHelper.asResultOrThrow(invoke.op().operands().get(1)).op());
+                if (isSecondOperandReference) {
+                    rarrow().id(VALUE);
+                } else if (!OpHelper.isPrimitiveResult(invoke.op().operands().get(1))) {
+                    dot().id(VALUE);
+                }
+
+                if (isMixedSecondOperand(f32Mixed) || f32Mixed == 0) {
+                    cparen();
+                }
+            });
+            cparen();
+        });
+        return self();
+    }
+
+
+
     private T binaryOperationsForBfloat16(HATF16Op.HATF16BinaryOp hatf16BinaryOp) {
 
         boolean isFirstOperandReference = isArrayReference(hatf16BinaryOp.operands().get(0));
@@ -529,6 +588,46 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             cparen();
         });
         return self();
+    }
+
+    public String matchSymbol(String operationName) {
+        return switch (operationName) {
+            case "add" -> "+";
+            case "sub" -> "-";
+            case "mul" -> "*";
+            case "div" -> "/";
+            default -> "";
+        };
+    }
+
+    public T hatF16BinaryOp(Invoke invoke, Class<?> float16Class) {
+        if (BF16.class.isAssignableFrom(float16Class)) {
+            return binaryOperationsForBfloat16(invoke);
+        }
+        paren(_-> f16Type());
+        return brace(_->
+                paren(_-> {
+                    recurse( OpHelper.asResultOrThrow(invoke.op().operands().getFirst()).op());
+                    boolean isFirstOperandReference = isArrayReference(invoke.op().operands().get(0));
+                    boolean isSecondOperandReference = isArrayReference(invoke.op().operands().get(1));
+                    if (isFirstOperandReference) {
+                        rarrow().id(VALUE);
+                    } else if (!OpHelper.isPrimitiveResult(invoke.op().operands().getFirst())) {
+                        dot().id(VALUE);
+                    } else {
+                        blockComment("hatF16BinaryOp not a result !!");
+                    }
+                    sp().id(matchSymbol(invoke.name())).sp();
+                    recurse( OpHelper.asResultOrThrow(invoke.op().operands().get(1)).op());
+                    if (isSecondOperandReference) {
+                        rarrow().id(VALUE);
+                    } else if (!OpHelper.isPrimitiveResult(invoke.op().operands().get(1))) {
+                        dot().id(VALUE);
+                    }else {
+                        blockComment("hatF16BinaryOp not a value !!");
+                    }
+                })
+        );
     }
 
     @Override
@@ -1022,6 +1121,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return isLocalOrPrivateDS;
     }
 
+    private boolean isS16BinaryOp(Invoke invoke) {
+        return is16BitFloat(invoke, Regex.of("(add|sub|mul|div)")) && !invoke.returnsVoid();
+    }
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -1072,6 +1175,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else {
                 throw new IllegalStateException("[CodeGen] No reduced float type");
             }
+        } else if (isS16BinaryOp(invoke)) {
+            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> category) {
+                // generate
+                hatF16BinaryOp(invoke, category);
+            } else {
+                throw new IllegalStateException("[CodeGen] Unhandled op: " + invoke.name());
+            }
+
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
