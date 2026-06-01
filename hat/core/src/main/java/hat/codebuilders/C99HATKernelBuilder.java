@@ -563,6 +563,46 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         );
     }
 
+    private String findVarNameOrNull(Value v) {
+        return (v instanceof Op.Result r) ? switch (r.op()) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findVarNameOrNull(varLoadOp); //recurse
+            case CoreOp.VarOp varOp -> varOp.varName();
+            default -> null;
+        } : null;
+    }
+
+    private String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findVarNameOrNull(varLoadOp.operands().getFirst());
+    }
+
+    public final T hatF16VarLoadOp(CoreOp.VarAccessOp.VarLoadOp hatF16VarLoadOp) {
+        id(findVarNameOrNull(hatF16VarLoadOp));
+
+        // Since all VarOps now are the same, we need to distinguish if it comes from a global load,
+        // or private/shared load.
+        if (hatF16VarLoadOp.operands().getFirst().declaringElement() instanceof CoreOp.VarOp varOp
+                && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp
+                && !isInvokeLoadingFromOnChipMemory(invokeOp)) {
+            // VarLoad from Global Memory with an InvokeOp
+            Stream<Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+            Optional<OpHelper.Invoke> invoke = stream.findFirst();
+            if (isMathLib(invoke)) {
+                dot();
+            } else if (invoke.isPresent() && invoke.get().refIs(S16ImplOfF16.class)) {
+                // This extra condition is due to all operation are implemented via invoke.
+                // Thus, we need to make sure the type to know if it is a reference from
+                // global memory.
+                dot();
+            } else {
+                rarrow();
+            }
+        } else {
+            dot();
+        }
+        return id(VALUE);
+    }
+
+
     @Override
     public final T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp) {
         id(hatF16VarLoadOp.varName());
@@ -776,8 +816,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
 
-    private boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute) {
-        return attribute == VarTable.HATOpAttribute.INIT_SHARED || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED;
+    private boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute, Invoke invoke) {
+        if (attribute == VarTable.HATOpAttribute.INIT_SHARED || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED) {
+            return true;
+        } else return attribute == VarTable.HATOpAttribute.NARROW && !invoke.returnsVoid();
     }
 
     private boolean isInvokeLoadingFromOnChipMemory(JavaOp.InvokeOp invokeOp) {
@@ -997,6 +1039,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return result[0];
     }
 
+    private boolean isInvokeFromSharedOrPrivate(Op.Result instance, Invoke invoke) {
+        boolean isLocalOrPrivateDS = false;
+        VarTable varTable = kernelCallGraph.getVarTable();
+        if (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof CoreOp.VarOp varOp
+                && varTable.doesVarOpExist(scopedCodeBuilderContext.funcOp().funcName(), varOp)) {
+            VarTable.HATOpAttribute attribute = varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
+            isLocalOrPrivateDS = isAttributeSharedOrPrivate(attribute, invoke);
+        }
+        return isLocalOrPrivateDS;
+    }
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -1089,15 +1143,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
                     // Check if the varOpLoad that could follow corresponds to a local/private type
                     // We need to check for the HATMemoryVarOp until we replace all HAT<>VarOps with CoreOp.VarOp
-                    boolean isLocalOrPrivateDS = false;
-                    VarTable varTable = kernelCallGraph.getVarTable();
-                    // Once we do the transition, the following condition applies.
-                    if (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof CoreOp.VarOp varOp
-                            && varTable.doesVarOpExist(scopedCodeBuilderContext.funcOp().funcName(), varOp)) {
-                        VarTable.HATOpAttribute attribute = varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
-                        isLocalOrPrivateDS = isAttributeSharedOrPrivate(attribute);
-                    }
+                    boolean isLocalOrPrivateDS = isInvokeFromSharedOrPrivate(instance, invoke);
 
                     either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
 

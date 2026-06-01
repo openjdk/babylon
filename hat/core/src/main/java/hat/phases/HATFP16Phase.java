@@ -73,17 +73,17 @@ public record HATFP16Phase() implements HATPhase {
         varTable.addIfNeededOrThrow(functionName, op.op(), VarTable.HATOpAttribute.NARROW);
     }
 
-    private void createF16VarLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp, Block.Builder blockBuilder) {
-        blockBuilder.context().mapValue(varLoadOp.result(),
-                blockBuilder.add(copyLocation(varLoadOp,
-                                new HATF16Op.HATF16VarLoadOp(
-                                        findVarNameOrNull(varLoadOp),
-                                        varLoadOp.varType(),
-                                        blockBuilder.context().getValues(varLoadOp.operands()))
-                        )
-                )
-        );
-    }
+//    private void createF16VarLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp, Block.Builder blockBuilder) {
+//        blockBuilder.context().mapValue(varLoadOp.result(),
+//                blockBuilder.add(copyLocation(varLoadOp,
+//                                new HATF16Op.HATF16VarLoadOp(
+//                                        findVarNameOrNull(varLoadOp),
+//                                        varLoadOp.varType(),
+//                                        blockBuilder.context().getValues(varLoadOp.operands()))
+//                        )
+//                )
+//        );
+//    }
 
     private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpEnum binaryOpEnum, Class<?> reducedFloatType) {
         List<Value> operands = invokeOp.operands();
@@ -138,10 +138,12 @@ public record HATFP16Phase() implements HATPhase {
                 });
 
         return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.context().getValue(invokeOp.operands().getFirst()));
+            if (op instanceof JavaOp.InvokeOp) {
+                //blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.context().getValue(invokeOp.operands().getFirst()));
+                blockBuilder.add(op);
             } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                createF16VarLoadOp(varLoadOp, blockBuilder);
+                //createF16VarLoadOp(varLoadOp, blockBuilder);
+                blockBuilder.add(varLoadOp);
             }
             return blockBuilder;
         }, varTable).funcOp();

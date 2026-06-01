@@ -314,7 +314,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         return either (resolvedName != null,
                 _-> varName(resolvedName),
                 _-> recurseResultOrThrow(invoke.op().operands().get(1))
-        );
+        ) ;
     }
 
     @Override
