@@ -91,35 +91,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatVectorStoreView) {
-        Value dest = hatVectorStoreView.operands().get(0);
-        Value index = hatVectorStoreView.operands().get(2);
-
-        id("vstore" + hatVectorStoreView.vectorShape().lanes())
-                .oparen()
-                .varName(hatVectorStoreView)
-                .comma()
-                .sp()
-                .intConstZero()
-                .comma()
-                .sp()
-                .ampersand();
-
-        if (dest instanceof Op.Result r) {
-            recurse( r.op());
-        }
-        either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-        id("array").osbrace();
-
-        if (index instanceof Op.Result r) {
-            recurse( r.op());
-        }
-
-        csbrace().cparen();
-        return self();
-    }
-
-    @Override
     public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
 
         oparen();
@@ -135,31 +106,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
             recurse( r.op());
         }
         cparen();
-        return self();
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
-        Value source = hatVectorLoadOp.operands().get(0);
-        Value index = hatVectorLoadOp.operands().get(1);
-
-        id("vload" + hatVectorLoadOp.vectorShape().lanes())
-                .oparen()
-                .intConstZero()
-                .comma()
-                .sp()
-                .ampersand();
-
-        if (source instanceof Op.Result r) {
-            recurse(r.op());
-        }
-
-        either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-        id("array").osbrace();
-        if (index instanceof Op.Result r) {
-            recurse( r.op());
-        }
-        csbrace().cparen();
         return self();
     }
 
@@ -296,17 +242,7 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
 
     @Override
     public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
-        if (invoke.op().operands().getFirst().declaringElement() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
-            recurse(vLoadOp);
-        } else {
-            id(invokeVar.name());
-        }
-        dot().id(mapLane(invokeVar.laneIdx())).assign();
-        String resolvedName = invokeVar.varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName():null;
-        return either (resolvedName != null,
-                _-> varName(resolvedName),
-                _-> recurseResultOrThrow(invoke.op().operands().get(1))
-        ) ;
+        return self();
     }
 
     @Override

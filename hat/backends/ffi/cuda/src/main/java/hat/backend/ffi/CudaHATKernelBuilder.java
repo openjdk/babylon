@@ -221,27 +221,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatVectorStoreOp(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
-        Value dest = hatVectorStoreView.operands().get(0);
-        Value index = hatVectorStoreView.operands().get(2);
-        keyword("reinterpret_cast").ltgt(_ -> type(hatVectorStoreView.buildType()).sp().asterisk());
-        paren(_ -> {
-            ampersand().recurseResultOrThrow(dest);
-            either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
-        });
-        sbrace(_ -> intConstZero());
-        sp().equals().sp();
-        // if the value to be stored is an operation, recurse on the operation
-        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-            recurse(r.op());
-        } else {
-            varName(hatVectorStoreView);
-        }
-        return self();
-    }
-
-    @Override
     public CudaHATKernelBuilder hatBinaryVectorOp(HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
 
         Value op1 = hatVectorBinaryOp.operands().get(0);
@@ -297,19 +276,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return vectorShape.codeType().toString() + vectorShape.lanes();
     }
 
-//    @Override
-//    public CudaHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape,  boolean deviceAllocated) {
-//        reinterpret_cast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
-//        paren(_ -> {
-//            ampersand();
-//            recurseResultOrThrow(source);
-//            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-//            id("array").sbrace(_ -> recurseResultOrThrow(index));
-//        });
-//        sbrace(_ -> intConstZero());
-//        return self();
-//    }
-
     @Override
     public CudaHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
         reinterpret_cast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
@@ -317,38 +283,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             ampersand();
             recurseResultOrThrow(source);
             either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
-        });
-        sbrace(_ -> intConstZero());
-        return self();
-    }
-
-//    @Override
-//    public CudaHATKernelBuilder generateVectorLoad(JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-//        Value source = arrayLoadOp.operands().get(0);
-//        Value index = arrayLoadOp.operands().get(1);
-//
-//        reinterpret_cast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
-//        paren(_ -> {
-//            ampersand();
-//            recurseResultOrThrow(source);
-//            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-//            id("array").sbrace(_ -> recurseResultOrThrow(index));
-//        });
-//        sbrace(_ -> intConstZero());
-//        return self();
-//    }
-
-    @Override
-    public CudaHATKernelBuilder hatVectorLoadOp(HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
-        Value source = hatVectorLoadOp.operands().get(0);
-        Value index = hatVectorLoadOp.operands().get(1);
-
-        reinterpret_cast().ltgt(_ -> type(hatVectorLoadOp.buildType()).sp().asterisk());
-        paren(_ -> {
-            ampersand();
-            recurseResultOrThrow(source);
-            either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
             id("array").sbrace(_ -> recurseResultOrThrow(index));
         });
         sbrace(_ -> intConstZero());

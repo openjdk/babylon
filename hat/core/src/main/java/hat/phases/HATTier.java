@@ -37,7 +37,7 @@ public class HATTier  {
             new HATBarrierPhase(),   // Let's keep the dialect for barriers
 
             // array views
-            new HATArrayViewPhase(),  // pending
+            new HATArrayViewPhase(),  // pending PTROps
 
             // Memory
             new HATMemoryPhase(), // ok

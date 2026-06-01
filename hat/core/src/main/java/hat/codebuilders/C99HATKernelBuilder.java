@@ -32,14 +32,12 @@ import hat.device.NonMappableIface;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
-import hat.dialect.HATVectorOp;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATFP16Phase;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeType;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -65,7 +63,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -80,9 +77,6 @@ import static optkl.OpHelper.Invoke.invoke;
 
 import static optkl.OpHelper.VarAccess.varAccess;
 import static optkl.OpHelper.opFromFirstOperandOrNull;
-import static optkl.OpHelper.opFromFirstOperandOrThrow;
-import static optkl.OpHelper.resultFromFirstOperandOrNull;
-import static optkl.OpHelper.resultFromFirstOperandOrThrow;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
     protected  final KernelCallGraph kernelCallGraph;
@@ -928,7 +922,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
 
     public T hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
-        if (invoke.op().operands().getFirst().declaringElement() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+        if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
             recurse( vLoadOp);
         } else {
             id(invokeVar.name());

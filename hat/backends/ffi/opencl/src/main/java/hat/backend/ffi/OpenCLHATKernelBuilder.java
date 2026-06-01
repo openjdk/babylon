@@ -158,22 +158,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
-        vstore(hatVectorStoreView.vectorShape().lanes()).paren(_-> {
-            // if the value to be stored is an operation, recurse on the operation
-            if (hatVectorStoreView.operands().get(1).declaringElement() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
-                recurse(binOp);
-            } else {
-                varName(hatVectorStoreView);
-            }
-            csp().intConstZero().csp().ampersand().recurseResultOrThrow(hatVectorStoreView.operands().get(0));
-            either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ ->recurseResultOrThrow(hatVectorStoreView.operands().get(2)));
-        });
-        return self();
-    }
-
-    @Override
     public OpenCLHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp binOp) {
         return paren(_-> {
             recurseResultOrThrow(binOp.operands().get(0));
@@ -183,19 +167,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
-        vload(hatVectorLoadOp.vectorShape().lanes()).paren(_-> {
-            intConstZero().comma().sp().ampersand();
-            recurseResultOrThrow( hatVectorLoadOp.operands().get(0));
-            either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow( hatVectorLoadOp.operands().get(1)));
-        });
-        return self();
-    }
-
-    @Override
     public OpenCLHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
-        if (invoke.op().operands().getFirst().declaringElement() instanceof HATVectorOp.HATVectorLoadOp vLoadOp) {
+        if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
             recurse(vLoadOp);
         } else {
             id(invokeVar.name());
