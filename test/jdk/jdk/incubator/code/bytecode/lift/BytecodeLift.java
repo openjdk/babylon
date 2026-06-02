@@ -968,10 +968,11 @@ public final class BytecodeLift {
         List<Block.Reference> catchReferences = new ArrayList<>();
         List<Op.Result> enteredRegions = List.copyOf(initialEreStack);
         for (int handler : enteredRegion.handlers().reversed()) {
+            int handlerBci = handlerBcis.get(handler);
             CatchTargetKey key = new CatchTargetKey(handler, enteredRegions);
             Block.Builder target = exceptionHandlerBlocks.get(key);
             if (target == null) { // Avoid ConcurrentModificationException
-                target = transitionBlockForTarget(enteredRegions, handlerBcis.get(handler));
+                target = transitionBlockForTarget(enteredRegions, handlerBci);
                 exceptionHandlerBlocks.put(key, target);
             }
             catchReferences.add(target.reference());
