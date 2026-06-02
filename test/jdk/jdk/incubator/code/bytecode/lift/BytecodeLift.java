@@ -91,8 +91,6 @@ public final class BytecodeLift {
     private final Block.Builder entryBlock;
     private final List<Value> initialValues;
     private final ClassModel classModel;
-    // All try ranges with their exception table handlers
-    private final List<ExceptionRegion> exceptionRegions;
     // Cached blocks that enter a handler from a region stack
     private final Map<CatchTargetKey, Block.Builder> exceptionHandlerBlocks;
     // Cached blocks that enter regions at a bytecode index
@@ -108,7 +106,6 @@ public final class BytecodeLift {
     private final List<CodeElement> elements;
     private final Deque<Value> stack;
     private final Deque<ClassDesc> newStack;
-    private final List<ExceptionCatch> ecs;
     // Bytecode index for each exception table handler
     private final List<Integer> handlerBcis;
     // Converts classfile labels to bytecode indexes
@@ -135,11 +132,10 @@ public final class BytecodeLift {
                 sma.entries().stream().collect(Collectors.toUnmodifiableMap(
                         smfi -> label2Bci.applyAsInt(smfi.target()),
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
-        this.ecs = codeModel.exceptionHandlers();
         this.handlerBcis = new ArrayList<>();
         record RegionKey(int start, int end) {}
         Map<RegionKey, List<Integer>> grouped = new LinkedHashMap<>();
-        for (ExceptionCatch ec : ecs) {
+        for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
             int handler = handlerBcis.size();
             handlerBcis.add(label2Bci.applyAsInt(ec.handler()));
             grouped.computeIfAbsent(new RegionKey(label2Bci.applyAsInt(ec.tryStart()), label2Bci.applyAsInt(ec.tryEnd())), _ -> new ArrayList<>())
@@ -149,13 +145,12 @@ public final class BytecodeLift {
         for (var c : grouped.entrySet()) {
             regions.add(new ExceptionRegion(regions.size(), c.getKey().start(), c.getKey().end(), c.getValue()));
         }
-        this.exceptionRegions = regions;
         this.exceptionRegionsMap = new HashMap<>();
         List<ExceptionRegion> previous = List.of();
         for (CodeElement e : elements) {
             if (e instanceof LabelTarget lt) {
                 int bci = label2Bci.applyAsInt(lt.label());
-                List<ExceptionRegion> next = exceptionRegions.stream()
+                List<ExceptionRegion> next = regions.stream()
                         .filter(er -> er.start() <= bci && bci < er.end())
                         .sorted()
                         .toList();
@@ -181,7 +176,7 @@ public final class BytecodeLift {
     }
 
     // Cache key for a handler reached from a concrete region stack
-    record CatchTargetKey(int erIndex, int handler, List<Op.Result> enteredRegions) {}
+    record CatchTargetKey(int handler, List<Op.Result> enteredRegions) {}
     // Find where the active region stack changes in bytecode
 
 
@@ -264,16 +259,16 @@ public final class BytecodeLift {
                         if (target != null) {
                             if (currentBlock != null) {
                                 // Transition to a branch target or a handler
-                                exitRegions(actualEreStack, currentBlock, targetEntryBlock(bci, target), stackValues(target));
+                                exitRegions(actualEreStack, currentBlock, targetEntryBlock(bci), stackValues(target));
                             }
                             actualEreStack = enteredRegionStacks.getOrDefault(target, List.of());
                             currentBlock = target;
                             stack.clear();
                             stack.addAll(target.parameters());
-                        } else if (currentBlock != null && !activeRegions(actualEreStack).equals(newEreStack)) {
+                        } else if (currentBlock != null && !actualEreStack.stream().map(enteredRegionMap::get).toList().equals(newEreStack)) {
                             // Transition to a block with a different ERE stack
                             Block.Builder next = entryBlock.block();
-                            actualEreStack = ereTransit(actualEreStack, newEreStack, currentBlock, next, List.of());
+                            actualEreStack = ereTransit(newEreStack, next);
                             currentBlock = next;
                         }
                     }
@@ -281,9 +276,7 @@ public final class BytecodeLift {
                 case BranchInstruction inst when isUnconditionalBranch(inst.opcode()) -> {
                     int targetBci = label2Bci.applyAsInt(inst.target());
                     Block.Builder target = blockMap.get(targetBci);
-                    if (target != null) {
-                        exitRegions(actualEreStack, currentBlock, targetEntryBlock(targetBci, target), stackValues(target));
-                    }
+                    exitRegions(actualEreStack, currentBlock, targetEntryBlock(targetBci), stackValues(target));
                     endOfFlow();
                 }
                 case BranchInstruction inst -> {
@@ -308,7 +301,7 @@ public final class BytecodeLift {
                         case IF_ACMPNE -> JavaOp.eq(stack.pop(), operand);
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
-                    Block.Builder branch = targetBlockForBranch(inst.target());
+                    Block.Builder branch = transitionBlockForTarget(actualEreStack, label2Bci.applyAsInt(inst.target()));
                     Block.Builder next = entryBlock.block();
                     op(CoreOp.conditionalBranch(op(cop),
                             next.reference(),
@@ -848,18 +841,18 @@ public final class BytecodeLift {
             v = op(JavaOp.conv(PrimitiveType.INT, v));
         }
         SwitchCase last = cases.getLast();
-        Block.Builder def = targetBlockForBranch(defaultTarget);
+        Block.Builder def = transitionBlockForTarget(actualEreStack, label2Bci.applyAsInt(defaultTarget));
         for (SwitchCase sc : cases) {
             if (sc == last) {
                 op(CoreOp.conditionalBranch(
                         op(JavaOp.eq(v, liftConstant(sc.caseValue()))),
-                        successorWithStack(targetBlockForBranch(sc.target())),
+                        successorWithStack(transitionBlockForTarget(actualEreStack, label2Bci.applyAsInt(sc.target()))),
                         successorWithStack(def)));
             } else {
                 Block.Builder next = entryBlock.block();
                 op(CoreOp.conditionalBranch(
                         op(JavaOp.eq(v, liftConstant(sc.caseValue()))),
-                        successorWithStack(targetBlockForBranch(sc.target())),
+                        successorWithStack(transitionBlockForTarget(actualEreStack, label2Bci.applyAsInt(sc.target()))),
                         next.reference()));
                 currentBlock = next;
             }
@@ -878,133 +871,111 @@ public final class BytecodeLift {
         actualEreStack = List.of();
     }
 
-    // Return a cached transition block for one exception handler
-    private Block.Builder targetBlockForExceptionHandler(List<Op.Result> initialEreStack, int erIndex, int handler) {
-        CatchTargetKey key = new CatchTargetKey(erIndex, handler, List.copyOf(initialEreStack));
-        Block.Builder target = exceptionHandlerBlocks.get(key);
-        if (target == null) { // Avoid ConcurrentModificationException
-            target = transitionBlockForTarget(initialEreStack, handlerBcis.get(handler));
-            exceptionHandlerBlocks.put(key, target);
-        }
-        return target;
-    }
-
-    private Block.Builder targetBlockForBranch(Label targetLabel) {
-        return transitionBlockForTarget(actualEreStack, label2Bci.applyAsInt(targetLabel));
-    }
-
     // Create a block that exits regions before it reaches the target
     private Block.Builder transitionBlockForTarget(List<Op.Result> initialEreStack, int targetBci) {
         Block.Builder targetBlock = blockMap.get(targetBci);
         if (targetBlock == null) return null;
         Block.Builder transitionBlock = newBlock(targetBlock.parameters());
-        exitRegions(initialEreStack, transitionBlock, targetEntryBlock(targetBci, targetBlock), transitionBlock.parameters());
+        exitRegions(initialEreStack, transitionBlock, targetEntryBlock(targetBci), transitionBlock.parameters());
         return transitionBlock;
     }
 
     // Return a block that enters regions needed by the target
-    private Block.Builder targetEntryBlock(int bci, Block.Builder targetBlock) {
+    private Block.Builder targetEntryBlock(int bci) {
+        Block.Builder targetBlock = blockMap.get(bci);
         List<ExceptionRegion> targetEreStack = exceptionRegionsMap.getOrDefault(bci, List.of());
         if (targetEreStack.isEmpty()) {
             enteredRegionStacks.putIfAbsent(targetBlock, List.of());
             return targetBlock;
         }
         Block.Builder enterBlock = labelEntryBlocks.get(bci);
-        if (enterBlock != null) {
-            return enterBlock;
+        if (enterBlock == null) {  // Avoid ConcurrentModificationException
+            enterBlock = newBlock(targetBlock.parameters());
+            labelEntryBlocks.put(bci, enterBlock);
+            List<Op.Result> ereStack = new ArrayList<>();
+            Block.Builder currentBlock = enterBlock;
+            for (int i = 0; i < targetEreStack.size(); i++) {
+                boolean last = i == targetEreStack.size() - 1;
+                Block.Builder nextBlock = last ? targetBlock : newBlock(targetBlock.parameters());
+                Block.Reference nextReference = nextBlock.reference(currentBlock.parameters());
+                ExceptionRegion entered = targetEreStack.get(i);
+                Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(nextReference, catchReferences(ereStack, entered)));
+                enteredRegionMap.put(enter, entered);
+                ereStack.add(enter);
+                currentBlock = nextBlock;
+            }
+            enteredRegionStacks.putIfAbsent(targetBlock, List.copyOf(ereStack));
         }
-        enterBlock = newBlock(targetBlock.parameters());
-        labelEntryBlocks.put(bci, enterBlock);
-        List<Op.Result> ereStack = new ArrayList<>();
-        Block.Builder currentBlock = enterBlock;
-        for (int i = 0; i < targetEreStack.size(); i++) {
-            boolean last = i == targetEreStack.size() - 1;
-            Block.Builder nextBlock = last ? targetBlock : newBlock(targetBlock.parameters());
-            Block.Reference nextReference = nextBlock.reference(currentBlock.parameters());
-            ExceptionRegion entered = targetEreStack.get(i);
-            Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(
-                    nextReference,
-                    catchReferences(ereStack, entered)));
-            enteredRegionMap.put(enter, entered);
-            ereStack.add(enter);
-            currentBlock = nextBlock;
-        }
-        enteredRegionStacks.putIfAbsent(targetBlock, List.copyOf(ereStack));
         return enterBlock;
     }
 
     // Emit exits from innermost region to outermost region
-    private void exitRegions(List<Op.Result> initialEreStack, Block.Builder initialBlock,
-                             Block.Builder targetBlock, List<? extends Value> values) {
+    private void exitRegions(List<Op.Result> initialEreStack, Block.Builder initialBlock, Block.Builder targetBlock,
+                             List<? extends Value> values) {
         if (initialEreStack.isEmpty()) {
             initialBlock.add(CoreOp.branch(targetBlock.reference(values)));
-            return;
-        }
-
-        Block.Builder currentBlock = initialBlock;
-        for (int i = initialEreStack.size() - 1; i >= 0; i--) {
-            boolean last = i == 0;
-            Block.Builder nextBlock = last ? targetBlock : entryBlock.block();
-            Block.Reference nextReference = last ? nextBlock.reference(values) : nextBlock.reference();
-            currentBlock.add(JavaOp.exceptionRegionExit(initialEreStack.get(i), nextReference));
-            currentBlock = nextBlock;
+        } else {
+            Block.Builder currentBlock = initialBlock;
+            for (int i = initialEreStack.size() - 1; i >= 0; i--) {
+                boolean last = i == 0;
+                Block.Builder nextBlock = last ? targetBlock : entryBlock.block();
+                Block.Reference nextReference = last ? nextBlock.reference(values) : nextBlock.reference();
+                currentBlock.add(JavaOp.exceptionRegionExit(initialEreStack.get(i), nextReference));
+                currentBlock = nextBlock;
+            }
         }
     }
 
     // Move from one region stack to another
-    private List<Op.Result> ereTransit(List<Op.Result> initialEreStack, List<ExceptionRegion> targetEreStack,
-                                       Block.Builder initialBlock, Block.Builder targetBlock, List<? extends Value> values) {
+    private List<Op.Result> ereTransit(List<ExceptionRegion> targetEreStack, Block.Builder targetBlock) {
         int common = 0;
-        int limit = Math.min(initialEreStack.size(), targetEreStack.size());
-        while (common < limit && enteredRegionMap.get(initialEreStack.get(common)) == targetEreStack.get(common)) {
+        int limit = Math.min(actualEreStack.size(), targetEreStack.size());
+        while (common < limit && enteredRegionMap.get(actualEreStack.get(common)) == targetEreStack.get(common)) {
             common++;
         }
-        int exits = initialEreStack.size() - common;
+        int exits = actualEreStack.size() - common;
         int enters = targetEreStack.size() - common;
         if (exits == 0 && enters == 0) {
             // Join with branch
-            initialBlock.add(CoreOp.branch(targetBlock.reference(values)));
-            enteredRegionStacks.putIfAbsent(targetBlock, initialEreStack);
-            return initialEreStack;
+            currentBlock.add(CoreOp.branch(targetBlock.reference()));
+            enteredRegionStacks.putIfAbsent(targetBlock, actualEreStack);
+            return actualEreStack;
         }
-        List<Op.Result> ereStack = new ArrayList<>(initialEreStack);
-        Block.Builder currentBlock = initialBlock;
+        List<Op.Result> ereStack = new ArrayList<>(actualEreStack);
+        Block.Builder block = currentBlock;
         int transitionCount = exits + enters;
         for (int t = 0; t < transitionCount; t++) {
             boolean last = t == transitionCount - 1;
             Block.Builder nextBlock = last ? targetBlock : entryBlock.block();
-            Block.Reference nextReference = last ? nextBlock.reference(values) : nextBlock.reference();
+            Block.Reference nextReference = nextBlock.reference();
             if (t < exits) {
-                Op.Result exited = ereStack.removeLast();
-                currentBlock.add(JavaOp.exceptionRegionExit(exited, nextReference));
+                block.add(JavaOp.exceptionRegionExit(ereStack.removeLast(), nextReference));
             } else {
                 ExceptionRegion entered = targetEreStack.get(common + t - exits);
-                Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(nextReference,
-                                                                              catchReferences(ereStack, entered)));
+                Op.Result enter = block.add(JavaOp.exceptionRegionEnter(nextReference, catchReferences(ereStack, entered)));
                 enteredRegionMap.put(enter, entered);
                 ereStack.add(enter);
             }
-            currentBlock = nextBlock;
+            block = nextBlock;
         }
-        List<Op.Result> enteredStack = List.copyOf(ereStack);
-        enteredRegionStacks.putIfAbsent(targetBlock, enteredStack);
-        return enteredStack;
+        enteredRegionStacks.putIfAbsent(targetBlock, ereStack);
+        return ereStack;
     }
 
     // Build catch targets for one enter op
     private List<Block.Reference> catchReferences(List<Op.Result> initialEreStack, ExceptionRegion enteredRegion) {
         List<Block.Reference> catchReferences = new ArrayList<>();
+        List<Op.Result> enteredRegions = List.copyOf(initialEreStack);
         for (int handler : enteredRegion.handlers().reversed()) {
-            catchReferences.add(targetBlockForExceptionHandler(initialEreStack, enteredRegion.index, handler).reference());
+            CatchTargetKey key = new CatchTargetKey(handler, enteredRegions);
+            Block.Builder target = exceptionHandlerBlocks.get(key);
+            if (target == null) { // Avoid ConcurrentModificationException
+                target = transitionBlockForTarget(enteredRegions, handlerBcis.get(handler));
+                exceptionHandlerBlocks.put(key, target);
+            }
+            catchReferences.add(target.reference());
         }
         return catchReferences;
-    }
-
-    // Convert enter results to their regions
-    private List<ExceptionRegion> activeRegions(List<Op.Result> enteredRegions) {
-        return enteredRegions.stream().map((Op.Result enter) -> {
-            return enteredRegionMap.get(enter);
-        }).toList();
     }
 
     Block.Reference successorWithStack(Block.Builder next) {
