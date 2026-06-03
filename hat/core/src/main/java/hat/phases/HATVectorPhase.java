@@ -129,7 +129,7 @@ public final class HATVectorPhase implements HATPhase {
         }
     }
 
-    private void addVectorVarOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, VarTable varTable) {
+    private void varOpVector(Block.Builder blockBuilder, CoreOp.VarOp varOp, VarTable varTable) {
         Op.Result result = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, result.op(), VarTable.HATOpAttribute.VECTOR);
     }
@@ -148,7 +148,7 @@ public final class HATVectorPhase implements HATPhase {
 
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, varTable);
+                varOpVector(blockBuilder, varOp, varTable);
             }
             return blockBuilder;
         }, varTable).funcOp();
@@ -158,7 +158,7 @@ public final class HATVectorPhase implements HATPhase {
         Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup, funcOp, vectorOperation);
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, varTable);
+                varOpVector(blockBuilder, varOp, varTable);
             } else {
                 blockBuilder.add(op);
             }
@@ -192,7 +192,7 @@ public final class HATVectorPhase implements HATPhase {
                 );
                 blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), vectorOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, varTable);
+                varOpVector(blockBuilder, varOp, varTable);
             }
             return blockBuilder;
         }, varTable).funcOp();

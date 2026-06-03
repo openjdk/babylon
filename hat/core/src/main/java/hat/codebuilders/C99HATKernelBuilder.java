@@ -1037,66 +1037,89 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return is16BitFloat(invoke, Regex.of("(add|sub|mul|div)")) && !invoke.returnsVoid();
     }
 
+    private void handleVectorOperations(Invoke invoke) {
+        IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
+        if (invoke.name().equalsIgnoreCase("float4view")
+                || invoke.name().equalsIgnoreCase("float2view")) {
+            // could be share or global
+            boolean isSharedOrPrivate = isSharedOrPrivate(invoke.lookup(), invoke.op());
+            Value source = invoke.op().operands().getFirst();
+            Value index = invoke.op().operands().get(1);
+            generateVectorLoad(source, index, vectorShape, isSharedOrPrivate);
+        } else if (invoke.name().equalsIgnoreCase("of")) {
+            generateVectorOf(invoke.op(), vectorShape);
+        } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
+            var name = findVectorVarNameOrNull(invoke.op().operands().getFirst());
+            id(name);
+        } else {
+            throw new IllegalStateException("[CodeGen] Vector Operation found: " + invoke.name());
+        }
+    }
+
+    private void handleVectorView(Invoke invoke) {
+        IfaceValue.Vector.Shape vectorShape = getVectorShapeFromOperandN(invoke.lookup(), invoke.op(), 1);
+        boolean isShared = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst());
+        String vectorName = findVectorVarNameOrNull(invoke.op().operands().get(1));
+        hatVectorStoreOp(invoke.op(), vectorShape, vectorName, isShared);
+    }
+
+    private void handleVectorSelect(Invoke invoke) {
+        InvokeVar invokeVar = new InvokeVar(invoke.op(), invoke.varLoadOpFromFirstOperandOrNull());
+        if (invoke.returnsVoid()) {
+            hatSelectStoreOp(invoke, invokeVar);
+        } else {
+            hatSelectLoadOp(invoke, invokeVar);
+        }
+    }
+
+    private void handleS16Conversion(Invoke invoke) {
+        // F16
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
+            hatF16ConvOp(invoke.op(), reducedFloatType);
+        } else {
+            throw new IllegalStateException("[CodeGen] Unhandled op: " + invoke.name());
+        }
+    }
+
+    private void handleS16ToFloatConversion(Invoke invoke) {
+        // s16 type -> float conversion
+        // Obtain the reducedFLoatType
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
+            boolean isF16Local = isF16Local(invoke.op().operands().getFirst());
+            boolean wasFloat = invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp && varLoadOp.resultType().equals(JavaType.FLOAT);
+            // generate
+            hatF16ToFloatConvOp(invoke, reducedFloatType, wasFloat, isF16Local);
+        } else {
+            throw new IllegalStateException("[CodeGen] No reduced float type");
+        }
+    }
+
+    private void handleS16BinaryOperation(Invoke invoke) {
+        if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> category) {
+            // generate
+            hatF16BinaryOp(invoke, category);
+        } else {
+            throw new IllegalStateException("[CodeGen] Unhandled op: " + invoke.name());
+        }
+    }
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
         if (C99VecAndMatHandler.isVecInvoke(invoke)) { // hacked for vec op calls.
             C99VecAndMatHandler.handleInvoke(self(), invoke);
         } else if (isVectorOperation(invokeOp)) {
-            IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-            if (invoke.name().equalsIgnoreCase("float4view")
-                    || invoke.name().equalsIgnoreCase("float2view")) {
-                // could be share or global
-                boolean isSharedOrPrivate = isSharedOrPrivate(invoke.lookup(), invoke.op());
-                Value source = invoke.op().operands().getFirst();
-                Value index = invoke.op().operands().get(1);
-                generateVectorLoad(source, index, vectorShape, isSharedOrPrivate);
-            } else if (invoke.name().equalsIgnoreCase("of")) {
-                generateVectorOf(invokeOp, vectorShape);
-            } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
-                var name = findVectorVarNameOrNull(invokeOp.operands().getFirst());
-                id(name);
-            } else {
-                throw new IllegalStateException("[CodeGen] Vector Operation found: " + invoke.name());
-            }
+            handleVectorOperations(invoke);
         } else if (isVectorView(invokeOp)) {
-            IfaceValue.Vector.Shape vectorShape = getVectorShapeFromOperandN(invoke.lookup(), invoke.op(), 1);
-            boolean isShared = findIsSharedOrPrivateSpace(invoke.op().operands().getFirst());
-            String vectorName = findVectorVarNameOrNull(invokeOp.operands().get(1));
-            hatVectorStoreOp(invokeOp, vectorShape, vectorName, isShared);
+            handleVectorView(invoke);
         } else if (isVectorSelectOperation(invoke)) {
-            InvokeVar invokeVar = new InvokeVar(invokeOp, invoke.varLoadOpFromFirstOperandOrNull());
-            if (invoke.returnsVoid()) {
-                hatSelectStoreOp(invoke, invokeVar);
-            } else {
-                hatSelectLoadOp(invoke, invokeVar);
-            }
+            handleVectorSelect(invoke);
         } else if (isS16Conversion(invoke)) {
-            // F16
-            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
-                hatF16ConvOp(invokeOp, reducedFloatType);
-            } else {
-                throw new IllegalStateException("[CodeGen] Unhandled op: " + invoke.name());
-            }
+            handleS16Conversion(invoke);
         } else if (isS16ToFloatConversion(invoke)) {
-            // s16 type -> float conversion
-            // Obtain the reducedFLoatType
-            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
-                boolean isF16Local = isF16Local(invoke.op().operands().getFirst());
-                boolean wasFloat = invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp && varLoadOp.resultType().equals(JavaType.FLOAT);
-                // generate
-                hatF16ToFloatConvOp(invoke, reducedFloatType, wasFloat, isF16Local);
-            } else {
-                throw new IllegalStateException("[CodeGen] No reduced float type");
-            }
+            handleS16ToFloatConversion(invoke);
         } else if (isS16BinaryOp(invoke)) {
-            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> category) {
-                // generate
-                hatF16BinaryOp(invoke, category);
-            } else {
-                throw new IllegalStateException("[CodeGen] Unhandled op: " + invoke.name());
-            }
-
+            handleS16BinaryOperation(invoke);
         } else if (invoke.refIs(IfaceValue.class)) {
             if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
                 if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {

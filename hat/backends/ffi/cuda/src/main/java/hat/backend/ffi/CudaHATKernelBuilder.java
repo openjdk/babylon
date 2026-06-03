@@ -245,9 +245,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             recurse(hatVectorBinaryOp2);
         }
 
-        for (int i = 0; i < hatVectorBinaryOp.vectorShape().lanes(); i++) {
+        for (int lane = 0; lane < hatVectorBinaryOp.vectorShape().lanes(); lane++) {
             // this is where varName is null
-            id(hatVectorBinaryOp.varName()).dot().id(hatVectorBinaryOp.mapLane(i)).sp().equals().sp();
+            id(hatVectorBinaryOp.varName()).dot().id(hatVectorBinaryOp.mapLane(lane)).sp().equals().sp();
 
             if (op1 instanceof Op.Result r) {
                 if (!(r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp1)) {
@@ -256,7 +256,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     id(hatVectorBinaryOp1.varName());
                 }
             }
-            dot().id(hatVectorBinaryOp.mapLane(i)).sp();
+            dot().id(hatVectorBinaryOp.mapLane(lane)).sp();
             id(hatVectorBinaryOp.operationType().symbol()).sp();
 
             if (op2 instanceof Op.Result r) {
@@ -266,7 +266,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     id(hatVectorBinaryOp2.varName());
                 }
             }
-            dot().id(hatVectorBinaryOp.mapLane(i)).semicolon().nl();
+            dot().id(hatVectorBinaryOp.mapLane(lane)).semicolon().nl();
         }
 
         return self();
