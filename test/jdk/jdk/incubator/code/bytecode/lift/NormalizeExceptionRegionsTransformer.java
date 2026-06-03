@@ -25,43 +25,34 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.core.CoreOp.*;
+import jdk.incubator.code.dialect.java.JavaOp.*;
 
-/// Normalizes consecutive lifted fragments of the same original exception region
+/// Normalizes lifted fragments of the same exception region
 ///
-/// Lifted:
+/// ```
 ///           entry
 ///             |
 ///     enter R#1 handler H
-///        /          \
-/// protected A    protected B
-///      |              |
-///   exit R#1       exit R#1
-///      |              |
-/// branch adapter branch adapter
-///        \          /
-///     enter R#2 handler H
-///             |
+///        /          \                         entry
+/// protected A    protected B                    |
+///      |              |                 enter R handler H
+///   exit R#1       exit R#1                /         \
+///      |              |         ->  protected A   protected B
+/// branch adapter branch adapter             \         /
+///        \          /                       protected C
+///     enter R#2 handler H                       |
+///             |                               exit R
 ///        protected C
 ///             |
 ///          exit R#2
-///
-/// Normalized:
-///           entry
-///             |
-///     enter R handler H
-///        /         \
-/// protected A   protected B
-///        \         /
-///        protected C
-///             |
-///           exit R
-final class ExceptionRegionsTransformer implements CodeTransformer {
+/// ```
+final class NormalizeExceptionRegionsTransformer implements CodeTransformer {
 
     private boolean modified;
 
-    static CoreOp.FuncOp transform(CoreOp.FuncOp func) {
-        var t = new ExceptionRegionsTransformer();
+    static FuncOp transform(FuncOp func) {
+        var t = new NormalizeExceptionRegionsTransformer();
         do {
             // Nested regions are exposed after the top are collapsed
             t.modified = false;
@@ -81,28 +72,26 @@ final class ExceptionRegionsTransformer implements CodeTransformer {
     @Override
     public Block.Builder acceptOp(Block.Builder builder, Op op) {
         // Collapse matching exit/re-enter boundaries
-        if (!(op instanceof JavaOp.ExceptionRegionExit exit) || !collapseExitToReenter(builder, exit)) {
+        if (!(op instanceof ExceptionRegionExit exit) || !collapseExitToReenter(builder, exit)) {
             builder.add(op);
         }
         return builder;
     }
 
-    private boolean collapseExitToReenter(Block.Builder builder, JavaOp.ExceptionRegionExit exit) {
+    private boolean collapseExitToReenter(Block.Builder builder, ExceptionRegionExit exit) {
         // Match exit -> optional branch adapter -> re-enter
-        JavaOp.ExceptionRegionEnter exitedEnter = exit.enterOp();
+        ExceptionRegionEnter exitedEnter = exit.enterOp();
         Block exitTarget = exit.endReference().targetBlock();
-        CoreOp.BranchOp adapterBranch = asBranchAdapter(exitTarget);
+        BranchOp adapterBranch = asBranchAdapter(exitTarget);
         Block enterBlock = adapterBranch == null ? exitTarget : adapterBranch.branch().targetBlock();
-
         if (enterBlock.ops().size() != 1
-                || !(enterBlock.terminatingOp() instanceof JavaOp.ExceptionRegionEnter reenter)
+                || !(enterBlock.terminatingOp() instanceof ExceptionRegionEnter reenter)
                 || !isExitTargetOf(exitTarget, exitedEnter)
                 || (adapterBranch != null && !isOnlyReachedByExitAdapters(enterBlock, exitedEnter))
                 || !sameCatchTargets(exitedEnter, reenter)
                 || !reenter.result().isDominatedBy(exitedEnter.result())) {
             return false;
         }
-
         // Reuse the old enter result and skip the adapter blocks
         var cc = builder.context();
         cc.mapValue(reenter.result(), cc.getValue(exitedEnter.result()));
@@ -118,40 +107,40 @@ final class ExceptionRegionsTransformer implements CodeTransformer {
         return true;
     }
 
-    // Return a pure branch adapter, if this block is one
-    private static CoreOp.BranchOp asBranchAdapter(Block block) {
-        return block.ops().size() == 1 && block.terminatingOp() instanceof CoreOp.BranchOp branch
+    // Return a branch adapter, if this block is one
+    private static BranchOp asBranchAdapter(Block block) {
+        return block.ops().size() == 1 && block.terminatingOp() instanceof BranchOp branch
                 ? branch
                 : null;
     }
 
     // All predecessors must exit the same enter
-    private static boolean isExitTargetOf(Block block, JavaOp.ExceptionRegionEnter enter) {
+    private static boolean isExitTargetOf(Block block, ExceptionRegionEnter enter) {
         return !block.predecessors().isEmpty()
                 && block.predecessors().stream().allMatch(predecessor ->
-                        predecessor.terminatingOp() instanceof JavaOp.ExceptionRegionExit e
+                        predecessor.terminatingOp() instanceof ExceptionRegionExit e
                                 && e.endReference().targetBlock() == block
                                 && e.enterOp() == enter);
     }
 
     // Several branch adapters may feed the same re-enter block
-    private static boolean isOnlyReachedByExitAdapters(Block block, JavaOp.ExceptionRegionEnter enter) {
+    private static boolean isOnlyReachedByExitAdapters(Block block, ExceptionRegionEnter enter) {
         return block.predecessors().stream().allMatch(predecessor ->
-                predecessor.terminatingOp() instanceof CoreOp.BranchOp branch
+                predecessor.terminatingOp() instanceof BranchOp branch
                         && branch.branch().targetBlock() == block
                         && isExitTargetOf(predecessor, enter));
     }
 
-    // Compare real handler targets, not adapter blocks
-    private static boolean sameCatchTargets(JavaOp.ExceptionRegionEnter first, JavaOp.ExceptionRegionEnter second) {
-        return first.catchReferences().stream().map(ExceptionRegionsTransformer::skipBranchAdapter).toList()
-                .equals(second.catchReferences().stream().map(ExceptionRegionsTransformer::skipBranchAdapter).toList());
+    // Compare real handler targets
+    private static boolean sameCatchTargets(ExceptionRegionEnter first, ExceptionRegionEnter second) {
+        return first.catchReferences().stream().map(NormalizeExceptionRegionsTransformer::skipBranchAdapter).toList()
+                .equals(second.catchReferences().stream().map(NormalizeExceptionRegionsTransformer::skipBranchAdapter).toList());
     }
 
-    // Peel one branch adapter
+    // Skip one branch adapter
     private static Block skipBranchAdapter(Block.Reference reference) {
         Block target = reference.targetBlock();
-        CoreOp.BranchOp adapterBranch = asBranchAdapter(target);
+        BranchOp adapterBranch = asBranchAdapter(target);
         return adapterBranch != null
                 ? adapterBranch.branch().targetBlock()
                 : target;

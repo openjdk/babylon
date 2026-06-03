@@ -228,7 +228,7 @@ public final class BytecodeLift {
         if (!methodModel.flags().has(AccessFlag.STATIC)) {
             mDesc = mDesc.insertParameterTypes(0, classModel.thisClass().asSymbol());
         }
-        return ExceptionRegionsTransformer.transform(
+        return NormalizeExceptionRegionsTransformer.transform(
                 NormalizeBlocksTransformer.transform(
                     UnresolvedTypesTransformer.transform(
                         SlotToVarTransformer.transform(
