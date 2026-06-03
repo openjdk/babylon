@@ -217,11 +217,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
-        return self();
-    }
-
-    @Override
     public OpenCLJExtractedHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
         return self();
     }
@@ -262,17 +257,17 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp(JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp, IfaceValue.Vector.Shape vectorShape, boolean isDeviceAllocated, String name) {
-        return self();
-    }
-
-    @Override
     public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke binOp) {
         return paren(_-> {
             recurseResultOrThrow(binOp.op().operands().get(0));
             sp().id(BinaryOpEnum.of(binOp.op()).symbol()).sp();
             recurseResultOrThrow(binOp.op().operands().get(1));
         });
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
+       return self();
     }
 
 

@@ -121,41 +121,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
-
     @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
-        vstore(vectorShape.lanes()).paren(_-> {
+    public OpenCLHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
+        return vstore(vectorShape.lanes()).paren(_-> {
             // if the value to be stored is an operation, recurse on the operation
-//            if (invokeOp.operands().get(1).asResult().op() instanceof JavaOp.InvokeOp invokeOp1 && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp1))) {
-//                recurse(invokeOp1);
-//            } else {
-                varName(name);
-//            }
-            csp().intConstZero().csp().ampersand().recurseResultOrThrow(invokeOp.operands().get(0));
+            varName(name);
+            csp().intConstZero().csp().ampersand().recurseResultOrThrow(dest);
             either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ ->recurseResultOrThrow(invokeOp.operands().get(2)));
+            id("array").sbrace(_ ->recurseResultOrThrow(index));
         });
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp(JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp, IfaceValue.Vector.Shape vectorShape, boolean isDeviceAllocated, String name) {
-        Op.Result buffer = OpHelper.resultFromFirstOperandOrThrow(arrayStoreOp);
-        Value a = buffer;
-        Value b = arrayStoreOp.operands().getLast();
-        Value c = arrayStoreOp.operands().get(1);
-        vstore(vectorShape.lanes()).paren(_-> {
-            // if the value to be stored is an operation, recurse on the operation
-//            if (b.declaringElement() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
-//                recurse(binOp);
-//            } else {
-                varName(name);
-//            }
-            csp().intConstZero().csp().ampersand().recurseResultOrThrow(a);
-            either(isDeviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ ->recurseResultOrThrow(c));
-        });
-        return self();
     }
 
     @Override

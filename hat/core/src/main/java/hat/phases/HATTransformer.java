@@ -40,19 +40,19 @@ public class HATTransformer {
             new HATArrayViewPhase(), // pending PTROps
 
             // Memory
-            new HATMemoryPhase(),  // Ok
+            new HATMemoryPhase(),    // Ok
 
             // ID's /thread access
-            new HATThreadsPhase(), // Let's keep the dialect for barriers
+            new HATThreadsPhase(),   // Let's keep the dialect for barriers
 
             // MathLib phase
-            new HATMathLibPhase(), // OK
+            new HATMathLibPhase(),   // OK
 
             // views for vector types
-            new HATVectorPhase(), // Ok
+            new HATVectorPhase(),    // Ok
 
             // F16 type
-            new HATFP16Phase()    // Ok
+            new HATFP16Phase()       // Ok
     );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){

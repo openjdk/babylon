@@ -39,7 +39,12 @@ import optkl.VarTable;
 import optkl.util.ops.VarLikeOp;
 
 import java.lang.invoke.MethodHandles;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static hat.phases.HATPhaseUtils.findOpInResultFromFirstOperandsOrNull;
 import static optkl.OpHelper.Invoke;
