@@ -37,22 +37,22 @@ public class HATTier  {
             new HATBarrierPhase(),   // Let's keep the dialect for barriers
 
             // array views
-            new HATArrayViewPhase(),  // pending PTROps
+            new HATArrayViewPhase(), // pending PTROps
 
             // Memory
-            new HATMemoryPhase(), // ok
+            new HATMemoryPhase(),  // Ok
 
             // ID's /thread access
-            new HATThreadsPhase(),  // Let's keep the dialect for barriers
+            new HATThreadsPhase(), // Let's keep the dialect for barriers
 
             // MathLib phase
             new HATMathLibPhase(), // OK
 
             // views for vector types
-            new HATVectorPhase(), // Pending binOps
+            new HATVectorPhase(), // Ok
 
             // F16 type
-            new HATFP16Phase()  // Done
+            new HATFP16Phase()    // Ok
     );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){

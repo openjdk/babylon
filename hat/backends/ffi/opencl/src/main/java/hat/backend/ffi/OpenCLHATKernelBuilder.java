@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
@@ -127,11 +126,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
         vstore(vectorShape.lanes()).paren(_-> {
             // if the value to be stored is an operation, recurse on the operation
-            if (invokeOp.operands().get(1).asResult().op() instanceof JavaOp.InvokeOp invokeOp1 && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp1))) {
-                recurse(invokeOp1);
-            } else {
+//            if (invokeOp.operands().get(1).asResult().op() instanceof JavaOp.InvokeOp invokeOp1 && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp1))) {
+//                recurse(invokeOp1);
+//            } else {
                 varName(name);
-            }
+//            }
             csp().intConstZero().csp().ampersand().recurseResultOrThrow(invokeOp.operands().get(0));
             either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
             id("array").sbrace(_ ->recurseResultOrThrow(invokeOp.operands().get(2)));
@@ -147,11 +146,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         Value c = arrayStoreOp.operands().get(1);
         vstore(vectorShape.lanes()).paren(_-> {
             // if the value to be stored is an operation, recurse on the operation
-            if (b.declaringElement() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
-                recurse(binOp);
-            } else {
+//            if (b.declaringElement() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
+//                recurse(binOp);
+//            } else {
                 varName(name);
-            }
+//            }
             csp().intConstZero().csp().ampersand().recurseResultOrThrow(a);
             either(isDeviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
             id("array").sbrace(_ ->recurseResultOrThrow(c));
@@ -165,15 +164,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             recurseResultOrThrow(binOp.op().operands().get(0));
             sp().id(BinaryOpEnum.of(binOp.op()).symbol()).sp();
             recurseResultOrThrow(binOp.op().operands().get(1));
-        });
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp binOp) {
-        return paren(_-> {
-            recurseResultOrThrow(binOp.operands().get(0));
-            sp().id(binOp.operationType().symbol()).sp();
-            recurseResultOrThrow(binOp.operands().get(1));
         });
     }
 

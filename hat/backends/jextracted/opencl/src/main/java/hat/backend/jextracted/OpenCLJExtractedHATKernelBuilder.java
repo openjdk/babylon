@@ -26,7 +26,6 @@ package hat.backend.jextracted;
 
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.dialect.HATVectorOp;
 import hat.dialect.BinaryOpEnum;
 import hat.types.BF16;
 import hat.types.F16;
@@ -89,25 +88,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     public OpenCLJExtractedHATKernelBuilder atomicInc( Op.Result instanceResult, String name) {
         return id("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().id(name));
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
-
-        oparen();
-        Value op1 = hatVectorBinaryOp.operands().get(0);
-        Value op2 = hatVectorBinaryOp.operands().get(1);
-
-        if (op1 instanceof Op.Result r) {
-            recurse( r.op());
-        }
-        sp().id(hatVectorBinaryOp.operationType().symbol()).sp();
-
-        if (op2 instanceof Op.Result r) {
-            recurse( r.op());
-        }
-        cparen();
-        return self();
     }
 
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();

@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATVectorOp;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
@@ -308,59 +307,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }
 
             dot().id(mapLane(lane)).semicolon().nl();
-        }
-
-        return self();
-    }
-
-
-    @Override
-    public CudaHATKernelBuilder hatBinaryVectorOp(HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
-
-        Value op1 = hatVectorBinaryOp.operands().get(0);
-        Value op2 = hatVectorBinaryOp.operands().get(1);
-
-        final String postFixOp1 = "_1";
-        final String postFixOp2 = "_2";
-
-        if (op1 instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp1) {
-            type(hatVectorBinaryOp1.buildType()).sp()
-                    .id(hatVectorBinaryOp.varName() + postFixOp1)
-                    .semicolon().nl();
-            hatVectorBinaryOp1.varName(hatVectorBinaryOp.varName() + postFixOp1);
-            recurse(hatVectorBinaryOp1);
-        }
-
-        if (op2 instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp2) {
-            type(hatVectorBinaryOp2.buildType()).sp()
-                    .id(hatVectorBinaryOp.varName() + postFixOp2)
-                    .semicolon().nl();
-            hatVectorBinaryOp2.varName(hatVectorBinaryOp.varName() + postFixOp2);
-            recurse(hatVectorBinaryOp2);
-        }
-
-        for (int lane = 0; lane < hatVectorBinaryOp.vectorShape().lanes(); lane++) {
-            // this is where varName is null
-            id(hatVectorBinaryOp.varName()).dot().id(hatVectorBinaryOp.mapLane(lane)).sp().equals().sp();
-
-            if (op1 instanceof Op.Result r) {
-                if (!(r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp1)) {
-                    recurse(r.op());
-                } else {
-                    id(hatVectorBinaryOp1.varName());
-                }
-            }
-            dot().id(hatVectorBinaryOp.mapLane(lane)).sp();
-            id(hatVectorBinaryOp.operationType().symbol()).sp();
-
-            if (op2 instanceof Op.Result r) {
-                if (!(r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp2)) {
-                    recurse(r.op());
-                } else {
-                    id(hatVectorBinaryOp2.varName());
-                }
-            }
-            dot().id(hatVectorBinaryOp.mapLane(lane)).semicolon().nl();
         }
 
         return self();

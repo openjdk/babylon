@@ -24,9 +24,7 @@
  */
 package hat.phases;
 
-import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATPtrOp;
-import hat.dialect.HATVectorOp;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -44,7 +42,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.*;
 
 import static hat.phases.HATPhaseUtils.findOpInResultFromFirstOperandsOrNull;
-import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.classTypeToTypeOrThrow;
