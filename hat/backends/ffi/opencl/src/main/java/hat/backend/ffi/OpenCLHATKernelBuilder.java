@@ -48,7 +48,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static optkl.IfaceValue.Vector.getVectorShape;
-import static optkl.OpHelper.Invoke.invoke;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
