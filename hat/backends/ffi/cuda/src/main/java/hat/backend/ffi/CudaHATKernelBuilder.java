@@ -45,10 +45,12 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Stack;
+import java.util.SequencedSet;
 import java.util.stream.Stream;
 
 import static optkl.IfaceValue.Vector.getVectorShape;
@@ -56,8 +58,13 @@ import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
+    private final Map<Op, String> mapVectorName;
+    private final Deque<String> stack;
+
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraph, scopedCodeBuilderContext);
+        stack = new ArrayDeque<>();
+        mapVectorName = new HashMap<>();
     }
 
     private CudaHATKernelBuilder half2float() {
@@ -181,10 +188,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("atomicAdd").paren(_ -> ampersand().recurseResultOrThrow(instanceResult).rarrow().id(name).comma().literal(1));
     }
 
-    @Override
-    public CudaHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
-        Value dest = invokeOp.operands().get(0);
-        Value index = invokeOp.operands().get(2);
+    private CudaHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
         keyword("reinterpret_cast").ltgt(_ -> type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().asterisk());
         paren(_ -> {
             ampersand().recurseResultOrThrow(dest);
@@ -194,7 +198,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         sbrace(_ -> intConstZero());
         sp().equals().sp();
         // if the value to be stored is an operation, recurse on the operation
-        if (invokeOp.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
+        if (op.operands().get(1) instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp1 && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp1))) {
             recurse(r.op());
         } else {
             varName(name);
@@ -203,28 +207,29 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
+        Value dest = invokeOp.operands().get(0);
+        Value index = invokeOp.operands().get(2);
+        return hatVectorStoreOp(dest, index, vectorShape, deviceAllocated, name, invokeOp);
+    }
+
+    @Override
     public CudaHATKernelBuilder hatVectorStoreOp(JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp, IfaceValue.Vector.Shape vectorShape, boolean isLocal, String name) {
         Op.Result dest = OpHelper.resultFromFirstOperandOrThrow(arrayStoreOp);
         Value index = arrayStoreOp.operands().get(1);
-        keyword("reinterpret_cast").ltgt(_ -> type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().asterisk());
-        paren(_ -> {
-            ampersand().recurseResultOrThrow(dest);
-            either(isLocal, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
-        });
-        sbrace(_ -> intConstZero());
-        sp().equals().sp();
-        // if the value to be stored is an operation, recurse on the operation
-        if (arrayStoreOp.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-            recurse(r.op());
-        } else {
-            varName(name);
-        }
-        return self();
+        return hatVectorStoreOp(dest, index, vectorShape, isLocal, name, arrayStoreOp);
     }
 
-    private final Map<Op, String> mapVectorName = new HashMap<>();
-    private final Stack<String> stack = new Stack<>();
+    private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
+        Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
+        IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
+        String type = vectorShape.codeType().toString() + vectorShape.lanes();
+        String current = stack.peek();
+        type(type).sp().id(current + postfix).semicolon().nl();
+        stack.push(current + postfix);
+        mapVectorName.put(invokeOp, current + postfix);
+        recurse(invokeOp);
+    }
 
     @Override
     public CudaHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke binOp) {
@@ -234,46 +239,47 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         final String postFixOp1 = "_1";
         final String postFixOp2 = "_2";
-        String nameVector = findVectorVarNameOrNull(binOp.op().operands().getFirst());
-        if (nameVector != null) {
-            stack.push(nameVector);
-        }
 
-        if (op1 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp) {
-            Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
-            if (isVectorBinaryOperation(invoke)) {
-                IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                String type = vectorShape.codeType().toString() + vectorShape.lanes();
-                String current = stack.peek();
-                type(type).sp()
-                        .id(current + postFixOp1)
-                        .semicolon().nl();
-                stack.push(current + postFixOp1);
-                mapVectorName.put(invokeOp, current + postFixOp1);
-                recurse(invokeOp);
+        SequencedSet<Op.Result> uses = binOp.op().result().uses();
+        String nameVector = null;
+        for (Op.Result result : uses) {
+            if (result.declaringElement() instanceof CoreOp.VarOp varOp) {
+                // This means we have a vector declaration that we need to operate on using
+                // the individual components
+                stack.push(varOp.varName());
+                nameVector = varOp.varName();
             }
         }
 
-        if (!stack.empty()) {
+        if (nameVector != null) {
+            // We add the name on the stack to process pending
+            // vector operations as operands
+            stack.push(nameVector);
+        } else {
+            // it must be already in the haspMap
+            nameVector = mapVectorName.get(binOp.op());
+        }
+
+        if (nameVector == null) {
+            // main name can't be null
+            // This is only triggered for VectorArrayViews
+            // which means that probably we need a check in the ArrayViews
+            return self();
+        }
+
+        if (op1 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp))) {
+            recurseVectorOperand(invokeOp, postFixOp1);
+        }
+
+        if (!stack.isEmpty()) {
             stack.pop();
         }
 
-        if (op2 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp) {
-            Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
-            if (isVectorBinaryOperation(invoke)) {
-                IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                String type = vectorShape.codeType().toString() + vectorShape.lanes();
-                String current = stack.peek();
-                type(type).sp()
-                        .id(current + postFixOp2)
-                        .semicolon().nl();
-                stack.push(current + postFixOp2);
-                mapVectorName.put(invokeOp, current + postFixOp2);
-                recurse(invokeOp);
-            }
+        if (op2 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp))) {
+            recurseVectorOperand(invokeOp, postFixOp2);
         }
 
-        if (!stack.empty()) {
+        if (!stack.isEmpty()) {
             stack.pop();
         }
 
@@ -288,7 +294,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     recurse(r.op());
                 } else {
                     id(mapVectorName.get(invokeOp));
-                    //id(hatVectorBinaryOp1.varName());
                 }
             }
             dot().id(mapLane(lane)).sp();
@@ -299,7 +304,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     recurse(r.op());
                 } else {
                     id(mapVectorName.get(invokeOp));
-                    //id(hatVectorBinaryOp2.varName());
                 }
             }
 
@@ -585,7 +589,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
             type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().varName(varOp);
             Value operand = varOp.operands().getFirst();
-            if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
+            if (operand instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext().lookup(), invokeOp))) {
                 semicolon().nl();
             } else {
                 assign();

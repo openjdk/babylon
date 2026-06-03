@@ -867,17 +867,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     // recursive
     public static String findVectorVarNameOrNull(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findVectorVarNameOrNull(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
-                return varOp.varName();
+        switch (v) {
+            case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
+                return findVectorVarNameOrNull(varLoadOp);
             }
-            return null;
+            case null, default -> {
+                if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+                    return varOp.varName();
+                }
+                return null;
+            }
         }
     }
-
 
     private boolean isVectorView(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);

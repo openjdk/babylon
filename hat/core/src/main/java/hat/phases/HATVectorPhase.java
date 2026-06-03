@@ -25,11 +25,9 @@
 package hat.phases;
 
 import hat.device.NonMappableIface;
-import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATVectorOp;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -40,7 +38,6 @@ import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -49,8 +46,6 @@ import java.util.stream.Stream;
 
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
-import static optkl.OpHelper.Invoke.invoke;
-import static optkl.OpHelper.copyLocation;
 
 public final class HATVectorPhase implements HATPhase {
 
@@ -168,31 +163,17 @@ public final class HATVectorPhase implements HATPhase {
 
     private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
         Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
             if (variable.firstOperandAsInvoke() instanceof Invoke invoke
                     && invoke.named(vectorOperation.methodName)
                     && invoke.returns(Vector.class)) {
                 Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                vectorShapeMap.put(invoke.op(), vectorShape);
                 vectorShapeMap.put(variable.op(), vectorShape);
-                invokeToVar.put(invoke.op(), variable.op());
             }
         });
 
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                blockBuilder.add(op);
-//                var varOp = invokeToVar.get(invokeOp);
-//                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
-//                        varOp.varName(),
-//                        BinaryOpEnum.of(invokeOp),
-//                        invokeOp.resultType(),
-//                        vectorShapeMap.get(invokeOp),
-//                        blockBuilder.context().getValues(invokeOp.operands())
-//                );
-//                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), vectorOp)));
-            } else if (op instanceof CoreOp.VarOp varOp) {
+            if (op instanceof CoreOp.VarOp varOp) {
                 varOpVector(blockBuilder, varOp, varTable);
             }
             return blockBuilder;
@@ -213,42 +194,42 @@ public final class HATVectorPhase implements HATPhase {
         return vectorShapeMap;
     }
 
-    private CoreOp.FuncOp transformBinaryOperation(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
-        funcOp = dialectifyVectorBinaryOps(lookup, funcOp, varTable, vectorOperation);
-        return dialectifyVectorBinaryWithConcatenationOps(lookup, funcOp, varTable, vectorOperation);
-    }
+//    private CoreOp.FuncOp transformBinaryOperation(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
+//        funcOp = dialectifyVectorBinaryOps(lookup, funcOp, varTable, vectorOperation);
+//        return dialectifyVectorBinaryWithConcatenationOps(lookup, funcOp, varTable, vectorOperation);
+//    }
 
-    private boolean isVectorOperation(CodeElement<?, ?> codeElement, VOp vectorOperation) {
-        return invoke(lookup, codeElement) instanceof Invoke invoke && invoke.returns(Vector.class) && invoke.named(vectorOperation.methodName);
-    }
+//    private boolean isVectorOperation(CodeElement<?, ?> codeElement, VOp vectorOperation) {
+//        return invoke(lookup, codeElement) instanceof Invoke invoke && invoke.returns(Vector.class) && invoke.named(vectorOperation.methodName);
+//    }
 
-    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
-        Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
-        funcOp.elements().forEach(codeElement -> {
-            if (isVectorOperation(codeElement, vectorOperation)) {
-                Invoke invoke = invoke(lookup, codeElement);
-                invoke.op().operands().stream()// this can't be replaced with findFirst
-                        .filter(operand -> operand instanceof Op.Result && ((Op.Result) operand).op() instanceof CoreOp.VarAccessOp.VarLoadOp)
-                        .map(operand -> (CoreOp.VarAccessOp.VarLoadOp) ((Op.Result) operand).op())
-                        .forEach(_ -> nodesInvolved.add(invoke.op()));
-            }
-        });
-
-        return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
-            if (invoke(lookup, op) instanceof Invoke invoke) {
-                blockBuilder.add(op);
-//                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
-//                        OpHelper.findVectorVarNameOrNull(invoke.op().operands().getFirst()),
-//                        BinaryOpEnum.of(invoke.op()),
-//                        invoke.returnType(),
-//                        getVectorShape(invoke.lookup(), invoke.returnType()),
-//                        blockBuilder.context().getValues(invoke.op().operands())
-//                );
-//                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), vectorOp)));
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
+//    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
+//        Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
+//        funcOp.elements().forEach(codeElement -> {
+//            if (isVectorOperation(codeElement, vectorOperation)) {
+//                Invoke invoke = invoke(lookup, codeElement);
+//                invoke.op().operands().stream()// this can't be replaced with findFirst
+//                        .filter(operand -> operand instanceof Op.Result && ((Op.Result) operand).op() instanceof CoreOp.VarAccessOp.VarLoadOp)
+//                        .map(operand -> (CoreOp.VarAccessOp.VarLoadOp) ((Op.Result) operand).op())
+//                        .forEach(_ -> nodesInvolved.add(invoke.op()));
+//            }
+//        });
+//
+//        return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
+//            if (invoke(lookup, op) instanceof Invoke invoke) {
+//                blockBuilder.add(op);
+////                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
+////                        OpHelper.findVectorVarNameOrNull(invoke.op().operands().getFirst()),
+////                        BinaryOpEnum.of(invoke.op()),
+////                        invoke.returnType(),
+////                        getVectorShape(invoke.lookup(), invoke.returnType()),
+////                        blockBuilder.context().getValues(invoke.op().operands())
+////                );
+////                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), vectorOp)));
+//            }
+//            return blockBuilder;
+//        }, varTable).funcOp();
+//    }
 
     @FunctionalInterface
     public interface VectorTransformer {
@@ -263,10 +244,10 @@ public final class HATVectorPhase implements HATPhase {
         vectorTransformers.put(VOp.FLOAT2_LOAD, this::dialectifyVectorLoad); // done
         vectorTransformers.put(VOp.OF, this::dialectifyVectorOf);            // done
         vectorTransformers.put(VOp.MAKE_MUTABLE, this::dialectifyVectorOf);  // done
-        vectorTransformers.put(VOp.ADD, this::transformBinaryOperation);
-        vectorTransformers.put(VOp.SUB, this::transformBinaryOperation);
-        vectorTransformers.put(VOp.MUL, this::transformBinaryOperation);
-        vectorTransformers.put(VOp.DIV, this::transformBinaryOperation);
+        vectorTransformers.put(VOp.ADD, this::dialectifyVectorBinaryOps);
+        vectorTransformers.put(VOp.SUB, this::dialectifyVectorBinaryOps);
+        vectorTransformers.put(VOp.MUL, this::dialectifyVectorBinaryOps);
+        vectorTransformers.put(VOp.DIV, this::dialectifyVectorBinaryOps);
     }
 
     @Override

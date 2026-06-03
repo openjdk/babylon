@@ -49,6 +49,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static optkl.IfaceValue.Vector.getVectorShape;
+import static optkl.OpHelper.Invoke.invoke;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
@@ -126,8 +127,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder hatVectorStoreOp(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape, String name, boolean deviceAllocated) {
         vstore(vectorShape.lanes()).paren(_-> {
             // if the value to be stored is an operation, recurse on the operation
-            if (invokeOp.operands().get(1).asResult().op() instanceof HATVectorOp.HATVectorBinaryOp binOp) {
-                recurse(binOp);
+            if (invokeOp.operands().get(1).asResult().op() instanceof JavaOp.InvokeOp invokeOp1 && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp1))) {
+                recurse(invokeOp1);
             } else {
                 varName(name);
             }
