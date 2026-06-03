@@ -26,6 +26,7 @@ package hat.backend.ffi;
 
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATVectorOp;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
@@ -47,9 +48,11 @@ import jdk.incubator.code.Value;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.stream.Stream;
 
 import static optkl.IfaceValue.Vector.getVectorShape;
+import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
@@ -219,6 +222,93 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
         return self();
     }
+
+    private final Map<Op, String> mapVectorName = new HashMap<>();
+    private final Stack<String> stack = new Stack<>();
+
+    @Override
+    public CudaHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke binOp) {
+
+        Value op1 = binOp.op().operands().get(0);
+        Value op2 = binOp.op().operands().get(1);
+
+        final String postFixOp1 = "_1";
+        final String postFixOp2 = "_2";
+        String nameVector = findVectorVarNameOrNull(binOp.op().operands().getFirst());
+        if (nameVector != null) {
+            stack.push(nameVector);
+        }
+
+        if (op1 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp) {
+            Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
+            if (isVectorBinaryOperation(invoke)) {
+                IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
+                String type = vectorShape.codeType().toString() + vectorShape.lanes();
+                String current = stack.peek();
+                type(type).sp()
+                        .id(current + postFixOp1)
+                        .semicolon().nl();
+                stack.push(current + postFixOp1);
+                mapVectorName.put(invokeOp, current + postFixOp1);
+                recurse(invokeOp);
+            }
+        }
+
+        if (!stack.empty()) {
+            stack.pop();
+        }
+
+        if (op2 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp) {
+            Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
+            if (isVectorBinaryOperation(invoke)) {
+                IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
+                String type = vectorShape.codeType().toString() + vectorShape.lanes();
+                String current = stack.peek();
+                type(type).sp()
+                        .id(current + postFixOp2)
+                        .semicolon().nl();
+                stack.push(current + postFixOp2);
+                mapVectorName.put(invokeOp, current + postFixOp2);
+                recurse(invokeOp);
+            }
+        }
+
+        if (!stack.empty()) {
+            stack.pop();
+        }
+
+        // Get Vector Lanes
+        IfaceValue.Vector.Shape vectorShape = getVectorShape(binOp.lookup(), binOp.returnType());
+
+        for (int lane = 0; lane < vectorShape.lanes(); lane++) {
+            id(nameVector).dot().id(mapLane(lane)).sp().equals().sp();
+
+            if (op1 instanceof Op.Result r) {
+                if (!(r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp)))) {
+                    recurse(r.op());
+                } else {
+                    id(mapVectorName.get(invokeOp));
+                    //id(hatVectorBinaryOp1.varName());
+                }
+            }
+            dot().id(mapLane(lane)).sp();
+            id(BinaryOpEnum.of(binOp.op()).symbol()).sp();
+
+            if (op2 instanceof Op.Result r) {
+                if (!(r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp)))) {
+                    recurse(r.op());
+                } else {
+                    id(mapVectorName.get(invokeOp));
+                    //id(hatVectorBinaryOp2.varName());
+                }
+            }
+
+            dot().id(mapLane(lane)).semicolon().nl();
+        }
+
+        return self();
+    }
+
 
     @Override
     public CudaHATKernelBuilder hatBinaryVectorOp(HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {

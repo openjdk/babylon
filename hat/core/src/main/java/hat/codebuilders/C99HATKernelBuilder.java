@@ -931,7 +931,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp){
+    public record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         // recursive
         public static String vectorNameOrThrow(Value v) {
             return switch (OpHelper.asOpFromResultOrNull(v)) {
@@ -1051,8 +1051,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
             var name = findVectorVarNameOrNull(invoke.op().operands().getFirst());
             id(name);
+        }  else if (isVectorBinaryOperation(invoke)) {
+            handleVectorBinaryOperation(invoke);
         } else {
-            throw new IllegalStateException("[CodeGen] Vector Operation found: " + invoke.name());
+            throw new IllegalStateException("[CodeGen] Vector Operation not found: " + invoke.name());
         }
     }
 
@@ -1101,6 +1103,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else {
             throw new IllegalStateException("[CodeGen] Unhandled op: " + invoke.name());
         }
+    }
+
+    protected boolean isVectorBinaryOperation(Invoke invoke) {
+        return (invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex("(add|sub|mul|div)"));
+    }
+
+    public abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
+
+    private void handleVectorBinaryOperation(Invoke invoke) {
+        hatBinaryVectorOp(invoke);
     }
 
     @Override

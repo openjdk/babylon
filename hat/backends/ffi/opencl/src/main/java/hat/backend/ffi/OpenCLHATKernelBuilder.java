@@ -26,6 +26,7 @@ package hat.backend.ffi;
 
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.dialect.BinaryOpEnum;
 import hat.dialect.HATVectorOp;
 import hat.types.BF16;
 import hat.types.F16;
@@ -155,6 +156,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             id("array").sbrace(_ ->recurseResultOrThrow(c));
         });
         return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke binOp) {
+        return paren(_-> {
+            recurseResultOrThrow(binOp.op().operands().get(0));
+            sp().id(BinaryOpEnum.of(binOp.op()).symbol()).sp();
+            recurseResultOrThrow(binOp.op().operands().get(1));
+        });
     }
 
     @Override

@@ -27,6 +27,7 @@ package hat.backend.jextracted;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.HATVectorOp;
+import hat.dialect.BinaryOpEnum;
 import hat.types.BF16;
 import hat.types.F16;
 import hat.types.S16ImplOfF16;
@@ -283,6 +284,15 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     public OpenCLJExtractedHATKernelBuilder hatVectorStoreOp(JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp, IfaceValue.Vector.Shape vectorShape, boolean isDeviceAllocated, String name) {
         return self();
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke binOp) {
+        return paren(_-> {
+            recurseResultOrThrow(binOp.op().operands().get(0));
+            sp().id(BinaryOpEnum.of(binOp.op()).symbol()).sp();
+            recurseResultOrThrow(binOp.op().operands().get(1));
+        });
     }
 
 

@@ -182,15 +182,16 @@ public final class HATVectorPhase implements HATPhase {
 
         return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
             if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var varOp = invokeToVar.get(invokeOp);
-                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
-                        varOp.varName(),
-                        BinaryOpEnum.of(invokeOp),
-                        invokeOp.resultType(),
-                        vectorShapeMap.get(invokeOp),
-                        blockBuilder.context().getValues(invokeOp.operands())
-                );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), vectorOp)));
+                blockBuilder.add(op);
+//                var varOp = invokeToVar.get(invokeOp);
+//                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
+//                        varOp.varName(),
+//                        BinaryOpEnum.of(invokeOp),
+//                        invokeOp.resultType(),
+//                        vectorShapeMap.get(invokeOp),
+//                        blockBuilder.context().getValues(invokeOp.operands())
+//                );
+//                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), vectorOp)));
             } else if (op instanceof CoreOp.VarOp varOp) {
                 varOpVector(blockBuilder, varOp, varTable);
             }
@@ -235,14 +236,15 @@ public final class HATVectorPhase implements HATPhase {
 
         return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
             if (invoke(lookup, op) instanceof Invoke invoke) {
-                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
-                        OpHelper.findVectorVarNameOrNull(invoke.op().operands().getFirst()),
-                        BinaryOpEnum.of(invoke.op()),
-                        invoke.returnType(),
-                        getVectorShape(invoke.lookup(), invoke.returnType()),
-                        blockBuilder.context().getValues(invoke.op().operands())
-                );
-                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), vectorOp)));
+                blockBuilder.add(op);
+//                HATVectorOp vectorOp = new HATVectorOp.HATVectorBinaryOp(
+//                        OpHelper.findVectorVarNameOrNull(invoke.op().operands().getFirst()),
+//                        BinaryOpEnum.of(invoke.op()),
+//                        invoke.returnType(),
+//                        getVectorShape(invoke.lookup(), invoke.returnType()),
+//                        blockBuilder.context().getValues(invoke.op().operands())
+//                );
+//                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), vectorOp)));
             }
             return blockBuilder;
         }, varTable).funcOp();
