@@ -30,7 +30,7 @@ import optkl.util.carriers.FuncOpCarrier;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
-public class HATTier  {
+public class HATTransformer {
 
     public static final List<HATPhase> KernelPhases = List.of(
             // barrier
@@ -67,7 +67,7 @@ public class HATTier  {
         });
     }
 
-    private HATTier() {
+    private HATTransformer() {
         /* This utility class should not be instantiated */
     }
 }

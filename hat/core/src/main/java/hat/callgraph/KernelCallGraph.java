@@ -25,10 +25,9 @@
 package hat.callgraph;
 
 import hat.BufferTagger;
-import hat.Config;
 import hat.KernelContext;
 import hat.device.NonMappableIface;
-import hat.phases.HATTier;
+import hat.phases.HATTransformer;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -152,7 +151,7 @@ public class KernelCallGraph implements LookupCarrier {
         this.varTable = new VarTable();
         varTable.addFunction(entrypoint.funcOp().funcName());
 
-        HATTier.transform(HATTier.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
+        HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
 
         // We might do this a mandatory check in near future
         if (computeCallGraph.computeContext.config().checkSSALowering()) {
@@ -166,7 +165,7 @@ public class KernelCallGraph implements LookupCarrier {
         this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
         callDag.rankOrdered.forEach(f -> {
             varTable.addFunction(f.funcOp().funcName());
-            HATTier.transform(HATTier.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
+            HATTransformer.transform(HATTransformer.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
         });
         if (showKernelCallDag) {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
