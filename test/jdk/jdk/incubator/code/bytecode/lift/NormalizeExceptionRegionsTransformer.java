@@ -54,7 +54,7 @@ final class NormalizeExceptionRegionsTransformer implements CodeTransformer {
     static FuncOp transform(FuncOp func) {
         var t = new NormalizeExceptionRegionsTransformer();
         do {
-            // Nested regions are exposed after the top are collapsed
+            // Inner regions are exposed after the outer are collapsed
             t.modified = false;
             func = func.transform(t);
         } while (t.modified);
