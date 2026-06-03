@@ -148,21 +148,9 @@ public record HATArrayViewPhase() implements HATPhase {
 
     public CoreOp.FuncOp applyVectorView(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         return Trxfmr.of(lookup, funcOp).transform((blockBuilder, op) -> {
-            var context = blockBuilder.context();
             switch (op) {
-                case JavaOp.InvokeOp iOp when invoke(lookup, iOp) instanceof Invoke invoke && isVectorBinaryOp(invoke.lookup(), invoke) -> {
-//                    var hatVectorBinaryOp =
-//                     new HATVectorOp.HATVectorBinaryOp(
-//                             invoke.varOpFromFirstUseOrThrow().varName(),
-//                             BinaryOpEnum.of(invoke.name()),
-//                             invoke.returnType(),
-//                             getVectorShape(lookup, invoke.returnType()),
-//                             blockBuilder.context().getValues(invoke.op().operands())
-//                     );
-//                    context.mapValue(invoke.returnResult(), blockBuilder.add(copyLocation(invoke.op(), hatVectorBinaryOp)));
-//                    return blockBuilder;
-                    blockBuilder.add(op);
-                }
+                case JavaOp.InvokeOp iOp when invoke(lookup, iOp) instanceof Invoke invoke && isVectorBinaryOp(invoke.lookup(), invoke) ->
+                        blockBuilder.add(op);
                 case CoreOp.VarOp varOp when isVectorOp(lookup, varOp) -> {
                     Op.Result op1 = blockBuilder.add(varOp);
                     String functionName = funcOp.funcName();
