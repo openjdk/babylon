@@ -638,7 +638,11 @@ public class TestBytecodeLift {
     @MethodSource("testMethods")
     public void testLift(TestData d) throws Throwable {
         CoreOp.FuncOp flift = lift(CLASS_DATA, d);
+        var errors = Verifier.verify(MethodHandles.lookup(), flift);
+        Assertions.assertTrue(errors.isEmpty(), errors.toString());
         CoreOp.FuncOp secondRound = lift(BytecodeGenerator.generateClassData(MethodHandles.lookup(), flift), d);
+        errors = Verifier.verify(MethodHandles.lookup(), secondRound);
+        Assertions.assertTrue(errors.isEmpty(), errors.toString());
         try {
             Object receiver1, receiver2, receiver3;
             if (d.testMethod.accessFlags().contains(AccessFlag.STATIC)) {
