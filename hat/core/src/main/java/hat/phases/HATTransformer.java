@@ -33,26 +33,26 @@ import java.util.List;
 public class HATTransformer {
 
     public static final List<HATPhase> KernelPhases = List.of(
-            // barrier
-            new HATBarrierPhase(),   // Let's keep the dialect for barriers
+            // barriers
+            new HATBarrierPhase(),
 
             // array views
-            new HATArrayViewPhase(), // pending PTROps
+            new HATArrayViewPhase(),
 
-            // Memory
-            new HATMemoryPhase(),    // Ok
+            // Memory Regions (private/shared)
+            new HATMemoryPhase(),
 
             // ID's /thread access
-            new HATThreadsPhase(),   // Let's keep the dialect for barriers
+            new HATThreadsPhase(),
 
             // MathLib phase
-            new HATMathLibPhase(),   // OK
+            new HATMathLibPhase(),
 
             // views for vector types
-            new HATVectorPhase(),    // Ok
+            new HATVectorPhase(),
 
-            // F16 type
-            new HATFP16Phase()       // Ok
+            // F16/BFloat16 types
+            new HATFP16Phase()
     );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
