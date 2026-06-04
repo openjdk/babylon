@@ -24,7 +24,6 @@
  */
 package hat.codebuilders;
 
-import hat.HATMath;
 import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.callgraph.KernelCallGraph;
@@ -34,11 +33,10 @@ import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATFP16Phase;
+import hat.phases.HATPhaseUtils.InvokeVar;
 import hat.types.BF16;
 import hat.types.F16;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeType;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -58,55 +56,44 @@ import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
-import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Optional;
-import java.util.SequencedSet;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static hat.buffer.F16Array.F16Impl;
-import static java.lang.invoke.MethodHandles.lookup;
+import static hat.phases.HATPhaseUtils.NON_MAPPABLE_IFACE;
+import static hat.phases.HATPhaseUtils.findIsSharedOrPrivateSpace;
+import static hat.phases.HATPhaseUtils.findVectorVarNameOrNull;
+import static hat.phases.HATPhaseUtils.getVectorShapeFromOperandN;
+import static hat.phases.HATPhaseUtils.isArrayReference;
+import static hat.phases.HATPhaseUtils.isAttributeSharedOrPrivate;
+import static hat.phases.HATPhaseUtils.isF16Local;
+import static hat.phases.HATPhaseUtils.isInvokeFromNarrowTypeConversion;
+import static hat.phases.HATPhaseUtils.isInvokeLoadingFromOnChipMemory;
+import static hat.phases.HATPhaseUtils.isMathOperation;
+import static hat.phases.HATPhaseUtils.isOperandF32;
+import static hat.phases.HATPhaseUtils.isS16BinaryOp;
+import static hat.phases.HATPhaseUtils.isS16Conversion;
+import static hat.phases.HATPhaseUtils.isS16ToFloatConversion;
+import static hat.phases.HATPhaseUtils.isSharedOrPrivate;
+import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
+import static hat.phases.HATPhaseUtils.isVectorOperation;
+import static hat.phases.HATPhaseUtils.isVectorSelectOperation;
+import static hat.phases.HATPhaseUtils.isVectorView;
+import static hat.phases.HATPhaseUtils.mapLane;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
 import static optkl.OpHelper.Invoke.invoke;
 
-import static optkl.OpHelper.VarAccess.varAccess;
 import static optkl.OpHelper.opFromFirstOperandOrNull;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
-    protected  final KernelCallGraph kernelCallGraph;
+    protected final KernelCallGraph kernelCallGraph;
     private final VarTable varTable;
-
-    protected static boolean isOperandF32(Value v) {
-        return v instanceof Op.Result r && switch (r.op()) {
-            case CoreOp.VarAccessOp varLoadOp -> varLoadOp.varType().valueType() == JavaType.FLOAT; //recurse
-            case CoreOp.VarOp varOp -> varOp.resultType().valueType() == JavaType.FLOAT;
-            default -> false;
-        };
-    }
-
-    //recursive
-    protected  boolean isArrayReference(Value v) {
-        return v instanceof Op.Result result && switch (result.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(varLoadOp); // recurse
-            case CoreOp.VarOp varOp ->
-                    varOp.operands().getFirst() instanceof Op.Result varOpResult
-                            && invoke(lookup(),varOpResult.op()) instanceof OpHelper.Invoke invoke
-                            && invoke.named(ARRAY)
-                            && !isInvokeLoadingFromOnChipMemory(invoke.op());
-            default -> false;
-        };
-    }
-
-    //recursive
-    private  boolean isArrayReference( CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return isArrayReference(varLoadOp.operands().getFirst());
-    }
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -207,7 +194,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public final T hatThreadIdOp( HATThreadOp threadOp) {
+    public final T hatThreadIdOp(HATThreadOp threadOp) {
         return (switch (threadOp) {
             case HATThreadOp.HAT_LI.HAT_LIX _ -> HAT_LIX();
             case HATThreadOp.HAT_LI.HAT_LIY _ -> HAT_LIY();
@@ -234,7 +221,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_KERNEL().sp().voidType().sp().funcName(funcOp);
     }
 
-    public final  T functionDeclaration( JavaType javaType, CoreOp.FuncOp funcOp) {
+    public final T functionDeclaration(JavaType javaType, CoreOp.FuncOp funcOp) {
         return HAT_FUNC().sp().type(javaType).sp().funcName(funcOp);
     }
 
@@ -244,8 +231,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final boolean isbfloat16(Schema.IfaceType ifaceType) {
-         return ifaceType.iface.isAssignableFrom(BF16.class)
-               || ifaceType.iface.isAssignableFrom(BF16Array.BF16Impl.class);
+        return ifaceType.iface.isAssignableFrom(BF16.class)
+                || ifaceType.iface.isAssignableFrom(BF16Array.BF16Impl.class);
     }
 
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
@@ -260,72 +247,72 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     semicolonNlSeparated(
                             ifaceType.fields,
                             field -> {
-                        boolean isLast = fieldIdx.get() == fieldCount - 1;
-                        if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
-                            if (isHalfType(ifaceType)) {
-                                type("half");
-                            } else if (isbfloat16(ifaceType)) {
-                                type("BFLOAT16");
-                            } else {
-                                type(primitiveField.type.getSimpleName());
-                            }
-                            sp().type(primitiveField.name);
-                            if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
-                                if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray) {
-                                    if (isLast && ifaceType.parent == null) {
-                                        sbrace(_ -> literal(1));
+                                boolean isLast = fieldIdx.get() == fieldCount - 1;
+                                if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
+                                    if (isHalfType(ifaceType)) {
+                                        type("half");
+                                    } else if (isbfloat16(ifaceType)) {
+                                        type("BFLOAT16");
                                     } else {
-                                        boolean[] done = new boolean[]{false};
-                                        if (boundSchema != null) {
-                                            boundSchema.boundArrayFields().forEach(a -> {
-                                                if (a.field.equals(array)) {
-                                                    sbrace(_ -> literal(a.len));
-                                                    done[0] = true;
+                                        type(primitiveField.type.getSimpleName());
+                                    }
+                                    sp().type(primitiveField.name);
+                                    if (primitiveField instanceof Schema.FieldNode.PrimitiveArray array) {
+                                        if (array instanceof Schema.FieldNode.PrimitiveFieldControlledArray) {
+                                            if (isLast && ifaceType.parent == null) {
+                                                sbrace(_ -> literal(1));
+                                            } else {
+                                                boolean[] done = new boolean[]{false};
+                                                if (boundSchema != null) {
+                                                    boundSchema.boundArrayFields().forEach(a -> {
+                                                        if (a.field.equals(array)) {
+                                                            sbrace(_ -> literal(a.len));
+                                                            done[0] = true;
+                                                        }
+                                                    });
+                                                    if (!done[0]) {
+                                                        throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                                    }
+                                                } else {
+                                                    throw new IllegalStateException("bound schema is null  !");
                                                 }
-                                            });
-                                            if (!done[0]) {
-                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
                                             }
+                                        } else if (array instanceof Schema.FieldNode.PrimitiveFixedArray fixed) {
+                                            sbrace(_ -> literal(Math.max(1, fixed.len)));
                                         } else {
-                                            throw new IllegalStateException("bound schema is null  !");
+                                            throw new IllegalStateException("what kind of array ");
                                         }
                                     }
-                                } else if (array instanceof Schema.FieldNode.PrimitiveFixedArray fixed) {
-                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
-                                } else {
-                                    throw new IllegalStateException("what kind of array ");
-                                }
-                            }
-                        } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
-                            suffix_t(ifaceField.ifaceType.iface);
-                            sp().type(ifaceField.name);
-                            if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
-                                if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
-                                    if (isLast && ifaceType.parent == null) {
-                                        sbrace(_ -> literal(1));
-                                    } else {
-                                            boundSchema.boundArrayFields().stream()
-                                                    .filter(a->a.field.equals(ifaceField))
-                                                    .findFirst()
-                                                    .ifPresentOrElse(
-                                                            a-> sbrace(_ -> literal(a.len)),
-                                                            ()->{
-                                                                throw new IllegalStateException("we need to extract the array size hat kind of array ");
-                                                            });
+                                } else if (field instanceof Schema.FieldNode.AbstractIfaceField ifaceField) {
+                                    suffix_t(ifaceField.ifaceType.iface);
+                                    sp().type(ifaceField.name);
+                                    if (ifaceField instanceof Schema.FieldNode.IfaceArray array) {
+                                        if (array instanceof Schema.FieldNode.IfaceFieldControlledArray fieldControlledArray) {
+                                            if (isLast && ifaceType.parent == null) {
+                                                sbrace(_ -> literal(1));
+                                            } else {
+                                                boundSchema.boundArrayFields().stream()
+                                                        .filter(a -> a.field.equals(ifaceField))
+                                                        .findFirst()
+                                                        .ifPresentOrElse(
+                                                                a -> sbrace(_ -> literal(a.len)),
+                                                                () -> {
+                                                                    throw new IllegalStateException("we need to extract the array size hat kind of array ");
+                                                                });
+                                            }
+                                        } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
+                                            sbrace(_ -> literal(Math.max(1, fixed.len)));
+                                        } else {
+                                            throw new IllegalStateException("what kind of array ");
+                                        }
                                     }
-                                } else if (array instanceof Schema.FieldNode.IfaceFixedArray fixed) {
-                                    sbrace(_ -> literal(Math.max(1, fixed.len)));
+                                } else if (field instanceof Schema.SchemaNode.Padding padding) {
+                                    u08Type().sp().identifierWithRandomSuffix("pad$", 5).sbrace(_ -> intValue((int) (padding.len)));//; emitText(toC99(padding));
                                 } else {
-                                    throw new IllegalStateException("what kind of array ");
+                                    throw new IllegalStateException("hmm");
                                 }
-                            }
-                        } else if (field instanceof Schema.SchemaNode.Padding padding) {
-                            u08Type().sp().identifierWithRandomSuffix("pad$",5).sbrace(_->intValue((int)(padding.len)));//; emitText(toC99(padding));
-                        } else {
-                            throw new IllegalStateException("hmm");
-                        }
-                        fieldIdx.set(fieldIdx.get() + 1);
-                    });
+                                fieldIdx.set(fieldIdx.get() + 1);
+                            });
                     semicolon();
                 }).suffix_t(ifaceType.iface).semicolon().nl().nl();
         return self();
@@ -334,14 +321,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     /**
      * Generates a suffix from a set of n-random characters from a set of legal characters in C99.
      */
-    public  final  T identifierWithRandomSuffix(String prefix, final int len) {
+    public final T identifierWithRandomSuffix(String prefix, final int len) {
         var sb = new StringBuilder();
         final var LEGAL_CHARS = "_$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         ThreadLocalRandom.current() //
                 .ints(len, 0, LEGAL_CHARS.length()) //
                 .mapToObj(LEGAL_CHARS::charAt) //
                 .forEach(sb::append);
-        id(prefix+sb);
+        id(prefix + sb);
         return self();
     }
 
@@ -350,19 +337,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_BARRIER();
     }
 
-    public abstract T defines();
-
-    public final  T types() {
-        return
-                 typedefKeyword().sp().s08Type("byte").snl()
+    public final T types() {
+        return typedefKeyword().sp().s08Type("byte").snl()
                 .typedefKeyword().sp().s08Type("boolean").snl()
                 .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl();
     }
 
     @Override
-    public final T fieldLoadOp( JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-        var fieldAccess = fieldAccess(scopedCodeBuilderContext().lookup(),fieldLoadOp);
-        if (fieldAccess.operandCount()==0 && fieldAccess.isPrimitive()) {
+    public final T fieldLoadOp(JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+        var fieldAccess = fieldAccess(scopedCodeBuilderContext().lookup(), fieldLoadOp);
+        if (fieldAccess.operandCount() == 0 && fieldAccess.isPrimitive()) {
             literal(fieldAccess.getStaticFinalPrimitiveValue().toString());
 
             // Experiment: if it is float, then generate "f"
@@ -377,11 +361,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public final  T type( JavaType javaType) {
+    public final T type(JavaType javaType) {
         // TODO: I would not include this method in the visitor, rather just the tree-nodes. Types can be resolved when needed directly.
 
-        if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(),javaType)){
-            C99VecAndMatHandler.handleType(self(),javaType);
+        if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(), javaType)) {
+            C99VecAndMatHandler.handleType(self(), javaType);
         } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
@@ -389,9 +373,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(KernelContext.class).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType,BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             type(javaType.toString());
@@ -399,41 +383,40 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-
-    public final  T kernelMethod(CoreOp.FuncOp funcOp) {
-          scopedCodeBuilderContext().funcScope(funcOp, () -> {
-              nl();
-              functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
-              parenNlIndented(_ ->
+    public final T kernelMethod(CoreOp.FuncOp funcOp) {
+        scopedCodeBuilderContext().funcScope(funcOp, () -> {
+            nl();
+            functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
+            parenNlIndented(_ ->
                     commaNlSeparated(
                             new FuncOpParams(funcOp).list(),
                             this::declareParam
                     )
-              );
+            );
 
-              braceNlIndented(_ ->
-                nlSeparated(
-                        OpHelper.Statement.statements(funcOp.bodies().getFirst().entryBlock()),
-                        this::statement
-                )
-              );
-          });
+            braceNlIndented(_ ->
+                    nlSeparated(
+                            OpHelper.Statement.statements(funcOp.bodies().getFirst().entryBlock()),
+                            this::statement
+                    )
+            );
+        });
         return self();
     }
 
-    public final  T kernelEntrypoint() {
+    public final T kernelEntrypoint() {
         nl();
         scopedCodeBuilderContext().funcScope(scopedCodeBuilderContext().funcOp(), () ->
                 kernelDeclaration(scopedCodeBuilderContext().funcOp())
-                .parenNlIndented(_ -> commaNlSeparated(
-                        scopedCodeBuilderContext().paramTable.list(),
-                        this::declareParam)
-                )
-                .braceNlIndented(_ -> nlSeparated(
-                    OpHelper.Statement.statements(scopedCodeBuilderContext().funcOp().bodies().getFirst().entryBlock()),
-                        this::statement
-                )
-            )
+                        .parenNlIndented(_ -> commaNlSeparated(
+                                scopedCodeBuilderContext().paramTable.list(),
+                                this::declareParam)
+                        )
+                        .braceNlIndented(_ -> nlSeparated(
+                                        OpHelper.Statement.statements(scopedCodeBuilderContext().funcOp().bodies().getFirst().entryBlock()),
+                                        this::statement
+                                )
+                        )
         );
         return self();
     }
@@ -446,21 +429,17 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return suffix_t(BF16.class);
     }
 
-    protected boolean isMathLib(Optional<Invoke> invoke) {
-        return invoke.isPresent() && !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
-    }
-
-     protected T f16OrBF16(Class<?> float16Class){
-        if (F16.class.isAssignableFrom(float16Class)){
+    protected T f16OrBF16(Class<?> float16Class) {
+        if (F16.class.isAssignableFrom(float16Class)) {
             return f16Type();
-        }else if (BF16.class.isAssignableFrom(float16Class)){
+        } else if (BF16.class.isAssignableFrom(float16Class)) {
             return bf16Type();
-        }else {
+        } else {
             throw new IllegalStateException("Unexpected value: " + float16Class);
         }
     }
 
-    protected boolean isMixedFirstOperand(byte f32Mixed) {
+    private boolean isMixedFirstOperand(byte f32Mixed) {
         return f32Mixed != 0 && f32Mixed != HATFP16Phase.FIRST_OP;
     }
 
@@ -476,12 +455,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id("bfloat16Tofloat");
     }
 
-    public static final String VALUE = "value";
-    public static final String ARRAY = "array";
+    protected static final String VALUE = "value";
+    protected static final String ARRAY = "array";
 
     private T binaryOperationsForBfloat16(Invoke invoke) {
-        boolean isFirstOperandReference = isArrayReference(invoke.op().operands().get(0));
-        boolean isSecondOperandReference = isArrayReference(invoke.op().operands().get(1));
+        var lookup = scopedCodeBuilderContext().lookup();
+        boolean isFirstOperandReference = isArrayReference(lookup, invoke.op().operands().get(0));
+        boolean isSecondOperandReference = isArrayReference(lookup, invoke.op().operands().get(1));
         final byte f32Mixed;
         if (!isFirstOperandReference && isOperandF32(invoke.op().operands().get(0))) {
             f32Mixed = HATFP16Phase.FIRST_OP;
@@ -491,15 +471,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             f32Mixed = 0x00;
         }
 
-        paren(_-> bf16Type());
-        brace(_-> {
-            paren(_-> {
+        paren(_ -> bf16Type());
+        brace(_ -> {
+            paren(_ -> {
                 builtin_float2bfloat16();
                 oparen();
                 if (isMixedFirstOperand(f32Mixed) || f32Mixed == 0) {
                     builtin_bfloat16ToFloat().oparen();// open
                 }
-                recurse( OpHelper.asResultOrThrow(invoke.op().operands().getFirst()).op());
+                recurse(OpHelper.asResultOrThrow(invoke.op().operands().getFirst()).op());
 
                 if (isFirstOperandReference) {
                     rarrow().id(VALUE);
@@ -546,12 +526,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (BF16.class.isAssignableFrom(float16Class)) {
             return binaryOperationsForBfloat16(invoke);
         }
-        paren(_-> f16Type());
-        return brace(_->
-                paren(_-> {
-                    recurse( OpHelper.asResultOrThrow(invoke.op().operands().getFirst()).op());
-                    boolean isFirstOperandReference = isArrayReference(invoke.op().operands().get(0));
-                    boolean isSecondOperandReference = isArrayReference(invoke.op().operands().get(1));
+        paren(_ -> f16Type());
+        return brace(_ ->
+                paren(_ -> {
+                    recurse(OpHelper.asResultOrThrow(invoke.op().operands().getFirst()).op());
+                    boolean isFirstOperandReference = isArrayReference(scopedCodeBuilderContext.lookup(), invoke.op().operands().get(0));
+                    boolean isSecondOperandReference = isArrayReference(scopedCodeBuilderContext.lookup(), invoke.op().operands().get(1));
                     if (isFirstOperandReference) {
                         rarrow().id(VALUE);
                     } else if (!OpHelper.isPrimitiveResult(invoke.op().operands().getFirst())) {
@@ -560,90 +540,47 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         blockComment("hatF16BinaryOp not a result !!");
                     }
                     sp().id(matchSymbol(invoke.name())).sp();
-                    recurse( OpHelper.asResultOrThrow(invoke.op().operands().get(1)).op());
+                    recurse(OpHelper.asResultOrThrow(invoke.op().operands().get(1)).op());
                     if (isSecondOperandReference) {
                         rarrow().id(VALUE);
                     } else if (!OpHelper.isPrimitiveResult(invoke.op().operands().get(1))) {
                         dot().id(VALUE);
-                    }else {
+                    } else {
                         blockComment("hatF16BinaryOp not a value !!");
                     }
                 })
         );
     }
 
-    private String findVarNameOrNull(Value v) {
-        return (v instanceof Op.Result r) ? switch (r.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findVarNameOrNull(varLoadOp); //recurse
-            case CoreOp.VarOp varOp -> varOp.varName();
-            default -> null;
-        } : null;
-    }
-
-    private String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVarNameOrNull(varLoadOp.operands().getFirst());
-    }
-
-    public final T hatF16VarLoadOp(CoreOp.VarAccessOp.VarLoadOp hatF16VarLoadOp) {
-        id(findVarNameOrNull(hatF16VarLoadOp));
-
-        // Since all VarOps now are the same, we need to distinguish if it comes from a global load,
-        // or private/shared load.
-        if (hatF16VarLoadOp.operands().getFirst().declaringElement() instanceof CoreOp.VarOp varOp
-                && varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp
-                && !isInvokeLoadingFromOnChipMemory(invokeOp)) {
-            // VarLoad from Global Memory with an InvokeOp
-            Stream<Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
-            Optional<OpHelper.Invoke> invoke = stream.findFirst();
-            if (isMathLib(invoke)) {
-                dot();
-            } else if (invoke.isPresent() && invoke.get().refIs(S16ImplOfF16.class)) {
-                // This extra condition is due to all operation are implemented via invoke.
-                // Thus, we need to make sure the type to know if it is a reference from
-                // global memory.
-                dot();
-            } else {
-                rarrow();
-            }
-        } else {
-            dot();
-        }
-        return id(VALUE);
-    }
-
-    public abstract T genVectorIdentifier(IfaceValue.Vector.Shape vectorShape);
-
     public final T generateVectorOf(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape) {
         return genVectorIdentifier(vectorShape)
-                .paren(_ -> commaSpaceSeparated(invokeOp.operands(),operand -> recurse(OpHelper.asResultOrThrow(operand).op())));
+                .paren(_ -> commaSpaceSeparated(invokeOp.operands(), operand -> recurse(OpHelper.asResultOrThrow(operand).op())));
     }
 
     public final T generateOnChipMemoryLoad(JavaOp.InvokeOp invoke) {
         return recurse(OpHelper.asResultOrThrow(invoke.operands().getFirst()).op())
                 .dot().id(invoke.invokeReference().name())
-                .when(invoke.operands().size() > 1,_-> // If the hatMemoryLoadOp has more than 1 operand, the second is the index
-                        sbrace(_-> recurse( OpHelper.asResultOrThrow(invoke.operands().get(1)).op()))
+                .when(invoke.operands().size() > 1, _ -> // If the hatMemoryLoadOp has more than 1 operand, the second is the index
+                        sbrace(_ -> recurse(OpHelper.asResultOrThrow(invoke.operands().get(1)).op()))
                 );
     }
 
-    public final T hatPtrLoadOp( HATPtrOp.HATPtrLoadOp hatPtrLoadOp) {
+    public final T hatPtrLoadOp(HATPtrOp.HATPtrLoadOp hatPtrLoadOp) {
         ptrAccess(hatPtrLoadOp);
         return self();
     }
 
     @Override
-    public final T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp) {
-        ptrAccess(hatPtrStoreOp).equals().recurse( ((Op.Result) hatPtrStoreOp.operands().getLast()).op());
+    public final T hatPtrStoreOp(HATPtrOp.HATPtrStoreOp hatPtrStoreOp) {
+        ptrAccess(hatPtrStoreOp).equals().recurse(((Op.Result) hatPtrStoreOp.operands().getLast()).op());
         return self();
     }
 
     @Override
-    public final  T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp) {
+    public final T hatPtrLengthOp(HATPtrOp.HATPtrLengthOp hatPtrLengthOp) {
         ptrAccess(hatPtrLengthOp);
         return self();
     }
-
-    private static final Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
 
     private T ptrAccess(HATPtrOp hatPtrOp) {
         id(hatPtrOp.name());
@@ -679,9 +616,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(2)).op()));
                         asterisk().id(hatPtrOp.name());
                         either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).id(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
-                        add().paren(_ -> recurse( ((Op.Result) hatPtrOp.operands().get(1)).op()));
+                        add().paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(1)).op()));
                     } else {
-                        recurse( ((Op.Result) hatPtrOp.operands().get(1)).op());
+                        recurse(((Op.Result) hatPtrOp.operands().get(1)).op());
                     }
                 });
             });
@@ -691,11 +628,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     /**
      * <code>
-     *  float bfloat16Tofloat(ushort bf16) {
-     *      b16_t b;
-     *      b.s[0] = 0;
-     *      b.s[1] = s;
-     *      return b.f;
+     * float bfloat16Tofloat(ushort bf16) {
+     * b16_t b;
+     * b.s[0] = 0;
+     * b.s[1] = s;
+     * return b.f;
      * }
      * </code>
      *
@@ -707,29 +644,30 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         String s = "s";
         String f = "f";
         return funcDef(_ -> f32Type(),
-                       _ -> builtin_bfloat16ToFloat(),
-                       _ -> u16Type(parameterName),
-                       _ -> bfloat16Type(b16).snl()
-                               .id(b16).dot().id(s).sbrace(_ -> intConstZero()).equals().intConstZero().snl()
-                               .id(b16).dot().id(s).sbrace(_ -> intConstOne()).equals().constant(parameterName).snl()
-                               .returnKeyword(_-> id(b16).dot().id(f)));
+                _ -> builtin_bfloat16ToFloat(),
+                _ -> u16Type(parameterName),
+                _ -> bfloat16Type(b16).snl()
+                        .id(b16).dot().id(s).sbrace(_ -> intConstZero()).equals().intConstZero().snl()
+                        .id(b16).dot().id(s).sbrace(_ -> intConstOne()).equals().constant(parameterName).snl()
+                        .returnKeyword(_ -> id(b16).dot().id(f)));
     }
 
     /**
      * <code>
      * ushort floatTobfloat16(float f) {
-     *      b16_t b = {f};
-     *      uint32_t bits = b.i;
-     *      short sign_bit = (short)((bits & 0x8000_0000) >> 16);
-     *      int lsb    = bits & 0x1_0000;
-     *      int round  = bits & 0x0_8000;
-     *      int sticky = bits & 0x0_7FFF;
-     *      if (round != 0 && ((lsb | sticky) != 0 )) {
-     *          bits += 0x1_0000;
-     *      }
-     *      return (short) (((bits >> 16 ) | sign_bit) & 0xffff);
+     * b16_t b = {f};
+     * uint32_t bits = b.i;
+     * short sign_bit = (short)((bits & 0x8000_0000) >> 16);
+     * int lsb    = bits & 0x1_0000;
+     * int round  = bits & 0x0_8000;
+     * int sticky = bits & 0x0_7FFF;
+     * if (round != 0 && ((lsb | sticky) != 0 )) {
+     * bits += 0x1_0000;
+     * }
+     * return (short) (((bits >> 16 ) | sign_bit) & 0xffff);
      * }
      * </code>
+     *
      * @param parameterName
      * @return
      */
@@ -740,15 +678,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 _ -> builtin_float2bfloat16(),
                 _ -> f32Type(parameterName),
                 _ -> assign(_ -> bfloat16Type(idBFloat16),
-                        _ ->  brace( _ -> id(parameterName)).snl())
-                        .assign( _ -> u32Type("bits"), _ -> id(idBFloat16).dot().id("i")).snl()
-                        .assign( _ -> u16Type("sign_bit"), _ -> cast( _ -> s16Type()).paren( _ -> paren( _ -> id("bits").ampersand().constant("0x80000000")).rightShift(16))).snl()
-                        .assign( _ -> s32Type("lsb"), _ -> id("bits").ampersand().constant("0x10000")).snl()
-                        .assign( _ -> s32Type("round"), _ -> id("bits").ampersand().constant("0x08000")).snl()
-                        .assign( _ -> s32Type("sticky"), _ -> id("bits").ampersand().constant("0x07FFF")).snl()
+                        _ -> brace(_ -> id(parameterName)).snl())
+                        .assign(_ -> u32Type("bits"), _ -> id(idBFloat16).dot().id("i")).snl()
+                        .assign(_ -> u16Type("sign_bit"), _ -> cast(_ -> s16Type()).paren(_ -> paren(_ -> id("bits").ampersand().constant("0x80000000")).rightShift(16))).snl()
+                        .assign(_ -> s32Type("lsb"), _ -> id("bits").ampersand().constant("0x10000")).snl()
+                        .assign(_ -> s32Type("round"), _ -> id("bits").ampersand().constant("0x08000")).snl()
+                        .assign(_ -> s32Type("sticky"), _ -> id("bits").ampersand().constant("0x07FFF")).snl()
                         .ifTrueCondition(_ -> id("round").sp().ne().sp().intConstZero().condAnd().paren(_ -> paren(_ -> id("lsb").bitwiseOR().id("sticky")).ne().intConstZero()),
                                 _ -> id("bits").sp().plusEquals().sp().constant("0x10000"))
-                        .returnKeyword( _ -> cast( _ ->u16Type()).paren( _ -> paren( _ -> paren( _-> id("bits").rightShift(16)).bitwiseOR().id("sign_bit")).ampersand().constant("0xffff"))));
+                        .returnKeyword(_ -> cast(_ -> u16Type()).paren(_ -> paren(_ -> paren(_ -> id("bits").rightShift(16)).bitwiseOR().id("sign_bit")).ampersand().constant("0xffff"))));
     }
 
     @Override
@@ -756,13 +694,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
             case CoreOp.VarOp varOp -> varName(varOp);
-            case null, default -> {}
+            case null, default -> {
+            }
         }
         return self();
     }
 
     @Override
-    public final T varStoreOp( CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
+    public final T varStoreOp(CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
         Op op = scopedCodeBuilderContext().resolve(varStoreOp.operands().getFirst());
 
         //TODO see if VarLikeOp marker interface fixes this
@@ -776,153 +715,27 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case CoreOp.VarOp varOp -> varName(varOp);
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
-        equals().parenthesisIfNeeded( varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
+        equals().parenthesisIfNeeded(varStoreOp, ((Op.Result) varStoreOp.operands().get(1)).op());
         return self();
     }
 
     @Override
-    public final  T convOp( JavaOp.ConvOp convOp) {
+    public final T convOp(JavaOp.ConvOp convOp) {
         // TODO: I think we need to work out how to handle doubles. If I remove this OpenCL on MAC complains (no FP64)
         if (convOp.resultType() == JavaType.DOUBLE) {
             paren(_ -> type(JavaType.FLOAT)); // why double to float?
         } else {
-            paren(_ -> type((JavaType)convOp.resultType()));
+            paren(_ -> type((JavaType) convOp.resultType()));
         }
-        parenthesisIfNeeded( convOp, ((Op.Result) convOp.operands().getFirst()).op());
+        parenthesisIfNeeded(convOp, ((Op.Result) convOp.operands().getFirst()).op());
         return self();
     }
 
-    public abstract  T atomicInc( Op.Result instanceResult, String name);
-
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
-
-    private boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute, Invoke invoke) {
-        if (attribute == VarTable.HATOpAttribute.INIT_SHARED || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED) {
-            return true;
-        } else return attribute == VarTable.HATOpAttribute.NARROW && !invoke.returnsVoid();
-    }
-
-    private boolean isInvokeLoadingFromOnChipMemory(JavaOp.InvokeOp invokeOp) {
-        Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
-        if (invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS_MEMORY_REGIONS)) {
-            SequencedSet<Op.Result> uses = invoke.op().result().uses();
-            return uses.stream().filter(use -> use.op() instanceof CoreOp.VarOp)
-                    .map(use -> (CoreOp.VarOp) use.op()).anyMatch(_ -> true);
-        }
-        return false;
-    }
-
-    private boolean isVectorOperation(JavaOp.InvokeOp invokeOp) {
-        Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
-        return invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex(OpHelper.RESERVED_METHOD_VECTORS);
-    }
-
-    private boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Op op) {
-        return isSharedOrPrivate(lookup, op.operands().getFirst());
-    }
-
-    public boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Value v) {
-        return v instanceof Op.Result result && switch (result.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isSharedOrPrivate(lookup, varLoadOp); //recurse
-            case CoreOp.VarOp varOp -> {
-                // extra analysis
-                Value first = varOp.operands().getFirst();
-                if (first instanceof Block.Parameter) {
-                    // if the var comes from a parameter, then it is global memory
-                    yield false;
-                }
-                // otherwise we continue traversal
-                yield isSharedOrPrivate(lookup, varOp);
-            }
-            case JavaOp.InvokeOp invoke -> {
-                // If we get an invoke, we need to get method name, and check the following
-
-                // warp to Invoke
-                if (lookup == null) {
-                    throw new IllegalStateException("Lookup has not been initialized");
-                }
-
-                Stream<Invoke> stream = OpHelper.Invoke.stream(lookup, invoke);
-                Optional<Invoke> invokeOptional = stream.findFirst();
-                // Check for the right class
-                if (invokeOptional.isPresent() && invokeOptional.get().refIs(NonMappableIface.class)) {
-                    // check for the method name
-                    String lowerCase = invoke.invokeReference().name().toLowerCase();
-                    yield NON_MAPPABLE_IFACE.contains(lowerCase);
-                }
-                yield false;
-            }
-            default -> false;
-        };
-    }
-
-    public abstract T generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape,  boolean deviceAllocated);
-
-    // recursive
-    public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVectorVarNameOrNull(varLoadOp.operands().getFirst());
-    }
-
-    // recursive
-    public static String findVectorVarNameOrNull(Value v) {
-        switch (v) {
-            case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
-                return findVectorVarNameOrNull(varLoadOp);
-            }
-            case null, default -> {
-                if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarOp varOp) {
-                    return varOp.varName();
-                }
-                return null;
-            }
-        }
-    }
-
-    private boolean isVectorView(JavaOp.InvokeOp invokeOp) {
-        var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
-        return (invoke.named("storeFloat4View") || invoke.named("storeFloat2View"))
-                && varAccess(scopedCodeBuilderContext.lookup(), invoke.opFromOperandNOrNull(1)) instanceof OpHelper.VarAccess varAccess
-                && varAccess.isLoad() && varAccess.isTypeAssignable(IfaceValue.Vector.class);
-    }
-
-    public abstract T hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op);
-
-    private IfaceValue.Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
-        if (invokeOp.operands().get(idx) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            if (varLoadOp.resultType() instanceof VarType varType) {
-                return getVectorShape(lookup, varType.valueType());
-            } else {
-                return getVectorShape(lookup, varLoadOp.resultType());
-            }
-        }
-        return null;
-    }
-
-    private boolean findIsSharedOrPrivateSpace(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst());
-        } else if (v.declaringElement() instanceof CoreOp.VarOp varOp) {
-            return findIsSharedOrPrivateSpace(varOp.operands().getFirst());
-        } else {
-            return !(v instanceof Block.Parameter);
-        }
-    }
-
-    public String mapLane(int lane) {
-        return switch (lane) {
-            case 0 -> "x";
-            case 1 -> "y";
-            case 2 -> "z";
-            case 3 -> "w";
-            default -> throw new InternalError("Invalid lane: " + lane);
-        };
-    }
-
-    public abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
 
     public T hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
         if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
-            recurse( vLoadOp);
+            recurse(vLoadOp);
         } else {
             id(invokeVar.name());
         }
@@ -930,97 +743,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    public record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        // recursive
-        public static String vectorNameOrThrow(Value v) {
-            return switch (OpHelper.asOpFromResultOrNull(v)) {
-                case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
-                        vectorNameOrThrow(varLoadOp.operands().getFirst()); // recurse
-                case CoreOp.VarOp varOp -> varOp.varName();
-                case null -> null;
-                default -> throw new IllegalStateException("failed to find vector name");
-            };
-        }
-        public String name(){
-            return vectorNameOrThrow(varLoadOp.operands().getFirst());
-        }
-        //recursive
-        public CoreOp.VarOp findVarOpOrNull(Value v) {
-            return switch (OpHelper.asOpFromResultOrNull(v)){
-                case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findVarOpOrNull(varLoadOp.operands().getFirst()); //recurse
-                case CoreOp.VarOp varOp -> varOp;
-                case null -> null;
-                default ->  null;
-            };
-        }
-
-        public CoreOp.VarOp varOpFromOperand(int idx){
-            return findVarOpOrNull(invokeOp.operands().get(idx));
-        }
-        public CodeType returnType() {
-            return invokeOp.resultType();
-        }
-
-        public int laneIdx() {
-            return "xyzw".indexOf(invokeOp.invokeReference().name().charAt(0));
-        }
-
-        public String resolveName() {
-            return varOpFromOperand(1) instanceof CoreOp.VarOp varOp?varOp.varName() : null;
-        }
-    }
-
-    private static boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
-        return invoke.refIs(S16ImplOfF16.class) && invoke.nameMatchesRegex(methodName);
-    }
-
-
-    public abstract T hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType);
-
-    private boolean isVectorSelectOperation(Invoke invoke) {
-        return invoke.nameMatchesRegex("[xyzw]") && invoke.refIs(IfaceValue.Vector.class) && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp;
-    }
-
-    private boolean isS16Conversion(Invoke invoke) {
-        return !invoke.returnsVoid() && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)")) && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp;
-    }
-
-    private boolean isS16ToFloatConversion(Invoke invoke) {
-        return invoke instanceof Invoke.Static && invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)") && invoke.returnsFloat();
-    }
-
-    private static boolean isF16Local(Value v) {
-        return v instanceof Op.Result r && switch (r.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
-            case CoreOp.VarOp varOp ->
-                    !(varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp)
-                            || !invokeOp.invokeReference().name().equals(ARRAY);
-            default -> false;
-        };
-    }
-
-    //recursive
-    private static boolean isF16Local(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return isF16Local(varLoadOp.operands().getFirst());
-    }
-
-    public abstract T hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local);
-
-    private boolean isInvokeFromNarrowTypeConversion(JavaOp.InvokeOp invoke) {
-        SequencedSet<Op.Result> uses = invoke.result().uses();
-        boolean[] result = new boolean[1];
-        uses.forEach(usage -> {
-            if (usage.declaringElement() instanceof JavaOp.InvokeOp invokeOp2) {
-                var invoke2 = invoke(scopedCodeBuilderContext().lookup(), invokeOp2);
-                if (invoke2.nameMatchesRegex("(f16ToFloat|bfloat162float)")) {
-                    result[0] = true;
-                }
-            }
-        });
-        return result[0];
-    }
-
-    private boolean isInvokeFromSharedOrPrivate(Op.Result instance, Invoke invoke) {
+    private boolean isInvokeFromSharedOrPrivate(Op.Result instance, OpHelper.Invoke invoke) {
         boolean isLocalOrPrivateDS = false;
         VarTable vTable = kernelCallGraph.getVarTable();
         if (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
@@ -1030,10 +753,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             isLocalOrPrivateDS = isAttributeSharedOrPrivate(attribute, invoke);
         }
         return isLocalOrPrivateDS;
-    }
-
-    private boolean isS16BinaryOp(Invoke invoke) {
-        return is16BitFloat(invoke, Regex.of("(add|sub|mul|div)")) && !invoke.returnsVoid();
     }
 
     private void handleVectorOperations(Invoke invoke) {
@@ -1050,7 +769,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
             var name = findVectorVarNameOrNull(invoke.op().operands().getFirst());
             id(name);
-        }  else if (isVectorBinaryOperation(invoke)) {
+        } else if (isVectorBinaryOperation(invoke)) {
             handleVectorBinaryOperation(invoke);
         } else {
             throw new IllegalStateException("[CodeGen] Vector Operation not found: " + invoke.name());
@@ -1104,12 +823,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
-    protected boolean isVectorBinaryOperation(Invoke invoke) {
-        return (invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex("(add|sub|mul|div)"));
-    }
-
-    public abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
-
     private void handleVectorBinaryOperation(Invoke invoke) {
         hatBinaryVectorOp(invoke);
     }
@@ -1121,14 +834,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         ((Regex.Match) atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
                 );
             }
-        } else if (isInvokeLoadingFromOnChipMemory(invoke.op())) {
+        } else if (isInvokeLoadingFromOnChipMemory(scopedCodeBuilderContext().lookup(), invoke.op())) {
             // equivalent to custom ops for private and shared memory
             generateOnChipMemoryLoad(invoke.op());
         } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
             // Attention: Since F16.toFloat operations are supported, it should be possible to
             // implement a load from global memory from an F16Array and directly use it for a math operation.
             // In this case, we need to add an extra parenthesis.
-            boolean narrowTypeCast = isInvokeFromNarrowTypeConversion(invoke.op());
+            boolean narrowTypeCast = isInvokeFromNarrowTypeConversion(scopedCodeBuilderContext.lookup(), invoke.op());
             parenWhen(narrowTypeCast, _ -> {
                 parenWhen(
                         invoke.operandCount() > 1
@@ -1184,18 +897,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
-    private boolean isMathOperation(Invoke invoke) {
-        return !invoke.returnsVoid() && invoke.refIs(HATMath.class);
-    }
-
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
         if (C99VecAndMatHandler.isVecInvoke(invoke)) { // hacked for vec op calls.
             C99VecAndMatHandler.handleInvoke(self(), invoke);
-        } else if (isVectorOperation(invokeOp)) {
+        } else if (isVectorOperation(scopedCodeBuilderContext.lookup(), invokeOp)) {
             handleVectorOperations(invoke);
-        } else if (isVectorView(invokeOp)) {
+        } else if (isVectorView(scopedCodeBuilderContext.lookup(), invokeOp)) {
             handleVectorView(invoke);
         } else if (isVectorSelectOperation(invoke)) {
             handleVectorSelect(invoke);
@@ -1275,7 +984,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     @Override
-    public T arrayLoadOp( JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp) {
+    public T arrayLoadOp(JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp) {
         if (HATArrayViewPhase.isVectorOp(scopedCodeBuilderContext.lookup(), arrayLoadOp)) {
             var vectorShape = getVectorShape(scopedCodeBuilderContext.lookup(), arrayLoadOp.resultType());
             boolean deviceAllocated = HATArrayViewPhase.isLocalSharedOrPrivate(arrayLoadOp);
@@ -1307,12 +1016,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
-    protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
-    protected abstract T varOpForVectors(CoreOp.VarOp varOp);
-    protected abstract T varOpInit(CoreOp.VarOp varOp);
-    protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
-    protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
-
     protected void genFieldAccess(Value operand, boolean isReference) {
         if (isReference) {
             rarrow().id(VALUE);
@@ -1323,33 +1026,61 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void generateMathIntrinsicOperation(Invoke invoke) {
         // if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-         if (invoke.returnsClassType() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Class){
-             paren(_ ->
-                     f16OrBF16(float16Class))
-                     .brace(_-> {
-                         id(mapMathIntrinsic(invoke.name()));
-                         // For each operand, obtain if it is a reference from global memory or device memory.
-                         List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
-                                 .mapToObj(i -> isArrayReference( invoke.op().operands().get(i)))
-                                 .collect(Collectors.toList());
+        if (invoke.returnsClassType() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Class) {
+            paren(_ ->
+                    f16OrBF16(float16Class))
+                    .brace(_ -> {
+                        id(mapMathIntrinsic(invoke.name()));
+                        // For each operand, obtain if it is a reference from global memory or device memory.
+                        List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
+                                .mapToObj(i -> isArrayReference(scopedCodeBuilderContext.lookup(), invoke.op().operands().get(i)))
+                                .collect(Collectors.toList());
 
-                         paren(_ -> {
-                             int[] counter = {0};
-                             commaSpaceSeparated(invoke.op().operands(), op -> {
-                                 recurse(OpHelper.asResultOrThrow(op).op());
-                                 genFieldAccess(op, referenceList.get(counter[0]++));
-                             });
-                         });
-                     });
-         }else {
-             id(mapMathIntrinsic(invoke.name()));
-             paren(_ ->
-                 commaSpaceSeparated(invoke.op().operands(), op ->
-                     recurse(OpHelper.asResultOrThrow(op).op())
-                 )
-             );
-         }
+                        paren(_ -> {
+                            int[] counter = {0};
+                            commaSpaceSeparated(invoke.op().operands(), op -> {
+                                recurse(OpHelper.asResultOrThrow(op).op());
+                                genFieldAccess(op, referenceList.get(counter[0]++));
+                            });
+                        });
+                    });
+        } else {
+            id(mapMathIntrinsic(invoke.name()));
+            paren(_ ->
+                    commaSpaceSeparated(invoke.op().operands(), op ->
+                            recurse(OpHelper.asResultOrThrow(op).op())
+                    )
+            );
+        }
     }
+
+    public abstract T defines();
+
+    protected abstract T atomicInc(Op.Result instanceResult, String name);
+
+    protected abstract T genVectorIdentifier(IfaceValue.Vector.Shape vectorShape);
+
+    protected abstract T generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated);
+
+    protected abstract T hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op);
+
+    protected abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
+
+    protected abstract T hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType);
+
+    protected abstract T hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local);
+
+    protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
+
+    protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
+
+    protected abstract T varOpForVectors(CoreOp.VarOp varOp);
+
+    protected abstract T varOpInit(CoreOp.VarOp varOp);
+
+    protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
+
+    protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
     protected abstract String mapMathIntrinsic(String name);
 }

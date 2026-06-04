@@ -28,7 +28,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
 import hat.phases.HATFP16Phase;
-import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
@@ -53,6 +52,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Stream;
 
+import static hat.phases.HATPhaseUtils.InvokeVar;
+import static hat.phases.HATPhaseUtils.isArrayReference;
+import static hat.phases.HATPhaseUtils.isMathLib;
+import static hat.phases.HATPhaseUtils.isOperandF32;
+import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
+import static hat.phases.HATPhaseUtils.mapLane;
+import static hat.phases.HATPhaseUtils.reduceFloatType;
+import static hat.phases.HATPhaseUtils.reduceFloatTypeFromReturnType;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
@@ -397,8 +404,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder hatF16BinaryOp(Invoke invoke, Class<?> reducedFloatType) {
         Value op1 = invoke.op().operands().get(0);
         Value op2 = invoke.op().operands().get(1);
-        boolean isFirstOperandReference = isArrayReference(op1);
-        boolean isSecondOperandReference = isArrayReference(op2);
+        boolean isFirstOperandReference = isArrayReference(scopedCodeBuilderContext.lookup(), op1);
+        boolean isSecondOperandReference = isArrayReference(scopedCodeBuilderContext.lookup(), op2);
 
         final byte f32Mixed;
         if (!isFirstOperandReference && isOperandF32(op1)) {
@@ -475,9 +482,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             // Find the category - This is the generic case, when ALL custom ops are removed
             Stream<Invoke> stream = Invoke.stream(kernelCallGraph.lookup(), invokeOp);
             Optional<Invoke> invoke = stream.findFirst();
-            narrowCategory = HATPhaseUtils.reduceFloatType(invoke);
+            narrowCategory = reduceFloatType(invoke);
             if (narrowCategory == null && isMathLib(invoke)) {
-                narrowCategory = HATPhaseUtils.reduceFloatTypeFromReturnType(invoke);
+                narrowCategory = reduceFloatTypeFromReturnType(invoke);
             }
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());

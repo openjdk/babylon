@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static hat.phases.HATPhaseUtils.isMathLib;
 import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
@@ -172,13 +173,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
+    public OpenCLHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, HATPhaseUtils.InvokeVar invokeVar) {
         if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
             recurse(vLoadOp);
         } else {
             id(invokeVar.name());
         }
-        dot().id(mapLane(invokeVar.laneIdx())).assign();
+        dot().id(HATPhaseUtils.mapLane(invokeVar.laneIdx())).assign();
         String resolvedName = invokeVar.resolveName();
         return either (resolvedName != null,
                 _-> varName(resolvedName),
