@@ -55,16 +55,18 @@ import java.util.stream.Collectors;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class KernelCallGraph implements LookupCarrier {
+
     @Override public MethodHandles.Lookup lookup(){
         return computeCallGraph.lookup();
     }
-    public static final boolean  showKernelCallDag = Boolean.getBoolean("showKernelCallDag");
-    public static final  boolean  showKernelIfaceDag = Boolean.getBoolean("showKernelIfaceDag");
-    public static final boolean  showKernelIfaceDagProposedTypedefs = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
+
+    public static final boolean SHOW_KERNEL_CALL_DAG = Boolean.getBoolean("showKernelCallDag");
+    public static final  boolean SHOW_KERNEL_IFACE_DAG = Boolean.getBoolean("showKernelIfaceDag");
+    public static final boolean SHOW_KERNEL_IFACE_DAG_PROPOSED_TYPEDEFS = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
+
     public final ComputeCallGraph computeCallGraph;
     public final MethodCallDag callDag;
-
-    public final IfaceDataDag<MappableIface> ifaceDag;
+    public final IfaceDataDag<MappableIface> iFaceDag;
     public final List<AccessType> bufferAccessList;
     public final Set<CodeType> accessedTypes;
     public final Set<Class<?>> accessedClasses;
@@ -79,10 +81,8 @@ public class KernelCallGraph implements LookupCarrier {
     private final VarTable varTable;
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp e) {
-
         this.computeCallGraph = computeCallGraph;
-
-        CoreOp.FuncOp ssaFunc =  SSA.transform( e.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
+        CoreOp.FuncOp ssaFunc =  SSA.transform(e.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
         var changed  = Mutable.of(true);
         while (changed.get()) { // loop until no more inline-able functions
             changed.set(false);
@@ -160,11 +160,11 @@ public class KernelCallGraph implements LookupCarrier {
             HATTransformer.transform(HATTransformer.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
             checkSSALowering(f.funcOp());
         });
-        if (showKernelCallDag) {
+        if (SHOW_KERNEL_CALL_DAG) {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
         }
 
-        this.ifaceDag = new IfaceDataDag<>(dag->
+        this.iFaceDag = new IfaceDataDag<>(dag->
             entrypoint.funcOp().elements()
                     .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
                     .filter(ClassType.class::isInstance).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
@@ -173,11 +173,11 @@ public class KernelCallGraph implements LookupCarrier {
                             .forEach(retType -> dag.addEdge(iface, retType))
                     )
         );
-        if (showKernelIfaceDag) {
-            this.ifaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
+        if (SHOW_KERNEL_IFACE_DAG) {
+            this.iFaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }
-        if (showKernelIfaceDagProposedTypedefs) {
-            ifaceDag.rankOrdered.forEach(ifaceInfo -> IO.println("create typedef " + ifaceInfo.classType()));
+        if (SHOW_KERNEL_IFACE_DAG_PROPOSED_TYPEDEFS) {
+            iFaceDag.rankOrdered.forEach(ifaceInfo -> IO.println("create typedef " + ifaceInfo.classType()));
         }
     }
 
