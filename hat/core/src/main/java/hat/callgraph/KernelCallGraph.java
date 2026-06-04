@@ -152,21 +152,13 @@ public class KernelCallGraph implements LookupCarrier {
         varTable.addFunction(entrypoint.funcOp().funcName());
 
         HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
-
-        // We might do this a mandatory check in near future
-        // TODO: explain why we need this
-        if (computeCallGraph.computeContext.config().checkSSALowering()) {
-            CoreOp.FuncOp loweredCodeModel = entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
-            CoreOp.FuncOp ssaCodeModel = SSA.transform(loweredCodeModel);
-            if (ssaCodeModel == null) {
-                throw new IllegalStateException("SSA code model is null");
-            }
-        }
+        checkSSALowering(entrypoint.funcOp());
 
         this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
         callDag.rankOrdered.forEach(f -> {
             varTable.addFunction(f.funcOp().funcName());
             HATTransformer.transform(HATTransformer.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
+            checkSSALowering(f.funcOp());
         });
         if (showKernelCallDag) {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
@@ -186,6 +178,27 @@ public class KernelCallGraph implements LookupCarrier {
         }
         if (showKernelIfaceDagProposedTypedefs) {
             ifaceDag.rankOrdered.forEach(ifaceInfo -> IO.println("create typedef " + ifaceInfo.classType()));
+        }
+    }
+
+    /**
+     * This check for SSA lowering guarantees that the current HAT Code model (dialect) can be
+     * lowered to pure SSA representation. Currently, we do not do anything with the lowered
+     * code model. However, this could be useful when transforming the accelerator code
+     * to other lower-level representations compared to C99-based representations, such as
+     * SPIR-V and CUDA PTX. Thus, for sanity check, we keep this check on.
+     *
+     * <p>It can be enabled with -DCHECK_SSA_LOWERING</p>
+     *
+     * @param funcOp Function code model
+     */
+    private void checkSSALowering(CoreOp.FuncOp funcOp) {
+        if (computeCallGraph.computeContext.config().checkSSALowering()) {
+            CoreOp.FuncOp loweredCodeModel = funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
+            CoreOp.FuncOp ssaCodeModel = SSA.transform(loweredCodeModel);
+            if (ssaCodeModel == null) {
+                throw new IllegalStateException("SSA code model is null");
+            }
         }
     }
 
