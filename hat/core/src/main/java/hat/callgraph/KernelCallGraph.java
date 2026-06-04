@@ -75,68 +75,40 @@ public class KernelCallGraph implements LookupCarrier {
     public final Set<Class<? extends MappableIface>> accessedMappableIfaceClasses;
     public final Set<Class<? extends IfaceValue.vec>> accessedVecClasses;
     public final Set<Class<? extends S16ImplOfF16>> accessedFP16Classes;
-    public boolean usesBarrier;
-    public boolean usesAtomics;
     public final Set<String> accessedKernelContextFields;
+
+    private boolean usesBarrier;
+    private boolean usesAtomics;
     private final VarTable varTable;
 
-    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp e) {
+    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
         this.computeCallGraph = computeCallGraph;
-        CoreOp.FuncOp ssaFunc =  SSA.transform(e.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
-        var changed  = Mutable.of(true);
-        while (changed.get()) { // loop until no more inline-able functions
-            changed.set(false);
-            ssaFunc = ssaFunc.transform( (blockbuilder, op) -> {
-                if (invoke(lookup(), op) instanceof OpHelper.Invoke invoke                         // always but pattern friendly
-                        && invoke.resolvedMethodOrNull() instanceof Method m
-                        && Op.ofMethod(m) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
-                        && optionalFuncOp.isPresent()
-                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
-                ){
-                    var ssaInline =SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                    var exitBlockBuilder = jdk.incubator.code.dialect.core.Inliner.inline(
-                            blockbuilder, ssaInline,
-                            blockbuilder.context().getValues(invoke.op().operands()), (_, _value) -> {
-                                if (_value != null) {
-                                    blockbuilder.context().mapValue(invoke.op().result(), _value);
-                                }
-                            });
-                    if (!exitBlockBuilder.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
-                    }
-                    changed.set(true);
-                    return exitBlockBuilder.withContextAndTransformer(blockbuilder.context(), blockbuilder.transformer());
-                }
-                blockbuilder.add(op);
-                return blockbuilder;
-            });
-        }
-        var inlinedEntryPoint = ssaFunc;
+        var inlinedEntryPoint = inlineEntryPoint(kernelFunction);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
         this.accessedKernelContextFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
                 .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList()
         );
         this.accessedTypes = inlinedEntryPoint.elements()
-                .filter(ce -> ce instanceof Op).map(ce -> ((Op) ce).resultType())
+                .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
                 .collect(Collectors.toSet());
         this.accessedClasses = this.accessedTypes.stream()
-                .filter(te -> te instanceof ClassType).map(te -> (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) te))
+                .filter(ClassType.class::isInstance).map(te -> (Class<?>) OpHelper.classTypeToTypeOrThrow(lookup(), (ClassType) te))
                 .collect(Collectors.toSet());
         this.accessedIfaceClasses =  this.accessedClasses.stream()
-                .filter(c->IfaceValue.class.isAssignableFrom(c)).map(c->(Class<IfaceValue>)c)
+                .filter(IfaceValue.class::isAssignableFrom).map(c->(Class<IfaceValue>)c)
                 .collect(Collectors.toSet());
         this.accessedMappableIfaceClasses =  this.accessedIfaceClasses.stream()
-                .filter(c->MappableIface.class.isAssignableFrom(c)).map(c->(Class<MappableIface>)c)
+                .filter(MappableIface.class::isAssignableFrom).map(c->(Class<MappableIface>)c)
                 .collect(Collectors.toSet());
         this.accessedNonMappableIfaceClasses =  this.accessedIfaceClasses.stream()
-                .filter(c->NonMappableIface.class.isAssignableFrom(c)).map(c->(Class<NonMappableIface>)c)
+                .filter(NonMappableIface.class::isAssignableFrom).map(c->(Class<NonMappableIface>)c)
                 .collect(Collectors.toSet());
         this.accessedVecClasses =  this.accessedClasses.stream()
-                .filter(c->IfaceValue.vec.class.isAssignableFrom(c)).map(c->(Class<IfaceValue.vec>)c)
+                .filter(IfaceValue.vec.class::isAssignableFrom).map(c->(Class<IfaceValue.vec>)c)
                 .collect(Collectors.toSet());
         this.accessedFP16Classes =  this.accessedClasses.stream()
-                .filter(c-> S16ImplOfF16.class.isAssignableFrom(c)).map(c->(Class<S16ImplOfF16>)c)
+                .filter(S16ImplOfF16.class::isAssignableFrom).map(c->(Class<S16ImplOfF16>)c)
                 .collect(Collectors.toSet());
         this.usesAtomics = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke ->
@@ -147,7 +119,7 @@ public class KernelCallGraph implements LookupCarrier {
 
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
 
-        var entrypoint = new FuncOpCarrier.Impl(e);
+        var entrypoint = new FuncOpCarrier.Impl(kernelFunction);
         this.varTable = new VarTable();
         varTable.addFunction(entrypoint.funcOp().funcName());
 
@@ -202,7 +174,57 @@ public class KernelCallGraph implements LookupCarrier {
         }
     }
 
+    private CoreOp.FuncOp inlineEntryPoint(CoreOp.FuncOp func) {
+        CoreOp.FuncOp ssaFunc =  SSA.transform(func.transform(CodeTransformer.LOWERING_TRANSFORMER)) ;
+        var changed  = Mutable.of(true);
+        while (changed.get()) { // loop until no more inline-able functions
+            changed.set(false);
+            ssaFunc = ssaFunc.transform((blockbuilder, op) -> {
+                if (invoke(lookup(), op) instanceof OpHelper.Invoke invoke                         // always but pattern friendly
+                        && invoke.resolvedMethodOrNull() instanceof Method m
+                        && Op.ofMethod(m) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
+                        && optionalFuncOp.isPresent()
+                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
+                ) {
+                    var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
+                    var exitBlockBuilder = jdk.incubator.code.dialect.core.Inliner.inline(
+                            blockbuilder, ssaInline,
+                            blockbuilder.context().getValues(invoke.op().operands()), (_, value) -> {
+                                if (value != null) {
+                                    blockbuilder.context().mapValue(invoke.op().result(), value);
+                                }
+                            });
+                    if (!exitBlockBuilder.parameters().isEmpty()) {
+                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                    }
+                    changed.set(true);
+                    return exitBlockBuilder.withContextAndTransformer(blockbuilder.context(), blockbuilder.transformer());
+                }
+                blockbuilder.add(op);
+                return blockbuilder;
+            });
+        }
+        return ssaFunc;
+    }
+
+    public void setUsesBarrier(boolean useBarrier) {
+        this.usesBarrier = useBarrier;
+    }
+
+    public void setUsesAtomics(boolean useAtomics) {
+        this.usesAtomics = useAtomics;
+    }
+
+    public boolean isUsesBarrier() {
+        return usesBarrier;
+    }
+
+    public boolean isUsesAtomics() {
+        return usesAtomics;
+    }
+
     public VarTable getVarTable() {
         return varTable;
     }
+
 }
