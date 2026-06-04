@@ -889,7 +889,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public abstract T hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op);
 
-    public static IfaceValue.Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
+    private IfaceValue.Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
         if (invokeOp.operands().get(idx) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             if (varLoadOp.resultType() instanceof VarType varType) {
                 return getVectorShape(lookup, varType.valueType());

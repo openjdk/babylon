@@ -33,128 +33,40 @@ import optkl.Trxfmr;
 import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
-import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 
 public final class HATVectorPhase implements HATPhase {
 
     private String functionName;
 
-    public enum VOp {
-        FLOAT4_LOAD("float4View"),
-        FLOAT2_LOAD("float2View"),
-        OF("of"),
-        ADD("add"),
-        SUB("sub"),
-        MUL("mul"),
-        DIV("div"),
-        MAKE_MUTABLE("makeMutable");
-        final String methodName;
-
-        VOp(String methodName) {
-            this.methodName = methodName;
-        }
-    }
-
     private void varOpVector(Block.Builder blockBuilder, CoreOp.VarOp varOp, VarTable varTable) {
         Op.Result result = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, result.op(), VarTable.HATOpAttribute.VECTOR);
     }
 
-    private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
-        Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
+    private CoreOp.FuncOp transformVectorVar(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+        Set<Op> vectorShapeMap = new HashSet<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
-            if (variable.firstOperandAsInvoke() instanceof Invoke invoke
-                    && invoke.returns(Vector.class)
-                    && invoke.named(vectorOperation.methodName)) {
-                Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                vectorShapeMap.put(variable.op(), vectorShape);
+            if (variable.firstOperandAsInvoke() instanceof Invoke invoke && invoke.returns(Vector.class)) {
+                vectorShapeMap.add(variable.op());
             }
         });
 
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
+        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::contains, (blockBuilder, op) -> {
             if (op instanceof CoreOp.VarOp varOp) {
                 varOpVector(blockBuilder, varOp, varTable);
             }
             return blockBuilder;
         }, varTable).funcOp();
-    }
-
-    private CoreOp.FuncOp dialectifyVectorOf(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
-        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup, funcOp, vectorOperation);
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (op instanceof CoreOp.VarOp varOp) {
-                varOpVector(blockBuilder, varOp, varTable);
-            } else {
-                blockBuilder.add(op);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-    private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation) {
-        Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
-            if (variable.firstOperandAsInvoke() instanceof Invoke invoke
-                    && invoke.named(vectorOperation.methodName)
-                    && invoke.returns(Vector.class)) {
-                Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                vectorShapeMap.put(variable.op(), vectorShape);
-            }
-        });
-
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (op instanceof CoreOp.VarOp varOp) {
-                varOpVector(blockBuilder, varOp, varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-    private Map<Op, Vector.Shape> getVectorShapeMap(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VOp vectorOperation) {
-        Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        Invoke.stream(lookup, funcOp).
-                filter(i -> i.returns(Vector.class)
-                        && i.named(vectorOperation.methodName)
-                        && i.opFromOnlyUseOrNull() instanceof CoreOp.VarOp)
-                .forEach(i -> {
-                    Vector.Shape vectorShape = getVectorShape(i.lookup(), i.returnType());
-                    vectorShapeMap.put(i.op(), vectorShape);
-                    vectorShapeMap.put(i.opFromOnlyUseOrNull(), vectorShape);
-                });
-        return vectorShapeMap;
-    }
-
-    @FunctionalInterface
-    public interface VectorTransformer {
-        CoreOp.FuncOp apply(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable, VOp vectorOperation);
-    }
-
-    private final Map<VOp, VectorTransformer> vectorTransformers;
-
-    public HATVectorPhase() {
-        vectorTransformers = new LinkedHashMap<>();
-        vectorTransformers.put(VOp.FLOAT4_LOAD, this::dialectifyVectorLoad); // done
-        vectorTransformers.put(VOp.FLOAT2_LOAD, this::dialectifyVectorLoad); // done
-        vectorTransformers.put(VOp.OF, this::dialectifyVectorOf);            // done
-        vectorTransformers.put(VOp.MAKE_MUTABLE, this::dialectifyVectorOf);  // done
-        vectorTransformers.put(VOp.ADD, this::dialectifyVectorBinaryOps);    // done
-        vectorTransformers.put(VOp.SUB, this::dialectifyVectorBinaryOps);    // done
-        vectorTransformers.put(VOp.MUL, this::dialectifyVectorBinaryOps);    // done
-        vectorTransformers.put(VOp.DIV, this::dialectifyVectorBinaryOps);    // done
     }
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         this.functionName = funcOp.funcName();
-        for (VOp vectorOperation : vectorTransformers.keySet()) {
-            VectorTransformer transformer = vectorTransformers.get(vectorOperation);
-            funcOp = transformer.apply(lookup, funcOp, varTable, vectorOperation);
-        }
+        funcOp = transformVectorVar(lookup, funcOp, varTable);
         return funcOp;
     }
 }

@@ -154,6 +154,7 @@ public class KernelCallGraph implements LookupCarrier {
         HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
 
         // We might do this a mandatory check in near future
+        // TODO: explain why we need this
         if (computeCallGraph.computeContext.config().checkSSALowering()) {
             CoreOp.FuncOp loweredCodeModel = entrypoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
             CoreOp.FuncOp ssaCodeModel = SSA.transform(loweredCodeModel);

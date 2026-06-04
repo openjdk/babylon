@@ -535,15 +535,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     protected CudaHATKernelBuilder varOpInit(CoreOp.VarOp varOp) {
         return suffix_t((ClassType) varOp.varValueType()).sp()
-                .assign(
-                        _ -> id(varOp.varName()),
+                .assign(_ -> id(varOp.varName()),
                         _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
     }
 
     @Override
     protected CudaHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
-        HAT_LOCAL_MEM().sp();
-        return varOpPrivateMemory(varOp);
+        return HAT_LOCAL_MEM()
+                .sp()
+                .varOpPrivateMemory(varOp);
     }
 
     @Override
