@@ -118,17 +118,13 @@ final class NormalizeExceptionRegionsTransformer implements CodeTransformer {
     private static boolean isExitTargetOf(Block block, ExceptionRegionEnter enter) {
         return !block.predecessors().isEmpty()
                 && block.predecessors().stream().allMatch(predecessor ->
-                        predecessor.terminatingOp() instanceof ExceptionRegionExit e
-                                && e.endReference().targetBlock() == block
-                                && e.enterOp() == enter);
+                        predecessor.terminatingOp() instanceof ExceptionRegionExit e && e.enterOp() == enter);
     }
 
     // Several branch adapters may feed the same re-enter block
     private static boolean isOnlyReachedByExitAdapters(Block block, ExceptionRegionEnter enter) {
         return block.predecessors().stream().allMatch(predecessor ->
-                predecessor.terminatingOp() instanceof BranchOp branch
-                        && branch.branch().targetBlock() == block
-                        && isExitTargetOf(predecessor, enter));
+                predecessor.terminatingOp() instanceof BranchOp branch && isExitTargetOf(predecessor, enter));
     }
 
     // Compare real handler targets
