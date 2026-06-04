@@ -28,8 +28,8 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
 import hat.phases.HATFP16Phase;
+import hat.phases.HATPhaseUtils;
 import hat.types.F16;
-import hat.types.S16ImplOfF16;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -57,6 +57,37 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
+
+    // Mapping between API function names and CUDA intrinsics for the math operations
+    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+
+    static {
+        MATH_FUNCTIONS.put("maxf", "max");
+        MATH_FUNCTIONS.put("maxd", "max");
+        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
+        MATH_FUNCTIONS.put("minf", "min");
+        MATH_FUNCTIONS.put("mind", "min");
+        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
+
+        MATH_FUNCTIONS.put("expf", "expf");
+        MATH_FUNCTIONS.put("expd", "exp");
+        MATH_FUNCTIONS.put("expf16", "hexp");
+
+        MATH_FUNCTIONS.put("cosf", "cosf");
+        MATH_FUNCTIONS.put("cosd", "cos");
+        MATH_FUNCTIONS.put("sinf", "sinf");
+        MATH_FUNCTIONS.put("sind", "sin");
+        MATH_FUNCTIONS.put("tanf", "tanf");
+        MATH_FUNCTIONS.put("tand", "tan");
+
+        MATH_FUNCTIONS.put("native_cosf", "__cosf");
+        MATH_FUNCTIONS.put("native_sinf", "__sinf");
+        MATH_FUNCTIONS.put("native_tanf", "__tanf");
+        MATH_FUNCTIONS.put("native_expf", "__expf");
+
+        MATH_FUNCTIONS.put("sqrtf", "sqrtf");
+        MATH_FUNCTIONS.put("sqrtd", "sqrt");
+    }
 
     private final Map<Op, String> mapVectorName;
     private final Deque<String> stack;
@@ -431,54 +462,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
     }
 
-    // Mapping between API function names and CUDA intrinsics for the math operations
-    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
-
-    static {
-        MATH_FUNCTIONS.put("maxf", "max");
-        MATH_FUNCTIONS.put("maxd", "max");
-        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
-        MATH_FUNCTIONS.put("minf", "min");
-        MATH_FUNCTIONS.put("mind", "min");
-        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
-
-        MATH_FUNCTIONS.put("expf", "expf");
-        MATH_FUNCTIONS.put("expd", "exp");
-        MATH_FUNCTIONS.put("expf16", "hexp");
-
-        MATH_FUNCTIONS.put("cosf", "cosf");
-        MATH_FUNCTIONS.put("cosd", "cos");
-        MATH_FUNCTIONS.put("sinf", "sinf");
-        MATH_FUNCTIONS.put("sind", "sin");
-        MATH_FUNCTIONS.put("tanf", "tanf");
-        MATH_FUNCTIONS.put("tand", "tan");
-
-        MATH_FUNCTIONS.put("native_cosf", "__cosf");
-        MATH_FUNCTIONS.put("native_sinf", "__sinf");
-        MATH_FUNCTIONS.put("native_tanf", "__tanf");
-        MATH_FUNCTIONS.put("native_expf", "__expf");
-
-        MATH_FUNCTIONS.put("sqrtf", "sqrtf");
-        MATH_FUNCTIONS.put("sqrtd", "sqrt");
-    }
-
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
-    }
-
-    private Class<?> reduceFloatType(Optional<Invoke> invoke) {
-        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
-            return category;
-        }
-        return null;
-    }
-
-    private Class<?> reduceFloatTypeFromReturnType(Optional<Invoke> invoke) {
-        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
-            return category;
-        }
-        return null;
     }
 
     @Override
@@ -489,9 +475,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             // Find the category - This is the generic case, when ALL custom ops are removed
             Stream<Invoke> stream = Invoke.stream(kernelCallGraph.lookup(), invokeOp);
             Optional<Invoke> invoke = stream.findFirst();
-            narrowCategory = reduceFloatType(invoke);
+            narrowCategory = HATPhaseUtils.reduceFloatType(invoke);
             if (narrowCategory == null && isMathLib(invoke)) {
-                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+                narrowCategory = HATPhaseUtils.reduceFloatTypeFromReturnType(invoke);
             }
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
@@ -556,5 +542,4 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
         return sp().varName(varOp);
     }
-
 }

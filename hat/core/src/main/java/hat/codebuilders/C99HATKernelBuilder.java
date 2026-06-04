@@ -97,7 +97,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case CoreOp.VarOp varOp ->
                     varOp.operands().getFirst() instanceof Op.Result varOpResult
                             && invoke(lookup(),varOpResult.op()) instanceof OpHelper.Invoke invoke
-                            && invoke.named("array")
+                            && invoke.named(ARRAY)
                             && !isInvokeLoadingFromOnChipMemory(invoke.op());
             default -> false;
         };
@@ -477,11 +477,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public static final String VALUE = "value";
-
-
+    public static final String ARRAY = "array";
 
     private T binaryOperationsForBfloat16(Invoke invoke) {
-
         boolean isFirstOperandReference = isArrayReference(invoke.op().operands().get(0));
         boolean isSecondOperandReference = isArrayReference(invoke.op().operands().get(1));
         final byte f32Mixed;
@@ -674,7 +672,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             id("length");
         } else {
             final boolean finalIsLocalOrPrivateDS = isLocalOrPrivateDS;
-            id("array").sbrace(_ -> {
+            id(ARRAY).sbrace(_ -> {
                 paren(_ -> id("long")); // is this a cast (long)  maybe cast(_->typeName("long"))?
                 paren(_ -> {
                     if (hatPtrOp.strides().size() > 1) {
@@ -757,7 +755,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T varLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         Op resolve = scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst());
         switch (resolve) {
-            case CoreOp.VarOp $ -> varName($);
+            case CoreOp.VarOp varOp -> varName(varOp);
             case null, default -> {}
         }
         return self();
@@ -872,7 +870,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 return findVectorVarNameOrNull(varLoadOp);
             }
             case null, default -> {
-                if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+                if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarOp varOp) {
                     return varOp.varName();
                 }
                 return null;
@@ -996,7 +994,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
             case CoreOp.VarOp varOp ->
                     !(varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp)
-                            || !invokeOp.invokeReference().name().equals("array");
+                            || !invokeOp.invokeReference().name().equals(ARRAY);
             default -> false;
         };
     }
@@ -1024,11 +1022,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private boolean isInvokeFromSharedOrPrivate(Op.Result instance, Invoke invoke) {
         boolean isLocalOrPrivateDS = false;
-        VarTable varTable = kernelCallGraph.getVarTable();
+        VarTable vTable = kernelCallGraph.getVarTable();
         if (instance.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
                 && scopedCodeBuilderContext().resolve(varLoadOp.operands().getFirst()) instanceof CoreOp.VarOp varOp
-                && varTable.doesVarOpExist(scopedCodeBuilderContext.funcOp().funcName(), varOp)) {
-            VarTable.HATOpAttribute attribute = varTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
+                && vTable.doesVarOpExist(scopedCodeBuilderContext.funcOp().funcName(), varOp)) {
+            VarTable.HATOpAttribute attribute = vTable.getAttributeOrThrow(scopedCodeBuilderContext.funcOp().funcName(), varOp);
             isLocalOrPrivateDS = isAttributeSharedOrPrivate(attribute, invoke);
         }
         return isLocalOrPrivateDS;
@@ -1116,6 +1114,80 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         hatBinaryVectorOp(invoke);
     }
 
+    private void handleIFaceInvoke(Invoke invoke) {
+        if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
+            if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
+                atomicInc(instanceResult,
+                        ((Regex.Match) atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
+                );
+            }
+        } else if (isInvokeLoadingFromOnChipMemory(invoke.op())) {
+            // equivalent to custom ops for private and shared memory
+            generateOnChipMemoryLoad(invoke.op());
+        } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
+            // Attention: Since F16.toFloat operations are supported, it should be possible to
+            // implement a load from global memory from an F16Array and directly use it for a math operation.
+            // In this case, we need to add an extra parenthesis.
+            boolean narrowTypeCast = isInvokeFromNarrowTypeConversion(invoke.op());
+            parenWhen(narrowTypeCast, _ -> {
+                parenWhen(
+                        invoke.operandCount() > 1
+                                && invoke(scopedCodeBuilderContext().lookup(), instance.op()) instanceof Invoke invoke0
+                                && invoke0.returnsClassType()
+                        ,
+                        // When we have patterns like:
+                        //
+                        // myiFaceArray.array().value(storeAValue);
+                        //
+                        // We need to generate extra parenthesis to make the struct pointer accessor "->" correct.
+                        // This is a common pattern when we have a IFace type that contains a subtype based on
+                        // struct or union.
+                        // An example of this is for the type F16Array.
+                        // The following expression checks that the current invokeOp has at least 2 operands:
+                        // Why 2?
+                        // - The first one is another invokeOp to load the inner struct from an IFace data structure.
+                        //   The first operand is also assignable.
+                        // - The second one is the store value, but this depends on the semantics and definition
+                        //   of the user code.
+                        _ -> {
+                            when(invoke.returnsClassType(), _ -> ampersand());
+                            recurse(instance.op());
+                        });
+
+                // Check if the varOpLoad that could follow corresponds to a local/private type
+                // We need to check for the HATMemoryVarOp until we replace all HAT<>VarOps with CoreOp.VarOp
+                boolean isLocalOrPrivateDS = isInvokeFromSharedOrPrivate(instance, invoke);
+
+                either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
+
+                funcName(invoke.op());
+
+                if (invoke.returnsVoid()) {//   setter
+                    switch (invoke.operandCount()) {
+                        case 2 -> {
+                            if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
+                                equals().recurse(op);
+                            }
+                        }
+                        case 3 -> {
+                            if (invoke.opFromOperandNOrThrow(1) instanceof Op op1
+                                    && invoke.opFromOperandNOrThrow(2) instanceof Op op2) {
+                                sbrace(_ -> recurse(op1)).equals().recurse(op2);
+                            }
+                        }
+                        default -> throw new IllegalStateException("How ");
+                    }
+                } else if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
+                    sbrace(_ -> recurse(op));
+                }
+            });
+        }
+    }
+
+    private boolean isMathOperation(Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(HATMath.class);
+    }
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -1134,75 +1206,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (isS16BinaryOp(invoke)) {
             handleS16BinaryOperation(invoke);
         } else if (invoke.refIs(IfaceValue.class)) {
-            if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
-                if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
-                    atomicInc(instanceResult,
-                            ((Regex.Match) atomicIncRegex.is(invoke.name())).stringOf(1) // atomicXXInc -> atomicXX
-                    );
-                }
-            } else if (isInvokeLoadingFromOnChipMemory(invokeOp)) {
-                // equivalent to custom ops for private and shared memory
-                generateOnChipMemoryLoad(invokeOp);
-            } else if (invoke instanceof Invoke.Virtual && invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instance) {
-                // Attention: Since F16.toFloat operations are supported, it should be possible to
-                // implement a load from global memory from an F16Array and directly use it for a math operation.
-                // In this case, we need to add an extra parenthesis.
-                boolean narrowTypeCast = isInvokeFromNarrowTypeConversion(invokeOp);
-                parenWhen(narrowTypeCast, _ -> {
-                    parenWhen(
-                            invoke.operandCount() > 1
-                                    && invoke(scopedCodeBuilderContext().lookup(), instance.op()) instanceof Invoke invoke0
-                                    && invoke0.returnsClassType()
-                            ,
-                            // When we have patterns like:
-                            //
-                            // myiFaceArray.array().value(storeAValue);
-                            //
-                            // We need to generate extra parenthesis to make the struct pointer accessor "->" correct.
-                            // This is a common pattern when we have a IFace type that contains a subtype based on
-                            // struct or union.
-                            // An example of this is for the type F16Array.
-                            // The following expression checks that the current invokeOp has at least 2 operands:
-                            // Why 2?
-                            // - The first one is another invokeOp to load the inner struct from an IFace data structure.
-                            //   The first operand is also assignable.
-                            // - The second one is the store value, but this depends on the semantics and definition
-                            //   of the user code.
-                            _ -> {
-                                when(invoke.returnsClassType(), _ -> ampersand());
-                                recurse(instance.op());
-                            });
-
-                    // Check if the varOpLoad that could follow corresponds to a local/private type
-                    // We need to check for the HATMemoryVarOp until we replace all HAT<>VarOps with CoreOp.VarOp
-                    boolean isLocalOrPrivateDS = isInvokeFromSharedOrPrivate(instance, invoke);
-
-                    either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
-
-                    funcName(invoke.op());
-
-                    if (invoke.returnsVoid()) {//   setter
-                        switch (invoke.operandCount()) {
-                            case 2 -> {
-                                if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
-                                    equals().recurse(op);
-                                }
-                            }
-                            case 3 -> {
-                                if (invoke.opFromOperandNOrThrow(1) instanceof Op op1
-                                        && invoke.opFromOperandNOrThrow(2) instanceof Op op2) {
-                                    sbrace(_ -> recurse(op1)).equals().recurse(op2);
-                                }
-                            }
-                            default -> throw new IllegalStateException("How ");
-                        }
-                    } else if (invoke.opFromOperandNOrNull(1) instanceof Op op) {
-                        sbrace(_ -> recurse(op));
-                    }
-                });
-            }
-        } else if (!invoke.returnsVoid() && invoke.refIs(HATMath.class)) {
-            // codegen for the math operation
+            handleIFaceInvoke(invoke);
+        } else if (isMathOperation(invoke)) {
             generateMathIntrinsicOperation(invoke);
         } else {
             generateFunctionCall(invoke);

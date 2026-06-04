@@ -24,7 +24,12 @@
  */
 package hat.phases;
 
+import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.ClassType;
+import optkl.OpHelper;
+
+import java.util.Optional;
 import java.util.Set;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;
 
@@ -41,6 +46,21 @@ public class HATPhaseUtils {
         }
         return op;
     }
+
+    public static Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
+        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
+    public static Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
+        if (invoke.isPresent() &&  S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
+            return category;
+        }
+        return null;
+    }
+
 
     private HATPhaseUtils() {
         /* This utility class should not be instantiated */

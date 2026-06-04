@@ -27,9 +27,9 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
+import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
-import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
@@ -51,16 +51,38 @@ import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
 
+    // Mapping between API function names and OpenCL intrinsics for the math operations
+    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+    static {
+        MATH_FUNCTIONS.put("maxf", "max");
+        MATH_FUNCTIONS.put("maxd", "max");
+        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
+        MATH_FUNCTIONS.put("minf", "min");
+        MATH_FUNCTIONS.put("mind", "min");
+        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
+
+        MATH_FUNCTIONS.put("expf", "exp");
+        MATH_FUNCTIONS.put("expd", "exp");
+        MATH_FUNCTIONS.put("expf16", "half_exp");
+
+        MATH_FUNCTIONS.put("cosf", "cos");
+        MATH_FUNCTIONS.put("cosd", "cos");
+        MATH_FUNCTIONS.put("sinf", "sin");
+        MATH_FUNCTIONS.put("sind", "sin");
+        MATH_FUNCTIONS.put("tanf", "tan");
+        MATH_FUNCTIONS.put("tand", "tan");
+
+        MATH_FUNCTIONS.put("native_cosf", "native_cos");
+        MATH_FUNCTIONS.put("native_sinf", "native_sin");
+        MATH_FUNCTIONS.put("native_tanf", "native_tan");
+        MATH_FUNCTIONS.put("native_expf", "native_exp");
+
+        MATH_FUNCTIONS.put("sqrtf", "sqrt");
+        MATH_FUNCTIONS.put("sqrtd", "sqrt");
+    }
+
     protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraph, scopedCodeBuilderContext);
-    }
-
-    public OpenCLHATKernelBuilder vstore(int dims) {
-        return id("vstore" + dims);
-    }
-
-    public OpenCLHATKernelBuilder vload(int dims) {
-        return id("vload" + dims);
     }
 
     @Override
@@ -108,6 +130,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder atomicInc( Op.Result instanceResult, String name) {
         return id("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().id(name));
     }
+
+    protected OpenCLHATKernelBuilder vstore(int dims) {
+        return id("vstore" + dims);
+    }
+
+    protected OpenCLHATKernelBuilder vload(int dims) {
+        return id("vload" + dims);
+    }
+
 
     @Override
     public OpenCLHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
@@ -190,53 +221,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
-    // Mapping between API function names and OpenCL intrinsics for the math operations
-    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
-    static {
-        MATH_FUNCTIONS.put("maxf", "max");
-        MATH_FUNCTIONS.put("maxd", "max");
-        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
-        MATH_FUNCTIONS.put("minf", "min");
-        MATH_FUNCTIONS.put("mind", "min");
-        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
-
-        MATH_FUNCTIONS.put("expf", "exp");
-        MATH_FUNCTIONS.put("expd", "exp");
-        MATH_FUNCTIONS.put("expf16", "half_exp");
-
-        MATH_FUNCTIONS.put("cosf", "cos");
-        MATH_FUNCTIONS.put("cosd", "cos");
-        MATH_FUNCTIONS.put("sinf", "sin");
-        MATH_FUNCTIONS.put("sind", "sin");
-        MATH_FUNCTIONS.put("tanf", "tan");
-        MATH_FUNCTIONS.put("tand", "tan");
-
-        MATH_FUNCTIONS.put("native_cosf", "native_cos");
-        MATH_FUNCTIONS.put("native_sinf", "native_sin");
-        MATH_FUNCTIONS.put("native_tanf", "native_tan");
-        MATH_FUNCTIONS.put("native_expf", "native_exp");
-
-        MATH_FUNCTIONS.put("sqrtf", "sqrt");
-        MATH_FUNCTIONS.put("sqrtd", "sqrt");
-    }
 
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
-    }
-
-    private Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
-        if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
-            return category;
-        }
-        return null;
-    }
-
-    private Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
-        if (invoke.isPresent() &&  S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
-            return category;
-        }
-        return null;
     }
 
     @Override
@@ -248,9 +236,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             // Find the category - This is the generic case, when ALL custom ops are removed
             Stream<OpHelper.Invoke> stream = OpHelper.Invoke.stream(kernelCallGraph.lookup(), invokeOp);
             Optional<OpHelper.Invoke> invoke = stream.findFirst();
-            narrowCategory = reduceFloatType(invoke);
+            narrowCategory = HATPhaseUtils.reduceFloatType(invoke);
             if (narrowCategory == null && isMathLib(invoke)) {
-                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+                narrowCategory = HATPhaseUtils.reduceFloatTypeFromReturnType(invoke);
             }
         } else {
             throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
@@ -311,5 +299,4 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
         return sp().varName(varOp);
     }
-
 }
