@@ -28,11 +28,13 @@
  * @run junit TestExceptionRegionOps
  */
 
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.extern.OpParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -449,5 +451,57 @@ public class TestExceptionRegionOps {
             );
             Assertions.assertEquals(expected, actual);
         };
+    }
+
+    // we get a similar model for synchronized block, instead of monitor exit we have invocation of method m
+    String modelText = """
+            func @"test1" ()java.type:"void" -> {
+                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3;
+
+              ^block_1:
+                invoke @java.ref:"TestExceptionRegionOps::m():void";
+                exception.region.exit %0 ^block_2;
+
+              ^block_2:
+                return;
+
+              ^block_3(%1 : java.type:"java.lang.Throwable"):
+                %2 : java.type:"void" = exception.region.enter ^block_4 ^block_3;
+
+              ^block_4:
+                invoke @java.ref:"TestExceptionRegionOps::m():void";
+                exception.region.exit %2 ^block_5;
+
+              ^block_5:
+                throw %1;
+            };
+            """;
+    CoreOp.FuncOp model = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, modelText).get(0);
+    static void m() {
+    }
+    @Test
+    void testBlockThatSetItselfAsHandler() {
+        Interpreter.invoke(MethodHandles.lookup(), model);
+    }
+
+    static int i2 = 0;
+    @Reflect
+    static void m2() {
+        // throws on the first and second invocation
+        if (i2++ < 2) {
+            throw new RuntimeException();
+        }
+    }
+    @Test
+    void testBlockThatSetItselfAsHandler2() {
+        CoreOp.FuncOp model2 = model.transform((b, o) -> {
+            if (o instanceof JavaOp.InvokeOp io && io.invokeReference().name().equals("m")) {
+                b.add(JavaOp.invoke(MethodRef.method(io.invokeReference().refType(), "m2", io.invokeReference().signature())));
+            } else {
+                b.add(o);
+            }
+            return b;
+        });
+        Assertions.assertThrows(RuntimeException.class, () -> Interpreter.invoke(MethodHandles.lookup(), model2));
     }
 }
