@@ -30,43 +30,30 @@ import optkl.util.carriers.FuncOpCarrier;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
-public class HATTier  {
+public class HATTransformer {
 
-    public static final  List<HATPhase> KernelPhases = List.of(
-                // barrier
-                new HATBarrierPhase(),
+    public static final List<HATPhase> KernelPhases = List.of(
+            // barriers
+            new HATBarrierPhase(),
 
-                // array views
-                new HATArrayViewPhase(),
+            // array views
+            new HATArrayViewPhase(),
 
-                // Memory
-                new HATMemoryPhase.LocalMemoryPhase(),
-                new HATMemoryPhase.PrivateMemoryPhase(),
-                new HATMemoryPhase.DeviceTypePhase(),
-                // ID's /thread access
-                new HATThreadsPhase(),
+            // Memory Regions (private/shared)
+            new HATMemoryPhase(),
 
-                // MathLib phase
-                new HATMathLibPhase(),
+            // ID's /thread access
+            new HATThreadsPhase(),
 
-                // views for vector types
-                new HATVectorPhase.Float4LoadPhase(),
-                new HATVectorPhase.Float2LoadPhase(),
-                new HATVectorPhase.Float4OfPhase(),
-                new HATVectorPhase.AddPhase(),
-                new HATVectorPhase.SubPhase(),
-                new HATVectorPhase.MulPhase(),
-                new HATVectorPhase.DivPhase(),
-                new HATVectorPhase.MakeMutable(),
-                new HATVectorStorePhase.Float4StorePhase(),
-                new HATVectorStorePhase.Float2StorePhase(),
+            // MathLib phase
+            new HATMathLibPhase(),
 
-                // Vector Select individual lines
-                new HATVectorSelectPhase(),
+            // views for vector types
+            new HATVectorPhase(),
 
-                // F16 type
-                new HATFP16Phase()
-        );
+            // F16/BFloat16 types
+            new HATFP16Phase()
+    );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
         phases.forEach(phase -> {
@@ -80,7 +67,7 @@ public class HATTier  {
         });
     }
 
-    private HATTier() {
+    private HATTransformer() {
         /* This utility class should not be instantiated */
     }
 }

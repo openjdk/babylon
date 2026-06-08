@@ -24,225 +24,45 @@
  */
 package hat.phases;
 
-import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATF16Op;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.VarTable;
-import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static optkl.OpHelper.Invoke;
-import static optkl.OpHelper.Invoke.invoke;
-import static optkl.OpHelper.copyLocation;
 
 public record HATFP16Phase() implements HATPhase {
 
-    private static boolean is16BitFloat(OpHelper.Invoke invoke, Regex methodName) {
-        return invoke.refIs(S16ImplOfF16.class) && invoke.nameMatchesRegex(methodName);
-    }
+    public static final byte FIRST_OP = 0x01;
+    public static final byte LAST_OP = 0x10;
 
-
-    private String findVarNameOrNull(Value v) {
-        return  (v instanceof Op.Result r) ? switch (r.op()){
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp-> findVarNameOrNull(varLoadOp); //recurse
-            case CoreOp.VarOp varOp -> varOp.varName();
-            default -> null;
-        }:null;
-    }
-
-    private String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVarNameOrNull(varLoadOp.operands().getFirst());
-    }
-
-    //recursive
-    private static boolean isF16Local(Value v) {
-        return v instanceof Op.Result r && switch (r.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
-            case CoreOp.VarOp varOp ->
-                    !(varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp)
-                            || !invokeOp.invokeReference().name().equals("array");
-            default -> false;
-        };
-    }
-
-    //recursive
-    private static boolean isF16Local(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return isF16Local(varLoadOp.operands().getFirst());
-    }
-
-    public static void createF16VarOp(String functionName, CoreOp.VarOp varOp, Block.Builder blockBuilder, VarTable varTable) {
+    public static void copyVarOpWithUpdateVarTable(String functionName, CoreOp.VarOp varOp, Block.Builder blockBuilder, VarTable varTable) {
         Op.Result op = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, op.op(), VarTable.HATOpAttribute.NARROW);
     }
 
-    private void createF16ConvOP(Invoke invoke, Block.Builder blockBuilder, Class<?> reducedFloatType) {
-        blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.add(copyLocation(invoke.op(), new HATF16Op.HATF16ConvOp(
-                                invoke.returnType(),      // We need to update the return type from VOID to the actual type to avoid a hanging varLoadOp value
-                                reducedFloatType,
-                                blockBuilder.context().getValues(invoke.op().operands()))
-                        )
-                )
-        );
-    }
-
-    private void createF16VarLoadOp(CoreOp.VarAccessOp.VarLoadOp varLoadOp, Block.Builder blockBuilder) {
-        blockBuilder.context().mapValue(varLoadOp.result(),
-                blockBuilder.add(copyLocation(varLoadOp,
-                                new HATF16Op.HATF16VarLoadOp(
-                                        findVarNameOrNull(varLoadOp),
-                                        varLoadOp.varType(),
-                                        blockBuilder.context().getValues(varLoadOp.operands()))
-                        )
-                )
-        );
-    }
-
-    private void createFloatFromF16(Invoke invoke, Block.Builder blockBuilder, Class<?> reducedFloatType) {
-        blockBuilder.context().mapValue(invoke.op().result(),
-                blockBuilder.add(copyLocation(invoke.op(), new HATF16Op.HATF16ToFloatConvOp(
-                                JavaType.FLOAT,
-                                reducedFloatType,
-                                isF16Local(invoke.op().operands().getFirst()),
-                                invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                                        && varLoadOp.resultType().equals(JavaType.FLOAT),
-                                blockBuilder.context().getValues(invoke.op().operands()))
-                        )
-                )
-        );
-    }
-
-    private void createF16BinaryOp(JavaOp.InvokeOp invokeOp, Block.Builder blockBuilder, BinaryOpEnum binaryOpEnum, Class<?> reducedFloatType) {
-        List<Value> operands = invokeOp.operands();
-        CodeType codeType = invokeOp.resultType();
-        List<Value> outputOperands = blockBuilder.context().getValues(operands);
-        HATF16Op.HATF16BinaryOp binaryOp = switch (binaryOpEnum) {
-            case ADD -> new HATF16Op.HATF16BinaryOp.HATF16AddOp(codeType, reducedFloatType, outputOperands);
-            case SUB -> new HATF16Op.HATF16BinaryOp.HATF16SubOp(codeType, reducedFloatType, outputOperands);
-            case MUL -> new HATF16Op.HATF16BinaryOp.HATF16MulOp(codeType, reducedFloatType, outputOperands);
-            case DIV -> new HATF16Op.HATF16BinaryOp.HATF16DivOp(codeType, reducedFloatType, outputOperands);
-        };
-        blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, binaryOp)));
-    }
-
-    private CoreOp.FuncOp dialectifyF16Ops(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, BinaryOpEnum binaryOpEnum, VarTable varTable) {
-        Map<Op, Class<? extends S16ImplOfF16>> reducedFloatsType = new HashMap<>();
-
+    private CoreOp.FuncOp processBinaryOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+        Set<Op> reducedFloatsType = new HashSet<>();
         Invoke.stream(lookup, funcOp)
-                .filter(invoke -> is16BitFloat(invoke, Regex.of(binaryOpEnum.name().toLowerCase())) && !invoke.returnsVoid())
+                .filter(invoke -> invoke.refIs(S16ImplOfF16.class)
+                        && (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) != null)
+                        && !invoke.returnsVoid() && !invoke.returns(float.class))
                 .forEach(invoke -> {
-                    if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.refType()) instanceof Class<? extends S16ImplOfF16> category) {
-                        reducedFloatsType.put(invoke.op(), category);
                         if (invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp varOp) {
-                            reducedFloatsType.put(varOp, category);
+                            reducedFloatsType.add(varOp);
                         }
-                    }else{
-                        throw new RuntimeException("no reduced float type");
-                    }
                 });
 
-        return Trxfmr.of(lookup, funcOp).transform(reducedFloatsType::containsKey, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                createF16BinaryOp(invokeOp, blockBuilder, binaryOpEnum, reducedFloatsType.get(invokeOp));
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                createF16VarOp(funcOp.funcName(), varOp, blockBuilder, varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-    private CoreOp.FuncOp dialectifyF16Stores(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
-        Invoke.stream(lookup, funcOp)
-                .filter(invoke -> is16BitFloat(invoke, Regex.of("value"))
-                        && invoke.returns16BitValue())
-                .forEach(invoke -> {
-                    if (invoke.opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && varLoadOp.operands().getFirst() instanceof Op.Result firstOperandsOpResult
-                            && firstOperandsOpResult.op() instanceof CoreOp.VarOp) {
-                        nodesInvolved.addAll(Set.of(invoke.op(), varLoadOp));
-                    }
-                });
-
-        return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.context().getValue(invokeOp.operands().getFirst()));
-            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                createF16VarLoadOp(varLoadOp, blockBuilder);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-
-    private CoreOp.FuncOp dialectifyF16Init(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Map<Op, Class<? extends S16ImplOfF16>> reducedFloatsType = new HashMap<>();
-
-        Invoke.stream(lookup, funcOp)
-                .filter(invoke -> !invoke.returnsVoid()
-                        && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)"))
-                        && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp
-                )
-                .forEach(invoke -> {
-                    if ( S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.refType())instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
-                        Op.Result first = invoke.op().result().uses().getFirst();
-                        if (first.declaringElement() instanceof CoreOp.VarOp varOp) {
-                            reducedFloatsType.put(varOp, reducedFloatType);
-                        }
-                        reducedFloatsType.put(invoke.op(), reducedFloatType);
-                    }else {
-                        throw new RuntimeException("No reduced float type");
-                    }
-                });
-
-        return Trxfmr.of(lookup, funcOp).transform(reducedFloatsType::containsKey, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                createF16ConvOP(invoke(lookup, invokeOp), blockBuilder, reducedFloatsType.get(invokeOp));
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                createF16VarOp(funcOp.funcName(), varOp, blockBuilder, varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-    private CoreOp.FuncOp dialectifyF16ToFloat(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Map<JavaOp.InvokeOp, Class<? extends S16ImplOfF16>> reducedFloatsType = new HashMap<>();
-        funcOp.elements()
-                .filter(ce -> ce instanceof JavaOp.InvokeOp)
-                .map(ce -> invoke(lookup, ce))
-                .filter(invoke -> invoke instanceof Invoke.Static)
-                .map(invoke -> (Invoke.Static) invoke)
-                .filter(invoke -> invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)") && invoke.returnsFloat())
-                .forEach(invoke -> {
-                            if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke,(ClassType)invoke.refType()) instanceof Class<? extends S16ImplOfF16>  reducedFloatType) {
-                                reducedFloatsType.put(invoke.op(), reducedFloatType);
-                            }else{
-                                throw new RuntimeException("No reduced float type");
-                            }
-                        }
-                );
-
-
-        return Trxfmr.of(lookup, funcOp).transform(reducedFloatsType::containsKey, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp && invoke(lookup, invokeOp) instanceof Invoke invoke) {
-                createFloatFromF16(invoke, blockBuilder, reducedFloatsType.get(invoke.op()));
+        return Trxfmr.of(lookup, funcOp).transform(reducedFloatsType::contains, (blockBuilder, op) -> {
+            if (op instanceof CoreOp.VarOp varOp) {
+                copyVarOpWithUpdateVarTable(funcOp.funcName(), varOp, blockBuilder, varTable);
             }
             return blockBuilder;
         }, varTable).funcOp();
@@ -250,15 +70,6 @@ public record HATFP16Phase() implements HATPhase {
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        for (BinaryOpEnum binaryOpEnum : BinaryOpEnum.values()) {
-            // F16 Operations
-            funcOp = dialectifyF16Ops(lookup,funcOp, binaryOpEnum, varTable);
-        }
-        // Init analysis before the store
-        funcOp = dialectifyF16Init(lookup,funcOp, varTable);
-        funcOp = dialectifyF16ToFloat(lookup,funcOp, varTable);
-        // Store analysis
-        funcOp = dialectifyF16Stores(lookup,funcOp, varTable);
-        return funcOp;
+        return processBinaryOps(lookup, funcOp, varTable);
     }
 }

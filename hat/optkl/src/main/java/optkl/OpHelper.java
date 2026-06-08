@@ -63,26 +63,29 @@ import java.util.function.Predicate;
 import java.util.stream.Gatherer;
 import java.util.stream.Stream;
 
-
 public sealed interface OpHelper<T extends Op> extends LookupCarrier
         permits OpHelper.Binary, OpHelper.Lambda, OpHelper.LoadOrStore, OpHelper.Named, OpHelper.Ternary {
+
+    Regex RESERVED_METHODS_MEMORY_REGIONS = Regex.of("(createLocal|createPrivate|create|float2View|float4View)");
+    Regex RESERVED_METHOD_VECTORS = Regex.of("(float4View|float2View|of|makeMutable|storeFloat4View|storeFloat2View|add|sub|mul|div)");
+
     static <F extends Op, T extends Op> T copyLocation(F from, T to) {
         to.setLocation(from.location());
         return to;
     }
 
-
-
     default Op opFromOnlyUseOrNull() {
-        return onlyUseOrNull() instanceof Op.Result result?result.op():null;
+        return onlyUseOrNull() instanceof Op.Result result ? result.op() : null;
     }
+
     default Op.Result onlyUseOrNull() {
         if (op().result().uses().size() == 1) {
-            return op().result().uses().iterator().next();
+            return op().result().uses().getFirst();
         } else {
             return null;
         }
     }
+
     static Value firstOperandOrNull(Op op) {
         if (!op.operands().isEmpty()) {
             return op.operands().getFirst();
@@ -212,9 +215,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     default CoreOp.VarAccessOp.VarLoadOp varLoadOpFromFirstOperandOrNull() {
         return opFromFirstOperandOrNull() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp ? varLoadOp : null;
     }
+
     default CoreOp.VarOp varOpFromFirstOperandOrNull() {
         return opFromFirstOperandOrNull() instanceof CoreOp.VarOp varOp ? varOp : null;
     }
+
     default CoreOp varAccessOrVarOpFromFirstOperandOrNull() {
         return switch (opFromFirstOperandOrNull()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> varLoadOp;
@@ -222,10 +227,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             default -> null;
         };
     }
+
     default String varNameFromFirstOperandOrNull() {
-        return switch (varAccessOrVarOpFromFirstOperandOrNull()){
-            case CoreOp.VarOp varOp->varOp.varName();
-            case CoreOp.VarAccessOp varAccessOp->varAccessOp.varOp().varName();
+        return switch (varAccessOrVarOpFromFirstOperandOrNull()) {
+            case CoreOp.VarOp varOp -> varOp.varName();
+            case CoreOp.VarAccessOp varAccessOp -> varAccessOp.varOp().varName();
             default -> null;
         };
     }
@@ -233,7 +239,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     static Block entryBlockOfBodyN(Op op, int idx) {
         return op.bodies().get(idx).entryBlock();
     }
-
 
     static boolean isPrimitiveResult(Value val) {
         return ((val instanceof Op.Result result && result.op().resultType() instanceof PrimitiveType primitiveType) ? primitiveType : null) != null;
@@ -246,7 +251,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             throw new RuntimeException("Value not a result");
         }
     }
-
 
     static Op.Result asResultOrNull(Value operand) {
         return operand instanceof Op.Result result ? result : null;
@@ -309,6 +313,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         default boolean nameMatchesRegex(Regex regex) {
             return regex.matches(name());
         }
+
         default boolean nameMatchesRegex(String regexStr) {
             return nameMatchesRegex(Regex.of(regexStr));
         }
@@ -391,7 +396,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
     }
 
-
     sealed interface FieldAccess extends Named<JavaOp.FieldAccessOp> permits FieldAccess.Instance, FieldAccess.Static {
 
         @Override
@@ -446,29 +450,31 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         static <F extends FieldAccess> F fieldAccess(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
             return codeElement instanceof JavaOp.FieldAccessOp fieldAccessOp
                     ? fieldAccessOp.operands().isEmpty()
-                    ?(F)new Static.Impl(lookup, fieldAccessOp)
-                    :(F)new Instance.Impl(lookup, fieldAccessOp)
+                      ? (F) new Static.Impl(lookup, fieldAccessOp)
+                      : (F) new Instance.Impl(lookup, fieldAccessOp)
                     : null;
         }
 
         static Stream<FieldAccess> stream(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
             return funcOp.elements().filter(ce -> ce instanceof JavaOp.FieldAccessOp).map(ce -> fieldAccess(lookup, ce));
         }
-        sealed interface Static extends FieldAccess{
+
+        sealed interface Static extends FieldAccess {
             record Impl(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements Static {
             }
         }
-        sealed interface Instance extends FieldAccess{
+
+        sealed interface Instance extends FieldAccess {
             record Impl(MethodHandles.Lookup lookup, JavaOp.FieldAccessOp op) implements Instance {
             }
+
             default Op.Result instance() {
-                    return (Op.Result) op().operands().getFirst();
+                return (Op.Result) op().operands().getFirst();
             }
 
             default Op instanceOp() {
                 return instance() instanceof Op.Result result ? result.op() : null;
             }
-
 
             default VarAccess instanceVarAccess() {
                 return instanceOp() instanceof CoreOp.VarAccessOp varAccessOp && VarAccess.varAccess(lookup(), varAccessOp) instanceof VarAccess varAccess ? varAccess : null;
@@ -500,7 +506,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
     }
 
-    sealed interface Invoke extends Named<JavaOp.InvokeOp> permits  Invoke.Static, Invoke.Virtual {
+    sealed interface Invoke extends Named<JavaOp.InvokeOp> permits Invoke.Static, Invoke.Virtual {
         static Stream<Invoke> stream(MethodHandles.Lookup lookup, Op op) {
             return op.elements().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
         }
@@ -509,14 +515,12 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return block.ops().stream().filter(ce -> ce instanceof JavaOp.InvokeOp).map(ce -> invoke(lookup, ce));
         }
 
-
-
         @Override
         default String name() {
             return op().invokeReference().name();
         }
 
-        default  boolean returns(Class<?> clazz) {
+        default boolean returns(Class<?> clazz) {
             return isAssignable((JavaType) op().resultType(), clazz);
         }
 
@@ -571,11 +575,9 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return returnType().equals(JavaType.INT);
         }
 
-
         default boolean returnsClassType() {
             return returnType() instanceof ClassType;
         }
-
 
         default CodeType refType() {
             return op().invokeReference().refType();
@@ -658,12 +660,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return OpHelper.methodModelOrNull(method);
         }
 
-
-        static <I extends Invoke>I invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
+        static <I extends Invoke> I invoke(MethodHandles.Lookup lookup, CodeElement<?, ?> codeElement) {
             return codeElement instanceof JavaOp.InvokeOp invokeOp ?
                     invokeOp.invokeKind().equals(JavaOp.InvokeOp.InvokeKind.STATIC)
-                            ? (I)new Static.Impl(lookup,invokeOp)
-                            : (I) new Virtual.Impl(lookup, invokeOp)
+                    ? (I) new Static.Impl(lookup, invokeOp)
+                    : (I) new Virtual.Impl(lookup, invokeOp)
                     : null;
         }
 
@@ -675,18 +676,18 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return (Invoke) lambdaOp.body().entryBlock().ops().stream()
                     .filter(ce -> ce instanceof JavaOp.InvokeOp)
                     .map(ce -> invoke(lookup, ce))
-                    .filter(invoke -> OpHelper.isAssignable(lookup, ((Invoke)invoke).op().operands().getFirst().type(), classes))
+                    .filter(invoke -> OpHelper.isAssignable(lookup, ((Invoke) invoke).op().operands().getFirst().type(), classes))
                     .findFirst()
                     .orElseThrow();
         }
 
-        default  Stream<Op.Result> operandsAsResults() {
-            return op().operands().stream().map(o->(Op.Result)o);
+        default Stream<Op.Result> operandsAsResults() {
+            return op().operands().stream().map(o -> (Op.Result) o);
         }
 
-        sealed interface Virtual extends Invoke{
+        sealed interface Virtual extends Invoke {
             default Op.Result instance() {
-                    return (Op.Result) op().operands().getFirst();
+                return (Op.Result) op().operands().getFirst();
             }
 
             default Op instanceOp() {
@@ -704,7 +705,8 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Virtual {
             }
         }
-        sealed interface Static extends Invoke{
+
+        sealed interface Static extends Invoke {
             record Impl(MethodHandles.Lookup lookup, JavaOp.InvokeOp op) implements Static {
             }
         }
@@ -908,9 +910,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
     }
 
-
-
-     static <T, R> Gatherer<T, ?, R> instanceOf(Class<R> type) {
+    static <T, R> Gatherer<T, ?, R> instanceOf(Class<R> type) {
         Objects.requireNonNull(type, "type");
         return Gatherer.of((_, element, downstream) -> {
             if (type.isInstance(element)) {
@@ -931,7 +931,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             .gather(OpHelper.opIs(CoreOp.VarOp.class))
             .forEach(...);
      */
-     static <T, R> Gatherer<T, ?, R> opIs(Class<R> type) {
+    static <T, R> Gatherer<T, ?, R> opIs(Class<R> type) {
         Objects.requireNonNull(type, "type");
         return Gatherer.of((_, element, downstream) -> {
             if (element instanceof Op.Result result && type.isInstance(result.op())) {
@@ -960,5 +960,25 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
                 : Stream.empty();
     }
 */
+
+    // recursive
+    static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+        return findVectorVarNameOrNull(varLoadOp.operands().getFirst());
+    }
+
+    // recursive
+    static String findVectorVarNameOrNull(Value v) {
+        switch (v) {
+            case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
+                return findVectorVarNameOrNull(varLoadOp);
+            }
+            case null, default -> {
+                if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarOp varOp) {
+                    return varOp.varName();
+                }
+                return null;
+            }
+        }
+    }
 
 }

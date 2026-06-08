@@ -30,6 +30,6 @@ import optkl.VarTable;
 import java.lang.invoke.MethodHandles;
 
 public sealed interface HATPhase
-        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase {
+        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATThreadsPhase, HATVectorPhase {
     CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable);
 }

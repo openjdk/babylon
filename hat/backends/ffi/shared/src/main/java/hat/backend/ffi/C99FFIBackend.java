@@ -159,9 +159,9 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
         var kernelAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class);
         if (kernelAnnotation != null) {
             // If we find a kernelAnnotation we can't trust the data in kernelCallGraph's state.
-            kernelCallGraph.usesAtomics = true;
+            kernelCallGraph.setUsesAtomics(true);
             kernelCallGraph.accessedFP16Classes.addAll(List.of(F16.class, BF16.class));
-            kernelCallGraph.usesBarrier = true;
+            kernelCallGraph.setUsesBarrier(true);
 
             var typedefAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(TypeDef.class);
             if (typedefAnnotation != null) {

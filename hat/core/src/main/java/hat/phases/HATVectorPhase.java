@@ -24,398 +24,49 @@
  */
 package hat.phases;
 
-import hat.device.NonMappableIface;
-import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATVectorOp;
-import jdk.incubator.code.CodeType;
 import optkl.IfaceValue.Vector;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.VarTable;
-import optkl.codebuilders.BabylonOpDispatcher;
 
 import java.lang.invoke.MethodHandles;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
-import static hat.dialect.HATVectorOp.HATVectorLoadOp.HATPrivateVectorLoadOp;
-import static hat.dialect.HATVectorOp.HATVectorLoadOp.HATSharedVectorLoadOp;
-import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
-import static optkl.OpHelper.Invoke.invoke;
-import static optkl.OpHelper.copyLocation;
 
-public abstract sealed class HATVectorPhase implements HATPhase {
+public final class HATVectorPhase implements HATPhase {
 
     private String functionName;
 
-    protected MethodHandles.Lookup lookup = null;
-
-    // recursive
-    public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return findVectorVarNameOrNull(varLoadOp.operands().getFirst());
-    }
-
-    // recursive
-    public static String findVectorVarNameOrNull(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return findVectorVarNameOrNull(varLoadOp);
-        } else {
-            // Leaf of tree -
-            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.VarOp varOp) {
-                return varOp.varName();
-            }
-            return null;
-        }
-    }
-
-    public boolean isSharedOrPrivate(Op op) {
-        return isSharedOrPrivate(op.operands().getFirst());
-    }
-
-    private static final Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
-
-    public boolean isSharedOrPrivate(Value v) {
-        return v instanceof Op.Result result && switch (result.op()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isSharedOrPrivate(varLoadOp); //recurse
-            case CoreOp.VarOp varOp -> {
-                // extra analysis
-                Value first = varOp.operands().getFirst();
-                if (first instanceof Block.Parameter) {
-                    // if the var comes from a parameter, then it is global memory
-                    yield false;
-                }
-                // otherwise we continue traversal
-                yield isSharedOrPrivate(varOp);
-            }
-            case JavaOp.InvokeOp invoke -> {
-                // If we get an invoke, we need to get method name, and check the following
-
-                // warp to Invoke
-                if (lookup == null) {
-                    throw new IllegalStateException("Lookup has not been initialized");
-                }
-
-                Stream<Invoke> stream = OpHelper.Invoke.stream(lookup, invoke);
-                Optional<Invoke> invokeOptional = stream.findFirst();
-                // Check for the right class
-                if (invokeOptional.isPresent() && invokeOptional.get().refIs(NonMappableIface.class)) {
-                    // check for the method name
-                    String lowerCase = invoke.invokeReference().name().toLowerCase();
-                    yield NON_MAPPABLE_IFACE.contains(lowerCase);
-                }
-                yield false;
-            }
-            default -> false;
-        };
-    }
-
-    //recursive
-    public Vector.Shape getVectorShapeOrNullFromVarLoad(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-        return getVectorShapeOrNull(varLoadOp.operands().getFirst());
-    }
-
-    private Vector.Shape getVectorShapeOrNull(Value v) {
-        if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-            return getVectorShapeOrNullFromVarLoad(varLoadOp);
-        } else if (v.declaringElement() instanceof HATVectorOp hatVectorOp) {
-            return hatVectorOp.vectorShape();
-        }
-        return null;
-    }
-    public enum VectorOperation {
-        FLOAT4_LOAD("float4View"),
-        FLOAT2_LOAD("float2View"),
-        OF("of"),
-        ADD("add"),
-        SUB("sub"),
-        MUL("mul"),
-        DIV("div"),
-        MAKE_MUTABLE("makeMutable");
-        final String methodName;
-
-        VectorOperation(String methodName) {
-            this.methodName = methodName;
-        }
-    }
-
-    private final VectorOperation vectorOperation;
-
-    protected HATVectorPhase( VectorOperation vectorOperation) {
-        this.vectorOperation = vectorOperation;
-    }
-
-    private void addVectorVarOp(Block.Builder blockBuilder, CoreOp.VarOp varOp, Vector.Shape vectorShape, VarTable varTable) {
+    private void varOpVector(Block.Builder blockBuilder, CoreOp.VarOp varOp, VarTable varTable) {
         Op.Result result = blockBuilder.add(varOp);
         varTable.addIfNeededOrThrow(functionName, result.op(), VarTable.HATOpAttribute.VECTOR);
     }
 
-    private CoreOp.FuncOp dialectifyVectorLoad(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        this.lookup = lookup;
-        Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
+    private CoreOp.FuncOp transformVectorVar(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+        Set<Op> vectorShapeMap = new HashSet<>();
         OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
-            if (variable.firstOperandAsInvoke() instanceof Invoke invoke
-                    && invoke.returns(Vector.class)
-                    && invoke.named(vectorOperation.methodName)) {
-                Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                vectorShapeMap.put(invoke.op(), vectorShape);
-                vectorShapeMap.put(variable.op(), vectorShape);
-                invokeToVar.put(invoke.op(), variable.op());
+            if (variable.firstOperandAsInvoke() instanceof Invoke invoke && invoke.returns(Vector.class)) {
+                vectorShapeMap.add(variable.op());
             }
         });
 
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (invoke(lookup, op) instanceof Invoke invoke) {
-                var varOp = invokeToVar.get(invoke.op());
-                Vector.Shape shape = getVectorShape(invoke.lookup(), invoke.returnType());
-
-                HATVectorOp memoryViewOp;
-                if (isSharedOrPrivate(invoke.resultFromFirstOperandOrNull())) {
-                    // this should be considered shared or private
-                    memoryViewOp = new HATSharedVectorLoadOp(
-                                        varOp.varName(),
-                                        varOp.resultType(),
-                                        shape,
-                                        blockBuilder.context().getValues(invoke.op().operands()));
-                } else {
-                    // this should be considered global instead
-                    memoryViewOp = new HATPrivateVectorLoadOp(
-                                        varOp.varName(),
-                                        varOp.resultType(),
-                                        shape,
-                                        blockBuilder.context().getValues(invoke.op().operands()));
-                }
-                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(varOp, memoryViewOp)));
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-
-    private HATVectorOp.HATVectorBinaryOp buildVectorBinaryOp(String varName, BinaryOpEnum opType, CodeType codeType,
-                                                              Vector.Shape vectorShape, List<Value> outputOperands) {
-        return switch (opType) {
-            case ADD -> new HATVectorOp.HATVectorBinaryOp.HATVectorAddOp(varName, codeType, vectorShape, outputOperands);
-            case SUB -> new HATVectorOp.HATVectorBinaryOp.HATVectorSubOp(varName, codeType, vectorShape, outputOperands);
-            case MUL -> new HATVectorOp.HATVectorBinaryOp.HATVectorMulOp(varName, codeType, vectorShape, outputOperands);
-            case DIV -> new HATVectorOp.HATVectorBinaryOp.HATVectorDivOp(varName, codeType, vectorShape, outputOperands);
-        };
-    }
-
-    private CoreOp.FuncOp dialectifyVectorBinaryOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        Map<JavaOp.InvokeOp, CoreOp.VarOp> invokeToVar = new HashMap<>();
-        OpHelper.Named.Variable.stream(lookup, funcOp).forEach(variable -> {
-            if (variable.firstOperandAsInvoke() instanceof Invoke invoke
-                    && invoke.named(vectorOperation.methodName)
-                    && invoke.returns(Vector.class)) {
-                Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-                vectorShapeMap.put(invoke.op(), vectorShape);
-                vectorShapeMap.put(variable.op(), vectorShape);
-                invokeToVar.put(invoke.op(), variable.op());
-            }
-        });
-
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var varOp = invokeToVar.get(invokeOp);
-                HATVectorOp memoryViewOp = buildVectorBinaryOp(
-                        varOp.varName(),
-                        BinaryOpEnum.of(invokeOp),
-                        invokeOp.resultType(),
-                        vectorShapeMap.get(invokeOp),
-                        blockBuilder.context().getValues(invokeOp.operands())
-                );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeToVar.get(invokeOp), memoryViewOp)));
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-    private Map<Op, Vector.Shape> getVectorShapeMap(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp) {
-        Map<Op, Vector.Shape> vectorShapeMap = new HashMap<>();
-        Invoke.stream(lookup, funcOp).
-                filter(i -> i.returns(Vector.class)
-                        && i.named(vectorOperation.methodName)
-                        && i.opFromOnlyUseOrNull() instanceof CoreOp.VarOp)
-                .forEach(i -> {
-                    Vector.Shape vectorShape = getVectorShape(i.lookup(), i.returnType());
-                    vectorShapeMap.put(i.op(), vectorShape);
-                    vectorShapeMap.put(i.opFromOnlyUseOrNull(), vectorShape);
-                });
-        return vectorShapeMap;
-    }
-
-
-    private CoreOp.FuncOp dialectifyVectorOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
-
-        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::containsKey, (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var vectorShape = vectorShapeMap.get(invokeOp);
-                HATVectorOp.HATVectorOfOp memoryViewOp = new HATVectorOp.HATVectorOfOp(
-                        invokeOp.resultType(),
-                        vectorShape,
-                        blockBuilder.context().getValues(invokeOp.operands())
-                );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, memoryViewOp)));
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-    private CoreOp.FuncOp dialectifyMutableOf(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Map<Op, Vector.Shape> vectorShapeMap = getVectorShapeMap(lookup,funcOp);
-        return Trxfmr.of(lookup, funcOp).transform(ce -> vectorShapeMap.containsKey(ce), (blockBuilder, op) -> {
-            if (op instanceof JavaOp.InvokeOp invokeOp) {
-                var vectorShape = vectorShapeMap.get(invokeOp);
-                HATVectorOp.HATVectorMakeOfOp makeOf = new HATVectorOp.HATVectorMakeOfOp(
-                        findVectorVarNameOrNull(invokeOp.operands().getFirst()),
-                        invokeOp.resultType(),
-                        vectorShape.lanes(),
-                        blockBuilder.context().getValues(invokeOp.operands())
-                );
-                blockBuilder.context().mapValue(invokeOp.result(), blockBuilder.add(copyLocation(invokeOp, makeOf)));
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                addVectorVarOp(blockBuilder, varOp, vectorShapeMap.get(varOp), varTable);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-
-    private CoreOp.FuncOp dialectifyVectorBinaryWithConcatenationOps(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<CodeElement<?, ?>> nodesInvolved = new HashSet<>();
-        funcOp.elements().forEach(codeElement -> {
-            if (invoke(lookup, codeElement) instanceof Invoke invoke
-                    && invoke.returns(Vector.class) && invoke.named(vectorOperation.methodName)) {
-                invoke.op().operands().stream()// this can't be replaced with findFirst
-                        .filter(operand -> operand instanceof Op.Result && ((Op.Result) operand).op() instanceof CoreOp.VarAccessOp.VarLoadOp)
-                        .map(operand -> (CoreOp.VarAccessOp.VarLoadOp) ((Op.Result) operand).op())
-                        .forEach(varLoadOp -> {
-                            nodesInvolved.add(varLoadOp);
-                            nodesInvolved.add(invoke.op());
-                        });
-            } else if (codeElement instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
-                hatVectorBinaryOp.operands().stream()
-                        .filter(operand -> operand instanceof Op.Result && ((Op.Result) operand).op() instanceof CoreOp.VarAccessOp.VarLoadOp)
-                        .map(operand -> (CoreOp.VarAccessOp.VarLoadOp) ((Op.Result) operand).op())
-                        .forEach(nodesInvolved::add);
-            }
-        });
-
-
-        return Trxfmr.of(lookup, funcOp).transform(nodesInvolved::contains, (blockBuilder, op) -> {
-            if (invoke(lookup, op) instanceof Invoke invoke) {
-                HATVectorOp memoryViewOp = buildVectorBinaryOp(
-                        findVectorVarNameOrNull(invoke.op().operands().getFirst()),
-                        BinaryOpEnum.of(invoke.op()),
-                        invoke.returnType(),
-                        getVectorShape(invoke.lookup(), invoke.returnType()),
-                        blockBuilder.context().getValues(invoke.op().operands())
-                );
-                blockBuilder.context().mapValue(invoke.op().result(), blockBuilder.add(copyLocation(invoke.op(), memoryViewOp)));
-            } else if (op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                HATVectorOp memoryViewOp = new HATVectorOp.HATVectorVarLoadOp(
-                        findVectorVarNameOrNull(varLoadOp),
-                        varLoadOp.resultType(),
-                        getVectorShapeOrNullFromVarLoad(varLoadOp),
-                        blockBuilder.context().getValues(varLoadOp.operands())
-                );
-                blockBuilder.context().mapValue(varLoadOp.result(), blockBuilder.add(copyLocation(varLoadOp, memoryViewOp)));
+        return Trxfmr.of(lookup, funcOp).transform(vectorShapeMap::contains, (blockBuilder, op) -> {
+            if (op instanceof CoreOp.VarOp varOp) {
+                varOpVector(blockBuilder, varOp, varTable);
             }
             return blockBuilder;
         }, varTable).funcOp();
     }
 
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup,CoreOp.FuncOp funcOp, VarTable varTable) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         this.functionName = funcOp.funcName();
-        switch (Objects.requireNonNull(vectorOperation)) {
-            case FLOAT4_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp, varTable);
-            case FLOAT2_LOAD -> funcOp = dialectifyVectorLoad(lookup,funcOp, varTable);
-            case OF -> funcOp = dialectifyVectorOf(lookup,funcOp, varTable);
-            case MAKE_MUTABLE -> funcOp = dialectifyMutableOf(lookup,funcOp, varTable);
-            default -> {
-                // Find binary operations
-                funcOp = dialectifyVectorBinaryOps(lookup,funcOp, varTable);
-                funcOp = dialectifyVectorBinaryWithConcatenationOps(lookup,funcOp, varTable);
-            }
-        }
+        funcOp = transformVectorVar(lookup, funcOp, varTable);
         return funcOp;
-    }
-
-    public static final class AddPhase extends HATVectorPhase {
-        public AddPhase() {
-            super( VectorOperation.ADD);
-        }
-    }
-
-    public static final class DivPhase extends HATVectorPhase {
-
-        public DivPhase() {
-            super(VectorOperation.DIV);
-        }
-    }
-
-    public static final class MakeMutable extends HATVectorPhase {
-
-        public MakeMutable() {
-            super(VectorOperation.MAKE_MUTABLE);
-        }
-    }
-
-    public static final class Float4LoadPhase extends HATVectorPhase {
-
-        public Float4LoadPhase() {
-            super(VectorOperation.FLOAT4_LOAD);
-        }
-    }
-
-    public static final class Float2LoadPhase extends HATVectorPhase {
-
-        public Float2LoadPhase() {
-            super( VectorOperation.FLOAT2_LOAD);
-        }
-    }
-
-    public static final class Float4OfPhase extends HATVectorPhase {
-
-        public Float4OfPhase() {
-            super( VectorOperation.OF);
-        }
-    }
-
-    public static final class MulPhase extends HATVectorPhase {
-
-        public MulPhase() {
-            super( VectorOperation.MUL);
-        }
-    }
-
-    public static final class SubPhase extends HATVectorPhase {
-
-        public SubPhase() {
-            super( VectorOperation.SUB);
-        }
     }
 }
