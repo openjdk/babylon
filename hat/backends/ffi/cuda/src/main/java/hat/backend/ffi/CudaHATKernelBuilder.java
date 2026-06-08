@@ -109,15 +109,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("__half2float");
     }
 
-    private CudaHATKernelBuilder __nv_bfloat16() {
+    private CudaHATKernelBuilder nvBFloat16() {
         return id("__nv_bfloat16");
     }
 
-    private CudaHATKernelBuilder __bfloat162float() {
+    private CudaHATKernelBuilder bfloat162float() {
         return id("__bfloat162float");
     }
 
-    private CudaHATKernelBuilder reinterpret_cast() {
+    private CudaHATKernelBuilder reinterpretCast() {
         return keyword("reinterpret_cast");
     }
 
@@ -343,7 +343,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-        reinterpret_cast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
+        reinterpretCast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
         paren(_ -> {
             ampersand();
             recurseResultOrThrow(source);
@@ -453,7 +453,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (F16.class.isAssignableFrom(float16Class)) {
             return half2float();
         } else if (BF16.class.isAssignableFrom(float16Class)) {
-            return __nv_bfloat16();
+            return nvBFloat16();
         } else {
             throw new IllegalStateException("Unexpected value: " + float16Class);
         }
@@ -463,7 +463,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (F16.class.isAssignableFrom(float16Class)) {
             return half2float();
         } else if (BF16.class.isAssignableFrom(float16Class)) {
-            return __bfloat162float();
+            return bfloat162float();
         } else {
             throw new IllegalStateException("Unexpected value: " + float16Class);
         }

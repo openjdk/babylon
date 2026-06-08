@@ -965,19 +965,17 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else {
             // First, we look at the attribute table for each varOp
             VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
-            if (attribute != null) {
-                // If attribute exits, we apply codegen based on attribute since there is a pre-search and
-                // categorization about the corresponding OpenCL code to be generated.
-                switch (attribute) {
-                    case NARROW -> varOpForNarrowType(varOp);
-                    case VECTOR -> varOpForVectors(varOp);
-                    case INIT_SHARED -> varOpInit(varOp);
-                    case SHARED -> varOpLocalMemory(varOp);
-                    case PRIVATE -> varOpPrivateMemory(varOp);
-                    default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
-                }
-            } else {
-                genericVarOp(varOp);
+
+            // If attribute exits, we apply codegen based on attribute since there is a pre-search and
+            // categorization about the corresponding OpenCL code to be generated.
+            switch (attribute) {
+                case NARROW -> varOpForNarrowType(varOp);
+                case VECTOR -> varOpForVectors(varOp);
+                case INIT_SHARED -> varOpInit(varOp);
+                case SHARED -> varOpLocalMemory(varOp);
+                case PRIVATE -> varOpPrivateMemory(varOp);
+                case null -> genericVarOp(varOp);
+                default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
             }
         }
         return self();
