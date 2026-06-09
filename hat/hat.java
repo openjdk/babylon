@@ -97,7 +97,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                 Util.currentDirAsPath(),
                 // These opts will be applied to all javac, cmake and jextract tools
                 Jar.JavacConfig.of(o -> o.progress(true)
-                        .debug().enablePreview().source(26).addModules("jdk.incubator.code")
+                        .debug().enablePreview().source(28).addModules("jdk.incubator.code")
                 ),
                 CMake.Config.of(o -> o.progress(true)),
                 JExtract.Config.of(o -> o.progress(true))

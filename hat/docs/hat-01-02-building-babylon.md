@@ -34,11 +34,11 @@ the `maven` or `cmake` build files for hat.
 
 You will need an existing version of JDK to build Babylon and [jtreg](https://github.com/openjdk/jtreg).
 
-The following build process assumes you have `BOOT_JDK` set to an existing JDK ([JDK 25+](https://jdk.java.net/25/)).
+The following build process assumes you have `BOOT_JDK` set to an existing JDK ([JDK 26+](https://jdk.java.net/26/)).
 Note that for the Babylon development we use [JDK 26](https://jdk.java.net/26/).
 
 ```bash
-export BOOT_JDK=${HOME}/java/jdk-25.0.1.jdk/Contents/Home/
+export BOOT_JDK=${HOME}/java/jdk-26.jdk/Contents/Home/
 ```
 
 ### Clone Babylon from GitHub

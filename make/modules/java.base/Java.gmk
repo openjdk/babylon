@@ -36,7 +36,7 @@ DISABLED_WARNINGS_java += preview
 #     '-Xdoclint/package:java.*,javax.*'
 JAVAC_FLAGS += -XDstringConcat=inline \
     --enable-preview
-COPY += .icu .dat .spp .nrm content-types.properties \
+COPY += .icu .dat .spp .nrm .txt content-types.properties \
     hijrah-config-Hijrah-umalqura_islamic-umalqura.properties
 CLEAN += intrinsic.properties
 
