@@ -56,6 +56,7 @@ import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
+import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -64,6 +65,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static hat.buffer.F16Array.F16Impl;
+import static hat.codebuilders.C99VecAndMatHandler.*;
 import static hat.phases.HATPhaseUtils.NON_MAPPABLE_IFACE;
 import static hat.phases.HATPhaseUtils.findIsSharedOrPrivateSpace;
 import static hat.phases.HATPhaseUtils.findVectorVarNameOrNull;
@@ -364,8 +366,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T type(JavaType javaType) {
         // TODO: I would not include this method in the visitor, rather just the tree-nodes. Types can be resolved when needed directly.
 
-        if (C99VecAndMatHandler.isVecOrMatType(scopedCodeBuilderContext().lookup(), javaType)) {
-            C99VecAndMatHandler.handleType(self(), javaType);
+        if (isVecOrMatType(scopedCodeBuilderContext().lookup(), javaType)) {
+            handleType(self(), javaType);
         } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
@@ -755,18 +757,21 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return isLocalOrPrivateDS;
     }
 
+    private boolean isVectorNamed(Invoke invoke, String name) {
+        return invoke.name().equalsIgnoreCase(name);
+    }
+
     private void handleVectorOperations(Invoke invoke) {
         IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
-        if (invoke.name().equalsIgnoreCase("float4view")
-                || invoke.name().equalsIgnoreCase("float2view")) {
-            // could be share or global
+        if (isVectorNamed(invoke, "float4view") || isVectorNamed(invoke, "float2view")) {
+            // could be local(shared) or global
             boolean isSharedOrPrivate = isSharedOrPrivate(invoke.lookup(), invoke.op());
             Value source = invoke.op().operands().getFirst();
             Value index = invoke.op().operands().get(1);
             generateVectorLoad(source, index, vectorShape, isSharedOrPrivate);
-        } else if (invoke.name().equalsIgnoreCase("of")) {
+        } else if (isVectorNamed(invoke, "of")) {
             generateVectorOf(invoke.op(), vectorShape);
-        } else if (invoke.name().equalsIgnoreCase("makeMutable")) {
+        } else if (isVectorNamed(invoke, "makeMutable")) {
             var name = findVectorVarNameOrNull(invoke.op().operands().getFirst());
             id(name);
         } else if (isVectorBinaryOperation(invoke)) {
@@ -897,14 +902,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+    private boolean isIFaceValue(Invoke invoke) {
+        return invoke.refIs(IfaceValue.class);
+    }
+
     @Override
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
-        var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
-        if (C99VecAndMatHandler.isVecInvoke(invoke)) { // hacked for vec op calls.
-            C99VecAndMatHandler.handleInvoke(self(), invoke);
-        } else if (isVectorOperation(scopedCodeBuilderContext.lookup(), invokeOp)) {
+        MethodHandles.Lookup lookup = scopedCodeBuilderContext().lookup();
+        var invoke = invoke(lookup, invokeOp);
+        if (isVecInvoke(invoke)) { // hacked for vec op calls.
+            handleInvoke(self(), invoke);
+        } else if (isVectorOperation(lookup, invokeOp)) {
             handleVectorOperations(invoke);
-        } else if (isVectorView(scopedCodeBuilderContext.lookup(), invokeOp)) {
+        } else if (isVectorView(lookup, invokeOp)) {
             handleVectorView(invoke);
         } else if (isVectorSelectOperation(invoke)) {
             handleVectorSelect(invoke);
@@ -914,7 +924,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             handleS16ToFloatConversion(invoke);
         } else if (isS16BinaryOp(invoke)) {
             handleS16BinaryOperation(invoke);
-        } else if (invoke.refIs(IfaceValue.class)) {
+        } else if (isIFaceValue(invoke)) {
             handleIFaceInvoke(invoke);
         } else if (isMathOperation(invoke)) {
             generateMathIntrinsicOperation(invoke);
@@ -1022,18 +1032,27 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+    private Class<?> isNarrowType(Invoke invoke) {
+        if (invoke.returnsClassType() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Type) {
+            return float16Type;
+        }
+        return null;
+    }
+
     private void generateMathIntrinsicOperation(Invoke invoke) {
         // if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
-        if (invoke.returnsClassType() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.returnType()) instanceof Class<? extends S16ImplOfF16> float16Class) {
+        Class<?> float16Class = isNarrowType(invoke);
+        if (float16Class != null) {
             paren(_ ->
                     f16OrBF16(float16Class))
                     .brace(_ -> {
                         id(mapMathIntrinsic(invoke.name()));
                         // For each operand, obtain if it is a reference from global memory or device memory.
-                        List<Boolean> referenceList = IntStream.range(0, invoke.op().operands().size())
-                                .mapToObj(i -> isArrayReference(scopedCodeBuilderContext.lookup(), invoke.op().operands().get(i)))
-                                .collect(Collectors.toList());
-
+                        List<Boolean> referenceList = invoke.op()
+                                .operands()
+                                .stream()
+                                .map(value -> isArrayReference(scopedCodeBuilderContext.lookup(), value))
+                                .toList();
                         paren(_ -> {
                             int[] counter = {0};
                             commaSpaceSeparated(invoke.op().operands(), op -> {
