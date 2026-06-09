@@ -107,6 +107,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String VSTORE = "vstore";
     public static final String VECTOR = "VECTOR_";
     public static final String VECTOR_VAL = "vVal";
+    public static final String ELEMENT_TYPE = "elementType";
+    public static final String VECTOR_OF = "VECTOR_OF";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -566,8 +568,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     public final T generateVectorOf(JavaOp.InvokeOp invokeOp, IfaceValue.Vector.Shape vectorShape) {
-        return genVectorIdentifier(vectorShape)
-                .paren(_ -> commaSpaceSeparated(invokeOp.operands(), operand -> recurse(OpHelper.asResultOrThrow(operand).op())));
+        return id(VECTOR_OF + vectorShape.lanes()).paren(_ ->
+                id(vectorShape.codeType().toString())
+                .comma()
+                .commaSpaceSeparated(invokeOp.operands(),
+                        operand -> recurse(OpHelper.asResultOrThrow(operand).op())));
     }
 
     public final T generateOnChipMemoryLoad(JavaOp.InvokeOp invoke) {
@@ -1085,8 +1090,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public abstract T defines();
 
     protected abstract T atomicInc(Op.Result instanceResult, String name);
-
-    protected abstract T genVectorIdentifier(IfaceValue.Vector.Shape vectorShape);
 
     public List<String> getMacroVectorParamsLoad() {
         return List.of(N, ADDDR, INDEX, IS_LOCAL);

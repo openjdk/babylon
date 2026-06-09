@@ -197,11 +197,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
-        return paren(_-> id(vectorShape.codeType().toString() + vectorShape.lanes()));
-    }
-
-    @Override
     public OpenCLJExtractedHATKernelBuilder hatF16ToFloatConvOp(OpHelper.Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
         if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
             paren(_->f32Type());

@@ -216,6 +216,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .defineVectorAccessMacro("VECTOR_1",true)
                 .defineMacroVLoadN()
                 .defineMacroVStoreN()
+                .prefixMacro()
+                .defineMacroVectorOf(2)
+                .defineMacroVectorOf(3)
+                .defineMacroVectorOf(4)
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
@@ -257,6 +261,24 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
                                 .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
                         .sbrace( _ -> intConstZero()).sp().equals().sp().id(VECTOR_VAL));
+    }
+
+    private CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
+        List<String> params = new ArrayList<>();
+        params.add(ELEMENT_TYPE);
+        for (int i = 0; i < lanes; i++) {
+            params.add("p" + i);
+        }
+        return macroNoParenthesis(VECTOR_OF + lanes, params, _ -> {
+            paren(_ -> id(PREFIX).paren(_ ->
+                    id(MAKE_).comma().id(CONCAT).paren(_ -> id(ELEMENT_TYPE).comma().id(String.valueOf(lanes)))));
+            paren(_ -> {
+                for (int i = 1; i < params.size(); i++) {
+                    id(params.get(i));
+                    either((i < params.size() - 1), _ -> comma(), _ -> self());
+                }
+            });
+        });
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
@@ -390,11 +412,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }
         });
         return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
-        return id("make_" + vectorShape.codeType().toString() + vectorShape.lanes());
     }
 
     @Override

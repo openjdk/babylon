@@ -34,6 +34,8 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     public static final String ADDDR = "addr";
     public static final String INDEX = "index";
     public static final String ARRAY = "array";
+    public static final String PREFIX = "PREFIX";
+    public static final String MAKE_ = "make_";
 
     public C99CodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -210,6 +212,11 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
     public final T concatMacro() {
         List<String> params = List.of("a", "b");
         return macroNoParenthesis(CONCAT, params, _ -> id("a").hash().hash().id("b"));
+    }
+
+    public final T prefixMacro() {
+        List<String> params = List.of("a", "b");
+        return macroNoParenthesis("PREFIX", params, _ -> id(CONCAT).paren( _ -> commaSpaceSeparated(params, this::id)));
     }
 
     public final T defineVectorAccessMacro(String name, boolean isLocal) {

@@ -41,6 +41,7 @@ import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,10 +110,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__local"))
                 .concatMacro()
+                .prefixMacro()
                 .defineVectorAccessMacro("VECTOR_0",false)
                 .defineVectorAccessMacro("VECTOR_1",true)
                 .defineMacroVLoadN()
                 .defineMacroVStoreN()
+                .defineMacroVectorOf(2)
+                .defineMacroVectorOf(3)
+                .defineMacroVectorOf(4)
                 .when(kernelCallGraph.accessedKernelContextFields.contains("gix"), _->hashDefine("HAT_GIX", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstZero()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giy"), _->hashDefine("HAT_GIY", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstOne()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giz"), _->hashDefine("HAT_GIZ", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstTwo()))))
@@ -179,6 +184,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .paren( _ -> id(ADDDR).comma().sp().id(INDEX))));
     }
 
+    private OpenCLHATKernelBuilder defineMacroVectorOf(int lanes) {
+        List<String> params = new ArrayList<>();
+        params.add(ELEMENT_TYPE);
+        for (int i = 0; i < lanes; i++) {
+            params.add("p" + i);
+        }
+        return macroNoParenthesis(VECTOR_OF + lanes, params, _ -> {
+            paren(_ -> id(CONCAT).paren(_ -> id(ELEMENT_TYPE).comma().id(String.valueOf(lanes))));
+            paren(_ -> {
+                for (int i = 1; i < params.size(); i++) {
+                    id(params.get(i));
+                    either((i < params.size() - 1), _ -> comma(), _ -> self());
+                }
+            });
+        });
+    }
+
     @Override
     public OpenCLHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke binOp) {
         return paren(_-> {
@@ -210,11 +232,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(invokeOp.operands().getFirst())),
                         _-> recurseResultOrThrow(invokeOp.operands().getFirst())
                 ));
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
-        return paren(_-> id(vectorShape.codeType().toString() + vectorShape.lanes()));
     }
 
     @Override
