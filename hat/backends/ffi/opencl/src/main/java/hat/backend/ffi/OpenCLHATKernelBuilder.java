@@ -38,7 +38,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
 
@@ -109,7 +108,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__local"))
-                .concatMacro("CONCAT")
+                .concatMacro()
                 .defineVectorAccessMacro("VECTOR_0",false)
                 .defineVectorAccessMacro("VECTOR_1",true)
                 .defineMacroVLoadN()
@@ -150,9 +149,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     /**
      * <code>
-     *     #define VLOADN(N, a, index, isLocal) CONCAT(vload, N)(0, CONCAT(VECTOR_, isLocal)(N, a, index))
+     *     #define VLOADN(N, addr, index, isLocal) CONCAT(vload, N)(0, CONCAT(VECTOR_, isLocal)(addr, index))
      * </code>
-     * @return
+     *
+     * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder defineMacroVLoadN() {
         List<String> params = List.of("N", "addr", "index", "isLocal");
@@ -160,49 +160,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .paren(_ -> id("vload").comma().id("N"))
                 .paren( _ -> intConstZero().comma().id("CONCAT")
                         .paren(_ -> id("VECTOR_").comma().id("isLocal"))
-                        .paren( _ -> id("N").comma().id("addr").comma().id("index"))));
+                        .paren( _ -> id("addr").comma().id("index"))));
     }
 
     /**
      * <code>
-     *     #define VSTOREN(N, a, index, isLocal, vectorVal) CONCAT(vstore, N)((vectorVal), 0, CONCAT(VECTOR_, isLocal)(N, a, index))
+     *     #define VSTOREN(N, addr, index, isLocal, vectorVal) CONCAT(vstore, N)((vectorVal), 0, CONCAT(VECTOR_, isLocal)(addr, index))
      * </code>
-     * @return
+     *
+     * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder defineMacroVStoreN() {
         List<String> params = List.of("N", "addr", "index", "isLocal", "vectorVal");
         return macroNoParenthesis("VSTOREN", params, _ -> id("CONCAT")
-                .paren(_ -> id("vstore").comma().id("N"))
-                .paren( _ -> id("vectorVal").comma().intConstZero().comma().id("CONCAT")
-                        .paren(_ -> id("VECTOR_").comma().id("isLocal"))
-                        .paren( _ -> id("N").comma().id("addr").comma().id("index"))));
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-        return id("VLOADN").paren( _ ->
-                id(String.valueOf(vectorShape.lanes()))
-                .comma()
-                .recurseResultOrThrow(source)
-                .comma()
-                .paren(_ -> recurseResultOrThrow(index))
-                .comma()
-                .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero()));
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
-        return id("VSTOREN").paren(_ -> {
-            id(String.valueOf(vectorShape.lanes()))
-                    .comma()
-                    .recurseResultOrThrow(dest)
-                    .comma()
-                    .paren(_ -> recurseResultOrThrow(index))
-                    .comma()
-                    .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero())
-                    .comma()
-                    .id(name);
-        });
+                .paren(_ -> id("vstore").comma().sp().id("N"))
+                .paren( _ -> id("vectorVal").comma().sp().intConstZero().comma().sp().id("CONCAT")
+                        .paren(_ -> id("VECTOR_").comma().sp().id("isLocal"))
+                        .paren( _ -> id("addr").comma().sp().id("index"))));
     }
 
     @Override

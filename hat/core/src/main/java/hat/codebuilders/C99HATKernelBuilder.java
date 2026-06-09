@@ -1078,9 +1078,30 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T genVectorIdentifier(IfaceValue.Vector.Shape vectorShape);
 
-    protected abstract T generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated);
+    protected T generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
+        return id("VLOADN").paren(_ ->
+                id(String.valueOf(vectorShape.lanes()))
+                        .comma()
+                        .recurseResultOrThrow(source)
+                        .comma()
+                        .paren(_ -> recurseResultOrThrow(index))
+                        .comma()
+                        .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero()));
+    }
 
-    protected abstract T hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op);
+    protected T hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
+        return id("VSTOREN").paren(_ -> {
+            id(String.valueOf(vectorShape.lanes()))
+                    .comma()
+                    .recurseResultOrThrow(dest)
+                    .comma()
+                    .paren(_ -> recurseResultOrThrow(index))
+                    .comma()
+                    .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero())
+                    .comma()
+                    .id(name);
+        });
+    }
 
     protected abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
 

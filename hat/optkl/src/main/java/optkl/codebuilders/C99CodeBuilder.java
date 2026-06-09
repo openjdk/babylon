@@ -202,13 +202,13 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
         return self();
     }
 
-    public final T concatMacro(String name) {
+    public final T concatMacro() {
         List<String> params = List.of("a", "b");
-        return macroNoParenthesis(name, params, _ -> id("a").hash().hash().id("b"));
+        return macroNoParenthesis("CONCAT", params, _ -> id("a").hash().hash().id("b"));
     }
 
     public final T defineVectorAccessMacro(String name, boolean isLocal) {
-        List<String> params = List.of("N", "addr", "index");
+        List<String> params = List.of("addr", "index");
         return macroNoParenthesis(name, params, _ -> ampersand()
                 .id("addr")
                 .either(isLocal, CodeBuilder::dot, CodeBuilder::rarrow)

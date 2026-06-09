@@ -43,11 +43,7 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SequencedSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Stream;
@@ -215,6 +211,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BARRIER", _ -> keyword("__syncthreads").ocparen())
                 .maxMacro("MAX_HAT")
                 .minMacro("MIN_HAT")
+                .concatMacro()
+                .defineVectorAccessMacro("VECTOR_0",false)
+                .defineVectorAccessMacro("VECTOR_1",true)
+                .defineMacroVLoadN()
+                .defineMacroVStoreN()
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
@@ -226,23 +227,36 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("atomicAdd").paren(_ -> ampersand().recurseResultOrThrow(instanceResult).rarrow().id(name).comma().literal(1));
     }
 
-    @Override
-    public CudaHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
-        keyword("reinterpret_cast").ltgt(_ -> type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().asterisk());
-        paren(_ -> {
-            ampersand().recurseResultOrThrow(dest);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
-        });
-        sbrace(_ -> intConstZero());
-        sp().equals().sp();
-        // if the value to be stored is an operation, recurse on the operation
-        if (op.operands().get(1) instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp1 && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp1))) {
-            recurse(r.op());
-        } else {
-            varName(name);
-        }
-        return self();
+    /**
+     * <code>
+     *     #define VLOADN(N, addr, index, isLocal) reinterpret_cast<CONCAT(float, N) *>(CONCAT(VECTOR_, isLocal)(addr, index))[0]
+     * </code>
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVLoadN() {
+        List<String> params = List.of("N", "addr", "index", "isLocal");
+        return macroNoParenthesis("VLOADN", params, _ ->
+                reinterpretCast().lt().id("CONCAT").paren(_ -> f32Type().comma().sp().id("N")).sp().asterisk().gt()
+                .paren( _ -> id("CONCAT").paren( _ -> id("VECTOR_").comma().sp().id("isLocal"))
+                .paren( _ -> id("addr").comma().sp().id("index")))
+                .sbrace( _ -> intConstZero()));
+    }
+
+    /**
+     * <code>
+     *     #define VSTOREN(N, a, index, isLocal, vectorVal) reinterpret_cast<CONCAT(float, N)*>(CONCAT(VECTOR_, isLocal)(a, index))[0] = vectorVal
+     * </code>
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVStoreN() {
+        List<String> params = List.of("N", "addr", "index", "isLocal", "vectorVal");
+        return macroNoParenthesis("VSTOREN", params, _ ->
+                reinterpretCast().lt().id("CONCAT").paren(_ -> f32Type().comma().sp().id("N")).sp().asterisk().gt()
+                        .paren( _ -> id("CONCAT").paren( _ -> id("VECTOR_").comma().sp().id("isLocal"))
+                                .paren( _ -> id("addr").comma().sp().id("index")))
+                        .sbrace( _ -> intConstZero()).sp().equals().sp().id("vectorVal"));
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
@@ -335,23 +349,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             stack.pop();
         }
         return generateHATBinaryVectorOperation(invoke, nameVector);
-    }
-
-    public String buildTypeVector(IfaceValue.Vector.Shape vectorShape) {
-        return vectorShape.codeType().toString() + vectorShape.lanes();
-    }
-
-    @Override
-    public CudaHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-        reinterpretCast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
-        paren(_ -> {
-            ampersand();
-            recurseResultOrThrow(source);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
-        });
-        sbrace(_ -> intConstZero());
-        return self();
     }
 
     @Override
