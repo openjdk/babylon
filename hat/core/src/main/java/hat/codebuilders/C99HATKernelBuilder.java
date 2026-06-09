@@ -95,8 +95,18 @@ import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.opFromFirstOperandOrNull;
 
 public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> extends C99HATCodeBuilder<T> implements HATOpDispatcher<T> {
+
     protected final KernelCallGraph kernelCallGraph;
     private final VarTable varTable;
+
+    public static final String VLOADN = "VLOADN";
+    public static final String VSTOREN = "VSTOREN";
+    public static final String N = "N";
+    public static final String IS_LOCAL = "isLocal";
+    public static final String VLOAD = "vload";
+    public static final String VSTORE = "vstore";
+    public static final String VECTOR = "VECTOR_";
+    public static final String VECTOR_VAL = "vVal";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -1078,8 +1088,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T genVectorIdentifier(IfaceValue.Vector.Shape vectorShape);
 
+    public List<String> getMacroVectorParamsLoad() {
+        return List.of(N, ADDDR, INDEX, IS_LOCAL);
+    }
+
+    public List<String> getMacroVectorParamsStore() {
+        return List.of(N, ADDDR, INDEX, IS_LOCAL, VECTOR_VAL);
+    }
+
     protected T generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-        return id("VLOADN").paren(_ ->
+        return id(VLOADN).paren(_ ->
                 id(String.valueOf(vectorShape.lanes()))
                         .comma()
                         .recurseResultOrThrow(source)
@@ -1090,17 +1108,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected T hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
-        return id("VSTOREN").paren(_ -> {
-            id(String.valueOf(vectorShape.lanes()))
-                    .comma()
-                    .recurseResultOrThrow(dest)
-                    .comma()
-                    .paren(_ -> recurseResultOrThrow(index))
-                    .comma()
-                    .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero())
-                    .comma()
-                    .id(name);
-        });
+        return id(VSTOREN).paren(_ ->
+                id(String.valueOf(vectorShape.lanes()))
+                .comma()
+                .recurseResultOrThrow(dest)
+                .comma()
+                .paren(_ -> recurseResultOrThrow(index))
+                .comma()
+                .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero())
+                .comma()
+                .id(name));
     }
 
     protected abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);

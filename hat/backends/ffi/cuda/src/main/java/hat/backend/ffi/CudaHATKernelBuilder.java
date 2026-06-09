@@ -235,11 +235,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroVLoadN() {
-        List<String> params = List.of("N", "addr", "index", "isLocal");
-        return macroNoParenthesis("VLOADN", params, _ ->
-                reinterpretCast().lt().id("CONCAT").paren(_ -> f32Type().comma().sp().id("N")).sp().asterisk().gt()
-                .paren( _ -> id("CONCAT").paren( _ -> id("VECTOR_").comma().sp().id("isLocal"))
-                .paren( _ -> id("addr").comma().sp().id("index")))
+        List<String> params = getMacroVectorParamsLoad();
+        return macroNoParenthesis(VLOADN, params, _ ->
+                reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
+                .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
                 .sbrace( _ -> intConstZero()));
     }
 
@@ -251,12 +251,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroVStoreN() {
-        List<String> params = List.of("N", "addr", "index", "isLocal", "vectorVal");
-        return macroNoParenthesis("VSTOREN", params, _ ->
-                reinterpretCast().lt().id("CONCAT").paren(_ -> f32Type().comma().sp().id("N")).sp().asterisk().gt()
-                        .paren( _ -> id("CONCAT").paren( _ -> id("VECTOR_").comma().sp().id("isLocal"))
-                                .paren( _ -> id("addr").comma().sp().id("index")))
-                        .sbrace( _ -> intConstZero()).sp().equals().sp().id("vectorVal"));
+        List<String> params = getMacroVectorParamsStore();
+        return macroNoParenthesis(VSTOREN, params, _ ->
+                reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
+                        .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
+                        .sbrace( _ -> intConstZero()).sp().equals().sp().id(VECTOR_VAL));
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {

@@ -30,6 +30,11 @@ import java.util.function.Consumer;
 
 public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJavaOrC99StyleCodeBuilder<T> {
 
+    public static final String CONCAT = "CONCAT";
+    public static final String ADDDR = "addr";
+    public static final String INDEX = "index";
+    public static final String ARRAY = "array";
+
     public C99CodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
     }
@@ -204,18 +209,15 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
 
     public final T concatMacro() {
         List<String> params = List.of("a", "b");
-        return macroNoParenthesis("CONCAT", params, _ -> id("a").hash().hash().id("b"));
+        return macroNoParenthesis(CONCAT, params, _ -> id("a").hash().hash().id("b"));
     }
 
     public final T defineVectorAccessMacro(String name, boolean isLocal) {
-        List<String> params = List.of("addr", "index");
+        List<String> params = List.of(ADDDR, INDEX);
         return macroNoParenthesis(name, params, _ -> ampersand()
-                .id("addr")
+                .id(ADDDR)
                 .either(isLocal, CodeBuilder::dot, CodeBuilder::rarrow)
-                .id("array").sbrace(_ ->
-                        id("index")
-                        //.mul().sp().id("N")
-                        ));
+                .id(ARRAY).sbrace(_ -> id(INDEX)));
     }
 
     public final T pragma(String name, String... values) {

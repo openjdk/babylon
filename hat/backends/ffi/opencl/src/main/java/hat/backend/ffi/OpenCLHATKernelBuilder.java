@@ -155,12 +155,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder defineMacroVLoadN() {
-        List<String> params = List.of("N", "addr", "index", "isLocal");
-        return macroNoParenthesis("VLOADN", params, _ -> id("CONCAT")
-                .paren(_ -> id("vload").comma().id("N"))
-                .paren( _ -> intConstZero().comma().id("CONCAT")
-                        .paren(_ -> id("VECTOR_").comma().id("isLocal"))
-                        .paren( _ -> id("addr").comma().id("index"))));
+        List<String> params = getMacroVectorParamsLoad();
+        return macroNoParenthesis(VLOADN, params, _ -> id(CONCAT)
+                .paren(_ -> id(VLOAD).comma().id(N))
+                .paren( _ -> intConstZero().comma().id(CONCAT)
+                        .paren(_ -> id(VECTOR).comma().id(IS_LOCAL))
+                        .paren( _ -> id(ADDDR).comma().id(INDEX))));
     }
 
     /**
@@ -171,12 +171,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder defineMacroVStoreN() {
-        List<String> params = List.of("N", "addr", "index", "isLocal", "vectorVal");
-        return macroNoParenthesis("VSTOREN", params, _ -> id("CONCAT")
-                .paren(_ -> id("vstore").comma().sp().id("N"))
-                .paren( _ -> id("vectorVal").comma().sp().intConstZero().comma().sp().id("CONCAT")
-                        .paren(_ -> id("VECTOR_").comma().sp().id("isLocal"))
-                        .paren( _ -> id("addr").comma().sp().id("index"))));
+        List<String> params = getMacroVectorParamsStore();
+        return macroNoParenthesis(VSTOREN, params, _ -> id(CONCAT)
+                .paren(_ -> id(VSTORE).comma().sp().id(N))
+                .paren( _ -> id(VECTOR_VAL).comma().sp().intConstZero().comma().sp().id(CONCAT)
+                        .paren(_ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                        .paren( _ -> id(ADDDR).comma().sp().id(INDEX))));
     }
 
     @Override
