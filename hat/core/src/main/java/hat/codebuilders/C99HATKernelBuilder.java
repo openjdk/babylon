@@ -60,12 +60,13 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static hat.buffer.F16Array.F16Impl;
-import static hat.codebuilders.C99VecAndMatHandler.*;
+import static hat.codebuilders.C99VecAndMatHandler.handleInvoke;
+import static hat.codebuilders.C99VecAndMatHandler.handleType;
+import static hat.codebuilders.C99VecAndMatHandler.isVecInvoke;
+import static hat.codebuilders.C99VecAndMatHandler.isVecOrMatType;
 import static hat.phases.HATPhaseUtils.NON_MAPPABLE_IFACE;
 import static hat.phases.HATPhaseUtils.findIsSharedOrPrivateSpace;
 import static hat.phases.HATPhaseUtils.findVectorVarNameOrNull;

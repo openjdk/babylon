@@ -43,6 +43,7 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -108,6 +109,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__local"))
+                .concatMacro("CONCAT")
+                .defineVectorAccessMacro("VECTOR_0",false)
+                .defineVectorAccessMacro("VECTOR_1",true)
+                .defineMacroVLoadN()
+                .defineMacroVStoreN()
                 .when(kernelCallGraph.accessedKernelContextFields.contains("gix"), _->hashDefine("HAT_GIX", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstZero()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giy"), _->hashDefine("HAT_GIY", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstOne()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giz"), _->hashDefine("HAT_GIZ", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstTwo()))))
@@ -142,34 +148,60 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return id("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().id(name));
     }
 
-    protected OpenCLHATKernelBuilder vstore(int dims) {
-        return id("vstore" + dims);
+    /**
+     * <code>
+     *     #define VLOADN(N, a, index, isLocal) CONCAT(vload, N)(0, CONCAT(VECTOR_, isLocal)(N, a, index))
+     * </code>
+     * @return
+     */
+    private OpenCLHATKernelBuilder defineMacroVLoadN() {
+        List<String> params = List.of("N", "addr", "index", "isLocal");
+        return macroNoParenthesis("VLOADN", params, _ -> id("CONCAT")
+                .paren(_ -> id("vload").comma().id("N"))
+                .paren( _ -> intConstZero().comma().id("CONCAT")
+                        .paren(_ -> id("VECTOR_").comma().id("isLocal"))
+                        .paren( _ -> id("N").comma().id("addr").comma().id("index"))));
     }
 
-    protected OpenCLHATKernelBuilder vload(int dims) {
-        return id("vload" + dims);
+    /**
+     * <code>
+     *     #define VSTOREN(N, a, index, isLocal, vectorVal) CONCAT(vstore, N)((vectorVal), 0, CONCAT(VECTOR_, isLocal)(N, a, index))
+     * </code>
+     * @return
+     */
+    private OpenCLHATKernelBuilder defineMacroVStoreN() {
+        List<String> params = List.of("N", "addr", "index", "isLocal", "vectorVal");
+        return macroNoParenthesis("VSTOREN", params, _ -> id("CONCAT")
+                .paren(_ -> id("vstore").comma().id("N"))
+                .paren( _ -> id("vectorVal").comma().intConstZero().comma().id("CONCAT")
+                        .paren(_ -> id("VECTOR_").comma().id("isLocal"))
+                        .paren( _ -> id("N").comma().id("addr").comma().id("index"))));
     }
-
 
     @Override
     public OpenCLHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-        vload(vectorShape.lanes()).paren(_ -> {
-            intConstZero().comma().sp().ampersand();
-            recurseResultOrThrow(source);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id(ARRAY).sbrace(_ -> recurseResultOrThrow(index));
-        });
-        return self();
+        return id("VLOADN").paren( _ ->
+                id(String.valueOf(vectorShape.lanes()))
+                .comma()
+                .recurseResultOrThrow(source)
+                .comma()
+                .paren(_ -> recurseResultOrThrow(index))
+                .comma()
+                .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero()));
     }
 
     @Override
     public OpenCLHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
-        return vstore(vectorShape.lanes()).paren(_-> {
-            // if the value to be stored is an operation, recurse on the operation
-            varName(name);
-            csp().intConstZero().csp().ampersand().recurseResultOrThrow(dest);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id(ARRAY).sbrace(_ ->recurseResultOrThrow(index));
+        return id("VSTOREN").paren(_ -> {
+            id(String.valueOf(vectorShape.lanes()))
+                    .comma()
+                    .recurseResultOrThrow(dest)
+                    .comma()
+                    .paren(_ -> recurseResultOrThrow(index))
+                    .comma()
+                    .either(deviceAllocated, _ -> intConstOne(), _ -> intConstZero())
+                    .comma()
+                    .id(name);
         });
     }
 

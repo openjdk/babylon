@@ -158,6 +158,14 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
                .nl();
     }
 
+    public final T macroNoParenthesis(String name, List<String> params, Consumer<T> body) {
+        hashDefineKeyword().sp().id(name);
+        paren( _ -> commaSpaceSeparated(params, this::id)).sp();
+        body.accept(self());
+        nl();
+        return self();
+    }
+
     public final T maxMacro(String name) {
         List<String> params = List.of("a", "b");
         return macro(name, params, _ -> maxMacroBody(params));
@@ -192,6 +200,22 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
                 .colon()
                 .paren( _ -> id(b));
         return self();
+    }
+
+    public final T concatMacro(String name) {
+        List<String> params = List.of("a", "b");
+        return macroNoParenthesis(name, params, _ -> id("a").hash().hash().id("b"));
+    }
+
+    public final T defineVectorAccessMacro(String name, boolean isLocal) {
+        List<String> params = List.of("N", "addr", "index");
+        return macroNoParenthesis(name, params, _ -> ampersand()
+                .id("addr")
+                .either(isLocal, CodeBuilder::dot, CodeBuilder::rarrow)
+                .id("array").sbrace(_ ->
+                        id("index")
+                        //.mul().sp().id("N")
+                        ));
     }
 
     public final T pragma(String name, String... values) {
