@@ -273,6 +273,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         .sbrace( _ -> intConstZero()).sp().equals().sp().id(VECTOR_VAL));
     }
 
+    /**
+     * <code>
+     *    #define VECTOR_OF2(elementType, p0, p1) (PREFIX(make_,CONCAT(elementType,2)))(p0,p1)
+     *    #define VECTOR_OF3(elementType, p0, p1, p2) (PREFIX(make_,CONCAT(elementType,3)))(p0,p1,p2)
+     *    #define VECTOR_OF4(elementType, p0, p1, p2, p3) (PREFIX(make_,CONCAT(elementType,4)))(p0,p1,p2,p3)
+     * </code>
+     * @param lanes
+     *    Vector width
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
     private CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
         List<String> params = new ArrayList<>();
         params.add(ELEMENT_TYPE);
@@ -291,6 +302,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         });
     }
 
+    /**
+     * <code>
+     *    #define F16_OF(val) (F16_t){__float2half(val)}
+     * </code>
+     * @param name
+     *     Name of the CUDA Macro
+     * @return {@link CudaHATKernelBuilder}
+     */
     private CudaHATKernelBuilder defineMacroF16Of(String name) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
@@ -298,6 +317,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         .brace(_ -> float2half().paren(_-> id("val"))));
     }
 
+    /**
+     * <code>
+     *    #define BF16_OF(val) (BF16_t){__nv_bfloat16(val)}
+     * </code>
+     * @param name
+     *    Name of the CUDA Macro
+     * @return {@link CudaHATKernelBuilder}
+     */
     private CudaHATKernelBuilder defineMacroBF16Of(String name) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
@@ -305,6 +332,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         .brace(_ -> nvBFloat16().paren(_-> id("val"))));
     }
 
+    /**
+     * <code>
+     *    #define F16_TO_FLOAT_0(val) (__half2float)(val->value)
+     *    #define F16_TO_FLOAT_1(val) (__half2float)(val.value)
+     * </code>
+     * @param name
+     *    Name of the CUDA Macro
+     * @param isLocal
+     *    Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     * @return {@link CudaHATKernelBuilder}
+     */
     private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
@@ -314,6 +352,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                                 .id(VALUE)));
     }
 
+    /**
+     * <code>
+     *     #define BF16_TO_FLOAT_0(val) (__bfloat162float(val->value))
+     *     #define BF16_TO_FLOAT_1(val) (__bfloat162float(val.value))
+     * </code>
+     * @param name
+     *     Name of the CUDA Macro
+     * @param isLocal
+     *     Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     * @return {@link CudaHATKernelBuilder}
+     */
     private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
@@ -539,9 +588,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
-        return HAT_LOCAL_MEM()
-                .sp()
-                .varOpPrivateMemory(varOp);
+        return HAT_LOCAL_MEM().sp().varOpPrivateMemory(varOp);
     }
 
     @Override

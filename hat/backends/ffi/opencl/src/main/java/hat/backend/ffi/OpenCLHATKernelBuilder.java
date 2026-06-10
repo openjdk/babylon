@@ -118,8 +118,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .defineMacroVectorOf(4)
                 .defineMacroVectorSelectLoad(VSELECT_LOAD)
                 .defineMacroVectorSelectStore(VSELECT_STORE)
-                .defineMacroF16Of(F16_OF)
-                .defineMacroBF16Of(BF16_OF)
+                .defineMacroF16Of()
+                .defineMacroBF16Of()
                 .defineMacroF162Float(F16_TO_FLOAT_0, false)
                 .defineMacroF162Float(F16_TO_FLOAT_1, true)
                 .defineMacroBF162Float(BF16_TO_FLOAT_0, false)
@@ -190,6 +190,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .paren( _ -> id(ADDDR).comma().sp().id(INDEX))));
     }
 
+    /**
+     * <code>
+     *     #define VECTOR_OF4(elementType, p0, p1, p2, p3) (CONCAT(elementType,4))(p0,p1,p2,p3)
+     * </code>
+     *
+     * @param lanes
+     *  vector width
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder defineMacroVectorOf(int lanes) {
         List<String> params = new ArrayList<>();
         params.add(ELEMENT_TYPE);
@@ -207,21 +216,47 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         });
     }
 
-    private OpenCLHATKernelBuilder defineMacroF16Of(String name) {
+    /**
+     * <code>
+     * #define F16_OF(val) (F16_t){(val)}
+     * </code>
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroF16Of() {
         List<String> params = List.of("val");
-        return macroNoParenthesis(name, params, _ ->
+        return macroNoParenthesis(C99HATKernelBuilder.F16_OF, params, _ ->
                 paren(_ -> f16Type())
                         .brace(_ ->
                                 paren(_-> id("val"))));
     }
 
-    private OpenCLHATKernelBuilder defineMacroBF16Of(String name) {
+    /**
+     * <code>
+     *  #define BF16_OF(val) (BF16_t){floatTobfloat16(val)}
+     * </code>
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroBF16Of() {
         List<String> params = List.of("val");
-        return macroNoParenthesis(name, params, _ ->
+        return macroNoParenthesis(C99HATKernelBuilder.BF16_OF, params, _ ->
                 paren(_ -> bf16Type())
                         .brace(_ -> builtin_float2bfloat16().paren(_-> id("val"))));
     }
 
+    /**
+     * <code>
+     *     #define F16_TO_FLOAT_0(val) (float)(val->value)
+     *     #define F16_TO_FLOAT_1(val) (float)(val.value)
+     * </code>
+     *
+     * @param name
+     *       Name of the OpenCL Macro
+     * @param isLocal
+     *       Flag to indicate if access is from a local/private region or global region.
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
@@ -231,6 +266,17 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                                 .id(VALUE)));
     }
 
+    /**
+     * <code>
+     *     #define BF16_TO_FLOAT_0(val) (bfloat16Tofloat(val->value))
+     *     #define BF16_TO_FLOAT_1(val) (bfloat16Tofloat(val.value))
+     * </code>
+     * @param name
+     *     Name of the OpenCL Macro
+     * @param isLocal
+     *     Flag to indicate if access is from a local/private region or global region.
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->

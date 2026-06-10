@@ -209,16 +209,40 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
         return self();
     }
 
+    /**
+     * <code>
+     *     #define CONCAT(a, b) a##b
+     * </code>
+     * @return {@link C99CodeBuilder}
+     */
     public final T concatMacro() {
         List<String> params = List.of("a", "b");
         return macroNoParenthesis(CONCAT, params, _ -> id("a").hash().hash().id("b"));
     }
 
+    /**
+     * <code>
+     *      #define PREFIX(a, b) CONCAT(a, b)
+     * </code>
+     * @return {@link C99CodeBuilder}
+     */
     public final T prefixMacro() {
         List<String> params = List.of("a", "b");
         return macroNoParenthesis("PREFIX", params, _ -> id(CONCAT).paren( _ -> commaSpaceSeparated(params, this::id)));
     }
 
+    /**
+     * <code>
+     *     #define VECTOR_0(addr, index) &addr->array[index]
+     *     #define VECTOR_1(addr, index) &addr.array[index]
+     * </code>
+     *
+     * @param name
+     *    Name of the C99 Macro
+     * @param isLocal
+     *    Flag to indicate if the access comes from a local/private region or global region.
+     * @return {@link C99CodeBuilder}
+     */
     public final T defineVectorAccessMacro(String name, boolean isLocal) {
         List<String> params = List.of(ADDDR, INDEX);
         return macroNoParenthesis(name, params, _ -> ampersand()
@@ -227,18 +251,36 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
                 .id(ARRAY).sbrace(_ -> id(INDEX)));
     }
 
+    /**
+     * <code>
+     *   #define VSELECT_LOAD(vector, field) ((vector).field)
+     * </code>
+     * @param name
+     *    Name of the C99 Macro
+     * @return {@link C99CodeBuilder}
+     */
     public final T defineMacroVectorSelectLoad(String name) {
         List<String> params = List.of("vector", "field");
-        return macroNoParenthesis(name, params, _ -> {
-            paren( _ -> paren(_ -> id("vector")).dot().id("field"));
-        });
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> paren(_ -> id("vector"))
+                        .dot().id("field")));
     }
 
+    /**
+     * <code>
+     *     #define VSELECT_STORE(vector, field, value) ((vector).field = (value))
+     * </code>
+     * @param name
+     *     Name of the C99 Macro
+     * @return {@link C99CodeBuilder}
+     */
     public final T defineMacroVectorSelectStore(String name) {
         List<String> params = List.of("vector", "field", "value");
-        return macroNoParenthesis(name, params, _ -> {
-           paren( _ -> paren(_ -> id("vector")).dot().id("field").assign().paren( _ -> id("value")));
-        });
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> paren(_ -> id("vector"))
+                        .dot().id("field")
+                        .assign()
+                        .paren(_ -> id("value"))));
     }
 
     public final T pragma(String name, String... values) {
