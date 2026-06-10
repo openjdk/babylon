@@ -227,6 +227,13 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
                 .id(ARRAY).sbrace(_ -> id(INDEX)));
     }
 
+    public final T defineMacroVectorSelectLoad(String name) {
+        List<String> params = List.of("vector", "field");
+        return macroNoParenthesis(name, params, _ -> {
+            paren( _ -> paren(_ -> id("vector")).dot().id("field"));
+        });
+    }
+
     public final T defineMacroVectorSelectStore(String name) {
         List<String> params = List.of("vector", "field", "value");
         return macroNoParenthesis(name, params, _ -> {

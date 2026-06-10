@@ -221,6 +221,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .defineMacroVectorOf(2)
                 .defineMacroVectorOf(3)
                 .defineMacroVectorOf(4)
+                .defineMacroVectorSelectLoad(VSELECT_LOAD)
+                .defineMacroVectorSelectStore(VSELECT_STORE)
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
@@ -372,34 +374,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             stack.pop();
         }
         return generateHATBinaryVectorOperation(invoke, nameVector);
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatSelectStoreOp(Invoke invoke, InvokeVar invokeVar) {
-        return id(VSELECT_STORE).paren( _-> {
-            if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
-                recurse(vLoadOp);
-            } else {
-                id(invokeVar.name());
-            }
-            comma().id(HATPhaseUtils.mapLane(invokeVar.laneIdx())).comma();
-            String resolvedName = invokeVar.resolveName();
-            either (resolvedName != null,
-                    _-> varName(resolvedName),
-                    _-> recurseResultOrThrow(invoke.op().operands().get(1))
-            );
-        });
-//
-//        id(invokeVar.name()).dot().id(mapLane(invokeVar.laneIdx())).sp().equals().sp();
-//        String resolvedName = invokeVar.resolveName();
-//        if (resolvedName != null) {
-//            // We have detected a direct resolved result (resolved name)
-//            varName(resolvedName);
-//        } else {
-//            // otherwise, we traverse to resolve the expression
-//            recurseResultOrThrow(invoke.op().operands().get(1));
-//        }
-//        return self();
     }
 
     @Override

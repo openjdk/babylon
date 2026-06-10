@@ -33,6 +33,7 @@ import hat.dialect.HATPtrOp;
 import hat.dialect.HATThreadOp;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATFP16Phase;
+import hat.phases.HATPhaseUtils;
 import hat.phases.HATPhaseUtils.InvokeVar;
 import hat.types.BF16;
 import hat.types.F16;
@@ -109,6 +110,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String VECTOR_VAL = "vVal";
     public static final String ELEMENT_TYPE = "elementType";
     public static final String VECTOR_OF = "VECTOR_OF";
+    public static final String VSELECT_LOAD = "VSELECT_LOAD";
     public static final String VSELECT_STORE = "VSELECT_STORE";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
@@ -752,16 +754,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     static Regex atomicIncRegex = Regex.of("(atomic.*)Inc");
 
-    public T hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
-        if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
-            recurse(vLoadOp);
-        } else {
-            id(invokeVar.name());
-        }
-        dot().id(mapLane(invokeVar.laneIdx()));
-        return self();
-    }
-
     private boolean isInvokeFromSharedOrPrivate(Op.Result instance, OpHelper.Invoke invoke) {
         boolean isLocalOrPrivateDS = false;
         VarTable vTable = kernelCallGraph.getVarTable();
@@ -1092,11 +1084,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T atomicInc(Op.Result instanceResult, String name);
 
-    public List<String> getMacroVectorParamsLoad() {
+    protected List<String> getMacroVectorParamsLoad() {
         return List.of(N, ADDDR, INDEX, IS_LOCAL);
     }
 
-    public List<String> getMacroVectorParamsStore() {
+    protected List<String> getMacroVectorParamsStore() {
         return List.of(N, ADDDR, INDEX, IS_LOCAL, VECTOR_VAL);
     }
 
@@ -1124,7 +1116,32 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .id(name));
     }
 
-    protected abstract T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar);
+    protected T hatSelectStoreOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
+        return id(VSELECT_STORE).paren( _-> {
+            if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
+                recurse(vLoadOp);
+            } else {
+                id(invokeVar.name());
+            }
+            comma().id(HATPhaseUtils.mapLane(invokeVar.laneIdx())).comma();
+            String resolvedName = invokeVar.resolveName();
+            either (resolvedName != null,
+                    _-> varName(resolvedName),
+                    _-> recurseResultOrThrow(invoke.op().operands().get(1))
+            );
+        });
+    }
+
+    protected T hatSelectLoadOp(OpHelper.Invoke invoke, InvokeVar invokeVar) {
+        return id(VSELECT_LOAD).paren( _ -> {
+            if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
+                recurse(vLoadOp);
+            } else {
+                id(invokeVar.name());
+            }
+            comma().id(mapLane(invokeVar.laneIdx()));
+        });
+    }
 
     protected abstract T hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType);
 
