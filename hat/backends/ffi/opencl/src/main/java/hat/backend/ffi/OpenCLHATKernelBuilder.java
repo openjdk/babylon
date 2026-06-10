@@ -28,8 +28,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
 import hat.phases.HATPhaseUtils;
-import hat.types.BF16;
-import hat.types.F16;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
@@ -120,6 +118,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .defineMacroVectorOf(4)
                 .defineMacroVectorSelectLoad(VSELECT_LOAD)
                 .defineMacroVectorSelectStore(VSELECT_STORE)
+                .defineMacroF16Of(F16_OF)
+                .defineMacroBF16Of(BF16_OF)
+                .defineMacroF162Float(F16_TO_FLOAT_0, false)
+                .defineMacroF162Float(F16_TO_FLOAT_1, true)
+                .defineMacroBF162Float(BF16_TO_FLOAT_0, false)
+                .defineMacroBF162Float(BF16_TO_FLOAT_1, true)
                 .when(kernelCallGraph.accessedKernelContextFields.contains("gix"), _->hashDefine("HAT_GIX", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstZero()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giy"), _->hashDefine("HAT_GIY", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstOne()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giz"), _->hashDefine("HAT_GIZ", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstTwo()))))
@@ -203,6 +207,39 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         });
     }
 
+    private OpenCLHATKernelBuilder defineMacroF16Of(String name) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> f16Type())
+                        .brace(_ ->
+                                paren(_-> id("val"))));
+    }
+
+    private OpenCLHATKernelBuilder defineMacroBF16Of(String name) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> bf16Type())
+                        .brace(_ -> builtin_float2bfloat16().paren(_-> id("val"))));
+    }
+
+    private OpenCLHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> f32Type())
+                        .paren(_-> id("val")
+                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .id(VALUE)));
+    }
+
+    private OpenCLHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> builtin_bfloat16ToFloat()
+                        .paren(_-> id("val")
+                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .id(VALUE))));
+    }
+
     @Override
     public OpenCLHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke binOp) {
         return paren(_-> {
@@ -211,37 +248,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             recurseResultOrThrow(binOp.op().operands().get(1));
         });
     }
-
-    @Override
-    public OpenCLHATKernelBuilder hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reduceFloatType) {
-        return paren(_-> f16OrBF16(reduceFloatType)).brace(_->
-                either (BF16.class.isAssignableFrom(reduceFloatType),
-                        _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(invokeOp.operands().getFirst())),
-                        _-> recurseResultOrThrow(invokeOp.operands().getFirst())
-                ));
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatF16ToFloatConvOp(OpHelper.Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
-        if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
-            paren(_->f32Type());
-        } else if (BF16.class.isAssignableFrom(reducedFloatType)) {// bfloat16 -> float
-            builtin_bfloat16ToFloat();
-        }
-        parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
-            recurseResultOrThrow(invoke.op().operands().getFirst());
-            if (!isF16Local) {
-                rarrow();
-            } else if (!wasFloat) {
-                dot();
-            } else{
-                throw new RuntimeException("Can we get here");
-            }
-            id(VALUE);
-        });
-        return self();
-    }
-
 
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {

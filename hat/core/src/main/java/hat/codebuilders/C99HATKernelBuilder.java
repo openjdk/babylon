@@ -112,6 +112,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String VECTOR_OF = "VECTOR_OF";
     public static final String VSELECT_LOAD = "VSELECT_LOAD";
     public static final String VSELECT_STORE = "VSELECT_STORE";
+    public static final String F16_OF = "F16_OF";
+    public static final String BF16_OF = "BF16_OF";
+    public static final String F16_TO_FLOAT_0 = "F16_TO_FLOAT_0";
+    public static final String F16_TO_FLOAT_1 = "F16_TO_FLOAT_1";
+    public static final String BF16_TO_FLOAT_0 = "BF16_TO_FLOAT_0";
+    public static final String BF16_TO_FLOAT_1 = "BF16_TO_FLOAT_1";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -806,8 +812,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
-    private void handleS16Conversion(Invoke invoke) {
-        // F16
+    private void handleFloatToS16Conversion(Invoke invoke) {
         if (S16ImplOfF16.codeTypeToFloatClassOrNull(invoke, (ClassType) invoke.refType()) instanceof Class<? extends S16ImplOfF16> reducedFloatType) {
             hatF16ConvOp(invoke.op(), reducedFloatType);
         } else {
@@ -928,7 +933,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         } else if (isVectorSelectOperation(invoke)) {
             handleVectorSelect(invoke);
         } else if (isS16Conversion(invoke)) {
-            handleS16Conversion(invoke);
+            handleFloatToS16Conversion(invoke);
         } else if (isS16ToFloatConversion(invoke)) {
             handleS16ToFloatConversion(invoke);
         } else if (isS16BinaryOp(invoke)) {
@@ -1143,9 +1148,34 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         });
     }
 
-    protected abstract T hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType);
+    protected T hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType) {
+        return either(F16.class.isAssignableFrom(reducedFloatType),
+                _ -> id(F16_OF),
+                _ -> id(BF16_OF))
+                .paren(_ -> recurseResultOrThrow(invokeOp.operands().getFirst()));
+    }
 
-    protected abstract T hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local);
+    protected String obtainMacroForS16ToFloatConversion(Class<?> reducedFloatType, boolean isF16Local) {
+        if (F16.class.isAssignableFrom(reducedFloatType)) {
+            if (isF16Local) {
+                return F16_TO_FLOAT_1;
+            }  else {
+                return F16_TO_FLOAT_0;
+            }
+        } else {
+            if (isF16Local) {
+                return BF16_TO_FLOAT_1;
+            } else  {
+                return BF16_TO_FLOAT_0;
+            }
+        }
+    }
+
+    protected T hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
+        String macro = obtainMacroForS16ToFloatConversion(reducedFloatType, isF16Local);
+        id(macro).paren(_ -> recurseResultOrThrow(invoke.op().operands().getFirst()));
+        return self();
+    }
 
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 

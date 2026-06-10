@@ -28,7 +28,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
 import hat.phases.HATFP16Phase;
-import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
@@ -38,7 +37,6 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.OpHelper.Invoke;
-import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
 import jdk.incubator.code.Op;
@@ -49,7 +47,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Stream;
 
-import static hat.phases.HATPhaseUtils.InvokeVar;
 import static hat.phases.HATPhaseUtils.isArrayReference;
 import static hat.phases.HATPhaseUtils.isMathLib;
 import static hat.phases.HATPhaseUtils.isOperandF32;
@@ -104,6 +101,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private CudaHATKernelBuilder half2float() {
         return id("__half2float");
+    }
+
+    private CudaHATKernelBuilder float2half() {
+        return id("__float2half");
     }
 
     private CudaHATKernelBuilder nvBFloat16() {
@@ -223,6 +224,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .defineMacroVectorOf(4)
                 .defineMacroVectorSelectLoad(VSELECT_LOAD)
                 .defineMacroVectorSelectStore(VSELECT_STORE)
+                .defineMacroF16Of(F16_OF)
+                .defineMacroBF16Of(BF16_OF)
+                .defineMacroF162Float(F16_TO_FLOAT_0, false)
+                .defineMacroF162Float(F16_TO_FLOAT_1, true)
+                .defineMacroBF162Float(BF16_TO_FLOAT_0, false)
+                .defineMacroBF162Float(BF16_TO_FLOAT_1, true)
                 .includeSys("cuda_fp16.h", "cuda_bf16.h")
                 .hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16"))
                 .typedefSingleValueStruct("F16", "half")
@@ -282,6 +289,38 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 }
             });
         });
+    }
+
+    private CudaHATKernelBuilder defineMacroF16Of(String name) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> f16Type())
+                        .brace(_ -> float2half().paren(_-> id("val"))));
+    }
+
+    private CudaHATKernelBuilder defineMacroBF16Of(String name) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> bf16Type())
+                        .brace(_ -> nvBFloat16().paren(_-> id("val"))));
+    }
+
+    private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> half2float())
+                        .paren(_-> id("val")
+                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .id(VALUE)));
+    }
+
+    private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> bfloat162float()
+                        .paren(_-> id("val")
+                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .id(VALUE))));
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
@@ -377,33 +416,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType) {
-        paren(_ -> f16OrBF16(reducedFloatType)).brace(_ -> {
-            buildFloat16Class(reducedFloatType);
-            paren(_ ->
-                    recurseResultOrThrow(invokeOp.operands().getFirst())
-            );
-        });
-        return self();
-    }
-
-    private static final String VALUE = "value";
-
-    @Override
-    public CudaHATKernelBuilder hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
-        buildFloat16Class(reducedFloatType);
-        paren(_ -> {
-            recurseResultOrThrow(invoke.op().operands().getFirst());
-            if (!isF16Local) {
-                rarrow().id(VALUE);
-            } else if (!wasFloat) {
-                dot().id(VALUE);
-            }
-        });
-        return self();
-    }
-
-    @Override
     public CudaHATKernelBuilder hatF16BinaryOp(Invoke invoke, Class<?> reducedFloatType) {
         Value op1 = invoke.op().operands().get(0);
         Value op2 = invoke.op().operands().get(1);
@@ -422,7 +434,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         brace(_ ->
                 paren(_ -> {
                     if (f32Mixed == HATFP16Phase.LAST_OP) {
-                        generateFloat16ConversionToFloat(reducedFloatType).oparen();
+                        s16ToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op1);
                     if (isFirstOperandReference) {
@@ -435,7 +447,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     }
                     sp().id(matchSymbol(invoke.name())).sp();
                     if (f32Mixed == HATFP16Phase.FIRST_OP) {
-                        generateFloat16ConversionToFloat(reducedFloatType).oparen();
+                        s16ToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op2);
                     if (isSecondOperandReference) {
@@ -452,17 +464,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private CudaHATKernelBuilder buildFloat16Class(Class<?> float16Class) {
-        if (F16.class.isAssignableFrom(float16Class)) {
-            return half2float();
-        } else if (BF16.class.isAssignableFrom(float16Class)) {
-            return nvBFloat16();
-        } else {
-            throw new IllegalStateException("Unexpected value: " + float16Class);
-        }
-    }
-
-    private CudaHATKernelBuilder generateFloat16ConversionToFloat(Class<?> float16Class) {
+    private CudaHATKernelBuilder s16ToFloat(Class<?> float16Class) {
         if (F16.class.isAssignableFrom(float16Class)) {
             return half2float();
         } else if (BF16.class.isAssignableFrom(float16Class)) {
