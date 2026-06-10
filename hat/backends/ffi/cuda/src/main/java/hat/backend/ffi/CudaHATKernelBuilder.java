@@ -28,6 +28,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
 import hat.phases.HATFP16Phase;
+import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
@@ -375,16 +376,30 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatSelectStoreOp(Invoke invoke, InvokeVar invokeVar) {
-        id(invokeVar.name()).dot().id(mapLane(invokeVar.laneIdx())).sp().equals().sp();
-        String resolvedName = invokeVar.resolveName();
-        if (resolvedName != null) {
-            // We have detected a direct resolved result (resolved name)
-            varName(resolvedName);
-        } else {
-            // otherwise, we traverse to resolve the expression
-            recurseResultOrThrow(invoke.op().operands().get(1));
-        }
-        return self();
+        return id(VSELECT_STORE).paren( _-> {
+            if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
+                recurse(vLoadOp);
+            } else {
+                id(invokeVar.name());
+            }
+            comma().id(HATPhaseUtils.mapLane(invokeVar.laneIdx())).comma();
+            String resolvedName = invokeVar.resolveName();
+            either (resolvedName != null,
+                    _-> varName(resolvedName),
+                    _-> recurseResultOrThrow(invoke.op().operands().get(1))
+            );
+        });
+//
+//        id(invokeVar.name()).dot().id(mapLane(invokeVar.laneIdx())).sp().equals().sp();
+//        String resolvedName = invokeVar.resolveName();
+//        if (resolvedName != null) {
+//            // We have detected a direct resolved result (resolved name)
+//            varName(resolvedName);
+//        } else {
+//            // otherwise, we traverse to resolve the expression
+//            recurseResultOrThrow(invoke.op().operands().get(1));
+//        }
+//        return self();
     }
 
     @Override

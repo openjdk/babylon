@@ -118,6 +118,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .defineMacroVectorOf(2)
                 .defineMacroVectorOf(3)
                 .defineMacroVectorOf(4)
+                .defineMacroVectorSelectStore("VSELECT_STORE")
                 .when(kernelCallGraph.accessedKernelContextFields.contains("gix"), _->hashDefine("HAT_GIX", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstZero()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giy"), _->hashDefine("HAT_GIY", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstOne()))))
                 .when(kernelCallGraph.accessedKernelContextFields.contains("giz"), _->hashDefine("HAT_GIZ", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstTwo()))))
@@ -212,17 +213,19 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, HATPhaseUtils.InvokeVar invokeVar) {
-        if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
-            recurse(vLoadOp);
-        } else {
-            id(invokeVar.name());
-        }
-        dot().id(HATPhaseUtils.mapLane(invokeVar.laneIdx())).assign();
-        String resolvedName = invokeVar.resolveName();
-        return either (resolvedName != null,
-                _-> varName(resolvedName),
-                _-> recurseResultOrThrow(invoke.op().operands().get(1))
-        );
+        return id(VSELECT_STORE).paren( _-> {
+            if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
+                recurse(vLoadOp);
+            } else {
+                id(invokeVar.name());
+            }
+            comma().id(HATPhaseUtils.mapLane(invokeVar.laneIdx())).comma();
+            String resolvedName = invokeVar.resolveName();
+            either (resolvedName != null,
+                    _-> varName(resolvedName),
+                    _-> recurseResultOrThrow(invoke.op().operands().get(1))
+            );
+        });
     }
 
     @Override

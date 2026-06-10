@@ -109,6 +109,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String VECTOR_VAL = "vVal";
     public static final String ELEMENT_TYPE = "elementType";
     public static final String VECTOR_OF = "VECTOR_OF";
+    public static final String VSELECT_STORE = "VSELECT_STORE";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
