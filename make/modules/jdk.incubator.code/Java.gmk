@@ -23,6 +23,5 @@
 # questions.
 #
 
-DISABLED_WARNINGS_java += dangling-doc-comments
-
-# DOCLINT += -Xdoclint:all/protected
+DOCLINT += -Xdoclint:all/protected \
+    '-Xdoclint/package:-jdk.incubator.code.internal,-jdk.incubator.code.bytecode.impl,-jdk.incubator.code.dialect.java.impl,-jdk.incubator.code.extern.impl'

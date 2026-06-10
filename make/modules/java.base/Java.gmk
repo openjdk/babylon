@@ -30,12 +30,10 @@
 # disabled warnings list.
 #
 # DISABLED_WARNINGS_java +=
-DISABLED_WARNINGS_java += preview
 
-# DOCLINT += -Xdoclint:all/protected \
-#     '-Xdoclint/package:java.*,javax.*'
-JAVAC_FLAGS += -XDstringConcat=inline \
-    --enable-preview
+DOCLINT += -Xdoclint:all/protected \
+    '-Xdoclint/package:java.*,javax.*'
+JAVAC_FLAGS += -XDstringConcat=inline
 COPY += .icu .dat .spp .nrm .txt content-types.properties \
     hijrah-config-Hijrah-umalqura_islamic-umalqura.properties
 CLEAN += intrinsic.properties
