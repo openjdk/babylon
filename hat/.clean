@@ -1,1 +1,1 @@
--cp hat/job.jar --enable-preview --source 26 hat.java clean
+-cp hat/job.jar --enable-preview --source 28 hat.java clean

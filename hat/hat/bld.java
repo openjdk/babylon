@@ -31,9 +31,9 @@ void main(String[] args) {
     var layout = """
             └──./
                 ├──hat                                  //  All build scripts in each case 'foo' has java options for (and points to) 'foo.java'
-                │    ├──bld                             //  --enable-preview --source 26 hat/bld.java
+                │    ├──bld                             //  --enable-preview --source 28 hat/bld.java
                 │    ├──bld.java
-                │    ├──run                             //  --enable-preview --source 26 hat/run.java
+                │    ├──run                             //  --enable-preview --source 28 hat/run.java
                 │    ├──run.java
                 │    └──Script                          //  Contains all the tools for building
                 ├──build/                               // All jars, native libs and executables
