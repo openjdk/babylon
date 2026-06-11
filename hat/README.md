@@ -21,7 +21,7 @@ The toolkit offers:
 ## Prerequisites
 
 - HAT currently requires Babylon JDK, which contains the code reflection APIs.
-- A base JDK >= 25. We currently use OpenJDK 26 for development.
+- A base JDK >= 26. We currently use OpenJDK 26 for development.
 - A GPU SDK (one or more of the SDKs below) to be able to run on GPUs:
   - An OpenCL implementation (e.g., Intel, Apple Silicon, CUDA SDK)
     - OpenCL >= 1.2

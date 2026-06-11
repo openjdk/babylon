@@ -157,22 +157,22 @@ We rely on java's ability to launch java source directly (without needing to jav
 The `hat/bld.java` script (really java source) can be run like this
 
 ```bash
-java --add-modules jdk.incubator.code --enable-preview --source 26 hat/bld.java
+java --add-modules jdk.incubator.code --enable-preview --source 28 hat/bld.java
 ```
 
 In our case the  magic is under the `hat`subdir
 
-We also have a handy `hat/XXXX` which allows us to avoid specifying common args `--enable-preview --source 26` eash time we launch a script
+We also have a handy `hat/XXXX` which allows us to avoid specifying common args `--enable-preview --source 28` eash time we launch a script
 
 ```
 hat
 ├── hat
 |   ├── Script.java
-|   ├── sanity      (the args for sanity.java)  "--enable-preview --source 26 sanity"
+|   ├── sanity      (the args for sanity.java)  "--enable-preview --source 28 sanity"
 |   |-- sanity.java (the script)
-|   ├── run         (the args for sanity.java)  "--enable-preview --source 26 hatrun"
+|   ├── run         (the args for sanity.java)  "--enable-preview --source 28 hatrun"
 |   |-- run.java    (the script)
-|   ├── bld         (the args for bld.java)      "--enable-preview --source 26 bld"
+|   ├── bld         (the args for bld.java)      "--enable-preview --source 28 bld"
 |   ├── bld.java    (the script)
 
 ```
@@ -184,7 +184,7 @@ java @hat/bld
 
 Is just a shortcut for
 ```bash
-java --add-modules jdk.incubator.code --enable-preview --source 26 hat/bld.java
+java --add-modules jdk.incubator.code --enable-preview --source 28 hat/bld.java
 ```
 
 ----

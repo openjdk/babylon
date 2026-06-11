@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -200,8 +200,8 @@ public class Raster {
      * @throws IllegalArgumentException if {@code bands} is less than 1
      * @throws IllegalArgumentException if {@code w} and {@code h} are not
      *         both > 0
-     * @throws IllegalArgumentException if the product of {@code w}
-     *         and {@code h} is greater than {@code Integer.MAX_VALUE}
+     * @throws IllegalArgumentException if the product of {@code w},
+     *         {@code h} and {@code bands} is greater than {@code Integer.MAX_VALUE}
      * @throws RasterFormatException if computing either
      *         {@code location.x + w} or
      *         {@code location.y + h} results in integer overflow
@@ -217,6 +217,14 @@ public class Raster {
         if (lsz > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Dimensions (width="+w+
                                                " height="+h+") are too large");
+        }
+        if (bands < 1) {
+            throw new IllegalArgumentException("Number of bands ("+
+                                               bands+") must be greater than 0");
+        }
+        long slsz = (long)w * bands;
+        if (slsz > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("width * bands is too large");
         }
         int[] bandOffsets = new int[bands];
         for (int i = 0; i < bands; i++) {
@@ -451,6 +459,9 @@ public class Raster {
         if (lsz > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Dimensions (width="+w+
                                                " height="+h+") are too large");
+        }
+        if (scanlineStride < 0) {
+            throw new IllegalArgumentException("Scanline stride must be >= 0");
         }
         if (bankIndices == null) {
             throw new

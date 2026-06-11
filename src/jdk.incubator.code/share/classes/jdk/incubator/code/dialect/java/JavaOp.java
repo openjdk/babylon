@@ -177,181 +177,182 @@ public sealed abstract class JavaOp extends Op {
             return new ConstantExpressionEvaluator(l).evaluate(op);
         }
 
-        class ConstantExpressionEvaluator {
-            private final MethodHandles.Lookup l;
-            private final Map<Value, Object> m = new HashMap<>();
+    }
 
-            ConstantExpressionEvaluator(MethodHandles.Lookup l) {
-                this.l = l;
+    static final class ConstantExpressionEvaluator {
+        private final MethodHandles.Lookup l;
+        private final Map<Value, Object> m = new HashMap<>();
+
+        ConstantExpressionEvaluator(MethodHandles.Lookup l) {
+            this.l = l;
+        }
+
+        <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
+            try {
+                Object v = this.eval(op);
+                return Optional.ofNullable(v);
+            } catch (NonConstantExpression e) {
+                return Optional.empty();
             }
+        }
 
-            <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
-                try {
-                    Object v = this.eval(op);
-                    return Optional.ofNullable(v);
-                } catch (NonConstantExpression e) {
-                    return Optional.empty();
-                }
+        Optional<Object> evaluate(Value v) {
+            try {
+                Object o = this.eval(v);
+                return Optional.ofNullable(o);
+            } catch (NonConstantExpression e) {
+                return Optional.empty();
             }
+        }
 
-            Optional<Object> evaluate(Value v) {
-                try {
-                    Object o = this.eval(v);
-                    return Optional.ofNullable(o);
-                } catch (NonConstantExpression e) {
-                    return Optional.empty();
-                }
+        private Object eval(Op op) {
+            if (m.containsKey(op.result())) {
+                return m.get(op.result());
             }
-
-            private Object eval(Op op) {
-                if (m.containsKey(op.result())) {
-                    return m.get(op.result());
+            Object r = switch (op) {
+                case ConstantOp cop when isConstant(cop) -> {
+                    Object v = cop.value();
+                    yield v instanceof String s ? s.intern() : v;
                 }
-                Object r = switch (op) {
-                    case ConstantOp cop when isConstant(cop) -> {
-                        Object v = cop.value();
-                        yield v instanceof String s ? s.intern() : v;
+                case VarAccessOp.VarLoadOp varLoadOp when varLoadOp.operands().getFirst() instanceof Result &&
+                        isConstant(varLoadOp.varOp()) -> eval(varLoadOp.varOp().initOperand());
+                case ConvOp _ -> {
+                    // we expect cast to primitive type
+                    var v = eval(op.operands().getFirst());
+                    yield ArithmeticAndConvOpImpls.evaluate(op, List.of(v));
+                }
+                case CastOp castOp -> {
+                    // we expect cast to String
+                    Value operand = castOp.operands().getFirst();
+                    if (!castOp.resultType().equals(J_L_STRING) || !operand.type().equals(J_L_STRING)) {
+                        throw new NonConstantExpression();
                     }
-                    case VarAccessOp.VarLoadOp varLoadOp when varLoadOp.operands().getFirst() instanceof Result &&
-                            isConstant(varLoadOp.varOp()) -> eval(varLoadOp.varOp().initOperand());
-                    case ConvOp _ -> {
-                        // we expect cast to primitive type
-                        var v = eval(op.operands().getFirst());
-                        yield ArithmeticAndConvOpImpls.evaluate(op, List.of(v));
+                    Object v = eval(operand);
+                    if (!(v instanceof String s)) {
+                        throw new NonConstantExpression();
                     }
-                    case CastOp castOp -> {
-                        // we expect cast to String
-                        Value operand = castOp.operands().getFirst();
-                        if (!castOp.resultType().equals(J_L_STRING) || !operand.type().equals(J_L_STRING)) {
-                            throw new NonConstantExpression();
-                        }
-                        Object v = eval(operand);
-                        if (!(v instanceof String s)) {
-                            throw new NonConstantExpression();
-                        }
-                        yield s;
+                    yield s;
+                }
+                case ConcatOp concatOp -> {
+                    Object first = eval(concatOp.operands().getFirst());
+                    Object second = eval(concatOp.operands().getLast());
+                    yield (first.toString() + second).intern();
+                }
+                case FieldAccessOp.FieldLoadOp fieldLoadOp -> {
+                    Field field;
+                    VarHandle vh;
+                    try {
+                        field = fieldLoadOp.fieldReference().resolveToField(l);
+                        vh = fieldLoadOp.fieldReference().resolveToHandle(l);
+                    } catch (ReflectiveOperationException | IllegalArgumentException _) {
+                        // we cann't reflectivelly get the field
+                        throw new NonConstantExpression();
                     }
-                    case ConcatOp concatOp -> {
-                        Object first = eval(concatOp.operands().getFirst());
-                        Object second = eval(concatOp.operands().getLast());
-                        yield (first.toString() + second).intern();
+                    // Requirement: the field must be a constant variable.
+                    // Current checks:
+                    // 1) The field is declared final.
+                    // 2) The field type is a primitive or String.
+                    // Missing check:
+                    // 3) Verify the field is initialized and the initializer is a constant expression.
+                    if ((field.getModifiers() & Modifier.FINAL) == 0 ||
+                            !isConstantType(fieldLoadOp.fieldReference().type())) {
+                        throw new NonConstantExpression();
                     }
-                    case FieldAccessOp.FieldLoadOp fieldLoadOp -> {
-                        Field field;
-                        VarHandle vh;
+                    if ((field.getModifiers() & Modifier.STATIC) != 0) {
+                        Object v;
                         try {
-                            field = fieldLoadOp.fieldReference().resolveToField(l);
-                            vh = fieldLoadOp.fieldReference().resolveToHandle(l);
-                        } catch (ReflectiveOperationException | IllegalArgumentException _) {
-                            // we cann't reflectivelly get the field
+                            v = vh.get();
+                        } catch (Throwable t) {
                             throw new NonConstantExpression();
                         }
-                        // Requirement: the field must be a constant variable.
-                        // Current checks:
-                        // 1) The field is declared final.
-                        // 2) The field type is a primitive or String.
-                        // Missing check:
-                        // 3) Verify the field is initialized and the initializer is a constant expression.
-                        if ((field.getModifiers() & Modifier.FINAL) == 0 ||
-                                !isConstantType(fieldLoadOp.fieldReference().type())) {
+                        if (!isConstantValue(v)) {
                             throw new NonConstantExpression();
                         }
-                        if ((field.getModifiers() & Modifier.STATIC) != 0) {
-                            Object v;
-                            try {
-                                v = vh.get();
-                            } catch (Throwable t) {
-                                throw new NonConstantExpression();
-                            }
-                            if (!isConstantValue(v)) {
-                                throw new NonConstantExpression();
-                            }
-                            yield v instanceof String s ? s.intern() : v;
-                        } else {
-                            // we can't get the value of an instance field from the model
-                            // we need the value of the receiver
-                            throw new NonConstantExpression();
-                        }
+                        yield v instanceof String s ? s.intern() : v;
+                    } else {
+                        // we can't get the value of an instance field from the model
+                        // we need the value of the receiver
+                        throw new NonConstantExpression();
                     }
-                    case ArithmeticOperation _ -> {
-                        List<Object> values = op.operands().stream().map(this::eval).toList();
-                        yield ArithmeticAndConvOpImpls.evaluate(op, values);
-                    }
-                    case ConditionalExpressionOp _ -> {
-                        boolean p = evalBoolean(op.bodies().get(0));
-                        Object t = eval(op.bodies().get(1));
-                        Object f = eval(op.bodies().get(2));
-                        yield p ? t : f;
-                    }
-                    case ConditionalAndOp _ -> {
-                        boolean left = evalBoolean(op.bodies().get(0));
-                        boolean right = evalBoolean(op.bodies().get(1));
-                        yield left && right;
-                    }
-                    case ConditionalOrOp _ -> {
-                        boolean left = evalBoolean(op.bodies().get(0));
-                        boolean right = evalBoolean(op.bodies().get(1));
-                        yield left || right;
-                    }
-                    default -> throw new NonConstantExpression();
-                };
-                m.put(op.result(), r);
-                return r;
-            }
-
-            private Object eval(Value v) {
-                if (v.declaringElement() instanceof JavaExpression e) {
-                    return eval((Op & JavaExpression) e);
                 }
+                case ArithmeticOperation _ -> {
+                    List<Object> values = op.operands().stream().map(this::eval).toList();
+                    yield ArithmeticAndConvOpImpls.evaluate(op, values);
+                }
+                case ConditionalExpressionOp _ -> {
+                    boolean p = evalBoolean(op.bodies().get(0));
+                    Object t = eval(op.bodies().get(1));
+                    Object f = eval(op.bodies().get(2));
+                    yield p ? t : f;
+                }
+                case ConditionalAndOp _ -> {
+                    boolean left = evalBoolean(op.bodies().get(0));
+                    boolean right = evalBoolean(op.bodies().get(1));
+                    yield left && right;
+                }
+                case ConditionalOrOp _ -> {
+                    boolean left = evalBoolean(op.bodies().get(0));
+                    boolean right = evalBoolean(op.bodies().get(1));
+                    yield left || right;
+                }
+                default -> throw new NonConstantExpression();
+            };
+            m.put(op.result(), r);
+            return r;
+        }
+
+        private Object eval(Value v) {
+            if (v.declaringElement() instanceof JavaExpression e) {
+                return eval((Op & JavaExpression) e);
+            }
+            throw new NonConstantExpression();
+        }
+
+        private Object eval(Body body) throws NonConstantExpression {
+            if (body.blocks().size() != 1 ||
+                    !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
+                    yop.yieldValue() == null ||
+                    !isConstantType(yop.yieldValue().type())) {
                 throw new NonConstantExpression();
             }
+            return eval(yop.yieldValue());
+        }
 
-            private Object eval(Body body) throws NonConstantExpression {
-                if (body.blocks().size() != 1 ||
-                        !(body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
-                        yop.yieldValue() == null ||
-                        !isConstantType(yop.yieldValue().type())) {
-                    throw new NonConstantExpression();
-                }
-                return eval(yop.yieldValue());
+        private boolean evalBoolean(Body body) throws NonConstantExpression {
+            Object eval = eval(body);
+            if (!(eval instanceof Boolean b)) {
+                throw new NonConstantExpression();
             }
+            return b;
+        }
 
-            private boolean evalBoolean(Body body) throws NonConstantExpression {
-                Object eval = eval(body);
-                if (!(eval instanceof Boolean b)) {
-                    throw new NonConstantExpression();
-                }
-                return b;
-            }
+        private static boolean isConstant(CoreOp.ConstantOp op) {
+            return isConstantType(op.resultType()) && isConstantValue(op.value());
+        }
 
-            private static boolean isConstant(CoreOp.ConstantOp op) {
-                return isConstantType(op.resultType()) && isConstantValue(op.value());
-            }
+        private static boolean isConstant(VarOp op) {
+            // Requirement: the local variable must be a constant variable.
+            // Current checks:
+            // 1) The variable is initialized, and the initializer is a constant expression.
+            // 2) The variable type is a primitive or String.
+            // Missing check:
+            // 3) Ensure the variable is declared final
+            return isConstantType(op.varValueType()) &&
+                    !op.isUninitialized() &&
+                    // @@@ Add to VarOp
+                    op.result().uses().stream().noneMatch(u -> u.op() instanceof CoreOp.VarAccessOp.VarStoreOp);
+        }
 
-            private static boolean isConstant(VarOp op) {
-                // Requirement: the local variable must be a constant variable.
-                // Current checks:
-                // 1) The variable is initialized, and the initializer is a constant expression.
-                // 2) The variable type is a primitive or String.
-                // Missing check:
-                // 3) Ensure the variable is declared final
-                return isConstantType(op.varValueType()) &&
-                        !op.isUninitialized() &&
-                        // @@@ Add to VarOp
-                        op.result().uses().stream().noneMatch(u -> u.op() instanceof CoreOp.VarAccessOp.VarStoreOp);
-            }
+        private static boolean isConstantValue(Object o) {
+            return switch (o) {
+                case String _ -> true;
+                case Boolean _, Byte _, Short _, Character _, Integer _, Long _, Float _, Double _ -> true;
+                case null, default -> false;
+            };
+        }
 
-            private static boolean isConstantValue(Object o) {
-                return switch (o) {
-                    case String _ -> true;
-                    case Boolean _, Byte _, Short _, Character _, Integer _, Long _, Float _, Double _ -> true;
-                    case null, default -> false;
-                };
-            }
-
-            private static boolean isConstantType(CodeType e) {
-                return (e instanceof PrimitiveType && !VOID.equals(e)) || J_L_STRING.equals(e);
-            }
+        private static boolean isConstantType(CodeType e) {
+            return (e instanceof PrimitiveType && !VOID.equals(e)) || J_L_STRING.equals(e);
         }
     }
 
