@@ -201,13 +201,47 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
     }
 
     OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
-        var effect = executeBody(tryOp.body(), List.of(), e);
+        List<Object> rArgs = new ArrayList<>();
+        for (Body rb : tryOp.resourceBodies()) {
+            var re = executeBody(rb, rArgs, e);
+            // @@@ rb complete abruptly ?
+            rArgs.addAll(re.operands());
+        }
+
+        var effect = executeBody(tryOp.body(), rArgs, e);
+
+        Throwable rcT = null;
+        for (Object r : rArgs.reversed()) {
+            if (r instanceof VarBox vb) {
+                r = vb.value();
+            }
+            try {
+                ((AutoCloseable) r).close();
+            } catch (Exception ex) {
+                if (rcT == null) rcT = ex;
+                else rcT.addSuppressed(ex);
+            }
+        }
+
+        Throwable primaryT = null;
         if (effect.terminatingOp() instanceof JavaOp.ThrowOp) {
-            Throwable t = (Throwable) effect.operands().getFirst();
+            primaryT = ((Throwable) effect.operands().getFirst());
+            if (rcT != null) {
+                primaryT.addSuppressed(rcT);
+                for (Throwable t : rcT.getSuppressed()) {
+                    primaryT.addSuppressed(t);
+                }
+            }
+        } else if (rcT != null) {
+            primaryT = rcT;
+        }
+
+        Body catchBody = null;
+        if (primaryT != null) {
             JavaEnv je = (JavaEnv) e;
-            Body cb = findCatchBody(je.l, tryOp, t);
-            if (cb != null) {
-                effect = executeBody(cb, List.of(t), e);
+            catchBody = findCatchBody(je.l, tryOp, primaryT);
+            if (catchBody != null) {
+                effect = executeBody(catchBody, List.of(primaryT), e);
             }
         }
 
@@ -220,6 +254,9 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
 
         if (!(effect.terminatingOp() instanceof CoreOp.YieldOp)) {
             return effect;
+        }
+        if (rcT != null && catchBody == null) {
+            return new TerminatingOpEffect(fakeThrowOp, List.of(rcT), e);
         }
         return new OpResultEffect(null, null);
     }

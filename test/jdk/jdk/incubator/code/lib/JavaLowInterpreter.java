@@ -584,7 +584,7 @@ public class JavaLowInterpreter extends Interpreter {
         b.add(JavaOp.throw_(b.parameters().get(0)));
     });
     // to treat implicit and explicit exceptions the same
-    private static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
+    protected static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
 
     private static final MethodHandle interpretLambdaOpMH;
     static {
@@ -600,7 +600,7 @@ public class JavaLowInterpreter extends Interpreter {
         return interpret_(op, l, captures, args);
     }
 
-    private static final class VarBox
+    protected static final class VarBox
             implements CoreOp.Var<Object> {
         Object value;
 

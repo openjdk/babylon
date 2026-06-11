@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -103,6 +104,30 @@ public class TestTryWithResources {
             } catch (Throwable t) {
                 assertEquals(t.getSuppressed().length,
                         assertThrowsExactly(t.getClass(), () -> mh.invoke((Consumer<String>)actual::add, throwInBody, throwOnClose1, throwOnClose2, throwOnClose3)).getSuppressed().length);
+            }
+            assertIterableEquals(expected, actual);
+        }
+    }
+
+    @Test
+    public void testTryWithResources2() throws Throwable {
+        Method m = TestTryWithResources.class.getDeclaredMethod("tryWithResources", Consumer.class, boolean.class, boolean.class, boolean.class, boolean.class);
+        CoreOp.FuncOp fop = Op.ofMethod(m).get();
+        for (int i = 0; i < 16; i++) {
+            boolean throwInBody = (i & 1) != 0;
+            boolean throwOnClose1 = (i & 2) != 0;
+            boolean throwOnClose2 = (i & 4) != 0;
+            boolean throwOnClose3 = (i & 8) != 0;
+            var expected = new ArrayList<String>();
+            var actual = new ArrayList<String>();
+            try {
+                tryWithResources(expected::add, throwInBody, throwOnClose1, throwOnClose2, throwOnClose3);
+                Interpreter.invoke(MethodHandles.lookup(), fop,
+                        (Consumer<String>)actual::add, throwInBody, throwOnClose1, throwOnClose2, throwOnClose3);
+            } catch (Throwable t) {
+                Throwable t2 = assertThrowsExactly(t.getClass(), () -> Interpreter.invoke(MethodHandles.lookup(), fop,
+                        (Consumer<String>) actual::add, throwInBody, throwOnClose1, throwOnClose2, throwOnClose3));
+                assertEquals(t.getSuppressed().length, t2.getSuppressed().length);
             }
             assertIterableEquals(expected, actual);
         }
