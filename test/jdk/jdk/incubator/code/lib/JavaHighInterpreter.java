@@ -21,17 +21,48 @@
  * questions.
  */
 
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.util.Arrays;
-import java.util.List;
+import java.lang.invoke.MethodHandles;
+import java.util.*;
 
 public class JavaHighInterpreter extends JavaLowInterpreter {
     public JavaHighInterpreter() {
+    }
+
+    @Override
+    protected Env newEnv(MethodHandles.Lookup l) {
+        return new JavaHighEnv(new HashMap<>(), l, new ArrayDeque<>());
+    }
+
+    static class JavaHighEnv extends JavaLowInterpreter.JavaEnv {
+        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
+            super(bindings, l, catchBlocks);
+        }
+
+        @Override
+        protected Env newEnv(Map<Value, Object> m) {
+            return new JavaHighEnv(m, l, catchBlocks);
+        }
+
+        @Override
+        protected JavaEnv newEnv(Deque<List<Block>> catchBlocks) {
+            return new JavaHighEnv(bindings, l, catchBlocks);
+        }
+
+        @Override
+        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
+            if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
+                return super.onAbruptCompletion(eff);
+            }
+            return eff;
+        }
     }
 
     @Override
@@ -39,14 +70,46 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         return switch (op) {
             case JavaOp.ForOp o -> executeForOp(o, e);
             case JavaOp.IfOp o -> executeIfOp(o, e);
+            case JavaOp.TryOp o -> executeTryOp(o, e);
+            case JavaOp.BreakOp o -> executeBreakOp(o, e);
+            case JavaOp.LabeledOp o -> executeLabeledOp(o, e);
+            case JavaOp.ContinueOp o -> executeContinueOp(o, e);
+            case JavaOp.BlockOp o -> executeBlockOp(o, e);
             default -> super.executeOp(op, e);
         };
+    }
+
+    // TODO labeled ops, sw
+    OpEffect executeContinueOp(JavaOp.ContinueOp continueOp, Env e) {
+        return new TerminatingOpEffect(continueOp, e.valuesOf(continueOp.operands()), e);
+    }
+
+    OpEffect executeBreakOp(JavaOp.BreakOp breakOp, Env e) {
+        return new TerminatingOpEffect(breakOp, e.valuesOf(breakOp.operands()), e);
+    }
+
+    OpEffect executeLabeledOp(JavaOp.LabeledOp labeledOp, Env e) {
+        TerminatingOpEffect effect = executeBody(labeledOp.body(), List.of(), e);
+        if (effect.terminatingOp() instanceof JavaOp.BreakOp bop && bop.labelOperand().equals(labeledOp.labelIdentifier())) {
+            return new OpResultEffect(null, e);
+        } else if (effect.terminatingOp().equals(labeledOp.body().entryBlock().terminatingOp())) {
+            return new OpResultEffect(null, e);
+        }
+        return effect;
+    }
+
+    OpEffect executeBlockOp(JavaOp.BlockOp blockOp, Env e) {
+        TerminatingOpEffect effect = executeBody(blockOp.body(), List.of(), e);
+        if (effect.terminatingOp().equals(blockOp.body().entryBlock().terminatingOp())) {
+            return new OpResultEffect(null, e);
+        }
+        return effect;
     }
 
     @Override
     public <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e) {
         return switch (op) {
-            case CoreOp.YieldOp _, JavaOp.StatementTargetOp _, JavaOp.ThrowOp _ -> {
+            case JavaOp.StatementTargetOp _ -> {
                 List<Object> operands = e.valuesOf(op.operands());
                 yield new TerminatingOpEffect(op, operands, e);
             }
@@ -135,5 +198,46 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
 
         // Void/unit result
         return new OpResultEffect(op.result(), null);
+    }
+
+    OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
+        var effect = executeBody(tryOp.body(), List.of(), e);
+        if (effect.terminatingOp() instanceof JavaOp.ThrowOp) {
+            Throwable t = (Throwable) effect.operands().getFirst();
+            JavaEnv je = (JavaEnv) e;
+            Body cb = findCatchBody(je.l, tryOp, t);
+            if (cb != null) {
+                effect = executeBody(cb, List.of(t), e);
+            }
+        }
+
+        if (tryOp.finallyBody() != null) {
+            var finallyEffect = executeBody(tryOp.finallyBody(), List.of(), e);
+            if (!(finallyEffect.terminatingOp() instanceof CoreOp.YieldOp)) {
+                return finallyEffect;
+            }
+        }
+
+        if (!(effect.terminatingOp() instanceof CoreOp.YieldOp)) {
+            return effect;
+        }
+        return new OpResultEffect(null, null);
+    }
+
+    private static Body findCatchBody(MethodHandles.Lookup l, JavaOp.TryOp tryOp, Throwable t) {
+        Body cb = null;
+        for (Body catchBody : tryOp.catchBodies()) {
+            Class<?> c;
+            try {
+                c = resolveToClass(l, catchBody.entryBlock().parameters().getFirst().type());
+            } catch (ReflectiveOperationException ex) {
+                throw new InterpreterException(ex);
+            }
+            if (c.isInstance(t)) {
+                cb = catchBody;
+                break;
+            }
+        }
+        return cb;
     }
 }

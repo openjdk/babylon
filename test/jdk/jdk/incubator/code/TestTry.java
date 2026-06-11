@@ -76,32 +76,34 @@ public class TestTry {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTry::catching);
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTry::catching);
 
-        test.accept(i -> {
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalStateException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalArgumentException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new NullPointerException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalStateException();
-            if (i == 1) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalArgumentException();
-            if (i == 2) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 3) throw new IllegalStateException();
-        });
+            test.accept(i -> {
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalStateException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalArgumentException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new NullPointerException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalStateException();
+                if (i == 1) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalArgumentException();
+                if (i == 2) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 3) throw new IllegalStateException();
+            });
+        }
     }
 
 
@@ -133,29 +135,31 @@ public class TestTry {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTry::catchThrowable);
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTry::catchThrowable);
 
-        test.accept(i -> {
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalStateException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalStateException();
-            if (i == 1) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new RuntimeException();
-            if (i == 2) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 3) throw new IllegalStateException();
-        });
+            test.accept(i -> {
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalStateException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalStateException();
+                if (i == 1) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new RuntimeException();
+                if (i == 2) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 3) throw new IllegalStateException();
+            });
+        }
     }
 
 
@@ -193,45 +197,47 @@ public class TestTry {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTry::catchNested);
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTry::catchNested);
 
-        test.accept(i -> {
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalStateException();
-        });
-        test.accept(i -> {
-            if (i == 0) throw new IllegalArgumentException();
-        });
-        test.accept(i -> {
-            if (i == 1) throw new IllegalStateException();
-        });
-        test.accept(i -> {
-            if (i == 1) throw new IllegalArgumentException();
-        });
-        test.accept(i -> {
-            if (i == 1) throw new IllegalStateException();
-            if (i == 2) throw new IllegalArgumentException();
-        });
-        test.accept(i -> {
-            if (i == 1) throw new IllegalStateException();
-            if (i == 2) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 3) throw new IllegalArgumentException();
-        });
-        test.accept(i -> {
-            if (i == 3) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 3) throw new IllegalArgumentException();
-            if (i == 4) throw new RuntimeException();
-        });
-        test.accept(i -> {
-            if (i == 5) throw new RuntimeException();
-        });
+            test.accept(i -> {
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalStateException();
+            });
+            test.accept(i -> {
+                if (i == 0) throw new IllegalArgumentException();
+            });
+            test.accept(i -> {
+                if (i == 1) throw new IllegalStateException();
+            });
+            test.accept(i -> {
+                if (i == 1) throw new IllegalArgumentException();
+            });
+            test.accept(i -> {
+                if (i == 1) throw new IllegalStateException();
+                if (i == 2) throw new IllegalArgumentException();
+            });
+            test.accept(i -> {
+                if (i == 1) throw new IllegalStateException();
+                if (i == 2) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 3) throw new IllegalArgumentException();
+            });
+            test.accept(i -> {
+                if (i == 3) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 3) throw new IllegalArgumentException();
+                if (i == 4) throw new RuntimeException();
+            });
+            test.accept(i -> {
+                if (i == 5) throw new RuntimeException();
+            });
+        }
     }
 
 
