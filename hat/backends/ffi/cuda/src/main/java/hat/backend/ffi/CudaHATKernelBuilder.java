@@ -316,7 +316,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder defineS16macro(String name, Consumer<CudaHATKernelBuilder> type, Consumer<CudaHATKernelBuilder> buildFunction) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
-                paren(_ -> type.accept(semicolon()))
+                paren(_ -> type.accept(self()))
                         .brace(_ -> {
                             buildFunction.accept(self());
                             paren(_-> id("val"));
