@@ -125,6 +125,26 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         this.varTable = kernelCallGraph.getVarTable();
     }
 
+    protected boolean useVectors() {
+        return kernelCallGraph.useVectors();
+    }
+
+    protected boolean useS16Types() {
+        return !kernelCallGraph.accessedFP16Classes.isEmpty();
+    }
+
+    protected boolean useThreadConstruct(String construct) {
+        return kernelCallGraph.accessedKernelContextFields.contains(construct);
+    }
+
+    protected boolean useAtomic() {
+        return kernelCallGraph.isUsesAtomics();
+    }
+
+    protected boolean useBarrier() {
+        return kernelCallGraph.isUsesBarrier();
+    }
+
     public final T HAT_KERNEL() {
         return keyword("HAT_KERNEL");
     }
