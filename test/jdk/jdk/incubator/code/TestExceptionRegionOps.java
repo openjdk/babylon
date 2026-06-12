@@ -453,55 +453,48 @@ public class TestExceptionRegionOps {
         };
     }
 
-    // we get a similar model for synchronized block, instead of monitor exit we have invocation of method m
+    // we get a similar model for synchronized block, instead of monitor exit we have invocation of consumer
     String modelText = """
-            func @"test1" ()java.type:"void" -> {
-                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3;
+            func @"test1" (%0 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %6 : java.type:"int" = constant @0;
+                %5 : Var<java.type:"int"> = var %6 @loc="41:9" @"i";
+                %1 : java.type:"void" = exception.region.enter ^block_1 ^block_3;
 
               ^block_1:
-                invoke @java.ref:"TestExceptionRegionOps::m():void";
-                exception.region.exit %0 ^block_2;
+                %4 : java.type:"int" = constant @0;
+                invoke %0 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                exception.region.exit %1 ^block_2;
 
               ^block_2:
                 return;
 
-              ^block_3(%1 : java.type:"java.lang.Throwable"):
-                %2 : java.type:"void" = exception.region.enter ^block_4 ^block_3;
+              ^block_3(%2 : java.type:"java.lang.Throwable"):
+                %3 : java.type:"void" = exception.region.enter ^block_4 ^block_3;
 
               ^block_4:
-                invoke @java.ref:"TestExceptionRegionOps::m():void";
-                exception.region.exit %2 ^block_5;
+                %7 : java.type:"int" = var.load %5;
+                %8 : java.type:"int" = constant @1;
+                %9 : java.type:"int" = add %7 %8;
+                var.store %5 %9 @loc="42:9";
+                invoke %0 %9 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                exception.region.exit %3 ^block_5;
 
               ^block_5:
-                throw %1;
+                throw %2;
             };
             """;
     CoreOp.FuncOp model = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, modelText).get(0);
-    static void m() {
-    }
     @Test
     void testBlockThatSetItselfAsHandler() {
-        Interpreter.invoke(MethodHandles.lookup(), model);
-    }
+        Interpreter.invoke(MethodHandles.lookup(), model, (IntConsumer) i -> {});
 
-    static int i2 = 0;
-    @Reflect
-    static void m2() {
-        // throws on the first and second invocation
-        if (i2++ < 2) {
-            throw new RuntimeException();
-        }
-    }
-    @Test
-    void testBlockThatSetItselfAsHandler2() {
-        CoreOp.FuncOp model2 = model.transform((b, o) -> {
-            if (o instanceof JavaOp.InvokeOp io && io.invokeReference().name().equals("m")) {
-                b.add(JavaOp.invoke(MethodRef.method(io.invokeReference().refType(), "m2", io.invokeReference().signature())));
-            } else {
-                b.add(o);
-            }
-            return b;
-        });
-        Assertions.assertThrows(RuntimeException.class, () -> Interpreter.invoke(MethodHandles.lookup(), model2));
+        Assertions.assertThrowsExactly(IllegalArgumentException.class,
+                () -> Interpreter.invoke(MethodHandles.lookup(), model, (IntConsumer) i -> {
+                    if (i == 0) throw new RuntimeException();
+                    if (i == 1) throw new IllegalStateException();
+                    if (i == 2) throw new IllegalArgumentException();
+                }));
+
+        System.out.println(model.toText());
     }
 }
