@@ -45,6 +45,7 @@ import jdk.incubator.code.Value;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -312,6 +313,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         });
     }
 
+    private CudaHATKernelBuilder defineS16macro(String name, Consumer<CudaHATKernelBuilder> type, Consumer<CudaHATKernelBuilder> buildFunction) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> type.accept(semicolon()))
+                        .brace(_ -> {
+                            buildFunction.accept(self());
+                            paren(_-> id("val"));
+                        }));
+    }
+
     /**
      * <code>
      *    #define F16_OF(val) (F16_t){__float2half(val)}
@@ -321,10 +332,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroF16Of(String name) {
-        List<String> params = List.of("val");
-        return macroNoParenthesis(name, params, _ ->
-                paren(_ -> f16Type())
-                        .brace(_ -> float2half().paren(_-> id("val"))));
+//        List<String> params = List.of("val");
+//        return macroNoParenthesis(name, params, _ ->
+//                paren(_ -> f16Type())
+//                        .brace(_ -> float2half().paren(_-> id("val"))));
+        return defineS16macro(name, _ -> f16Type(), _ -> float2half());
     }
 
     /**
@@ -336,10 +348,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroBF16Of(String name) {
+//        List<String> params = List.of("val");
+//        return macroNoParenthesis(name, params, _ ->
+//                paren(_ -> bf16Type())
+//                        .brace(_ -> nvBFloat16().paren(_-> id("val"))));
+        return defineS16macro(name, _ -> bf16Type(), _ -> nvBFloat16());
+    }
+
+    private CudaHATKernelBuilder defineMacroS16Conversion(String name, Consumer<CudaHATKernelBuilder> type, boolean isLocal) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
-                paren(_ -> bf16Type())
-                        .brace(_ -> nvBFloat16().paren(_-> id("val"))));
+                paren(_ -> type.accept(self()))
+                        .paren(_-> id("val")
+                                .dotOrArrow(isLocal)
+                                .id(VALUE)));
     }
 
     /**
@@ -354,12 +376,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
-        List<String> params = List.of("val");
-        return macroNoParenthesis(name, params, _ ->
-                paren(_ -> half2float())
-                        .paren(_-> id("val")
-                                .dotOrArrow(isLocal)
-                                .id(VALUE)));
+//        List<String> params = List.of("val");
+//        return macroNoParenthesis(name, params, _ ->
+//                paren(_ -> half2float())
+//                        .paren(_-> id("val")
+//                                .dotOrArrow(isLocal)
+//                                .id(VALUE)));
+        return defineMacroS16Conversion(name, _ -> half2float(), isLocal);
     }
 
     /**
@@ -374,12 +397,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
-        List<String> params = List.of("val");
-        return macroNoParenthesis(name, params, _ ->
-                paren(_ -> bfloat162float()
-                        .paren(_-> id("val")
-                                .dotOrArrow(isLocal)
-                                .id(VALUE))));
+//        List<String> params = List.of("val");
+//        return macroNoParenthesis(name, params, _ ->
+//                paren(_ -> bfloat162float()
+//                        .paren(_-> id("val")
+//                                .dotOrArrow(isLocal)
+//                                .id(VALUE))));
+        return defineMacroS16Conversion(name, _ -> bfloat162float(), isLocal);
+
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {

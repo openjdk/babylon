@@ -44,6 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -173,6 +175,17 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return id("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().id(name));
     }
 
+    private OpenCLHATKernelBuilder defineMacroVectors(String macroName, List<String> params, String construct, Consumer<C99HATKernelBuilder> codeBuilder) {
+        return macroNoParenthesis(macroName, params, _ -> id(CONCAT)
+                .paren(_ -> id(construct).comma().id(N))
+                .paren( _ -> {
+                        codeBuilder.accept(self());
+                        intConstZero().comma().sp().id(CONCAT)
+                        .paren(_ -> id(VECTOR).comma().id(IS_LOCAL))
+                        .paren( _ -> id(ADDDR).comma().id(INDEX));
+                }));
+    }
+
     /**
      * <code>
      *     #define VLOADN(N, addr, index, isLocal) CONCAT(vload, N)(0, CONCAT(VECTOR_, isLocal)(addr, index))
@@ -181,12 +194,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder defineMacroVLoadN() {
-        List<String> params = getMacroVectorParamsLoad();
-        return macroNoParenthesis(VLOADN, params, _ -> id(CONCAT)
-                .paren(_ -> id(VLOAD).comma().id(N))
-                .paren( _ -> intConstZero().comma().id(CONCAT)
-                        .paren(_ -> id(VECTOR).comma().id(IS_LOCAL))
-                        .paren( _ -> id(ADDDR).comma().id(INDEX))));
+        return defineMacroVectors(VLOADN, getMacroVectorParamsLoad(), VLOAD,  _ -> self());
     }
 
     /**
@@ -197,12 +205,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder defineMacroVStoreN() {
-        List<String> params = getMacroVectorParamsStore();
-        return macroNoParenthesis(VSTOREN, params, _ -> id(CONCAT)
-                .paren(_ -> id(VSTORE).comma().sp().id(N))
-                .paren( _ -> id(VECTOR_VAL).comma().sp().intConstZero().comma().sp().id(CONCAT)
-                        .paren(_ -> id(VECTOR).comma().sp().id(IS_LOCAL))
-                        .paren( _ -> id(ADDDR).comma().sp().id(INDEX))));
+        return defineMacroVectors(VSTOREN, getMacroVectorParamsStore(), VSTORE,  _ ->  id(VECTOR_VAL).comma().sp());
     }
 
     /**
