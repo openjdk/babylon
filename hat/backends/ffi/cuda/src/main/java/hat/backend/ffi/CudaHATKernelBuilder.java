@@ -332,10 +332,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroF16Of(String name) {
-//        List<String> params = List.of("val");
-//        return macroNoParenthesis(name, params, _ ->
-//                paren(_ -> f16Type())
-//                        .brace(_ -> float2half().paren(_-> id("val"))));
         return defineS16macro(name, _ -> f16Type(), _ -> float2half());
     }
 
@@ -348,10 +344,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroBF16Of(String name) {
-//        List<String> params = List.of("val");
-//        return macroNoParenthesis(name, params, _ ->
-//                paren(_ -> bf16Type())
-//                        .brace(_ -> nvBFloat16().paren(_-> id("val"))));
         return defineS16macro(name, _ -> bf16Type(), _ -> nvBFloat16());
     }
 
@@ -376,12 +368,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
-//        List<String> params = List.of("val");
-//        return macroNoParenthesis(name, params, _ ->
-//                paren(_ -> half2float())
-//                        .paren(_-> id("val")
-//                                .dotOrArrow(isLocal)
-//                                .id(VALUE)));
         return defineMacroS16Conversion(name, _ -> half2float(), isLocal);
     }
 
@@ -397,12 +383,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
-//        List<String> params = List.of("val");
-//        return macroNoParenthesis(name, params, _ ->
-//                paren(_ -> bfloat162float()
-//                        .paren(_-> id("val")
-//                                .dotOrArrow(isLocal)
-//                                .id(VALUE))));
         return defineMacroS16Conversion(name, _ -> bfloat162float(), isLocal);
 
     }
