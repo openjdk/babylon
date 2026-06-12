@@ -201,16 +201,29 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
     }
 
     OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
+        Throwable t = null;
+
+        // create resources
         List<Object> rArgs = new ArrayList<>();
         for (Body rb : tryOp.resourceBodies()) {
             var re = executeBody(rb, rArgs, e);
-            // @@@ rb complete abruptly ?
+            switch (re.terminatingOp()) {
+                case CoreOp.YieldOp _ -> {}
+                case JavaOp.ThrowOp _ -> t = ((Throwable) re.operands().getFirst());
+                default -> throw new InternalError();
+            }
             rArgs.addAll(re.operands());
         }
 
-        var effect = executeBody(tryOp.body(), rArgs, e);
+        // try body
+        TerminatingOpEffect effect = null;
+        if (t == null) {
+            effect = executeBody(tryOp.body(), rArgs, e);
+            if (effect.terminatingOp() instanceof JavaOp.ThrowOp)
+                t = (Throwable) effect.operands().getFirst();
+        }
 
-        Throwable rcT = null;
+        // close resources
         for (Object r : rArgs.reversed()) {
             if (r instanceof VarBox vb) {
                 r = vb.value();
@@ -218,33 +231,22 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             try {
                 ((AutoCloseable) r).close();
             } catch (Exception ex) {
-                if (rcT == null) rcT = ex;
-                else rcT.addSuppressed(ex);
+                if (t == null)  t = ex;
+                else            t.addSuppressed(ex);
+                effect = new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
             }
         }
 
-        Throwable primaryT = null;
-        if (effect.terminatingOp() instanceof JavaOp.ThrowOp) {
-            primaryT = ((Throwable) effect.operands().getFirst());
-            if (rcT != null) {
-                primaryT.addSuppressed(rcT);
-                for (Throwable t : rcT.getSuppressed()) {
-                    primaryT.addSuppressed(t);
-                }
-            }
-        } else if (rcT != null) {
-            primaryT = rcT;
-        }
-
-        Body catchBody = null;
-        if (primaryT != null) {
+        // catch body
+        if (t != null) {
             JavaEnv je = (JavaEnv) e;
-            catchBody = findCatchBody(je.l, tryOp, primaryT);
+            Body catchBody = findCatchBody(je.l, tryOp, t);
             if (catchBody != null) {
-                effect = executeBody(catchBody, List.of(primaryT), e);
+                effect = executeBody(catchBody, List.of(t), e);
             }
         }
 
+        // finally body
         if (tryOp.finallyBody() != null) {
             var finallyEffect = executeBody(tryOp.finallyBody(), List.of(), e);
             if (!(finallyEffect.terminatingOp() instanceof CoreOp.YieldOp)) {
@@ -252,11 +254,8 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             }
         }
 
-        if (!(effect.terminatingOp() instanceof CoreOp.YieldOp)) {
+        if (effect != null && !(effect.terminatingOp() instanceof CoreOp.YieldOp)) {
             return effect;
-        }
-        if (rcT != null && catchBody == null) {
-            return new TerminatingOpEffect(fakeThrowOp, List.of(rcT), e);
         }
         return new OpResultEffect(null, null);
     }
