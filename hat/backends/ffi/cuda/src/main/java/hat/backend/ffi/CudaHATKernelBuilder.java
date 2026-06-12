@@ -42,7 +42,13 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
