@@ -650,7 +650,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
         }
 
-        either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
+        dotOrArrow(isLocalOrPrivateDS);
 
         if (hatPtrOp instanceof HATPtrOp.HATPtrLengthOp) {
             id("length");
@@ -662,7 +662,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     if (hatPtrOp.strides().size() > 1) {
                         paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(2)).op()));
                         asterisk().id(hatPtrOp.name());
-                        either(finalIsLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow).id(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
+                        dotOrArrow(finalIsLocalOrPrivateDS).id(hatPtrOp.strides() != null ? hatPtrOp.strides().getFirst() : "width");
                         add().paren(_ -> recurse(((Op.Result) hatPtrOp.operands().get(1)).op()));
                     } else {
                         recurse(((Op.Result) hatPtrOp.operands().get(1)).op());
@@ -909,8 +909,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 // Check if the varOpLoad that could follow corresponds to a local/private type
                 // We need to check for the HATMemoryVarOp until we replace all HAT<>VarOps with CoreOp.VarOp
                 boolean isLocalOrPrivateDS = isInvokeFromSharedOrPrivate(instance, invoke);
-
-                either(isLocalOrPrivateDS, CodeBuilder::dot, CodeBuilder::rarrow);
+                dotOrArrow(isLocalOrPrivateDS);
 
                 funcName(invoke.op());
 

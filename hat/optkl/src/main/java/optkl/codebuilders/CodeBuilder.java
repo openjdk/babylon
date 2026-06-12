@@ -511,7 +511,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return self();
     }
 
-    final  public T either(boolean c, Consumer<T> lhs, Consumer<T> rhs) {
+    public final T either(boolean c, Consumer<T> lhs, Consumer<T> rhs) {
         if (c) {
             accept(lhs);
         } else {
@@ -520,9 +520,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return self();
     }
 
+    public final T dotOrArrow(boolean c) {
+        return either(c, _ -> dot(), _ -> rarrow());
+    }
 
-
-    final   public <I> T sep(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
+    public final <I> T sep(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
         var first = Mutable.of(true);
         iterable.forEach(t -> {
             if (first.get()) {

@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static hat.phases.HATPhaseUtils.isMathLib;
@@ -216,9 +217,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     private OpenCLHATKernelBuilder defineMacroVectorOf(int lanes) {
         List<String> params = new ArrayList<>();
         params.add(ELEMENT_TYPE);
-        for (int i = 0; i < lanes; i++) {
-            params.add("p" + i);
-        }
+        IntStream.range(0, lanes).mapToObj(i -> "p" + i).forEach(params::add);
         return macroNoParenthesis(VECTOR_OF + lanes, params, _ -> {
             paren(_ -> id(CONCAT).paren(_ -> id(ELEMENT_TYPE).comma().id(String.valueOf(lanes))));
             paren(_ -> {
@@ -276,7 +275,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return macroNoParenthesis(name, params, _ ->
                 paren(_ -> f32Type())
                         .paren(_-> id("val")
-                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .dotOrArrow(isLocal)
                                 .id(VALUE)));
     }
 
@@ -296,7 +295,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return macroNoParenthesis(name, params, _ ->
                 paren(_ -> builtin_bfloat16ToFloat()
                         .paren(_-> id("val")
-                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .dotOrArrow(isLocal)
                                 .id(VALUE))));
     }
 

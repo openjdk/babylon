@@ -45,6 +45,7 @@ import jdk.incubator.code.Value;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static hat.phases.HATPhaseUtils.isArrayReference;
@@ -298,9 +299,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
         List<String> params = new ArrayList<>();
         params.add(ELEMENT_TYPE);
-        for (int i = 0; i < lanes; i++) {
-            params.add("p" + i);
-        }
+        IntStream.range(0, lanes).mapToObj(i -> "p" + i).forEach(params::add);
         return macroNoParenthesis(VECTOR_OF + lanes, params, _ -> {
             paren(_ -> id(PREFIX).paren(_ ->
                     id(MAKE_).comma().id(CONCAT).paren(_ -> id(ELEMENT_TYPE).comma().id(String.valueOf(lanes)))));
@@ -359,7 +358,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return macroNoParenthesis(name, params, _ ->
                 paren(_ -> half2float())
                         .paren(_-> id("val")
-                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .dotOrArrow(isLocal)
                                 .id(VALUE)));
     }
 
@@ -379,7 +378,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return macroNoParenthesis(name, params, _ ->
                 paren(_ -> bfloat162float()
                         .paren(_-> id("val")
-                                .either(isLocal, _ -> dot(), _ -> rarrow())
+                                .dotOrArrow(isLocal)
                                 .id(VALUE))));
     }
 
