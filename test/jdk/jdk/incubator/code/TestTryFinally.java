@@ -74,12 +74,13 @@ public class TestTryFinally {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryFinally::tryCatchFinally
-        );
-
-        test(test);
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryFinally::tryCatchFinally
+            );
+            test(test);
+        }
     }
 
 
@@ -110,12 +111,14 @@ public class TestTryFinally {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryFinally::tryReturn
-                );
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryFinally::tryReturn
+            );
 
-        test(test);
+            test(test);
+        }
     }
 
 
@@ -146,12 +149,16 @@ public class TestTryFinally {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryFinally::catchThrow
-        );
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> {
+                        Interpreter.invoke(MethodHandles.lookup(), op, c);
+                    },
+                    TestTryFinally::catchThrow
+            );
 
-        test(test);
+            test(test);
+        }
     }
 
 
@@ -180,12 +187,14 @@ public class TestTryFinally {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryFinally::finallyReturn
-        );
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryFinally::finallyReturn
+            );
 
-        test(test);
+            test(test);
+        }
     }
 
 
