@@ -202,21 +202,26 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
 
     OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
         Throwable t = null;
+        TerminatingOpEffect effect = null;
 
         // create resources
         List<Object> rArgs = new ArrayList<>();
+        l:
         for (Body rb : tryOp.resourceBodies()) {
             var re = executeBody(rb, rArgs, e);
             switch (re.terminatingOp()) {
                 case CoreOp.YieldOp _ -> {}
-                case JavaOp.ThrowOp _ -> t = ((Throwable) re.operands().getFirst());
+                case JavaOp.ThrowOp o -> {
+                    t = ((Throwable) re.operands().getFirst());
+                    effect = new TerminatingOpEffect(o, List.of(t), e);
+                    break l;
+                }
                 default -> throw new InternalError();
             }
             rArgs.addAll(re.operands());
         }
 
         // try body
-        TerminatingOpEffect effect = null;
         if (t == null) {
             effect = executeBody(tryOp.body(), rArgs, e);
             if (effect.terminatingOp() instanceof JavaOp.ThrowOp)
@@ -230,6 +235,8 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             }
             try {
                 ((AutoCloseable) r).close();
+            } catch (ClassCastException cce) {
+                throw new InternalError(cce);
             } catch (Exception ex) {
                 if (t == null)  t = ex;
                 else            t.addSuppressed(ex);
