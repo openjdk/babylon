@@ -24,12 +24,13 @@ if(CUDAToolkit_FOUND)
 
     link_directories(
             ${CMAKE_BINARY_DIR}
+            ../shared/target/native-build
             ${CUDAToolkit_LIBRARY_DIR}
     )
 
     add_library(cuda_backend SHARED
             ${CUDA_BACKEND}/src/main/native/include/cuda_backend.h
-	        ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend.cpp
+	    ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend.cpp
             ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_buffer.cpp
             ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_kernel.cpp
             ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_module.cpp
