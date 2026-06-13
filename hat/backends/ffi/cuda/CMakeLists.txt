@@ -24,7 +24,7 @@ if(CUDAToolkit_FOUND)
 
     link_directories(
             ${CMAKE_BINARY_DIR}
-            ../shared/target/native-build
+            ../shared/target/build
             ${CUDAToolkit_LIBRARY_DIR}
     )
 
