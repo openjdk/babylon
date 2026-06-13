@@ -21,6 +21,7 @@ include_directories(
     ${SPIRV_INCLUDE_DIR}
 )
 link_directories(
+        ../shared/target/native-build
     ${CMAKE_BINARY_DIR}
 )
 
