@@ -67,7 +67,7 @@ questions.
                             <executable>cmake</executable>
                             <arguments>
                                 <argument>-B</argument>
-                                <argument>${project.build.directory}/native-build</argument>
+                                <argument>target/build</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -81,7 +81,7 @@ questions.
                             <executable>cmake</executable>
                             <arguments>
                                 <argument>--build</argument>
-                                <argument>${project.build.directory}/native-build</argument>
+                                <argument>target/build</argument>
                                 <argument>-j 20</argument>
                             </arguments>
                         </configuration>

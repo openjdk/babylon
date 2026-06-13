@@ -20,7 +20,7 @@ include_directories(
     ${SHARED_BACKEND}/src/main/native/include
 )
 link_directories(
-    ../shared/target/native-build
+    ../shared/target/build
     ${CMAKE_BINARY_DIR}
 )
 

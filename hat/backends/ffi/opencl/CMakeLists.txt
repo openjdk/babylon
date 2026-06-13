@@ -30,7 +30,7 @@ if(OPENCL_FOUND)
     )
     link_directories(
         ${CMAKE_BINARY_DIR}
-        ../shared/target/native-build
+        ../shared/target/build
     )
 
     add_library(opencl_backend SHARED
