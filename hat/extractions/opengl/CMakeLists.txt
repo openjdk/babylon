@@ -13,14 +13,13 @@ if(OPENGL_FOUND)
    set(JEXTRACT_HEADER ${JEXTRACT_SOURCE}/${JEXTRACT_PACKAGE}/${JEXTRACT_PACKAGE}_h.java)
 
    if (APPLE)
-      set(OSX_SDK ${CMAKE_OSX_SYSROOT})
+      set(OSX_SDK /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk)
       set(OSX_SDK_LIBRARY_FRAMEWORKS ${OSX_SDK}/System/Library/Frameworks)
       set(OSX_SYS_LIBRARY_FRAMEWORKS /System/Library/Frameworks)
       add_custom_command(OUTPUT  ${JEXTRACT_HEADER}
-         COMMAND echo creating ${JEXTRACT_SOURCE}
          COMMAND mkdir -p ${JEXTRACT_SOURCE}
-         COMMAND echo -F${OSX_SDK_LIBRARY_FRAMEWORKS} > ${CMAKE_BINARY_DIR}/compile_flags.txt
          COMMAND jextract
+             -F ${OSX_SDK_LIBRARY_FRAMEWORKS}
              --target-package ${JEXTRACT_PACKAGE}
              --output ${JEXTRACT_SOURCE}
              --library :${OSX_SYS_LIBRARY_FRAMEWORKS}/OpenGL.framework/OpenGL
