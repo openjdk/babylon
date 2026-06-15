@@ -58,7 +58,7 @@ questions.
                 <version>3.1.0</version>
                 <executions>
                     <execution>
-                        <id>cmake-B</id>
+                        <id>cmake-generate</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>exec</goal>
@@ -67,12 +67,12 @@ questions.
                             <executable>cmake</executable>
                             <arguments>
                                 <argument>-B</argument>
-                                <argument>target/build</argument>
+                                <argument>${project.build.directory}/build</argument>
                             </arguments>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>cmake--build</id>
+                        <id>cmake-compile</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>exec</goal>
@@ -81,7 +81,7 @@ questions.
                             <executable>cmake</executable>
                             <arguments>
                                 <argument>--build</argument>
-                                <argument>target/build</argument>
+                                <argument>${project.build.directory}/build</argument>
                                 <argument>-j 20</argument>
                             </arguments>
                         </configuration>

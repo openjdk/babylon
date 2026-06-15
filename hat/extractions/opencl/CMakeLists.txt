@@ -17,28 +17,26 @@ if(OPENCL_FOUND)
       set(OSX_SYS_LIBRARY_FRAMEWORKS /System/Library/Frameworks)
 
      add_custom_command(OUTPUT  ${JEXTRACT_HEADER}
-        COMMAND echo creating ${JEXTRACT_SOURCE}
         COMMAND mkdir -p ${JEXTRACT_SOURCE}
-        COMMAND echo -F${OSX_SDK_LIBRARY_FRAMEWORKS} > ${CMAKE_BINARY_DIR}/compile_flags.txt
         COMMAND jextract
+            -F${OSX_SDK_LIBRARY_FRAMEWORKS}
             --target-package ${JEXTRACT_PACKAGE}
             --output ${JEXTRACT_SOURCE}
             --library :${OSX_SYS_LIBRARY_FRAMEWORKS}/OpenCL.framework/OpenCL
             --header-class-name ${JEXTRACT_PACKAGE}_h
-              ${OSX_SDK_LIBRARY_FRAMEWORKS}/OpenCL.framework/Headers/opencl.h
+            ${OSX_SDK_LIBRARY_FRAMEWORKS}/OpenCL.framework/Headers/opencl.h
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
             VERBATIM
        )
    else()
      add_custom_command(OUTPUT  ${JEXTRACT_HEADER}
-        COMMAND echo creating ${JEXTRACT_SOURCE}
         COMMAND mkdir -p ${JEXTRACT_SOURCE}
         COMMAND jextract
             --target-package ${JEXTRACT_PACKAGE}
             --output ${JEXTRACT_SOURCE}
             --library :${OpenCL_LIBRARY}
             --header-class-name ${JEXTRACT_PACKAGE}_h
-              ${OpenCL_INCLUDE_DIR}/CL/opencl.h
+            ${OpenCL_INCLUDE_DIR}/CL/opencl.h
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
             VERBATIM
        )
