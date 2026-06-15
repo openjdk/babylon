@@ -1376,7 +1376,7 @@ public final class BytecodeGenerator {
             for (int i = 0; i < bargs.size(); i++) {
                 Block.Parameter barg = bargs.get(i);
                 Value value = sargs.get(i);
-                if (!barg.uses().isEmpty() && !barg.equals(value)) {
+                if (!barg.equals(value)) {
                     if (oprOnStack == value) {
                         oprOnStack = null;
                     } else {
