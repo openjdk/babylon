@@ -95,6 +95,9 @@ else
           elif [[ -d ~/jextract-25/bin ]]; then 
              export JEXTRACT_HOME=$(realpath ~/jextract-25)
              echo "We found jextract here ${JEXTRACT_HOME}"
+          elif [[ -d ~/java/jextract-25/bin ]]; then
+             export JEXTRACT_HOME=$(realpath ~/java/jextract-25)
+             echo "We found jextract here ${JEXTRACT_HOME}"
           else
              echo "We could not find jextract either in your PATH or in common locations ~/jextract-25 or ~/jextract-22"
           fi
