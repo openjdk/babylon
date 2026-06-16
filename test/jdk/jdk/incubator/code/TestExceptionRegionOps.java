@@ -28,11 +28,13 @@
  * @run junit TestExceptionRegionOps
  */
 
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.extern.OpParser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -449,5 +451,50 @@ public class TestExceptionRegionOps {
             );
             Assertions.assertEquals(expected, actual);
         };
+    }
+
+    // we get a similar model for synchronized block, instead of monitor exit we have invocation of consumer
+    String modelText = """
+            func @"test1" (%0 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
+                %6 : java.type:"int" = constant @0;
+                %5 : Var<java.type:"int"> = var %6 @loc="41:9" @"i";
+                %1 : java.type:"void" = exception.region.enter ^block_1 ^block_3;
+
+              ^block_1:
+                %4 : java.type:"int" = constant @0;
+                invoke %0 %4 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                exception.region.exit %1 ^block_2;
+
+              ^block_2:
+                return;
+
+              ^block_3(%2 : java.type:"java.lang.Throwable"):
+                %3 : java.type:"void" = exception.region.enter ^block_4 ^block_3;
+
+              ^block_4:
+                %7 : java.type:"int" = var.load %5;
+                %8 : java.type:"int" = constant @1;
+                %9 : java.type:"int" = add %7 %8;
+                var.store %5 %9 @loc="42:9";
+                invoke %0 %9 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                exception.region.exit %3 ^block_5;
+
+              ^block_5:
+                throw %2;
+            };
+            """;
+    CoreOp.FuncOp model = (CoreOp.FuncOp) OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, modelText).get(0);
+    @Test
+    void testBlockThatSetItselfAsHandler() {
+        Interpreter.invoke(MethodHandles.lookup(), model, (IntConsumer) i -> {});
+
+        Assertions.assertThrowsExactly(IllegalArgumentException.class,
+                () -> Interpreter.invoke(MethodHandles.lookup(), model, (IntConsumer) i -> {
+                    if (i == 0) throw new RuntimeException();
+                    if (i == 1) throw new IllegalStateException();
+                    if (i == 2) throw new IllegalArgumentException();
+                }));
+
+        System.out.println(model.toText());
     }
 }
