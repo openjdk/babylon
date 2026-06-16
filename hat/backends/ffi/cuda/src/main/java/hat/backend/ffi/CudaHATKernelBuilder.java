@@ -44,13 +44,7 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SequencedSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
@@ -259,7 +253,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useS16Types(), _ -> includeSys("cuda_fp16.h", "cuda_bf16.h"))
                 .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
                 .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
-                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"));
+                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
+                .when(useTensors(), _ -> includeSys("mma.h")); // only enable if tensor views are used
     }
 
     @Override
@@ -920,10 +915,30 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    private static HATTensorOp.TensorVarOp findTensorVarOp(Value varLoadOp) {
+        return switch (varLoadOp.declaringElement()) {
+            case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
+            case HATTensorOp.TensorVarOp tensorVarOp -> tensorVarOp;
+            case null, default -> null;
+        };
+    }
+
     @Override
     public CudaHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(tensorMMAOp.operands(), this::recurseResultOrThrow));
-        return self();
+        var resulTensorValue = tensorMMAOp.operands().getFirst();
+        var tensorAValue = tensorMMAOp.operands().get(1);
+        var tensorBValue = tensorMMAOp.operands().get(2);
+        var tensorCValue = tensorMMAOp.operands().get(3);
+        var tensorA = findTensorVarOp(tensorAValue);
+        var tensorB = findTensorVarOp(tensorBValue);
+        var tensorC = findTensorVarOp(tensorCValue);
+        var tensorResult = findTensorVarOp(resulTensorValue);
+        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
+            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+        }
+        List<HATTensorOp.TensorVarOp> operands = List.of(tensorResult, tensorA, tensorB, tensorC);
+        return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
     }
 
     private CudaHATKernelBuilder generateLoadTensor(HATTensorOp.TensorLoadOp tensorLoadOp, boolean isColumnMajor, String tensorName) {
@@ -1012,12 +1027,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             Value tensorToStore = operands.get(3);
             Value ldSize = operands.get(4);
 
+            HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorToStore);
+
             recurseResultOrThrow(reference)
                     .rarrow().id(ARRAY)
                     .sp().plus().sp()
                     .indexForTensor(isColumnMajor, iIndex, jIndex, ldSize)
                     .comma()
-                    .recurseResultOrThrow(tensorToStore)
+                    .id(tensorVarOp.varName())
                     .comma()
                     .recurseResultOrThrow(ldSize)
                     .comma();
