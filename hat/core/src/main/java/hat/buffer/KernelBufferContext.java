@@ -41,6 +41,8 @@ public interface KernelBufferContext extends Buffer {
         lsx(); lsy(); lsz();   // local sizes
         bix(); biy(); biz();   // block index
         bsx(); bsy(); bsz();   // block sizes
+        tlx(); tly(); tlz();   // tile sizes
+        wsx(); wsy(); wsz();   // warp sizes
     }
     Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
 
@@ -107,6 +109,22 @@ public interface KernelBufferContext extends Buffer {
     int bsz();
     void bsz(int bsz);
 
+    // Tile size
+    int tlx();
+    void tlx(int tlx);
+    int tly();
+    void tly(int tly);
+    int tlz();
+    void tlz(int tlz);
+
+    // Warp Size
+    boolean wsx();
+    void wsx(boolean wsx);
+    boolean wsy();
+    void wsy(boolean wsy);
+    boolean wsz();
+    void wsz(boolean wsz);
+
     static KernelBufferContext createDefault(ArenaAndLookupCarrier cc) {
         KernelBufferContext kernelBufferContext = BoundSchema.of(cc ,schema).allocate();
 
@@ -136,6 +154,14 @@ public interface KernelBufferContext extends Buffer {
         kernelBufferContext.bsx(0);
         kernelBufferContext.bsy(0);
         kernelBufferContext.bsz(0);
+
+        kernelBufferContext.tlx(0);
+        kernelBufferContext.tly(0);
+        kernelBufferContext.tlz(0);
+
+        kernelBufferContext.wsx(false);
+        kernelBufferContext.wsy(false);
+        kernelBufferContext.wsz(false);
 
         return kernelBufferContext;
     }

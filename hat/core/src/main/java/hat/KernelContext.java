@@ -68,6 +68,9 @@ public class KernelContext {
     public int bsy;
     public int bsz;
 
+    // Warp size
+    public int wrs;
+
     final int dimensions;
 
     public final NDRange ndRange;

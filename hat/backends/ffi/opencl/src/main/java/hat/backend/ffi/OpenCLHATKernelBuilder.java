@@ -27,7 +27,9 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
+import hat.dialect.HATTensorOp;
 import hat.phases.HATPhaseUtils;
+import hat.types.F16;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
@@ -44,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -52,6 +55,13 @@ import static hat.phases.HATPhaseUtils.isMathLib;
 import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
+
+    @FunctionalInterface
+    private interface CodeGenAction {
+        void apply() throws IllegalStateException;
+    }
+
+    private final Map<String, CodeGenAction> tensorTypeTable;
 
     private static final String EXTENSION = "EXTENSION";
     private static final String OPENCL = "OPENCL";
@@ -95,6 +105,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     protected OpenCLHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraph, scopedCodeBuilderContext);
+        tensorTypeTable = new HashMap<>();
+        tensorTypeTable.put("loadF16", this::f16Type);
+        tensorTypeTable.put("load", this::f32Type);
+        tensorTypeTable.put("loadF32", this::f32Type);
     }
 
     @Override
@@ -386,5 +400,682 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             suffix_t(classType);
         }
         return sp().varName(varOp);
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatWarpSize() {
+        return constant("1");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
+        recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
+        // We don't need to generate the name at this point, but rather during tensor create.
+        // That's the place we know all information, including type, shape, and name
+        return self();
+    }
+
+    private String findLoadVariance(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findLoadVariance(tensorVar, r.op()) : null;
+    }
+
+    private String findLoadVariance(Value tensorVar, Op op) {
+        String varianceName = null;
+        switch (op) {
+            case HATTensorOp.TensorStoreLoadOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof HATTensorOp.TensorLoadOp tensorLoadOp) {
+                        return tensorLoadOp.getLoadVariance();
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((varianceName = findLoadVariance(tensorVar, use)) != null) {
+                        return varianceName;
+                    }
+                }
+            }
+        }
+        return varianceName;
+    }
+
+    private Value findShape(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findShape(tensorVar, r.op()) : null;
+    }
+
+    private Value findShape(Value tensorVar, Op op) {
+        Value shape = null;
+        switch (op) {
+            case HATTensorOp.TensorStoreLoadOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof HATTensorOp.TensorLoadOp tensorLoadOp) {
+                        return tensorLoadOp.operands().get(4); // SHAPE
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((shape = findShape(tensorVar, use)) != null) {
+                        return shape;
+                    }
+                }
+            }
+        }
+        return shape;
+    }
+
+    private OpenCLHATKernelBuilder generateHatTensorCreate(List<Integer> shape, Object klass, String varTensorName, Value v) {
+        final int sizeToAllocate = shape.get(0) * shape.get(1);
+        switch (klass) {
+            case ClassType classType when classType.toClassName().equals(F16.class.getCanonicalName()) -> f16Type();
+            case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");
+            case null, default -> {
+                // When we derive the type for tensors that are not accumulators
+                if (v.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+                    Value tensorVar = tensorVarOp.result();
+                    String loadVariance = findLoadVariance(tensorVar, tensorVarOp);
+                    CodeGenAction type = tensorTypeTable.getOrDefault(loadVariance, null);
+                    if (type == null) {
+                        throw new IllegalStateException("Load Type not supported:" + type);
+                    }
+                    type.apply();
+                }
+            }
+        }
+        return sp().varName(varTensorName).sbrace(_-> constant(Integer.toString(sizeToAllocate)));
+    }
+
+    private OpenCLHATKernelBuilder createTensor(HATTensorOp.TensorCreateOp tensorCreateOp) {
+        Value v = tensorCreateOp.result().uses().getFirst();
+        Value shapeValue;
+        String varTensorName;
+        if (v.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+            shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
+            varTensorName = tensorVarOp.varName();
+        } else {
+            throw new IllegalStateException("Value not supported");
+        }
+        List<Integer> shape = obtainShapeTensor(shapeValue);
+        return generateHatTensorCreate(shape, null, varTensorName, v);
+    }
+
+    private OpenCLHATKernelBuilder createTensorAccumulator(HATTensorOp.TensorCreateOp tensorCreateOp) {
+        Value v = tensorCreateOp.result().uses().getFirst();
+        Value shapeValue = tensorCreateOp.operands().getFirst();
+        List<Integer> shape = obtainShapeTensor(shapeValue);
+        Object klass = null;
+        Value classOperand = tensorCreateOp.operands().getLast();
+        if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+            klass = constantOp.value();
+        }
+        String varTensorName = null;
+        if (v.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+            varTensorName = tensorVarOp.varName();
+        }
+        return generateHatTensorCreate(shape, klass, varTensorName, v);
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
+        List<Value> operands = tensorCreateOp.operands();
+        if (operands.isEmpty()) {
+            return createTensor(tensorCreateOp);
+        } else {
+            return createTensorAccumulator(tensorCreateOp);
+        }
+    }
+
+    private static HATTensorOp.TensorVarOp findTensorVarOp(Value varLoadOp) {
+        return switch (varLoadOp.declaringElement()) {
+            case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
+            case HATTensorOp.TensorVarOp tensorVarOp -> tensorVarOp;
+            case null, default -> null;
+        };
+    }
+
+    private static float getValueConstantTensor(Value v) {
+        if ((v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constant)) {
+            Object valueConstant = constant.value();
+            return (float) valueConstant;
+
+        } else if (v instanceof Op.Result r) {
+            return getValueConstantTensor(r.op().operands().getFirst());
+        }
+        return -1.0f;
+    }
+
+    private String generateVariableName(String prefix) {
+        String vocab = "abcdefghijklmnopqrstuvxyz";
+        Random r = new Random();
+        StringBuilder varA = new StringBuilder(prefix);
+        for (int i = 0; i < 3; i++) {
+            varA.append(vocab.charAt(r.nextInt(vocab.length())));
+        }
+        return varA.toString();
+    }
+
+    private static final String INDEX_PREFIX = "index_$";
+
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     *     <code>
+     *          for (int m = 0; m < " + shape[0] + "; m++) {
+     *           for (int n = 0; n < " + shape[1] + "; n++) {
+     *             tensorVarOp.varName() + "[m * " + shape[0] + " + n] = " + initValue + "f;" + "}" + "}");
+     *     </code>
+     * </p>
+     *
+     * @param from
+     * @param to
+     * @param tensorVarOp
+     * @param initValue
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder emitForLoopWithBound(int from, int to, HATTensorOp.TensorVarOp tensorVarOp, float initValue) {
+        String prefix = INDEX_PREFIX;
+        String varA = generateVariableName(prefix);
+        String varB = generateVariableName(prefix);
+        forKeyword().sp().paren(_ -> {
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
+            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).plusplus();
+        }).sp().brace(_ -> {
+            in().nl().forKeyword().sp().paren(_ -> {
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
+                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).plusplus();
+            }).sp().in();
+
+            brace(_ -> nl()
+                    .id(tensorVarOp.varName())
+                    .sbrace(_ ->
+                            id(varA).mul()
+                                    .id(Integer.toString(to))
+                                    .plus()
+                                    .id(varB))
+                    .assign()
+                    .constant(Float.toString(initValue)).id("f")
+                    .semicolon().nl()).out().out();
+        });
+        return self();
+    }
+
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     *     <code>
+     *       for (int m = 0; m < SHAPE_1; m++)
+     *           for (int n = 0; n < SHAPE_2; n++)
+     *             tensor[m * SHAPE_1 + n] = initValue;
+     *     </code>
+     * </p>
+     *
+     * @param tensorFillOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    @Override
+    public OpenCLHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
+
+        // 1. Access to the variable name
+        var tensorValue = tensorFillOp.operands().getFirst();
+        HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorValue);
+        if (tensorVarOp == null) {
+            throw new IllegalStateException("[Error][Codegen] Expected a tensorVarOp, but found `null` instead");
+        }
+
+        // 2. Access the shape
+        // Second parameters: analysis of the shape
+        Value tensorAccDecl = tensorVarOp.operands().getFirst();
+        List<Integer> shape = getShapeFromTensorCreateValue(tensorAccDecl);
+
+        // 3. Access the layout
+        var tensorInitValue = tensorFillOp.operands().get(1);
+        float initValue = getValueConstantTensor(tensorInitValue);
+
+        emitForLoopWithBound(0, shape.getFirst(), tensorVarOp, initValue);
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
+        Value operand = hatTensorVarLoadOp.operands().getFirst();
+        if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+            varName(tensorVarOp.varName());
+        } else {
+            throw new IllegalStateException("[ERROR] Expected HATTensorVarOp");
+        }
+        return self();
+    }
+
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     for (int n = 0; n < WMMA_N; n++) {
+     *       float sum = acc[m][n];
+     *       for (int k = 0; k < WMMA_K; k++) {
+     *         F16_t ha = a_frag[m * WMMA_M + k];
+     *         F16_t hb = b_frag[k * WMMA_M + n];
+     *         F16_t result = (F16_t){(ha.value * hb.value)};
+     *         sum += (float)(result.value);
+     *       }
+     *       acc[m][n] = sum;
+     *    }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param shape
+     * @param tensorA
+     * @param tensorB
+     * @param tensorC
+     * @param result
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder generateTensorMMA(List<Integer> shape, HATTensorOp.TensorVarOp tensorA, HATTensorOp.TensorVarOp tensorB, HATTensorOp.TensorVarOp tensorC, HATTensorOp.TensorVarOp result) {
+        String prefix = INDEX_PREFIX;
+        String varA = generateVariableName(prefix);
+        String varB = generateVariableName(prefix);
+        String varC = generateVariableName(prefix);
+        String acc = generateVariableName("sum_");
+        final int from = 0;
+        final int to = shape.get(0);
+
+        forKeyword().sp().paren(_ -> {
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
+            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).plusplus();
+        }).sp().brace(_ -> {
+            in().nl().forKeyword().sp().paren(_ -> {
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
+                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).plusplus();
+            }).in();
+
+            brace(_ -> {
+                nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace( _-> {
+                    id(varA).mul().id(Integer.toString(shape.get(0))).sp().plus().id(varB);
+                }).semicolon().nl();
+
+                forKeyword().sp().paren(_ -> {
+                    s32Type().sp().id(varC).assign().intValue(from).semicolon();
+                    id(varC).sp().lt().sp().intValue(to).semicolon();
+                    id(varC).plusplus();
+                }).sp().in();
+
+                brace(_ -> {
+                    nl();
+                    String ha = generateVariableName("ha_");
+                    String hb = generateVariableName("hb_");
+                    String resultTensor = generateVariableName("h_res_");
+                    f16Type().sp().id(ha).assign().id(tensorA.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape.get(0))).sp().plus().id(varC)).semicolon().nl();
+                    f16Type().sp().id(hb).assign().id(tensorB.varName()).sbrace( _ -> id(varC).mul().id(Integer.toString(shape.get(1))).sp().plus().id(varB)).semicolon().nl();
+                    f16Type().sp().id(resultTensor).assign().paren( _ -> f16Type()).brace( _ -> paren( _ -> id(ha).dot().id("value").mul().id(hb).dot().id("value"))).semicolon().nl();
+                    id(acc).sp().plusEquals().cast( _ -> f32Type()).paren( _-> id(resultTensor).dot().id("value")).semicolon().nl();
+                }).nl().out();
+
+                id(result.varName()).sbrace( _ -> id(varA).sp().mul().sp().id(Integer.toString(shape.get(0))).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
+
+            }).semicolon().nl();
+
+        }).out().out();
+        return self();
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
+        var resulTensorValue = tensorMMAOp.operands().getFirst();
+        var tensorAValue = tensorMMAOp.operands().get(1);
+        var tensorBValue = tensorMMAOp.operands().get(2);
+        var tensorCValue = tensorMMAOp.operands().get(3);
+        var tensorA = findTensorVarOp(tensorAValue);
+        var tensorB = findTensorVarOp(tensorBValue);
+        var tensorC = findTensorVarOp(tensorCValue);
+        var tensorResult = findTensorVarOp(resulTensorValue);
+        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
+            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+        }
+        List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
+        return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
+    }
+
+
+    @Override
+    public OpenCLHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp storeLoadOp) {
+        List<Value> operands = storeLoadOp.operands();
+        if (operands.getLast() instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        return self();
+    }
+
+    private HATTensorOp.TensorVarOp findTensorVarOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
+        var tensorStoreLoadValue = tensorLoadOp.result().uses().getFirst();
+        if (tensorStoreLoadValue.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
+            Value first = tensorStoreLoadOp.operands().getFirst();
+            if (first.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+                return tensorVarOp;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *      for (int m = 0; m < WMMA_M; m++) {
+     *         int rowA = aRow + m;
+     *         for (int n = 0; n < WMMA_N; n++) {
+     *           int colA = aCol + n;
+     *           int idxA = rowA + colA * lda;
+     *           HAT_GLOBAL_MEM F16Impl_t* ha = &matrixA->array[idxA];
+     *           F16_t r = (F16_t){ha->value};
+     *           tensorA[m * WMMA_M + n] = r;
+     *         }
+     *     }
+     * </code>
+     * </p>
+     *
+     * @param shape
+     * @param iIndexValue
+     * @param jIndexValue
+     * @param isColumnMajor
+     * @param leadingDimension
+     * @param ptrValue
+     * @param tensorVarOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder generateTensorLoad(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, HATTensorOp.TensorVarOp tensorVarOp) {
+
+        String prefix = INDEX_PREFIX;
+        String varA = generateVariableName(prefix);
+        String varB = generateVariableName(prefix);
+        final int to = shape.getFirst();
+        final int from = 0;
+
+        forKeyword().sp().paren(_ -> {
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
+            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).plusplus();
+        }).in();
+
+        String row = generateVariableName("row_");
+
+        brace(_ -> {
+            nl().s32Type().sp().id(row).assign();
+
+            if (iIndexValue instanceof Op.Result r) {
+                recurse(r.op());
+            }
+            plus().id(varA).semicolon().nl();
+
+            forKeyword().sp().paren(_ -> {
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
+                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).plusplus();
+            }).sp().in();
+
+            String col = generateVariableName("col_");
+
+            brace(_ -> {
+                nl().s32Type().sp().id(col).assign();
+
+                if (jIndexValue instanceof Op.Result r) {
+                    recurse(r.op());
+                }
+                plus().id(varB).semicolon().nl();
+
+                String index = generateVariableName(INDEX_PREFIX);
+                s32Type().sp().id(index).assign();
+
+                String aVal = row;
+                String bVal = col;
+                if (isColumnMajor) {
+                    aVal = col;
+                    bVal = row;
+                }
+
+                id(aVal).sp().mul().sp();
+                if (leadingDimension instanceof Op.Result r) {
+                    recurse(r.op());
+                }
+                sp().plus().id(bVal).semicolon().nl();
+
+
+                // TODO: We assume a load from global memory. In
+                // future version, we will process loads from other
+                // memory regions of the accelerator
+
+                String ha = generateVariableName("ha_");
+                id("HAT_GLOBAL_MEM F16Impl_t").asterisk().sp().id(ha).assign().ampersand();
+
+                if (ptrValue instanceof  Op.Result r) {
+                    recurse(r.op());
+                }
+                rarrow().id("array").sbrace( _ -> id(index)).semicolon().nl();
+
+                String r = generateVariableName("r_");
+                f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id("value")).semicolon().nl();
+
+                // store into the acc
+                emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).sp().mul().id(Integer.toString(shape.getFirst())).sp().plus().id(varB));
+                equals().sp().id(r).semicolon().nl();
+            }).out();
+        }).out();
+        return self();
+    }
+
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *     for (int m = 0; m < WMMA_M; m++) {
+     int rowB = bRow + m;
+     *          for (int n = 0; n < WMMA_N; n++) {
+     *            int colB = bCol + n;
+     *            int idxB = rowB + colB * ldb;
+     *            HAT_GLOBAL_MEM F16Impl_t* hb = &matrixB->array[idxB];
+     *            F16_t r = (F16_t){hb->value};
+     *            b_frag[m * WMMA_M + n] = r;
+     *          }
+     *      }
+     * </code>
+     * </p>
+     *
+     * @param tensorLoadOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    @Override
+    public OpenCLHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
+
+        List<Value> operands = tensorLoadOp.operands();
+        var ptrValue = operands.getFirst();
+        var iIndexValue = operands.get(1);
+        var jIndexValue = operands.get(2);
+        var leadingDimension = operands.get(3);
+        HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorLoadOp);
+        List<Integer> shape;
+        if (tensorVarOp != null) {
+            shape = obtainShapeTensor(operands.get(4));
+        } else {
+            throw new IllegalStateException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
+        }
+
+        boolean isColumnMajor = false;
+        if (tensorLoadOp.operands().size() > 5) {
+            isColumnMajor = isColumnMajor(operands.get(5));
+        }
+
+        generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
+        return self();
+    }
+
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     *   int rowC = cRow + m;
+     *   for (int n = 0; n < WMMA_N; n++) {
+     *      int colC = cCol + n;
+     *      int idxC = (cRow) + (cCol) * ldc;
+     *      matrixC->array[idxC] = acc[m * 16 + n];
+     *   }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param shape
+     * @param iIndexValue
+     * @param jIndexValue
+     * @param isColumnMajor
+     * @param leadingDimension
+     * @param ptrValue
+     * @param tensorVarOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder generateTensorStore(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, HATTensorOp.TensorVarOp tensorVarOp) {
+        String prefix = INDEX_PREFIX;
+        String varA = generateVariableName(prefix);
+        String varB = generateVariableName(prefix);
+        final int to = shape.getFirst();
+        final int from = 0;
+
+        forKeyword().sp().paren(_ -> {
+            s32Type().sp().id(varA).assign().intValue(from).semicolon();
+            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).plusplus();
+        }).in();
+
+        String row = generateVariableName("row_");
+
+        brace(_ -> {
+            nl().s32Type().sp().id(row).assign();
+
+            if (iIndexValue instanceof Op.Result r) {
+                recurse(r.op());
+            }
+            plus().id(varA).semicolon().nl();
+
+            forKeyword().sp().paren(_ -> {
+                s32Type().sp().id(varB).assign().intValue(from).semicolon();
+                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).plusplus();
+            }).sp().in();
+
+            String col = generateVariableName("col_");
+
+            brace(_ -> {
+                nl().s32Type().sp().id(col).assign();
+
+                if (jIndexValue instanceof Op.Result r) {
+                    recurse(r.op());
+                }
+                plus().id(varB).semicolon().nl();
+
+                String index = generateVariableName(INDEX_PREFIX);
+                s32Type().sp().id(index).assign();
+
+                String aVal = row;
+                String bVal = col;
+                if (isColumnMajor) {
+                    aVal = col;
+                    bVal = row;
+                }
+
+                id(aVal).sp().mul().sp();
+                if (leadingDimension instanceof Op.Result r) {
+                    recurse(r.op());
+                }
+                sp().plus().id(bVal).semicolon().nl();
+
+                // TODO: We assume a load from global memory. In
+                // future version, we will process loads from other
+                // memory regions of the accelerator
+                if (ptrValue instanceof  Op.Result r) {
+                    recurse(r.op());
+                }
+                rarrow().id("array").sbrace( _ -> id(index)).assign();
+                id(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape.getFirst())).plus().id(varB));
+                semicolon().nl();
+            }).out();
+        }).out();
+        return self();
+    }
+
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     *  `int rowC = cRow + m;
+     *   for (int n = 0; n < WMMA_N; n++) {
+     *      int colC = cCol + n;
+     *      int idxC = (cRow) + (cCol) * ldc;
+     *      matrixC->array[idxC] = acc[m * 16 + n];
+     *   }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param tensorStoreOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    @Override
+    public OpenCLHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp) {
+        // 1. We need the global ptr
+        // 2. We need the indexes (i, j)
+        // 3. We need leading dimension
+        // 4. We need the name of the tensor
+        // 5. We need the shape
+        // 6. We need the access layout
+
+        List<Value> operands = tensorStoreOp.operands();
+        var ptrValue = operands.getFirst();
+        var iIndexValue = operands.get(1);
+        var jIndexValue = operands.get(2);
+        var tensorValue = operands.get(3);
+        var leadingDimension = operands.get(4);
+
+        HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorValue);
+        if (tensorVarOp == null) {
+            throw new IllegalStateException("[Error][CodeGen] Expected to find a tensorVarOp, but `null` instead.");
+        }
+
+        var shape = getShapeFromTensorVarOp(tensorVarOp);
+
+        boolean isColumnMajor = false;
+        if (tensorStoreOp.operands().size() > 5) {
+            isColumnMajor = isColumnMajor(operands.get(5));
+        }
+
+        generateTensorStore(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
+        return self();
     }
 }

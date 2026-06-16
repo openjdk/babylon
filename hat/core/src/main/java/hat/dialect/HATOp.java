@@ -30,7 +30,7 @@ import jdk.incubator.code.Value;
 
 import java.util.List;
 
-public abstract sealed class HATOp extends Op permits HATBarrierOp, HATPtrOp, HATThreadOp {
+public abstract sealed class HATOp extends Op permits HATBarrierOp, HATPtrOp, HATTensorOp, HATThreadOp {
     protected HATOp(List<Value> operands) {
         super(operands);
     }

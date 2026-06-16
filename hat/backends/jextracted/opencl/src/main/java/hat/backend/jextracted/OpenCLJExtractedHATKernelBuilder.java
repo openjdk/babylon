@@ -27,6 +27,7 @@ package hat.backend.jextracted;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
+import hat.dialect.HATTensorOp;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
@@ -294,5 +295,55 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
             suffix_t(classType);
         }
         return sp().varName(varOp);
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder hatWarpSize() {
+        return constant("1");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp $) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp $) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp $) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorShapeOp(HATTensorOp.TensorShapeOp tensorShapeOp) {
+        return blockComment("Not supported yet");
     }
 }

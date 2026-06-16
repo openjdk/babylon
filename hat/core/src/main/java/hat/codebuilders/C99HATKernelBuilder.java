@@ -30,6 +30,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATPtrOp;
+import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATFP16Phase;
@@ -37,6 +38,7 @@ import hat.phases.HATPhaseUtils;
 import hat.phases.HATPhaseUtils.InvokeVar;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -58,6 +60,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.codebuilders.CodeBuilder;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -130,7 +133,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected boolean useS16Types() {
-        return !kernelCallGraph.accessedFP16Classes.isEmpty();
+        return !kernelCallGraph.accessedFP16Classes.isEmpty() || useTensors();
     }
 
     protected boolean useThreadConstruct(String construct) {
@@ -143,6 +146,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected boolean useBarrier() {
         return kernelCallGraph.isUsesBarrier();
+    }
+
+    protected boolean useTensors() {
+        return kernelCallGraph.useTensors();
     }
 
     public final T HAT_KERNEL() {
@@ -237,6 +244,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id("HAT_BSZ");
     }
 
+    public final T HAT_WARP_SIZE() {
+        return hatWarpSize();
+    }
+
     @Override
     public final T hatThreadIdOp(HATThreadOp threadOp) {
         return (switch (threadOp) {
@@ -258,6 +269,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATThreadOp.HAT_BS.HAT_BSX _ -> HAT_BSX();
             case HATThreadOp.HAT_BS.HAT_BSY _ -> HAT_BSY();
             case HATThreadOp.HAT_BS.HAT_BSZ _ -> HAT_BSZ();
+            case HATThreadOp.HAT_WARP_SIZE  _ -> HAT_WARP_SIZE();
         });
     }
 
@@ -1196,6 +1208,110 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    protected List<Integer> obtainShapeTensor(Value shapeValue) {
+        List<Integer> shape = new ArrayList<>();
+        obtainShapeTensor(shapeValue, shape);
+        if (shape.size() != 3) {
+            throw new IllegalStateException("Shape must have three values, but it has " + shape.size());
+        }
+        return shape;
+    }
+
+    protected List<Integer> getShapeFromTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
+        Value tensorCreateValueOp = tensorVarOp.operands().getFirst();
+        if (tensorCreateValueOp.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
+            // First parameter: shapeValue
+            Value valueShape = tensorCreateOp.operands().getFirst();
+            return obtainShapeTensor(valueShape);
+        }
+        return List.of();
+    }
+
+    protected List<Integer> getShapeFromTensorCreateValue(Value tensorCreateValue) {
+        if (tensorCreateValue.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
+            // First parameters: analysis of the shape
+            Value valueShape = tensorCreateOp.operands().getFirst();
+            return obtainShapeTensor(valueShape);
+        }
+        return List.of();
+    }
+
+    protected List<Integer> processShapeTensor(List<Value> shapeOperands, List<Integer> shape) {
+        for (Value shapeOperand : shapeOperands) {
+            while (!(shapeOperand.declaringElement() instanceof CoreOp.ConstantOp)) {
+                if (shapeOperand.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                    shapeOperand = varLoadOp.varOperand();
+                } else if (shapeOperand.declaringElement() instanceof CoreOp.VarOp varOp) {
+                    shapeOperand = varOp.operands().getFirst();
+                }
+            }
+            if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+                shape.add((int) constantOp.value());
+            } else {
+                throw new IllegalStateException("Error: expected to find a ConstantOp, but found a " + shapeOperand.declaringElement().getClass());
+            }
+        }
+        return shape;
+    }
+
+    protected List<Integer> obtainShapeTensor(Value shapeValue, List<Integer> shape) {
+        switch (shapeValue.declaringElement()) {
+            case JavaOp.InvokeOp invokeOp when invokeOp.invokeReference().name().equals("shape") -> {
+                List<Value> shapeOperands = invokeOp.operands();
+                return processShapeTensor(shapeOperands, shape);
+            }
+            case CoreOp.VarAccessOp varAccessOp -> obtainShapeTensor(varAccessOp.varOperand(), shape);
+            case CoreOp.VarOp varOp -> obtainShapeTensor(varOp.operands().getFirst(), shape);
+            case HATTensorOp.TensorShapeOp tensorShapeOp -> {
+                return processShapeTensor(tensorShapeOp.operands(), shape);
+            }
+            case HATTensorOp.TensorVarOp tensorVarOp -> obtainShapeTensor(tensorVarOp.operands().getFirst(), shape);
+            default ->
+                    throw new IllegalStateException("Op not expected: Found: " + shapeValue.declaringElement().getClass());
+        }
+        return shape;
+    }
+
+    protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
+        Value a = isColumnMajor ? iIndex : jIndex;
+        Value b = isColumnMajor ? jIndex : iIndex;
+
+        if (a instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        plus();
+        oparen();
+        if (b instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        mul();
+        if (ldSize instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        cparen();
+        return self();
+    }
+
+    protected boolean isColumnMajor(Value tensorLayout) {
+        if (tensorLayout.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+            if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                return true;
+            } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                return false;
+            } else {
+                throw new RuntimeException("[Error]");
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public T hatTensorShapeOp(HATTensorOp.TensorShapeOp tensorShapeOp) {
+        return self();
+    }
+
+
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 
     protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
@@ -1209,4 +1325,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
     protected abstract String mapMathIntrinsic(String name);
+
+    protected abstract T hatWarpSize();
+
 }
