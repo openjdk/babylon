@@ -62,7 +62,6 @@ import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
 import static jdk.incubator.code.dialect.java.JavaType.FLOAT;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;
 
-
 public record HATTensorsPhase() implements HATPhase {
 
     private interface TensorTransformer {
@@ -182,23 +181,23 @@ public record HATTensorsPhase() implements HATPhase {
         // 2. Analyze the code model to obtain:
         // 2.1: A set for all nodes to be processed (load-invoke, and the varOp associated with it)
         // 2.2: A map that relates the marker position (suitable last op) with a list of pending declaration to perform
-        Map<Op, List<DeclTensorData>> map  = new HashMap<>();
-        Op marker = (Op) controlFlowLastOp.previous;
+        Map<Op, List<DeclTensorData>> markerTable  = new HashMap<>();
+        Op markerOp = (Op) controlFlowLastOp.previous;
         Set<Op> opsToProcess = new HashSet<>();
-        opsToProcess.add(marker);
-        map.put(marker, new ArrayList<>());
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("load") || invoke.name().equals("loadF16"))
                 .forEach(invoke -> {
+                    markerTable.putIfAbsent(markerOp, new ArrayList<>());
+                    opsToProcess.add(markerOp);
                     opsToProcess.add(invoke.op());
                     invoke.op().result().uses().stream()
                             .filter(result -> (result.op() instanceof CoreOp.VarOp))
                             .map(result -> (CoreOp.VarOp) result.op())
                             .forEach(varOp -> {
                                 opsToProcess.add(varOp);
-                                map.get(marker).add(new DeclTensorData(marker, invoke.op(), varOp));
+                                markerTable.get(markerOp).add(new DeclTensorData(markerOp, invoke.op(), varOp));
                             });
                 });
 
@@ -210,18 +209,18 @@ public record HATTensorsPhase() implements HATPhase {
         Map<CoreOp.VarOp, Value> mapValueTensor = new HashMap<>();
         Map<Op, Value> mapUsages = new HashMap<>();
         Map<Op, Value> invokeMap = new HashMap<>();
-        CoreOp.FuncOp finalFuncOp = funcOp;
+        final String functionName = funcOp.funcName();
         funcOp = funcOp.transform((blockBuilder, op) -> {
             if (!opsToProcess.contains(op)) {
                 Op.Result opNew = blockBuilder.add(op);
-                varTable.passthrough(finalFuncOp.funcName(), op, opNew.op());
-            } else if (map.containsKey(op)) {
+                varTable.passthrough(functionName, op, opNew.op());
+            } else if (markerTable.containsKey(op)) {
                 // In this block, we insert all pending tensor declaration, starting with the marker.
 
-                List<DeclTensorData> declTensorList = map.get(marker);
+                List<DeclTensorData> declTensorList = markerTable.get(markerOp);
 
                 // Insert the marker
-                blockBuilder.add(marker);
+                blockBuilder.add(markerOp);
 
                 // And add the missing declarations
                 for (DeclTensorData c : declTensorList) {
@@ -244,10 +243,8 @@ public record HATTensorsPhase() implements HATPhase {
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 // The Load/LoadF16 is propagated
                 Op.Result invokeResult = blockBuilder.add(invokeOp);
-                varTable.passthrough(finalFuncOp.funcName(), invokeOp, invokeResult.op());
                 invokeMap.put(invokeOp, invokeResult);
             } else if (op instanceof CoreOp.VarOp varOp) {
-
                 // Replace the VarOp with a TensorStoreLoadOp using the reference of the tensorVarOp
                 // declared in a previous block (block 0)
 
