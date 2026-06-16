@@ -45,7 +45,7 @@ questions.
         </dependency>
         <dependency>
             <groupId>oracle.code</groupId>
-            <artifactId>hat-extraction-opencl</artifactId>
+            <artifactId>hat-extracted-opencl</artifactId>
             <version>1.0</version>
         </dependency>
     </dependencies>
