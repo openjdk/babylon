@@ -906,17 +906,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-        id(WMMA_FILL_TENSOR).paren( _-> {
-            List<Value> operands = tensorFillOp.operands();
-            recurseResultOrThrow(operands.getFirst())
-                    .comma()
-                    .recurseResultOrThrow(operands.get(1));
-        });
-        return self();
-    }
-
-    @Override
     public CudaHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
         id(WMMA_FILL_TENSOR).paren( _-> {
             List<Value> operands = tensorFillOp.op().operands();

@@ -622,28 +622,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @return {@link OpenCLHATKernelBuilder}
      */
     @Override
-    public OpenCLHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-
-        // 1. Access to the variable name
-        var tensorValue = tensorFillOp.operands().getFirst();
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorValue);
-        if (tensorVarOp == null) {
-            throw new IllegalStateException("[Error][Codegen] Expected a CoreOp.VarOp, but found `null` instead");
-        }
-
-        // 2. Access the shape
-        // Second parameters: analysis of the shape
-        List<Integer> shape = getShapeFromTensorCreateValue(tensorVarOp.operands().getFirst());
-
-        // 3. Access the layout
-        var tensorInitValue = tensorFillOp.operands().get(1);
-        float initValue = getValueConstantTensor(tensorInitValue);
-
-        emitForLoopWithBound(0, shape.getFirst(), tensorVarOp, initValue);
-        return self();
-    }
-
-    @Override
     public OpenCLHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
         // 1. Access to the variable name
         var tensorValue = tensorFillOp.op().operands().getFirst();

@@ -35,7 +35,6 @@ import jdk.incubator.code.dialect.core.CoreOp.VarAccessOp.VarLoadOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.Trxfmr;
@@ -51,7 +50,6 @@ import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
 
-import static hat.dialect.HATTensorOp.TensorFillOp;
 import static hat.dialect.HATTensorOp.TensorLoadOp;
 import static hat.dialect.HATTensorOp.TensorMMAOp;
 import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
@@ -96,10 +94,7 @@ public record HATTensorsPhase() implements HATPhase {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> {
-//                    replaceOp(blockBuilder, invokeOp, new TensorFillOp(invokeOp.resultType(), operands));
-                    blockBuilder.add(invokeOp);
-                }
+                case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
                 default -> blockBuilder.add(op);
             }
         }
@@ -429,14 +424,12 @@ public record HATTensorsPhase() implements HATPhase {
 
                     List<Value> argsFill = List.of(op3, op4);
                     JavaOp.InvokeOp fillInvoke = JavaOp.invoke(VOID, FILL_FUNCTION, argsFill);
-                    //TensorFillOp tensorFillOp = new TensorFillOp(VOID, argsFill);
                     Op.Result op5 = blockBuilder.add(fillInvoke);
                     map.put(varOp, op2);
                     blockBuilder.context().mapValue(invokeOp.result(), op5);
                 } else {
                     throw new IllegalStateException("Expected a VarOp");
                 }
-
             } else if (op instanceof CoreOp.VarOp varOp) {
                 // Pass through value using the TensorVarOp created before
                 blockBuilder.context().mapValue(varOp.result(), map.get(varOp));

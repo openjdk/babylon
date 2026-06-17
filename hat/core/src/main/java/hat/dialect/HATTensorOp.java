@@ -77,36 +77,6 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
     }
 
-    public static final class TensorFillOp extends HATTensorOp implements Precedence.Invoke {
-
-        private final CodeType codeType;
-
-        public TensorFillOp(CodeType codeType, List<Value> operands) {
-            super(operands);
-            this.codeType = codeType;
-        }
-
-        public TensorFillOp(TensorFillOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.codeType = op.codeType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new TensorFillOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public String externalizeOpName() {
-            return "hat.dialect.Tensor.fill";
-        }
-    }
-
     public static final class TensorMMAOp extends HATTensorOp implements Precedence.Invoke {
 
         private final CodeType codeType;
