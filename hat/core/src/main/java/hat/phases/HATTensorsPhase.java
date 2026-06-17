@@ -130,7 +130,8 @@ public record HATTensorsPhase() implements HATPhase {
         @Override
         public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
             if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
-                replaceOp(blockBuilder, invokeOp, new TensorStoreOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
+                blockBuilder.add(invokeOp);
+                //replaceOp(blockBuilder, invokeOp, new TensorStoreOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
             } else {
                 blockBuilder.add(op);
             }
@@ -531,7 +532,7 @@ public record HATTensorsPhase() implements HATPhase {
         tensorTransformer.add(this::zerosTensors);
         tensorTransformer.add(this::mmaTensor);
         tensorTransformer.add(this::mmaTensorWithStore);
-        tensorTransformer.add(this::tensorLoad);
-        tensorTransformer.add(this::tensorStoreOp);
+        tensorTransformer.add(this::tensorLoad);     // this phase could be removed
+        tensorTransformer.add(this::tensorStoreOp);  // this phase could be removed
     }
 }

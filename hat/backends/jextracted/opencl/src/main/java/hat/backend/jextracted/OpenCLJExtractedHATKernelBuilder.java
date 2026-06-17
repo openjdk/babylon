@@ -341,4 +341,9 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     public OpenCLJExtractedHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
         return blockComment("Not supported yet");
     }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreOp) {
+        return blockComment("Not supported yet");
+    }
 }

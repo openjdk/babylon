@@ -217,13 +217,19 @@ public class HATPhaseUtils {
     }
 
     public static boolean isTensorOperation(OpHelper.Invoke invoke) {
-        if (!invoke.returnsVoid() && invoke.refIs(HATTensorsPhase.TensorMarkers.class) && invoke.nameMatchesRegex("create|of")) {
+        if (isTensorCreate(invoke)) {
             return true;
         } else if (isTensorFillOperation(invoke)) {
             return true;
         } else if (isTensorShape(invoke)) {
             return true;
-        } else return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|shape");
+        } else if (isTensorStore(invoke)) {
+            return true;
+        } else return isReturnTensorValueOperation(invoke);
+    }
+
+    public static boolean isTensorCreate(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(HATTensorsPhase.TensorMarkers.class) && invoke.nameMatchesRegex("create|of");
     }
 
     public static boolean isTensorFillOperation(OpHelper.Invoke invoke) {
@@ -232,6 +238,14 @@ public class HATPhaseUtils {
 
     public static boolean isTensorShape(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && invoke.refIs(Tensor.Shape.class) && invoke.nameMatchesRegex("shape");
+    }
+
+    public static boolean isTensorStore(OpHelper.Invoke invoke) {
+        return invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("store");
+    }
+
+    public static boolean isReturnTensorValueOperation(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|shape|load|loadF16");
     }
 
     public static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {
