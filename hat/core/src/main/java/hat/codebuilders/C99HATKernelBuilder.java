@@ -771,7 +771,17 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // This is because HAT has its own dialect, and some of the Ops operate on HAT Types (not included in the Java
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
-            case CoreOp.VarOp varOp -> varName(varOp);
+            case CoreOp.VarOp varOp -> {
+                VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
+                if (attribute != null) {
+                    // To avoid declaring a varStoreOp coming from a tensor
+                    List<Value> operands = varStoreOp.operands();
+                    recurseResultOrThrow(operands.getLast());
+                    return self();
+                } else {
+                    varName(varOp);
+                }
+            }
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
         equals().parenthesisIfNeeded(varStoreOp, ((Op.Result) varStoreOp.operands().get(1)).op());

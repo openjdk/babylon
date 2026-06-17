@@ -31,8 +31,6 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.VarAccessOp.VarLoadOp;
-import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
@@ -50,7 +48,6 @@ import java.util.SequencedSet;
 import java.util.Set;
 
 import static hat.dialect.HATTensorOp.TensorMMAOp;
-import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;
 import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
 import static jdk.incubator.code.dialect.java.JavaType.FLOAT;
@@ -114,9 +111,12 @@ public record HATTensorsPhase() implements HATPhase {
 
         @Override
         public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-            List<Value> operands = blockBuilder.context().getValues(op.operands());
+            //List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case CoreOp.VarAccessOp.VarStoreOp storeOp -> replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
+                case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
+                    blockBuilder.add(storeOp);
+                    //replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
+                }
                 case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
                 default -> blockBuilder.add(op);
             }
@@ -235,10 +235,11 @@ public record HATTensorsPhase() implements HATPhase {
                 }
 
                 List<Value> operands = List.of(tensorVarOp, v);
-                VarType varType = CoreType.varType(VOID);
-                TensorStoreLoadOp storeOp = new TensorStoreLoadOp(varType, operands);
+                //VarType varType = CoreType.varType(VOID);
+                CoreOp.VarAccessOp.VarStoreOp varStoreOp = CoreOp.varStore(tensorVarOp, v);
+                //TensorStoreLoadOp storeOp = new TensorStoreLoadOp(varType, operands);
 
-                Op.Result storeResult = blockBuilder.add(storeOp);
+                Op.Result storeResult = blockBuilder.add(varStoreOp);
                 blockBuilder.context().mapValue(varOp.result(), storeResult);
 
             } else if (op instanceof VarLoadOp varLoadOp) {

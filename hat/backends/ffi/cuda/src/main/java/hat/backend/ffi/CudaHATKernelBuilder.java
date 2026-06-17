@@ -723,7 +723,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private String findLoadVariance(Value tensorVar, Op op) {
         String varianceName = null;
         switch (op) {
-            case HATTensorOp.TensorStoreLoadOp storeLoadOp -> {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);
@@ -750,7 +750,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private Value findAccessLayout(Value tensorVar, Op op) {
         Value valueLayout = null;
         switch (op) {
-            case HATTensorOp.TensorStoreLoadOp storeLoadOp -> {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);
@@ -789,7 +789,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private Value findShape(Value tensorVar, Op op) {
         Value shape = null;
         switch (op) {
-            case HATTensorOp.TensorStoreLoadOp storeLoadOp -> {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);

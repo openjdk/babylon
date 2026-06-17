@@ -419,7 +419,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     private String findLoadVariance(Value tensorVar, Op op) {
         String varianceName = null;
         switch (op) {
-            case HATTensorOp.TensorStoreLoadOp storeLoadOp -> {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);
@@ -446,7 +446,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     private Value findShape(Value tensorVar, Op op) {
         Value shape = null;
         switch (op) {
-            case HATTensorOp.TensorStoreLoadOp storeLoadOp -> {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);
@@ -760,7 +760,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     private CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
         var tensorStoreLoadValue = tensorLoadOp.op().result().uses().getFirst();
-        if (tensorStoreLoadValue.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
+        if (tensorStoreLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp tensorStoreLoadOp) {
             Value first = tensorStoreLoadOp.operands().getFirst();
             if (first.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
                 return tensorVarOp;
