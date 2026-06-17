@@ -981,6 +981,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *     wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
+     * </code>
+     * </p>
+     *
+     * @param tensorLoadOp
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
     @Override
     protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoadOp) {
         // Find name tensor of the first argument
@@ -988,7 +1001,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         SequencedSet<Op.Result> uses = tensorLoadOp.op().result().uses();
         VarOp tensorVarOp = null;
         for (Op.Result result : uses) {
-            if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
+            if (result.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp storeLoadOp) {
                 // obtain first arg from tensorStoreOp
                 Value first = storeLoadOp.operands().getFirst();
                 if (first.declaringElement() instanceof VarOp varOp) {
