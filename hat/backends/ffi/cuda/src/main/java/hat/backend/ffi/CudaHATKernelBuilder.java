@@ -942,6 +942,23 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
     }
 
+    @Override
+    public CudaHATKernelBuilder hatTensorMMA(Invoke tensorMMAOp) {
+        var resulTensorValue = tensorMMAOp.op().operands().getFirst();
+        var tensorAValue = tensorMMAOp.op().operands().get(1);
+        var tensorBValue = tensorMMAOp.op().operands().get(2);
+        var tensorCValue = tensorMMAOp.op().operands().get(3);
+        var tensorA = findTensorVarOp(tensorAValue);
+        var tensorB = findTensorVarOp(tensorBValue);
+        var tensorC = findTensorVarOp(tensorCValue);
+        var tensorResult = findTensorVarOp(resulTensorValue);
+        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
+            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+        }
+        List<VarOp> operands = List.of(tensorResult, tensorA, tensorB, tensorC);
+        return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
+    }
+
     private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoadOp, boolean isColumnMajor, String tensorName) {
         // First operand is the reference to global memory
         List<Value> operands = tensorLoadOp.op().operands();

@@ -748,6 +748,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
     }
 
+    @Override
+    public OpenCLHATKernelBuilder hatTensorMMA(OpHelper.Invoke tensorMMAOp) {
+        var resulTensorValue = tensorMMAOp.op().operands().getFirst();
+        var tensorAValue = tensorMMAOp.op().operands().get(1);
+        var tensorBValue = tensorMMAOp.op().operands().get(2);
+        var tensorCValue = tensorMMAOp.op().operands().get(3);
+        var tensorA = findTensorVarOp(tensorAValue);
+        var tensorB = findTensorVarOp(tensorBValue);
+        var tensorC = findTensorVarOp(tensorCValue);
+        var tensorResult = findTensorVarOp(resulTensorValue);
+        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
+            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+        }
+        List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
+        return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
+    }
+
     private CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
         var tensorStoreLoadValue = tensorLoadOp.op().result().uses().getFirst();
         if (tensorStoreLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp tensorStoreLoadOp) {

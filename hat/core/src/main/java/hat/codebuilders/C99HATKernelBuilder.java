@@ -898,6 +898,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case "shape" -> self();
             case "store" -> hatTensorStore(invoke);
             case "load", "loadF16" -> hatTensorLoad(invoke);
+            case "mma" -> hatTensorMMA(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
     }
@@ -1352,6 +1353,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T hatTensorStore(Invoke invoke);
 
     protected abstract T hatTensorLoad(Invoke invoke);
+
+    protected abstract T hatTensorMMA(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 

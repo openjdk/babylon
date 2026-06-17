@@ -101,7 +101,10 @@ public record HATTensorsPhase() implements HATPhase {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorMMAOp(invokeOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> {
+                    blockBuilder.add(invokeOp);
+                    //replaceOp(blockBuilder, invokeOp, new TensorMMAOp(invokeOp.resultType(), operands));
+                }
                 default -> blockBuilder.add(op);
             }
         }
@@ -150,6 +153,7 @@ public record HATTensorsPhase() implements HATPhase {
 
     private static final MethodRef CREATE_FUNCTION = MethodRef.method(TensorMarkers.class, "create", Tensor.class);
     private static final MethodRef FILL_FUNCTION = MethodRef.method(Tensor.class, "fill", void.class, Tensor.class, float.class);
+    private static final MethodRef MMA_FUNCTION = MethodRef.method(Tensor.class, "mma", Tensor.class, Tensor.class, Tensor.class, Tensor.class);
 
     private void appendTensorDeclarationToBlock0(List<DeclTensorData> declTensorList, Block.Builder blockBuilder, Map<CoreOp.VarOp, Value> mapValueTensor, VarTable varTable, String functionName) {
         // And add the missing declarations
@@ -428,7 +432,9 @@ public record HATTensorsPhase() implements HATPhase {
                     args.add(op1);
                     args.addAll(blockBuilder.context().getValues(invokeOp.operands()));
 
-                    TensorMMAOp tensorMMAOp = new TensorMMAOp(invokeOp.resultType(), args);
+                    JavaOp.InvokeOp tensorMMAOp = JavaOp.invoke(MMA_FUNCTION, args);
+                    //TensorMMAOp tensorMMAOp = new TensorMMAOp(invokeOp.resultType(), args);
+
                     tensorMMAOp.setLocation(invokeOp.location());
                     Op.Result op2 = blockBuilder.add(tensorMMAOp);
                     blockBuilder.context().mapValue(invokeOp.result(), op2);

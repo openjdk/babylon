@@ -245,7 +245,7 @@ public class HATPhaseUtils {
     }
 
     public static boolean isReturnTensorValueOperation(OpHelper.Invoke invoke) {
-        return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|shape|load|loadF16");
+        return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|shape|load|loadF16|mma");
     }
 
     public static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {
