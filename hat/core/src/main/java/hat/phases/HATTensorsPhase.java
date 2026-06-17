@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;
 import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
@@ -395,20 +396,13 @@ public record HATTensorsPhase() implements HATPhase {
     }
 
     private CoreOp.FuncOp mmaTensorWithStore(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
+        Set<Op> opsToProcess = OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("mma"))
-                .forEach(invoke -> {
-                    Value varValue = invoke.op().result().uses().getFirst();
-                    if (varValue.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
-                        opsToProcess.add(invoke.op());
-                        opsToProcess.add(varStoreOp);
-                    }
-                });
+                .map(OpHelper::op)
+                .collect(Collectors.toSet());
 
-        Map<Op, Value> map = new HashMap<>();
         CoreOp.FuncOp finalFuncOp = funcOp;
         funcOp = funcOp.transform((blockBuilder, op) -> {
             if (!opsToProcess.contains(op)) {
@@ -432,13 +426,9 @@ public record HATTensorsPhase() implements HATPhase {
                     tensorMMAOp.setLocation(invokeOp.location());
                     Op.Result op2 = blockBuilder.add(tensorMMAOp);
                     blockBuilder.context().mapValue(invokeOp.result(), op2);
-                    map.put(varStoreOp, op2);
                 } else {
                     throw new IllegalStateException("Expected a VarStoreOp, but found " + result.op());
                 }
-            } else if (op instanceof CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
-                // Passthrough value with the latest op inserted into the tree
-                blockBuilder.context().mapValue(varStoreOp.result(), map.get(varStoreOp));
             }
             return blockBuilder;
         });
