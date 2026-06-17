@@ -58,6 +58,7 @@ import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
 import static hat.phases.HATPhaseUtils.mapLane;
 import static hat.phases.HATPhaseUtils.reduceFloatType;
 import static hat.phases.HATPhaseUtils.reduceFloatTypeFromReturnType;
+import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
@@ -862,7 +863,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value valueAccessLayout;
         List<Integer> shape;
         // otherwise, we have to inspect the shape from the TensorLoadOp
-        if (v.declaringElement() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+        if (v.declaringElement() instanceof VarOp tensorVarOp) {
             Value tensorValue = tensorVarOp.result();
             // Inspect the code-model to reach the MMA op and determine the ordering of matrices
             int indexOrdering = getTensorOrder(tensorValue);
@@ -903,10 +904,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
         Value operand = hatTensorVarLoadOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
+        if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarOp tensorVarOp) {
             varName(tensorVarOp.varName());
         } else {
-            throw new IllegalStateException("[ERROR] Expected HATTensorVarOp");
+            throw new IllegalStateException("[ERROR] Expected VarOp");
         }
         return self();
     }
@@ -922,11 +923,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private static HATTensorOp.TensorVarOp findTensorVarOp(Value varLoadOp) {
+    private static CoreOp.VarOp findTensorVarOp(Value varLoadOp) {
         return switch (varLoadOp.declaringElement()) {
             case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
-            case HATTensorOp.TensorVarOp tensorVarOp -> tensorVarOp;
+            //case HATTensorOp.TensorVarOp tensorVarOp -> tensorVarOp;
+            case CoreOp.VarOp varOp -> varOp;
             case null, default -> null;
         };
     }
@@ -944,7 +946,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
             throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
         }
-        List<HATTensorOp.TensorVarOp> operands = List.of(tensorResult, tensorA, tensorB, tensorC);
+        List<VarOp> operands = List.of(tensorResult, tensorA, tensorB, tensorC);
         return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
     }
 
@@ -985,12 +987,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         // Find name tensor of the first argument
         String tensorName = "";
         SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
-        HATTensorOp.TensorVarOp tensorVarOp = null;
+        VarOp tensorVarOp = null;
         for (Op.Result result : uses) {
             if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
                 // obtain first arg from tensorStoreOp
                 Value first = storeLoadOp.operands().getFirst();
-                if (first.declaringElement() instanceof HATTensorOp.TensorVarOp varOp) {
+                if (first.declaringElement() instanceof VarOp varOp) {
                     tensorVarOp = varOp;
                     tensorName = tensorVarOp.varName();
                 }
@@ -1034,7 +1036,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             Value tensorToStore = operands.get(3);
             Value ldSize = operands.get(4);
 
-            HATTensorOp.TensorVarOp tensorVarOp = findTensorVarOp(tensorToStore);
+            CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorToStore);
+            assert tensorVarOp != null;
 
             recurseResultOrThrow(reference)
                     .rarrow().id(ARRAY)
