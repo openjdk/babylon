@@ -303,11 +303,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     }
 
     @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
-        return blockComment("Not supported yet");
-    }
-
-    @Override
     public OpenCLJExtractedHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
         return blockComment("Not supported yet");
     }

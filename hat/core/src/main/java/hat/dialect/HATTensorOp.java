@@ -47,36 +47,6 @@ public abstract sealed class HATTensorOp extends HATOp {
         super(that, cc);
     }
 
-    public static final class TensorCreateOp extends HATTensorOp implements Precedence.Invoke {
-
-        private final CodeType codeType;
-
-        public TensorCreateOp(CodeType codeType, List<Value> operands) {
-            super(operands);
-            this.codeType = codeType;
-        }
-
-        public TensorCreateOp(TensorCreateOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.codeType = op.codeType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new TensorCreateOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public String externalizeOpName() {
-            return "hat.dialect.Tensor.CreateOp";
-        }
-    }
-
     public static final class TensorVarLoadOp extends HATTensorOp implements Precedence.LoadOrConv  {
 
         private final CodeType codeType;
@@ -84,7 +54,6 @@ public abstract sealed class HATTensorOp extends HATOp {
         public TensorVarLoadOp(CodeType codeType, List<Value> operands) {
             super(operands);
             this.codeType = codeType;
-
         }
 
         public TensorVarLoadOp(TensorVarLoadOp op, CodeContext copyContext) {
@@ -135,36 +104,6 @@ public abstract sealed class HATTensorOp extends HATOp {
         @Override
         public String externalizeOpName() {
             return "hat.dialect.Tensor.fill";
-        }
-    }
-
-    public static final class TensorZerosOp extends HATTensorOp implements Precedence.Invoke {
-
-        private final CodeType codeType;
-
-        public TensorZerosOp(CodeType codeType, List<Value> operands) {
-            super(operands);
-            this.codeType = codeType;
-        }
-
-        public TensorZerosOp(TensorZerosOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.codeType = op.codeType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new TensorZerosOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public String externalizeOpName() {
-            return "hat.dialect.Tensor.Zeros";
         }
     }
 
