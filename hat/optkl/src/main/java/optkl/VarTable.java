@@ -39,6 +39,7 @@ public class VarTable {
         NARROW,
         VECTOR,
         TENSOR,
+        TENSOR_SHAPE,
     }
 
     /**

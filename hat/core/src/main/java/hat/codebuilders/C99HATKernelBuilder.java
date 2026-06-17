@@ -883,6 +883,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case "create" -> hatTensorCreateOperation(invoke);
             case "zeros" -> hatTensorCreateOperation(invoke);
             case "fill" -> hatTensorFill(invoke);
+            case "shape" -> self();
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
     }
@@ -1041,6 +1042,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 case SHARED -> varOpLocalMemory(varOp);
                 case PRIVATE -> varOpPrivateMemory(varOp);
                 case TENSOR -> varOpTensor(varOp);
+                case TENSOR_SHAPE -> self();
                 case null -> genericVarOp(varOp);
                 default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
             }
@@ -1322,7 +1324,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public T hatTensorShapeOp(HATTensorOp.TensorShapeOp tensorShapeOp) {
         return self();
     }
-
 
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 

@@ -329,32 +329,20 @@ public record HATTensorsPhase() implements HATPhase {
                                 .filter(result -> (result.op() instanceof CoreOp.VarOp))
                                 .map(result -> (CoreOp.VarOp) result.op())
                                 .findFirst()
-                                .ifPresent(x -> {
+                                .ifPresent(varOp -> {
                                     // We only process shape with a node in the case of a declaration.
                                     // Otherwise, we process the shape via a Java Invoke.
-                                    opsToProcess.add(x);
-                                    opsToProcess.add(invoke.op());
+                                    opsToProcess.add(varOp);
                                 }));
 
-        Map<Op, Value> map = new HashMap<>();
         CoreOp.FuncOp finalFuncOp = funcOp;
         funcOp = funcOp.transform((blockBuilder, op) -> {
             if (!opsToProcess.contains(op)) {
                 Op.Result opNew = blockBuilder.add(op);
                 varTable.passthrough(finalFuncOp.funcName(), op, opNew.op());
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                List<Value> operands = blockBuilder.context().getValues(op.operands());
-                Op.Result valueVar = invokeOp.result().uses().getFirst();
-                if (valueVar.declaringElement() instanceof CoreOp.VarOp varOp) {
-                    TensorShapeOp tensorShapeOp = new TensorShapeOp(varOp.resultType(), operands);
-                    Op.Result result = blockBuilder.add(tensorShapeOp);
-                    blockBuilder.context().mapValue(invokeOp.result(), result);
-                    map.put(varOp, result);
-                } else {
-                    throw new IllegalStateException("Expected a VarOp");
-                }
             } else if (op instanceof CoreOp.VarOp varOp) {
-                blockBuilder.context().mapValue(varOp.result(), map.get(varOp));
+                Op.Result tensorShape = blockBuilder.add(varOp);
+                varTable.addIfNeededOrThrow(finalFuncOp.funcName(), tensorShape.op(), VarTable.HATOpAttribute.TENSOR_SHAPE);
             }
             return blockBuilder;
         });

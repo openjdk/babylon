@@ -221,11 +221,17 @@ public class HATPhaseUtils {
             return true;
         } else if (isTensorFillOperation(invoke)) {
             return true;
-        } else return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros");
+        } else if (isTensorShape(invoke)) {
+            return true;
+        } else return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|shape");
     }
 
     public static boolean isTensorFillOperation(OpHelper.Invoke invoke) {
         return invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("fill");
+    }
+
+    public static boolean isTensorShape(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(Tensor.Shape.class) && invoke.nameMatchesRegex("shape");
     }
 
     public static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {
