@@ -411,59 +411,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return constant("1");
     }
 
-    private String findLoadVariance(Value tensorVar, Value v) {
-        return v instanceof Op.Result r ? findLoadVariance(tensorVar, r.op()) : null;
-    }
-
-    private String findLoadVariance(Value tensorVar, Op op) {
-        String varianceName = null;
-        switch (op) {
-            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
-                Value tensorToStore = storeLoadOp.operands().getFirst();
-                if (tensorToStore.equals(tensorVar)) {
-                    Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
-                        return tensorLoadOp.invokeReference().name();
-                    }
-                }
-            }
-            default -> {
-                for (Op.Result use : op.result().uses()) {
-                    if ((varianceName = findLoadVariance(tensorVar, use)) != null) {
-                        return varianceName;
-                    }
-                }
-            }
-        }
-        return varianceName;
-    }
-
-    private Value findShape(Value tensorVar, Value v) {
-        return v instanceof Op.Result r ? findShape(tensorVar, r.op()) : null;
-    }
-
-    private Value findShape(Value tensorVar, Op op) {
-        Value shape = null;
-        switch (op) {
-            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
-                Value tensorToStore = storeLoadOp.operands().getFirst();
-                if (tensorToStore.equals(tensorVar)) {
-                    Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
-                        return tensorLoadOp.operands().get(4); // SHAPE
-                    }
-                }
-            }
-            default -> {
-                for (Op.Result use : op.result().uses()) {
-                    if ((shape = findShape(tensorVar, use)) != null) {
-                        return shape;
-                    }
-                }
-            }
-        }
-        return shape;
-    }
 
     private OpenCLHATKernelBuilder generateHatTensorCreate(List<Integer> shape, Object klass, String varTensorName, Value v) {
         final int sizeToAllocate = shape.get(0) * shape.get(1);
@@ -524,25 +471,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         } else {
             return createTensorAccumulator(invoke);
         }
-    }
-
-    private static CoreOp.VarOp findTensorVarOp(Value varLoadOp) {
-        return switch (varLoadOp.declaringElement()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
-            case CoreOp.VarOp varOp -> varOp;
-            case null, default -> null;
-        };
-    }
-
-    private static float getValueConstantTensor(Value v) {
-        if ((v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constant)) {
-            Object valueConstant = constant.value();
-            return (float) valueConstant;
-
-        } else if (v instanceof Op.Result r) {
-            return getValueConstantTensor(r.op().operands().getFirst());
-        }
-        return -1.0f;
     }
 
     private String generateVariableName(String prefix) {

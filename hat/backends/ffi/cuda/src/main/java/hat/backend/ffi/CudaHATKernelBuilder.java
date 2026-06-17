@@ -43,7 +43,13 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
@@ -715,99 +721,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return operandIndex;
     }
 
-    private String findLoadVariance(Value tensorVar, Value v) {
-        return v instanceof Op.Result r ? findLoadVariance(tensorVar, r.op()) : null;
-    }
-
-    private String findLoadVariance(Value tensorVar, Op op) {
-        String varianceName = null;
-        switch (op) {
-            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
-                Value tensorToStore = storeLoadOp.operands().getFirst();
-                if (tensorToStore.equals(tensorVar)) {
-                    Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
-                        return tensorLoadOp.invokeReference().name();
-                    }
-                }
-            }
-            default -> {
-                for (Op.Result use : op.result().uses()) {
-                    if ((varianceName = findLoadVariance(tensorVar, use)) != null) {
-                        return varianceName;
-                    }
-                }
-            }
-        }
-        return varianceName;
-    }
-
-    private Value findAccessLayout(Value tensorVar, Value v) {
-        return v instanceof Op.Result r ? findAccessLayout(tensorVar, r.op()) : null;
-    }
-
-    private Value findAccessLayout(Value tensorVar, Op op) {
-        Value valueLayout = null;
-        switch (op) {
-            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
-                Value tensorToStore = storeLoadOp.operands().getFirst();
-                if (tensorToStore.equals(tensorVar)) {
-                    Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
-                        if (tensorLoadOp.operands().size() == INDEX_ACCESS + 1) {
-                            return tensorLoadOp.operands().getLast();
-                        } else {
-                            return null;
-                        }
-                    }
-                }
-            }
-            default -> {
-                for (Op.Result use : op.result().uses()) {
-                    if ((valueLayout = findAccessLayout(tensorVar, use)) != null) {
-                        return valueLayout;
-                    }
-                }
-            }
-        }
-        return valueLayout;
-    }
-
-    public Value findShape(Value tensorVar, Value v) {
-        return v instanceof Op.Result r ? findShape(tensorVar, r.op()) : null;
-    }
-
-    // ABI
-    private static final int INDEX_LOAD = 0;
-    private static final int INDEX_ROW = 1;
-    private static final int INDEX_COL = 2;
-    private static final int INDEX_LDD = 3;
-    private static final int INDEX_SHAPE = 4;
-    private static final int INDEX_ACCESS = 5;
-
-    private Value findShape(Value tensorVar, Op op) {
-        Value shape = null;
-        switch (op) {
-            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
-                Value tensorToStore = storeLoadOp.operands().getFirst();
-                if (tensorToStore.equals(tensorVar)) {
-                    Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
-                        return tensorLoadOp.operands().get(INDEX_SHAPE);
-                    }
-                }
-            }
-            default -> {
-                for (Op.Result use : op.result().uses()) {
-                    if ((shape = findShape(tensorVar, use)) != null) {
-                        return shape;
-                    }
-                }
-            }
-        }
-        return shape;
-    }
-
     private static final Map<Integer, String> tensorOrderTable = new HashMap<>();
     private static final int DEFAULT_TENSOR_ORDERING = -1;
     static {
@@ -904,20 +817,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private static CoreOp.VarOp findTensorVarOp(Value varLoadOp) {
-        return switch (varLoadOp.declaringElement()) {
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
-            case CoreOp.VarOp varOp -> varOp;
-            case null, default -> null;
-        };
-    }
-
     @Override
-    public CudaHATKernelBuilder hatTensorMMA(Invoke tensorMMAOp) {
-        var resulTensorValue = tensorMMAOp.op().operands().getFirst();
-        var tensorAValue = tensorMMAOp.op().operands().get(1);
-        var tensorBValue = tensorMMAOp.op().operands().get(2);
-        var tensorCValue = tensorMMAOp.op().operands().get(3);
+    public CudaHATKernelBuilder hatTensorMMA(Invoke tensorMMA) {
+        var resulTensorValue = tensorMMA.op().operands().getFirst();
+        var tensorAValue = tensorMMA.op().operands().get(1);
+        var tensorBValue = tensorMMA.op().operands().get(2);
+        var tensorCValue = tensorMMA.op().operands().get(3);
         var tensorA = findTensorVarOp(tensorAValue);
         var tensorB = findTensorVarOp(tensorBValue);
         var tensorC = findTensorVarOp(tensorCValue);
@@ -929,9 +834,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
     }
 
-    private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoadOp, boolean isColumnMajor, String tensorName) {
+    private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoad, boolean isColumnMajor, String tensorName) {
         // First operand is the reference to global memory
-        List<Value> operands = tensorLoadOp.op().operands();
+        List<Value> operands = tensorLoad.op().operands();
         Value reference = operands.getFirst();
         id(WMMA_LOAD_TENSOR)
                 .paren(_ -> {
@@ -957,15 +862,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * </code>
      * </p>
      *
-     * @param tensorLoadOp
+     * @param tensorLoad
      *
      * @return {@link CudaHATKernelBuilder}
      */
     @Override
-    protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoadOp) {
+    protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoad) {
         // Find name tensor of the first argument
         String tensorName = "";
-        SequencedSet<Op.Result> uses = tensorLoadOp.op().result().uses();
+        SequencedSet<Op.Result> uses = tensorLoad.op().result().uses();
         VarOp tensorVarOp = null;
         for (Op.Result result : uses) {
             if (result.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp storeLoadOp) {
@@ -979,11 +884,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         boolean isColumnMajor = false;
-        if (tensorVarOp != null && tensorLoadOp.op().operands().size() > 5) {
-            Value value = tensorLoadOp.op().operands().getLast();
+        if (tensorVarOp != null && tensorLoad.op().operands().size() > 5) {
+            Value value = tensorLoad.op().operands().getLast();
             isColumnMajor = isColumnMajor(value);
         }
-        return generateLoadTensor(tensorLoadOp, isColumnMajor, tensorName);
+        return generateLoadTensor(tensorLoad, isColumnMajor, tensorName);
     }
 
     /**
@@ -1039,17 +944,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * </code>
      * </p>
      *
-     * @param tensorStoreOp
+     * @param tensorStore
      *
      * @return {@link CudaHATKernelBuilder}
      */
     @Override
-    protected CudaHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreOp) {
-        List<Value> operands = tensorStoreOp.op().operands();
+    protected CudaHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStore) {
+        List<Value> operands = tensorStore.op().operands();
         // Access layout is the last operand
         final boolean isColumnMajor;
         // Since the Access Layout is an optional parameter, we check
-        if (tensorStoreOp.op().operands().size() == 6) {
+        if (tensorStore.op().operands().size() == 6) {
             isColumnMajor = isColumnMajor(operands.getLast());
         } else {
             // use row major by default

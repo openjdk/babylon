@@ -1297,6 +1297,118 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return shape;
     }
 
+    protected static CoreOp.VarOp findTensorVarOp(Value value) {
+        return switch (value.declaringElement()) {
+            case CoreOp.VarAccessOp.VarLoadOp varlOadOp -> findTensorVarOp(varlOadOp.operands().getFirst());
+            case CoreOp.VarOp varOp -> varOp;
+            case null, default -> null;
+        };
+    }
+
+    protected static float getValueConstantTensor(Value v) {
+        if ((v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constant)) {
+            Object valueConstant = constant.value();
+            return (float) valueConstant;
+
+        } else if (v instanceof Op.Result r) {
+            return getValueConstantTensor(r.op().operands().getFirst());
+        }
+        return -1.0f;
+    }
+
+    // Tensor Load ABI
+    protected static final int INDEX_LOAD = 0;
+    protected static final int INDEX_ROW = 1;
+    protected static final int INDEX_COL = 2;
+    protected static final int INDEX_LDD = 3;
+    protected static final int INDEX_SHAPE = 4;
+    protected static final int INDEX_ACCESS = 5;
+
+    protected Value findShape(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findShape(tensorVar, r.op()) : null;
+    }
+
+    protected Value findShape(Value tensorVar, Op op) {
+        Value shape = null;
+        switch (op) {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
+                        return tensorLoadOp.operands().get(INDEX_SHAPE);
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((shape = findShape(tensorVar, use)) != null) {
+                        return shape;
+                    }
+                }
+            }
+        }
+        return shape;
+    }
+
+    protected Value findAccessLayout(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findAccessLayout(tensorVar, r.op()) : null;
+    }
+
+    protected Value findAccessLayout(Value tensorVar, Op op) {
+        Value valueLayout = null;
+        switch (op) {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
+                        if (tensorLoadOp.operands().size() == INDEX_ACCESS + 1) {
+                            return tensorLoadOp.operands().getLast();
+                        } else {
+                            return null;
+                        }
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((valueLayout = findAccessLayout(tensorVar, use)) != null) {
+                        return valueLayout;
+                    }
+                }
+            }
+        }
+        return valueLayout;
+    }
+
+    protected String findLoadVariance(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findLoadVariance(tensorVar, r.op()) : null;
+    }
+
+    protected String findLoadVariance(Value tensorVar, Op op) {
+        String varianceName = null;
+        switch (op) {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
+                        return tensorLoadOp.invokeReference().name();
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((varianceName = findLoadVariance(tensorVar, use)) != null) {
+                        return varianceName;
+                    }
+                }
+            }
+        }
+        return varianceName;
+    }
+
     protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
         Value a = isColumnMajor ? iIndex : jIndex;
         Value b = isColumnMajor ? jIndex : iIndex;
