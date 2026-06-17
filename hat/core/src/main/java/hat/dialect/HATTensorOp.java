@@ -106,35 +106,4 @@ public abstract sealed class HATTensorOp extends HATOp {
             return "hat.dialect.Tensor.MMA";
         }
     }
-
-    public static final class TensorStoreLoadOp extends HATTensorOp implements Precedence.Store  {
-
-        private final CodeType codeType;
-
-        public TensorStoreLoadOp(CodeType codeType, List<Value> operands) {
-            super(operands);
-            this.codeType = codeType;
-
-        }
-
-        public TensorStoreLoadOp(TensorStoreLoadOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.codeType = op.codeType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new TensorStoreLoadOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public String externalizeOpName() {
-            return "hat.dialect.TensorStoreLoadOp";
-        }
-    }
 }

@@ -748,16 +748,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
     }
 
-
-    @Override
-    public OpenCLHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp storeLoadOp) {
-        List<Value> operands = storeLoadOp.operands();
-        if (operands.getLast() instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        return self();
-    }
-
     private CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
         var tensorStoreLoadValue = tensorLoadOp.op().result().uses().getFirst();
         if (tensorStoreLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp tensorStoreLoadOp) {

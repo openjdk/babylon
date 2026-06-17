@@ -107,22 +107,6 @@ public record HATTensorsPhase() implements HATPhase {
         }
     }
 
-    private static class TensorLoad implements TensorTransformer {
-
-        @Override
-        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-            //List<Value> operands = blockBuilder.context().getValues(op.operands());
-            switch (op) {
-                case CoreOp.VarAccessOp.VarStoreOp storeOp -> {
-                    blockBuilder.add(storeOp);
-                    //replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
-                }
-                case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
-                default -> blockBuilder.add(op);
-            }
-        }
-    }
-
     private CoreOp.FuncOp transformWithPredicate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, TensorTransformer function, Set<Op> opsToProcess, VarTable varTable) {
         return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
             function.transform(funcOp, blockBuilder, op, varTable);
@@ -234,11 +218,7 @@ public record HATTensorsPhase() implements HATPhase {
                     throw new IllegalStateException("Expected an invokeOp");
                 }
 
-                List<Value> operands = List.of(tensorVarOp, v);
-                //VarType varType = CoreType.varType(VOID);
                 CoreOp.VarAccessOp.VarStoreOp varStoreOp = CoreOp.varStore(tensorVarOp, v);
-                //TensorStoreLoadOp storeOp = new TensorStoreLoadOp(varType, operands);
-
                 Op.Result storeResult = blockBuilder.add(varStoreOp);
                 blockBuilder.context().mapValue(varOp.result(), storeResult);
 
@@ -465,22 +445,6 @@ public record HATTensorsPhase() implements HATPhase {
         return funcOp;
     }
 
-    private CoreOp.FuncOp tensorLoad(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(invoke -> !invoke.returnsVoid())
-                .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals("load") || invoke.name().equals("loadF16"))
-                .forEach(invoke -> {
-                    opsToProcess.add(invoke.op());
-                    invoke.op().result().uses().stream()
-                            .filter(result -> (result.op() instanceof CoreOp.VarAccessOp.VarStoreOp))
-                            .map(result -> (CoreOp.VarAccessOp.VarStoreOp) result.op())
-                            .forEach(opsToProcess::add);
-                });
-        return transformWithPredicate(lookup, funcOp, new TensorLoad(), opsToProcess, varTable);
-    }
-
     @FunctionalInterface
     private interface ActionTensorTransformer {
         CoreOp.FuncOp apply(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable);
@@ -504,6 +468,5 @@ public record HATTensorsPhase() implements HATPhase {
         tensorTransformer.add(this::zerosTensors);
         tensorTransformer.add(this::mmaTensor);
         tensorTransformer.add(this::mmaTensorWithStore);
-        tensorTransformer.add(this::tensorLoad);     // this phase could be removed
     }
 }

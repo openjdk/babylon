@@ -942,26 +942,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
     }
 
-    /**
-     * Example of code being generated:
-     *
-     * <p>
-     * <code>
-     *     wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
-     * </code>
-     * </p>
-     *
-     * @param hatTensorStoreLoadOp
-     *
-     * @return {@link CudaHATKernelBuilder}
-     */
-    @Override
-    public CudaHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp hatTensorStoreLoadOp) {
-        List<Value> operands = hatTensorStoreLoadOp.operands();
-        recurseResultOrThrow(operands.getLast());
-        return self();
-    }
-
     private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoadOp, boolean isColumnMajor, String tensorName) {
         // First operand is the reference to global memory
         List<Value> operands = tensorLoadOp.op().operands();
