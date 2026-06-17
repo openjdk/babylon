@@ -117,10 +117,7 @@ public record HATTensorsPhase() implements HATPhase {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case CoreOp.VarAccessOp.VarStoreOp storeOp -> replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> {
-                    blockBuilder.add(invokeOp);
-                    //replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), invokeOp.invokeReference().name(), operands));
-                }
+                case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
                 default -> blockBuilder.add(op);
             }
         }
@@ -303,7 +300,7 @@ public record HATTensorsPhase() implements HATPhase {
                             .ifPresent(opsToProcess::add);
                 });
 
-        return transformWithPredicate(lookup, funcOp, new TensorView()::transform, opsToProcess, varTable);
+        return transformWithPredicate(lookup, funcOp, new TensorView(), opsToProcess, varTable);
     }
 
     private CoreOp.FuncOp tensorShape(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
@@ -317,11 +314,7 @@ public record HATTensorsPhase() implements HATPhase {
                                 .filter(result -> (result.op() instanceof CoreOp.VarOp))
                                 .map(result -> (CoreOp.VarOp) result.op())
                                 .findFirst()
-                                .ifPresent(varOp -> {
-                                    // We only process shape with a node in the case of a declaration.
-                                    // Otherwise, we process the shape via a Java Invoke.
-                                    opsToProcess.add(varOp);
-                                }));
+                                .ifPresent(opsToProcess::add));
 
         CoreOp.FuncOp finalFuncOp = funcOp;
         funcOp = funcOp.transform((blockBuilder, op) -> {
@@ -356,7 +349,7 @@ public record HATTensorsPhase() implements HATPhase {
 
     private CoreOp.FuncOp fillTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = filterOps(lookup, funcOp, "fill");
-        return transformWithPredicate(lookup, funcOp, new TensorFill()::transform, opsToProcess, varTable);
+        return transformWithPredicate(lookup, funcOp, new TensorFill(), opsToProcess, varTable);
     }
 
     private CoreOp.FuncOp zerosTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
@@ -417,7 +410,7 @@ public record HATTensorsPhase() implements HATPhase {
 
     private CoreOp.FuncOp mmaTensor(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = filterOps(lookup, funcOp, "mma");
-        return transformWithPredicate(lookup, funcOp, new TensorMMA()::transform, opsToProcess, varTable);
+        return transformWithPredicate(lookup, funcOp, new TensorMMA(), opsToProcess, varTable);
     }
 
     private CoreOp.FuncOp mmaTensorWithStore(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
@@ -484,7 +477,7 @@ public record HATTensorsPhase() implements HATPhase {
                             .map(result -> (CoreOp.VarAccessOp.VarStoreOp) result.op())
                             .forEach(opsToProcess::add);
                 });
-        return transformWithPredicate(lookup, funcOp, new TensorLoad()::transform, opsToProcess, varTable);
+        return transformWithPredicate(lookup, funcOp, new TensorLoad(), opsToProcess, varTable);
     }
 
     @FunctionalInterface
