@@ -52,7 +52,6 @@ import java.util.Set;
 import static hat.dialect.HATTensorOp.TensorLoadOp;
 import static hat.dialect.HATTensorOp.TensorMMAOp;
 import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
-import static hat.dialect.HATTensorOp.TensorStoreOp;
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;
 import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
 import static jdk.incubator.code.dialect.java.JavaType.FLOAT;
@@ -121,19 +120,6 @@ public record HATTensorsPhase() implements HATPhase {
                 case CoreOp.VarAccessOp.VarStoreOp storeOp -> replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
                 case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), invokeOp.invokeReference().name(), operands));
                 default -> blockBuilder.add(op);
-            }
-        }
-    }
-
-    private static class TensorStore implements TensorTransformer {
-
-        @Override
-        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-            if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
-                blockBuilder.add(invokeOp);
-                //replaceOp(blockBuilder, invokeOp, new TensorStoreOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
-            } else {
-                blockBuilder.add(op);
             }
         }
     }
@@ -499,16 +485,6 @@ public record HATTensorsPhase() implements HATPhase {
         return transformWithPredicate(lookup, funcOp, new TensorLoad()::transform, opsToProcess, varTable);
     }
 
-    private CoreOp.FuncOp tensorStoreOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(OpHelper.Invoke::returnsVoid)
-                .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals("store"))
-                .forEach(invoke -> opsToProcess.add(invoke.op()));
-        return transformWithPredicate(lookup, funcOp, new TensorStore()::transform, opsToProcess, varTable);
-    }
-
     @FunctionalInterface
     private interface ActionTensorTransformer {
         CoreOp.FuncOp apply(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable);
@@ -533,6 +509,5 @@ public record HATTensorsPhase() implements HATPhase {
         tensorTransformer.add(this::mmaTensor);
         tensorTransformer.add(this::mmaTensorWithStore);
         tensorTransformer.add(this::tensorLoad);     // this phase could be removed
-        tensorTransformer.add(this::tensorStoreOp);  // this phase could be removed
     }
 }

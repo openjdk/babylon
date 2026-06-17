@@ -175,33 +175,4 @@ public abstract sealed class HATTensorOp extends HATOp {
         }
     }
 
-    public static final class TensorStoreOp extends HATTensorOp implements Precedence.LoadOrConv {
-
-        private final CodeType codeType;
-
-        public TensorStoreOp(CodeType codeType, List<Value> operands) {
-            super(operands);
-            this.codeType = codeType;
-        }
-
-        public TensorStoreOp(TensorStoreOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.codeType = op.codeType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new TensorStoreOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public String externalizeOpName() {
-            return "hat.dialect.TensorStoreOp";
-        }
-    }
 }

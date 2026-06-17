@@ -1022,6 +1022,26 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     *  `int rowC = cRow + m;
+     *   for (int n = 0; n < WMMA_N; n++) {
+     *      int colC = cCol + n;
+     *      int idxC = (cRow) + (cCol) * ldc;
+     *      matrixC->array[idxC] = acc[m * 16 + n];
+     *   }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param tensorStoreOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     @Override
     protected OpenCLHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreOp) {
         // 1. We need the global ptr
@@ -1047,58 +1067,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         boolean isColumnMajor = false;
         if (tensorStoreOp.op().operands().size() > 5) {
-            isColumnMajor = isColumnMajor(operands.get(5));
-        }
-
-        generateTensorStore(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
-        return self();
-    }
-
-    /**
-     * Code example being generated:
-     *
-     * <p>
-     * <code>
-     *  for (int m = 0; m < WMMA_M; m++) {
-     *  `int rowC = cRow + m;
-     *   for (int n = 0; n < WMMA_N; n++) {
-     *      int colC = cCol + n;
-     *      int idxC = (cRow) + (cCol) * ldc;
-     *      matrixC->array[idxC] = acc[m * 16 + n];
-     *   }
-     * }
-     * </code>
-     * </p>
-     *
-     * @param tensorStoreOp
-     *
-     * @return {@link OpenCLHATKernelBuilder}
-     */
-    @Override
-    public OpenCLHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp) {
-        // 1. We need the global ptr
-        // 2. We need the indexes (i, j)
-        // 3. We need leading dimension
-        // 4. We need the name of the tensor
-        // 5. We need the shape
-        // 6. We need the access layout
-
-        List<Value> operands = tensorStoreOp.operands();
-        var ptrValue = operands.getFirst();
-        var iIndexValue = operands.get(1);
-        var jIndexValue = operands.get(2);
-        var tensorValue = operands.get(3);
-        var leadingDimension = operands.get(4);
-
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorValue);
-        if (tensorVarOp == null) {
-            throw new IllegalStateException("[Error][CodeGen] Expected to find a tensorVarOp, but `null` instead.");
-        }
-
-        var shape = getShapeFromTensorVarOp(tensorVarOp);
-
-        boolean isColumnMajor = false;
-        if (tensorStoreOp.operands().size() > 5) {
             isColumnMajor = isColumnMajor(operands.get(5));
         }
 
