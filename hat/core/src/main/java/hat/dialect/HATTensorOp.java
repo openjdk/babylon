@@ -76,34 +76,4 @@ public abstract sealed class HATTensorOp extends HATOp {
             return "hat.dialect.TensorVarLoadOp";
         }
     }
-
-    public static final class TensorMMAOp extends HATTensorOp implements Precedence.Invoke {
-
-        private final CodeType codeType;
-
-        public TensorMMAOp(CodeType codeType, List<Value> operands) {
-            super(operands);
-            this.codeType = codeType;
-        }
-
-        public TensorMMAOp(TensorMMAOp op, CodeContext copyContext) {
-            super(op, copyContext);
-            this.codeType = op.codeType;
-        }
-
-        @Override
-        public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
-            return new TensorMMAOp(this, copyContext);
-        }
-
-        @Override
-        public CodeType resultType() {
-            return codeType;
-        }
-
-        @Override
-        public String externalizeOpName() {
-            return "hat.dialect.Tensor.MMA";
-        }
-    }
 }

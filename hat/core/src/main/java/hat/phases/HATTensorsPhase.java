@@ -47,7 +47,6 @@ import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
 
-import static hat.dialect.HATTensorOp.TensorMMAOp;
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;
 import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
 import static jdk.incubator.code.dialect.java.JavaType.FLOAT;
@@ -101,10 +100,7 @@ public record HATTensorsPhase() implements HATPhase {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> {
-                    blockBuilder.add(invokeOp);
-                    //replaceOp(blockBuilder, invokeOp, new TensorMMAOp(invokeOp.resultType(), operands));
-                }
+                case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
                 default -> blockBuilder.add(op);
             }
         }
@@ -433,8 +429,6 @@ public record HATTensorsPhase() implements HATPhase {
                     args.addAll(blockBuilder.context().getValues(invokeOp.operands()));
 
                     JavaOp.InvokeOp tensorMMAOp = JavaOp.invoke(MMA_FUNCTION, args);
-                    //TensorMMAOp tensorMMAOp = new TensorMMAOp(invokeOp.resultType(), args);
-
                     tensorMMAOp.setLocation(invokeOp.location());
                     Op.Result op2 = blockBuilder.add(tensorMMAOp);
                     blockBuilder.context().mapValue(invokeOp.result(), op2);
