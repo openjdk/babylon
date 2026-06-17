@@ -27,6 +27,7 @@ package hat.phases;
 import hat.HATMath;
 import hat.device.NonMappableIface;
 import hat.types.S16ImplOfF16;
+import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
@@ -213,6 +214,12 @@ public class HATPhaseUtils {
 
     public static boolean isS16BinaryOp(OpHelper.Invoke invoke) {
         return is16BitFloat(invoke, Regex.of("(add|sub|mul|div)")) && !invoke.returnsVoid();
+    }
+
+    public static boolean isTensorOperation(OpHelper.Invoke invoke) {
+        if (!invoke.returnsVoid() && invoke.refIs(HATTensorsPhase.TensorMarkers.class) && invoke.nameMatchesRegex("create|of")) {
+            return true;
+        } else return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|fill");
     }
 
     public static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {

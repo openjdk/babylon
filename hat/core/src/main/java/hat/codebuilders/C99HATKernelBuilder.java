@@ -86,6 +86,7 @@ import static hat.phases.HATPhaseUtils.isS16BinaryOp;
 import static hat.phases.HATPhaseUtils.isS16Conversion;
 import static hat.phases.HATPhaseUtils.isS16ToFloatConversion;
 import static hat.phases.HATPhaseUtils.isSharedOrPrivate;
+import static hat.phases.HATPhaseUtils.isTensorOperation;
 import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
 import static hat.phases.HATPhaseUtils.isVectorOperation;
 import static hat.phases.HATPhaseUtils.isVectorSelectOperation;
@@ -878,6 +879,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         hatBinaryVectorOp(invoke);
     }
 
+    private void handleTensorOperation(Invoke invoke) {
+        switch (invoke.name()) {
+            case "create" -> hatTensorCreateOperation(invoke);
+            case "zeros" -> hatTensorCreateOperation(invoke);
+            default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
+        }
+    }
+
     private void handleIFaceInvoke(Invoke invoke) {
         if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
             if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
@@ -969,6 +978,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             handleS16ToFloatConversion(invoke);
         } else if (isS16BinaryOp(invoke)) {
             handleS16BinaryOperation(invoke);
+        } else if (isTensorOperation(invoke)) {
+            handleTensorOperation(invoke);
         } else if (isIFaceValue(invoke)) {
             handleIFaceInvoke(invoke);
         } else if (isMathOperation(invoke)) {
@@ -1220,21 +1231,22 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected List<Integer> getShapeFromTensorVarOp(CoreOp.VarOp tensorVarOp) {
         Value tensorCreateValueOp = tensorVarOp.operands().getFirst();
-        if (tensorCreateValueOp.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
+        if (tensorCreateValueOp.declaringElement() instanceof JavaOp.InvokeOp tensorCreateOp) {
             // First parameter: shapeValue
             Value valueShape = tensorCreateOp.operands().getFirst();
             return obtainShapeTensor(valueShape);
+        } else {
+            throw new IllegalStateException("Expected an InvokeOp, but found: " + tensorCreateValueOp.declaringElement().getClass());
         }
-        return List.of();
     }
 
     protected List<Integer> getShapeFromTensorCreateValue(Value tensorCreateValue) {
-        if (tensorCreateValue.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
-            // First parameters: analysis of the shape
-            Value valueShape = tensorCreateOp.operands().getFirst();
-            return obtainShapeTensor(valueShape);
+        if (tensorCreateValue.declaringElement() instanceof JavaOp.InvokeOp tensorInvokeOp) {
+            // The first parameter is the shape -> analysis of the shape
+            return obtainShapeTensor(tensorInvokeOp.operands().getFirst());
+        } else {
+            throw new IllegalStateException("Expected an InvokeOp, but found: " + tensorCreateValue.declaringElement().getClass());
         }
-        return List.of();
     }
 
     protected List<Integer> processShapeTensor(List<Value> shapeOperands, List<Integer> shape) {
@@ -1325,6 +1337,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
     protected abstract T varOpTensor(CoreOp.VarOp varOp);
+
+    protected abstract T hatTensorCreateOperation(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 
