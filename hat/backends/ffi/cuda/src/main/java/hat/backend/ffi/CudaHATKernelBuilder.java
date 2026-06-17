@@ -727,8 +727,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof HATTensorOp.TensorLoadOp tensorLoadOp) {
-                        return tensorLoadOp.getLoadVariance();
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
+                        return tensorLoadOp.invokeReference().name();
                     }
                 }
             }
@@ -754,7 +754,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof HATTensorOp.TensorLoadOp tensorLoadOp) {
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
                         if (tensorLoadOp.operands().size() == INDEX_ACCESS + 1) {
                             return tensorLoadOp.operands().getLast();
                         } else {
@@ -793,7 +793,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 Value tensorToStore = storeLoadOp.operands().getFirst();
                 if (tensorToStore.equals(tensorVar)) {
                     Value value = storeLoadOp.operands().get(1);
-                    if (value.declaringElement() instanceof HATTensorOp.TensorLoadOp tensorLoadOp) {
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
                         return tensorLoadOp.operands().get(INDEX_SHAPE);
                     }
                 }
@@ -1002,6 +1002,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp hatTensorStoreLoadOp) {
         List<Value> operands = hatTensorStoreLoadOp.operands();
+        recurseResultOrThrow(operands.getLast());
+        return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke hatTensorStoreLoadOp) {
+        List<Value> operands = hatTensorStoreLoadOp.op().operands();
         recurseResultOrThrow(operands.getLast());
         return self();
     }

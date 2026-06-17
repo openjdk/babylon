@@ -118,7 +118,10 @@ public record HATTensorsPhase() implements HATPhase {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case CoreOp.VarAccessOp.VarStoreOp storeOp -> replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), invokeOp.invokeReference().name(), operands));
+                case JavaOp.InvokeOp invokeOp -> {
+                    blockBuilder.add(invokeOp);
+                    //replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), invokeOp.invokeReference().name(), operands));
+                }
                 default -> blockBuilder.add(op);
             }
         }

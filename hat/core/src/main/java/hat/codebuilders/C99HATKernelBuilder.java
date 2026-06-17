@@ -880,11 +880,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void handleTensorOperation(Invoke invoke) {
         switch (invoke.name()) {
-            case "create" -> hatTensorCreateOperation(invoke);
-            case "zeros" -> hatTensorCreateOperation(invoke);
+            case "create", "zeros" -> hatTensorCreateOperation(invoke);
             case "fill" -> hatTensorFill(invoke);
             case "shape" -> self();
             case "store" -> hatTensorStore(invoke);
+            case "load", "loadF16" -> hatTensorLoad(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
     }
@@ -1337,6 +1337,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T hatTensorFill(Invoke invoke);
 
     protected abstract T hatTensorStore(Invoke invoke);
+
+    protected abstract T hatTensorLoad(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 

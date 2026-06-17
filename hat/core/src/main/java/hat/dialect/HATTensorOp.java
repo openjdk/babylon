@@ -143,7 +143,7 @@ public abstract sealed class HATTensorOp extends HATOp {
         private final CodeType codeType;
         private final String loadVariance;
 
-        public TensorLoadOp(CodeType codeType, String loadVariance,List<Value> operands) {
+        public TensorLoadOp(CodeType codeType, String loadVariance, List<Value> operands) {
             super(operands);
             this.codeType = codeType;
             this.loadVariance = loadVariance;
