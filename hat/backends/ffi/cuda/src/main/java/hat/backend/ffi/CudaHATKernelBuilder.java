@@ -962,11 +962,48 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    @Override
-    protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke hatTensorStoreLoadOp) {
-        List<Value> operands = hatTensorStoreLoadOp.op().operands();
-        recurseResultOrThrow(operands.getLast());
+    private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoadOp, boolean isColumnMajor, String tensorName) {
+        // First operand is the reference to global memory
+        List<Value> operands = tensorLoadOp.op().operands();
+        Value reference = operands.getFirst();
+        id(WMMA_LOAD_TENSOR)
+                .paren(_ -> {
+                    id(tensorName).comma();
+                    paren(_ -> type("half").asterisk());
+                    recurseResultOrThrow(reference);
+                    rarrow().id(ARRAY)
+                            .sp().plus().sp()
+                            .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
+                            .comma();
+                    recurseResultOrThrow(operands.get(3));
+                });
+
         return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoadOp) {
+        // Find name tensor of the first argument
+        String tensorName = "";
+        SequencedSet<Op.Result> uses = tensorLoadOp.op().result().uses();
+        VarOp tensorVarOp = null;
+        for (Op.Result result : uses) {
+            if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
+                // obtain first arg from tensorStoreOp
+                Value first = storeLoadOp.operands().getFirst();
+                if (first.declaringElement() instanceof VarOp varOp) {
+                    tensorVarOp = varOp;
+                    tensorName = tensorVarOp.varName();
+                }
+            }
+        }
+
+        boolean isColumnMajor = false;
+        if (tensorVarOp != null && tensorLoadOp.op().operands().size() > 5) {
+            Value value = tensorLoadOp.op().operands().getLast();
+            isColumnMajor = isColumnMajor(value);
+        }
+        return generateLoadTensor(tensorLoadOp, isColumnMajor, tensorName);
     }
 
     /**
