@@ -172,6 +172,92 @@ public record HATTensorsPhase() implements HATPhase {
         return new ControlFlowLastOp(previousOp, hitControlFlow);
     }
 
+    private void appendTensorDeclarationToBlock0(List<DeclTensorData> declTensorList, Block.Builder blockBuilder, Map<CoreOp.VarOp, Value> mapValueTensor) {
+        // And add the missing declarations
+        for (DeclTensorData c : declTensorList) {
+            // Add a TensorCreateOp
+            JavaOp.InvokeOp declInvoke = c.invokeOp;
+            CoreOp.VarOp declVar = c.varOp;
+            TensorCreateOp tensorCreateOp = new TensorCreateOp(declInvoke.resultType(), blockBuilder.context().getValues(List.of()));
+            Op.Result op1 = blockBuilder.add(tensorCreateOp);
+
+            // Add a TensorVarOp associated with teh TensorCreateOp
+            List<Value> operands = List.of(op1);
+            TensorVarOp tensorVarOp = new TensorVarOp(declVar.varName(), declVar.resultType(), operands);
+            Op.Result op2 = blockBuilder.add(tensorVarOp);
+
+            // Include in a new HashMap the new tensorVarOp to be propagated for the Stores and VarLoadOps.
+            mapValueTensor.put(declVar, op2);
+
+            blockBuilder.context().mapValue(declInvoke.result(), op2);
+        }
+    }
+
+    private CoreOp.FuncOp transformWithRelocate(CoreOp.FuncOp funcOp, VarTable varTable, Set<Op> opsToProcess, Map<Op, List<DeclTensorData>> markerTable, Op markerOp) {
+        // 3. Transform the model to insert:
+        // 3.1: All tensor declaration from the marker.
+        // 3.2 The load-invoke keeps intact since it will be processed in another phase
+        // 3.3 Replace the VarOp declaration associated with a load with a TensorStoreLoadOp
+        // 3.4 Replace the reference of subsequent VarLoapOp with the new declaration
+        Map<CoreOp.VarOp, Value> mapValueTensor = new HashMap<>();
+        Map<Op, Value> mapUsages = new HashMap<>();
+        Map<Op, Value> invokeMap = new HashMap<>();
+        final String functionName = funcOp.funcName();
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            if (!opsToProcess.contains(op)) {
+                Op.Result opNew = blockBuilder.add(op);
+                varTable.passthrough(functionName, op, opNew.op());
+            } else if (markerTable.containsKey(op)) {
+                // In this block, we insert all pending tensor declaration, starting with the marker.
+
+                List<DeclTensorData> declTensorList = markerTable.get(markerOp);
+                // Insert the marker
+                blockBuilder.add(markerOp);
+                appendTensorDeclarationToBlock0(declTensorList, blockBuilder, mapValueTensor);
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                // The Load/LoadF16 is propagated
+                Op.Result invokeResult = blockBuilder.add(invokeOp);
+                invokeMap.put(invokeOp, invokeResult);
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                // Replace the VarOp with a TensorStoreLoadOp using the reference of the tensorVarOp
+                // declared in a previous block (block 0)
+
+                Value tensorVarOp = mapValueTensor.get(varOp);
+
+                // Update the usages
+                SequencedSet<Op.Result> uses = varOp.result().uses();
+                for (Op.Result r : uses) {
+                    opsToProcess.add(r.op());
+                    mapUsages.put(r.op(), tensorVarOp);
+                }
+
+                Value v;
+                if (varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                    v = invokeMap.get(invokeOp);
+                } else {
+                    throw new IllegalStateException("Expected an invokeOp");
+                }
+
+                List<Value> operands = List.of(tensorVarOp, v);
+                VarType varType = CoreType.varType(VOID);
+                TensorStoreLoadOp storeOp = new TensorStoreLoadOp(varType, operands);
+
+                Op.Result storeResult = blockBuilder.add(storeOp);
+                blockBuilder.context().mapValue(varOp.result(), storeResult);
+
+            } else if (op instanceof VarLoadOp varLoadOp) {
+                // This means a tensor is loading, and we expect the varLoadOp to be present already in the mapUsages,
+                // since the declaration is always traversed before teh varLoadOp.
+                Value tensorValue = mapUsages.get(varLoadOp);
+                VarLoadOp varLoadOpNew = varLoad(tensorValue);
+                Op.Result op1 = blockBuilder.add(varLoadOpNew);
+                blockBuilder.context().mapValue(varLoadOp.result(), op1);
+            }
+            return blockBuilder;
+        });
+        return funcOp;
+    }
+
     private CoreOp.FuncOp createTensorsToRelocate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
 
         // 1. Obtain the last Op before any control flow. We need to find a suitable location in basic block 0
@@ -200,89 +286,7 @@ public record HATTensorsPhase() implements HATPhase {
                                 markerTable.get(markerOp).add(new DeclTensorData(markerOp, invoke.op(), varOp));
                             });
                 });
-
-        // 3. Transform the model to insert:
-        // 3.1: All tensor declaration from the marker.
-        // 3.2 The load-invoke keeps intact since it will be processed in another phase
-        // 3.3 Replace the VarOp declaration associated with a load with a TensorStoreLoadOp
-        // 3.4 Replace the reference of subsequent VarLoapOp with the new declaration
-        Map<CoreOp.VarOp, Value> mapValueTensor = new HashMap<>();
-        Map<Op, Value> mapUsages = new HashMap<>();
-        Map<Op, Value> invokeMap = new HashMap<>();
-        final String functionName = funcOp.funcName();
-        funcOp = funcOp.transform((blockBuilder, op) -> {
-            if (!opsToProcess.contains(op)) {
-                Op.Result opNew = blockBuilder.add(op);
-                varTable.passthrough(functionName, op, opNew.op());
-            } else if (markerTable.containsKey(op)) {
-                // In this block, we insert all pending tensor declaration, starting with the marker.
-
-                List<DeclTensorData> declTensorList = markerTable.get(markerOp);
-
-                // Insert the marker
-                blockBuilder.add(markerOp);
-
-                // And add the missing declarations
-                for (DeclTensorData c : declTensorList) {
-                    // Add a TensorCreateOp
-                    JavaOp.InvokeOp declInvoke = c.invokeOp;
-                    CoreOp.VarOp declVar = c.varOp;
-                    TensorCreateOp tensorCreateOp = new TensorCreateOp(declInvoke.resultType(), blockBuilder.context().getValues(List.of()));
-                    Op.Result op1 = blockBuilder.add(tensorCreateOp);
-
-                    // Add a TensorVarOp associated with teh TensorCreateOp
-                    List<Value> operands = List.of(op1);
-                    TensorVarOp tensorVarOp = new TensorVarOp(declVar.varName(), declVar.resultType(), operands);
-                    Op.Result op2 = blockBuilder.add(tensorVarOp);
-
-                    // Include in a new HashMap the new tensorVarOp to be propagated for the Stores and VarLoadOps.
-                    mapValueTensor.put(declVar, op2);
-
-                    blockBuilder.context().mapValue(declInvoke.result(), op2);
-                }
-            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                // The Load/LoadF16 is propagated
-                Op.Result invokeResult = blockBuilder.add(invokeOp);
-                invokeMap.put(invokeOp, invokeResult);
-            } else if (op instanceof CoreOp.VarOp varOp) {
-                // Replace the VarOp with a TensorStoreLoadOp using the reference of the tensorVarOp
-                // declared in a previous block (block 0)
-
-                Value tensorVarOp = mapValueTensor.get(varOp);
-
-                // Update the usages
-                SequencedSet<Op.Result> uses = varOp.result().uses();
-                for (Op.Result r : uses) {
-                    opsToProcess.add(r.op());
-                    mapUsages.put(r.op(), tensorVarOp);
-                }
-
-                Value v;
-                if (varOp.operands().getFirst().declaringElement() instanceof  JavaOp.InvokeOp invokeOp) {
-                    v = invokeMap.get(invokeOp);
-                } else {
-                    throw new IllegalStateException("Expected an invokeOp");
-                }
-
-                List<Value> operands = List.of(tensorVarOp, v);
-                VarType varType = CoreType.varType(VOID);
-                TensorStoreLoadOp storeOp = new TensorStoreLoadOp(varType, operands);
-
-                Op.Result storeResult = blockBuilder.add(storeOp);
-                blockBuilder.context().mapValue(varOp.result(), storeResult);
-
-            } else if (op instanceof VarLoadOp varLoadOp) {
-                // This means a tensor is loading, and we expect the varLoadOp to be present already in the mapUsages,
-                // since the declaration is always traversed before teh varLoadOp.
-
-                Value tensorValue = mapUsages.get(varLoadOp);
-                VarLoadOp varLoadOpNew = varLoad(tensorValue);
-                Op.Result op1 = blockBuilder.add(varLoadOpNew);
-                blockBuilder.context().mapValue(varLoadOp.result(), op1);
-            }
-            return blockBuilder;
-        });
-        return funcOp;
+        return transformWithRelocate(funcOp, varTable, opsToProcess, markerTable, markerOp);
     }
 
     private CoreOp.FuncOp createTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
