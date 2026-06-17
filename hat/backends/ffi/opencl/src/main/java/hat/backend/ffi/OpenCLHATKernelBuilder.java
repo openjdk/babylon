@@ -702,7 +702,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             }).in();
 
             brace(_ -> {
-                nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace( _-> {
+                nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace(_ -> {
                     id(varA).mul().id(Integer.toString(shape.get(0))).sp().plus().id(varB);
                 }).semicolon().nl();
 
@@ -717,35 +717,18 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     String ha = generateVariableName("ha_");
                     String hb = generateVariableName("hb_");
                     String resultTensor = generateVariableName("h_res_");
-                    f16Type().sp().id(ha).assign().id(tensorA.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape.get(0))).sp().plus().id(varC)).semicolon().nl();
-                    f16Type().sp().id(hb).assign().id(tensorB.varName()).sbrace( _ -> id(varC).mul().id(Integer.toString(shape.get(1))).sp().plus().id(varB)).semicolon().nl();
-                    f16Type().sp().id(resultTensor).assign().paren( _ -> f16Type()).brace( _ -> paren( _ -> id(ha).dot().id("value").mul().id(hb).dot().id("value"))).semicolon().nl();
-                    id(acc).sp().plusEquals().cast( _ -> f32Type()).paren( _-> id(resultTensor).dot().id("value")).semicolon().nl();
+                    f16Type().sp().id(ha).assign().id(tensorA.varName()).sbrace(_ -> id(varA).mul().id(Integer.toString(shape.get(0))).sp().plus().id(varC)).semicolon().nl();
+                    f16Type().sp().id(hb).assign().id(tensorB.varName()).sbrace(_ -> id(varC).mul().id(Integer.toString(shape.get(1))).sp().plus().id(varB)).semicolon().nl();
+                    f16Type().sp().id(resultTensor).assign().paren(_ -> f16Type()).brace(_ -> paren(_ -> id(ha).dot().id("value").mul().id(hb).dot().id("value"))).semicolon().nl();
+                    id(acc).sp().plusEquals().cast(_ -> f32Type()).paren(_ -> id(resultTensor).dot().id("value")).semicolon().nl();
                 }).nl().out();
 
-                id(result.varName()).sbrace( _ -> id(varA).sp().mul().sp().id(Integer.toString(shape.get(0))).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
+                id(result.varName()).sbrace(_ -> id(varA).sp().mul().sp().id(Integer.toString(shape.get(0))).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
 
             }).semicolon().nl();
 
         }).out().out();
         return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        var resulTensorValue = tensorMMAOp.operands().getFirst();
-        var tensorAValue = tensorMMAOp.operands().get(1);
-        var tensorBValue = tensorMMAOp.operands().get(2);
-        var tensorCValue = tensorMMAOp.operands().get(3);
-        var tensorA = findTensorVarOp(tensorAValue);
-        var tensorB = findTensorVarOp(tensorBValue);
-        var tensorC = findTensorVarOp(tensorCValue);
-        var tensorResult = findTensorVarOp(resulTensorValue);
-        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
-            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
-        }
-        List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
-        return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
     }
 
     @Override

@@ -52,8 +52,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp);
 
-    T hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp);
-
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -64,13 +62,11 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrStoreOp $ -> hatPtrStoreOp($);
                 case HATPtrLengthOp $ -> hatPtrLengthOp($);
                 case HATTensorOp.TensorVarLoadOp $ -> hatTensorVarLoadOp($);
-                case HATTensorOp.TensorMMAOp $ -> hatTensorMMAOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {
             BabylonOpDispatcher.super.recurse(op);
         }
-
         return (T) this;
     }
 }
