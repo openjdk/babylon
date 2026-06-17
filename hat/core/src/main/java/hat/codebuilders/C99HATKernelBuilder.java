@@ -1266,7 +1266,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATTensorOp.TensorShapeOp tensorShapeOp -> {
                 return processShapeTensor(tensorShapeOp.operands(), shape);
             }
-            case HATTensorOp.TensorVarOp tensorVarOp -> obtainShapeTensor(tensorVarOp.operands().getFirst(), shape);
             default ->
                     throw new IllegalStateException("Op not expected: Found: " + shapeValue.declaringElement().getClass());
         }

@@ -56,7 +56,6 @@ import static hat.dialect.HATTensorOp.TensorMMAOp;
 import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
 import static hat.dialect.HATTensorOp.TensorStoreOp;
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;
-import static hat.dialect.HATTensorOp.TensorVarOp;
 import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
 import static jdk.incubator.code.dialect.java.JavaType.FLOAT;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;

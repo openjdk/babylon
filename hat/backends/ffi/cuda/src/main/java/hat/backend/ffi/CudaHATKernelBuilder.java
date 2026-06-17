@@ -643,13 +643,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public static final String WMMA_ROW_MAJOR = "nvcuda::wmma::row_major";
     public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment<nvcuda::wmma::";
 
-    @Override
-    public CudaHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
-        recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
-        sp().id(tensorVarOp.varName());
-        return self();
-    }
-
     private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access) {
         id(WMMA_FRAGMENT_BASE)
                 .id(matrixOrder)

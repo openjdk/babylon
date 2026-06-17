@@ -50,8 +50,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp( HATPtrLengthOp hatPtrLengthOp);
 
-    T hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp);
-
     T hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp);
 
     T hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp);
@@ -78,7 +76,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrLoadOp $ -> hatPtrLoadOp($);
                 case HATPtrStoreOp $ -> hatPtrStoreOp($);
                 case HATPtrLengthOp $ -> hatPtrLengthOp($);
-                case HATTensorOp.TensorVarOp $ -> hatTensorVarOp($);
                 case HATTensorOp.TensorCreateOp $ -> hatTensorCreateOp($);
                 case HATTensorOp.TensorVarLoadOp $ -> hatTensorVarLoadOp($);
                 case HATTensorOp.TensorFillOp $ -> hatTensorFillOp($);

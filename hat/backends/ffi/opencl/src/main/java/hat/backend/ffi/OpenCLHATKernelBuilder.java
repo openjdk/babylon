@@ -412,14 +412,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return constant("1");
     }
 
-    @Override
-    public OpenCLHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
-        recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
-        // We don't need to generate the name at this point, but rather during tensor create.
-        // That's the place we know all information, including type, shape, and name
-        return self();
-    }
-
     private String findLoadVariance(Value tensorVar, Value v) {
         return v instanceof Op.Result r ? findLoadVariance(tensorVar, r.op()) : null;
     }
