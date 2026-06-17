@@ -55,59 +55,18 @@ import static jdk.incubator.code.dialect.java.JavaType.VOID;
 public record HATTensorsPhase() implements HATPhase {
 
     private interface TensorTransformer {
-
         void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable);
-
-        default void replaceOp(Block.Builder blockBuilder, Op oldOp, Op newOp) {
-            newOp.setLocation(oldOp.location());
-            Op.Result newOpResult = blockBuilder.add(newOp);
-            blockBuilder.context().mapValue(oldOp.result(), newOpResult);
-        }
     }
 
     private static class TensorView implements TensorTransformer {
 
         @Override
         public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-            switch (op) {
-                case CoreOp.VarOp varOp -> {
-                    Op.Result opResult = blockBuilder.add(varOp);
-                    varTable.addIfNeededOrThrow(funcOp.funcName(), opResult.op(), VarTable.HATOpAttribute.TENSOR);
-                }
-                case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
-                default -> blockBuilder.add(op);
-            }
-        }
-    }
-
-    private static class TensorFill implements TensorTransformer {
-
-        @Override
-        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-            //List<Value> operands = blockBuilder.context().getValues(op.operands());
-            switch (op) {
-                case VarLoadOp loadOp -> {
-                    blockBuilder.add(loadOp);
-                    //replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                }
-                case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
-                default -> blockBuilder.add(op);
-            }
-        }
-    }
-
-    private static class TensorMMA implements TensorTransformer {
-
-        @Override
-        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-//            List<Value> operands = blockBuilder.context().getValues(op.operands());
-            switch (op) {
-                case VarLoadOp loadOp -> {
-                    blockBuilder.add(loadOp);
-                    //replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                }
-                case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
-                default -> blockBuilder.add(op);
+            if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
+                Op.Result opResult = blockBuilder.add(varOp);
+                varTable.addIfNeededOrThrow(funcOp.funcName(), opResult.op(), VarTable.HATOpAttribute.TENSOR);
+            } else {
+                blockBuilder.add(op);
             }
         }
     }
@@ -278,14 +237,12 @@ public record HATTensorsPhase() implements HATPhase {
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("create") || invoke.name().equals("of"))
-                .forEach( invoke -> {
-                    opsToProcess.add(invoke.op());
-                    invoke.op().result().uses().stream()
-                            .filter(result -> (result.op() instanceof CoreOp.VarOp))
-                            .map(result -> (CoreOp.VarOp) result.op())
-                            .findFirst()
-                            .ifPresent(opsToProcess::add);
-                });
+                .forEach( invoke ->
+                        invoke.op().result().uses().stream()
+                        .filter(result -> (result.op() instanceof CoreOp.VarOp))
+                        .map(result -> (CoreOp.VarOp) result.op())
+                        .findFirst()
+                        .ifPresent(opsToProcess::add));
 
         return transformWithPredicate(lookup, funcOp, new TensorView(), opsToProcess, varTable);
     }
@@ -316,27 +273,6 @@ public record HATTensorsPhase() implements HATPhase {
         });
         return funcOp;
 
-    }
-
-    private Set<Op> filterOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, String methodIntrinsicName) {
-        Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(OpHelper.Invoke::returnsVoid)
-                .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals(methodIntrinsicName))
-                .forEach(invoke -> {
-                    opsToProcess.add(invoke.op());
-                    Value varLoadValue = invoke.op().operands().getFirst();
-                    if (varLoadValue.declaringElement() instanceof VarLoadOp varLoadOp) {
-                        opsToProcess.add(varLoadOp);
-                    }
-                });
-        return opsToProcess;
-    }
-
-    private CoreOp.FuncOp fillTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<Op> opsToProcess = filterOps(lookup, funcOp, "fill");
-        return transformWithPredicate(lookup, funcOp, new TensorFill(), opsToProcess, varTable);
     }
 
     private CoreOp.FuncOp zerosTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
@@ -394,11 +330,6 @@ public record HATTensorsPhase() implements HATPhase {
             return blockBuilder;
         });
         return funcOp;
-    }
-
-    private CoreOp.FuncOp mmaTensor(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<Op> opsToProcess = filterOps(lookup, funcOp, "mma");
-        return transformWithPredicate(lookup, funcOp, new TensorMMA(), opsToProcess, varTable);
     }
 
     private CoreOp.FuncOp mmaTensorWithStore(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
@@ -460,9 +391,7 @@ public record HATTensorsPhase() implements HATPhase {
         tensorTransformer.add(this::createTensorsToRelocate);
         tensorTransformer.add(this::createTensors);
         tensorTransformer.add(this::tensorShape);
-        tensorTransformer.add(this::fillTensors);   // we can remove it
         tensorTransformer.add(this::zerosTensors);
-        tensorTransformer.add(this::mmaTensor);    // we can remove it
         tensorTransformer.add(this::mmaTensorWithStore);
     }
 }
