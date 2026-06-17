@@ -773,8 +773,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (op) {
             case CoreOp.VarOp varOp -> {
                 VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
-                if (attribute != null) {
+                if (attribute == VarTable.HATOpAttribute.TENSOR) {
                     // To avoid declaring a varStoreOp coming from a tensor
+                    // in which the store operation is performed differently.
+                    // For example, in OpenCL, it maps to a entire snippet to do loop-tile
+                    // In CUDA, it generates a wmma::store operation
                     List<Value> operands = varStoreOp.operands();
                     recurseResultOrThrow(operands.getLast());
                     return self();
