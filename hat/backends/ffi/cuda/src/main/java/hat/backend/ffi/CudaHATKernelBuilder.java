@@ -695,7 +695,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private int getTensorOrder(Value tensorValue, Op op) {
         int operandIndex = -1;
         switch (op) {
-            case HATTensorOp.TensorMMAOp tensorMMAOp -> {
+            case JavaOp.InvokeOp tensorMMAOp when tensorMMAOp.invokeReference().name().equals("mma") -> {
                 List<Value> operands = tensorMMAOp.operands();
                 for (Value argument : operands) {
                     operandIndex++;
