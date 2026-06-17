@@ -1029,6 +1029,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 case INIT_SHARED -> varOpInit(varOp);
                 case SHARED -> varOpLocalMemory(varOp);
                 case PRIVATE -> varOpPrivateMemory(varOp);
+                case TENSOR -> varOpTensor(varOp);
                 case null -> genericVarOp(varOp);
                 default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
             }
@@ -1217,7 +1218,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return shape;
     }
 
-    protected List<Integer> getShapeFromTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
+    protected List<Integer> getShapeFromTensorVarOp(CoreOp.VarOp tensorVarOp) {
         Value tensorCreateValueOp = tensorVarOp.operands().getFirst();
         if (tensorCreateValueOp.declaringElement() instanceof HATTensorOp.TensorCreateOp tensorCreateOp) {
             // First parameter: shapeValue
@@ -1323,6 +1324,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
 
     protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
+
+    protected abstract T varOpTensor(CoreOp.VarOp varOp);
 
     protected abstract String mapMathIntrinsic(String name);
 

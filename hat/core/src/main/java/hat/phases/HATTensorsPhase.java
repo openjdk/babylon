@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 import static hat.dialect.HATTensorOp.TensorCreateOp;
 import static hat.dialect.HATTensorOp.TensorFillOp;
@@ -66,7 +65,7 @@ public record HATTensorsPhase() implements HATPhase {
 
     private interface TensorTransformer {
 
-        void transform(Block.Builder blockBuilder, Op op);
+        void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable);
 
         default void replaceOp(Block.Builder blockBuilder, Op oldOp, Op newOp) {
             newOp.setLocation(oldOp.location());
@@ -78,10 +77,13 @@ public record HATTensorsPhase() implements HATPhase {
     private static class TensorView implements TensorTransformer {
 
         @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
+        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new TensorVarOp(varOp.varName(), varOp.resultType(), operands));
+                case CoreOp.VarOp varOp -> {
+                    Op.Result opResult = blockBuilder.add(varOp);
+                    varTable.addIfNeededOrThrow(funcOp.funcName(), opResult.op(), VarTable.HATOpAttribute.TENSOR);
+                }
                 case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), operands));
                 default -> blockBuilder.add(op);
             }
@@ -91,7 +93,7 @@ public record HATTensorsPhase() implements HATPhase {
     private static class TensorFill implements TensorTransformer {
 
         @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
+        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
@@ -104,7 +106,7 @@ public record HATTensorsPhase() implements HATPhase {
     private static class TensorMMA implements TensorTransformer {
 
         @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
+        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
@@ -117,7 +119,7 @@ public record HATTensorsPhase() implements HATPhase {
     private static class TensorLoad implements TensorTransformer {
 
         @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
+        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case CoreOp.VarAccessOp.VarStoreOp storeOp -> replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
@@ -130,7 +132,7 @@ public record HATTensorsPhase() implements HATPhase {
     private static class TensorStore implements TensorTransformer {
 
         @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
+        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
             if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
                 replaceOp(blockBuilder, invokeOp, new TensorStoreOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
             } else {
@@ -139,9 +141,9 @@ public record HATTensorsPhase() implements HATPhase {
         }
     }
 
-    private CoreOp.FuncOp transformWithPredicate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, BiConsumer<Block.Builder, Op> function, Set<Op> opsToProcess, VarTable varTable) {
+    private CoreOp.FuncOp transformWithPredicate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, TensorTransformer function, Set<Op> opsToProcess, VarTable varTable) {
         return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            function.accept(blockBuilder, op);
+            function.transform(funcOp, blockBuilder, op, varTable);
             return blockBuilder;
         }, varTable).funcOp();
     }
@@ -172,7 +174,7 @@ public record HATTensorsPhase() implements HATPhase {
         return new ControlFlowLastOp(previousOp, hitControlFlow);
     }
 
-    private void appendTensorDeclarationToBlock0(List<DeclTensorData> declTensorList, Block.Builder blockBuilder, Map<CoreOp.VarOp, Value> mapValueTensor) {
+    private void appendTensorDeclarationToBlock0(List<DeclTensorData> declTensorList, Block.Builder blockBuilder, Map<CoreOp.VarOp, Value> mapValueTensor, VarTable varTable, String functionName) {
         // And add the missing declarations
         for (DeclTensorData c : declTensorList) {
             // Add a TensorCreateOp
@@ -183,8 +185,10 @@ public record HATTensorsPhase() implements HATPhase {
 
             // Add a TensorVarOp associated with teh TensorCreateOp
             List<Value> operands = List.of(op1);
-            TensorVarOp tensorVarOp = new TensorVarOp(declVar.varName(), declVar.resultType(), operands);
-            Op.Result op2 = blockBuilder.add(tensorVarOp);
+            CoreOp.VarOp varOp = CoreOp.var(declVar.varName(), op1);
+            //TensorVarOp tensorVarOp = new TensorVarOp(declVar.varName(), declVar.resultType(), operands);
+            Op.Result op2 = blockBuilder.add(varOp);
+            varTable.addIfNeededOrThrow(functionName, op2.op(), VarTable.HATOpAttribute.TENSOR);
 
             // Include in a new HashMap the new tensorVarOp to be propagated for the Stores and VarLoadOps.
             mapValueTensor.put(declVar, op2);
@@ -203,6 +207,7 @@ public record HATTensorsPhase() implements HATPhase {
         Map<Op, Value> mapUsages = new HashMap<>();
         Map<Op, Value> invokeMap = new HashMap<>();
         final String functionName = funcOp.funcName();
+        CoreOp.FuncOp finalFuncOp = funcOp;
         funcOp = funcOp.transform((blockBuilder, op) -> {
             if (!opsToProcess.contains(op)) {
                 Op.Result opNew = blockBuilder.add(op);
@@ -213,7 +218,7 @@ public record HATTensorsPhase() implements HATPhase {
                 List<DeclTensorData> declTensorList = markerTable.get(markerOp);
                 // Insert the marker
                 blockBuilder.add(markerOp);
-                appendTensorDeclarationToBlock0(declTensorList, blockBuilder, mapValueTensor);
+                appendTensorDeclarationToBlock0(declTensorList, blockBuilder, mapValueTensor, varTable, finalFuncOp.funcName());
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 // The Load/LoadF16 is propagated
                 Op.Result invokeResult = blockBuilder.add(invokeOp);
@@ -405,8 +410,10 @@ public record HATTensorsPhase() implements HATPhase {
 
                     // Add Var
                     List<Value> args = List.of(op1);
-                    TensorVarOp tensorVarOp = new TensorVarOp(varOp.varName(), varOp.resultType(), args);
-                    Op.Result op2 = blockBuilder.add(tensorVarOp);
+                    CoreOp.VarOp varOp1 = CoreOp.var(varOp.varName(), op1);
+                    //TensorVarOp tensorVarOp = new TensorVarOp(varOp.varName(), varOp.resultType(), args);
+                    Op.Result op2 = blockBuilder.add(varOp1);
+                    varTable.addIfNeededOrThrow(finalFuncOp.funcName(), op2.op(), VarTable.HATOpAttribute.TENSOR);
 
                     // TensorVarLoadOp
                     List<Value> argsLoadOp = List.of(op2);

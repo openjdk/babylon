@@ -625,6 +625,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return sp().varName(varOp);
     }
 
+    @Override
+    protected CudaHATKernelBuilder varOpTensor(CoreOp.VarOp varOp) {
+        recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+        sp().id(varOp.varName());
+        return self();
+    }
+
     public static final String WMMA_MEM_COL_MAJOR = "nvcuda::wmma::mem_col_major";
     public static final String WMMA_MEM_ROW_MAJOR = "nvcuda::wmma::mem_row_major";
     public static final String WMMA_STORE_TENSOR = "nvcuda::wmma::store_matrix_sync";

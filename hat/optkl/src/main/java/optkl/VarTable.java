@@ -38,6 +38,7 @@ public class VarTable {
         INIT_SHARED,
         NARROW,
         VECTOR,
+        TENSOR,
     }
 
     /**
