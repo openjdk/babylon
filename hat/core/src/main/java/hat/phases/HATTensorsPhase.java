@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import hat.dialect.HATTensorOp.TensorShapeOp;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;

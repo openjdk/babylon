@@ -1277,9 +1277,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
             case CoreOp.VarAccessOp varAccessOp -> obtainShapeTensor(varAccessOp.varOperand(), shape);
             case CoreOp.VarOp varOp -> obtainShapeTensor(varOp.operands().getFirst(), shape);
-            case HATTensorOp.TensorShapeOp tensorShapeOp -> {
-                return processShapeTensor(tensorShapeOp.operands(), shape);
-            }
             default ->
                     throw new IllegalStateException("Op not expected: Found: " + shapeValue.declaringElement().getClass());
         }
@@ -1318,11 +1315,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
         }
         return false;
-    }
-
-    @Override
-    public T hatTensorShapeOp(HATTensorOp.TensorShapeOp tensorShapeOp) {
-        return self();
     }
 
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);

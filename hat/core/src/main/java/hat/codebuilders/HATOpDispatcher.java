@@ -60,9 +60,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp);
 
-    T hatTensorShapeOp(HATTensorOp.TensorShapeOp tensorShapeOp);
-
-
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -77,7 +74,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATTensorOp.TensorStoreLoadOp $ -> hatTensorStoreLoadOp($);
                 case HATTensorOp.TensorLoadOp $ -> hatTensorLoadOp($);
                 case HATTensorOp.TensorStoreOp $ -> hatTensorStoreOp($);
-                case HATTensorOp.TensorShapeOp $ -> hatTensorShapeOp($);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {
