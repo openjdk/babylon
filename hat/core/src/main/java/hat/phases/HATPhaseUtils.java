@@ -219,7 +219,13 @@ public class HATPhaseUtils {
     public static boolean isTensorOperation(OpHelper.Invoke invoke) {
         if (!invoke.returnsVoid() && invoke.refIs(HATTensorsPhase.TensorMarkers.class) && invoke.nameMatchesRegex("create|of")) {
             return true;
-        } else return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|fill");
+        } else if (isTensorFillOperation(invoke)) {
+            return true;
+        } else return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros");
+    }
+
+    public static boolean isTensorFillOperation(OpHelper.Invoke invoke) {
+        return invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("fill");
     }
 
     public static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {

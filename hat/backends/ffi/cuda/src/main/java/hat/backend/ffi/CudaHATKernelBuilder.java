@@ -916,11 +916,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    @Override
+    public CudaHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
+        id(WMMA_FILL_TENSOR).paren( _-> {
+            List<Value> operands = tensorFillOp.op().operands();
+            recurseResultOrThrow(operands.getFirst())
+                    .comma()
+                    .recurseResultOrThrow(operands.get(1));
+        });
+        return self();
+    }
+
     private static CoreOp.VarOp findTensorVarOp(Value varLoadOp) {
         return switch (varLoadOp.declaringElement()) {
             case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
-            //case HATTensorOp.TensorVarOp tensorVarOp -> tensorVarOp;
             case CoreOp.VarOp varOp -> varOp;
             case null, default -> null;
         };

@@ -35,6 +35,7 @@ import jdk.incubator.code.dialect.core.CoreOp.VarAccessOp.VarLoadOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.Trxfmr;
@@ -95,7 +96,10 @@ public record HATTensorsPhase() implements HATPhase {
             List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
                 case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorFillOp(invokeOp.resultType(), operands));
+                case JavaOp.InvokeOp invokeOp -> {
+//                    replaceOp(blockBuilder, invokeOp, new TensorFillOp(invokeOp.resultType(), operands));
+                    blockBuilder.add(invokeOp);
+                }
                 default -> blockBuilder.add(op);
             }
         }
@@ -176,9 +180,12 @@ public record HATTensorsPhase() implements HATPhase {
         public static Tensor create() {
             return null;
         }
+
+        private TensorMarkers() {}
     }
 
     private static final MethodRef CREATE_FUNCTION = MethodRef.method(TensorMarkers.class, "create", Tensor.class);
+    private static final MethodRef FILL_FUNCTION = MethodRef.method(Tensor.class, "fill", void.class, Tensor.class, float.class);
 
     private void appendTensorDeclarationToBlock0(List<DeclTensorData> declTensorList, Block.Builder blockBuilder, Map<CoreOp.VarOp, Value> mapValueTensor, VarTable varTable, String functionName) {
         // And add the missing declarations
@@ -187,7 +194,6 @@ public record HATTensorsPhase() implements HATPhase {
             JavaOp.InvokeOp declInvoke = c.invokeOp;
             CoreOp.VarOp declVar = c.varOp;
             JavaOp.InvokeOp invoke = JavaOp.invoke(CREATE_FUNCTION, List.of());
-            //TensorCreateOp tensorCreateOp = new TensorCreateOp(declInvoke.resultType(), blockBuilder.context().getValues(List.of()));
             Op.Result op1 = blockBuilder.add(invoke);
 
             // Add a TensorVarOp associated with teh TensorCreateOp
@@ -404,17 +410,9 @@ public record HATTensorsPhase() implements HATPhase {
                 varTable.passthrough(finalFuncOp.funcName(), op, opNew.op());
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 // Create Tensor
-
-                List<Value> operands = blockBuilder.context().getValues(op.operands());
-
                 Op.Result op1 = blockBuilder.add(invokeOp);
-                //TensorCreateOp tensorCreateOp = new TensorCreateOp(invokeOp.resultType(), operands);
-                //tensorCreateOp.setLocation(invokeOp.location());
-                //Op.Result op1 = blockBuilder.add(tensorCreateOp);
-
                 Op.Result valueVar = invokeOp.result().uses().getFirst();
                 if (valueVar.declaringElement() instanceof CoreOp.VarOp varOp) {
-
                     // Add Var
                     CoreOp.VarOp varOp1 = CoreOp.var(varOp.varName(), op1);
                     Op.Result op2 = blockBuilder.add(varOp1);
@@ -430,8 +428,9 @@ public record HATTensorsPhase() implements HATPhase {
                     Op.Result op4 = blockBuilder.add(constant);
 
                     List<Value> argsFill = List.of(op3, op4);
-                    TensorFillOp tensorFillOp = new TensorFillOp(VOID, argsFill);
-                    Op.Result op5 = blockBuilder.add(tensorFillOp);
+                    JavaOp.InvokeOp fillInvoke = JavaOp.invoke(VOID, FILL_FUNCTION, argsFill);
+                    //TensorFillOp tensorFillOp = new TensorFillOp(VOID, argsFill);
+                    Op.Result op5 = blockBuilder.add(fillInvoke);
                     map.put(varOp, op2);
                     blockBuilder.context().mapValue(invokeOp.result(), op5);
                 } else {

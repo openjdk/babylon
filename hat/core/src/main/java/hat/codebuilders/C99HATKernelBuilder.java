@@ -57,7 +57,6 @@ import optkl.FuncOpParams;
 import optkl.util.Regex;
 import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.codebuilders.CodeBuilder;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -883,6 +882,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (invoke.name()) {
             case "create" -> hatTensorCreateOperation(invoke);
             case "zeros" -> hatTensorCreateOperation(invoke);
+            case "fill" -> hatTensorFill(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
     }
@@ -1339,6 +1339,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T varOpTensor(CoreOp.VarOp varOp);
 
     protected abstract T hatTensorCreateOperation(Invoke invoke);
+
+    protected abstract T hatTensorFill(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 
