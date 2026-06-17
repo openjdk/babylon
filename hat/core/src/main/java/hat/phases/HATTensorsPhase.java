@@ -49,7 +49,6 @@ import java.util.Objects;
 import java.util.SequencedSet;
 import java.util.Set;
 
-import static hat.dialect.HATTensorOp.TensorLoadOp;
 import static hat.dialect.HATTensorOp.TensorMMAOp;
 import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
 import static hat.dialect.HATTensorOp.TensorVarLoadOp;

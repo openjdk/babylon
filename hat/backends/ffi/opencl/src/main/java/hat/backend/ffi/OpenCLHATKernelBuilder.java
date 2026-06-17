@@ -758,20 +758,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self();
     }
 
-    private CoreOp.VarOp findTensorVarOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
-        var tensorStoreLoadValue = tensorLoadOp.result().uses().getFirst();
-        if (tensorStoreLoadValue.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
-            Value first = tensorStoreLoadOp.operands().getFirst();
-            if (first.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
-                return tensorVarOp;
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
     private CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
         var tensorStoreLoadValue = tensorLoadOp.op().result().uses().getFirst();
         if (tensorStoreLoadValue.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp) {
@@ -916,31 +902,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    @Override
-    public OpenCLHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
-
-        List<Value> operands = tensorLoadOp.operands();
-        var ptrValue = operands.getFirst();
-        var iIndexValue = operands.get(1);
-        var jIndexValue = operands.get(2);
-        var leadingDimension = operands.get(3);
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorLoadOp);
-        List<Integer> shape;
-        if (tensorVarOp != null) {
-            shape = obtainShapeTensor(operands.get(4));
-        } else {
-            throw new IllegalStateException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
-        }
-
-        boolean isColumnMajor = false;
-        if (tensorLoadOp.operands().size() > 5) {
-            isColumnMajor = isColumnMajor(operands.get(5));
-        }
-
-        generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
-        return self();
-    }
-
     @Override
     protected OpenCLHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoadOp) {
         List<Value> operands = tensorLoadOp.op().operands();

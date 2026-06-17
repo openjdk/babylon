@@ -942,25 +942,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
     }
 
-    private CudaHATKernelBuilder generateLoadTensor(HATTensorOp.TensorLoadOp tensorLoadOp, boolean isColumnMajor, String tensorName) {
-        // First operand is the reference to global memory
-        List<Value> operands = tensorLoadOp.operands();
-        Value reference = operands.getFirst();
-        id(WMMA_LOAD_TENSOR)
-                .paren(_ -> {
-                    id(tensorName).comma();
-                    paren(_ -> type("half").asterisk());
-                    recurseResultOrThrow(reference);
-                    rarrow().id(ARRAY)
-                            .sp().plus().sp()
-                            .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
-                            .comma();
-                    recurseResultOrThrow(operands.get(3));
-                });
-
-        return self();
-    }
-
     /**
      * Example of code being generated:
      *
@@ -970,35 +951,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * </code>
      * </p>
      *
-     * @param tensorLoadOp
+     * @param hatTensorStoreLoadOp
      *
      * @return {@link CudaHATKernelBuilder}
      */
-    @Override
-    public CudaHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
-        // Find name tensor of the first argument
-        String tensorName = "";
-        SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
-        VarOp tensorVarOp = null;
-        for (Op.Result result : uses) {
-            if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
-                // obtain first arg from tensorStoreOp
-                Value first = storeLoadOp.operands().getFirst();
-                if (first.declaringElement() instanceof VarOp varOp) {
-                    tensorVarOp = varOp;
-                    tensorName = tensorVarOp.varName();
-                }
-            }
-        }
-
-        boolean isColumnMajor = false;
-        if (tensorVarOp != null && tensorLoadOp.operands().size() > 5) {
-            Value value = tensorLoadOp.operands().getLast();
-            isColumnMajor = isColumnMajor(value);
-        }
-        return generateLoadTensor(tensorLoadOp, isColumnMajor, tensorName);
-    }
-
     @Override
     public CudaHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp hatTensorStoreLoadOp) {
         List<Value> operands = hatTensorStoreLoadOp.operands();
