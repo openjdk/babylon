@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATTensorOp;
 import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.Value;
@@ -529,7 +528,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     private static CoreOp.VarOp findTensorVarOp(Value varLoadOp) {
         return switch (varLoadOp.declaringElement()) {
-            case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
             case CoreOp.VarOp varOp -> varOp;
             case null, default -> null;
@@ -639,17 +637,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         float initValue = getValueConstantTensor(tensorInitValue);
 
         emitForLoopWithBound(0, shape.getFirst(), tensorVarOp, initValue);
-        return self();
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
-        Value operand = hatTensorVarLoadOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarOp tensorVarOp) {
-            varName(tensorVarOp.varName());
-        } else {
-            throw new IllegalStateException("[ERROR] Expected CoreOp.VarOp");
-        }
         return self();
     }
 

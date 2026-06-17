@@ -27,7 +27,6 @@ package hat.backend.jextracted;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATTensorOp;
 import hat.phases.HATPhaseUtils;
 import hat.types.BF16;
 import hat.types.F16;
@@ -300,11 +299,6 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
     @Override
     protected OpenCLJExtractedHATKernelBuilder hatWarpSize() {
         return constant("1");
-    }
-
-    @Override
-    public OpenCLJExtractedHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
-        return blockComment("Not supported yet");
     }
 
     @Override

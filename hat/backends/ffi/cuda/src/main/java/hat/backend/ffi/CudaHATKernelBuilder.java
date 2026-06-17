@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATTensorOp;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
@@ -895,17 +894,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
-        Value operand = hatTensorVarLoadOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof CoreOp.VarOp tensorVarOp) {
-            varName(tensorVarOp.varName());
-        } else {
-            throw new IllegalStateException("[ERROR] Expected VarOp");
-        }
-        return self();
-    }
-
-    @Override
     public CudaHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
         id(WMMA_FILL_TENSOR).paren( _-> {
             List<Value> operands = tensorFillOp.op().operands();
@@ -918,7 +906,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private static CoreOp.VarOp findTensorVarOp(Value varLoadOp) {
         return switch (varLoadOp.declaringElement()) {
-            case HATTensorOp.TensorVarLoadOp tensorVarLoadOp -> findTensorVarOp(tensorVarLoadOp.operands().getFirst());
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp2 -> findTensorVarOp(varLoadOp2.operands().getFirst());
             case CoreOp.VarOp varOp -> varOp;
             case null, default -> null;

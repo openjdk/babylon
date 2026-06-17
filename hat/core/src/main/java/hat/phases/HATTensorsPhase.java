@@ -48,7 +48,6 @@ import java.util.SequencedSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static hat.dialect.HATTensorOp.TensorVarLoadOp;
 import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
 import static jdk.incubator.code.dialect.java.JavaType.FLOAT;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;

@@ -30,7 +30,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATPtrOp;
-import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATFP16Phase;
@@ -1326,7 +1325,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
                 return false;
             } else {
-                throw new RuntimeException("[Error]");
+                throw new IllegalStateException("[Error]");
             }
         }
         return false;
