@@ -85,9 +85,12 @@ public record HATTensorsPhase() implements HATPhase {
 
         @Override
         public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-            List<Value> operands = blockBuilder.context().getValues(op.operands());
+            //List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                case VarLoadOp loadOp -> {
+                    blockBuilder.add(loadOp);
+                    //replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                }
                 case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
                 default -> blockBuilder.add(op);
             }
@@ -98,9 +101,12 @@ public record HATTensorsPhase() implements HATPhase {
 
         @Override
         public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
-            List<Value> operands = blockBuilder.context().getValues(op.operands());
+//            List<Value> operands = blockBuilder.context().getValues(op.operands());
             switch (op) {
-                case VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                case VarLoadOp loadOp -> {
+                    blockBuilder.add(loadOp);
+                    //replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
+                }
                 case JavaOp.InvokeOp invokeOp -> blockBuilder.add(invokeOp);
                 default -> blockBuilder.add(op);
             }
@@ -366,8 +372,9 @@ public record HATTensorsPhase() implements HATPhase {
 
                     // TensorVarLoadOp
                     List<Value> argsLoadOp = List.of(op2);
-                    TensorVarLoadOp tensorVarLoadOp = new TensorVarLoadOp(invokeOp.resultType(), argsLoadOp);
-                    Op.Result op3 = blockBuilder.add(tensorVarLoadOp);
+                    VarLoadOp varLoadOp = VarLoadOp.varLoad(op2);
+                    //TensorVarLoadOp tensorVarLoadOp = new TensorVarLoadOp(invokeOp.resultType(), argsLoadOp);
+                    Op.Result op3 = blockBuilder.add(varLoadOp);
 
                     // Add Fill
                     CoreOp.ConstantOp constant = CoreOp.constant(FLOAT, 0.0f);
@@ -454,9 +461,9 @@ public record HATTensorsPhase() implements HATPhase {
         tensorTransformer.add(this::createTensorsToRelocate);
         tensorTransformer.add(this::createTensors);
         tensorTransformer.add(this::tensorShape);
-        tensorTransformer.add(this::fillTensors);
+        tensorTransformer.add(this::fillTensors);   // we can remove it
         tensorTransformer.add(this::zerosTensors);
-        tensorTransformer.add(this::mmaTensor);
+        tensorTransformer.add(this::mmaTensor);    // we can remove it
         tensorTransformer.add(this::mmaTensorWithStore);
     }
 }
