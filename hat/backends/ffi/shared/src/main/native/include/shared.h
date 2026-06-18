@@ -52,6 +52,8 @@
 #endif
 #endif
 
+#define ceil_div(x, y) ((x + y - 1) / y)
+
 typedef char s8_t;
 typedef char byte;
 typedef char boolean;

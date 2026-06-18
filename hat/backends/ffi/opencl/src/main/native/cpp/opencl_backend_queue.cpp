@@ -24,8 +24,6 @@
  */
 #include "opencl_backend.h"
 
-#define ceil_div(x, y) ((x + y - 1) / y)
-
 /*
 While based on OpenCL's event list, I think we need to use a MOD eventMax queue.
 

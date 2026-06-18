@@ -28,8 +28,6 @@
 #include <thread>
 #include "cuda_backend.h"
 
-#define ceil_div(x, y) ((x + y - 1) / y)
-
 CudaBackend::CudaQueue::CudaQueue(Backend *backend)
         : Backend::Queue(backend),cuStream(),streamCreationThread() {
 }
@@ -154,7 +152,7 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
     int threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
 
-    int warpFactor[3] = {1, 1, 1};
+    int warpFactor[3] = { 1, 1, 1 };
     if (kernelContext->wsx) {
         warpFactor[0] = 32;
     }
