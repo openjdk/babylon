@@ -26,11 +26,17 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.AccessFlag;
+import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
 import java.util.function.IntBinaryOperator;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -391,5 +397,39 @@ public class TestBuild {
         block.add(constant(INT, 0));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
+    }
+
+    @Test
+    void testBuilderInoperableAfterBuildFinishes() {
+        var bodyBuilder = Body.Builder.of(null, CoreType.functionType(INT));
+        var entryBlockBuilder = bodyBuilder.entryBlock();
+        var value = entryBlockBuilder.add(constant(INT, 1));
+        entryBlockBuilder.add(return_(value));
+
+        var fop = func("f", bodyBuilder);
+
+        for (Object r : List.of(bodyBuilder, entryBlockBuilder)) {
+            for (Method m : r.getClass().getDeclaredMethods()) {
+                if (m.accessFlags().contains(AccessFlag.STATIC) || !m.accessFlags().contains(AccessFlag.PUBLIC)) {
+                    continue;
+                }
+                Object[] args = new Object[m.getParameterCount()];
+                int i = 0;
+                for (Class<?> parameterType : m.getParameterTypes()) {
+                    // methods like Block.Builder.block or Body.Builder.build will throw NPE if null is passed as argument
+                    // not what we want, so make sure to pass arguments that will pass the null check
+                    if (parameterType.isArray()) {
+                        args[i] = Array.newInstance(parameterType.componentType(), 0);
+                    } else if (parameterType == Op.class) {
+                        args[i] = fop;
+                    } else {
+                        args[i] = null;
+                    }
+                    i++;
+                }
+                var wrapperException = Assertions.assertThrowsExactly(InvocationTargetException.class, () -> m.invoke(r, args));
+                Assertions.assertInstanceOf(IllegalStateException.class, wrapperException.getCause());
+            }
+        }
     }
 }
