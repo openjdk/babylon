@@ -488,7 +488,7 @@ public final class Body implements CodeElement<Body, Block> {
      * <a id="body-building-finishing"></a>
      * After building finishes, the body and its child blocks become observable, and the body builder and its block
      * builders all become inoperable, regardless of whether building succeeds or fails with an exception.
-     * Further attempts to operate on the builders throw an exception.
+     * Further attempts to operate on the builders throw an {@link IllegalStateException}.
      * <p>
      * A body builder may be connected to its {@link #connectedAncestorBody() nearest ancestor} body builder. This
      * connection constrains the order in which the connected builders can finish building, ancestors cannot finish
