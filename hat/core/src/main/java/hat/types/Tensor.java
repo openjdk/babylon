@@ -43,19 +43,25 @@ import optkl.IfaceValue;
  *
  * @param shape Represents the logic tensor shape, expressed as {@code m}, {@code n}, {@code k} dimensions.
  * @param klass Java {@code Class} of each element of the tensor.
- * @param tensorAccess Memory layout used when lading from or storing to backing arrays, or {@code null} when the
- *                     backend default layout is used.
  */
-public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implements IfaceValue {
+public record Tensor(Shape shape, Class<?> klass) implements IfaceValue {
 
     /**
      * Describes the logical dimension of a tensor
      *
-     * @param x first tensor dimension
-     * @param y second tensor dimension
-     * @param z third tensor dimension
+     * @param m first tensor dimension
+     * @param n second tensor dimension
+     * @param k third tensor dimension
+     *
+     * <p>
+     * <ul>
+     * <li>Tensor A: MxK</li>
+     * <li>Tensor B: KxN</li>
+     * <li>Tensor Acc: MxN</li>
+     * </ul>
+     * </p>
      */
-    public record Shape(int x, int y, int z) {
+    public record Shape(int m, int n, int k) {
     }
 
     /**
@@ -116,7 +122,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @return a tensor with the backend default access layout
      */
     public static Tensor create(Shape shape, Class<?> klass) {
-        return new Tensor(shape, klass, null);
+        return new Tensor(shape, klass);
     }
 
     /**
@@ -128,7 +134,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @return a zero-initialized Tensor.
      */
     public static Tensor zeros(Shape shape, Class<?> klass) {
-        return new Tensor(shape, klass, null);
+        return new Tensor(shape, klass);
     }
 
     /**
@@ -138,6 +144,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @param value scalar value to be assigned to each element of the tensor.
      */
     public static void fill(Tensor tensor, float value) {
+        // use as a marker for the accelerator
     }
 
     /**
@@ -154,9 +161,8 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @return result result of the MMA operation.
      */
     public static Tensor mma(Tensor tensorA, Tensor tensorB, Tensor acc) {
-        // This is used as a marker for the HAT Backend. When supporting the CPU,
-        // we will need to insert the content as well acc = add(dot(tensorA, tensorB), acc);
-        return new Tensor(acc.shape(), acc.klass, acc.tensorAccess);
+        // This is used as a marker for the HAT Backend.
+        return new Tensor(acc.shape(), acc.klass);
     }
 
     /**
@@ -176,7 +182,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      */
     public static Tensor loadF16(F16Array matrix, int rowIndex, int columnIndex, int ldd, Shape shape) {
         // select Row Major as default
-        return new Tensor(shape, F16.class, ofRowMajor());
+        return new Tensor(shape, F16.class);
     }
 
     /**
@@ -196,7 +202,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @return a tensor in {@link F16}.
      */
     public static Tensor loadF16(F16Array matrix, int rowIndex, int columnIndex, int ldd, Shape shape, final Access tensorAccess) {
-        return new Tensor(shape, F16.class, tensorAccess);
+        return new Tensor(shape, F16.class);
     }
 
     /**
@@ -210,6 +216,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @param tensorAccess memory layout accessor
      */
     public static void store(F32Array matrix, int rowIndex, int columnIndex, Tensor resultTensor, int ldd, Access tensorAccess) {
+        // use as a marker for the accelerator
     }
 
     /**
@@ -222,6 +229,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @param ldd leading dimension
      */
     public static void store(F32Array matrix, int rowIndex, int columnIndex, Tensor resultTensor, int ldd) {
+        // use as a marker for the accelerator
     }
 
     /**
@@ -235,6 +243,7 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @param ldd leading dimension
      */
     public static void store(F32ArrayPadded matrix, int rowIndex, int columnIndex, Tensor resultTensor, int ldd) {
+        // use as a marker for the accelerator
     }
 
 
@@ -248,5 +257,6 @@ public record Tensor(Shape shape, Class<?> klass, Access tensorAccess) implement
      * @param ldd leading dimension
      */
     public static void store(F32ArrayPadded matrix, int rowIndex, int columnIndex, Tensor resultTensor, int ldd, Access tensorAccess) {
+        // use as a marker for the accelerator
     }
 }

@@ -682,53 +682,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private static final String TENSOR_MATRIX_A = "matrix_a";
-    private static final String TENSOR_MATRIX_B = "matrix_b";
-    private static final String TENSOR_ACC = "accumulator";
-
-    private int getTensorOrder(Value tensorValue) {
-        return getTensorOrder(tensorValue, tensorValue);
-    }
-
-    private int getTensorOrder(Value tensorValue, Value v) {
-        return v instanceof Op.Result r ? getTensorOrder(tensorValue, r.op()) : -1;
-    }
-
-    // We traverse the usages of the op until we find the MMA operation.
-    // Once the MMA is found, then we compare if the arguments (VarLoadOp) contains the
-    // reference to the var declartion being analyzed. In that case, we return its index.
-    private int getTensorOrder(Value tensorValue, Op op) {
-        int operandIndex = -1;
-        switch (op) {
-            case JavaOp.InvokeOp tensorMMAOp when tensorMMAOp.invokeReference().name().equals("mma") -> {
-                List<Value> operands = tensorMMAOp.operands();
-                for (Value argument : operands) {
-                    operandIndex++;
-                    if (argument.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
-                            && varLoadOp.operands().getFirst().equals(tensorValue)) {
-                        return operandIndex;
-                    }
-                }
-            }
-            default -> {
-                for (Op.Result use : op.result().uses()) {
-                    if ((operandIndex = getTensorOrder(tensorValue, use)) != -1) {
-                        return operandIndex;
-                    }
-                }
-            }
-        }
-        return operandIndex;
-    }
-
-    private static final Map<Integer, String> tensorOrderTable = new HashMap<>();
-    private static final int DEFAULT_TENSOR_ORDERING = -1;
-    static {
-        tensorOrderTable.put(1, TENSOR_MATRIX_A);
-        tensorOrderTable.put(2, TENSOR_MATRIX_B);
-        tensorOrderTable.put(-1, TENSOR_MATRIX_A); // We set one by default
-    }
-
     private static final Map<String, String> tensorTypeTable = new HashMap<>();
     static {
         tensorTypeTable.put("loadF16", "half");

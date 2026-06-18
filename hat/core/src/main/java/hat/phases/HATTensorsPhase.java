@@ -357,6 +357,7 @@ public record HATTensorsPhase() implements HATPhase {
                     args.add(op1);
                     args.addAll(blockBuilder.context().getValues(invokeOp.operands()));
 
+                    // insert an MMA Invoke
                     JavaOp.InvokeOp tensorMMAOp = JavaOp.invoke(MMA_FUNCTION, args);
                     tensorMMAOp.setLocation(invokeOp.location());
                     Op.Result op2 = blockBuilder.add(tensorMMAOp);

@@ -430,7 +430,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 }
             }
         }
-        return sp().varName(varTensorName).sbrace(_-> constant(Integer.toString(sizeToAllocate)));
+        return sp().varName(varTensorName).sbrace(_-> intValue(sizeToAllocate));
     }
 
     private OpenCLHATKernelBuilder createTensor(OpHelper.Invoke tensorCreateOp) {
@@ -490,31 +490,34 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * <p>
      *     <code>
-     *          for (int m = 0; m < " + shape[0] + "; m++) {
-     *           for (int n = 0; n < " + shape[1] + "; n++) {
-     *             tensorVarOp.varName() + "[m * " + shape[0] + " + n] = " + initValue + "f;" + "}" + "}");
+     *        for (int index_$fzm = 0;index_$fzm < shape[0];index_$fzm++) {
+     *            for (int index_$ups = 0;index_$ups < shape[1];index_$ups++) {
+     *               acc[index_$fzm*16+index_$ups] = initValue;
+     *       }};
      *     </code>
      * </p>
      *
-     * @param from
-     * @param to
+     * @param shape
      * @param tensorVarOp
      * @param initValue
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder emitForLoopWithBound(int from, int to, CoreOp.VarOp tensorVarOp, float initValue) {
+    private OpenCLHATKernelBuilder emitFillOperationForAccummulator(List<Integer> shape, CoreOp.VarOp tensorVarOp, float initValue) {
         String prefix = INDEX_PREFIX;
+        int from = 0;
+        int toLoopA = shape.getFirst();
+        int toLoopB = shape.get(1);
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
         forKeyword().sp().paren(_ -> {
             s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).sp().lt().sp().intValue(toLoopA).semicolon();
             id(varA).plusplus();
         }).sp().brace(_ -> {
             in().nl().forKeyword().sp().paren(_ -> {
                 s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).sp().lt().sp().intValue(toLoopB).semicolon();
                 id(varB).plusplus();
             }).sp().in();
 
@@ -522,7 +525,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     .id(tensorVarOp.varName())
                     .sbrace(_ ->
                             id(varA).mul()
-                                    .id(Integer.toString(to))
+                                    .intValue(toLoopB)
                                     .plus()
                                     .id(varB))
                     .assign()
@@ -539,7 +542,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *     <code>
      *       for (int m = 0; m < SHAPE_1; m++)
      *           for (int n = 0; n < SHAPE_2; n++)
-     *             tensor[m * SHAPE_1 + n] = initValue;
+     *             tensor[m * SHAPE_2 + n] = initValue;
      *     </code>
      * </p>
      *
@@ -564,7 +567,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var tensorInitValue = tensorFillOp.op().operands().get(1);
         float initValue = getValueConstantTensor(tensorInitValue);
 
-        emitForLoopWithBound(0, shape.getFirst(), tensorVarOp, initValue);
+        // 4. Generate the fill operation
+        emitFillOperationForAccummulator(shape, tensorVarOp, initValue);
         return self();
     }
 
@@ -574,11 +578,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * <p>
      * <code>
      *  for (int m = 0; m < WMMA_M; m++) {
-     for (int n = 0; n < WMMA_N; n++) {
+     *    for (int n = 0; n < WMMA_N; n++) {
      *       float sum = acc[m][n];
      *       for (int k = 0; k < WMMA_K; k++) {
-     *         F16_t ha = a_frag[m * WMMA_M + k];
-     *         F16_t hb = b_frag[k * WMMA_M + n];
+     *         F16_t ha = a_frag[m * WMMA_K + k];
+     *         F16_t hb = b_frag[k * WMMA_N + n];
      *         F16_t result = (F16_t){(ha.value * hb.value)};
      *         sum += (float)(result.value);
      *       }
@@ -603,27 +607,36 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         String varC = generateVariableName(prefix);
         String acc = generateVariableName("sum_");
         final int from = 0;
-        final int to = shape.get(0);
+        final int M = shape.get(0);
+        final int N = shape.get(1);
+        final int K = shape.get(2);
+
+        // ---------------------------
+        // Shapes:
+        // tensor A   with shape: MxK
+        // tensor B   with shape: KxN
+        // tensor acc with shape: MxN
+        // ---------------------------
 
         forKeyword().sp().paren(_ -> {
             s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).sp().lt().sp().intValue(M).semicolon();
             id(varA).plusplus();
         }).sp().brace(_ -> {
             in().nl().forKeyword().sp().paren(_ -> {
                 s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).sp().lt().sp().intValue(N).semicolon();
                 id(varB).plusplus();
             }).in();
 
             brace(_ -> {
                 nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace(_ -> {
-                    id(varA).mul().id(Integer.toString(shape.get(0))).sp().plus().id(varB);
+                    id(varA).mul().intValue(N).sp().plus().id(varB);
                 }).semicolon().nl();
 
                 forKeyword().sp().paren(_ -> {
                     s32Type().sp().id(varC).assign().intValue(from).semicolon();
-                    id(varC).sp().lt().sp().intValue(to).semicolon();
+                    id(varC).sp().lt().sp().intValue(K).semicolon();
                     id(varC).plusplus();
                 }).sp().in();
 
@@ -632,13 +645,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     String ha = generateVariableName("ha_");
                     String hb = generateVariableName("hb_");
                     String resultTensor = generateVariableName("h_res_");
-                    f16Type().sp().id(ha).assign().id(tensorA.varName()).sbrace(_ -> id(varA).mul().id(Integer.toString(shape.get(0))).sp().plus().id(varC)).semicolon().nl();
-                    f16Type().sp().id(hb).assign().id(tensorB.varName()).sbrace(_ -> id(varC).mul().id(Integer.toString(shape.get(1))).sp().plus().id(varB)).semicolon().nl();
-                    f16Type().sp().id(resultTensor).assign().paren(_ -> f16Type()).brace(_ -> paren(_ -> id(ha).dot().id("value").mul().id(hb).dot().id("value"))).semicolon().nl();
-                    id(acc).sp().plusEquals().cast(_ -> f32Type()).paren(_ -> id(resultTensor).dot().id("value")).semicolon().nl();
+                    f16Type().sp().id(ha).assign().id(tensorA.varName()).sbrace(_ -> id(varA).mul().intValue(K).sp().plus().id(varC)).semicolon().nl();
+                    f16Type().sp().id(hb).assign().id(tensorB.varName()).sbrace(_ -> id(varC).mul().intValue(N).sp().plus().id(varB)).semicolon().nl();
+                    f16Type().sp().id(resultTensor).assign().paren(_ -> f16Type()).brace(_ -> paren(_ -> id(ha).dot().id(VALUE).mul().id(hb).dot().id(VALUE))).semicolon().nl();
+                    id(acc).sp().plusEquals().cast(_ -> f32Type()).paren(_ -> id(resultTensor).dot().id(VALUE)).semicolon().nl();
                 }).nl().out();
 
-                id(result.varName()).sbrace(_ -> id(varA).sp().mul().sp().id(Integer.toString(shape.get(0))).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
+                id(result.varName()).sbrace(_ -> id(varA).sp().mul().sp().intValue(N).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
 
             }).semicolon().nl();
 
@@ -703,19 +716,39 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @param ptrValue
      * @param tensorVarOp
      *
-     * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder generateTensorLoad(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp tensorVarOp) {
+    private void generateTensorLoad(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp tensorVarOp, int tensorOrder) {
 
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
-        final int to = shape.getFirst();
         final int from = 0;
+        final int M;
+        final int N;
+
+        // ---------------------------
+        // Shapes:
+        // tensor A   with shape: MxK
+        // tensor B   with shape: KxN
+        // ---------------------------
+        String matrixOrder = tensorOrderTable.get(tensorOrder);
+        switch (matrixOrder) {
+            case TENSOR_MATRIX_A -> {
+                M = shape.get(0); // M
+                N = shape.get(2); // K
+            }
+            case TENSOR_MATRIX_B -> {
+                M = shape.get(2); // K
+                N = shape.get(1); // N
+            }
+            case null, default -> throw new IllegalStateException("Tensor load matrix order not detected");
+        }
+
+        // We need to get if tensorA or tensorB is being loaded
 
         forKeyword().sp().paren(_ -> {
             s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).sp().lt().sp().intValue(M).semicolon();
             id(varA).plusplus();
         }).in();
 
@@ -731,7 +764,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
             forKeyword().sp().paren(_ -> {
                 s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).sp().lt().sp().intValue(N).semicolon();
                 id(varB).plusplus();
             }).sp().in();
 
@@ -778,11 +811,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id("value")).semicolon().nl();
 
                 // store into the acc
-                emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).sp().mul().id(Integer.toString(shape.getFirst())).sp().plus().id(varB));
+                emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).sp().mul().intValue(N).sp().plus().id(varB));
                 equals().sp().id(r).semicolon().nl();
             }).out();
         }).out();
-        return self();
     }
 
     /**
@@ -822,12 +854,16 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             throw new IllegalStateException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
         }
 
+        // Obtain if tensorA or tensorB is being loaded.
+        // This is important to get the loop-bounds correct if matrices are not square
+        int tensorOrder = getTensorOrder(tensorVarOp.result());
+
         boolean isColumnMajor = false;
         if (tensorLoadOp.op().operands().size() > 5) {
             isColumnMajor = isColumnMajor(operands.get(5));
         }
 
-        generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
+        generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp, tensorOrder);
         return self();
     }
 
@@ -861,12 +897,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
         String varB = generateVariableName(prefix);
-        final int to = shape.getFirst();
         final int from = 0;
+        // Output is MxN, given the shape in a M,N,K triplet
+        final int M = shape.get(0);
+        final int N = shape.get(1);
 
         forKeyword().sp().paren(_ -> {
             s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(to).semicolon();
+            id(varA).sp().lt().sp().intValue(M).semicolon();
             id(varA).plusplus();
         }).in();
 
@@ -882,7 +920,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
             forKeyword().sp().paren(_ -> {
                 s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(to).semicolon();
+                id(varB).sp().lt().sp().intValue(N).semicolon();
                 id(varB).plusplus();
             }).sp().in();
 
@@ -919,7 +957,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     recurse(r.op());
                 }
                 rarrow().id("array").sbrace( _ -> id(index)).assign();
-                id(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().id(Integer.toString(shape.getFirst())).plus().id(varB));
+                id(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().intValue(N).plus().id(varB));
                 semicolon().nl();
             }).out();
         }).out();

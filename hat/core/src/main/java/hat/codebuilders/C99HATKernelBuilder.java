@@ -59,7 +59,9 @@ import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
@@ -1314,6 +1316,53 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             return getValueConstantTensor(r.op().operands().getFirst());
         }
         return -1.0f;
+    }
+
+    protected static final String TENSOR_MATRIX_A = "matrix_a";
+    protected static final String TENSOR_MATRIX_B = "matrix_b";
+    protected static final String TENSOR_ACC = "accumulator";
+
+    protected int getTensorOrder(Value tensorValue) {
+        return getTensorOrder(tensorValue, tensorValue);
+    }
+
+    protected int getTensorOrder(Value tensorValue, Value v) {
+        return v instanceof Op.Result r ? getTensorOrder(tensorValue, r.op()) : -1;
+    }
+
+    // We traverse the usages of the op until we find the MMA operation.
+    // Once the MMA is found, then we compare if the arguments (VarLoadOp) contains the
+    // reference to the var declartion being analyzed. In that case, we return its index.
+    protected int getTensorOrder(Value tensorValue, Op op) {
+        int operandIndex = -1;
+        switch (op) {
+            case JavaOp.InvokeOp tensorMMAOp when tensorMMAOp.invokeReference().name().equals("mma") -> {
+                List<Value> operands = tensorMMAOp.operands();
+                for (Value argument : operands) {
+                    operandIndex++;
+                    if (argument.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                            && varLoadOp.operands().getFirst().equals(tensorValue)) {
+                        return operandIndex;
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((operandIndex = getTensorOrder(tensorValue, use)) != -1) {
+                        return operandIndex;
+                    }
+                }
+            }
+        }
+        return operandIndex;
+    }
+
+    protected static final Map<Integer, String> tensorOrderTable = new HashMap<>();
+    protected static final int DEFAULT_TENSOR_ORDERING = -1;
+    static {
+        tensorOrderTable.put(1, TENSOR_MATRIX_A);
+        tensorOrderTable.put(2, TENSOR_MATRIX_B);
+        tensorOrderTable.put(-1, TENSOR_MATRIX_A); // We set one by default
     }
 
     // Tensor Load ABI
