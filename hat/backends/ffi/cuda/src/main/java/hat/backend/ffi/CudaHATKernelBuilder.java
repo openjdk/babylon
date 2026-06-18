@@ -669,9 +669,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             } else if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
                 // Expecting an invokeOp
                 var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
-                if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                if (invoke != null && invoke.resultTypeIs(Tensor.ColumMajor.class)) {
                     id(WMMA_COL_MAJOR);
-                } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                } else if (invoke != null && invoke.resultTypeIs(Tensor.RowMajor.class)) {
                     id(WMMA_ROW_MAJOR);
                 } else {
                     throw new IllegalStateException("[Error]");
@@ -877,13 +877,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     .id(tensorVarOp.varName())
                     .comma()
                     .recurseResultOrThrow(ldSize)
-                    .comma();
-
-            if (isColumnMajor) {
-                id(WMMA_MEM_COL_MAJOR);
-            } else {
-                id(WMMA_MEM_ROW_MAJOR);
-            }
+                    .comma()
+                    .either(isColumnMajor,
+                            _ -> id(WMMA_MEM_COL_MAJOR),
+                            _ -> id(WMMA_MEM_ROW_MAJOR));
         });
         return self();
     }
@@ -905,13 +902,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     protected CudaHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStore) {
         List<Value> operands = tensorStore.op().operands();
         // Access layout is the last operand
-        final boolean isColumnMajor;
+        boolean isColumnMajor = false;
         // Since the Access Layout is an optional parameter, we check
         if (tensorStore.op().operands().size() == 6) {
             isColumnMajor = isColumnMajor(operands.getLast());
-        } else {
-            // use row major by default
-            isColumnMajor = false;
         }
         return generateStoreTensor(operands, isColumnMajor);
     }
