@@ -305,13 +305,11 @@ public record HATTensorsPhase() implements HATPhase {
                     Op.Result op2 = blockBuilder.add(varOp1);
                     varTable.addIfNeededOrThrow(finalFuncOp.funcName(), op2.op(), VarTable.HATOpAttribute.TENSOR);
 
-                    // TensorVarLoadOp
-                    List<Value> argsLoadOp = List.of(op2);
-                    VarLoadOp varLoadOp = VarLoadOp.varLoad(op2);
-                    //TensorVarLoadOp tensorVarLoadOp = new TensorVarLoadOp(invokeOp.resultType(), argsLoadOp);
+                    // Add VarLoadOp
+                    VarLoadOp varLoadOp = varLoad(op2);
                     Op.Result op3 = blockBuilder.add(varLoadOp);
 
-                    // Add Fill
+                    // Add Fill Invoke
                     CoreOp.ConstantOp constant = CoreOp.constant(FLOAT, 0.0f);
                     Op.Result op4 = blockBuilder.add(constant);
 
@@ -379,19 +377,16 @@ public record HATTensorsPhase() implements HATPhase {
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        for (ActionTensorTransformer pass : tensorTransformer) {
-            funcOp = pass.apply(lookup, funcOp, varTable);
-        }
-        return funcOp;
-    }
-
-    private static final List<ActionTensorTransformer> tensorTransformer = new ArrayList<>();
-
-    public HATTensorsPhase {
-        tensorTransformer.add(this::createTensorsToRelocate);
-        tensorTransformer.add(this::createTensors);
-        tensorTransformer.add(this::tensorShape);
-        tensorTransformer.add(this::zerosTensors);
-        tensorTransformer.add(this::mmaTensorWithStore);
+        List<ActionTensorTransformer> tensorTransformer = List.of(
+                this::createTensorsToRelocate,
+                this::createTensors,
+                this::tensorShape,
+                this::zerosTensors,
+                this::mmaTensorWithStore);
+        CoreOp.FuncOp[] function =  new CoreOp.FuncOp[] {funcOp};
+        tensorTransformer.forEach(action ->
+                function[0] = action.apply(lookup, function[0], varTable)
+        );
+        return function[0];
     }
 }
