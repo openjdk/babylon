@@ -37,22 +37,24 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.OpHelper.Invoke;
-import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SequencedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static hat.phases.HATPhaseUtils.InvokeVar;
 import static hat.phases.HATPhaseUtils.isArrayReference;
 import static hat.phases.HATPhaseUtils.isMathLib;
 import static hat.phases.HATPhaseUtils.isOperandF32;
@@ -109,15 +111,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("__half2float");
     }
 
-    private CudaHATKernelBuilder __nv_bfloat16() {
+    private CudaHATKernelBuilder float2half() {
+        return id("__float2half");
+    }
+
+    private CudaHATKernelBuilder nvBFloat16() {
         return id("__nv_bfloat16");
     }
 
-    private CudaHATKernelBuilder __bfloat162float() {
+    private CudaHATKernelBuilder bfloat162float() {
         return id("__bfloat162float");
     }
 
-    private CudaHATKernelBuilder reinterpret_cast() {
+    private CudaHATKernelBuilder reinterpretCast() {
         return keyword("reinterpret_cast");
     }
 
@@ -189,11 +195,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder defines() {
         return self()
                 .hashDefine("HAT_CUDA")
-                .hashDefine("HAT_GLOBAL_MEM", _ -> {
-                })
+                .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
                 .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())//.keyword("inline"))
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().keyword("__global__"))
+
+                // threads
                 .hashDefine("HAT_GIX", _ -> paren(_ -> HAT_BIX().asterisk().HAT_LSX().plus().HAT_LIX()))
                 .hashDefine("HAT_GIY", _ -> paren(_ -> HAT_BIY().asterisk().HAT_LSY().plus().HAT_LIY()))
                 .hashDefine("HAT_GIZ", _ -> paren(_ -> HAT_BIZ().asterisk().HAT_LSZ().plus().HAT_LIZ()))
@@ -212,13 +219,40 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BSX", _ -> gridDimX())
                 .hashDefine("HAT_BSY", _ -> gridDimY())
                 .hashDefine("HAT_BSZ", _ -> gridDimZ())
-                .hashDefine("HAT_BARRIER", _ -> keyword("__syncthreads").ocparen())
-                .maxMacro("MAX_HAT")
-                .minMacro("MIN_HAT")
-                .includeSys("cuda_fp16.h", "cuda_bf16.h")
-                .hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16"))
-                .typedefSingleValueStruct("F16", "half")
-                .typedefSingleValueStruct("BF16", "BFLOAT16");
+
+                // Barrier
+                .when(useBarrier(), _ -> hashDefine("HAT_BARRIER", _ -> keyword("__syncthreads").ocparen()))
+
+                // Math
+                .when(useS16Types(), _ -> maxMacro("MAX_HAT"))
+                .when(useS16Types(), _ ->minMacro("MIN_HAT"))
+
+                // General Macros
+                .when(useVectors() || useVectors(), _ -> concatMacro())
+                .when(useVectors() || useVectors(), _ -> prefixMacro())
+
+                // Vectors
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_0",false))
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_1",true))
+                .when(useVectors(), _ -> defineMacroVLoadN())
+                .when(useVectors(), _ -> defineMacroVStoreN())
+                .when(useVectors(), _ -> defineMacroVectorOf(2))
+                .when(useVectors(), _ -> defineMacroVectorOf(3))
+                .when(useVectors(), _ -> defineMacroVectorOf(4))
+                .when(useVectors(), _ -> defineMacroVectorSelectLoad(VSELECT_LOAD))
+                .when(useVectors(), _ -> defineMacroVectorSelectStore(VSELECT_STORE))
+
+                // S16 types
+                .when(useS16Types(), _ -> defineMacroF16Of(F16_OF))
+                .when(useS16Types(), _ -> defineMacroBF16Of(BF16_OF))
+                .when(useS16Types(), _ -> defineMacroF162Float(F16_TO_FLOAT_0, false))
+                .when(useS16Types(), _ -> defineMacroF162Float(F16_TO_FLOAT_1, true))
+                .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_0, false))
+                .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_1, true))
+                .when(useS16Types(), _ -> includeSys("cuda_fp16.h", "cuda_bf16.h"))
+                .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
+                .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
+                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"));
     }
 
     @Override
@@ -226,23 +260,137 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("atomicAdd").paren(_ -> ampersand().recurseResultOrThrow(instanceResult).rarrow().id(name).comma().literal(1));
     }
 
-    @Override
-    public CudaHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
-        keyword("reinterpret_cast").ltgt(_ -> type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().asterisk());
-        paren(_ -> {
-            ampersand().recurseResultOrThrow(dest);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
+    /**
+     * <code>
+     *     #define VLOADN(N, addr, index, isLocal) reinterpret_cast<CONCAT(float, N) *>(CONCAT(VECTOR_, isLocal)(addr, index))[0]
+     * </code>
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVLoadN() {
+        List<String> params = getMacroVectorParamsLoad();
+        return macroNoParenthesis(VLOADN, params, _ ->
+                reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
+                .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
+                .sbrace( _ -> intConstZero()));
+    }
+
+    /**
+     * <code>
+     *     #define VSTOREN(N, a, index, isLocal, vectorVal) reinterpret_cast<CONCAT(float, N)*>(CONCAT(VECTOR_, isLocal)(a, index))[0] = vectorVal
+     * </code>
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVStoreN() {
+        List<String> params = getMacroVectorParamsStore();
+        return macroNoParenthesis(VSTOREN, params, _ ->
+                reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
+                        .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
+                        .sbrace( _ -> intConstZero()).sp().equals().sp().id(VECTOR_VAL));
+    }
+
+    /**
+     * <code>
+     *    #define VECTOR_OF2(elementType, p0, p1) (PREFIX(make_,CONCAT(elementType,2)))(p0,p1)
+     *    #define VECTOR_OF3(elementType, p0, p1, p2) (PREFIX(make_,CONCAT(elementType,3)))(p0,p1,p2)
+     *    #define VECTOR_OF4(elementType, p0, p1, p2, p3) (PREFIX(make_,CONCAT(elementType,4)))(p0,p1,p2,p3)
+     * </code>
+     * @param lanes
+     *    Vector width
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
+        List<String> params = new ArrayList<>();
+        params.add(ELEMENT_TYPE);
+        IntStream.range(0, lanes).mapToObj(i -> "p" + i).forEach(params::add);
+        return macroNoParenthesis(VECTOR_OF + lanes, params, _ -> {
+            paren(_ -> id(PREFIX).paren(_ ->
+                    id(MAKE_).comma().id(CONCAT).paren(_ -> id(ELEMENT_TYPE).comma().id(String.valueOf(lanes)))));
+            paren(_ -> {
+                for (int i = 1; i < params.size(); i++) {
+                    id(params.get(i));
+                    either((i < params.size() - 1), _ -> comma(), _ -> self());
+                }
+            });
         });
-        sbrace(_ -> intConstZero());
-        sp().equals().sp();
-        // if the value to be stored is an operation, recurse on the operation
-        if (op.operands().get(1) instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp1 && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp1))) {
-            recurse(r.op());
-        } else {
-            varName(name);
-        }
-        return self();
+    }
+
+    private CudaHATKernelBuilder defineS16macro(String name, Consumer<CudaHATKernelBuilder> type, Consumer<CudaHATKernelBuilder> buildFunction) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> type.accept(self()))
+                        .brace(_ -> {
+                            buildFunction.accept(self());
+                            paren(_-> id("val"));
+                        }));
+    }
+
+    /**
+     * <code>
+     *    #define F16_OF(val) (F16_t){__float2half(val)}
+     * </code>
+     * @param name
+     *     Name of the CUDA Macro
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroF16Of(String name) {
+        return defineS16macro(name, _ -> f16Type(), _ -> float2half());
+    }
+
+    /**
+     * <code>
+     *    #define BF16_OF(val) (BF16_t){__nv_bfloat16(val)}
+     * </code>
+     * @param name
+     *    Name of the CUDA Macro
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroBF16Of(String name) {
+        return defineS16macro(name, _ -> bf16Type(), _ -> nvBFloat16());
+    }
+
+    private CudaHATKernelBuilder defineMacroS16Conversion(String name, Consumer<CudaHATKernelBuilder> type, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> type.accept(self()))
+                        .paren(_-> id("val")
+                                .dotOrArrow(isLocal)
+                                .id(VALUE)));
+    }
+
+    /**
+     * <code>
+     *    #define F16_TO_FLOAT_0(val) (__half2float)(val->value)
+     *    #define F16_TO_FLOAT_1(val) (__half2float)(val.value)
+     * </code>
+     * @param name
+     *    Name of the CUDA Macro
+     * @param isLocal
+     *    Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
+        return defineMacroS16Conversion(name, _ -> half2float(), isLocal);
+    }
+
+    /**
+     * <code>
+     *     #define BF16_TO_FLOAT_0(val) (__bfloat162float(val->value))
+     *     #define BF16_TO_FLOAT_1(val) (__bfloat162float(val.value))
+     * </code>
+     * @param name
+     *     Name of the CUDA Macro
+     * @param isLocal
+     *     Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
+        return defineMacroS16Conversion(name, _ -> bfloat162float(), isLocal);
+
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
@@ -337,69 +485,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return generateHATBinaryVectorOperation(invoke, nameVector);
     }
 
-    public String buildTypeVector(IfaceValue.Vector.Shape vectorShape) {
-        return vectorShape.codeType().toString() + vectorShape.lanes();
-    }
-
-    @Override
-    public CudaHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-        reinterpret_cast().ltgt(_ -> type(buildTypeVector(vectorShape)).sp().asterisk());
-        paren(_ -> {
-            ampersand();
-            recurseResultOrThrow(source);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
-        });
-        sbrace(_ -> intConstZero());
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatSelectStoreOp(Invoke invoke, InvokeVar invokeVar) {
-        id(invokeVar.name()).dot().id(mapLane(invokeVar.laneIdx())).sp().equals().sp();
-        String resolvedName = invokeVar.resolveName();
-        if (resolvedName != null) {
-            // We have detected a direct resolved result (resolved name)
-            varName(resolvedName);
-        } else {
-            // otherwise, we traverse to resolve the expression
-            recurseResultOrThrow(invoke.op().operands().get(1));
-        }
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reducedFloatType) {
-        paren(_ -> f16OrBF16(reducedFloatType)).brace(_ -> {
-            buildFloat16Class(reducedFloatType);
-            paren(_ ->
-                    recurseResultOrThrow(invokeOp.operands().getFirst())
-            );
-        });
-        return self();
-    }
-
-    private static final String VALUE = "value";
-
-    @Override
-    public CudaHATKernelBuilder hatF16ToFloatConvOp(Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
-        buildFloat16Class(reducedFloatType);
-        paren(_ -> {
-            recurseResultOrThrow(invoke.op().operands().getFirst());
-            if (!isF16Local) {
-                rarrow().id(VALUE);
-            } else if (!wasFloat) {
-                dot().id(VALUE);
-            }
-        });
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
-        return id("make_" + vectorShape.codeType().toString() + vectorShape.lanes());
-    }
-
     @Override
     public CudaHATKernelBuilder hatF16BinaryOp(Invoke invoke, Class<?> reducedFloatType) {
         Value op1 = invoke.op().operands().get(0);
@@ -419,7 +504,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         brace(_ ->
                 paren(_ -> {
                     if (f32Mixed == HATFP16Phase.LAST_OP) {
-                        generateFloat16ConversionToFloat(reducedFloatType).oparen();
+                        s16ToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op1);
                     if (isFirstOperandReference) {
@@ -432,7 +517,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     }
                     sp().id(matchSymbol(invoke.name())).sp();
                     if (f32Mixed == HATFP16Phase.FIRST_OP) {
-                        generateFloat16ConversionToFloat(reducedFloatType).oparen();
+                        s16ToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op2);
                     if (isSecondOperandReference) {
@@ -449,21 +534,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private CudaHATKernelBuilder buildFloat16Class(Class<?> float16Class) {
+    private CudaHATKernelBuilder s16ToFloat(Class<?> float16Class) {
         if (F16.class.isAssignableFrom(float16Class)) {
             return half2float();
         } else if (BF16.class.isAssignableFrom(float16Class)) {
-            return __nv_bfloat16();
-        } else {
-            throw new IllegalStateException("Unexpected value: " + float16Class);
-        }
-    }
-
-    private CudaHATKernelBuilder generateFloat16ConversionToFloat(Class<?> float16Class) {
-        if (F16.class.isAssignableFrom(float16Class)) {
-            return half2float();
-        } else if (BF16.class.isAssignableFrom(float16Class)) {
-            return __bfloat162float();
+            return bfloat162float();
         } else {
             throw new IllegalStateException("Unexpected value: " + float16Class);
         }
@@ -534,9 +609,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
-        return HAT_LOCAL_MEM()
-                .sp()
-                .varOpPrivateMemory(varOp);
+        return HAT_LOCAL_MEM().sp().varOpPrivateMemory(varOp);
     }
 
     @Override

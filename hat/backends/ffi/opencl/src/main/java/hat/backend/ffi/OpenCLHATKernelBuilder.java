@@ -28,8 +28,6 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
 import hat.phases.HATPhaseUtils;
-import hat.types.BF16;
-import hat.types.F16;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
@@ -38,19 +36,32 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.codebuilders.CodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import jdk.incubator.code.Op;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static hat.phases.HATPhaseUtils.isMathLib;
 import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
+
+    private static final String EXTENSION = "EXTENSION";
+    private static final String OPENCL = "OPENCL";
+    private static final String ENABLE = "enable";
+    private static final String GLOBAL_ID = "get_global_id";
+    private static final String LOCAL_ID = "get_local_id";
+    private static final String GLOBAL_SIZE = "get_global_size";
+    private static final String LOCAL_SIZE = "get_local_size";
+    private static final String GROUP_ID = "get_group_id";
+    private static final String NUM_GROUPS = "get_num_groups";
 
     // Mapping between API function names and OpenCL intrinsics for the math operations
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
@@ -91,40 +102,71 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return self()
                 .hashDefine("HAT_OPENCL")
                 .hashIfndef("NULL", _ -> hashDefine("NULL", "0"))
-                .when(kernelCallGraph.isUsesAtomics(),_->pragma("OPENCL", "EXTENSION", "cl_khr_global_int32_base_atomics", ":", "enable"))
-                .when(kernelCallGraph.isUsesAtomics(),_->pragma("OPENCL", "EXTENSION", "cl_khr_local_int32_base_atomics", ":", "enable"))
-                /*.when(kernelCallGraph.usesFp16,_->*/.pragma("OPENCL", "EXTENSION", "cl_khr_fp16", ":", "enable")//)                      // Enable Half type
+                .when(useAtomic(),_->pragma(OPENCL, EXTENSION, "cl_khr_global_int32_base_atomics", ":", ENABLE))
+                .when(useAtomic(),_->pragma(OPENCL, EXTENSION, "cl_khr_local_int32_base_atomics", ":", ENABLE))
+                .when(useS16Types(), _ -> pragma(OPENCL, EXTENSION, "cl_khr_fp16", ":", ENABLE))
                 .hashDefine("HAT_FUNC", _ -> keyword(""))
                 .hashDefine("HAT_KERNEL", _ -> keyword("__kernel"))
                 .hashDefine("HAT_GLOBAL_MEM", _ -> keyword("__global"))
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__local"))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("gix"), _->hashDefine("HAT_GIX", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstZero()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("giy"), _->hashDefine("HAT_GIY", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstOne()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("giz"), _->hashDefine("HAT_GIZ", _ -> paren(_ -> id("get_global_id").paren(_ -> intConstTwo()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("lix"), _->hashDefine("HAT_LIX", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstZero()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("liy"), _->hashDefine("HAT_LIY", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstOne()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("liz"), _->hashDefine("HAT_LIZ", _ -> paren(_ -> id("get_local_id").paren(_ -> intConstTwo()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("gsx"), _->hashDefine("HAT_GSX", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstZero()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("gsy"), _->hashDefine("HAT_GSY", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstOne()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("gsz"), _->hashDefine("HAT_GSZ", _ -> paren(_ -> id("get_global_size").paren(_ -> intConstTwo()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("lsx"), _->hashDefine("HAT_LSX", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstZero()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("lsy"), _->hashDefine("HAT_LSY", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstOne()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("lsz"), _->hashDefine("HAT_LSZ", _ -> paren(_ -> id("get_local_size").paren(_ -> intConstTwo()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("bix"), _->hashDefine("HAT_BIX", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstZero()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("biy"), _->hashDefine("HAT_BIY", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstOne()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("biz"), _->hashDefine("HAT_BIZ", _ -> paren(_ -> id("get_group_id").paren(_ -> intConstTwo()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("bsx"), _->hashDefine("HAT_BSX", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstZero()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("bsy"), _->hashDefine("HAT_BSY", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstOne()))))
-                .when(kernelCallGraph.accessedKernelContextFields.contains("bsz"), _->hashDefine("HAT_BSZ", _ -> paren(_ -> id("get_num_groups").paren(_ -> intConstTwo()))))
-                .when(!kernelCallGraph.accessedFP16Classes.isEmpty(), _->maxMacro("MAX_HAT"))
-                .when(!kernelCallGraph.accessedFP16Classes.isEmpty(), _->minMacro("MIN_HAT"))
-                .when(kernelCallGraph.isUsesBarrier(), _ ->hashDefine("HAT_BARRIER", _ -> id("barrier").oparen().id("CLK_LOCAL_MEM_FENCE").cparen()))
-                /*.when(callgraphState.usesFp16,_->*/.hashDefine("BFLOAT16", _ -> keyword("ushort"))//)
-                /*.when(callgraphState.usesFp16,_->*/.typedefSingleValueStruct("F16",  "half")//)
-                /*.when(callgraphState.usesFp16,_->*/.typedefSingleValueStruct("BF16",  "BFLOAT16")//)
-                /*.when(callgraphState.usesFp16,_->*/.unionBfloat16()//)
-                /*.when(callgraphState.usesFp16,_->*/.build_builtin_bfloat16ToFloat("bf16")//)
-                /*.when(callgraphState.usesFp16,_->*/.build_builtin_float2bfloat16("f")/*)*/;
+
+                // General macros
+                .when(useVectors() || useS16Types(), _ -> concatMacro())
+                .when(useVectors() || useS16Types(), _ -> prefixMacro())
+
+                // Vector macros
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_0",false))
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_1",true))
+                .when(useVectors(), _ -> defineMacroVLoadN())
+                .when(useVectors(), _ -> defineMacroVStoreN())
+                .when(useVectors(), _ -> defineMacroVectorOf(2))
+                .when(useVectors(), _ -> defineMacroVectorOf(3))
+                .when(useVectors(), _ -> defineMacroVectorOf(4))
+                .when(useVectors(), _ -> defineMacroVectorSelectLoad(VSELECT_LOAD))
+                .when(useVectors(), _ -> defineMacroVectorSelectStore(VSELECT_STORE))
+
+                // Narrow types macros
+                .when(useS16Types(), _ ->defineMacroBF16Of())
+                .when(useS16Types(), _ ->defineMacroF162Float(F16_TO_FLOAT_0, false))
+                .when(useS16Types(), _ ->defineMacroF162Float(F16_TO_FLOAT_1, true))
+                .when(useS16Types(), _ -> defineMacroF16Of())
+                .when(useS16Types(), _ ->defineMacroBF162Float(BF16_TO_FLOAT_0, false))
+                .when(useS16Types(), _ ->defineMacroBF162Float(BF16_TO_FLOAT_1, true))
+
+                // Thread access macros
+                .when(useThreadConstruct("gix"), _-> hashDefine("HAT_GIX", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("giy"), _-> hashDefine("HAT_GIY", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("giz"), _-> hashDefine("HAT_GIZ", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("lix"), _-> hashDefine("HAT_LIX", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("liy"), _-> hashDefine("HAT_LIY", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("liz"), _-> hashDefine("HAT_LIZ", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("gsx"), _-> hashDefine("HAT_GSX", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("gsy"), _-> hashDefine("HAT_GSY", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("gsz"), _-> hashDefine("HAT_GSZ", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("lsx"), _-> hashDefine("HAT_LSX", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("lsy"), _-> hashDefine("HAT_LSY", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("lsz"), _-> hashDefine("HAT_LSZ", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("bix"), _-> hashDefine("HAT_BIX", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("biy"), _-> hashDefine("HAT_BIY", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("biz"), _-> hashDefine("HAT_BIZ", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("bsx"), _-> hashDefine("HAT_BSX", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("bsy"), _-> hashDefine("HAT_BSY", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("bsz"), _-> hashDefine("HAT_BSZ", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstTwo()))))
+
+                // Math Functions
+                .when(useS16Types(), _->maxMacro("MAX_HAT"))
+                .when(useS16Types(), _->minMacro("MIN_HAT"))
+
+                // Barrier
+                .when(useBarrier(), _ ->hashDefine("HAT_BARRIER", _ -> id("barrier").oparen().id("CLK_LOCAL_MEM_FENCE").cparen()))
+
+                // S16 transformations macros
+                .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("ushort")))
+                .when(useS16Types(), _ -> typedefSingleValueStruct("F16",  "half"))
+                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16",  "BFLOAT16"))
+                .when(useS16Types(), _ -> unionBfloat16())
+                .when(useS16Types(), _ -> build_builtin_bfloat16ToFloat("bf16"))
+                .when(useS16Types(), _ -> build_builtin_float2bfloat16("f"));
     }
 
     @Override
@@ -132,35 +174,131 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return id("atomic_inc").paren(_ -> ampersand().recurse( instanceResult.op()).rarrow().id(name));
     }
 
-    protected OpenCLHATKernelBuilder vstore(int dims) {
-        return id("vstore" + dims);
+    private OpenCLHATKernelBuilder defineMacroVectors(String macroName, List<String> params, String construct, Consumer<C99HATKernelBuilder> codeBuilder) {
+        return macroNoParenthesis(macroName, params, _ -> id(CONCAT)
+                .paren(_ -> id(construct).comma().id(N))
+                .paren( _ -> {
+                        codeBuilder.accept(self());
+                        intConstZero().comma().sp().id(CONCAT)
+                        .paren(_ -> id(VECTOR).comma().id(IS_LOCAL))
+                        .paren( _ -> id(ADDDR).comma().id(INDEX));
+                }));
     }
 
-    protected OpenCLHATKernelBuilder vload(int dims) {
-        return id("vload" + dims);
+    /**
+     * <code>
+     *     #define VLOADN(N, addr, index, isLocal) CONCAT(vload, N)(0, CONCAT(VECTOR_, isLocal)(addr, index))
+     * </code>
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroVLoadN() {
+        return defineMacroVectors(VLOADN, getMacroVectorParamsLoad(), VLOAD,  _ -> self());
     }
 
+    /**
+     * <code>
+     *     #define VSTOREN(N, addr, index, isLocal, vectorVal) CONCAT(vstore, N)((vectorVal), 0, CONCAT(VECTOR_, isLocal)(addr, index))
+     * </code>
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroVStoreN() {
+        return defineMacroVectors(VSTOREN, getMacroVectorParamsStore(), VSTORE,  _ ->  id(VECTOR_VAL).comma().sp());
+    }
 
-    @Override
-    public OpenCLHATKernelBuilder generateVectorLoad(Value source, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated) {
-        vload(vectorShape.lanes()).paren(_ -> {
-            intConstZero().comma().sp().ampersand();
-            recurseResultOrThrow(source);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ -> recurseResultOrThrow(index));
+    /**
+     * <code>
+     *     #define VECTOR_OF4(elementType, p0, p1, p2, p3) (CONCAT(elementType,4))(p0,p1,p2,p3)
+     * </code>
+     *
+     * @param lanes
+     *  vector width
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroVectorOf(int lanes) {
+        List<String> params = new ArrayList<>();
+        params.add(ELEMENT_TYPE);
+        IntStream.range(0, lanes).mapToObj(i -> "p" + i).forEach(params::add);
+        return macroNoParenthesis(VECTOR_OF + lanes, params, _ -> {
+            paren(_ -> id(CONCAT).paren(_ -> id(ELEMENT_TYPE).comma().id(String.valueOf(lanes))));
+            paren(_ -> {
+                for (int i = 1; i < params.size(); i++) {
+                    id(params.get(i));
+                    either((i < params.size() - 1), _ -> comma(), _ -> self());
+                }
+            });
         });
-        return self();
     }
 
-    @Override
-    public OpenCLHATKernelBuilder hatVectorStoreOp(Value dest, Value index, IfaceValue.Vector.Shape vectorShape, boolean deviceAllocated, String name, Op op) {
-        return vstore(vectorShape.lanes()).paren(_-> {
-            // if the value to be stored is an operation, recurse on the operation
-            varName(name);
-            csp().intConstZero().csp().ampersand().recurseResultOrThrow(dest);
-            either(deviceAllocated, CodeBuilder::dot, CodeBuilder::rarrow);
-            id("array").sbrace(_ ->recurseResultOrThrow(index));
-        });
+    /**
+     * <code>
+     * #define F16_OF(val) (F16_t){(val)}
+     * </code>
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroF16Of() {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(C99HATKernelBuilder.F16_OF, params, _ ->
+                paren(_ -> f16Type())
+                        .brace(_ ->
+                                paren(_-> id("val"))));
+    }
+
+    /**
+     * <code>
+     *  #define BF16_OF(val) (BF16_t){floatTobfloat16(val)}
+     * </code>
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroBF16Of() {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(C99HATKernelBuilder.BF16_OF, params, _ ->
+                paren(_ -> bf16Type())
+                        .brace(_ -> builtin_float2bfloat16().paren(_-> id("val"))));
+    }
+
+    /**
+     * <code>
+     *     #define F16_TO_FLOAT_0(val) (float)(val->value)
+     *     #define F16_TO_FLOAT_1(val) (float)(val.value)
+     * </code>
+     *
+     * @param name
+     *       Name of the OpenCL Macro
+     * @param isLocal
+     *       Flag to indicate if access is from a local/private region or global region.
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> f32Type())
+                        .paren(_-> id("val")
+                                .dotOrArrow(isLocal)
+                                .id(VALUE)));
+    }
+
+    /**
+     * <code>
+     *     #define BF16_TO_FLOAT_0(val) (bfloat16Tofloat(val->value))
+     *     #define BF16_TO_FLOAT_1(val) (bfloat16Tofloat(val.value))
+     * </code>
+     * @param name
+     *     Name of the OpenCL Macro
+     * @param isLocal
+     *     Flag to indicate if access is from a local/private region or global region.
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> builtin_bfloat16ToFloat()
+                        .paren(_-> id("val")
+                                .dotOrArrow(isLocal)
+                                .id(VALUE))));
     }
 
     @Override
@@ -171,57 +309,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             recurseResultOrThrow(binOp.op().operands().get(1));
         });
     }
-
-    @Override
-    public OpenCLHATKernelBuilder hatSelectStoreOp(OpHelper.Invoke invoke, HATPhaseUtils.InvokeVar invokeVar) {
-        if (invoke.op().operands().getFirst().declaringElement() instanceof JavaOp.ArrayAccessOp.ArrayLoadOp vLoadOp) {
-            recurse(vLoadOp);
-        } else {
-            id(invokeVar.name());
-        }
-        dot().id(HATPhaseUtils.mapLane(invokeVar.laneIdx())).assign();
-        String resolvedName = invokeVar.resolveName();
-        return either (resolvedName != null,
-                _-> varName(resolvedName),
-                _-> recurseResultOrThrow(invoke.op().operands().get(1))
-        );
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatF16ConvOp(JavaOp.InvokeOp invokeOp, Class<?> reduceFloatType) {
-        return paren(_-> f16OrBF16(reduceFloatType)).brace(_->
-                either (BF16.class.isAssignableFrom(reduceFloatType),
-                        _-> builtin_float2bfloat16().paren(_-> recurseResultOrThrow(invokeOp.operands().getFirst())),
-                        _-> recurseResultOrThrow(invokeOp.operands().getFirst())
-                ));
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder genVectorIdentifier(IfaceValue.Vector.Shape vectorShape) {
-        return paren(_-> id(vectorShape.codeType().toString() + vectorShape.lanes()));
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatF16ToFloatConvOp(OpHelper.Invoke invoke, Class<?> reducedFloatType, boolean wasFloat, boolean isF16Local) {
-        if (F16.class.isAssignableFrom(reducedFloatType)) {// half -> float
-            paren(_->f32Type());
-        } else if (BF16.class.isAssignableFrom(reducedFloatType)) {// bfloat16 -> float
-            builtin_bfloat16ToFloat();
-        }
-        parenWhen(BF16.class.isAssignableFrom(reducedFloatType),_-> {
-            recurseResultOrThrow(invoke.op().operands().getFirst());
-            if (!isF16Local) {
-                rarrow();
-            } else if (!wasFloat) {
-                dot();
-            } else{
-                throw new RuntimeException("Can we get here");
-            }
-            id("value");
-        });
-        return self();
-    }
-
 
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {

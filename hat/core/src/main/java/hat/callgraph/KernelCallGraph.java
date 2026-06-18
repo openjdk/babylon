@@ -27,6 +27,7 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.KernelContext;
 import hat.device.NonMappableIface;
+import hat.phases.HATArrayViewPhase;
 import hat.phases.HATTransformer;
 import hat.types.S16ImplOfF16;
 import jdk.incubator.code.CodeTransformer;
@@ -35,6 +36,7 @@ import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.VarTable;
@@ -80,6 +82,7 @@ public class KernelCallGraph implements LookupCarrier {
     private boolean usesBarrier;
     private boolean usesAtomics;
     private final VarTable varTable;
+    private boolean useVectors;
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
         this.computeCallGraph = computeCallGraph;
@@ -118,6 +121,17 @@ public class KernelCallGraph implements LookupCarrier {
                                 && invoke.nameMatchesRegex("(atomic.*)Inc"));
 
         this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
+
+        // To detect vectors: it could be either because of the use of vector types, or because
+        // array views (going through arrayStoreOp/arrayLoadOp)
+        this.useVectors = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
+                .anyMatch(invoke -> invoke.returns(IfaceValue.Vector.class));
+        boolean arrayAccess = inlinedEntryPoint.elements().anyMatch(codeElement -> {
+            if (codeElement instanceof JavaOp.ArrayAccessOp.ArrayStoreOp arrayStoreOp) {
+                return HATArrayViewPhase.isVectorOp(computeCallGraph.lookup(), arrayStoreOp);
+            } else return (codeElement instanceof JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp && HATArrayViewPhase.isVectorOp(computeCallGraph.lookup(), arrayLoadOp));
+        });
+        this.useVectors |= arrayAccess;
 
         var entrypoint = new FuncOpCarrier.Impl(kernelFunction);
         this.varTable = new VarTable();
@@ -221,6 +235,10 @@ public class KernelCallGraph implements LookupCarrier {
 
     public boolean isUsesAtomics() {
         return usesAtomics;
+    }
+
+    public boolean useVectors() {
+        return this.useVectors;
     }
 
     public VarTable getVarTable() {
