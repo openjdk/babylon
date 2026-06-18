@@ -714,15 +714,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreateOp) {
         Value v = tensorCreateOp.op().result().uses().getFirst();
-
         // Find the declaration value of the tensor
-        String matrixOrder = tensorOrderTable.get(DEFAULT_TENSOR_ORDERING);
-        Value shapeValue;
-        String type;
-        Value valueAccessLayout;
-        List<Integer> shape;
         // otherwise, we have to inspect the shape from the TensorLoadOp
         if (v.declaringElement() instanceof VarOp tensorVarOp) {
+            String matrixOrder = tensorOrderTable.get(DEFAULT_TENSOR_ORDERING);
             Value tensorValue = tensorVarOp.result();
             // Inspect the code-model to reach the MMA op and determine the ordering of matrices
             int indexOrdering = getTensorOrder(tensorValue);
@@ -730,11 +725,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 matrixOrder = tensorOrderTable.get(indexOrdering);
             }
 
-            shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
-            shape = obtainShapeTensor(shapeValue);
+            var shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
+            var shape = obtainShapeTensor(shapeValue);
             String loadVariance = findLoadVariance(tensorValue, tensorVarOp);
-            type = tensorTypeTable.getOrDefault(loadVariance, null);
-            valueAccessLayout = findAccessLayout(tensorValue, tensorVarOp);
+            var type = tensorTypeTable.getOrDefault(loadVariance, null);
+            var valueAccessLayout = findAccessLayout(tensorValue, tensorVarOp);
 
             if (shape.size() != 3) {
                 throw new IllegalStateException("Tensor Shape must have 3 values" + type);
@@ -742,11 +737,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             if (type == null) {
                 throw new IllegalStateException("Load Type not supported:" + type);
             }
+            return generateCreateTensor(shape, matrixOrder, type, valueAccessLayout);
         } else {
             throw new IllegalStateException("Value not supported");
         }
-
-        return generateCreateTensor(shape, matrixOrder, type, valueAccessLayout);
     }
 
     @Override
