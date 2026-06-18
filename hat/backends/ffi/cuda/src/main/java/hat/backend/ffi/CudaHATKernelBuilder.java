@@ -646,41 +646,42 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public static final String WMMA_FILL_TENSOR = "nvcuda::wmma::fill_fragment";
     public static final String WMMA_COL_MAJOR = "nvcuda::wmma::col_major";
     public static final String WMMA_ROW_MAJOR = "nvcuda::wmma::row_major";
-    public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment<nvcuda::wmma::";
+    public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment";
+    public static final String WMMA_PREFIX = "nvcuda::wmma::";
 
     private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access) {
         id(WMMA_FRAGMENT_BASE)
-                .id(matrixOrder)
-                .comma().sp()
-                .intValue(shape.getFirst())
-                .comma().sp()
-                .intValue(shape.get(1))
-                .comma().sp()
-                .intValue(shape.get(2))
-                .comma().sp()
-                .type(type);
+                .ltgt(_ -> {
+                    id(WMMA_PREFIX).id(matrixOrder)
+                            .comma().sp()
+                            .intValue(shape.getFirst())
+                            .comma().sp()
+                            .intValue(shape.get(1))
+                            .comma().sp()
+                            .intValue(shape.get(2))
+                            .comma().sp()
+                            .type(type);
+                    if (!matrixOrder.equals(TENSOR_ACC)) {
+                        comma();
+                        if (access == null) {
+                            id(WMMA_ROW_MAJOR);
+                        } else if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                            // Expecting an invokeOp
+                            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+                            if (invoke != null && invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                                id(WMMA_COL_MAJOR);
+                            } else if (invoke != null && invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                                id(WMMA_ROW_MAJOR);
+                            } else {
+                                throw new IllegalStateException("[Error]");
+                            }
+                        }
+                    }
 
-        if (matrixOrder.equals(TENSOR_ACC)) {
-            gt();
-        } else {// infer from the last parameter
-            comma();
-            if (access == null) {
-                id(WMMA_ROW_MAJOR);
-            } else if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
-                // Expecting an invokeOp
-                var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
-                if (invoke != null && invoke.resultTypeIs(Tensor.ColumMajor.class)) {
-                    id(WMMA_COL_MAJOR);
-                } else if (invoke != null && invoke.resultTypeIs(Tensor.RowMajor.class)) {
-                    id(WMMA_ROW_MAJOR);
-                } else {
-                    throw new IllegalStateException("[Error]");
-                }
-            }
-            gt();
-        }
+                });
         return self();
     }
+
 
     private static final Map<String, String> tensorTypeTable = new HashMap<>();
     static {
