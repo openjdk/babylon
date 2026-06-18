@@ -28,6 +28,8 @@
 #include <thread>
 #include "cuda_backend.h"
 
+#define ceil_div(x, y) ((x + y - 1) / y)
+
 CudaBackend::CudaQueue::CudaQueue(Backend *backend)
         : Backend::Queue(backend),cuStream(),streamCreationThread() {
 }
@@ -145,12 +147,12 @@ int CudaBackend::CudaQueue::estimateThreadsPerBlock(int dimensions, int globalSi
 }
 
 void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
+
     const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
     int threadsPerBlockX = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsx, kernelContext->lsx);
     int threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
     int threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
-
 
     int warpFactor[3] = {1, 1, 1};
     if (kernelContext->wsx) {
@@ -163,19 +165,19 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
         warpFactor[2] = 32;
     }
 
-    int globalSize[3] = {kernelContext->gsx, kernelContext->gsy, kernelContext->gsz};
-    globalSize[0] = kernelContext->tlx? ((kernelContext->gsx + kernelContext->tlx - 1) / kernelContext->tlx) * warpFactor[0]: kernelContext->gsx;
-    globalSize[1] = kernelContext->tly? ((kernelContext->gsy + kernelContext->tly - 1) / kernelContext->tly) * warpFactor[1]: kernelContext->gsy;
-    globalSize[2] = kernelContext->tlz? ((kernelContext->gsz + kernelContext->tlz - 1) / kernelContext->tlz) * warpFactor[2]: kernelContext->gsz;
+    int globalSize[3] = { kernelContext->gsx, kernelContext->gsy, kernelContext->gsz };
+    globalSize[0] = kernelContext->tlx? ceil_div(kernelContext->gsx, kernelContext->tlx) * warpFactor[0]: kernelContext->gsx;
+    globalSize[1] = kernelContext->tly? ceil_div(kernelContext->gsy, kernelContext->tly) * warpFactor[1]: kernelContext->gsy;
+    globalSize[2] = kernelContext->tlz? ceil_div(kernelContext->gsz, kernelContext->tlz) * warpFactor[2]: kernelContext->gsz;
 
-    int blocksPerGridX = ((globalSize[0] + threadsPerBlockX - 1) / threadsPerBlockX);
+    int blocksPerGridX = ceil_div(globalSize[0], threadsPerBlockX);
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
     if (kernelContext->dimensions > 1) {
-        blocksPerGridY = ((globalSize[1] + threadsPerBlockY - 1) / threadsPerBlockY);
+        blocksPerGridY = ceil_div(globalSize[1], threadsPerBlockY);
     }
     if (kernelContext->dimensions > 2) {
-        blocksPerGridZ = ((globalSize[2] + threadsPerBlockZ - 1) / threadsPerBlockZ);
+        blocksPerGridZ = ceil_div(globalSize[2], threadsPerBlockZ);
     }
 
     // Enable debug information with info: HAT=INFO

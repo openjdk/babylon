@@ -23,6 +23,9 @@
  * questions.
  */
 #include "opencl_backend.h"
+
+#define ceil_div(x, y) ((x + y - 1) / y)
+
 /*
 While based on OpenCL's event list, I think we need to use a MOD eventMax queue.
 
@@ -292,13 +295,13 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
     };
 
     if (kernelContext->tlx > 0) {
-        global_work_size[0] /= kernelContext->tlx;
+        global_work_size[0] = ceil_div(global_work_size[0], kernelContext->tlx);
     }
     if (kernelContext->tly > 0) {
-        global_work_size[1] /= kernelContext->tly;
+        global_work_size[1] = ceil_div(global_work_size[1], kernelContext->tly);
     }
     if (kernelContext->tlz > 0) {
-        global_work_size[2] /= kernelContext->tlz;
+        global_work_size[2] = ceil_div(global_work_size[2], kernelContext->tlz);
     }
 
     // In the OpenCL backend, we don't currently support warp-sizes to be able to run with OpenCL 1.2 (Apple)
