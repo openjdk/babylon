@@ -1274,6 +1274,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                     shapeOperand = varLoadOp.varOperand();
                 } else if (shapeOperand.declaringElement() instanceof CoreOp.VarOp varOp) {
                     shapeOperand = varOp.operands().getFirst();
+                } else {
+                    throw new IllegalStateException("Error: expected to find a VarLoadOp or a VarOp, but found a " + shapeOperand.declaringElement().getClass());
                 }
             }
             if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
