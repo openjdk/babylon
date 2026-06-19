@@ -702,8 +702,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         String tensorType = null;
         if (klass != null) {
             switch (klass) {
-                case ClassType classType when classType.toClassName().equals(F16.class.getCanonicalName()) ->
-                        tensorType = "half";
+                case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> tensorType = "half";
                 case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> tensorType = "float";
                 default -> throw new IllegalStateException("Type class not supported for Tensors: " + klass);
             }

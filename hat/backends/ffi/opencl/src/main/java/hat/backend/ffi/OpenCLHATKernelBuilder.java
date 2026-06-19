@@ -411,22 +411,21 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return constant("1");
     }
 
-
     private OpenCLHATKernelBuilder generateHatTensorCreate(List<Integer> shape, Object klass, String varTensorName, Value v) {
         final int sizeToAllocate = shape.get(0) * shape.get(1);
         switch (klass) {
-            case ClassType classType when classType.toClassName().equals(F16.class.getCanonicalName()) -> f16Type();
+            case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> f16Type();
             case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");
             case null, default -> {
                 // When we derive the type for tensors that are not accumulators
                 if (v.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
                     Value tensorVar = tensorVarOp.result();
                     String loadVariance = findLoadVariance(tensorVar, tensorVarOp);
-                    CodeGenAction type = tensorTypeTable.getOrDefault(loadVariance, null);
-                    if (type == null) {
-                        throw new IllegalStateException("Load Type not supported:" + type);
+                    CodeGenAction typeFunction = tensorTypeTable.getOrDefault(loadVariance, null);
+                    if (typeFunction == null) {
+                        throw new IllegalStateException("Load Type not supported:" + typeFunction);
                     }
-                    type.apply();
+                    typeFunction.apply();
                 }
             }
         }
