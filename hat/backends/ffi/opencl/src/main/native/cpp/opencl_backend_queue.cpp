@@ -251,12 +251,12 @@ void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelCon
 
     // Adjust depending on the total number of threads in the local-work-group
     while (totalThreads > max_group_size) {
-        // Here just a simple heuristic, starting with the first dimension, 16, 4, 1 local group sizxe
+        // Here just a simple heuristic, starting with the first dimension, 16, 4, 2 local group size
         if (local_work_size[0] >= 16) {
             local_work_size[0] /= 2;
         } else if (local_work_size[1] >= 4) {
             local_work_size[1] /= 2;
-        } else if (local_work_size[2] >= 1) {
+        } else if (local_work_size[2] >= 2) {
             local_work_size[2] /= 2;
         }
         totalThreads = local_work_size[0] * local_work_size[1] * local_work_size[2];
