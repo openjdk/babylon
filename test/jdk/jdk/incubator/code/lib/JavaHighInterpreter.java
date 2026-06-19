@@ -88,20 +88,27 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         return new TerminatingOpEffect(breakOp, e.valuesOf(breakOp.operands()), e);
     }
 
-    OpEffect executeLabeledOp(JavaOp.LabeledOp labeledOp, Env e) {
-        TerminatingOpEffect effect = executeBody(labeledOp.body(), List.of(), e);
-        if (effect.terminatingOp() instanceof JavaOp.BreakOp bop && bop.labelOperand().equals(labeledOp.labelIdentifier())) {
+    OpEffect executeLabeledOp(JavaOp.LabeledOp op, Env e) {
+        TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
+        if (effect.terminatingOp() instanceof JavaOp.BreakOp bop && bop.labelOperand().equals(op.labelIdentifier())) {
             return new OpResultEffect(null, e);
-        } else if (effect.terminatingOp().equals(labeledOp.body().entryBlock().terminatingOp())) {
-            return new OpResultEffect(null, e);
+        }
+        if (effect.terminatingOp() instanceof CoreOp.YieldOp yop) {
+            if (yop.ancestorBody() == op.body()) {
+                return new OpResultEffect(null, e);
+            }
+            throw new InterpreterException("YieldOp not from the body of LabeledOp");
         }
         return effect;
     }
 
-    OpEffect executeBlockOp(JavaOp.BlockOp blockOp, Env e) {
-        TerminatingOpEffect effect = executeBody(blockOp.body(), List.of(), e);
-        if (effect.terminatingOp().equals(blockOp.body().entryBlock().terminatingOp())) {
-            return new OpResultEffect(null, e);
+    OpEffect executeBlockOp(JavaOp.BlockOp op, Env e) {
+        TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
+        if (effect.terminatingOp() instanceof CoreOp.YieldOp yop) {
+            if (yop.ancestorBody() == op.body()) {
+                return new OpResultEffect(null, e);
+            }
+            throw new InterpreterException("YieldOp not from the body of BlockOp");
         }
         return effect;
     }
