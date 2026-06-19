@@ -1336,7 +1336,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     // Once the MMA is found, then we compare if the arguments (VarLoadOp) contains the
     // reference to the var declartion being analyzed. In that case, we return its index.
     protected int getTensorOrder(Value tensorValue, Op op) {
-        int operandIndex = -1;
+        int operandIndex = TENSOR_ORDER_DEFAULT;
         switch (op) {
             case JavaOp.InvokeOp tensorMMAOp when tensorMMAOp.invokeReference().name().equals("mma") -> {
                 List<Value> operands = tensorMMAOp.operands();
@@ -1360,11 +1360,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected static final Map<Integer, String> tensorOrderTable = new HashMap<>();
-    protected static final int DEFAULT_TENSOR_ORDERING = -1;
+    protected static final int TENSOR_ORDER_A = 1;
+    protected static final int TENSOR_ORDER_B = 2;
+    protected static final int TENSOR_ORDER_DEFAULT = -1;
+    protected static final int TENSOR_ORDER_ACC = 0;
     static {
-        tensorOrderTable.put(1, TENSOR_MATRIX_A);
-        tensorOrderTable.put(2, TENSOR_MATRIX_B);
-        tensorOrderTable.put(-1, TENSOR_MATRIX_A); // We set one by default
+        tensorOrderTable.put(TENSOR_ORDER_A, TENSOR_MATRIX_A);
+        tensorOrderTable.put(TENSOR_ORDER_B, TENSOR_MATRIX_B);
+        tensorOrderTable.put(TENSOR_ORDER_DEFAULT, TENSOR_MATRIX_A); // We set one by default
+        tensorOrderTable.put(TENSOR_ORDER_ACC, TENSOR_ACC);
     }
 
     // Tensor Load ABI

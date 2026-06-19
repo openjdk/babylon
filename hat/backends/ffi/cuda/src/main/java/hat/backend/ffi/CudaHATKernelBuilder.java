@@ -716,7 +716,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         // Find the declaration value of the tensor
         // otherwise, we have to inspect the shape from the TensorLoadOp
         if (v.declaringElement() instanceof VarOp tensorVarOp) {
-            String matrixOrder = tensorOrderTable.get(DEFAULT_TENSOR_ORDERING);
+            String matrixOrder = tensorOrderTable.get(TENSOR_ORDER_DEFAULT);
             Value tensorValue = tensorVarOp.result();
             // Inspect the code-model to reach the MMA op and determine the ordering of matrices
             int indexOrdering = getTensorOrder(tensorValue);

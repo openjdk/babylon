@@ -411,8 +411,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return constant("1");
     }
 
-    private OpenCLHATKernelBuilder generateHatTensorCreate(List<Integer> shape, Object klass, String varTensorName, Value v) {
-        final int sizeToAllocate = shape.get(0) * shape.get(1);
+    private OpenCLHATKernelBuilder generateHatTensorCreate(List<Integer> shape, Object klass, String varTensorName, Value v, int ordering) {
+        // Shapes are given in M,N,K triplet
+        final int sizeToAllocate = switch (ordering) {
+            case TENSOR_ORDER_DEFAULT, TENSOR_ORDER_ACC -> shape.get(0) * shape.get(1); // M x N
+            case TENSOR_ORDER_A ->  shape.get(0) * shape.get(2);  // M x K
+            case TENSOR_ORDER_B ->  shape.get(2) * shape.get(1);  // K x N
+            default -> throw new IllegalStateException("Unexpected value: " + ordering);
+        };
+        
         switch (klass) {
             case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> f16Type();
             case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");
@@ -434,16 +441,15 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     private OpenCLHATKernelBuilder createTensor(OpHelper.Invoke tensorCreateOp) {
         Value v = tensorCreateOp.op().result().uses().getFirst();
-        Value shapeValue;
-        String varTensorName;
         if (v.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
-            shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
-            varTensorName = tensorVarOp.varName();
+            var shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
+            var varTensorName = tensorVarOp.varName();
+            var ordering = getTensorOrder(tensorVarOp.result());
+            List<Integer> shape = obtainShapeTensor(shapeValue);
+            return generateHatTensorCreate(shape, null, varTensorName, v, ordering);
         } else {
             throw new IllegalStateException("Value not supported");
         }
-        List<Integer> shape = obtainShapeTensor(shapeValue);
-        return generateHatTensorCreate(shape, null, varTensorName, v);
     }
 
     private OpenCLHATKernelBuilder createTensorAccumulator(OpHelper.Invoke tensorCreateOp) {
@@ -459,7 +465,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         if (v.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
             varTensorName = tensorVarOp.varName();
         }
-        return generateHatTensorCreate(shape, klass, varTensorName, v);
+        return generateHatTensorCreate(shape, klass, varTensorName, v, TENSOR_ORDER_ACC);
     }
 
     @Override
