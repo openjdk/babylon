@@ -127,11 +127,15 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
 
     OpEffect executeForOp(JavaOp.ForOp op, Env e) {
         var initEffect = executeBody(op.initBody(), List.of(), e);
-        Object loopVariables = switch (initEffect.terminatingOp()) {
-            // init body may yield nothing in case variables we initialize are defined outside the for operation
-            case CoreOp.YieldOp _ -> initEffect.operands().isEmpty() ? null : initEffect.operands().getFirst();
-            default -> throw new InternalError();
-        };
+        switch (initEffect.terminatingOp()) {
+            case CoreOp.YieldOp _ -> {}
+            default -> {
+                return initEffect;
+            }
+        }
+        // init body may yield nothing in case variables we initialize are defined outside the for operation
+        Object loopVariables = initEffect.operands().isEmpty() ? null : initEffect.operands().getFirst();
+
         List<Object> args;
         if (loopVariables instanceof Object[] arr) {
             args = Arrays.asList(arr);
@@ -144,10 +148,15 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         loop:
         while (true) {
             var condEffect = executeBody(op.condBody(), args, e);
-            boolean p = switch (condEffect.terminatingOp()) {
-                case CoreOp.YieldOp _ -> (boolean) condEffect.operands().getFirst();
-                default -> throw new InternalError();
-            };
+            boolean p;
+            switch (condEffect.terminatingOp()) {
+                case CoreOp.YieldOp _ when !condEffect.operands().isEmpty() &&
+                        condEffect.operands().getFirst() instanceof Boolean b -> p = b;
+                case CoreOp.YieldOp _ -> throw new InterpreterException("");
+                default -> {
+                    return condEffect;
+                }
+            }
             if (!p)
                 break loop;
 
@@ -165,9 +174,10 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
 
             var updateEffect = executeBody(op.updateBody(), args, e);
             switch (updateEffect.terminatingOp()) {
-                case CoreOp.YieldOp _ -> {
+                case CoreOp.YieldOp _ -> {}
+                default -> {
+                    return updateEffect;
                 }
-                default -> throw new InternalError();
             }
         }
 
@@ -184,10 +194,15 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             } else {
                 Body pred = bodies.get(i);
                 var condEffect = executeBody(pred, List.of(), e);
-                boolean p = switch (condEffect.terminatingOp()) {
-                    case CoreOp.YieldOp _ -> (boolean) condEffect.operands().getFirst();
-                    default -> throw new InternalError();
-                };
+                boolean p;
+                switch (condEffect.terminatingOp()) {
+                    case CoreOp.YieldOp _ when !condEffect.operands().isEmpty() &&
+                            condEffect.operands().getFirst() instanceof Boolean b -> p = b;
+                    case CoreOp.YieldOp _ -> throw new InterpreterException("");
+                    default -> {
+                        return condEffect;
+                    }
+                }
                 if (p) {
                     action = bodies.get(i + 1);
                 }
@@ -223,7 +238,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
                     effect = new TerminatingOpEffect(o, List.of(t), e);
                     break l;
                 }
-                default -> throw new InternalError();
+                default -> throw new InterpreterException("");
             }
             rArgs.addAll(re.operands());
         }
@@ -243,7 +258,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             try {
                 ((AutoCloseable) r).close();
             } catch (ClassCastException cce) {
-                throw new InternalError(cce);
+                throw new InterpreterException(cce);
             } catch (Exception ex) {
                 if (t == null)  t = ex;
                 else            t.addSuppressed(ex);
