@@ -125,13 +125,7 @@ public sealed abstract class CoreOp extends Op {
 
         FuncOp(ExternalizedOp def) {
             requireNoOperands(def);
-            Object v = requireAttribute(def, ATTRIBUTE_FUNC_NAME, true);
-            String funcName = switch (v) {
-                case String s -> s;
-                case null, default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_FUNC_NAME, v);
-            };
-
-            this(funcName, requireSingleBody(def));
+            this(requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class), requireSingleBody(def));
         }
 
         FuncOp(FuncOp that, CodeContext cc, CodeTransformer ct) {
@@ -240,13 +234,7 @@ public sealed abstract class CoreOp extends Op {
         final CodeType resultType;
 
         FuncCallOp(ExternalizedOp def) {
-            Object v = requireAttribute(def, ATTRIBUTE_FUNC_NAME, true);
-            String funcName = switch (v) {
-                case String s -> s;
-                case null, default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_FUNC_NAME, v);
-            };
-
-            this(funcName, def.resultType(), def.operands());
+            this(requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class), def.resultType(), def.operands());
         }
 
         FuncCallOp(FuncCallOp that, CodeContext cc) {
@@ -744,9 +732,7 @@ public sealed abstract class CoreOp extends Op {
 
         BranchOp(ExternalizedOp def) {
             requireNoOperands(def);
-            requireSuccessors(def, 1);
-
-            this(def.successors().get(0));
+            this(requireSingleSuccessor(def));
         }
 
         BranchOp(BranchOp that, CodeContext cc) {
@@ -804,10 +790,8 @@ public sealed abstract class CoreOp extends Op {
         final Block.Reference falseBranch;
 
         ConditionalBranchOp(ExternalizedOp def) {
-            requireOperands(def, 1);
-            requireSuccessors(def, 2);
-
-            this(def.operands().getFirst(), def.successors().get(0), def.successors().get(1));
+            List<Block.Reference> succ = requireSuccessors(def, 2);
+            this(requireSingleOperand(def), succ.get(0), succ.get(1));
         }
 
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
@@ -915,7 +899,6 @@ public sealed abstract class CoreOp extends Op {
             } else if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
-
             throw unsupportedAttributeValueException(def, ATTRIBUTE_CONSTANT_VALUE, value);
         }
 
@@ -1175,10 +1158,9 @@ public sealed abstract class CoreOp extends Op {
             static final String NAME = "var.load";
 
             VarLoadOp(ExternalizedOp opdef) {
-                requireOperands(opdef, 1);
                 checkIsVarOp(opdef);
 
-                this(opdef.operands().get(0));
+                this(requireSingleOperand(opdef));
             }
 
             VarLoadOp(VarLoadOp that, CodeContext cc) {
@@ -1217,18 +1199,14 @@ public sealed abstract class CoreOp extends Op {
             static final String NAME = "var.store";
 
             VarStoreOp(ExternalizedOp opdef) {
-                requireOperands(opdef, 2);
+                List<Value> operands = requireOperands(opdef, 2);
                 checkIsVarOp(opdef);
 
-                this(opdef.operands().get(0), opdef.operands().get(1));
+                super(operands);
             }
 
             VarStoreOp(VarStoreOp that, CodeContext cc) {
                 super(that, cc);
-            }
-
-            VarStoreOp(List<Value> values) {
-                super(values);
             }
 
             @Override
@@ -1317,14 +1295,7 @@ public sealed abstract class CoreOp extends Op {
         final int index;
 
         TupleLoadOp(ExternalizedOp def) {
-            requireOperands(def, 1);
-            Object v = requireAttribute(def, ATTRIBUTE_INDEX, true);
-            int index = switch (v) {
-                case Integer i -> i;
-                case null, default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_INDEX, v);
-            };
-
-            this(def.operands().get(0), index);
+            this(requireSingleOperand(def), requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class));
         }
 
         TupleLoadOp(TupleLoadOp that, CodeContext cc) {
@@ -1394,15 +1365,8 @@ public sealed abstract class CoreOp extends Op {
         final int index;
 
         TupleWithOp(ExternalizedOp def) {
-            requireOperands(def, 2);
-
-            Object v = requireAttribute(def, ATTRIBUTE_INDEX, true);
-            int index = switch (v) {
-                case Integer i -> i;
-                case null, default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_INDEX, v);
-            };
-
-            this(def.operands().get(0), index, def.operands().get(1));
+            super(requireOperands(def, 2));
+            this.index = requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class);
         }
 
         TupleWithOp(TupleWithOp that, CodeContext cc) {

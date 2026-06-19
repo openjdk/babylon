@@ -52,6 +52,7 @@ import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;
 import static jdk.incubator.code.internal.ArithmeticAndConvOpImpls.*;
+import static jdk.incubator.code.internal.Util.*;
 
 /**
  * The top-level operation class for Java operations.
@@ -492,7 +493,7 @@ public sealed abstract class JavaOp extends Op {
                         case null, default -> false;
                     });
 
-            this(def.resultType(), def.bodyDefinitions().get(0), isReflectable);
+            this(def.resultType(), requireSingleBody(def), isReflectable);
         }
 
         LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ct) {
@@ -767,11 +768,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "throw";
 
         ThrowOp(ExternalizedOp def) {
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand " + def.name());
-            }
-
-            this(def.operands().get(0));
+            this(requireSingleOperand(def));
         }
 
         ThrowOp(ThrowOp that, CodeContext cc) {
@@ -822,7 +819,7 @@ public sealed abstract class JavaOp extends Op {
         private final List<Body> bodies;
 
         AssertOp(ExternalizedOp def) {
-            this(def.bodyDefinitions());
+            this(requireBodies(def, 1, 2));
         }
 
         AssertOp(List<Body.Builder> bodies) {
@@ -901,11 +898,7 @@ public sealed abstract class JavaOp extends Op {
             static final String NAME = "monitor.enter";
 
             MonitorEnterOp(ExternalizedOp def) {
-                if (def.operands().size() != 1) {
-                    throw new IllegalArgumentException("Operation must have one operand " + def.name());
-                }
-
-                this(def.operands().get(0));
+                this(requireSingleOperand(def));
             }
 
             MonitorEnterOp(MonitorEnterOp that, CodeContext cc) {
@@ -930,11 +923,7 @@ public sealed abstract class JavaOp extends Op {
             static final String NAME = "monitor.exit";
 
             MonitorExitOp(ExternalizedOp def) {
-                if (def.operands().size() != 1) {
-                    throw new IllegalArgumentException("Operation must have one operand " + def.name());
-                }
-
-                this(def.operands().get(0));
+                this(requireSingleOperand(def));
             }
 
             MonitorExitOp(MonitorExitOp that, CodeContext cc) {
@@ -1003,12 +992,7 @@ public sealed abstract class JavaOp extends Op {
 
         InvokeOp(ExternalizedOp def) {
             // Required attribute
-            MethodRef invokeRef = def.extractAttributeValue(ATTRIBUTE_INVOKE_REF,
-                    true, v -> switch (v) {
-                        case MethodRef md -> md;
-                        case null, default ->
-                                throw new UnsupportedOperationException("Unsupported invoke reference value:" + v);
-                    });
+            MethodRef invokeRef = requireAttribute(def, ATTRIBUTE_INVOKE_REF, true, MethodRef.class);
 
             // If not present defaults to false
             boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_INVOKE_VARARGS,
@@ -1026,7 +1010,7 @@ public sealed abstract class JavaOp extends Op {
                         case null, default -> {
                             if (isVarArgs) {
                                 // If varargs then we cannot infer invoke kind
-                                throw new UnsupportedOperationException("Unsupported invoke kind value:" + v);
+                                throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_KIND, v);
                             }
                             int paramCount = invokeRef.signature().parameterTypes().size();
                             int argCount = def.operands().size();
@@ -1178,7 +1162,7 @@ public sealed abstract class JavaOp extends Op {
         final CodeType resultType;
 
         ConvOp(ExternalizedOp def) {
-            this(def.resultType(), def.operands().get(0));
+            this(def.resultType(), requireSingleOperand(def));
         }
 
         ConvOp(ConvOp that, CodeContext cc) {
@@ -1241,12 +1225,7 @@ public sealed abstract class JavaOp extends Op {
 
         NewOp(ExternalizedOp def) {
             // Required attribute
-            MethodRef constructorRef = def.extractAttributeValue(ATTRIBUTE_NEW_REF,
-                    true, v -> switch (v) {
-                        case MethodRef cd -> cd;
-                        case null, default ->
-                                throw new UnsupportedOperationException("Unsupported constructor reference value:" + v);
-                    });
+            MethodRef constructorRef = requireAttribute(def, ATTRIBUTE_NEW_REF, true, MethodRef.class);
 
             // If not present defaults to false
             boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_NEW_VARARGS,
@@ -1388,19 +1367,7 @@ public sealed abstract class JavaOp extends Op {
             final CodeType resultType;
 
             FieldLoadOp(ExternalizedOp def) {
-                if (def.operands().size() > 1) {
-                    throw new IllegalArgumentException("Operation must accept zero or one operand");
-                }
-
-                FieldRef fieldRef = def.extractAttributeValue(ATTRIBUTE_FIELD_REF, true,
-                        v -> switch (v) {
-                            case FieldRef fd -> fd;
-                            case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported field reference value:" + v);
-                        });
-
-                super(def.operands(), fieldRef);
-
+                super(requireOperands(def, 0, 1), requireAttribute(def, ATTRIBUTE_FIELD_REF, true, FieldRef.class));
                 this.resultType = def.resultType();
             }
 
@@ -1449,18 +1416,7 @@ public sealed abstract class JavaOp extends Op {
             static final String NAME = "field.store";
 
             FieldStoreOp(ExternalizedOp def) {
-                if (def.operands().isEmpty() || def.operands().size() > 2) {
-                    throw new IllegalArgumentException("Operation must accept one or two operands");
-                }
-
-                FieldRef fieldRef = def.extractAttributeValue(ATTRIBUTE_FIELD_REF, true,
-                        v -> switch (v) {
-                            case FieldRef fd -> fd;
-                            case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported field reference value:" + v);
-                        });
-
-                super(def.operands(), fieldRef);
+                super(requireOperands(def, 1, 2),  requireAttribute(def, ATTRIBUTE_FIELD_REF, true, FieldRef.class));
             }
 
             FieldStoreOp(FieldStoreOp that, CodeContext cc) {
@@ -1511,7 +1467,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "array.length";
 
         ArrayLengthOp(ExternalizedOp def) {
-            this(def.operands().get(0));
+            this(requireSingleOperand(def));
         }
 
         ArrayLengthOp(ArrayLengthOp that, CodeContext cc) {
@@ -1555,14 +1511,8 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        ArrayAccessOp(Value array, Value index, Value v) {
-            super(operands(array, index, v));
-        }
-
-        static List<Value> operands(Value array, Value index, Value v) {
-            return v == null
-                    ? List.of(array, index)
-                    : List.of(array, index, v);
+        ArrayAccessOp(List<Value> operands) {
+            super(operands);
         }
 
         /**
@@ -1592,11 +1542,8 @@ public sealed abstract class JavaOp extends Op {
             final CodeType componentType;
 
             ArrayLoadOp(ExternalizedOp def) {
-                if (def.operands().size() != 2) {
-                    throw new IllegalArgumentException("Operation must have two operands");
-                }
-
-                this(def.operands().get(0), def.operands().get(1), def.resultType());
+                super(requireOperands(def, 2));
+                this.componentType = def.resultType();
             }
 
             ArrayLoadOp(ArrayLoadOp that, CodeContext cc) {
@@ -1615,7 +1562,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             ArrayLoadOp(Value array, Value index, CodeType componentType) {
-                super(array, index, null);
+                super(List.of(array, index));
                 this.componentType = componentType;
             }
 
@@ -1639,9 +1586,7 @@ public sealed abstract class JavaOp extends Op {
             static final String NAME = "array.store";
 
             ArrayStoreOp(ExternalizedOp def) {
-                if (def.operands().size() != 3) {
-                    throw new IllegalArgumentException("Operation must have two operands");
-                }
+                requireOperands(def, 3);
 
                 this(def.operands().get(0), def.operands().get(1), def.operands().get(2));
             }
@@ -1656,7 +1601,7 @@ public sealed abstract class JavaOp extends Op {
             }
 
             ArrayStoreOp(Value array, Value index, Value v) {
-                super(array, index, v);
+                super(List.of(array, index, v));
             }
 
             /**
@@ -1692,17 +1637,7 @@ public sealed abstract class JavaOp extends Op {
         final CodeType targetType;
 
         InstanceOfOp(ExternalizedOp def) {
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand " + def.name());
-            }
-
-            CodeType targetType = def.extractAttributeValue(ATTRIBUTE_INSTANCEOF_TYPE, true,
-                    v -> switch (v) {
-                        case JavaType td -> td;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported type value:" + v);
-                    });
-
-            this(targetType, def.operands().get(0));
+            this(requireAttribute(def, ATTRIBUTE_INSTANCEOF_TYPE, true, JavaType.class), requireSingleOperand(def));
         }
 
         InstanceOfOp(InstanceOfOp that, CodeContext cc) {
@@ -1766,17 +1701,7 @@ public sealed abstract class JavaOp extends Op {
         final CodeType targetType;
 
         CastOp(ExternalizedOp def) {
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand " + def.name());
-            }
-
-            CodeType type = def.extractAttributeValue(ATTRIBUTE_CAST_TYPE, true,
-                    v -> switch (v) {
-                        case JavaType td -> td;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported type value:" + v);
-                    });
-
-            this(def.resultType(), type, def.operands().get(0));
+            this(def.resultType(), requireAttribute(def, ATTRIBUTE_CAST_TYPE, true, JavaType.class), requireSingleOperand(def));
         }
 
         CastOp(CastOp that, CodeContext cc) {
@@ -1841,7 +1766,7 @@ public sealed abstract class JavaOp extends Op {
         final List<Block.Reference> references;
 
         ExceptionRegionEnter(ExternalizedOp def) {
-            this(def.successors());
+            this(requireMinSuccessors(def, 2));
         }
 
         ExceptionRegionEnter(ExceptionRegionEnter that, CodeContext cc) {
@@ -1906,19 +1831,11 @@ public sealed abstract class JavaOp extends Op {
         final Block.Reference end;
 
         ExceptionRegionExit(ExternalizedOp def) {
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand" + def.name());
+            Value enter = requireSingleOperand(def);
+            if (!(enter.asResult().op() instanceof ExceptionRegionEnter)) {
+                throw structuralException(def, "Value's is not an exception region entry: " + def.operands().getFirst());
             }
-
-            if (!(def.operands().getFirst().asResult().op() instanceof ExceptionRegionEnter)) {
-                throw new IllegalArgumentException("Value's is not an exception region entry: " + def.operands().getFirst());
-            }
-
-            if (def.successors().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one successor" + def.name());
-            }
-
-            this(def.operands().getFirst(), def.successors().getFirst());
+            this(enter, requireSingleSuccessor(def));
         }
 
         ExceptionRegionExit(ExceptionRegionExit that, CodeContext cc) {
@@ -1981,10 +1898,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConcatOp(ExternalizedOp def) {
-            if (def.operands().size() != 2) {
-                throw new IllegalArgumentException("Concatenation Operation must have two operands.");
-            }
-
+            requireOperands(def, 2);
             this(def.operands().get(0), def.operands().get(1));
         }
 
@@ -2043,6 +1957,10 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
+        BinaryOp(ExternalizedOp def) {
+            super(requireOperands(def, 2));
+        }
+
         BinaryOp(Value lhs, Value rhs) {
             super(List.of(lhs, rhs));
         }
@@ -2078,6 +1996,10 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
+        UnaryOp(ExternalizedOp def) {
+            super(requireOperands(def, 1));
+        }
+
         UnaryOp(Value v) {
             super(List.of(v));
         }
@@ -2103,6 +2025,11 @@ public sealed abstract class JavaOp extends Op {
     public sealed static abstract class CompareOp extends ArithmeticOperation {
         CompareOp(CompareOp that, CodeContext cc) {
             super(that, cc);
+        }
+
+        //@@@ as BinaryOp; resultType remains the parent-specific BOOLEAN behavior.
+        CompareOp(ExternalizedOp def) {
+            super(requireOperands(def, 2));
         }
 
         CompareOp(Value lhs, Value rhs) {
@@ -2139,7 +2066,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "add";
 
         AddOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         AddOp(AddOp that, CodeContext cc) {
@@ -2166,7 +2093,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "sub";
 
         SubOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         SubOp(SubOp that, CodeContext cc) {
@@ -2193,7 +2120,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "mul";
 
         MulOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         MulOp(MulOp that, CodeContext cc) {
@@ -2220,7 +2147,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "div";
 
         DivOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         DivOp(DivOp that, CodeContext cc) {
@@ -2247,7 +2174,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "mod";
 
         ModOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         ModOp(ModOp that, CodeContext cc) {
@@ -2275,7 +2202,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "or";
 
         OrOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         OrOp(OrOp that, CodeContext cc) {
@@ -2303,7 +2230,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "and";
 
         AndOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         AndOp(AndOp that, CodeContext cc) {
@@ -2331,7 +2258,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "xor";
 
         XorOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         XorOp(XorOp that, CodeContext cc) {
@@ -2358,7 +2285,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "lshl";
 
         LshlOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         LshlOp(LshlOp that, CodeContext cc) {
@@ -2385,7 +2312,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "ashr";
 
         AshrOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         AshrOp(AshrOp that, CodeContext cc) {
@@ -2412,7 +2339,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "lshr";
 
         LshrOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         LshrOp(LshrOp that, CodeContext cc) {
@@ -2439,7 +2366,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "neg";
 
         NegOp(ExternalizedOp def) {
-            this(def.operands().get(0));
+            super(def);
         }
 
         NegOp(NegOp that, CodeContext cc) {
@@ -2466,7 +2393,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "compl";
 
         ComplOp(ExternalizedOp def) {
-            this(def.operands().get(0));
+            super(def);
         }
 
         ComplOp(ComplOp that, CodeContext cc) {
@@ -2493,7 +2420,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "not";
 
         NotOp(ExternalizedOp def) {
-            this(def.operands().get(0));
+            super(def);
         }
 
         NotOp(NotOp that, CodeContext cc) {
@@ -2521,7 +2448,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "eq";
 
         EqOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         EqOp(EqOp that, CodeContext cc) {
@@ -2549,7 +2476,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "neq";
 
         NeqOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         NeqOp(NeqOp that, CodeContext cc) {
@@ -2576,7 +2503,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "gt";
 
         GtOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         GtOp(GtOp that, CodeContext cc) {
@@ -2604,7 +2531,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "ge";
 
         GeOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         GeOp(GeOp that, CodeContext cc) {
@@ -2632,7 +2559,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "lt";
 
         LtOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         LtOp(LtOp that, CodeContext cc) {
@@ -2660,7 +2587,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "le";
 
         LeOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.operands().get(1));
+            super(def);
         }
 
         LeOp(LeOp that, CodeContext cc) {
@@ -2692,6 +2619,10 @@ public sealed abstract class JavaOp extends Op {
             implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
+        }
+
+        StatementTargetOp(ExternalizedOp def) {
+            super(requireOperands(def, 0, 1));
         }
 
         StatementTargetOp(Value label) {
@@ -2788,7 +2719,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.break";
 
         BreakOp(ExternalizedOp def) {
-            this(def.operands().isEmpty() ? null : def.operands().get(0));
+            super(def);
         }
 
         BreakOp(BreakOp that, CodeContext cc) {
@@ -2822,7 +2753,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.continue";
 
         ContinueOp(ExternalizedOp def) {
-            this(def.operands().isEmpty() ? null : def.operands().get(0));
+            super(def);
         }
 
         ContinueOp(ContinueOp that, CodeContext cc) {
@@ -2859,11 +2790,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.yield";
 
         YieldOp(ExternalizedOp def) {
-            if (def.operands().size() != 1) {
-                throw new IllegalArgumentException("Operation must have one operand " + def.name());
-            }
-
-            this(def.operands().get(0));
+            this(requireSingleOperand(def));
         }
 
         YieldOp(YieldOp that, CodeContext cc) {
@@ -2944,11 +2871,7 @@ public sealed abstract class JavaOp extends Op {
         final Body body;
 
         BlockOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
-                throw new IllegalStateException("Operation must have no operands");
-            }
-
-            this(def.bodyDefinitions().get(0));
+            this(requireSingleBody(def));
         }
 
         BlockOp(BlockOp that, CodeContext cc, CodeTransformer ct) {
@@ -3031,7 +2954,8 @@ public sealed abstract class JavaOp extends Op {
         final Body blockBody;
 
         SynchronizedOp(ExternalizedOp def) {
-            this(def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
+            List<Body.Builder> bodies = requireBodies(def, 2);
+            this(bodies.get(0), bodies.get(1));
         }
 
         SynchronizedOp(SynchronizedOp that, CodeContext cc, CodeTransformer ct) {
@@ -3195,11 +3119,8 @@ public sealed abstract class JavaOp extends Op {
         final Body body;
 
         LabeledOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
-                throw new IllegalStateException("Operation must have no operands");
-            }
-
-            this(def.bodyDefinitions().get(0));
+            requireNoOperands(def);
+            this(requireSingleBody(def));
         }
 
         LabeledOp(LabeledOp that, CodeContext cc, CodeTransformer ct) {
@@ -3438,11 +3359,9 @@ public sealed abstract class JavaOp extends Op {
         final List<Body> bodies;
 
         IfOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
-                throw new IllegalStateException("Operation must have no operands");
-            }
-
-            this(def.bodyDefinitions());
+            //@@@ Body.Builder list; avoid checking in the external path and again after building.
+            requireNoOperands(def);
+            this(requireMinBodies(def, 2));
         }
 
         IfOp(IfOp that, CodeContext cc, CodeTransformer ct) {
@@ -3588,6 +3507,7 @@ public sealed abstract class JavaOp extends Op {
         JavaSwitchOp(Value target, List<Body.Builder> bodyCs) {
             super(List.of(target));
 
+            //@@@ Externalized switch expression/statement constructors should pass validated target and body pairs here.
             // Each case is modeled as a contiguous pair of bodies
             // The first body models the case labels, and the second models the case statements
             // The labels body has a parameter whose type is target operand's type and returns a boolean value
@@ -3770,7 +3690,7 @@ public sealed abstract class JavaOp extends Op {
         final CodeType resultType;
 
         SwitchExpressionOp(ExternalizedOp def) {
-            this(def.resultType(), def.operands().get(0), def.bodyDefinitions());
+            this(def.resultType(), requireSingleOperand(def), requireBodyPairs(def));
         }
 
         SwitchExpressionOp(SwitchExpressionOp that, CodeContext cc, CodeTransformer ct) {
@@ -3811,7 +3731,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.switch.statement";
 
         SwitchStatementOp(ExternalizedOp def) {
-            this(def.operands().get(0), def.bodyDefinitions());
+            this(requireSingleOperand(def), requireBodyPairs(def));
         }
 
         SwitchStatementOp(SwitchStatementOp that, CodeContext cc, CodeTransformer ct) {
@@ -4040,10 +3960,8 @@ public sealed abstract class JavaOp extends Op {
         final Body loopBody;
 
         ForOp(ExternalizedOp def) {
-            this(def.bodyDefinitions().get(0),
-                    def.bodyDefinitions().get(1),
-                    def.bodyDefinitions().get(2),
-                    def.bodyDefinitions().get(3));
+            List<Body.Builder> bodies = requireBodies(def, 4);
+            this(bodies.get(0), bodies.get(1), bodies.get(2), bodies.get(3));
         }
 
         ForOp(ForOp that, CodeContext cc, CodeTransformer ct) {
@@ -4069,7 +3987,6 @@ public sealed abstract class JavaOp extends Op {
             this.initBody = initC.build(this);
 
             this.condBody = condC.build(this);
-
             this.updateBody = updateC.build(this);
             if (!updateBody.bodySignature().returnType().equals(VOID)) {
                 throw new IllegalArgumentException("Update should return void: " + updateBody.bodySignature());
@@ -4314,9 +4231,8 @@ public sealed abstract class JavaOp extends Op {
         final Body loopBody;
 
         EnhancedForOp(ExternalizedOp def) {
-            this(def.bodyDefinitions().get(0),
-                    def.bodyDefinitions().get(1),
-                    def.bodyDefinitions().get(2));
+            List<Body.Builder> bodies = requireBodies(def, 3);
+            this(bodies.get(0), bodies.get(1), bodies.get(2));
         }
 
         EnhancedForOp(EnhancedForOp that, CodeContext cc, CodeTransformer ct) {
@@ -4544,7 +4460,7 @@ public sealed abstract class JavaOp extends Op {
         private final List<Body> bodies;
 
         WhileOp(ExternalizedOp def) {
-            this(def.bodyDefinitions());
+            this(requireBodies(def, 2));
         }
 
         WhileOp(List<Body.Builder> bodyCs) {
@@ -4707,7 +4623,7 @@ public sealed abstract class JavaOp extends Op {
         private final List<Body> bodies;
 
         DoWhileOp(ExternalizedOp def) {
-            this(def.bodyDefinitions());
+            this(requireBodies(def, 2));
         }
 
         DoWhileOp(List<Body.Builder> bodyCs) {
@@ -4813,6 +4729,10 @@ public sealed abstract class JavaOp extends Op {
 
             // Copy body
             this.bodies = that.bodies.stream().map(b -> b.transform(cc, ct).build(this)).toList();
+        }
+
+        JavaConditionalOp(ExternalizedOp def) {
+            this(requireMinBodies(def, 2));
         }
 
         JavaConditionalOp(List<Body.Builder> bodyCs) {
@@ -4942,7 +4862,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.cand";
 
         ConditionalAndOp(ExternalizedOp def) {
-            this(def.bodyDefinitions());
+            super(def);
         }
 
         ConditionalAndOp(ConditionalAndOp that, CodeContext cc, CodeTransformer ct) {
@@ -5011,7 +4931,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.cor";
 
         ConditionalOrOp(ExternalizedOp def) {
-            this(def.bodyDefinitions());
+            super(def);
         }
 
         ConditionalOrOp(ConditionalOrOp that, CodeContext cc, CodeTransformer ct) {
@@ -5054,11 +4974,7 @@ public sealed abstract class JavaOp extends Op {
         final List<Body> bodies;
 
         ConditionalExpressionOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
-                throw new IllegalStateException("Operation must have no operands");
-            }
-
-            this(def.resultType(), def.bodyDefinitions());
+            this(def.resultType(), requireBodies(def, 3));
         }
 
         ConditionalExpressionOp(ConditionalExpressionOp that, CodeContext cc, CodeTransformer ct) {
@@ -5291,7 +5207,8 @@ public sealed abstract class JavaOp extends Op {
         final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
-            List<Body.Builder> bodies = def.bodyDefinitions();
+            //@@@ The scan must first require at least one body and handle "no void body" structurally.
+            List<Body.Builder> bodies = requireMinBodies(def, 1);
             int bodyIndex = 0;
             while (!bodies.get(bodyIndex).bodySignature().returnType().equals(VOID)) {
                 bodyIndex++;
@@ -6003,7 +5920,7 @@ public sealed abstract class JavaOp extends Op {
                         v -> switch (v) {
                             case String s -> s;
                             case null -> null;
-                            default -> throw new UnsupportedOperationException("Unsupported pattern binding name value:" + v);
+                            default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_BINDING_NAME, v);
                         });
                 // @@@ Cannot use canonical constructor because it wraps the given type
                 this.resultType = def.resultType();
@@ -6073,14 +5990,7 @@ public sealed abstract class JavaOp extends Op {
             final RecordTypeRef recordReference;
 
             RecordPatternOp(ExternalizedOp def) {
-                RecordTypeRef recordRef = def.extractAttributeValue(ATTRIBUTE_RECORD_REF, true,
-                        v -> switch (v) {
-                            case RecordTypeRef rtd -> rtd;
-                            case null, default ->
-                                    throw new UnsupportedOperationException("Unsupported record type reference value:" + v);
-                        });
-
-                this(recordRef, def.operands());
+                this(requireAttribute(def, ATTRIBUTE_RECORD_REF, true, RecordTypeRef.class), def.operands());
             }
 
             RecordPatternOp(RecordPatternOp that, CodeContext cc) {
@@ -6189,8 +6099,8 @@ public sealed abstract class JavaOp extends Op {
             final Body matchBody;
 
             MatchOp(ExternalizedOp def) {
-                this(def.operands().get(0),
-                        def.bodyDefinitions().get(0), def.bodyDefinitions().get(1));
+                List<Body.Builder> bodies = requireBodies(def, 2);
+                this(requireSingleOperand(def), bodies.get(0), bodies.get(1));
             }
 
             MatchOp(MatchOp that, CodeContext cc, CodeTransformer ct) {

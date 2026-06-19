@@ -25,7 +25,10 @@
 
 package jdk.incubator.code.internal;
 
+import java.util.List;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 public final class Util {
@@ -34,74 +37,93 @@ public final class Util {
     }
 
     public static void requireNoOperands(ExternalizedOp def) {
-        int count = def.operands().size();
-        if (count != 0) {
-            throw structuralException(def, "requires no operands, found %d".formatted(count));
-        }
+        requireOperands(def, 0);
     }
 
-    public static void requireOperands(ExternalizedOp def, int expCount) {
-        int count = def.operands().size();
-        if (count != expCount) {
-            throw structuralException(def, "requires %d operand%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", count));
-        }
+    public static Value requireSingleOperand(ExternalizedOp def) {
+        return requireOperands(def, 1).getFirst();
     }
 
-    public static void requireOperands(ExternalizedOp def, int expCount1, int expCount2) {
+    public static List<Value> requireOperands(ExternalizedOp def, int expCount) {
+        List<Value> operands = def.operands();
+        if (operands.size() != expCount) {
+            throw structuralException(def, "requires %d operand%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", operands.size()));
+        }
+        return operands;
+    }
+
+    public static List<Value> requireOperands(ExternalizedOp def, int expCount1, int expCount2) {
         int count = def.operands().size();
         if (count != expCount1 && count != expCount2) {
             throw structuralException(def, "requires %d or %d operands, found %d".formatted(expCount1, expCount2, count));
         }
+        return def.operands();
     }
 
     public static Body.Builder requireSingleBody(ExternalizedOp def) {
-        var bd = def.bodyDefinitions();
-        if (bd.size() != 1) {
-            throw structuralException(def, "requires single body, found %d".formatted(bd.size()));
-        }
-        return bd.getFirst();
+        return requireBodies(def, 1).getFirst();
     }
 
-    public static void requireBodies(ExternalizedOp def, int expCount) {
-        int count = def.bodyDefinitions().size();
-        if (count != expCount) {
-            throw structuralException(def, "requires %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", count));
+    public static List<Body.Builder> requireBodies(ExternalizedOp def, int expCount) {
+        List<Body.Builder> bodies = def.bodyDefinitions();
+        if (bodies.size() != expCount) {
+            throw structuralException(def, "requires %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
         }
+        return bodies;
     }
 
-    public static void requireMinBodies(ExternalizedOp def, int expCount) {
-        int count = def.bodyDefinitions().size();
-        if (count < expCount) {
-            throw structuralException(def, "requires at least %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", count));
+    public static List<Body.Builder> requireMinBodies(ExternalizedOp def, int expCount) {
+        List<Body.Builder> bodies = def.bodyDefinitions();
+        if (bodies.size() < expCount) {
+            throw structuralException(def, "requires at least %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
         }
+        return bodies;
     }
 
-    public static void requireBodies(ExternalizedOp def, int expCount1, int expCount2) {
-        int count = def.bodyDefinitions().size();
+    public static List<Body.Builder> requireBodies(ExternalizedOp def, int expCount1, int expCount2) {
+        List<Body.Builder> bodies = def.bodyDefinitions();
+        int count = bodies.size();
         if (count != expCount1 && count != expCount2) {
             throw structuralException(def, "requires %d or %d bodies, found %d".formatted(expCount1, expCount2, count));
         }
+        return bodies;
     }
 
-    public static void requireBodyPairs(ExternalizedOp def) {
-        int count = def.bodyDefinitions().size();
+    public static List<Body.Builder> requireBodyPairs(ExternalizedOp def) {
+        List<Body.Builder> bodies = def.bodyDefinitions();
+        int count = bodies.size();
         if (count < 2 || count % 2 == 1) {
             throw structuralException(def, "requires one or more body pairs, found %d".formatted(count));
         }
+        return bodies;
     }
 
-    public static void requireSuccessors(ExternalizedOp def, int expCount) {
-        int count = def.successors().size();
-        if (count != expCount) {
-            throw structuralException(def, "requires %d successor%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", count));
-        }
+    public static Block.Reference requireSingleSuccessor(ExternalizedOp def) {
+        return requireSuccessors(def, 1).getFirst();
     }
 
-    public static void requireMinSuccessors(ExternalizedOp def, int expCount) {
-        int count = def.successors().size();
-        if (count < expCount) {
-            throw structuralException(def, "requires at least %d successor%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", count));
+    public static List<Block.Reference> requireSuccessors(ExternalizedOp def, int expCount) {
+        List<Block.Reference> succ = def.successors();
+        if (succ.size() != expCount) {
+            throw structuralException(def, "requires %d successor%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", succ.size()));
         }
+        return succ;
+    }
+
+    public static List<Block.Reference> requireMinSuccessors(ExternalizedOp def, int expCount) {
+        List<Block.Reference> succ = def.successors();
+        if (succ.size() < expCount) {
+            throw structuralException(def, "requires at least %d successor%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", succ.size()));
+        }
+        return succ;
+    }
+
+    public static <T> T requireAttribute(ExternalizedOp def, String attributeName, boolean isDefaultAttribute, Class<T> attributeType) {
+        Object attr = requireAttribute(def, attributeName, isDefaultAttribute);
+        if (attributeType.isInstance(attr)) {
+            return attributeType.cast(attr);
+        }
+        throw unsupportedAttributeValueException(def, attributeName, attr);
     }
 
     public static Object requireAttribute(ExternalizedOp def, String attributeName, boolean isDefaultAttribute) {
@@ -120,6 +142,6 @@ public final class Util {
 
     public static UnsupportedOperationException unsupportedAttributeValueException(ExternalizedOp def, String attributeName, Object value) {
         return new UnsupportedOperationException(
-                "Operation %s attribute %s has unsupported value: %s" .formatted(def.name(), attributeName, value));
+                "Operation %s attribute %s has unsupported value: %s".formatted(def.name(), attributeName, value));
     }
 }
