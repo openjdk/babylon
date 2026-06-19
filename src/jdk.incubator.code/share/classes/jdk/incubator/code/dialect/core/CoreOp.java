@@ -587,9 +587,8 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "return";
 
         ReturnOp(ExternalizedOp def) {
-            requireOperands(def, 0, 1);
-
-            this(def.operands().isEmpty() ? null : def.operands().get(0));
+            List<Value> operands = requireOperands(def, 0, 1);
+            this(operands.isEmpty() ? null : operands.getFirst());
         }
 
         ReturnOp(ReturnOp that, CodeContext cc) {
@@ -994,16 +993,15 @@ public sealed abstract class CoreOp extends Op {
         final VarType resultType;
 
         VarOp(ExternalizedOp def) {
-            requireOperands(def, 0, 1);
-            String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
-                    v -> switch (v) {
+            List<Value> operands = requireOperands(def, 0, 1);
+            String name = def.extractAttributeValue(ATTRIBUTE_NAME, true, v -> switch (v) {
                 case String s -> s;
                 case null -> "";
                 default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_NAME, v);
             });
 
             // @@@ Cannot use canonical constructor because type is wrapped
-            super(def.operands());
+            super(operands);
 
             this.varName = name;
             if (!(def.resultType() instanceof VarType vt)) {
@@ -1135,8 +1133,7 @@ public sealed abstract class CoreOp extends Op {
             return (VarOp) varValue.op();
         }
 
-        static void checkIsVarOp(ExternalizedOp opdef) {
-            Value varValue = opdef.operands().getFirst();
+        static void checkIsVarOp(ExternalizedOp opdef, Value varValue) {
             if (!(varValue.type() instanceof VarType)) {
                 throw structuralException(opdef, "value's type is not a variable type: " + varValue);
             }
@@ -1158,9 +1155,9 @@ public sealed abstract class CoreOp extends Op {
             static final String NAME = "var.load";
 
             VarLoadOp(ExternalizedOp opdef) {
-                checkIsVarOp(opdef);
-
-                this(requireSingleOperand(opdef));
+                Value varValue = requireSingleOperand(opdef);
+                checkIsVarOp(opdef, varValue);
+                this(varValue);
             }
 
             VarLoadOp(VarLoadOp that, CodeContext cc) {
@@ -1200,8 +1197,7 @@ public sealed abstract class CoreOp extends Op {
 
             VarStoreOp(ExternalizedOp opdef) {
                 List<Value> operands = requireOperands(opdef, 2);
-                checkIsVarOp(opdef);
-
+                checkIsVarOp(opdef, operands.getFirst());
                 super(operands);
             }
 

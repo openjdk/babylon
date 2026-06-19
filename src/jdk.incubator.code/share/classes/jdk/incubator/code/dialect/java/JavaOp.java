@@ -490,7 +490,8 @@ public sealed abstract class JavaOp extends Op {
             boolean isReflectable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_REFLECTABLE,
                     false, v -> switch (v) {
                         case Boolean b -> b;
-                        case null, default -> false;
+                        case null -> false;
+                        default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_LAMBDA_IS_REFLECTABLE, v);
                     });
 
             this(def.resultType(), requireSingleBody(def), isReflectable);
@@ -998,7 +999,8 @@ public sealed abstract class JavaOp extends Op {
             boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_INVOKE_VARARGS,
                     false, v -> switch (v) {
                         case Boolean b -> b;
-                        case null, default -> false;
+                        case null -> false;
+                        default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_VARARGS, v);
                     });
 
             // If not present and is not varargs defaults to class or instance invocation
@@ -1007,7 +1009,7 @@ public sealed abstract class JavaOp extends Op {
                     false, v -> switch (v) {
                         case String s -> InvokeKind.valueOf(s);
                         case InvokeKind k -> k;
-                        case null, default -> {
+                        case null -> {
                             if (isVarArgs) {
                                 // If varargs then we cannot infer invoke kind
                                 throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_KIND, v);
@@ -1018,6 +1020,7 @@ public sealed abstract class JavaOp extends Op {
                                     ? InvokeKind.INSTANCE
                                     : InvokeKind.STATIC;
                         }
+                        default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_KIND, v);
                     });
 
 
@@ -1231,7 +1234,8 @@ public sealed abstract class JavaOp extends Op {
             boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_NEW_VARARGS,
                     false, v -> switch (v) {
                         case Boolean b -> b;
-                        case null, default -> false;
+                        case null -> false;
+                        default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_NEW_VARARGS, v);
                     });
 
             this(isVarArgs, def.resultType(), constructorRef, def.operands());
@@ -1586,9 +1590,8 @@ public sealed abstract class JavaOp extends Op {
             static final String NAME = "array.store";
 
             ArrayStoreOp(ExternalizedOp def) {
-                requireOperands(def, 3);
-
-                this(def.operands().get(0), def.operands().get(1), def.operands().get(2));
+                List<Value> operands = requireOperands(def, 3);
+                this(operands.get(0), operands.get(1), operands.get(2));
             }
 
             ArrayStoreOp(ArrayStoreOp that, CodeContext cc) {
@@ -1832,7 +1835,7 @@ public sealed abstract class JavaOp extends Op {
 
         ExceptionRegionExit(ExternalizedOp def) {
             Value enter = requireSingleOperand(def);
-            if (!(enter.asResult().op() instanceof ExceptionRegionEnter)) {
+            if (!(enter instanceof Op.Result or && or.op() instanceof ExceptionRegionEnter)) {
                 throw structuralException(def, "Value's is not an exception region entry: " + def.operands().getFirst());
             }
             this(enter, requireSingleSuccessor(def));
@@ -1898,8 +1901,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConcatOp(ExternalizedOp def) {
-            requireOperands(def, 2);
-            this(def.operands().get(0), def.operands().get(1));
+            List<Value> operands = requireOperands(def, 2);
+            this(operands.get(0), operands.get(1));
         }
 
         ConcatOp(Value lhs, Value rhs) {
@@ -5207,11 +5210,13 @@ public sealed abstract class JavaOp extends Op {
         final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
-            //@@@ The scan must first require at least one body and handle "no void body" structurally.
             List<Body.Builder> bodies = requireMinBodies(def, 1);
             int bodyIndex = 0;
-            while (!bodies.get(bodyIndex).bodySignature().returnType().equals(VOID)) {
+            while (bodyIndex < bodies.size() && !bodies.get(bodyIndex).bodySignature().returnType().equals(VOID)) {
                 bodyIndex++;
+            }
+            if (bodyIndex == bodies.size()) {
+                throw structuralException(def, "no void try body found");
             }
             List<Body.Builder> resources = bodies.subList(0, bodyIndex);
             Body.Builder body = bodies.get(bodyIndex);
