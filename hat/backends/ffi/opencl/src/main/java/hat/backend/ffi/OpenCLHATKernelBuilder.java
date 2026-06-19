@@ -419,7 +419,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             case TENSOR_ORDER_B ->  shape.get(2) * shape.get(1);  // K x N
             default -> throw new IllegalStateException("Unexpected value: " + ordering);
         };
-        
+
         switch (klass) {
             case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> f16Type();
             case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");

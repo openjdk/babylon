@@ -826,6 +826,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 if (first.declaringElement() instanceof VarOp varOp) {
                     tensorVarOp = varOp;
                     tensorName = tensorVarOp.varName();
+                } else {
+                    throw new IllegalStateException("Expected a VarOp, but found `" + first.declaringElement() + "` instead");
                 }
             }
         }
