@@ -42,4 +42,28 @@ questions.
             <version>1.0</version>
         </dependency>
     </dependencies>
+<!--
+   This is how we might create a fat  hat-backend-opencl.jar which includes all the jars in the dep list
+   So we can run using -cp build/hat-backend-ffi-opencl.jar:build/example-nbody.jar
+   Instead of -cp build/..optkl...:build/..core..:build/...ffi-shared..:build/hat-backend-ffi-opencl.jar:build/example-nbody.jar
+
+ <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+-->
+
 </project>
