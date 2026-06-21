@@ -119,6 +119,13 @@ questions.
                     <include>opencl/src/</include>
                 </includes>
             </fileset>
+            <fileset>
+                <directory>ex</directory>
+                <includes>
+                    <include>opengl/target/</include>
+                    <include>opencl/target/</include>
+                </includes>
+            </fileset>
         </filesets>
     </configuration>
 </plugin>
