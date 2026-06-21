@@ -7,7 +7,7 @@ endif()
 
 file(WRITE "${PROPS_OUTPUT_DIR}/paths.properties"
     "mac.frameworks.dir=${CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES}\n"
-    "opengl.found=${OpenCL_FOUND}\n"
-    "opengl.header=${OpenCL_INCLUDE_DIR}\n"
-    "opengl.lib=${OpenCL_LIBRARY}\n"
+    "opengl.found=${OpenGL_FOUND}\n"
+    #"opengl.header=${OpenCL_INCLUDE_DIR}\n"
+    #"opengl.lib=${OpenCL_LIBRARY}\n"
 )

@@ -8,7 +8,7 @@ endif()
 file(WRITE "${PROPS_OUTPUT_DIR}/paths.properties"
     "mac.frameworks.dir=${CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES}\n"
     "opencl.found=${OpenCL_FOUND}\n"
-    "opencl.header=${OpenCL_INCLUDE_DIR}\n"
-    "opencl.lib=${OpenCL_LIBRARY}\n"
-    "opencl.version=${OpenCL_VERSION_STRING}\n"
+    #"opencl.header=${OpenCL_INCLUDE_DIR}\n"
+    #"opencl.lib=${OpenCL_LIBRARY}\n"
+    #"opencl.version=${OpenCL_VERSION_STRING}\n"
 )

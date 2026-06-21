@@ -56,15 +56,13 @@ questions.
             <configuration>
               <executable>jextract</executable>
               <arguments>
-                <argument>-F</argument>
-                <argument>${mac.frameworks.dir}</argument>
+                <argument>-F</argument><argument>${mac.frameworks.dir}</argument>
                 <argument>--target-package</argument>
                 <argument>opencl</argument>
-                <argument>--output</argument>
-                <argument>${project.build.directory}/generated-sources/java</argument>
-                <argument>--library</argument>
-                <argument>:${opencl.lib}</argument>
-                <argument>${opencl.header}/Headers/opencl.h</argument>
+                <argument>--output</argument><argument>${project.build.directory}/generated-sources/java</argument>
+                <argument>--library</argument><argument>:${mac.frameworks.dir}/OpenCL.framework/OpenCL</argument>
+                <argument>--header-class-name</argument><argument>opencl_h</argument>
+                <argument>${mac.frameworks.dir}/OpenCL.framework/Headers/opencl.h</argument>
               </arguments>
             </configuration>
           </execution>
