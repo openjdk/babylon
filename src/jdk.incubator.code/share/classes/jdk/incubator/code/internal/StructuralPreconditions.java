@@ -31,9 +31,9 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.extern.ExternalizedOp;
 
-public final class Util {
+public final class StructuralPreconditions {
 
-    private Util() {
+    private StructuralPreconditions() {
     }
 
     public static void requireNoOperands(ExternalizedOp def) {

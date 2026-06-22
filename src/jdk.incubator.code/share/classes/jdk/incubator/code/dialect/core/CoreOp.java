@@ -40,7 +40,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static jdk.incubator.code.internal.Util.*;
+import static jdk.incubator.code.internal.StructuralPreconditions.*;
 
 /**
  * The top-level operation class for core operations.

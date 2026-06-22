@@ -52,7 +52,7 @@ import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.java.JavaType.*;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;
 import static jdk.incubator.code.internal.ArithmeticAndConvOpImpls.*;
-import static jdk.incubator.code.internal.Util.*;
+import static jdk.incubator.code.internal.StructuralPreconditions.*;
 
 /**
  * The top-level operation class for Java operations.
