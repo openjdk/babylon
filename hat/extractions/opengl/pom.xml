@@ -55,18 +55,12 @@ questions.
             <configuration>
               <executable>jextract</executable>
               <arguments>
-                <argument>-F</argument>
-                <argument>${mac.sdk}/${mac.sys.lib.fwks}</argument>
-                <argument>--target-package</argument>
-                <argument>opengl</argument>
-                <argument>--output</argument>
-                <argument>${project.build.directory}/generated-sources/java</argument>
-                <argument>--library</argument>
-                <argument>:${mac.sys.lib.fwks}/OpenGL.framework/OpenGL</argument>
-                <argument>--library</argument>
-                <argument>:${mac.sys.lib.fwks}/GLUT.framework/GLUT</argument>
-                <argument>--header-class-name</argument>
-                <argument>opengl_h</argument>
+                <argument>-F</argument><argument>${mac.sdk}/${mac.sys.lib.fwks}</argument>
+                <argument>--target-package</argument><argument>opengl</argument>
+                <argument>--output</argument><argument>${project.build.directory}/generated-sources/java</argument>
+                <argument>--library</argument><argument>:${mac.sys.lib.fwks}/OpenGL.framework/OpenGL</argument>
+                <argument>--library</argument><argument>:${mac.sys.lib.fwks}/GLUT.framework/GLUT</argument>
+                <argument>--header-class-name</argument><argument>opengl_h</argument>
                 <argument>${mac.sdk}${mac.sys.lib.fwks}/GLUT.framework/Headers/glut.h</argument>
               </arguments>
             </configuration>

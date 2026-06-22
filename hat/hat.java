@@ -50,7 +50,7 @@ static void help(){
                       dot bld.dot -Tsvg > bld.svg  && chrome bld.svg
            clean:
                    Removes build directory entirely
-                   conf dir and jextracted artifacts (opencl/cuda/opengl) remain
+                   conf dir and extracted artifacts (opencl/cuda/opengl) remain
 
 
              run:  [ffi|my|seq]-[opencl|java|cuda|mock|hip] [-DXXX ...] runnable  args
@@ -116,7 +116,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         }
         var jextract = hat.isAvailable("jextract", "--version");
         if (!jextract.isAvailable()) {
-            System.out.println("We will need jextract to create jextracted backends and for examples requiring opengl ");
+            System.out.println("We will need jextract to create extracted backends and for examples requiring opengl ");
         }
 
         // This is an example of a user defined optional dependency.
@@ -181,20 +181,20 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
 
         // Now we have the more complex nonsense for nbodygl (which needs opengl and opencl extracted)
         var wrapped_shared = hat.jar("wrap{s}-shared");
-        var jextracted_opencl = hat.jextract("extract{ions|ed}-opencl", jextract, openclCmakeInfo, core);
-        var wrapped_jextracted_opencl = hat.jar("wrap{s}-opencl", jextracted_opencl, wrapped_shared);
+        var extracted_opencl = hat.jextract("extract{ions|ed}-opencl", jextract, openclCmakeInfo, core);
+        var wrapped_extracted_opencl = hat.jar("wrap{s}-opencl", extracted_opencl, wrapped_shared);
         var backend_jextracted_shared = hat.jar("backend{s}-jextracted-shared", core);
-        var backend_jextracted_opencl = hat.jar("backend{s}-jextracted-opencl", wrapped_jextracted_opencl, backend_jextracted_shared);
-        var jextracted_opengl = hat.jextract("extract{ions|ed}-opengl", jextract, ui, openglCmakeInfo, core);
+        var backend_jextracted_opencl = hat.jar("backend{s}-jextracted-opencl", wrapped_extracted_opencl, backend_jextracted_shared);
+        var extracted_opengl = hat.jextract("extract{ions|ed}-opengl", jextract, ui, openglCmakeInfo, core);
 
         // Sigh... We have different src exclusions for wrapped opengl depending on the OS
         var excludedOpenGLWrapSrc = hat.rootPath().resolve(
                 "wraps/opengl/src/main/java/wrap/opengl/GL" + (mac.isAvailable() ? "Callback" : "Func") + "EventHandler.java");
 
-        var wrapped_jextracted_opengl = hat.jar("wrap{s}-opengl", Set.of(excludedOpenGLWrapSrc), jextracted_opengl, wrapped_shared);
+        var wrapped_extracted_opengl = hat.jar("wrap{s}-opengl", Set.of(excludedOpenGLWrapSrc), extracted_opengl, wrapped_shared);
 
         // Finally we have everything needed for nbodygl
-        var example_nbodygl = hat.jar("example{s}-nbodygl", ui, wrapped_jextracted_opengl, wrapped_jextracted_opencl);
+        var example_nbodygl = hat.jar("example{s}-nbodygl", ui, wrapped_extracted_opengl, wrapped_extracted_opencl);
 
         var listOfExamples = List.of(
            example_squares,
@@ -235,7 +235,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
                     final var textSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp|md)|pom.xml)$");
                     final var sourceSuffix = Pattern.compile("^(.*\\.(java|cpp|h|hpp)|pom.xml)$");
 
-                    Stream.of("hat", "tests", "optkl", "core", "examples", "backends", "docs", "wraps", "ex","extractions")
+                    Stream.of("hat", "tests", "optkl", "core", "examples", "backends", "docs", "wraps", "extractions")
                             .map(hat.rootPath()::resolve)
                             .forEach(dir -> {
                                 System.out.println("Checking " + dir);

@@ -55,16 +55,11 @@ questions.
             <configuration>
               <executable>jextract</executable>
               <arguments>
-                <argument>-F</argument>
-                <argument>${mac.sdk}/${mac.sys.lib.fwks}</argument>
-                <argument>--target-package</argument>
-                <argument>opencl</argument>
-                <argument>--output</argument>
-                <argument>${project.build.directory}/generated-sources/java</argument>
-                <argument>--library</argument>
-                <argument>:${mac.sys.lib.fwks}/OpenCL.framework/OpenCL</argument>
-                <argument>--header-class-name</argument>
-                <argument>opencl_h</argument>
+                <argument>-F</argument><argument>${mac.sdk}/${mac.sys.lib.fwks}</argument>
+                <argument>--target-package</argument><argument>opencl</argument>
+                <argument>--output</argument><argument>${project.build.directory}/generated-sources/java</argument>
+                <argument>--library</argument><argument>:${mac.sys.lib.fwks}/OpenCL.framework/OpenCL</argument>
+                <argument>--header-class-name</argument><argument>opencl_h</argument>
                 <argument>${mac.sdk}${mac.sys.lib.fwks}/OpenCL.framework/Headers/opencl.h</argument>
               </arguments>
             </configuration>
