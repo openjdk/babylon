@@ -41,7 +41,6 @@ public interface F16Array extends Buffer {
 
     Schema<F16Array> schema = Schema.of(F16Array.class, f16array ->
             f16array.arrayLen("length")
-                    .pad(28)
                     .array("array",
                             half -> half.fields("value")));
 
