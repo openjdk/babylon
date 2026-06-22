@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
 DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -23,147 +23,80 @@ Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
 or visit www.oracle.com if you need additional information or have any
 questions.
 -->
-<project
-   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-   xmlns="http://maven.apache.org/POM/4.0.0">
-<modelVersion>4.0.0</modelVersion>
-<packaging>pom</packaging>
-<groupId>oracle.code</groupId>
-<artifactId>hat-extractions</artifactId>
-<version>1.0</version>
-<parent>
-   <groupId>oracle.code</groupId>
-   <artifactId>hat-root</artifactId>
-   <version>1.0</version>
-</parent>
-<profiles>
-   <profile>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <packaging>pom</packaging>
+  <groupId>oracle.code</groupId>
+  <version>1.0</version>
+  <artifactId>hat-extracted</artifactId>
+  <parent>
+    <groupId>oracle.code</groupId>
+    <artifactId>hat-root</artifactId>
+    <version>1.0</version>
+  </parent>
+  <properties>
+    <mac.sys.lib.fwks>/System/Library/Frameworks</mac.sys.lib.fwks>
+    <mac.sdk>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk</mac.sdk>
+  </properties>
+  <profiles>
+    <profile>
       <id>cuda</id>
       <modules>
-         <module>cuda</module>
+        <module>cuda</module>
       </modules>
-   </profile>
-   <profile>
+    </profile>
+    <profile>
       <id>opencl</id>
       <modules>
-         <module>opencl</module>
+        <module>opencl</module>
       </modules>
-   </profile>
-   <profile>
+    </profile>
+    <profile>
       <id>opengl</id>
       <modules>
-         <module>opengl</module>
+        <module>opengl</module>
       </modules>
-   </profile>
-   <profile>
-      <id>linux</id>
-      <activation>
-         <os>
-            <family>unix</family>
-            <name>linux</name>
-         </os>
-      </activation>
-      <properties>
-         <header.path>/usr/include/linux/your_header.h</header.path>
-      </properties>
-   </profile>
-
-   <profile>
-      <id>mac</id>
-      <activation>
-         <os>
-            <family>mac</family>
-         </os>
-      </activation>
-      <properties>
-         <opencl.framework>${mac.app.frameworks.dir}/OpenCL.framework</opencl.framework>
-         <opengl.framework>${mac.app.frameworks.dir}/OpenGL.framework</opengl.framework>
-         <glut.framework>${mac.app.frameworks.dir}/OpenGL.framework</glut.framework>
-         <glut.h>${mac.lib.frameworks.dir}/GLUT.framework/Headers/glut.h</glut.h>
-         <opencl.h>${mac.lib.frameworks.dir}/OpenCL.framework/Headers/opencl.h</opencl.h>
-         <opengl.jextract.cmd>
-            mkdir -p /Users/grfrost/github/babylon-grfrost-fork/hat/extractions/opengl/src;\
-            jextract \
-            -F ${mac.app.frameworks.dir} \
-            --target-package opengl \
-            --output /Users/grfrost/github/babylon-grfrost-fork/hat/extractions/opengl/src  \
-            --library :${opengl.framework}/OpenGL \
-            --library :${glut.framework}/GLUT \
-            --header-class-name opengl_h \
-            ${glut.h}
-         </opengl.jextract.cmd>
-         <opencl.jextract.cmd>
-            mkdir -p /Users/grfrost/github/babylon-grfrost-fork/hat/extractions/opencl/src;\
-            jextract \
-            -F ${mac.app.frameworks.dir} \
-            --target-package opencl \
-            --output /Users/grfrost/github/babylon-grfrost-fork/hat/extractions/opencl/src  \
-            --library :${opengl.framework}/OpenCL \
-            --header-class-name opencl_h \
-            ${opencl.h}
-         </opencl.jextract.cmd>
-      </properties>
-   </profile>
-</profiles>
-
-
-
-<build>
-   <plugins>
-      <plugin>
-         <inherited>false</inherited>
-         <groupId>org.codehaus.mojo</groupId>
-         <artifactId>exec-maven-plugin</artifactId>
-         <version>3.1.0</version>
-         <executions>
-            <execution>
-               <id>loggit</id>
-               <phase>generate-sources</phase>
-               <goals>
-                  <goal>exec</goal>
-               </goals>
-               <configuration>
-                  <executable>echo</executable>
-                  <arguments>
-                     <argument>${opengl.jextract.cmd}</argument>
-                     <argument>${opencl.jextract.cmd}</argument>
-                  </arguments>
-               </configuration>
-            </execution>
-
-            <execution>
-               <id>cmake-B</id>
-               <phase>generate-sources</phase>
-               <goals>
-                  <goal>exec</goal>
-               </goals>
-               <configuration>
-                  <executable>cmake</executable>
-                  <arguments>
-                     <argument>-B</argument>
-                     <argument>cmake-build-debug</argument>
-                  </arguments>
-               </configuration>
-            </execution>
-            <execution>
-               <id>cmake--build</id>
-               <phase>generate-sources</phase>
-               <goals>
-                  <goal>exec</goal>
-               </goals>
-               <configuration>
-                  <executable>cmake</executable>
-                  <arguments>
-                     <argument>--build</argument>
-                     <argument>cmake-build-debug</argument>
-                     <argument>--target</argument>
-                     <argument>extract</argument>
-                  </arguments>
-               </configuration>
-            </execution>
-         </executions>
-      </plugin>
-   </plugins>
-</build>
+    </profile>
+  </profiles>
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>properties-maven-plugin</artifactId>
+          <version>1.2.1</version>
+          <configuration>
+            <files>
+              <file>${project.build.directory}/cmake-build/paths.properties</file>
+            </files>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.6.3</version>
+          <configuration>
+            <executable>cmake</executable>
+            <arguments>
+              <argument>-DPROPS_OUTPUT_DIR=${project.build.directory}/cmake-build</argument>
+              <argument>-S</argument>
+              <argument>${project.basedir}</argument>
+              <argument>-B</argument>
+              <argument>${project.build.directory}/cmake-build</argument>
+            </arguments>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>3.6.0</version>
+          <configuration>
+            <sources>
+              <source>${project.build.directory}/generated-sources/java</source>
+            </sources>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 </project>

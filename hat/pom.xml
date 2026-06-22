@@ -23,112 +23,77 @@ Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
 or visit www.oracle.com if you need additional information or have any
 questions.
 -->
-<project
-   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-   xmlns="http://maven.apache.org/POM/4.0.0">
-<modelVersion>4.0.0</modelVersion>
-<packaging>pom</packaging>
-<groupId>oracle.code</groupId>
-<artifactId>hat-root</artifactId>
-<version>1.0</version>
-<properties>
-   <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-</properties>
-<profiles>
-   <profile>
-      <id>linux</id>
-      <activation>
-         <os>
-            <family>unix</family>
-            <name>linux</name>
-         </os>
-      </activation>
-      <!-- only set these on linux -->
-      <properties>
-         <header.path>/usr/include/linux/your_header.h</header.path>
-      </properties>
-   </profile>
-   <profile>
-      <id>mac</id>
-      <activation>
-         <os>
-            <family>mac</family>
-         </os>
-      </activation>
-      <!-- only set these on mac -->
-      <properties>
-         <mac.fwks>SDKs/MacOSX.sdk/System/Library/Frameworks</mac.fwks>
-         <mac.app.frameworks.dir>/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/${mac.fwks}</mac.app.frameworks.dir>
-         <mac.lib.frameworks.dir>/Library/Developer/CommandLineTools/${mac.fwks}</mac.lib.frameworks.dir>
-      </properties>
-   </profile>
-</profiles>
-
-<modules>
-   <module>optkl</module>
-   <module>core</module>
-   <module>backends</module>
-   <module>examples</module>
-   <module>extractions</module>
-   <module>ex</module>
-   <module>wraps</module>
-   <module>tests</module>
-   <module>distribution</module>
-</modules>
-
-<build>
-   <plugins>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <packaging>pom</packaging>
+  <groupId>oracle.code</groupId>
+  <artifactId>hat-root</artifactId>
+  <version>1.0</version>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <modules>
+    <module>optkl</module>
+    <module>core</module>
+    <module>backends</module>
+    <module>examples</module>
+    <module>extractions</module>
+    <!--<module>ex</module>-->
+    <module>wraps</module>
+    <module>tests</module>
+    <module>distribution</module>
+  </modules>
+  <build>
+    <plugins>
       <plugin>
-         <groupId>org.apache.maven.plugins</groupId>
-         <artifactId>maven-compiler-plugin</artifactId>
-         <version>3.11.0</version>
-         <configuration>
-            <compilerArgs>
-               <arg>--add-modules=jdk.incubator.code</arg>
-               <arg>--enable-preview</arg>
-            </compilerArgs>
-            <source>28</source>
-            <target>28</target>
-            <release>28</release>
-            <showDeprecation>true</showDeprecation>
-            <failOnError>true</failOnError>
-            <showWarnings>true</showWarnings>
-         </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+        <configuration>
+          <compilerArgs>
+            <arg>--add-modules=jdk.incubator.code</arg>
+            <arg>--enable-preview</arg>
+          </compilerArgs>
+          <source>28</source>
+          <target>28</target>
+          <release>28</release>
+          <showDeprecation>true</showDeprecation>
+          <failOnError>true</failOnError>
+          <showWarnings>true</showWarnings>
+        </configuration>
       </plugin>
-
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-clean-plugin</artifactId>
-    <version>3.5.0</version>
-    <configuration>
-        <filesets>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.5.0</version>
+        <configuration>
+          <filesets>
             <fileset>
-                <directory>.</directory>
-                <includes>
-                    <include>build/</include>
-                    <include>conf/</include>
-                </includes>
+              <directory>.</directory>
+              <includes>
+                <include>build/</include>
+                <include>conf/</include>
+              </includes>
             </fileset>
+            <!--<fileset>
+              <directory>extractions</directory>
+              <includes>
+                <include>cmake-build-debug/</include>
+                <include>opengl/src/</include>
+                <include>cuda/src/</include>
+                <include>opencl/src/</include>
+              </includes>
+            </fileset>-->
             <fileset>
-                <directory>extractions</directory>
-                <includes>
-                    <include>cmake-build-debug/</include>
-                    <include>opengl/src/</include>
-                    <include>cuda/src/</include>
-                    <include>opencl/src/</include>
-                </includes>
+              <directory>extractions</directory>
+              <includes>
+                <include>opengl/target/</include>
+                <include>opencl/target/</include>
+              </includes>
             </fileset>
-            <fileset>
-                <directory>ex</directory>
-                <includes>
-                    <include>opengl/target/</include>
-                    <include>opencl/target/</include>
-                </includes>
-            </fileset>
-        </filesets>
-    </configuration>
-</plugin>
-   </plugins>
-</build>
+          </filesets>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
