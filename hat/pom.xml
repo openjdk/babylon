@@ -87,6 +87,8 @@ questions.
             <fileset>
               <directory>extractions</directory>
               <includes>
+                <include>opengl/src/</include>
+                <include>opencl/src/</include>
                 <include>opengl/target/</include>
                 <include>opencl/target/</include>
               </includes>
