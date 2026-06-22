@@ -109,7 +109,10 @@ public class TestTensors {
         int cCol = warpN * WMMA_N;
 
         // Store the resulting tensor into main memory using column-major layout.
-        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+        if (cRow < size && cCol < size) {
+            // We operate with square matrices
+            Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+        }
     }
 
     @Reflect
@@ -158,7 +161,10 @@ public class TestTensors {
         }
         int cRow = warpM * WMMA_M;
         int cCol = warpN * WMMA_N;
-        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+        if (cRow < size && cCol < size) {
+            // We operate with square matrices
+            Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+        }
     }
 
     @Reflect
@@ -210,7 +216,9 @@ public class TestTensors {
         }
         int cRow = warpM * WMMA_M;
         int cCol = warpN * WMMA_N;
-        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofRowMajor());
+        if (cRow < size && cCol < size) {
+            Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofRowMajor());
+        }
     }
 
     @Reflect
@@ -249,7 +257,9 @@ public class TestTensors {
         }
         int cRow = warpM * WMMA_M;
         int cCol = warpN * WMMA_N;
-        Tensor.store(matrixC, cRow, cCol, acc, ldc);
+        if (cRow < size && cCol < size) {
+            Tensor.store(matrixC, cRow, cCol, acc, ldc);
+        }
     }
 
     @Reflect

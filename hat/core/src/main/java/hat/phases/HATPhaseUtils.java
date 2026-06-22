@@ -217,15 +217,10 @@ public class HATPhaseUtils {
     }
 
     public static boolean isTensorOperation(OpHelper.Invoke invoke) {
-        if (isTensorCreate(invoke)) {
+        if (isTensorCreate(invoke) || isTensorFillOperation(invoke) || isTensorShape(invoke) || isTensorStore(invoke)) {
             return true;
-        } else if (isTensorFillOperation(invoke)) {
-            return true;
-        } else if (isTensorShape(invoke)) {
-            return true;
-        } else if (isTensorStore(invoke)) {
-            return true;
-        } else return isReturnTensorValueOperation(invoke);
+        }
+        return isReturnTensorValueOperation(invoke);
     }
 
     public static boolean isTensorCreate(OpHelper.Invoke invoke) {
