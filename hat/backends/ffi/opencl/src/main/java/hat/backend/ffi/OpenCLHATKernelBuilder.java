@@ -72,6 +72,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     private static final String GROUP_ID = "get_group_id";
     private static final String NUM_GROUPS = "get_num_groups";
 
+    // OpenCL 1.2 maps warp size to 1
+    private static final int OPENCL_WARP_SIZE = 1;
+
     // Mapping between API function names and OpenCL intrinsics for the math operations
     private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
     static {
@@ -408,7 +411,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     protected OpenCLHATKernelBuilder hatWarpSize() {
-        return constant("1");
+        return intConst(OPENCL_WARP_SIZE);
     }
 
     private OpenCLHATKernelBuilder generateHatTensorCreate(List<Integer> shape, Object klass, String varTensorName, Value v, int ordering) {

@@ -102,6 +102,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private final Map<Op, String> mapVectorName;
     private final Deque<String> stack;
+    private static final int CUDA_WARP_SIZE = 32;
 
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraph, scopedCodeBuilderContext);
@@ -195,7 +196,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder hatWarpSize() {
-        return constant("32");
+        return intConst(CUDA_WARP_SIZE);
     }
 
     @Override
