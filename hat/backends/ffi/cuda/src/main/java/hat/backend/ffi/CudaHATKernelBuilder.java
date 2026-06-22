@@ -29,6 +29,7 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
+import hat.types.Tensor;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -62,6 +63,7 @@ import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
 import static hat.phases.HATPhaseUtils.mapLane;
 import static hat.phases.HATPhaseUtils.reduceFloatType;
 import static hat.phases.HATPhaseUtils.reduceFloatTypeFromReturnType;
+import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
@@ -100,6 +102,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private final Map<Op, String> mapVectorName;
     private final Deque<String> stack;
+    private static final int CUDA_WARP_SIZE = 32;
 
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(kernelCallGraph, scopedCodeBuilderContext);
@@ -192,6 +195,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    protected CudaHATKernelBuilder hatWarpSize() {
+        return intConst(CUDA_WARP_SIZE);
+    }
+
+    @Override
     public CudaHATKernelBuilder defines() {
         return self()
                 .hashDefine("HAT_CUDA")
@@ -252,7 +260,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useS16Types(), _ -> includeSys("cuda_fp16.h", "cuda_bf16.h"))
                 .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
                 .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
-                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"));
+                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
+                .when(useTensors(), _ -> includeSys("mma.h")); // only enable if tensor views are used
     }
 
     @Override
@@ -622,4 +631,281 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
         return sp().varName(varOp);
     }
+
+    @Override
+    protected CudaHATKernelBuilder varOpTensor(CoreOp.VarOp varOp) {
+        recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+        sp().id(varOp.varName());
+        return self();
+    }
+
+    public static final String WMMA_MEM_COL_MAJOR = "nvcuda::wmma::mem_col_major";
+    public static final String WMMA_MEM_ROW_MAJOR = "nvcuda::wmma::mem_row_major";
+    public static final String WMMA_STORE_TENSOR = "nvcuda::wmma::store_matrix_sync";
+    public static final String WMMA_LOAD_TENSOR = "nvcuda::wmma::load_matrix_sync";
+    public static final String WMMA_MMA_TENSOR = "nvcuda::wmma::mma_sync";
+    public static final String WMMA_FILL_TENSOR = "nvcuda::wmma::fill_fragment";
+    public static final String WMMA_COL_MAJOR = "nvcuda::wmma::col_major";
+    public static final String WMMA_ROW_MAJOR = "nvcuda::wmma::row_major";
+    public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment";
+    public static final String WMMA_PREFIX = "nvcuda::wmma::";
+
+    private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access) {
+        id(WMMA_FRAGMENT_BASE)
+                .ltgt(_ -> {
+                    id(WMMA_PREFIX).id(matrixOrder)
+                            .comma().sp()
+                            .intValue(shape.getFirst())
+                            .comma().sp()
+                            .intValue(shape.get(1))
+                            .comma().sp()
+                            .intValue(shape.get(2))
+                            .comma().sp()
+                            .type(type);
+                    if (!matrixOrder.equals(TENSOR_ACC)) {
+                        comma();
+                        if (access == null) {
+                            id(WMMA_ROW_MAJOR);
+                        } else if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                            // Expecting an invokeOp
+                            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+                            if (invoke != null && invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                                id(WMMA_COL_MAJOR);
+                            } else if (invoke != null && invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                                id(WMMA_ROW_MAJOR);
+                            } else {
+                                throw new IllegalStateException("[Error]");
+                            }
+                        }
+                    }
+
+                });
+        return self();
+    }
+
+
+    private static final Map<String, String> tensorTypeTable = new HashMap<>();
+    static {
+        tensorTypeTable.put("loadF16", "half");
+        tensorTypeTable.put("load",    "float");
+        tensorTypeTable.put("loadF32", "float");
+    }
+
+    private CudaHATKernelBuilder generateTensorAccumulateCreate(Invoke tensorCreateOp) {
+        // tensor declaration for the accumulator
+        Value shapeValue = tensorCreateOp.op().operands().getFirst();
+        List<Integer> shape = obtainShapeTensor(shapeValue);
+        Value classOperand = tensorCreateOp.op().operands().get(1);
+        Object klass = null;
+        if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+            klass = constantOp.value();
+        }
+        String tensorType = null;
+        if (klass != null) {
+            switch (klass) {
+                case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> tensorType = "half";
+                case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> tensorType = "float";
+                default -> throw new IllegalStateException("Type class not supported for Tensors: " + klass);
+            }
+        }
+        Value valueAccessLayout = tensorCreateOp.op().operands().getLast();
+        return generateCreateTensor(shape, TENSOR_ACC, tensorType, valueAccessLayout);
+    }
+
+    private CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreateOp) {
+        Value v = tensorCreateOp.op().result().uses().getFirst();
+        // Find the declaration value of the tensor
+        // otherwise, we have to inspect the shape from the TensorLoadOp
+        if (v.declaringElement() instanceof VarOp tensorVarOp) {
+            String matrixOrder = tensorOrderTable.get(TENSOR_ORDER_DEFAULT);
+            Value tensorValue = tensorVarOp.result();
+            // Inspect the code-model to reach the MMA op and determine the ordering of matrices
+            int indexOrdering = getTensorOrder(tensorValue);
+            if (tensorOrderTable.containsKey(indexOrdering)) {
+                matrixOrder = tensorOrderTable.get(indexOrdering);
+            }
+
+            var shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
+            var shape = obtainShapeTensor(shapeValue);
+            String loadVariance = findLoadVariance(tensorValue, tensorVarOp);
+            var type = tensorTypeTable.getOrDefault(loadVariance, null);
+            var valueAccessLayout = findAccessLayout(tensorValue, tensorVarOp);
+
+            if (shape.size() != 3) {
+                throw new IllegalStateException("Tensor Shape must have 3 values" + type);
+            }
+            if (type == null) {
+                throw new IllegalStateException("Load Type not supported:" + type);
+            }
+            return generateCreateTensor(shape, matrixOrder, type, valueAccessLayout);
+        } else {
+            throw new IllegalStateException("Value not supported");
+        }
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatTensorCreateOperation(Invoke tensorCreateOp) {
+        if (tensorCreateOp.op().operands().isEmpty()) {
+            // this corresponds to a tensor declaration for the input data
+            return generateTensorCreate(tensorCreateOp);
+        } else {
+            // generate accumulate for the tensors
+            return generateTensorAccumulateCreate(tensorCreateOp);
+        }
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
+        id(WMMA_FILL_TENSOR).paren( _-> {
+            List<Value> operands = tensorFillOp.op().operands();
+            recurseResultOrThrow(operands.getFirst())
+                    .comma()
+                    .recurseResultOrThrow(operands.get(1));
+        });
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder hatTensorMMA(Invoke tensorMMA) {
+        var resulTensorValue = tensorMMA.op().operands().getFirst();
+        var tensorAValue = tensorMMA.op().operands().get(1);
+        var tensorBValue = tensorMMA.op().operands().get(2);
+        var tensorCValue = tensorMMA.op().operands().get(3);
+        var tensorA = findTensorVarOp(tensorAValue);
+        var tensorB = findTensorVarOp(tensorBValue);
+        var tensorC = findTensorVarOp(tensorCValue);
+        var tensorResult = findTensorVarOp(resulTensorValue);
+        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
+            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
+        }
+        List<VarOp> operands = List.of(tensorResult, tensorA, tensorB, tensorC);
+        return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
+    }
+
+    private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoad, boolean isColumnMajor, String tensorName) {
+        // First operand is the reference to global memory
+        List<Value> operands = tensorLoad.op().operands();
+        Value reference = operands.getFirst();
+        id(WMMA_LOAD_TENSOR)
+                .paren(_ -> {
+                    id(tensorName).comma();
+                    paren(_ -> type("half").asterisk());
+                    recurseResultOrThrow(reference);
+                    rarrow().id(ARRAY)
+                            .sp().plus().sp()
+                            .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
+                            .comma();
+                    recurseResultOrThrow(operands.get(3));
+                });
+
+        return self();
+    }
+
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *     wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
+     * </code>
+     * </p>
+     *
+     * @param tensorLoad
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    @Override
+    protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoad) {
+        // Find name tensor of the first argument
+        String tensorName = "";
+        SequencedSet<Op.Result> uses = tensorLoad.op().result().uses();
+        VarOp tensorVarOp = null;
+        for (Op.Result result : uses) {
+            if (result.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp storeLoadOp) {
+                // obtain first arg from tensorStoreOp
+                Value first = storeLoadOp.operands().getFirst();
+                if (first.declaringElement() instanceof VarOp varOp) {
+                    tensorVarOp = varOp;
+                    tensorName = tensorVarOp.varName();
+                } else {
+                    throw new IllegalStateException("Expected a VarOp, but found `" + first.declaringElement() + "` instead");
+                }
+            }
+        }
+
+        boolean isColumnMajor = false;
+        if (tensorVarOp != null && tensorLoad.op().operands().size() > 5) {
+            Value value = tensorLoad.op().operands().getLast();
+            isColumnMajor = isColumnMajor(value);
+        }
+        return generateLoadTensor(tensorLoad, isColumnMajor, tensorName);
+    }
+
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *     store_matrix_sync(matrix->array + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
+     * </code>
+     * </p>
+     *
+     * @param operands
+     * @param isColumnMajor
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder generateStoreTensor(List<Value> operands, boolean isColumnMajor) {
+        Value reference = operands.getFirst();
+        id(WMMA_STORE_TENSOR).paren(_ -> {
+            Value iIndex = operands.get(1);
+            Value jIndex = operands.get(2);
+            Value tensorToStore = operands.get(3);
+            Value ldSize = operands.get(4);
+
+            CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorToStore);
+            assert tensorVarOp != null;
+
+            recurseResultOrThrow(reference)
+                    .rarrow().id(ARRAY)
+                    .sp().plus().sp()
+                    .indexForTensor(isColumnMajor, iIndex, jIndex, ldSize)
+                    .comma()
+                    .id(tensorVarOp.varName())
+                    .comma()
+                    .recurseResultOrThrow(ldSize)
+                    .comma()
+                    .either(isColumnMajor,
+                            _ -> id(WMMA_MEM_COL_MAJOR),
+                            _ -> id(WMMA_MEM_ROW_MAJOR));
+        });
+        return self();
+    }
+
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     *     store_matrix_sync(matrix->array + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
+     * </code>
+     * </p>
+     *
+     * @param tensorStore
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    @Override
+    protected CudaHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStore) {
+        List<Value> operands = tensorStore.op().operands();
+        // Access layout is the last operand
+        boolean isColumnMajor = false;
+        // Since the Access Layout is an optional parameter, we check
+        if (tensorStore.op().operands().size() == 6) {
+            isColumnMajor = isColumnMajor(operands.getLast());
+        }
+        return generateStoreTensor(operands, isColumnMajor);
+    }
+
+    private static final String ARRAY = "array";
 }

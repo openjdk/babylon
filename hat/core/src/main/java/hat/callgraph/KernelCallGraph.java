@@ -30,6 +30,7 @@ import hat.device.NonMappableIface;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATTransformer;
 import hat.types.S16ImplOfF16;
+import hat.types.Tensor;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
@@ -83,6 +84,7 @@ public class KernelCallGraph implements LookupCarrier {
     private boolean usesAtomics;
     private final VarTable varTable;
     private boolean useVectors;
+    private final boolean useTensors;
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
         this.computeCallGraph = computeCallGraph;
@@ -132,6 +134,9 @@ public class KernelCallGraph implements LookupCarrier {
             } else return (codeElement instanceof JavaOp.ArrayAccessOp.ArrayLoadOp arrayLoadOp && HATArrayViewPhase.isVectorOp(computeCallGraph.lookup(), arrayLoadOp));
         });
         this.useVectors |= arrayAccess;
+
+        this.useTensors = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
+                .anyMatch(invoke -> invoke.returns(Tensor.class));
 
         var entrypoint = new FuncOpCarrier.Impl(kernelFunction);
         this.varTable = new VarTable();
@@ -240,6 +245,8 @@ public class KernelCallGraph implements LookupCarrier {
     public boolean useVectors() {
         return this.useVectors;
     }
+
+    public boolean useTensors() { return this.useTensors; }
 
     public VarTable getVarTable() {
         return varTable;

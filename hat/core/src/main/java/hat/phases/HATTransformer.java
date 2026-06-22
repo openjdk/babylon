@@ -45,6 +45,9 @@ public class HATTransformer {
             // ID's /thread access
             new HATThreadsPhase(),
 
+            // Warp size
+            new HATWarpSizePhase(),
+
             // MathLib phase
             new HATMathLibPhase(),
 
@@ -52,7 +55,11 @@ public class HATTransformer {
             new HATVectorPhase(),
 
             // F16/BFloat16 types
-            new HATFP16Phase()
+            new HATFP16Phase(),
+
+            // Tensors
+            new HATTensorsPhase()
+
     );
 
     public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){

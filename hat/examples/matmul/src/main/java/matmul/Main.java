@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
+import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;

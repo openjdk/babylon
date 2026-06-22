@@ -389,7 +389,7 @@ public class Trxfmr implements LookupCarrier{
                     var result = blockBuilder.add(cursorOp);
                     var opFromResult = result.op();
                     update(funcOp().funcName(), cursorOp, opFromResult, varTable);
-                    biMap.add(cursorOp,opFromResult);
+                    biMap.add(cursorOp, opFromResult);
                 }
             } else {
                 try {

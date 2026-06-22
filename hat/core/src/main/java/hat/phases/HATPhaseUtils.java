@@ -27,6 +27,7 @@ package hat.phases;
 import hat.HATMath;
 import hat.device.NonMappableIface;
 import hat.types.S16ImplOfF16;
+import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
@@ -213,6 +214,33 @@ public class HATPhaseUtils {
 
     public static boolean isS16BinaryOp(OpHelper.Invoke invoke) {
         return is16BitFloat(invoke, Regex.of("(add|sub|mul|div)")) && !invoke.returnsVoid();
+    }
+
+    public static boolean isTensorOperation(OpHelper.Invoke invoke) {
+        if (isTensorCreate(invoke) || isTensorFillOperation(invoke) || isTensorShape(invoke) || isTensorStore(invoke)) {
+            return true;
+        }
+        return isReturnTensorValueOperation(invoke);
+    }
+
+    public static boolean isTensorCreate(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(HATTensorsPhase.TensorMarkers.class) && invoke.nameMatchesRegex("create|of");
+    }
+
+    public static boolean isTensorFillOperation(OpHelper.Invoke invoke) {
+        return invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("fill");
+    }
+
+    public static boolean isTensorShape(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(Tensor.Shape.class) && invoke.nameMatchesRegex("shape");
+    }
+
+    public static boolean isTensorStore(OpHelper.Invoke invoke) {
+        return invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("store");
+    }
+
+    public static boolean isReturnTensorValueOperation(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|shape|load|loadF16|mma");
     }
 
     public static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {

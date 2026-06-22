@@ -83,7 +83,6 @@ public class ParseArgs {
                 "    --verbose                       Flag to print information between runs (e.g., total time)." + System.lineSeparator() +
                 "    --help                          Print this help." + System.lineSeparator();
         IO.println(builder);
-
     }
 
     public record Options(boolean verbose, int size, int iterations, boolean skipSequential, boolean checkResult) {

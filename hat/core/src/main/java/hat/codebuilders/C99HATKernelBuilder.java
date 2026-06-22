@@ -37,6 +37,7 @@ import hat.phases.HATPhaseUtils;
 import hat.phases.HATPhaseUtils.InvokeVar;
 import hat.types.BF16;
 import hat.types.F16;
+import hat.types.Tensor;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -55,10 +56,12 @@ import optkl.FuncOpParams;
 import optkl.util.Regex;
 import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.codebuilders.CodeBuilder;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
@@ -83,6 +86,7 @@ import static hat.phases.HATPhaseUtils.isS16BinaryOp;
 import static hat.phases.HATPhaseUtils.isS16Conversion;
 import static hat.phases.HATPhaseUtils.isS16ToFloatConversion;
 import static hat.phases.HATPhaseUtils.isSharedOrPrivate;
+import static hat.phases.HATPhaseUtils.isTensorOperation;
 import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
 import static hat.phases.HATPhaseUtils.isVectorOperation;
 import static hat.phases.HATPhaseUtils.isVectorSelectOperation;
@@ -130,7 +134,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected boolean useS16Types() {
-        return !kernelCallGraph.accessedFP16Classes.isEmpty();
+        return !kernelCallGraph.accessedFP16Classes.isEmpty() || useTensors();
     }
 
     protected boolean useThreadConstruct(String construct) {
@@ -143,6 +147,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected boolean useBarrier() {
         return kernelCallGraph.isUsesBarrier();
+    }
+
+    protected boolean useTensors() {
+        return kernelCallGraph.useTensors();
     }
 
     public final T HAT_KERNEL() {
@@ -237,6 +245,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id("HAT_BSZ");
     }
 
+    public final T HAT_WARP_SIZE() {
+        return hatWarpSize();
+    }
+
     @Override
     public final T hatThreadIdOp(HATThreadOp threadOp) {
         return (switch (threadOp) {
@@ -258,6 +270,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case HATThreadOp.HAT_BS.HAT_BSX _ -> HAT_BSX();
             case HATThreadOp.HAT_BS.HAT_BSY _ -> HAT_BSY();
             case HATThreadOp.HAT_BS.HAT_BSZ _ -> HAT_BSZ();
+            case HATThreadOp.HAT_WARP_SIZE  _ -> HAT_WARP_SIZE();
         });
     }
 
@@ -759,7 +772,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // This is because HAT has its own dialect, and some of the Ops operate on HAT Types (not included in the Java
         // dialect). For instance, private data structures, local data structures, vector types, etc.
         switch (op) {
-            case CoreOp.VarOp varOp -> varName(varOp);
+            case CoreOp.VarOp varOp -> {
+                VarTable.HATOpAttribute attribute = getDeviceRegion(varOp);
+                if (attribute == VarTable.HATOpAttribute.TENSOR) {
+                    // To avoid declaring a varStoreOp coming from a tensor
+                    // in which the store operation is performed differently.
+                    // For example, in OpenCL, it maps to a entire snippet to do loop-tile
+                    // In CUDA, it generates a wmma::store operation
+                    List<Value> operands = varStoreOp.operands();
+                    recurseResultOrThrow(operands.getLast());
+                    return self();
+                } else {
+                    varName(varOp);
+                }
+            }
             case null, default -> throw new IllegalStateException("What type of varStoreOp is this?");
         }
         equals().parenthesisIfNeeded(varStoreOp, ((Op.Result) varStoreOp.operands().get(1)).op());
@@ -866,6 +892,18 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         hatBinaryVectorOp(invoke);
     }
 
+    private void handleTensorOperation(Invoke invoke) {
+        switch (invoke.name()) {
+            case "create", "zeros" -> hatTensorCreateOperation(invoke);
+            case "fill" -> hatTensorFill(invoke);
+            case "shape" -> self();
+            case "store" -> hatTensorStore(invoke);
+            case "load", "loadF16" -> hatTensorLoad(invoke);
+            case "mma" -> hatTensorMMA(invoke);
+            default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
+        }
+    }
+
     private void handleIFaceInvoke(Invoke invoke) {
         if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
             if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
@@ -957,6 +995,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             handleS16ToFloatConversion(invoke);
         } else if (isS16BinaryOp(invoke)) {
             handleS16BinaryOperation(invoke);
+        } else if (isTensorOperation(invoke)) {
+            handleTensorOperation(invoke);
         } else if (isIFaceValue(invoke)) {
             handleIFaceInvoke(invoke);
         } else if (isMathOperation(invoke)) {
@@ -1017,6 +1057,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 case INIT_SHARED -> varOpInit(varOp);
                 case SHARED -> varOpLocalMemory(varOp);
                 case PRIVATE -> varOpPrivateMemory(varOp);
+                case TENSOR -> varOpTensor(varOp);
+                case TENSOR_SHAPE -> self();
                 case null -> genericVarOp(varOp);
                 default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
             }
@@ -1196,6 +1238,266 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    protected List<Integer> obtainShapeTensor(Value shapeValue) {
+        List<Integer> shape = new ArrayList<>();
+        obtainShapeTensor(shapeValue, shape);
+        if (shape.size() != 3) {
+            throw new IllegalStateException("Shape must have three values, but it has " + shape.size());
+        }
+        return shape;
+    }
+
+    protected List<Integer> getShapeFromTensorVarOp(CoreOp.VarOp tensorVarOp) {
+        Value tensorCreateValueOp = tensorVarOp.operands().getFirst();
+        if (tensorCreateValueOp.declaringElement() instanceof JavaOp.InvokeOp tensorCreateOp) {
+            // First parameter: shapeValue
+            Value valueShape = tensorCreateOp.operands().getFirst();
+            return obtainShapeTensor(valueShape);
+        } else {
+            throw new IllegalStateException("Expected an InvokeOp, but found: " + tensorCreateValueOp.declaringElement().getClass());
+        }
+    }
+
+    protected List<Integer> getShapeFromTensorCreateValue(Value tensorCreateValue) {
+        if (tensorCreateValue.declaringElement() instanceof JavaOp.InvokeOp tensorInvokeOp) {
+            // The first parameter is the shape -> analysis of the shape
+            return obtainShapeTensor(tensorInvokeOp.operands().getFirst());
+        } else {
+            throw new IllegalStateException("Expected an InvokeOp, but found: " + tensorCreateValue.declaringElement().getClass());
+        }
+    }
+
+    protected List<Integer> processShapeTensor(List<Value> shapeOperands, List<Integer> shape) {
+        for (Value shapeOperand : shapeOperands) {
+            while (!(shapeOperand.declaringElement() instanceof CoreOp.ConstantOp)) {
+                if (shapeOperand.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                    shapeOperand = varLoadOp.varOperand();
+                } else if (shapeOperand.declaringElement() instanceof CoreOp.VarOp varOp) {
+                    shapeOperand = varOp.operands().getFirst();
+                } else {
+                    throw new IllegalStateException("Error: expected to find a VarLoadOp or a VarOp, but found a " + shapeOperand.declaringElement().getClass());
+                }
+            }
+            if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+                shape.add((int) constantOp.value());
+            } else {
+                throw new IllegalStateException("Error: expected to find a ConstantOp, but found a " + shapeOperand.declaringElement().getClass());
+            }
+        }
+        return shape;
+    }
+
+    protected List<Integer> obtainShapeTensor(Value shapeValue, List<Integer> shape) {
+        switch (shapeValue.declaringElement()) {
+            case JavaOp.InvokeOp invokeOp when invokeOp.invokeReference().name().equals("shape") -> {
+                List<Value> shapeOperands = invokeOp.operands();
+                return processShapeTensor(shapeOperands, shape);
+            }
+            case CoreOp.VarAccessOp varAccessOp -> obtainShapeTensor(varAccessOp.varOperand(), shape);
+            case CoreOp.VarOp varOp -> obtainShapeTensor(varOp.operands().getFirst(), shape);
+            default ->
+                    throw new IllegalStateException("Op not expected: Found: " + shapeValue.declaringElement().getClass());
+        }
+        return shape;
+    }
+
+    protected static CoreOp.VarOp findTensorVarOp(Value value) {
+        return switch (value.declaringElement()) {
+            case CoreOp.VarAccessOp.VarLoadOp varlOadOp -> findTensorVarOp(varlOadOp.operands().getFirst());
+            case CoreOp.VarOp varOp -> varOp;
+            case null, default -> null;
+        };
+    }
+
+    protected static float getValueConstantTensor(Value v) {
+        if ((v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constant)) {
+            Object valueConstant = constant.value();
+            return (float) valueConstant;
+
+        } else if (v instanceof Op.Result r) {
+            return getValueConstantTensor(r.op().operands().getFirst());
+        }
+        return -1.0f;
+    }
+
+    protected static final String TENSOR_MATRIX_A = "matrix_a";
+    protected static final String TENSOR_MATRIX_B = "matrix_b";
+    protected static final String TENSOR_ACC = "accumulator";
+
+    protected int getTensorOrder(Value tensorValue) {
+        return getTensorOrder(tensorValue, tensorValue);
+    }
+
+    protected int getTensorOrder(Value tensorValue, Value v) {
+        return v instanceof Op.Result r ? getTensorOrder(tensorValue, r.op()) : -1;
+    }
+
+    // We traverse the usages of the op until we find the MMA operation.
+    // Once the MMA is found, then we compare if the arguments (VarLoadOp) contains the
+    // reference to the var declartion being analyzed. In that case, we return its index.
+    protected int getTensorOrder(Value tensorValue, Op op) {
+        int operandIndex = TENSOR_ORDER_DEFAULT;
+        switch (op) {
+            case JavaOp.InvokeOp tensorMMAOp when tensorMMAOp.invokeReference().name().equals("mma") -> {
+                List<Value> operands = tensorMMAOp.operands();
+                for (Value argument : operands) {
+                    operandIndex++;
+                    if (argument.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                            && varLoadOp.operands().getFirst().equals(tensorValue)) {
+                        return operandIndex;
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((operandIndex = getTensorOrder(tensorValue, use)) != -1) {
+                        return operandIndex;
+                    }
+                }
+            }
+        }
+        return operandIndex;
+    }
+
+    protected static final Map<Integer, String> tensorOrderTable = new HashMap<>();
+    protected static final int TENSOR_ORDER_A = 1;
+    protected static final int TENSOR_ORDER_B = 2;
+    protected static final int TENSOR_ORDER_DEFAULT = -1;
+    protected static final int TENSOR_ORDER_ACC = 0;
+    static {
+        tensorOrderTable.put(TENSOR_ORDER_A, TENSOR_MATRIX_A);
+        tensorOrderTable.put(TENSOR_ORDER_B, TENSOR_MATRIX_B);
+        tensorOrderTable.put(TENSOR_ORDER_DEFAULT, TENSOR_MATRIX_A); // We set one by default
+        tensorOrderTable.put(TENSOR_ORDER_ACC, TENSOR_ACC);
+    }
+
+    // Tensor Load ABI
+    protected static final int INDEX_LOAD = 0;
+    protected static final int INDEX_ROW = 1;
+    protected static final int INDEX_COL = 2;
+    protected static final int INDEX_LDD = 3;
+    protected static final int INDEX_SHAPE = 4;
+    protected static final int INDEX_ACCESS = 5;
+
+    protected Value findShape(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findShape(tensorVar, r.op()) : null;
+    }
+
+    protected Value findShape(Value tensorVar, Op op) {
+        Value shape = null;
+        switch (op) {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
+                        return tensorLoadOp.operands().get(INDEX_SHAPE);
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((shape = findShape(tensorVar, use)) != null) {
+                        return shape;
+                    }
+                }
+            }
+        }
+        return shape;
+    }
+
+    protected Value findAccessLayout(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findAccessLayout(tensorVar, r.op()) : null;
+    }
+
+    protected Value findAccessLayout(Value tensorVar, Op op) {
+        Value valueLayout = null;
+        switch (op) {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
+                        if (tensorLoadOp.operands().size() == INDEX_ACCESS + 1) {
+                            return tensorLoadOp.operands().getLast();
+                        } else {
+                            return null;
+                        }
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((valueLayout = findAccessLayout(tensorVar, use)) != null) {
+                        return valueLayout;
+                    }
+                }
+            }
+        }
+        return valueLayout;
+    }
+
+    protected String findLoadVariance(Value tensorVar, Value v) {
+        return v instanceof Op.Result r ? findLoadVariance(tensorVar, r.op()) : null;
+    }
+
+    protected String findLoadVariance(Value tensorVar, Op op) {
+        String varianceName = null;
+        switch (op) {
+            case CoreOp.VarAccessOp.VarStoreOp storeLoadOp -> {
+                Value tensorToStore = storeLoadOp.operands().getFirst();
+                if (tensorToStore.equals(tensorVar)) {
+                    Value value = storeLoadOp.operands().get(1);
+                    if (value.declaringElement() instanceof JavaOp.InvokeOp tensorLoadOp) {
+                        return tensorLoadOp.invokeReference().name();
+                    }
+                }
+            }
+            default -> {
+                for (Op.Result use : op.result().uses()) {
+                    if ((varianceName = findLoadVariance(tensorVar, use)) != null) {
+                        return varianceName;
+                    }
+                }
+            }
+        }
+        return varianceName;
+    }
+
+    protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
+        Value a = isColumnMajor ? iIndex : jIndex;
+        Value b = isColumnMajor ? jIndex : iIndex;
+
+        if (a instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        plus();
+        oparen();
+        if (b instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        mul();
+        if (ldSize instanceof Op.Result r) {
+            recurse(r.op());
+        }
+        cparen();
+        return self();
+    }
+
+    protected boolean isColumnMajor(Value tensorLayout) {
+        if (tensorLayout.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+            if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                return true;
+            } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                return false;
+            } else {
+                throw new IllegalStateException("[Error]");
+            }
+        }
+        return false;
+    }
+
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 
     protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
@@ -1208,5 +1510,20 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
+    protected abstract T varOpTensor(CoreOp.VarOp varOp);
+
+    protected abstract T hatTensorCreateOperation(Invoke invoke);
+
+    protected abstract T hatTensorFill(Invoke invoke);
+
+    protected abstract T hatTensorStore(Invoke invoke);
+
+    protected abstract T hatTensorLoad(Invoke invoke);
+
+    protected abstract T hatTensorMMA(Invoke invoke);
+
     protected abstract String mapMathIntrinsic(String name);
+
+    protected abstract T hatWarpSize();
+
 }

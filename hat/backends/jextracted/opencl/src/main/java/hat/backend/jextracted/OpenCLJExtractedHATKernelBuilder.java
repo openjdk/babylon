@@ -295,4 +295,39 @@ public class OpenCLJExtractedHATKernelBuilder extends C99HATKernelBuilder<OpenCL
         }
         return sp().varName(varOp);
     }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder hatWarpSize() {
+        return constant("1");
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder varOpTensor(CoreOp.VarOp varOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorCreateOperation(OpHelper.Invoke invoke) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    protected OpenCLJExtractedHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoadOp) {
+        return blockComment("Not supported yet");
+    }
+
+    @Override
+    public OpenCLJExtractedHATKernelBuilder hatTensorMMA(OpHelper.Invoke tensorMMAOp) {
+        return blockComment("Not supported yet");
+    }
 }

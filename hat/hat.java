@@ -167,6 +167,7 @@ public static void main(String[] argArr) throws IOException, InterruptedExceptio
         var example_dft = hat.jar("example{s}-dft", core, example_shared);
         var example_fft = hat.jar("example{s}-fft", core, example_shared);
         var example_matmul = hat.jar("example{s}-matmul", core, example_shared);
+        var example_tensors = hat.jar("example{s}-tensors", core, example_shared);
 
         // These examples use example_shared, so they are UI based
         var example_mandel = hat.jar("example{s}-mandel", example_shared);

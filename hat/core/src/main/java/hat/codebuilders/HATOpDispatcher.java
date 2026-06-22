@@ -53,17 +53,16 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
             switch (hatOp) {
-                case HATBarrierOp $ -> hatBarrierOp($);
-                case HATThreadOp $ -> hatThreadIdOp($);
-                case HATPtrLoadOp $ -> hatPtrLoadOp($);
-                case HATPtrStoreOp $ -> hatPtrStoreOp($);
-                case HATPtrLengthOp $ -> hatPtrLengthOp($);
+                case HATBarrierOp hatBarrierOp -> hatBarrierOp(hatBarrierOp);
+                case HATThreadOp hatThreadOp -> hatThreadIdOp(hatThreadOp);
+                case HATPtrLoadOp hatPtrLoadOp -> hatPtrLoadOp(hatPtrLoadOp);
+                case HATPtrStoreOp hatPtrStoreOp -> hatPtrStoreOp(hatPtrStoreOp);
+                case HATPtrLengthOp hatPtrLengthOp -> hatPtrLengthOp(hatPtrLengthOp);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {
             BabylonOpDispatcher.super.recurse(op);
         }
-
         return (T) this;
     }
 }

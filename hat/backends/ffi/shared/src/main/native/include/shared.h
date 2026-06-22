@@ -52,6 +52,8 @@
 #endif
 #endif
 
+#define ceil_div(x, y) ((x + y - 1) / y)
+
 typedef char s8_t;
 typedef char byte;
 typedef char boolean;
@@ -402,6 +404,16 @@ public:
     int bsx;
     int bsy;
     int bsz;
+
+    // Tile Size
+    int tlx;
+    int tly;
+    int tlz;
+
+    // Warp sizes
+    bool wsx;
+    bool wsy;
+    bool wsz;
 };
 
 class Backend {
