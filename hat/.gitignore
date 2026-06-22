@@ -10,3 +10,4 @@ stage/
 remoteTesting.conf
 test_report.txt
 var/*
+.num_tests
