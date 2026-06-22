@@ -2030,7 +2030,6 @@ public sealed abstract class JavaOp extends Op {
             super(that, cc);
         }
 
-        //@@@ as BinaryOp; resultType remains the parent-specific BOOLEAN behavior.
         CompareOp(ExternalizedOp def) {
             super(requireOperands(def, 2));
         }
@@ -3362,7 +3361,6 @@ public sealed abstract class JavaOp extends Op {
         final List<Body> bodies;
 
         IfOp(ExternalizedOp def) {
-            //@@@ Body.Builder list; avoid checking in the external path and again after building.
             requireNoOperands(def);
             this(requireMinBodies(def, 2));
         }
@@ -3510,7 +3508,6 @@ public sealed abstract class JavaOp extends Op {
         JavaSwitchOp(Value target, List<Body.Builder> bodyCs) {
             super(List.of(target));
 
-            //@@@ Externalized switch expression/statement constructors should pass validated target and body pairs here.
             // Each case is modeled as a contiguous pair of bodies
             // The first body models the case labels, and the second models the case statements
             // The labels body has a parameter whose type is target operand's type and returns a boolean value
