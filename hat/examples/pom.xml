@@ -60,6 +60,8 @@ questions.
         <module>nbody</module>
         <module>tensors</module>
         <module>experiments</module>
+        <module>ffi-opencl-examples</module>
+        <module>ffi-cuda-examples</module>
     </modules>
     <profiles>
         <profile>
