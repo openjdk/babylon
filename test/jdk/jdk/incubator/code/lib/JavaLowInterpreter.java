@@ -117,8 +117,8 @@ public class JavaLowInterpreter extends Interpreter {
         }
 
         @Override
-        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
-            Optional<SuccessorEffect> opt = this.findCatchBlock((Throwable) eff.operands().getFirst());
+        public BlockEffect onAbruptCompletion(Block executedBlock, TerminatingOpEffect eff) {
+            Optional<SuccessorEffect> opt = this.findCatchBlock(executedBlock, (Throwable) eff.operands().getFirst());
             if (opt.isPresent()) {
                 return opt.get();
             } else {
@@ -127,13 +127,18 @@ public class JavaLowInterpreter extends Interpreter {
             }
         }
 
-        private Optional<SuccessorEffect> findCatchBlock(Throwable t) {
+        // @@@ review this area and improve the code
+        private Optional<SuccessorEffect> findCatchBlock(Block executedBlock, Throwable t) {
             Block cb = null;
             int blockListToRemove = 0;
             l:
             for (List<Block> blocks : catchBlocks) {
                 blockListToRemove++;
                 for (Block block : blocks) {
+                    // make sure we are searching for catch block within the same body
+                    if (block.parent() != executedBlock.parent()) {
+                        break l;
+                    }
                     Class<?> c;
                     try {
                         c = resolveToClass(l, block.parameters().getFirst().type());
@@ -521,7 +526,7 @@ public class JavaLowInterpreter extends Interpreter {
                 List<Object> operands = e.valuesOf(o.operands());
                 yield new TerminatingOpEffect(o, operands, e);
             }
-            case JavaOp.ThrowOp o -> e.onAbruptCompletion(new TerminatingOpEffect(o, e.valuesOf(o.operands()),e));
+            case JavaOp.ThrowOp o -> e.onAbruptCompletion(op.parent(), new TerminatingOpEffect(o, e.valuesOf(o.operands()),e));
             case CoreOp.YieldOp o -> {
                 if (o.ancestorBody().ancestorBody() == null) {
                     throw new IllegalStateException("Yielding to no parent body");
