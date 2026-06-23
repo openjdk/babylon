@@ -477,9 +477,9 @@ public final class Block implements CodeElement<Block, Op> {
      * of building its parent body. The block is not <a href="Body.Builder.html#body-building-observability">observable</a>
      * until the parent body builder <a href="Body.Builder.html#body-building-finishing">finishes</a>.
      * After <a href="Body.Builder.html#body-building-finishing">building finishes</a>,
-     * the block and its parent body become observable, and the block builder and its parent body builder become inoperable,
+     * the block becomes observable, and the block builder becomes inoperable,
      * regardless of whether building succeeds or fails with an exception.
-     * Further attempts to operate on the builders throw an {@link IllegalStateException}.
+     * Further attempts to operate on the block builder throws an {@link IllegalStateException}.
      * <p>
      * A block builder has a code {@link #context() context} and code {@link #transformer() transformer}. These are used
      * to perform <i>transform-on-append</i> when {@link #add appending} a placed operation. Any sibling block builder
