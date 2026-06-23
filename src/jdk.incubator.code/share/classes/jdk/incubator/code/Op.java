@@ -592,7 +592,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * <p>
      * This method is idempotent.
      *
-     * @throws IllegalStateException if this operation is a {@link BlockTerminating}, is placed in a block,
+     * @throws IllegalStateException if this operation is placed in a block, has any successors,
      * uses any values as operands, or any of its bodies is open.
      * @see #isRoot()
      * @see Body#isIsolated
@@ -604,7 +604,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         if (!operands().isEmpty()) {
             throw new IllegalStateException("Operation has operands");
         }
-        if (this instanceof BlockTerminating) {
+        if (!successors().isEmpty()) {
             throw new IllegalStateException("Operation has successors");
         }
         if (result == Result.ROOT_RESULT) {
