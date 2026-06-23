@@ -1133,7 +1133,7 @@ public sealed abstract class CoreOp extends Op {
             return (VarOp) varValue.op();
         }
 
-        static void checkIsVarOp(ExternalizedOp opdef, Value varValue) {
+        static void requireVarOp(ExternalizedOp opdef, Value varValue) {
             if (!(varValue.type() instanceof VarType)) {
                 throw structuralException(opdef, "value's type is not a variable type: " + varValue);
             }
@@ -1156,7 +1156,7 @@ public sealed abstract class CoreOp extends Op {
 
             VarLoadOp(ExternalizedOp opdef) {
                 Value varValue = requireSingleOperand(opdef);
-                checkIsVarOp(opdef, varValue);
+                requireVarOp(opdef, varValue);
                 this(varValue);
             }
 
@@ -1197,7 +1197,7 @@ public sealed abstract class CoreOp extends Op {
 
             VarStoreOp(ExternalizedOp opdef) {
                 List<Value> operands = requireOperands(opdef, 2);
-                checkIsVarOp(opdef, operands.getFirst());
+                requireVarOp(opdef, operands.getFirst());
                 super(operands);
             }
 
