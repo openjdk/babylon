@@ -129,7 +129,7 @@ public class TestBuildOp {
     }
 
     @Test
-    void testBuildAsRootForOpWithConnectedBody() {
+    void testBuildAsRootForOpWithOpenBody() {
         Body.Builder outer = Body.Builder.of(null, CoreType.functionType(JavaType.VOID, JavaType.INT));
         Block.Parameter p = outer.entryBlock().parameters().getFirst();
 
@@ -146,6 +146,15 @@ public class TestBuildOp {
         Body.Builder body = Body.Builder.of(null, CoreType.functionType(JavaType.VOID, JavaType.INT));
         Block.Parameter p = body.entryBlock().parameters().getFirst();
         Op op = JavaOp.neg(p);
+        Assertions.assertThrowsExactly(IllegalStateException.class, op::buildAsRoot);
+    }
+
+    @Test
+    void testBuildAsRootForOpWithSuccessor() {
+        Body.Builder body = Body.Builder.of(null, CoreType.functionType(JavaType.VOID, JavaType.INT));
+        Block.Parameter p = body.entryBlock().parameters().getFirst();
+        Block.Builder block2 = body.entryBlock().block();
+        Op op = CoreOp.branch(block2.reference());
         Assertions.assertThrowsExactly(IllegalStateException.class, op::buildAsRoot);
     }
 

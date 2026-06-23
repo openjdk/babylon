@@ -592,16 +592,20 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * <p>
      * This method is idempotent.
      *
-     * @throws IllegalStateException if this operation is placed in a block, or one of its body is not isolated
-     * , or it has operands.
+     * @throws IllegalStateException if this operation is a {@link BlockTerminating}, is placed in a block,
+     * uses any values as operands, or any of its bodies is open.
      * @see #isRoot()
+     * @see Body#isIsolated
      */
     public final void buildAsRoot() {
-        if (bodies().stream().anyMatch(b -> !b.isIsolated())) {
-            throw new IllegalStateException("Operation body is not isolated");
+        if (!bodies().stream().allMatch(Body::isIsolated)) {
+            throw new IllegalStateException("One of the operation bodies is not isolated");
         }
         if (!operands().isEmpty()) {
             throw new IllegalStateException("Operation has operands");
+        }
+        if (this instanceof BlockTerminating) {
+            throw new IllegalStateException("Operation has successors");
         }
         if (result == Result.ROOT_RESULT) {
             return;
