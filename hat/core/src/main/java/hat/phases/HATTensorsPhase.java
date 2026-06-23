@@ -158,15 +158,38 @@ public record HATTensorsPhase() implements HATPhase {
                 List<DeclTensorData> declTensorList = markerTable.get(markerOp);
                 // Insert the marker
                 blockBuilder.add(markerOp);
-                appendTensorDeclarationToBlock0(declTensorList, blockBuilder, mapValueTensor, varTable, finalFuncOp.funcName());
+                //appendTensorDeclarationToBlock0(declTensorList, blockBuilder, mapValueTensor, varTable, finalFuncOp.funcName());
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
                 // The Load/LoadF16 is propagated
+
+                List<DeclTensorData> declTensorList = markerTable.get(markerOp);
+                JavaOp.InvokeOp declInvoke = invokeOp;
+
+                if (invokeOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp oldVarOp) {
+
+                    CoreOp.VarOp declVar = oldVarOp;
+                    JavaOp.InvokeOp invoke = JavaOp.invoke(CREATE_FUNCTION, List.of());
+                    Op.Result op1 = blockBuilder.add(invoke);
+
+                    // Add a TensorVarOp associated with teh TensorCreateOp
+                    CoreOp.VarOp varOp = CoreOp.var(declVar.varName(), op1);
+                    Op.Result op2 = blockBuilder.add(varOp);
+                    varTable.addIfNeededOrThrow(functionName, op2.op(), VarTable.HATOpAttribute.TENSOR);
+
+                    // Include in a new HashMap the new tensorVarOp to be propagated for the Stores and VarLoadOps.
+                    mapValueTensor.put(declVar, op2);
+
+                    blockBuilder.context().mapValue(declInvoke.result(), op2);
+                } else {
+                    throw new IllegalStateException(" Error: found " + invokeOp.result().uses().getFirst().declaringElement().getClass());
+                }
+
                 Op.Result invokeResult = blockBuilder.add(invokeOp);
                 invokeMap.put(invokeOp, invokeResult);
+
             } else if (op instanceof CoreOp.VarOp varOp) {
                 // Replace the VarOp with a TensorStoreLoadOp using the reference of the tensorVarOp
                 // declared in a previous block (block 0)
-
                 Value tensorVarOp = mapValueTensor.get(varOp);
 
                 // Update the usages
