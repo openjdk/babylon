@@ -598,6 +598,9 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @see Body#isIsolated
      */
     public final void buildAsRoot() {
+        if (result == Result.ROOT_RESULT) {
+            return;
+        }
         if (!bodies().stream().allMatch(Body::isIsolated)) {
             throw new IllegalStateException("One of the operation bodies is not isolated");
         }
@@ -606,9 +609,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
         if (!successors().isEmpty()) {
             throw new IllegalStateException("Operation has successors");
-        }
-        if (result == Result.ROOT_RESULT) {
-            return;
         }
         if (result != null) {
             throw new IllegalStateException("Operation is placed in a block");
