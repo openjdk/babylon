@@ -117,8 +117,8 @@ public class JavaLowInterpreter extends Interpreter {
         }
 
         @Override
-        public BlockEffect onAbruptCompletion(Block executedBlock, TerminatingOpEffect eff) {
-            Optional<SuccessorEffect> opt = this.findCatchBlock(executedBlock, (Throwable) eff.operands().getFirst());
+        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
+            Optional<SuccessorEffect> opt = this.findCatchBlock(op.parent(), (Throwable) eff.operands().getFirst());
             if (opt.isPresent()) {
                 return opt.get();
             } else {
@@ -526,7 +526,7 @@ public class JavaLowInterpreter extends Interpreter {
                 List<Object> operands = e.valuesOf(o.operands());
                 yield new TerminatingOpEffect(o, operands, e);
             }
-            case JavaOp.ThrowOp o -> e.onAbruptCompletion(op.parent(), new TerminatingOpEffect(o, e.valuesOf(o.operands()),e));
+            case JavaOp.ThrowOp o -> e.onAbruptCompletion(o, new TerminatingOpEffect(o, e.valuesOf(o.operands()),e));
             case CoreOp.YieldOp o -> {
                 if (o.ancestorBody().ancestorBody() == null) {
                     throw new IllegalStateException("Yielding to no parent body");

@@ -57,9 +57,9 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         }
 
         @Override
-        public BlockEffect onAbruptCompletion(Block executedBlock, TerminatingOpEffect eff) {
+        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
             if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
-                return super.onAbruptCompletion(executedBlock, eff);
+                return super.onAbruptCompletion(op, eff);
             }
             return eff;
         }

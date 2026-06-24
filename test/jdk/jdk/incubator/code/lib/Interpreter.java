@@ -83,7 +83,7 @@ public abstract class Interpreter {
 
         Object valueOf(Value symbolicValue);
 
-        BlockEffect onAbruptCompletion(Block executedBlock, TerminatingOpEffect eff);
+        BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff);
     }
 
     public sealed interface BlockEffect
