@@ -776,40 +776,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
     }
 
-    @Override
-    public CudaHATKernelBuilder hatTensorMMA(Invoke tensorMMAInvoke) {
-        var resulTensorValue = tensorMMAInvoke.op().operands().getFirst();
-        var tensorAValue = tensorMMAInvoke.op().operands().get(1);
-        var tensorBValue = tensorMMAInvoke.op().operands().get(2);
-        var tensorCValue = tensorMMAInvoke.op().operands().get(3);
-        var tensorA = findVarOpOrThrow(tensorAValue);
-        var tensorB = findVarOpOrThrow(tensorBValue);
-        var tensorC = findVarOpOrThrow(tensorCValue);
-        var tensorResult = findVarOpOrThrow(resulTensorValue);
-        List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
-
-        String varA = generateVariableName(INDEX_PREFIX);
-        String varB = generateVariableName(INDEX_PREFIX);
-        String varC = generateVariableName(INDEX_PREFIX);
-        String acc = generateVariableName("sum_");
-        final String M = Integer.toString(shape.get(0));
-        final String N = Integer.toString(shape.get(1));
-        final String K = Integer.toString(shape.get(2));
-        List<String> params = List.of(varA, varB, varC, acc, tensorA.varName(), tensorB.varName(), tensorC.varName(), tensorResult.varName(), M, N, K);
-        return id(MACRO_TENSOR_MMA).paren( _-> commaSpaceSeparated(params, this::id));
-
-//        var resulTensorValue = tensorMMA.op().operands().getFirst();
-//        var tensorAValue = tensorMMA.op().operands().get(1);
-//        var tensorBValue = tensorMMA.op().operands().get(2);
-//        var tensorCValue = tensorMMA.op().operands().get(3);
-//        var tensorA = findVarOpOrThrow(tensorAValue);
-//        var tensorB = findVarOpOrThrow(tensorBValue);
-//        var tensorC = findVarOpOrThrow(tensorCValue);
-//        var tensorResult = findVarOpOrThrow(resulTensorValue);
-//        List<VarOp> operands = List.of(tensorResult, tensorA, tensorB, tensorC);
-//        return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
-    }
-
     private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoad, boolean isColumnMajor, String tensorName) {
         // First operand is the reference to global memory
         List<Value> operands = tensorLoad.op().operands();

@@ -1549,6 +1549,28 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    protected T hatTensorMMA(Invoke tensorMMAInvoke) {
+        var resulTensorValue = tensorMMAInvoke.op().operands().getFirst();
+        var tensorAValue = tensorMMAInvoke.op().operands().get(1);
+        var tensorBValue = tensorMMAInvoke.op().operands().get(2);
+        var tensorCValue = tensorMMAInvoke.op().operands().get(3);
+        var tensorA = findVarOpOrThrow(tensorAValue);
+        var tensorB = findVarOpOrThrow(tensorBValue);
+        var tensorC = findVarOpOrThrow(tensorCValue);
+        var tensorResult = findVarOpOrThrow(resulTensorValue);
+        List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
+
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        String varC = generateVariableName(INDEX_PREFIX);
+        String acc = generateVariableName("sum_");
+        final String M = Integer.toString(shape.get(0));
+        final String N = Integer.toString(shape.get(1));
+        final String K = Integer.toString(shape.get(2));
+        List<String> params = List.of(varA, varB, varC, acc, tensorA.varName(), tensorB.varName(), tensorC.varName(), tensorResult.varName(), M, N, K);
+        return id(MACRO_TENSOR_MMA).paren(_ -> commaSpaceSeparated(params, this::id));
+    }
+
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 
     protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
@@ -1568,8 +1590,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T hatTensorStore(Invoke invoke);
 
     protected abstract T hatTensorLoad(Invoke invoke);
-
-    protected abstract T hatTensorMMA(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 
