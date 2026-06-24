@@ -152,7 +152,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             switch (condEffect.terminatingOp()) {
                 case CoreOp.YieldOp _ when !condEffect.operands().isEmpty() &&
                         condEffect.operands().getFirst() instanceof Boolean b -> p = b;
-                case CoreOp.YieldOp _ -> throw new InterpreterException("");
+                case CoreOp.YieldOp _ -> throw new InterpreterException("Condition body of ForOp yields non boolean value");
                 default -> {
                     return condEffect;
                 }
@@ -198,7 +198,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
                 switch (condEffect.terminatingOp()) {
                     case CoreOp.YieldOp _ when !condEffect.operands().isEmpty() &&
                             condEffect.operands().getFirst() instanceof Boolean b -> p = b;
-                    case CoreOp.YieldOp _ -> throw new InterpreterException("");
+                    case CoreOp.YieldOp _ -> throw new InterpreterException("Predicate body of IfOp yields non boolean value");
                     default -> {
                         return condEffect;
                     }
@@ -238,7 +238,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
                     effect = new TerminatingOpEffect(o, List.of(t), e);
                     break l;
                 }
-                default -> throw new InterpreterException("");
+                default -> throw new InterpreterException("Resource body of TryOp terminate with unexpected operation");
             }
             rArgs.addAll(re.operands());
         }
