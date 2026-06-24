@@ -325,6 +325,22 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         });
     }
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     *     <code>
+     *       for (int m = 0; m < SHAPE_1; m++)
+     *           for (int n = 0; n < SHAPE_2; n++)
+     *             tensor[m * SHAPE_2 + n] = initValue;
+     *     </code>
+     * </p>
+     *
+     * @param name
+     *     Macro name
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
     private OpenCLHATKernelBuilder defineMacroTensorFill(String name) {
         List<String> params = paramsOfTensorFillMacro();
         hashDefineKeyword().sp().id(name).paren( _ -> commaSpaceSeparated(params, this::id)).sp().backslash().nl();
@@ -337,9 +353,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                             id(params.getFirst()).mul()
                                     .id(params.get(4))
                                     .plus()
-                                    .id(params.get(1))
+                                    .id(params.get(1)))
                     .assign().constant(params.get(5))
-                    .semicolon().sp().backslash().nl()).out().out());
+                    .semicolon().sp().backslash().nl()).out();
         });
         sp().backslash().nl();
         return self();
@@ -556,54 +572,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     .constant(Float.toString(initValue)).id("f")
                     .semicolon().nl()).out().out();
         });
-        return self();
-    }
-
-    /**
-     * Code example being generated:
-     *
-     * <p>
-     *     <code>
-     *       for (int m = 0; m < SHAPE_1; m++)
-     *           for (int n = 0; n < SHAPE_2; n++)
-     *             tensor[m * SHAPE_2 + n] = initValue;
-     *     </code>
-     * </p>
-     *
-     * @param tensorFillOp
-     *
-     * @return {@link OpenCLHATKernelBuilder}
-     */
-    @Override
-    public OpenCLHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
-        // 1. Access to the variable name
-        var tensorValue = tensorFillOp.op().operands().getFirst();
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorValue);
-        if (tensorVarOp == null) {
-            throw new IllegalStateException("[Error][Codegen] Expected a CoreOp.VarOp, but found `null` instead");
-        }
-
-        // 2. Access the shape
-        // Second parameters: analysis of the shape
-        List<Integer> shape = getShapeFromTensorCreateValue(tensorVarOp.operands().getFirst());
-
-        // 3. Access the layout
-        var tensorInitValue = tensorFillOp.op().operands().get(1);
-        float initValue = getValueConstantTensor(tensorInitValue);
-
-        // 4. Generate the fill operation
-        String prefix = INDEX_PREFIX;
-        String varA = generateVariableName(prefix);
-        String varB = generateVariableName(prefix);
-        //emitFillOperationForAccummulator(shape, tensorVarOp, initValue);
-        List<String> params = List.of(
-                varA,
-                varB,
-                tensorVarOp.varName(),
-                String.valueOf(shape.getFirst()),
-                String.valueOf(shape.get(1)),
-                String.valueOf(initValue));
-        id(MACRO_TENSOR_FILL).paren( _ -> commaSpaceSeparated(params, this::id));
         return self();
     }
 

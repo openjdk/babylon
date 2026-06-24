@@ -404,9 +404,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private CudaHATKernelBuilder defineMacroTensorFill(String name) {
         List<String> params = paramsOfTensorFillMacro();
-        hashDefineKeyword().sp().id(name).paren( _ -> commaSpaceSeparated(params, this::id)).sp().backslash().nl();
-        id(WMMA_FILL_TENSOR).paren( _-> id(params.get(2)).comma().id(params.get(5)));
-        return self();
+        return macroNoParenthesis(name, params, _ ->
+                paren( _ ->
+                        id(WMMA_FILL_TENSOR).paren( _->
+                                id(params.get(2)).comma().id(params.get(5)))));
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
@@ -759,46 +760,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             // generate accumulate for the tensors
             return generateTensorAccumulateCreate(tensorCreateOp);
         }
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatTensorFill(OpHelper.Invoke tensorFillOp) {
-        // 1. Access to the variable name
-        var tensorValue = tensorFillOp.op().operands().getFirst();
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorValue);
-        if (tensorVarOp == null) {
-            throw new IllegalStateException("[Error][Codegen] Expected a CoreOp.VarOp, but found `null` instead");
-        }
-
-        // 2. Access the shape
-        // Second parameters: analysis of the shape
-        List<Integer> shape = getShapeFromTensorCreateValue(tensorVarOp.operands().getFirst());
-
-        // 3. Access the layout
-        var tensorInitValue = tensorFillOp.op().operands().get(1);
-        float initValue = getValueConstantTensor(tensorInitValue);
-
-        // 4. Generate the fill operation
-        String prefix = INDEX_PREFIX;
-        String varA = generateVariableName(prefix);
-        String varB = generateVariableName(prefix);
-        //emitFillOperationForAccummulator(shape, tensorVarOp, initValue);
-        List<String> params = List.of(
-                varA,
-                varB,
-                tensorVarOp.varName(),
-                String.valueOf(shape.getFirst()),
-                String.valueOf(shape.get(1)),
-                String.valueOf(initValue));
-        id(MACRO_TENSOR_FILL).paren( _ -> commaSpaceSeparated(params, this::id));
-        return self();
-//        id(WMMA_FILL_TENSOR).paren( _-> {
-//            List<Value> operands = tensorFillOp.op().operands();
-//            recurseResultOrThrow(operands.getFirst())
-//                    .comma()
-//                    .recurseResultOrThrow(operands.get(1));
-//        });
-//        return self();
     }
 
     @Override

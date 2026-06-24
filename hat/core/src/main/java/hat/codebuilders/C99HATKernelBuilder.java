@@ -1533,7 +1533,36 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T hatTensorCreateOperation(Invoke invoke);
 
-    protected abstract T hatTensorFill(Invoke invoke);
+    protected T hatTensorFill(Invoke tensorFillOp) {
+        // 1. Access to the variable name
+        var tensorValue = tensorFillOp.op().operands().getFirst();
+        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorValue);
+        if (tensorVarOp == null) {
+            throw new IllegalStateException("[Error][Codegen] Expected a CoreOp.VarOp, but found `null` instead");
+        }
+
+        // 2. Access the shape
+        // Second parameters: analysis of the shape
+        List<Integer> shape = getShapeFromTensorCreateValue(tensorVarOp.operands().getFirst());
+
+        // 3. Access the layout
+        var tensorInitValue = tensorFillOp.op().operands().get(1);
+        float initValue = getValueConstantTensor(tensorInitValue);
+
+        // 4. Generate the fill operation
+        String prefix = INDEX_PREFIX;
+        String varA = generateVariableName(prefix);
+        String varB = generateVariableName(prefix);
+        List<String> params = List.of(
+                varA,
+                varB,
+                tensorVarOp.varName(),
+                String.valueOf(shape.getFirst()),
+                String.valueOf(shape.get(1)),
+                String.valueOf(initValue));
+        id(MACRO_TENSOR_FILL).paren( _ -> commaSpaceSeparated(params, this::id));
+        return self();
+    }
 
     protected abstract T hatTensorStore(Invoke invoke);
 
