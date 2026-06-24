@@ -804,7 +804,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder generateTensorStore(String M, String N, String varA, String varB, String iIndexValue, String jIndexValue, boolean isColumnMajor, String leadingDimension, String ptrValue, String tensorVarOp) {
+    private OpenCLHATKernelBuilder generateTensorStore(int M, int N, String varA, String varB, String iIndexValue, String jIndexValue, boolean isColumnMajor, String leadingDimension, String ptrValue, String tensorVarOp) {
         final int from = 0;
         forLoop(varA, String.valueOf(from), String.valueOf(M)).in();
         String row = generateVariableName("row_");
@@ -829,7 +829,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 id(leadingDimension).sp().plus().id(bVal).semicolon().nl();
                 // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
                 id(ptrValue).rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
-                id(tensorVarOp).sbrace( _ -> id(varA).mul().id(N).plus().id(varB));
+                id(tensorVarOp).sbrace( _ -> id(varA).mul().intValue(N).plus().id(varB));
                 semicolon().nl();
             }).out();
         }).out();
@@ -877,7 +877,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final int N = shape.get(1);
         String varA = generateVariableName(INDEX_PREFIX);
         String varB = generateVariableName(INDEX_PREFIX);
-        generateTensorStore(String.valueOf(M), String.valueOf(N), varA, varB,
+        generateTensorStore(M, N, varA, varB,
                 iIndexValue.varName(), jIndexValue.varName(),
                 isColumnMajor,
                 leadingDimension.varName(),
