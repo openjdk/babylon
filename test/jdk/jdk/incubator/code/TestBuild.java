@@ -439,7 +439,7 @@ public class TestBuild {
                     } else if (parameterType == Object.class) {
                         arg = null;
                     } else {
-                        throw new AssertionError("Unhandled type: " + parameterType);
+                        throw new AssertionError("Unhandled parameter type " + parameterType + ", in the method " + m);
                     }
                     args.add(arg);
                 }
