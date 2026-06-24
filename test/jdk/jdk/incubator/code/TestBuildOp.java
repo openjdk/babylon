@@ -24,7 +24,9 @@
 import jdk.incubator.code.*;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -124,6 +126,36 @@ public class TestBuildOp {
         IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
         Quoted<?> quoted = Op.ofLambda(q).orElseThrow();
         Assertions.assertThrows(IllegalStateException.class, () -> quoted.op().setLocation(Op.Location.NO_LOCATION));
+    }
+
+    @Test
+    void testBuildAsRootForOpWithOpenBody() {
+        Body.Builder outer = Body.Builder.of(null, CoreType.functionType(JavaType.VOID, JavaType.INT));
+        Block.Parameter p = outer.entryBlock().parameters().getFirst();
+
+        Body.Builder inner = Body.Builder.of(outer, CoreType.FUNCTION_TYPE_VOID);
+        inner.entryBlock().add(JavaOp.neg(p));
+        inner.entryBlock().add(CoreOp.return_());
+        JavaOp.LambdaOp lambdaOp = JavaOp.lambda(JavaType.type(Runnable.class), inner);
+
+        Assertions.assertThrowsExactly(IllegalStateException.class, lambdaOp::buildAsRoot);
+    }
+
+    @Test
+    void testBuildAsRootForOpWithOperands() {
+        Body.Builder body = Body.Builder.of(null, CoreType.functionType(JavaType.VOID, JavaType.INT));
+        Block.Parameter p = body.entryBlock().parameters().getFirst();
+        Op op = JavaOp.neg(p);
+        Assertions.assertThrowsExactly(IllegalStateException.class, op::buildAsRoot);
+    }
+
+    @Test
+    void testBuildAsRootForOpWithSuccessor() {
+        Body.Builder body = Body.Builder.of(null, CoreType.functionType(JavaType.VOID, JavaType.INT));
+        Block.Parameter p = body.entryBlock().parameters().getFirst();
+        Block.Builder block2 = body.entryBlock().block();
+        Op op = CoreOp.branch(block2.reference());
+        Assertions.assertThrowsExactly(IllegalStateException.class, op::buildAsRoot);
     }
 
     void assertOpIsCopiedWhenAddedToBlock(Op op) {
