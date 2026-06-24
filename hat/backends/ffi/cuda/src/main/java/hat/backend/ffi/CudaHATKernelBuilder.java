@@ -262,7 +262,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
                 .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
                 .when(useTensors(), _ -> includeSys("mma.h")) // only enable if tensor views are used
-                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL));
+                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL))
+                .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA));
     }
 
     @Override
@@ -408,6 +409,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 paren( _ ->
                         id(WMMA_FILL_TENSOR).paren( _->
                                 id(params.get(2)).comma().id(params.get(5)))));
+    }
+
+    private CudaHATKernelBuilder defineMacroTensorMMA(String macroName) {
+        // Args: "i", "j", "k", "acc", "tensorA", "tensorB", "tensorC", "tensorResult", "M", "N", "K";
+        List<String> params = paramsOfTensorMMAMacro();
+        List<String> cudaMMAArgs = new ArrayList<>();
+        cudaMMAArgs.add(params.get(7)); // tensorResult
+        cudaMMAArgs.add(params.get(4)); // tensorA
+        cudaMMAArgs.add(params.get(5)); // tensorB
+        cudaMMAArgs.add(params.get(6)); // tensorC
+        return macroNoParenthesis(macroName, params, _ ->
+                paren( _ ->
+                        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(cudaMMAArgs, this::id))));
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
