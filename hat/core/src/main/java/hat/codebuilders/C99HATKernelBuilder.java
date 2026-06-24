@@ -1517,22 +1517,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return List.of("i", "j", ARRAY, "numRows", "numCols", "val");
     }
 
-    protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
-
-    protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
-
-    protected abstract T varOpForVectors(CoreOp.VarOp varOp);
-
-    protected abstract T varOpInit(CoreOp.VarOp varOp);
-
-    protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
-
-    protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
-
-    protected abstract T varOpTensor(CoreOp.VarOp varOp);
-
-    protected abstract T hatTensorCreateOperation(Invoke invoke);
-
     protected T hatTensorFill(Invoke tensorFillOp) {
         // 1. Access to the variable name
         var tensorValue = tensorFillOp.op().operands().getFirst();
@@ -1563,6 +1547,22 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         id(MACRO_TENSOR_FILL).paren( _ -> commaSpaceSeparated(params, this::id));
         return self();
     }
+
+    protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
+
+    protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
+
+    protected abstract T varOpForVectors(CoreOp.VarOp varOp);
+
+    protected abstract T varOpInit(CoreOp.VarOp varOp);
+
+    protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
+
+    protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
+
+    protected abstract T varOpTensor(CoreOp.VarOp varOp);
+
+    protected abstract T hatTensorCreateOperation(Invoke invoke);
 
     protected abstract T hatTensorStore(Invoke invoke);
 

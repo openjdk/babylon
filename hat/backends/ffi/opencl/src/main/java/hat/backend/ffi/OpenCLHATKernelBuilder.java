@@ -797,21 +797,17 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 }
                 sp().plus().id(bVal).semicolon().nl();
 
-
-                // TODO: We assume a load from global memory. In
-                // future version, we will process loads from other
-                // memory regions of the accelerator
-
+                // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
                 String ha = generateVariableName("ha_");
-                id("HAT_GLOBAL_MEM F16Impl_t").asterisk().sp().id(ha).assign().ampersand();
+                HAT_GLOBAL_MEM().id("F16Impl_t").asterisk().sp().id(ha).assign().ampersand();
 
                 if (ptrValue instanceof  Op.Result r) {
                     recurse(r.op());
                 }
-                rarrow().id("array").sbrace( _ -> id(index)).semicolon().nl();
+                rarrow().id(ARRAY).sbrace( _ -> id(index)).semicolon().nl();
 
                 String r = generateVariableName("r_");
-                f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id("value")).semicolon().nl();
+                f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id(VALUE)).semicolon().nl();
 
                 // store into the acc
                 emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).sp().mul().intValue(N).sp().plus().id(varB));
