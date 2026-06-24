@@ -527,56 +527,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     /**
-     * Code example being generated:
-     *
-     * <p>
-     *     <code>
-     *        for (int index_$fzm = 0;index_$fzm < shape[0];index_$fzm++) {
-     *            for (int index_$ups = 0;index_$ups < shape[1];index_$ups++) {
-     *               acc[index_$fzm*16+index_$ups] = initValue;
-     *       }};
-     *     </code>
-     * </p>
-     *
-     * @param shape
-     * @param tensorVarOp
-     * @param initValue
-     *
-     * @return {@link OpenCLHATKernelBuilder}
-     */
-    private OpenCLHATKernelBuilder emitFillOperationForAccummulator(List<Integer> shape, CoreOp.VarOp tensorVarOp, float initValue) {
-        String prefix = INDEX_PREFIX;
-        int from = 0;
-        int toLoopA = shape.getFirst();
-        int toLoopB = shape.get(1);
-        String varA = generateVariableName(prefix);
-        String varB = generateVariableName(prefix);
-        forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(toLoopA).semicolon();
-            id(varA).plusplus();
-        }).sp().brace(_ -> {
-            in().nl().forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(toLoopB).semicolon();
-                id(varB).plusplus();
-            }).sp().in();
-
-            brace(_ -> nl()
-                    .id(tensorVarOp.varName())
-                    .sbrace(_ ->
-                            id(varA).mul()
-                                    .intValue(toLoopB)
-                                    .plus()
-                                    .id(varB))
-                    .assign()
-                    .constant(Float.toString(initValue)).id("f")
-                    .semicolon().nl()).out().out();
-        });
-        return self();
-    }
-
-    /**
      * Example of code being generated:
      *
      * <p>
@@ -634,9 +584,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             }).in();
 
             brace(_ -> {
-                nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace(_ -> {
-                    id(varA).mul().intValue(N).sp().plus().id(varB);
-                }).semicolon().nl();
+                nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace(_ ->
+                        id(varA).mul().intValue(N).sp().plus().id(varB)).semicolon().nl();
 
                 forKeyword().sp().paren(_ -> {
                     s32Type().sp().id(varC).assign().intValue(from).semicolon();
@@ -757,22 +706,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         brace(_ -> {
             nl().s32Type().sp().id(row).assign();
 
-            if (iIndexValue instanceof Op.Result r) {
-                recurse(r.op());
-            }
-            plus().id(varA).semicolon().nl();
+            recurseResultOrThrow(iIndexValue).plus().id(varA).semicolon().nl();
 
             forLoop(varB, String.valueOf(from), String.valueOf(N)).sp().in();
 
             String col = generateVariableName("col_");
 
             brace(_ -> {
-                nl().s32Type().sp().id(col).assign();
-
-                if (jIndexValue instanceof Op.Result r) {
-                    recurse(r.op());
-                }
-                plus().id(varB).semicolon().nl();
+                nl().s32Type().sp().id(col).assign().recurseResultOrThrow(jIndexValue).plus().id(varB).semicolon().nl();
 
                 String index = generateVariableName(INDEX_PREFIX);
                 s32Type().sp().id(index).assign();
@@ -783,26 +724,17 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     aVal = col;
                     bVal = row;
                 }
-
                 id(aVal).sp().mul().sp();
-                if (leadingDimension instanceof Op.Result r) {
-                    recurse(r.op());
-                }
-                sp().plus().id(bVal).semicolon().nl();
+                recurseResultOrThrow(leadingDimension).sp().plus().id(bVal).semicolon().nl();
 
                 // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
                 String ha = generateVariableName("ha_");
                 type((JavaType) tensorVarOp.varValueType()).sp().id(ha).assign().ampersand();
-
-                if (ptrValue instanceof  Op.Result r) {
-                    recurse(r.op());
-                }
-                rarrow().id(ARRAY).sbrace( _ -> id(index)).semicolon().nl();
-
+                recurseResultOrThrow(ptrValue).rarrow().id(ARRAY).sbrace( _ -> id(index)).semicolon().nl();
                 String r = generateVariableName("r_");
                 f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id(VALUE)).semicolon().nl();
 
-                // store into the acc
+                // store into the accumulator
                 emitText(tensorVarOp.varName()).sbrace( _ -> id(varA).sp().mul().intValue(N).sp().plus().id(varB));
                 equals().sp().id(r).semicolon().nl();
             }).out();
@@ -894,38 +826,19 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final int M = shape.get(0);
         final int N = shape.get(1);
 
-        forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(M).semicolon();
-            id(varA).plusplus();
-        }).in();
-
+        forLoop(varA, String.valueOf(from), String.valueOf(M)).in();
         String row = generateVariableName("row_");
 
         brace(_ -> {
             nl().s32Type().sp().id(row).assign();
 
-            if (iIndexValue instanceof Op.Result r) {
-                recurse(r.op());
-            }
-            plus().id(varA).semicolon().nl();
-
-            forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(N).semicolon();
-                id(varB).plusplus();
-            }).sp().in();
-
+            recurseResultOrThrow(iIndexValue).plus().id(varA).semicolon().nl();
+            forLoop(varB, String.valueOf(from), String.valueOf(N)).sp().in();
             String col = generateVariableName("col_");
 
             brace(_ -> {
                 nl().s32Type().sp().id(col).assign();
-
-                if (jIndexValue instanceof Op.Result r) {
-                    recurse(r.op());
-                }
-                plus().id(varB).semicolon().nl();
-
+                recurseResultOrThrow(jIndexValue).plus().id(varB).semicolon().nl();
                 String index = generateVariableName(INDEX_PREFIX);
                 s32Type().sp().id(index).assign();
 
@@ -937,18 +850,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 }
 
                 id(aVal).sp().mul().sp();
-                if (leadingDimension instanceof Op.Result r) {
-                    recurse(r.op());
-                }
-                sp().plus().id(bVal).semicolon().nl();
+                recurseResultOrThrow(leadingDimension).sp().plus().id(bVal).semicolon().nl();
 
                 // TODO: We assume a load from global memory. In
                 // future version, we will process loads from other
                 // memory regions of the accelerator
-                if (ptrValue instanceof  Op.Result r) {
-                    recurse(r.op());
-                }
-                rarrow().id("array").sbrace( _ -> id(index)).assign();
+                recurseResultOrThrow(ptrValue).rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
                 id(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().intValue(N).plus().id(varB));
                 semicolon().nl();
             }).out();
