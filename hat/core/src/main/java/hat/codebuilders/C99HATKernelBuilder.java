@@ -1316,11 +1316,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return shape;
     }
 
-    protected static CoreOp.VarOp findTensorVarOp(Value value) {
+    protected static CoreOp.VarOp findVarOpOrThrow(Value value) {
         return switch (value.declaringElement()) {
-            case CoreOp.VarAccessOp.VarLoadOp varlOadOp -> findTensorVarOp(varlOadOp.operands().getFirst());
+            case CoreOp.VarAccessOp.VarLoadOp varlOadOp -> findVarOpOrThrow(varlOadOp.operands().getFirst());
             case CoreOp.VarOp varOp -> varOp;
-            case null, default -> null;
+            case null, default -> throw new IllegalStateException("Op not expected");
         };
     }
 
@@ -1520,10 +1520,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected T hatTensorFill(Invoke tensorFillOp) {
         // 1. Access to the variable name
         var tensorValue = tensorFillOp.op().operands().getFirst();
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorValue);
-        if (tensorVarOp == null) {
-            throw new IllegalStateException("[Error][Codegen] Expected a CoreOp.VarOp, but found `null` instead");
-        }
+        CoreOp.VarOp tensorVarOp = findVarOpOrThrow(tensorValue);
 
         // 2. Access the shape
         // Second parameters: analysis of the shape
@@ -1534,9 +1531,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         float initValue = getValueConstantTensor(tensorInitValue);
 
         // 4. Generate the fill operation
-        String prefix = INDEX_PREFIX;
-        String varA = generateVariableName(prefix);
-        String varB = generateVariableName(prefix);
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
         List<String> params = List.of(
                 varA,
                 varB,

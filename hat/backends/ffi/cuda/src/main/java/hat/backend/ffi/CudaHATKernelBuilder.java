@@ -768,13 +768,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         var tensorAValue = tensorMMA.op().operands().get(1);
         var tensorBValue = tensorMMA.op().operands().get(2);
         var tensorCValue = tensorMMA.op().operands().get(3);
-        var tensorA = findTensorVarOp(tensorAValue);
-        var tensorB = findTensorVarOp(tensorBValue);
-        var tensorC = findTensorVarOp(tensorCValue);
-        var tensorResult = findTensorVarOp(resulTensorValue);
-        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
-            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
-        }
+        var tensorA = findVarOpOrThrow(tensorAValue);
+        var tensorB = findVarOpOrThrow(tensorBValue);
+        var tensorC = findVarOpOrThrow(tensorCValue);
+        var tensorResult = findVarOpOrThrow(resulTensorValue);
         List<VarOp> operands = List.of(tensorResult, tensorA, tensorB, tensorC);
         return id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(operands, va -> id(va.varName())));
     }
@@ -860,7 +857,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             Value tensorToStore = operands.get(3);
             Value ldSize = operands.get(4);
 
-            CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorToStore);
+            CoreOp.VarOp tensorVarOp = findVarOpOrThrow(tensorToStore);
             assert tensorVarOp != null;
 
             recurseResultOrThrow(reference)

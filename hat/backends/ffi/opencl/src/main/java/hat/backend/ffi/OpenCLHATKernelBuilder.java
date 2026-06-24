@@ -555,10 +555,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder generateTensorMMA(List<Integer> shape, CoreOp.VarOp tensorA, CoreOp.VarOp tensorB, CoreOp.VarOp tensorC, CoreOp.VarOp result) {
-        String prefix = INDEX_PREFIX;
-        String varA = generateVariableName(prefix);
-        String varB = generateVariableName(prefix);
-        String varC = generateVariableName(prefix);
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        String varC = generateVariableName(INDEX_PREFIX);
         String acc = generateVariableName("sum_");
         final int from = 0;
         final int M = shape.get(0);
@@ -618,13 +617,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var tensorAValue = tensorMMAInvoke.op().operands().get(1);
         var tensorBValue = tensorMMAInvoke.op().operands().get(2);
         var tensorCValue = tensorMMAInvoke.op().operands().get(3);
-        var tensorA = findTensorVarOp(tensorAValue);
-        var tensorB = findTensorVarOp(tensorBValue);
-        var tensorC = findTensorVarOp(tensorCValue);
-        var tensorResult = findTensorVarOp(resulTensorValue);
-        if (tensorA == null || tensorB == null || tensorC == null || tensorResult == null) {
-            throw new IllegalStateException("[Error][CodeGen] Expected a tensorValue, but found `null` instead");
-        }
+        var tensorA = findVarOpOrThrow(tensorAValue);
+        var tensorB = findVarOpOrThrow(tensorBValue);
+        var tensorC = findVarOpOrThrow(tensorCValue);
+        var tensorResult = findVarOpOrThrow(resulTensorValue);
         List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
         return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
     }
@@ -672,9 +668,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      */
     private void generateTensorLoadF16(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp tensorVarOp, int tensorOrder) {
 
-        String prefix = INDEX_PREFIX;
-        String varA = generateVariableName(prefix);
-        String varB = generateVariableName(prefix);
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
         final int from = 0;
         final int M;
         final int N;
@@ -783,13 +778,74 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         int tensorOrder = getTensorOrder(tensorVarOp.result());
 
         boolean isColumnMajor = false;
-        if (tensorLoadInvoke.op().operands().size() > 5) {
-            isColumnMajor = isColumnMajor(operands.get(5));
+        if (tensorLoadInvoke.op().operands().size() == 6) {
+            isColumnMajor = isColumnMajor(operands.getLast());
         }
 
         generateTensorLoadF16(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp, tensorOrder);
         return self();
     }
+
+    /**
+     * Example of code being generated:
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     *   int rowC = cRow + m;
+     *   for (int n = 0; n < WMMA_N; n++) {
+     *      int colC = cCol + n;
+     *      int idxC = (cRow) + (cCol) * ldc;
+     *      matrixC->array[idxC] = acc[m * 16 + n];
+     *   }
+     * }
+     * </code>
+     * </p>
+     *
+     * @param M
+     * @param N
+     * @param varA
+     * @param varB
+     * @param iIndexValue
+     * @param jIndexValue
+     * @param isColumnMajor
+     * @param leadingDimension
+     * @param ptrValue
+     * @param tensorVarOp
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder generateTensorStore(String M, String N, String varA, String varB, String iIndexValue, String jIndexValue, boolean isColumnMajor, String leadingDimension, String ptrValue, String tensorVarOp) {
+        final int from = 0;
+        forLoop(varA, String.valueOf(from), String.valueOf(M)).in();
+        String row = generateVariableName("row_");
+        brace(_ -> {
+            nl().s32Type().sp().id(row).assign();
+            id(iIndexValue).plus().id(varA).semicolon().nl();
+            forLoop(varB, String.valueOf(from), String.valueOf(N)).sp().in();
+            String col = generateVariableName("col_");
+            brace(_ -> {
+                nl().s32Type().sp().id(col).assign();
+                id(jIndexValue).plus().id(varB).semicolon().nl();
+                String index = generateVariableName(INDEX_PREFIX);
+                s32Type().sp().id(index).assign();
+
+                String aVal = row;
+                String bVal = col;
+                if (isColumnMajor) {
+                    aVal = col;
+                    bVal = row;
+                }
+                id(aVal).sp().mul().sp();
+                id(leadingDimension).sp().plus().id(bVal).semicolon().nl();
+                // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
+                id(ptrValue).rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
+                id(tensorVarOp).sbrace( _ -> id(varA).mul().id(N).plus().id(varB));
+                semicolon().nl();
+            }).out();
+        }).out();
+        return self();
+    }
+
 
     /**
      * Example of code being generated:
@@ -818,9 +874,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @return {@link OpenCLHATKernelBuilder}
      */
     private OpenCLHATKernelBuilder generateTensorStore(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp tensorVarOp) {
-        String prefix = INDEX_PREFIX;
-        String varA = generateVariableName(prefix);
-        String varB = generateVariableName(prefix);
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
         final int from = 0;
         // Output is MxN, given the shape in a M,N,K triplet
         final int M = shape.get(0);
@@ -885,33 +940,31 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      */
     @Override
     protected OpenCLHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreInvoke) {
-        // 1. We need the global ptr
-        // 2. We need the indexes (i, j)
-        // 3. We need leading dimension
-        // 4. We need the name of the tensor
-        // 5. We need the shape
-        // 6. We need the access layout
-
         List<Value> operands = tensorStoreInvoke.op().operands();
-        var ptrValue = operands.getFirst();
-        var iIndexValue = operands.get(1);
-        var jIndexValue = operands.get(2);
-        var tensorValue = operands.get(3);
-        var leadingDimension = operands.get(4);
-
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorValue);
-        if (tensorVarOp == null) {
-            throw new IllegalStateException("[Error][CodeGen] Expected to find a tensorVarOp, but `null` instead.");
-        }
+        var ptrValue = findVarOpOrThrow(operands.getFirst());
+        var iIndexValue = findVarOpOrThrow(operands.get(1));
+        var jIndexValue = findVarOpOrThrow(operands.get(2));
+        var tensorVarOp = findVarOpOrThrow(operands.get(3));
+        var leadingDimension = findVarOpOrThrow(operands.get(4));
 
         var shape = getShapeFromTensorVarOp(tensorVarOp);
 
         boolean isColumnMajor = false;
-        if (tensorStoreInvoke.op().operands().size() > 5) {
-            isColumnMajor = isColumnMajor(operands.get(5));
+        if (tensorStoreInvoke.op().operands().size() == 6) {
+            isColumnMajor = isColumnMajor(operands.getLast());
         }
 
-        generateTensorStore(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp);
+        // Output is MxN, given the shape in an (M,N,K) triplet
+        final int M = shape.get(0);
+        final int N = shape.get(1);
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        generateTensorStore(String.valueOf(M), String.valueOf(N), varA, varB,
+                iIndexValue.varName(), jIndexValue.varName(),
+                isColumnMajor,
+                leadingDimension.varName(),
+                ptrValue.varName(),
+                tensorVarOp.varName());
         return self();
     }
 }
