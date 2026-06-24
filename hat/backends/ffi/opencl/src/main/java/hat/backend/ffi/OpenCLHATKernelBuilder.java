@@ -546,7 +546,13 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * </code>
      * </p>
      *
-     * @param shape
+     * @param M
+     * @param N
+     * @param K
+     * @param varA
+     * @param varB
+     * @param varC
+     * @param acc
      * @param tensorA
      * @param tensorB
      * @param tensorC
@@ -554,59 +560,32 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
-    private OpenCLHATKernelBuilder generateTensorMMA(List<Integer> shape, CoreOp.VarOp tensorA, CoreOp.VarOp tensorB, CoreOp.VarOp tensorC, CoreOp.VarOp result) {
-        String varA = generateVariableName(INDEX_PREFIX);
-        String varB = generateVariableName(INDEX_PREFIX);
-        String varC = generateVariableName(INDEX_PREFIX);
-        String acc = generateVariableName("sum_");
-        final int from = 0;
-        final int M = shape.get(0);
-        final int N = shape.get(1);
-        final int K = shape.get(2);
-
+    private OpenCLHATKernelBuilder generateTensorMMA(final int M, final int N, final int K, String varA, String varB, String varC, String acc, String tensorA, String tensorB, String tensorC, String result) {
+        int from = 0;
         // ---------------------------
         // Shapes:
         // tensor A   with shape: MxK
         // tensor B   with shape: KxN
         // tensor acc with shape: MxN
         // ---------------------------
-
-        forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(M).semicolon();
-            id(varA).plusplus();
-        }).sp().brace(_ -> {
-            in().nl().forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(N).semicolon();
-                id(varB).plusplus();
-            }).in();
-
+        forLoop(varA, Integer.toString(from), Integer.toString(M)).sp().brace(_ -> {
+            in().nl().forLoop(varB, Integer.toString(from), Integer.toString(N)).in();
             brace(_ -> {
-                nl().f32Type().sp().id(acc).assign().id(tensorC.varName()).sbrace(_ ->
+                nl().f32Type().sp().id(acc).assign().id(tensorC).sbrace(_ ->
                         id(varA).mul().intValue(N).sp().plus().id(varB)).semicolon().nl();
-
-                forKeyword().sp().paren(_ -> {
-                    s32Type().sp().id(varC).assign().intValue(from).semicolon();
-                    id(varC).sp().lt().sp().intValue(K).semicolon();
-                    id(varC).plusplus();
-                }).sp().in();
-
+                forLoop(varC, Integer.toString(from), Integer.toString(K)).sp().in();
                 brace(_ -> {
                     nl();
                     String ha = generateVariableName("ha_");
                     String hb = generateVariableName("hb_");
                     String resultTensor = generateVariableName("h_res_");
-                    f16Type().sp().id(ha).assign().id(tensorA.varName()).sbrace(_ -> id(varA).mul().intValue(K).sp().plus().id(varC)).semicolon().nl();
-                    f16Type().sp().id(hb).assign().id(tensorB.varName()).sbrace(_ -> id(varC).mul().intValue(N).sp().plus().id(varB)).semicolon().nl();
+                    f16Type().sp().id(ha).assign().id(tensorA).sbrace(_ -> id(varA).mul().intValue(K).sp().plus().id(varC)).semicolon().nl();
+                    f16Type().sp().id(hb).assign().id(tensorB).sbrace(_ -> id(varC).mul().intValue(N).sp().plus().id(varB)).semicolon().nl();
                     f16Type().sp().id(resultTensor).assign().paren(_ -> f16Type()).brace(_ -> paren(_ -> id(ha).dot().id(VALUE).mul().id(hb).dot().id(VALUE))).semicolon().nl();
                     id(acc).sp().plusEquals().cast(_ -> f32Type()).paren(_ -> id(resultTensor).dot().id(VALUE)).semicolon().nl();
                 }).nl().out();
-
-                id(result.varName()).sbrace(_ -> id(varA).sp().mul().sp().intValue(N).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
-
+                id(result).sbrace(_ -> id(varA).sp().mul().sp().intValue(N).sp().plus().sp().id(varB)).assign().id(acc).semicolon().nl();
             }).semicolon().nl();
-
         }).out().out();
         return self();
     }
@@ -622,7 +601,18 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var tensorC = findVarOpOrThrow(tensorCValue);
         var tensorResult = findVarOpOrThrow(resulTensorValue);
         List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
-        return generateTensorMMA(shape, tensorA, tensorB, tensorC, tensorResult);
+
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        String varC = generateVariableName(INDEX_PREFIX);
+        String acc = generateVariableName("sum_");
+        final int M = shape.get(0);
+        final int N = shape.get(1);
+        final int K = shape.get(2);
+        return generateTensorMMA(M, N, K,
+                varA, varB, varC, acc,
+                tensorA.varName(), tensorB.varName(),
+                tensorC.varName(), tensorResult.varName());
     }
 
     private CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
@@ -742,7 +732,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * <p>
      * <code>
      *     for (int m = 0; m < WMMA_M; m++) {
-     int rowB = bRow + m;
+     *          int rowB = bRow + m;
      *          for (int n = 0; n < WMMA_N; n++) {
      *            int colB = bCol + n;
      *            int idxB = rowB + colB * ldb;
@@ -840,78 +830,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
                 id(ptrValue).rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
                 id(tensorVarOp).sbrace( _ -> id(varA).mul().id(N).plus().id(varB));
-                semicolon().nl();
-            }).out();
-        }).out();
-        return self();
-    }
-
-
-    /**
-     * Example of code being generated:
-     *
-     * <p>
-     * <code>
-     *  for (int m = 0; m < WMMA_M; m++) {
-     *   int rowC = cRow + m;
-     *   for (int n = 0; n < WMMA_N; n++) {
-     *      int colC = cCol + n;
-     *      int idxC = (cRow) + (cCol) * ldc;
-     *      matrixC->array[idxC] = acc[m * 16 + n];
-     *   }
-     * }
-     * </code>
-     * </p>
-     *
-     * @param shape
-     * @param iIndexValue
-     * @param jIndexValue
-     * @param isColumnMajor
-     * @param leadingDimension
-     * @param ptrValue
-     * @param tensorVarOp
-     *
-     * @return {@link OpenCLHATKernelBuilder}
-     */
-    private OpenCLHATKernelBuilder generateTensorStore(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp tensorVarOp) {
-        String varA = generateVariableName(INDEX_PREFIX);
-        String varB = generateVariableName(INDEX_PREFIX);
-        final int from = 0;
-        // Output is MxN, given the shape in a M,N,K triplet
-        final int M = shape.get(0);
-        final int N = shape.get(1);
-
-        forLoop(varA, String.valueOf(from), String.valueOf(M)).in();
-        String row = generateVariableName("row_");
-
-        brace(_ -> {
-            nl().s32Type().sp().id(row).assign();
-
-            recurseResultOrThrow(iIndexValue).plus().id(varA).semicolon().nl();
-            forLoop(varB, String.valueOf(from), String.valueOf(N)).sp().in();
-            String col = generateVariableName("col_");
-
-            brace(_ -> {
-                nl().s32Type().sp().id(col).assign();
-                recurseResultOrThrow(jIndexValue).plus().id(varB).semicolon().nl();
-                String index = generateVariableName(INDEX_PREFIX);
-                s32Type().sp().id(index).assign();
-
-                String aVal = row;
-                String bVal = col;
-                if (isColumnMajor) {
-                    aVal = col;
-                    bVal = row;
-                }
-
-                id(aVal).sp().mul().sp();
-                recurseResultOrThrow(leadingDimension).sp().plus().id(bVal).semicolon().nl();
-
-                // TODO: We assume a load from global memory. In
-                // future version, we will process loads from other
-                // memory regions of the accelerator
-                recurseResultOrThrow(ptrValue).rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
-                id(tensorVarOp.varName()).sbrace( _ -> id(varA).mul().intValue(N).plus().id(varB));
                 semicolon().nl();
             }).out();
         }).out();
