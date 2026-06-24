@@ -23,19 +23,22 @@
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
-import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.AccessFlag;
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntBinaryOperator;
 
@@ -401,33 +404,47 @@ public class TestBuild {
 
     @Test
     void testBuilderInoperableAfterBuildFinishes() {
-        var bodyBuilder = Body.Builder.of(null, CoreType.functionType(INT));
+        var bodyBuilder = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var entryBlockBuilder = bodyBuilder.entryBlock();
-        var value = entryBlockBuilder.add(constant(INT, 1));
-        entryBlockBuilder.add(return_(value));
+        var blockBuilder = entryBlockBuilder.block();
+        blockBuilder.add(return_());
+        entryBlockBuilder.add(branch(blockBuilder.reference()));
 
         var fop = func("f", bodyBuilder);
 
-        for (Object r : List.of(bodyBuilder, entryBlockBuilder)) {
+        for (Object r : List.of(bodyBuilder, blockBuilder)) {
             for (Method m : r.getClass().getDeclaredMethods()) {
                 if (m.accessFlags().contains(AccessFlag.STATIC) || !m.accessFlags().contains(AccessFlag.PUBLIC)) {
                     continue;
                 }
-                Object[] args = new Object[m.getParameterCount()];
-                int i = 0;
+                List<Object> args = new ArrayList<>();
                 for (Class<?> parameterType : m.getParameterTypes()) {
-                    // methods like Block.Builder.block or Body.Builder.build will throw NPE if null is passed as argument
-                    // not what we want, so make sure to pass arguments that will pass the null check
-                    if (parameterType.isArray()) {
-                        args[i] = Array.newInstance(parameterType.componentType(), 0);
+                    Object arg;
+                    if (parameterType == Value[].class) {
+                        arg = new Value[]{};
+                    } else if (parameterType == CodeType[].class) {
+                        arg = new CodeType[]{};
+                    } else if (parameterType == CodeType.class) {
+                        arg = INT;
+                    } else if (parameterType == List.class) {
+                        arg = List.of();
+                    } else if (parameterType == CodeContext.class) {
+                        arg = CodeContext.create();
+                    } else if (parameterType == CodeTransformer.class) {
+                        arg = CodeTransformer.COPYING_TRANSFORMER;
+                    } else if (parameterType == Body.class) {
+                        arg = fop.body();
                     } else if (parameterType == Op.class) {
-                        args[i] = fop;
+                        arg = fop;
+                    } else if (parameterType == Object.class) {
+                        arg = null;
                     } else {
-                        args[i] = null;
+                        throw new AssertionError("Unhandled type: " + parameterType);
                     }
-                    i++;
+                    args.add(arg);
                 }
-                var wrapperException = Assertions.assertThrowsExactly(InvocationTargetException.class, () -> m.invoke(r, args));
+                var wrapperException = Assertions.assertThrowsExactly(InvocationTargetException.class,
+                        () -> m.invoke(r, args.toArray()));
                 Assertions.assertInstanceOf(IllegalStateException.class, wrapperException.getCause());
             }
         }
