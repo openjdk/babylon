@@ -451,6 +451,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return symbol("\"");
     }
 
+    public final T backslash() {
+        return symbol("\\");
+    }
+
     final  public T odquote() {
         return dquote();
     }

@@ -63,6 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
@@ -122,6 +123,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String F16_TO_FLOAT_1 = "F16_TO_FLOAT_1";
     public static final String BF16_TO_FLOAT_0 = "BF16_TO_FLOAT_0";
     public static final String BF16_TO_FLOAT_1 = "BF16_TO_FLOAT_1";
+    public static final String MACRO_TENSOR_FILL = "TENSOR_FILL";
+
+    protected static final String INDEX_PREFIX = "index_$";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -514,6 +518,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected static final String VALUE = "value";
     protected static final String ARRAY = "array";
+    protected static final String ZERO = "0";
 
     private T binaryOperationsForBfloat16(Invoke invoke) {
         var lookup = scopedCodeBuilderContext().lookup();
@@ -1238,6 +1243,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    protected String generateVariableName(String prefix) {
+        String vocab = "abcdefghijklmnopqrstuvxyz";
+        Random r = new Random();
+        StringBuilder varA = new StringBuilder(prefix);
+        for (int i = 0; i < 3; i++) {
+            varA.append(vocab.charAt(r.nextInt(vocab.length())));
+        }
+        return varA.toString();
+    }
+
     protected List<Integer> obtainShapeTensor(Value shapeValue) {
         List<Integer> shape = new ArrayList<>();
         obtainShapeTensor(shapeValue, shape);
@@ -1496,6 +1511,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             }
         }
         return false;
+    }
+
+    protected List<String> paramsOfTensorFillMacro() {
+        return List.of("i", "j", ARRAY, "numRows", "numCols", "val");
     }
 
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);

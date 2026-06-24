@@ -45,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -182,7 +181,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .when(useS16Types(), _ -> typedefSingleValueStruct("BF16",  "BFLOAT16"))
                 .when(useS16Types(), _ -> unionBfloat16())
                 .when(useS16Types(), _ -> build_builtin_bfloat16ToFloat("bf16"))
-                .when(useS16Types(), _ -> build_builtin_float2bfloat16("f"));
+                .when(useS16Types(), _ -> build_builtin_float2bfloat16("f"))
+                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL));
     }
 
     @Override
@@ -315,6 +315,34 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .paren(_-> id("val")
                                 .dotOrArrow(isLocal)
                                 .id(VALUE))));
+    }
+
+    private OpenCLHATKernelBuilder forLoop(String i, String from, String to) {
+        return forKeyword().sp().paren(_ -> {
+            s32Type().sp().id(i).assign().id(from).semicolon();
+            id(i).sp().lt().sp().id(to).semicolon();
+            id(i).plusplus();
+        });
+    }
+
+    private OpenCLHATKernelBuilder defineMacroTensorFill(String name) {
+        List<String> params = paramsOfTensorFillMacro();
+        hashDefineKeyword().sp().id(name).paren( _ -> commaSpaceSeparated(params, this::id)).sp().backslash().nl();
+        String from = ZERO;
+        forLoop(params.get(0), from, params.get(3)).sp().brace(_ -> {
+            in().sp().backslash().nl().forLoop(params.get(1), from, params.get(4)).sp().in();
+            brace(_ -> sp().backslash().nl()
+                    .id(ARRAY)
+                    .sbrace(_ ->
+                            id(params.getFirst()).mul()
+                                    .id(params.get(4))
+                                    .plus()
+                                    .id(params.get(1))
+                    .assign().constant(params.get(5))
+                    .semicolon().sp().backslash().nl()).out().out());
+        });
+        sp().backslash().nl();
+        return self();
     }
 
     @Override
@@ -481,18 +509,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
     }
 
-    private String generateVariableName(String prefix) {
-        String vocab = "abcdefghijklmnopqrstuvxyz";
-        Random r = new Random();
-        StringBuilder varA = new StringBuilder(prefix);
-        for (int i = 0; i < 3; i++) {
-            varA.append(vocab.charAt(r.nextInt(vocab.length())));
-        }
-        return varA.toString();
-    }
-
-    private static final String INDEX_PREFIX = "index_$";
-
     /**
      * Code example being generated:
      *
@@ -576,7 +592,18 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         float initValue = getValueConstantTensor(tensorInitValue);
 
         // 4. Generate the fill operation
-        emitFillOperationForAccummulator(shape, tensorVarOp, initValue);
+        String prefix = INDEX_PREFIX;
+        String varA = generateVariableName(prefix);
+        String varB = generateVariableName(prefix);
+        //emitFillOperationForAccummulator(shape, tensorVarOp, initValue);
+        List<String> params = List.of(
+                varA,
+                varB,
+                tensorVarOp.varName(),
+                String.valueOf(shape.getFirst()),
+                String.valueOf(shape.get(1)),
+                String.valueOf(initValue));
+        id(MACRO_TENSOR_FILL).paren( _ -> commaSpaceSeparated(params, this::id));
         return self();
     }
 
