@@ -34,6 +34,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
@@ -355,7 +356,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                                     .plus()
                                     .id(params.get(1)))
                     .assign().constant(params.get(5))
-                    .semicolon().sp().backslash().nl()).out();
+                    .semicolon().sp().backslash().nl()).out().out();
         });
         sp().backslash().nl();
         return self();
@@ -720,7 +721,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * @param tensorVarOp
      *
      */
-    private void generateTensorLoad(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp tensorVarOp, int tensorOrder) {
+    private void generateTensorLoadF16(List<Integer> shape, Value iIndexValue, Value jIndexValue, boolean isColumnMajor, Value leadingDimension, Value ptrValue, CoreOp.VarOp tensorVarOp, int tensorOrder) {
 
         String prefix = INDEX_PREFIX;
         String varA = generateVariableName(prefix);
@@ -749,11 +750,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         // We need to get if tensorA or tensorB is being loaded
 
-        forKeyword().sp().paren(_ -> {
-            s32Type().sp().id(varA).assign().intValue(from).semicolon();
-            id(varA).sp().lt().sp().intValue(M).semicolon();
-            id(varA).plusplus();
-        }).in();
+        forLoop(varA, String.valueOf(from), String.valueOf(M)).sp().in();
 
         String row = generateVariableName("row_");
 
@@ -765,11 +762,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             }
             plus().id(varA).semicolon().nl();
 
-            forKeyword().sp().paren(_ -> {
-                s32Type().sp().id(varB).assign().intValue(from).semicolon();
-                id(varB).sp().lt().sp().intValue(N).semicolon();
-                id(varB).plusplus();
-            }).sp().in();
+            forLoop(varB, String.valueOf(from), String.valueOf(N)).sp().in();
 
             String col = generateVariableName("col_");
 
@@ -799,7 +792,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
                 // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
                 String ha = generateVariableName("ha_");
-                HAT_GLOBAL_MEM().id("F16Impl_t").asterisk().sp().id(ha).assign().ampersand();
+                type((JavaType) tensorVarOp.varValueType()).sp().id(ha).assign().ampersand();
 
                 if (ptrValue instanceof  Op.Result r) {
                     recurse(r.op());
@@ -862,7 +855,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             isColumnMajor = isColumnMajor(operands.get(5));
         }
 
-        generateTensorLoad(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp, tensorOrder);
+        generateTensorLoadF16(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp, tensorOrder);
         return self();
     }
 

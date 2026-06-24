@@ -427,16 +427,17 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         if (isVecOrMatType(scopedCodeBuilderContext().lookup(), javaType)) {
             handleType(self(), javaType);
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, Tensor.class)) {
+                HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
         } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
-                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
-        ) {
+                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(KernelContext.class).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, F16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, BF16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             type(javaType.toString());
@@ -903,7 +904,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case "fill" -> hatTensorFill(invoke);
             case "shape" -> self();
             case "store" -> hatTensorStore(invoke);
-            case "load", "loadF16" -> hatTensorLoad(invoke);
+            case "loadF16" -> hatTensorLoad(invoke);
             case "mma" -> hatTensorMMA(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
@@ -928,8 +929,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 parenWhen(
                         invoke.operandCount() > 1
                                 && invoke(scopedCodeBuilderContext().lookup(), instance.op()) instanceof Invoke invoke0
-                                && invoke0.returnsClassType()
-                        ,
+                                && invoke0.returnsClassType(),
                         // When we have patterns like:
                         //
                         // myiFaceArray.array().value(storeAValue);
