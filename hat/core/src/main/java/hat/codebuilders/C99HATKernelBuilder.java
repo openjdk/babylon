@@ -124,6 +124,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String BF16_TO_FLOAT_0 = "BF16_TO_FLOAT_0";
     public static final String BF16_TO_FLOAT_1 = "BF16_TO_FLOAT_1";
     public static final String MACRO_TENSOR_FILL = "TENSOR_FILL";
+    public static final String MACRO_TENSOR_MMA = "TENSOR_MMA";
 
     protected static final String INDEX_PREFIX = "index_$";
 
@@ -1515,6 +1516,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected List<String> paramsOfTensorFillMacro() {
         return List.of("i", "j", ARRAY, "numRows", "numCols", "val");
+    }
+
+    protected List<String> paramsOfTensorMMAMacro() {
+        return List.of("i", "j", "k", "acc", "tensorA", "tensorB", "tensorC", "tensorResult", "M", "N", "K");
     }
 
     protected T hatTensorFill(Invoke tensorFillOp) {

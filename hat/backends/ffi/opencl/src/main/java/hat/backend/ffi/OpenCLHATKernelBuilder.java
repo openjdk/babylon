@@ -183,7 +183,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .when(useS16Types(), _ -> unionBfloat16())
                 .when(useS16Types(), _ -> build_builtin_bfloat16ToFloat("bf16"))
                 .when(useS16Types(), _ -> build_builtin_float2bfloat16("f"))
-                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL));
+                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL))
+                .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA));
     }
 
     @Override
@@ -358,6 +359,47 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     .assign().constant(params.get(5))
                     .semicolon().sp().backslash().nl()).out().out();
         });
+        sp().backslash().nl();
+        return self();
+    }
+
+    private OpenCLHATKernelBuilder defineMacroTensorMMA(String name) {
+        // params: i, j, k, acc, tensorA, tensorB, tensorC, tensorResult, M, N, K
+        List<String> params = paramsOfTensorMMAMacro();
+        nl().hashDefineKeyword().sp().id(name).paren( _ -> commaSpaceSeparated(params, this::id)).sp().backslash().nl();
+        String from = ZERO;
+
+        String varA = params.get(0);
+        String varB = params.get(1);
+        String varC = params.get(2);
+        String acc = params.get(3);
+        String tensorA = params.get(4);
+        String tensorB = params.get(5);
+        String tensorC = params.get(6);
+        String result = params.get(7);
+        String M = params.get(8);
+        String N = params.get(9);
+        String K = params.get(10);
+
+        forLoop(varA, from, M).sp().brace(_ -> {
+            in().sp().backslash().nl().forLoop(varB, from, N).in();
+            brace(_ -> {
+                sp().backslash().nl().f32Type().sp().id(acc).assign().id(tensorC).sbrace(_ ->
+                        id(varA).mul().id(N).sp().plus().id(varB)).semicolon().sp().backslash().nl();
+                forLoop(varC, from, K).sp().in();
+                brace(_ -> {
+                    sp().backslash().nl();
+                    String ha = generateVariableName("ha_");
+                    String hb = generateVariableName("hb_");
+                    String resultTensor = generateVariableName("h_res_");
+                    f16Type().sp().id(ha).assign().id(tensorA).sbrace(_ -> id(varA).mul().id(K).sp().plus().id(varC)).semicolon().sp().backslash().nl();
+                    f16Type().sp().id(hb).assign().id(tensorB).sbrace(_ -> id(varC).mul().id(N).sp().plus().id(varB)).semicolon().sp().backslash().nl();
+                    f16Type().sp().id(resultTensor).assign().paren(_ -> f16Type()).brace(_ -> paren(_ -> id(ha).dot().id(VALUE).mul().id(hb).dot().id(VALUE))).semicolon().sp().backslash().nl();
+                    id(acc).sp().plusEquals().cast(_ -> f32Type()).paren(_ -> id(resultTensor).dot().id(VALUE)).semicolon().sp().backslash().nl();
+                }).sp().backslash().nl().out();
+                id(result).sbrace(_ -> id(varA).sp().mul().sp().id(N).sp().plus().sp().id(varB)).assign().id(acc).semicolon().sp().backslash().nl();
+            }).sp().backslash().nl().out();
+        }).out();
         sp().backslash().nl();
         return self();
     }
@@ -606,13 +648,16 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         String varB = generateVariableName(INDEX_PREFIX);
         String varC = generateVariableName(INDEX_PREFIX);
         String acc = generateVariableName("sum_");
-        final int M = shape.get(0);
-        final int N = shape.get(1);
-        final int K = shape.get(2);
-        return generateTensorMMA(M, N, K,
-                varA, varB, varC, acc,
-                tensorA.varName(), tensorB.varName(),
-                tensorC.varName(), tensorResult.varName());
+        final String M = Integer.toString(shape.get(0));
+        final String N = Integer.toString(shape.get(1));
+        final String K = Integer.toString(shape.get(2));
+//        return generateTensorMMA(M, N, K,
+//                varA, varB, varC, acc,
+//                tensorA.varName(), tensorB.varName(),
+//                tensorC.varName(), tensorResult.varName());
+
+        List<String> params = List.of(varA, varB, varC, acc, tensorA.varName(), tensorB.varName(), tensorC.varName(), tensorResult.varName(), M, N, K);
+        return id(MACRO_TENSOR_MMA).paren( _-> commaSpaceSeparated(params, this::id));
     }
 
     private CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
