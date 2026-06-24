@@ -487,8 +487,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return sp().varName(varTensorName).sbrace(_-> intValue(sizeToAllocate));
     }
 
-    private OpenCLHATKernelBuilder createTensor(OpHelper.Invoke tensorCreateOp) {
-        Value v = tensorCreateOp.op().result().uses().getFirst();
+    private OpenCLHATKernelBuilder createTensor(OpHelper.Invoke tensorCreateInvoke) {
+        Value v = tensorCreateInvoke.op().result().uses().getFirst();
         if (v.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
             var shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
             var varTensorName = tensorVarOp.varName();
@@ -500,12 +500,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
     }
 
-    private OpenCLHATKernelBuilder createTensorAccumulator(OpHelper.Invoke tensorCreateOp) {
-        Value v = tensorCreateOp.op().result().uses().getFirst();
-        Value shapeValue = tensorCreateOp.op().operands().getFirst();
+    private OpenCLHATKernelBuilder createTensorAccumulator(OpHelper.Invoke tensorCreateInvoke) {
+        Value v = tensorCreateInvoke.op().result().uses().getFirst();
+        Value shapeValue = tensorCreateInvoke.op().operands().getFirst();
         List<Integer> shape = obtainShapeTensor(shapeValue);
         Object klass = null;
-        Value classOperand = tensorCreateOp.op().operands().getLast();
+        Value classOperand = tensorCreateInvoke.op().operands().getLast();
         if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
             klass = constantOp.value();
         }
@@ -613,11 +613,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder hatTensorMMA(OpHelper.Invoke tensorMMAOp) {
-        var resulTensorValue = tensorMMAOp.op().operands().getFirst();
-        var tensorAValue = tensorMMAOp.op().operands().get(1);
-        var tensorBValue = tensorMMAOp.op().operands().get(2);
-        var tensorCValue = tensorMMAOp.op().operands().get(3);
+    public OpenCLHATKernelBuilder hatTensorMMA(OpHelper.Invoke tensorMMAInvoke) {
+        var resulTensorValue = tensorMMAInvoke.op().operands().getFirst();
+        var tensorAValue = tensorMMAInvoke.op().operands().get(1);
+        var tensorBValue = tensorMMAInvoke.op().operands().get(2);
+        var tensorCValue = tensorMMAInvoke.op().operands().get(3);
         var tensorA = findTensorVarOp(tensorAValue);
         var tensorB = findTensorVarOp(tensorBValue);
         var tensorC = findTensorVarOp(tensorCValue);
@@ -759,18 +759,18 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * </code>
      * </p>
      *
-     * @param tensorLoadOp
+     * @param tensorLoadInvoke
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
     @Override
-    protected OpenCLHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoadOp) {
-        List<Value> operands = tensorLoadOp.op().operands();
+    protected OpenCLHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoadInvoke) {
+        List<Value> operands = tensorLoadInvoke.op().operands();
         var ptrValue = operands.getFirst();
         var iIndexValue = operands.get(1);
         var jIndexValue = operands.get(2);
         var leadingDimension = operands.get(3);
-        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorLoadOp);
+        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorLoadInvoke);
         List<Integer> shape;
         if (tensorVarOp != null) {
             shape = obtainShapeTensor(operands.get(4));
@@ -783,7 +783,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         int tensorOrder = getTensorOrder(tensorVarOp.result());
 
         boolean isColumnMajor = false;
-        if (tensorLoadOp.op().operands().size() > 5) {
+        if (tensorLoadInvoke.op().operands().size() > 5) {
             isColumnMajor = isColumnMajor(operands.get(5));
         }
 
@@ -879,12 +879,12 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * </code>
      * </p>
      *
-     * @param tensorStoreOp
+     * @param tensorStoreInvoke
      *
      * @return {@link OpenCLHATKernelBuilder}
      */
     @Override
-    protected OpenCLHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreOp) {
+    protected OpenCLHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreInvoke) {
         // 1. We need the global ptr
         // 2. We need the indexes (i, j)
         // 3. We need leading dimension
@@ -892,7 +892,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         // 5. We need the shape
         // 6. We need the access layout
 
-        List<Value> operands = tensorStoreOp.op().operands();
+        List<Value> operands = tensorStoreInvoke.op().operands();
         var ptrValue = operands.getFirst();
         var iIndexValue = operands.get(1);
         var jIndexValue = operands.get(2);
@@ -907,7 +907,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         var shape = getShapeFromTensorVarOp(tensorVarOp);
 
         boolean isColumnMajor = false;
-        if (tensorStoreOp.op().operands().size() > 5) {
+        if (tensorStoreInvoke.op().operands().size() > 5) {
             isColumnMajor = isColumnMajor(operands.get(5));
         }
 

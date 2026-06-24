@@ -699,11 +699,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         tensorTypeTable.put("loadF32", "float");
     }
 
-    private CudaHATKernelBuilder generateTensorAccumulateCreate(Invoke tensorCreateOp) {
+    private CudaHATKernelBuilder generateTensorAccumulateCreate(Invoke tensorCreate) {
         // tensor declaration for the accumulator
-        Value shapeValue = tensorCreateOp.op().operands().getFirst();
+        Value shapeValue = tensorCreate.op().operands().getFirst();
         List<Integer> shape = obtainShapeTensor(shapeValue);
-        Value classOperand = tensorCreateOp.op().operands().get(1);
+        Value classOperand = tensorCreate.op().operands().get(1);
         Object klass = null;
         if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
             klass = constantOp.value();
@@ -716,12 +716,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 default -> throw new IllegalStateException("Type class not supported for Tensors: " + klass);
             }
         }
-        Value valueAccessLayout = tensorCreateOp.op().operands().getLast();
+        Value valueAccessLayout = tensorCreate.op().operands().getLast();
         return generateCreateTensor(shape, TENSOR_ACC, tensorType, valueAccessLayout);
     }
 
-    private CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreateOp) {
-        Value v = tensorCreateOp.op().result().uses().getFirst();
+    private CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreate) {
+        Value v = tensorCreate.op().result().uses().getFirst();
         // Find the declaration value of the tensor
         // otherwise, we have to inspect the shape from the TensorLoadOp
         if (v.declaringElement() instanceof VarOp tensorVarOp) {
@@ -752,13 +752,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder hatTensorCreateOperation(Invoke tensorCreateOp) {
-        if (tensorCreateOp.op().operands().isEmpty()) {
+    public CudaHATKernelBuilder hatTensorCreateOperation(Invoke tensorCreate) {
+        if (tensorCreate.op().operands().isEmpty()) {
             // this corresponds to a tensor declaration for the input data
-            return generateTensorCreate(tensorCreateOp);
+            return generateTensorCreate(tensorCreate);
         } else {
             // generate accumulate for the tensors
-            return generateTensorAccumulateCreate(tensorCreateOp);
+            return generateTensorAccumulateCreate(tensorCreate);
         }
     }
 
