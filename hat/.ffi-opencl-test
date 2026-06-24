@@ -1,0 +1,6 @@
+--enable-preview
+--add-modules=jdk.incubator.code
+--enable-native-access=ALL-UNNAMED
+--class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-tests-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar
+-Djava.library.path=build
+hat.test.engine.HATTestEngine

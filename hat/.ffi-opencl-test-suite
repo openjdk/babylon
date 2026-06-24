@@ -1,4 +1,4 @@
 --enable-preview
 --add-modules=jdk.incubator.code
 --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-tests-1.0.jar
-hat.test.engine.TestSuite
+hat.test.engine.TestSuite ffi-opencl

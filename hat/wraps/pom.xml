@@ -33,9 +33,24 @@ questions.
     <artifactId>hat-root</artifactId>
     <version>1.0</version>
   </parent>
-  <modules>
-    <module>shared</module>
-    <module>opencl</module>
-    <module>opengl</module>
-  </modules>
+  <profiles>
+    <profile>
+      <id>cuda</id>
+      <modules>
+        <module>cuda</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>opencl</id>
+      <modules>
+        <module>opencl</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>opengl</id>
+      <modules>
+        <module>opengl</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>
