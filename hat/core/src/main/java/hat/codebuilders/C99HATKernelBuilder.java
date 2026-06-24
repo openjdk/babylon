@@ -123,6 +123,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String F16_TO_FLOAT_1 = "F16_TO_FLOAT_1";
     public static final String BF16_TO_FLOAT_0 = "BF16_TO_FLOAT_0";
     public static final String BF16_TO_FLOAT_1 = "BF16_TO_FLOAT_1";
+    public static final String MACRO_FRAMGMENT_CREATE = "FRAGMENT_CREATE";
     public static final String MACRO_TENSOR_FILL = "TENSOR_FILL";
     public static final String MACRO_TENSOR_MMA = "TENSOR_MMA";
 
@@ -1571,6 +1572,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return id(MACRO_TENSOR_MMA).paren(_ -> commaSpaceSeparated(params, this::id));
     }
 
+    protected T varOpTensor(CoreOp.VarOp varOp) {
+        return recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+    }
+
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 
     protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
@@ -1582,8 +1587,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T varOpLocalMemory(CoreOp.VarOp varOp);
 
     protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
-
-    protected abstract T varOpTensor(CoreOp.VarOp varOp);
 
     protected abstract T hatTensorCreateOperation(Invoke invoke);
 

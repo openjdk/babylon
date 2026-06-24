@@ -183,6 +183,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .when(useS16Types(), _ -> unionBfloat16())
                 .when(useS16Types(), _ -> build_builtin_bfloat16ToFloat("bf16"))
                 .when(useS16Types(), _ -> build_builtin_float2bfloat16("f"))
+
+                // Tensor Macros
+                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA));
     }
@@ -325,6 +328,53 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             id(i).sp().lt().sp().id(to).semicolon();
             id(i).plusplus();
         });
+    }
+
+    /**
+     * List of macros using __VA_ARGS__:
+     *
+     * <p>
+     * <code>
+     * #define FRAGMENT_CREATE_3(type, name, size) type name[size]
+     * #define FRAGMENT_CREATE_7(kind, size, m, n, k, type, name) nvcuda::wmma::fragment<nvcuda::wmma::kind, m, n, k, type> name
+     * #define FRAGMENT_CREATE_8(kind, size, m, n, k, type, layout, name) nvcuda::wmma::fragment<nvcuda::wmma::kind, m, n, k, type, layout> name
+     * #define FRAGMENT_CREATE_SELECT(_1, _2, _3, _4, _5, _6, _7, _8, NAME, ...) NAME
+     * #define FRAGMENT_CREATE(...) FRAGMENT_CREATE_SELECT(__VA_ARGS__,FRAGMENT_CREATE_8,FRAGMENT_CREATE_7,INVALID,INVALID,INVALID,FRAGMENT_CREATE_3)(__VA_ARGS__)
+     * </code>
+     * </p>
+     *
+     * @param macroName
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineFragmentCreate(String macroName) {
+        List<String> params = List.of("type",  "name", "size");
+        macroNoParenthesis(macroName + "_3", params, _ ->
+                id(params.getFirst()).sp().id(params.get(1)).sbrace(_ -> id(params.get(2))));
+
+        List<String> params1  = List.of("kind", "size", "m", "n", "k", "type", "name");
+        macroNoParenthesis(macroName + "_7", params1, _ ->
+                id(params1.get(5)).sp().id(params1.get(6)).sbrace(_ -> id(params1.get(1))));
+
+        List<String> params2 = List.of("kind", "size", "m", "n", "k", "type", "layout", "name");
+        macroNoParenthesis(macroName + "_8", params2, _ ->
+                id(params2.get(5)).sp().id(params2.get(7)).sbrace(_ -> id(params2.get(1))));
+
+        List<String> params3 = List.of("_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "NAME", "...");
+        macroNoParenthesis("FRAGMENT_CREATE_SELECT", params3, _ ->
+                id("NAME"));
+
+        List<String> params4 = List.of("...");
+        macroNoParenthesis("FRAGMENT_CREATE", params4, _ ->
+                id("FRAGMENT_CREATE_SELECT").paren(_ ->
+                        id("__VA_ARGS__").comma()
+                                .id("FRAGMENT_CREATE_8").comma()
+                                .id("FRAGMENT_CREATE_7").comma()
+                                .id("INVALID").comma()
+                                .id("INVALID").comma()
+                                .id("INVALID").comma()
+                                .id("FRAGMENT_CREATE_3"))
+                        .paren( _ -> id("__VA_ARGS__")));
+        return self();
     }
 
     /**
@@ -513,11 +563,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    protected OpenCLHATKernelBuilder varOpTensor(CoreOp.VarOp varOp) {
-        return recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
-    }
-
-    @Override
     protected OpenCLHATKernelBuilder hatWarpSize() {
         return intConst(OPENCL_WARP_SIZE);
     }
@@ -531,23 +576,27 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             default -> throw new IllegalStateException("Unexpected value: " + ordering);
         };
 
-        switch (klass) {
-            case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> f16Type();
-            case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");
-            case null, default -> {
-                // When we derive the type for tensors that are not accumulators
-                if (v.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
-                    Value tensorVar = tensorVarOp.result();
-                    String loadVariance = findLoadVariance(tensorVar, tensorVarOp);
-                    CodeGenAction typeFunction = tensorTypeTable.getOrDefault(loadVariance, null);
-                    if (typeFunction == null) {
-                        throw new IllegalStateException("Load Type not supported:" + typeFunction);
+        id(MACRO_FRAMGMENT_CREATE).paren( _ -> {
+            switch (klass) {
+                case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) ->
+                        f16Type();
+                case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> type("float");
+                case null, default -> {
+                    // When we derive the type for tensors that are not accumulators
+                    if (v.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
+                        Value tensorVar = tensorVarOp.result();
+                        String loadVariance = findLoadVariance(tensorVar, tensorVarOp);
+                        CodeGenAction typeFunction = tensorTypeTable.getOrDefault(loadVariance, null);
+                        if (typeFunction == null) {
+                            throw new IllegalStateException("Load Type not supported:" + typeFunction);
+                        }
+                        typeFunction.apply();
                     }
-                    typeFunction.apply();
                 }
             }
-        }
-        return sp().varName(varTensorName).sbrace(_-> intValue(sizeToAllocate));
+            comma().sp().varName(varTensorName).comma().sp().intValue(sizeToAllocate);
+        });
+        return self();
     }
 
     private OpenCLHATKernelBuilder createTensor(OpHelper.Invoke tensorCreateInvoke) {

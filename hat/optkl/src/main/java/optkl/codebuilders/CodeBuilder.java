@@ -563,6 +563,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return self();
     }
 
+    public final <I> T spaceSeparated(Iterable<I> iterable, Consumer<I> consumer) {
+        return sep(iterable, _ -> sp(), consumer);
+    }
+
     final   public T args(Consumer<T>... consumers) {
         return commaSpaceSeparated(consumers);
     }

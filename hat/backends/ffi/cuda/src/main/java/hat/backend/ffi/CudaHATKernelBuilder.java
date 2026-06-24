@@ -262,6 +262,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
                 .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
                 .when(useTensors(), _ -> includeSys("mma.h")) // only enable if tensor views are used
+
+                // Tensor Macros
+                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA));
     }
@@ -401,6 +404,77 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      */
     private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
         return defineMacroS16Conversion(name, _ -> bfloat162float(), isLocal);
+    }
+
+    private static final String INVALID = "INVALID";
+
+    /**
+     * List of macros using __VA_ARGS__:
+     *
+     * <p>
+     * <code>
+     * #define FRAGMENT_CREATE_3(type, name, size) type name[size]
+     * #define FRAGMENT_CREATE_7(kind, size, m, n, k, type, name) nvcuda::wmma::fragment<nvcuda::wmma::kind, m, n, k, type> name
+     * #define FRAGMENT_CREATE_8(kind, size, m, n, k, type, layout, name) nvcuda::wmma::fragment<nvcuda::wmma::kind, m, n, k, type, layout> name
+     * #define FRAGMENT_CREATE_SELECT(_1, _2, _3, _4, _5, _6, _7, _8, NAME, ...) NAME
+     * #define FRAGMENT_CREATE(...) FRAGMENT_CREATE_SELECT(__VA_ARGS__,FRAGMENT_CREATE_8,FRAGMENT_CREATE_7,INVALID,INVALID,INVALID,FRAGMENT_CREATE_3)(__VA_ARGS__)
+     * </code>
+     * </p>
+     *
+     * @param macroName
+     * @return {@link CudaHATKernelBuilder}
+     */
+    public CudaHATKernelBuilder defineFragmentCreate(String macroName) {
+        List<String> params = List.of("type",  "name", "size");
+        macroNoParenthesis(macroName + "_3", params, _ ->
+                id(params.getFirst()).sp().id(params.get(1)).sbrace(_ -> id(params.get(2))));
+
+        List<String> params1  = List.of("kind", "size", "m", "n", "k", "type", "name");
+        macroNoParenthesis(macroName + "_7", params1, _ ->
+                id(WMMA_FRAGMENT_BASE)
+                    .ltgt(_ ->
+                        id(WMMA_PREFIX).id("kind")
+                            .comma().sp()
+                            .id("m")
+                            .comma().sp()
+                            .id("n")
+                            .comma().sp()
+                            .id("k")
+                            .comma().sp()
+                            .id("type")).sp().id("name"));
+
+        List<String> params2 = List.of("kind", "size", "m", "n", "k", "type", "layout", "name");
+        macroNoParenthesis(macroName + "_8", params2, _ ->
+                id(WMMA_FRAGMENT_BASE)
+                        .ltgt(_ ->
+                                id(WMMA_PREFIX).id("kind")
+                                        .comma().sp()
+                                        .id("m")
+                                        .comma().sp()
+                                        .id("n")
+                                        .comma().sp()
+                                        .id("k")
+                                        .comma().sp()
+                                        .id("type")
+                                        .comma().sp()
+                                        .id("layout")).sp().id("name"));
+
+        List<String> params3 = List.of("_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "NAME", "...");
+        macroNoParenthesis("FRAGMENT_CREATE_SELECT", params3, _ ->
+                id("NAME"));
+
+        List<String> params4 = List.of("...");
+        macroNoParenthesis("FRAGMENT_CREATE", params4, _ ->
+                id("FRAGMENT_CREATE_SELECT").paren(_ ->
+                                id("__VA_ARGS__").comma()
+                                        .id("FRAGMENT_CREATE_8").comma()
+                                        .id("FRAGMENT_CREATE_7").comma()
+                                        .id(INVALID).comma()
+                                        .id(INVALID).comma()
+                                        .id(INVALID).comma()
+                                        .id("FRAGMENT_CREATE_3"))
+                        .paren( _ -> id("__VA_ARGS__")));
+        return self();
     }
 
     private CudaHATKernelBuilder defineMacroTensorFill(String name) {
@@ -654,13 +728,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return sp().varName(varOp);
     }
 
-    @Override
-    protected CudaHATKernelBuilder varOpTensor(CoreOp.VarOp varOp) {
-        recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
-        sp().id(varOp.varName());
-        return self();
-    }
-
     public static final String WMMA_MEM_COL_MAJOR = "nvcuda::wmma::mem_col_major";
     public static final String WMMA_MEM_ROW_MAJOR = "nvcuda::wmma::mem_row_major";
     public static final String WMMA_STORE_TENSOR = "nvcuda::wmma::store_matrix_sync";
@@ -672,36 +739,35 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment";
     public static final String WMMA_PREFIX = "nvcuda::wmma::";
 
-    private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access) {
-        id(WMMA_FRAGMENT_BASE)
-                .ltgt(_ -> {
-                    id(WMMA_PREFIX).id(matrixOrder)
-                            .comma().sp()
-                            .intValue(shape.getFirst())
-                            .comma().sp()
-                            .intValue(shape.get(1))
-                            .comma().sp()
-                            .intValue(shape.get(2))
-                            .comma().sp()
-                            .type(type);
-                    if (!matrixOrder.equals(TENSOR_ACC)) {
-                        comma();
-                        if (access == null) {
-                            id(WMMA_ROW_MAJOR);
-                        } else if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
-                            // Expecting an invokeOp
-                            var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
-                            if (invoke != null && invoke.resultTypeIs(Tensor.ColumMajor.class)) {
-                                id(WMMA_COL_MAJOR);
-                            } else if (invoke != null && invoke.resultTypeIs(Tensor.RowMajor.class)) {
-                                id(WMMA_ROW_MAJOR);
-                            } else {
-                                throw new IllegalStateException("[Error]");
-                            }
-                        }
+    private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access, String tensorVar) {
+        // Params: "kind", "size", "m", "n", "k", "type", "layout", "name";
+        // call the macro with the right args
+        id(MACRO_FRAMGMENT_CREATE).paren(_ -> {
+            id(matrixOrder).comma()
+                    .id(ZERO).comma().sp()           // For the CUDA backend, this value is not used
+                    .intValue(shape.getFirst()).comma().sp()
+                    .intValue(shape.get(1)).comma().sp()
+                    .intValue(shape.get(2)).comma().sp()
+                    .type(type).sp().comma();
+            if (!matrixOrder.equals(TENSOR_ACC)) {
+                if (access == null) {
+                    id(WMMA_ROW_MAJOR);
+                } else if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                    // Expecting an invokeOp
+                    var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+                    if (invoke != null && invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                        id(WMMA_COL_MAJOR);
+                    } else if (invoke != null && invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                        id(WMMA_ROW_MAJOR);
+                    } else {
+                        throw new IllegalStateException("[Error]");
                     }
+                }
+                comma().sp();
+            }
 
-                });
+            id(tensorVar);
+        });
         return self();
     }
 
@@ -730,8 +796,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 default -> throw new IllegalStateException("Type class not supported for Tensors: " + klass);
             }
         }
+        Value v = tensorCreate.op().result().uses().getFirst();
+        VarOp tensorVarOp;
+        if (v.declaringElement() instanceof CoreOp.VarOp varOp) {
+            tensorVarOp = varOp;
+        } else {
+            throw new IllegalStateException("Expected a VarOp");
+        }
         Value valueAccessLayout = tensorCreate.op().operands().getLast();
-        return generateCreateTensor(shape, TENSOR_ACC, tensorType, valueAccessLayout);
+        return generateCreateTensor(shape, TENSOR_ACC, tensorType, valueAccessLayout, tensorVarOp.varName());
     }
 
     private CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreate) {
@@ -759,7 +832,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             if (type == null) {
                 throw new IllegalStateException("Load Type not supported:" + type);
             }
-            return generateCreateTensor(shape, matrixOrder, type, valueAccessLayout);
+            return generateCreateTensor(shape, matrixOrder, type, valueAccessLayout, tensorVarOp.varName());
         } else {
             throw new IllegalStateException("Value not supported");
         }
