@@ -127,6 +127,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String MACRO_TENSOR_FILL = "TENSOR_FILL";
     public static final String MACRO_TENSOR_MMA = "TENSOR_MMA";
     public static final String MACRO_TENSOR_STORE = "TENSOR_STORE";
+    public static final String MACRO_COND = "MACRO_COND";
 
     protected static final String INDEX_PREFIX = "index_$";
 

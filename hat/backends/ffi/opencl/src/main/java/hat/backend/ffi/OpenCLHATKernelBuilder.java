@@ -185,6 +185,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .when(useS16Types(), _ -> build_builtin_float2bfloat16("f"))
 
                 // Tensor Macros
+                .when(useTensors(), _ -> defineMacroCond(MACRO_COND))
                 .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA))
@@ -329,6 +330,21 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             id(i).sp().lt().sp().id(to).semicolon();
             id(i).plusplus();
         });
+    }
+
+    /**
+     * <code>
+     *  #define MACRO_COND(row, col, condition) ((condition) ? (col) : (row))
+     * </code>
+     *
+     * @param macroName
+     *
+     * @return {@link OpenCLHATKernelBuilder}
+     */
+    private OpenCLHATKernelBuilder defineMacroCond(String macroName) {
+        List<String> macroCondAssignParams = List.of("row", "col", "condition");
+        return macroNoParenthesis(macroName, macroCondAssignParams, _ ->
+                paren(_ -> parenId("condition").sp().questionMark().sp().parenId("col").sp().colon().sp().parenId("row"))).nl();
     }
 
     /**
@@ -480,10 +496,23 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         return paren(_ -> id(id));
     }
 
+    /**
+     * Code example being generated:
+     *
+     * <p>
+     * <code>
+     *  for (int m = 0; m < WMMA_M; m++) {
+     *  int rowC = cRow + m;
+     *   for (int n = 0; n < WMMA_N; n++) {
+     *      int colC = cCol + n;
+     *      int idxC = (cRow) + (cCol) * ldc;
+     *      matrixC->array[idxC] = acc[m * 16 + n];
+     *   }
+     * }
+     * </code>
+     * </p>
+     */
     public OpenCLHATKernelBuilder defineMacroTensorStore(String macroName) {
-        List<String> macroCondAssignParams = List.of("row", "col", "condition");
-        macroNoParenthesis("COND", macroCondAssignParams, _ -> paren(_ -> parenId("condition").sp().questionMark().sp().parenId("col").sp().colon().sp().parenId("row"))).nl();
-
         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
         return macroNoParenthesis(macroName, params, _ -> {
             backslash().nl();
@@ -501,10 +530,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                     String index = generateVariableName(INDEX_PREFIX);
                     s32Type().sp().id(index).assign()
                             //.id("aVal")
-                            .id("COND").paren(_ -> id(row).comma().id(col).comma().id("isColumnMajor"))
+                            .id(MACRO_COND).paren(_ -> id(row).comma().id(col).comma().id("isColumnMajor"))
                             .sp().mul().sp().id("leadingDimension").sp().plus()
                             //.id("bVal")
-                            .id("COND").paren(_ -> id(col).comma().id(row).comma().id("isColumnMajor"))
+                            .id(MACRO_COND).paren(_ -> id(col).comma().id(row).comma().id("isColumnMajor"))
                             .semicolon().sp().backslash().nl();
                     // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
                     id("reference").rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
