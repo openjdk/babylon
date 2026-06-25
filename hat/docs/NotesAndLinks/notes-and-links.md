@@ -1,0 +1,30 @@
+# Notes and Links
+[Back to Index ../](../index.md)
+
+# Notes and Links
+
+### Deep Learning
+* [Amazons Deep Learning Java](http://djl.ai/)
+
+### Manchester University TornadoVM
+* [Tornado VM](https://github.com/beehive-lab/TornadoVM)
+* [SPIRV Toolkit]()https://github.com/beehive-lab/beehive-spirv-toolkit
+
+### Other JAVA GPU
+* [Aparapi](https://github.com/Syncleus/aparapi)
+
+### Github repos
+* [Babylon OpenJDK](https://github.com/openjdk/babylon)
+* [JTREG](https://github.com/openjdk/jtreg)
+* [jexctract](https://github.com/openjdk/jextract)
+
+### General GPGPU
+* [A nice GPGPU bufferState of play video](https://www.youtube.com/watch?v=48AdJgTYSFQ)
+* [Interesting project ](https://www.phoronix.com/news/SCALE-CUDA-Apps-For-AMD-GPUs)
+* [More ](https://www.phoronix.com/review/radeon-cuda-zluda)
+* [More](https://scale-lang.com/posts/2024-07-12-release-announcement)
+* [Scale](https://docs.scale-lang.com/)
+
+### Blogs and Articles
+* [Inside NVIDIA GPUs: Anatomy of high performance matmul kernels](https://www.aleksagordic.com/blog/matmul)
+* [How to Optimize a CUDA Matmul Kernel for cuBLAS-like Performance: a Worklog](https://siboehm.com/articles/22/CUDA-MMM)

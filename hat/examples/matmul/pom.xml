@@ -29,7 +29,6 @@ questions.
     <modelVersion>4.0.0</modelVersion>
     <artifactId>hat-example-matmul</artifactId>
     <packaging>jar</packaging>
-
     <parent>
         <groupId>oracle.code</groupId>
         <artifactId>hat-examples</artifactId>
@@ -43,37 +42,4 @@ questions.
             <scope>compile</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <id>1</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <configuration>
-                            <target>
-                                <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
-                <configuration>
-                    <release>26</release>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
 </project>

@@ -1,1 +1,0 @@
--cp build/hat-core-1.0.jar:build/hat-tools-1.0.jar
