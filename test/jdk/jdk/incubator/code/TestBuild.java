@@ -23,14 +23,23 @@
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
-import jdk.incubator.code.Reflect;
+import jdk.incubator.code.CodeContext;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.AccessFlag;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.IntBinaryOperator;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -391,5 +400,53 @@ public class TestBuild {
         block.add(constant(INT, 0));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
+    }
+
+    @Test
+    void testBuilderInoperableAfterBuildFinishes() {
+        var bodyBuilder = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        var entryBlockBuilder = bodyBuilder.entryBlock();
+        var blockBuilder = entryBlockBuilder.block();
+        blockBuilder.add(return_());
+        entryBlockBuilder.add(branch(blockBuilder.reference()));
+
+        var fop = func("f", bodyBuilder);
+
+        for (Object r : List.of(bodyBuilder, blockBuilder)) {
+            for (Method m : r.getClass().getDeclaredMethods()) {
+                if (m.accessFlags().contains(AccessFlag.STATIC) || !m.accessFlags().contains(AccessFlag.PUBLIC)) {
+                    continue;
+                }
+                List<Object> args = new ArrayList<>();
+                for (Class<?> parameterType : m.getParameterTypes()) {
+                    Object arg;
+                    if (parameterType == Value[].class) {
+                        arg = new Value[]{};
+                    } else if (parameterType == CodeType[].class) {
+                        arg = new CodeType[]{};
+                    } else if (parameterType == CodeType.class) {
+                        arg = INT;
+                    } else if (parameterType == List.class) {
+                        arg = List.of();
+                    } else if (parameterType == CodeContext.class) {
+                        arg = CodeContext.create();
+                    } else if (parameterType == CodeTransformer.class) {
+                        arg = CodeTransformer.COPYING_TRANSFORMER;
+                    } else if (parameterType == Body.class) {
+                        arg = fop.body();
+                    } else if (parameterType == Op.class) {
+                        arg = fop;
+                    } else if (parameterType == Object.class) {
+                        arg = null;
+                    } else {
+                        throw new AssertionError("Unhandled parameter type " + parameterType + ", in the method " + m);
+                    }
+                    args.add(arg);
+                }
+                var wrapperException = Assertions.assertThrowsExactly(InvocationTargetException.class,
+                        () -> m.invoke(r, args.toArray()));
+                Assertions.assertInstanceOf(IllegalStateException.class, wrapperException.getCause());
+            }
+        }
     }
 }
