@@ -265,9 +265,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
                 // Tensor Macros
                 .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
-                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL))
-                .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA))
-                .when(useTensors(), _ -> defineMacroTensorStore(MACRO_TENSOR_STORE));
+                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
+                .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
+                .when(useTensors(), _ -> defineMacroTensorStore(MACRO_FRAGMENT_STORE));
     }
 
     @Override
@@ -995,7 +995,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         String varA = generateVariableName(INDEX_PREFIX);
         String varB = generateVariableName(INDEX_PREFIX);
 
-        return id(MACRO_TENSOR_STORE).paren(_ ->
+        return id(MACRO_FRAGMENT_STORE).paren(_ ->
                 intValue(M).comma().sp()
                 .intValue(N).comma().sp()
                 .id(varA).comma().sp()

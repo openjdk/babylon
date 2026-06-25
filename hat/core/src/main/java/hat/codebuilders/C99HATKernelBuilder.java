@@ -124,9 +124,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String BF16_TO_FLOAT_0 = "BF16_TO_FLOAT_0";
     public static final String BF16_TO_FLOAT_1 = "BF16_TO_FLOAT_1";
     public static final String MACRO_FRAMGMENT_CREATE = "FRAGMENT_CREATE";
-    public static final String MACRO_TENSOR_FILL = "TENSOR_FILL";
-    public static final String MACRO_TENSOR_MMA = "TENSOR_MMA";
-    public static final String MACRO_TENSOR_STORE = "TENSOR_STORE";
+    public static final String MACRO_FRAGMENT_FILL = "FRAGMENT_FILL";
+    public static final String MACRO_FRAGMENT_MMA = "FRAGMENT_MMA";
+    public static final String MACRO_FRAGMENT_STORE = "FRAGMENT_STORE";
     public static final String MACRO_COND = "MACRO_COND";
 
     protected static final String INDEX_PREFIX = "index_$";
@@ -1534,7 +1534,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 String.valueOf(shape.getFirst()),
                 String.valueOf(shape.get(1)),
                 String.valueOf(initValue));
-        id(MACRO_TENSOR_FILL).paren( _ -> commaSpaceSeparated(params, this::id));
+        id(MACRO_FRAGMENT_FILL).paren(_ -> commaSpaceSeparated(params, this::id));
         return self();
     }
 
@@ -1557,7 +1557,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         final String N = Integer.toString(shape.get(1));
         final String K = Integer.toString(shape.get(2));
         List<String> params = List.of(varA, varB, varC, acc, tensorA.varName(), tensorB.varName(), tensorC.varName(), tensorResult.varName(), M, N, K);
-        return id(MACRO_TENSOR_MMA).paren(_ -> commaSpaceSeparated(params, this::id));
+        return id(MACRO_FRAGMENT_MMA).paren(_ -> commaSpaceSeparated(params, this::id));
     }
 
     protected T varOpTensor(CoreOp.VarOp varOp) {
