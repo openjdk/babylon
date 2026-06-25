@@ -24,7 +24,9 @@
  */
 void main(String[] args) throws IOException{
       Files.walkFileTree(Paths.get("./"), new SimpleFileVisitor<>() {
-         private static final Set<String> TARGET_EXTENSIONS = Set.of(".java", ".h", ".cpp");
+         private static final Set<String> TARGET_EXTENSIONS = Set.of(".java", ".h", ".cpp", ".md");
+         private static final Set<String> SKIP_COPYRIGHT_EXTENSIONS = Set.of(".md");
+
          private static final Set<String> TARGET_FILES = Set.of("pom.xml"/* "CMakeLists.txt"*/);
          private static final Pattern COPYRIGHT_PATTERN = Pattern.compile("^.*Copyright.*202[0-9].*(Intel|Oracle).*$", Pattern.MULTILINE);
 
@@ -40,7 +42,10 @@ void main(String[] args) throws IOException{
                      var lines = Files.readAllLines(file, StandardCharsets.UTF_8);
                      var tab = new ArrayList<Integer>();
                      var eolWs = new ArrayList<Integer>();
-                     var copyright = false;
+                     var copyright = SKIP_COPYRIGHT_EXTENSIONS.stream().anyMatch(name::endsWith);
+                     if (copyright){
+                        IO.println("No copyright needed for "+name);
+                     }
                      for (int i = 0; i < lines.size(); i++) {
                         var line = lines.get(i);
                         copyright = copyright || COPYRIGHT_PATTERN.matcher(line).find();
