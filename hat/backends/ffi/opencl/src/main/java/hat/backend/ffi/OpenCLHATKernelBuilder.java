@@ -840,61 +840,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     /**
-     * Example of code being generated:
-     * <p>
-     * <code>
-     *  for (int m = 0; m < WMMA_M; m++) {
-     *   int rowC = cRow + m;
-     *   for (int n = 0; n < WMMA_N; n++) {
-     *      int colC = cCol + n;
-     *      int idxC = (cRow) + (cCol) * ldc;
-     *      matrixC->array[idxC] = acc[m * 16 + n];
-     *   }
-     * }
-     * </code>
-     * </p>
-     *
-     * @param M
-     * @param N
-     * @param varA
-     * @param varB
-     * @param iIndexValue
-     * @param jIndexValue
-     * @param isColumnMajor
-     * @param leadingDimension
-     * @param ptrValue
-     * @param tensorVarOp
-     *
-     * @return {@link OpenCLHATKernelBuilder}
-     */
-    private OpenCLHATKernelBuilder generateTensorStore(int M, int N, String varA, String varB, String iIndexValue, String jIndexValue, boolean isColumnMajor, String leadingDimension, String ptrValue, String tensorVarOp) {
-        final int from = 0;
-        forLoop(varA, String.valueOf(from), String.valueOf(M)).in();
-        String row = generateVariableName("row_");
-        brace(_ -> {
-            nl().s32Type().sp().id(row).assign();
-            id(iIndexValue).plus().id(varA).semicolon().nl();
-            forLoop(varB, String.valueOf(from), String.valueOf(N)).sp().in();
-            String col = generateVariableName("col_");
-            brace(_ -> {
-                nl().s32Type().sp().id(col).assign();
-                id(jIndexValue).plus().id(varB).semicolon().nl();
-                String index = generateVariableName(INDEX_PREFIX);
-                s32Type().sp().id(index).assign();
-                String aVal = isColumnMajor? col: row;
-                String bVal = isColumnMajor? row: col;
-                id(aVal).sp().mul().sp();
-                id(leadingDimension).sp().plus().id(bVal).semicolon().nl();
-                // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
-                id(ptrValue).rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
-                id(tensorVarOp).sbrace( _ -> id(varA).mul().intValue(N).plus().id(varB));
-                semicolon().nl();
-            }).out();
-        }).out();
-        return self();
-    }
-
-    /**
      * Code example being generated:
      *
      * <p>
@@ -937,13 +882,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final int N = shape.get(1);
         String varA = generateVariableName(INDEX_PREFIX);
         String varB = generateVariableName(INDEX_PREFIX);
-
-//        generateTensorStore(M, N, varA, varB,
-//                iIndexValue.varName(), jIndexValue.varName(),
-//                isColumnMajor,
-//                leadingDimension.varName(),
-//                ptrValue.varName(),
-//                tensorVarOp.varName());
 
         // params:         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
         return id(MACRO_TENSOR_STORE).paren(_ ->
