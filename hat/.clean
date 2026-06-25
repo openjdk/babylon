@@ -1,1 +1,0 @@
--cp hat/job/target/job-1.0.jar  --enable-preview --source 28 hat.java clean
