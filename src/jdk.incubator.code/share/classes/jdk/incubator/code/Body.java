@@ -488,7 +488,7 @@ public final class Body implements CodeElement<Body, Block> {
      * <a id="body-building-finishing"></a>
      * After building finishes, the body and its child blocks become observable, and the body builder and its block
      * builders all become inoperable, regardless of whether building succeeds or fails with an exception.
-     * Further attempts to operate on the builders throw an exception.
+     * Further attempts to operate on the builders throw an {@link IllegalStateException}.
      * <p>
      * A body builder may be connected to its {@link #connectedAncestorBody() nearest ancestor} body builder. This
      * connection constrains the order in which the connected builders can finish building, ancestors cannot finish
@@ -861,6 +861,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @return the body builder's signature
          */
         public FunctionType bodySignature() {
+            check();
             CodeType returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return CoreType.functionType(returnType, eb.parameterTypes());
@@ -871,6 +872,7 @@ public final class Body implements CodeElement<Body, Block> {
          * <a href="#connected-builder">connected</a>, otherwise {@code null} if this body builder is isolated}
          */
         public Builder connectedAncestorBody() {
+            check();
             return connectedAncestorBody;
         }
 
@@ -878,17 +880,20 @@ public final class Body implements CodeElement<Body, Block> {
          * {@return this body builder's entry block builder}
          */
         public Block.Builder entryBlock() {
+            check();
             return entryBlock;
         }
 
         @Override
         public boolean equals(Object o) {
+            check();
             if (this == o) return true;
             return o instanceof Builder that && Body.this == that.target();
         }
 
         @Override
         public int hashCode() {
+            check();
             return Body.this.hashCode();
         }
 

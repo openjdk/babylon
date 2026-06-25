@@ -1,1 +1,1 @@
--cp hat/job.jar --enable-preview --source 28 hat.java sanity
+scripts/sanity.java

@@ -27,64 +27,18 @@ questions.
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>oracle.code</groupId>
     <artifactId>hat-example-experiments</artifactId>
-    <version>1.0</version>
     <packaging>jar</packaging>
-    <!-- this required to inherit parent properties -->
     <parent>
         <groupId>oracle.code</groupId>
         <version>1.0</version>
         <artifactId>hat-examples</artifactId>
     </parent>
-
     <dependencies>
-        <dependency>
-            <groupId>oracle.code</groupId>
-            <version>1.0</version>
-            <artifactId>hat-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>oracle.code</groupId>
-            <version>1.0</version>
-            <artifactId>hat-backend-ffi-shared</artifactId>
-        </dependency>
         <dependency>
             <groupId>oracle.code</groupId>
             <version>1.0</version>
             <artifactId>hat-backend-ffi-opencl</artifactId>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <configuration>
-                            <target>
-                                <copy file="target/${project.artifactId}-${project.version}.jar" toDir="${hat.build}"/>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
-                <configuration>
-                    <release>26</release>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
 </project>
