@@ -33,6 +33,9 @@ questions.
     <artifactId>hat-root</artifactId>
     <version>1.0</version>
   </parent>
+  <modules>
+        <module>shared</module>
+  </modules>
   <profiles>
     <profile>
       <id>cuda</id>
