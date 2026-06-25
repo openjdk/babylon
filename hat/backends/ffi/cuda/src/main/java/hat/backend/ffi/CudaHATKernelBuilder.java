@@ -878,6 +878,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * </p>
      *
      * @param tensorLoad
+     *      Invoke node that represents the tensor load operation
      *
      * @return {@link CudaHATKernelBuilder}
      */
@@ -959,6 +960,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * </p>
      *
      * @param tensorStore
+     *      Invoke node that represents the tensor store operation
      *
      * @return {@link CudaHATKernelBuilder}
      */

@@ -1484,21 +1484,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
         Value a = isColumnMajor ? iIndex : jIndex;
         Value b = isColumnMajor ? jIndex : iIndex;
-
-        if (a instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        plus();
-        oparen();
-        if (b instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        mul();
-        if (ldSize instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        cparen();
-        return self();
+        return recurseResultOrThrow(a).plus().paren(_ -> recurseResultOrThrow(b).mul().recurseResultOrThrow(ldSize));
     }
 
     protected boolean isColumnMajor(Value tensorLayout) {
