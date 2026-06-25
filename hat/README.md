@@ -33,7 +33,7 @@ The toolkit offers:
 
 We actively develop and run benchmarks on the following systems:
 
-- Apple Silicon M1-M4
+- Apple Silicon M1-M5
 - Linux Fedora >= 43
 - Oracle Linux >= 10.0
 - Ubuntu >= 22.04
@@ -57,12 +57,25 @@ export JAVA_HOME=<BABYLON-DIR>/build/macosx-aarch64-server-release/images/jdk
 export PATH=$JAVA_HOME/bin:$PATH
 ```
 
-### 3. Build HAT
+### 3. Install HAT specific tools (cmake and maven)
+
+Either
 
 ```bash
-sdk install jextract #if needed
+brew install maven
+brew install cmake
+```
+
+Or
+```bash
+sudo apt-get install maven cmake
+```
+
+### 4. Build HAT
+
+```bash
 cd hat
-java @.bld
+mvn clean package
 ```
 
 Done!
@@ -72,13 +85,13 @@ Done!
 For instance, matrix-multiply:
 
 ```bash
-java @.run ffi-opencl matmul --size=1024
+java @.ffi-opencl-example matmul.Main --size=1024
 ```
 
 Some examples have a GUI implementation:
 
 ```java
-java @.run ffi-opencl mandel
+java @.ffi-opencl-example mandel.Main
 ```
 
 Full list of examples:
@@ -90,13 +103,13 @@ Full list of examples:
 OpenCL backend:
 
 ```bash
-java @.test-suite ffi-opencl
+java @.ffi-opencl-test-suite
 ```
 
 CUDA backed:
 
 ```bash
-java @.test-suite ffi-cuda
+java @.ffi-cuda-test-suite
 ```
 
 ## Full Example Explained
@@ -200,8 +213,8 @@ java --enable-preview \
    --add-modules=jdk.incubator.code \
    --enable-native-access=ALL-UNNAMED \
    --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar \
-   -Djava.library.path=/Users/juanfumero/repos/babylon/hat/build \
-   ExampleHAT
+   -Djava.library.path=build \
+   mandel.Main
 ```
 
 If you run with `HAT=INFO` you can see which accelerator was used:
@@ -211,8 +224,8 @@ $ HAT=INFO java --enable-preview \
    --add-modules=jdk.incubator.code \
    --enable-native-access=ALL-UNNAMED \
    --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar \
-   -Djava.library.path=/Users/juanfumero/repos/babylon/hat/build \
-  ExampleHAT.java
+   -Djava.library.path=build \
+  mandel.Main
 
 [INFO] Config Bits = 8000
 [INFO] Platform :"Apple"
@@ -223,8 +236,6 @@ $ HAT=INFO java --enable-preview \
 [INFO] numDimensions: 1
 [INFO] GLOBAL [4096,1,1]
 [INFO] LOCAL  [ nullptr ] // The driver will setup a default value
-
-Result is correct
 ```
 
 ## Documentation
@@ -241,8 +252,8 @@ Contributions are welcome. Please see the [OpenJDK Developers' Guide](https://op
 2. Create a feature branch: `git checkout -b <branch>`
 3. Commit with clear messages
 4. Run formatting and tests:
-   1. For OpenCL: `java @.test-suite ffi-opencl`
-   1. For CUDA: `java @.test-suite ffi-cuda`
+   1. For OpenCL: `java @.ffi-opencl-test-suite`
+   1. For CUDA: `java @.ffi-cuda-test-suite`
 5. Submit a pull request
 
 
