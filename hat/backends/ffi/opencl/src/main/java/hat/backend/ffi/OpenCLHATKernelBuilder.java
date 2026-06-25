@@ -187,7 +187,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 // Tensor Macros
                 .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_TENSOR_FILL))
-                .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA));
+                .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_TENSOR_MMA))
+                .when(useTensors(), _ -> defineMacroTensorStore(MACRO_TENSOR_STORE));
     }
 
     @Override
@@ -471,8 +472,47 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 id(result).sbrace(_ -> id(varA).sp().mul().sp().id(N).sp().plus().sp().id(varB)).assign().id(acc).semicolon().sp().backslash().nl();
             }).sp().backslash().nl().out();
         }).out();
-        sp().backslash().nl();
+        sp().backslash().nl().nl();
         return self();
+    }
+
+    public OpenCLHATKernelBuilder parenId(String id) {
+        return paren(_ -> id(id));
+    }
+
+    public OpenCLHATKernelBuilder defineMacroTensorStore(String macroName) {
+        List<String> macroCondAssignParams = List.of("row", "col", "condition");
+        macroNoParenthesis("COND", macroCondAssignParams, _ -> paren(_ -> parenId("condition").sp().questionMark().sp().parenId("col").sp().colon().sp().parenId("row"))).nl();
+
+        List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
+        return macroNoParenthesis(macroName, params, _ -> {
+            backslash().nl();
+            final int from = 0;
+            forLoop("varA", String.valueOf(from), "M").in();
+            String row = generateVariableName("row_");
+            brace(_ -> {
+                sp().backslash().nl().s32Type().sp().id(row).assign();
+                id("iIndexValue").plus().id("varA").semicolon().sp().backslash().nl();
+                forLoop("varB", String.valueOf(from), "N").sp().in();
+                String col = generateVariableName("col_");
+                brace(_ -> {
+                    sp().backslash().nl().s32Type().sp().id(col).assign();
+                    id("jIndexValue").plus().id("varB").semicolon().sp().backslash().nl();
+                    String index = generateVariableName(INDEX_PREFIX);
+                    s32Type().sp().id(index).assign()
+                            //.id("aVal")
+                            .id("COND").paren(_ -> id(row).comma().id(col).comma().id("isColumnMajor"))
+                            .sp().mul().sp().id("leadingDimension").sp().plus()
+                            //.id("bVal")
+                            .id("COND").paren(_ -> id(col).comma().id(row).comma().id("isColumnMajor"))
+                            .semicolon().sp().backslash().nl();
+                    // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
+                    id("reference").rarrow().id(ARRAY).sbrace( _ -> id(index)).assign();
+                    id("tensorToStore").sbrace( _ -> id("varA").mul().id("N").plus().id("varB"));
+                    semicolon().sp().backslash().nl();
+                }).out().sp().backslash().nl();
+            }).out().sp().backslash().nl();
+        });
     }
 
     @Override
@@ -841,13 +881,8 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 id(jIndexValue).plus().id(varB).semicolon().nl();
                 String index = generateVariableName(INDEX_PREFIX);
                 s32Type().sp().id(index).assign();
-
-                String aVal = row;
-                String bVal = col;
-                if (isColumnMajor) {
-                    aVal = col;
-                    bVal = row;
-                }
+                String aVal = isColumnMajor? col: row;
+                String bVal = isColumnMajor? row: col;
                 id(aVal).sp().mul().sp();
                 id(leadingDimension).sp().plus().id(bVal).semicolon().nl();
                 // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
@@ -865,7 +900,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      * <p>
      * <code>
      *  for (int m = 0; m < WMMA_M; m++) {
-     *  `int rowC = cRow + m;
+     *  int rowC = cRow + m;
      *   for (int n = 0; n < WMMA_N; n++) {
      *      int colC = cCol + n;
      *      int idxC = (cRow) + (cCol) * ldc;
@@ -890,9 +925,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
         var shape = getShapeFromTensorVarOp(tensorVarOp);
 
-        boolean isColumnMajor = false;
+        boolean isColumnMajor;
         if (tensorStoreInvoke.op().operands().size() == 6) {
             isColumnMajor = isColumnMajor(operands.getLast());
+        } else {
+            isColumnMajor = false;
         }
 
         // Output is MxN, given the shape in an (M,N,K) triplet
@@ -900,12 +937,26 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         final int N = shape.get(1);
         String varA = generateVariableName(INDEX_PREFIX);
         String varB = generateVariableName(INDEX_PREFIX);
-        generateTensorStore(M, N, varA, varB,
-                iIndexValue.varName(), jIndexValue.varName(),
-                isColumnMajor,
-                leadingDimension.varName(),
-                ptrValue.varName(),
-                tensorVarOp.varName());
-        return self();
+
+//        generateTensorStore(M, N, varA, varB,
+//                iIndexValue.varName(), jIndexValue.varName(),
+//                isColumnMajor,
+//                leadingDimension.varName(),
+//                ptrValue.varName(),
+//                tensorVarOp.varName());
+
+        // params:         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
+        return id(MACRO_TENSOR_STORE).paren(_ ->
+                intValue(M).comma().sp()
+                        .intValue(N).comma().sp()
+                        .id(varA).comma().sp()
+                        .id(varB).comma().sp()
+                        .id(iIndexValue.varName()).comma().sp()
+                        .id(jIndexValue.varName()).comma().sp()
+                        .id(String.valueOf(isColumnMajor)).comma().sp()
+                        .id(leadingDimension.varName()).comma().sp()
+                        .id(ptrValue.varName()).comma().sp()
+                        .id(tensorVarOp.varName()).comma().sp()
+                        .id(ZERO));
     }
 }
