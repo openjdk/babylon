@@ -1214,7 +1214,8 @@ public sealed abstract class JavaOp extends Op {
         final CodeType resultType;
 
         NewOp(ExternalizedOp def) {
-            this(optionalBooleanAttribute(def, ATTRIBUTE_NEW_VARARGS), def.resultType(),
+            this(optionalBooleanAttribute(def, ATTRIBUTE_NEW_VARARGS),
+                 def.resultType(),
                  requireAttribute(def, ATTRIBUTE_NEW_REF, true, MethodRef.class),
                  def.operands());
         }
