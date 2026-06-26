@@ -176,23 +176,22 @@ make images > jvmbuild.log
 
 ## Build HAT 
 cd hat 
-if [ ! -d jextract-22 ];
+if [ ! -d jextract-25 ];
 then
   echo "ARCHITECTIRE \$(uname -m)"
   if [[ "\$(uname -m)" == "x86_64" ]]; then
-      wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
-      tar xvzf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz > /dev/null
+      wget https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
+      tar xvzf openjdk-25-jextract+2-4_linux-x64_bin.tar.gz > /dev/null
   elif [[ "\$(uname -m)" == "arm64" ]]; then
-      wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz
-      tar xvzf openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz > /dev/null
+      wget https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_macos-aarch64_bin.tar.gz
+      tar xvzf openjdk-25-jextract+2-4_macos-aarch64_bin.tar.gz > /dev/null
   fi
-  echo "export PATH=\$(pwd)/jextract-22/bin:\$PATH" >> setup.sh
+  echo "export PATH=\$(pwd)/jextract-25/bin:\$PATH" >> setup.sh
   echo "source env.bash" >> setup.sh
 fi
 
 source setup.sh > /dev/null 2> /dev/null
-java @hat/clean > hatCompilation.log 2> hatCompilationErrors.log
-java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
+mvn clean package > hatCompilation.log 2> hatCompilationErrors.log
 EOF
 done
 
@@ -226,8 +225,8 @@ java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
 # run the test suite per backend
 for backend in "\${BACKENDS[@]}"
 do
-echo -e "${GREEN}[running] java -cp hat/job.jar hat.java test "\$backend" ${NC}"
-java -cp hat/job.jar hat.java test-suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
+echo -e "${GREEN}[running] HAT=CHECK_SSA_LOWERING java @.test-suite  "\$backend" ${NC}"
+HAT=CHECK_SSA_LOWERING java @.test-suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
 done
 
 # Print logs
@@ -239,8 +238,8 @@ done
 ## Run violajones
 for backend in "\${BACKENDS[@]}"
 do
-echo -e "${GREEN}[running] java -cp hat/job.jar hat.java run "\$backend" -Dheadless=true violajones${NC}"
-java -cp hat/job.jar hat.java run "\$backend" -Dheadless=true violajones > "\$backend"Violajones.log
+echo -e "${GREEN}[running] java @."\$backend"-example -Dheadless=true violajones.Main${NC}"
+java @."\$backend"-example -Dheadless=true violajones.Main > "\$backend"Violajones.log
 done
 
 for backend in "\${BACKENDS[@]}"
