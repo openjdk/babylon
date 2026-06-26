@@ -40,17 +40,20 @@ cd $remote_path
 cd hat/
 source setup.sh > /dev/null
 
+export HAT=CHECK_SSA_LOWERING 
+
 # run the test suite per backend
 for backend in "${backends[@]}"
 do
 	echo -e "${GREEN}[running] java @.test-suite "$backend" ${NC}"
-	HAT=CHECK_SSA_LOWERING java @.test-suite "$backend"  > "$backend".txt 2> "$backend"Errors.txt
+	#java @.test-suite "$backend"  > "$backend".txt 2> "$backend"Errors.txt
+	java @.test-suite "$backend" 
 done
 
 # Print logs
 for backend in "${backends[@]}"
 do
-	cat "$backend".txt
+	cat ffi-"$backend".txt
 done
 
 ## Run violajones

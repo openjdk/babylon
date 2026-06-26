@@ -47,4 +47,4 @@ git pull
 
 # compile HAT
 source setup.sh 
-mvn clean package > maven_log.txt 2> /dev/null
+mvn clean package 

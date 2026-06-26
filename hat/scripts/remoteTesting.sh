@@ -161,37 +161,42 @@ run_tests_hat() {
   do
     server=${listOfServers[$index]}
     user=${listOfUsers[$index]}
-    list=${BACKENDS[@]}
+    list_backends=${BACKENDS[@]}
     echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/compile.sh ${NC}"
-    ssh $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list}" < scripts/compile.sh
+    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/compile.sh
     echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/test.sh ${NC}"
-    ssh $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list}" < scripts/test.sh
+    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/test.sh
   done
 }
 
-while [[ $# -gt 0 ]]; do
-  key="$1"
-  case $key in
-    --help)
-      display_help
-      exit
-      ;;
-    --generate-config-file)
-      generate_config_file
-      exit 
-      ;;
-    --build-babylon)
-      build_babylon
-      exit 0
-      ;;
-    *)
-      # Unknown option
-      echo "Error: Unknown option '$key'"
-      echo "Use --help for a list of available options."
-      exit 1
-      ;;
-  esac
-done
+main() {
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+      --help)
+        display_help
+        exit
+        ;;
+      --generate-config-file)
+        generate_config_file
+        exit 
+        ;;
+      --build-babylon)
+        build_babylon
+        exit 0
+        ;;
+      *)
+        # Unknown option
+        echo "Error: Unknown option '$key'"
+        echo "Use --help for a list of available options."
+        exit 1
+        ;;
+    esac
+  done
+  ## No options, we launch the tests
+  run_tests_hat
+}
 
-run_tests_hat
+main
+
 
