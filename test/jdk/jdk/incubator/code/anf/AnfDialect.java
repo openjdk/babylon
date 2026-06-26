@@ -280,7 +280,7 @@ public final class AnfDialect {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
-            Object v = def.attributes().getOrDefault("", def.attributes().get(ATTRIBUTE_FUNC_NAME));
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_FUNC_NAME);
             String funcName = switch (v) {
                 case String s -> s;
                 case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
@@ -388,7 +388,7 @@ public final class AnfDialect {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            Object v = def.attributes().getOrDefault("", def.attributes().get(ATTRIBUTE_CALLSITE_NAME));
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_CALLSITE_NAME);
             String callsiteName = switch (v) {
                 case String s -> s;
                 case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
@@ -445,6 +445,11 @@ public final class AnfDialect {
             op.setLocation(def.location());
         }
         return op;
+    }
+
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
     }
 
     static final OpFactory FACTORY = AnfDialect::createOp;

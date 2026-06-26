@@ -85,7 +85,7 @@ sealed abstract class SlotOp extends Op {
         final CodeType resultType;
 
         public SlotLoadOp(ExternalizedOp def) {
-            Object v = def.attributes().getOrDefault("", def.attributes().get(ATTRIBUTE_SLOT));
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_SLOT);
             int slot = switch (v) {
                 case String s -> Integer.parseInt(s);
                 case Integer i -> i;
@@ -135,7 +135,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         public SlotStoreOp(ExternalizedOp def) {
-            Object v = def.attributes().getOrDefault("", def.attributes().get(ATTRIBUTE_SLOT));
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_SLOT);
             int slot = switch (v) {
                 case String s -> Integer.parseInt(s);
                 case Integer i -> i;
@@ -182,5 +182,11 @@ sealed abstract class SlotOp extends Op {
             default ->
                 TypeKind.REFERENCE;
         };
+    }
+
+
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
     }
 }
