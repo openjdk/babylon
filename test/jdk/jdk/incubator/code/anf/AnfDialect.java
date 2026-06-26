@@ -280,12 +280,11 @@ public final class AnfDialect {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
-
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = def.attributes().getOrDefault("", def.attributes().get(ATTRIBUTE_FUNC_NAME));
+            String funcName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
             return new AnfFuncOp(funcName, def.bodyDefinitions().get(0));
         }
 
@@ -389,11 +388,11 @@ public final class AnfDialect {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            String callsiteName = def.extractAttributeValue(ATTRIBUTE_CALLSITE_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = def.attributes().getOrDefault("", def.attributes().get(ATTRIBUTE_CALLSITE_NAME));
+            String callsiteName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
             return new AnfApplyStub(callsiteName, def.operands(), def.resultType());
         }
 

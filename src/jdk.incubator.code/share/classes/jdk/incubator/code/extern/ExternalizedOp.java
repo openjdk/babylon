@@ -28,7 +28,6 @@ import jdk.incubator.code.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * An operation's externalized state (a record) that can be utilized to construct an instance
@@ -69,42 +68,6 @@ public record ExternalizedOp(String name,
      */
     public ExternalizedOp {
         attributes = Map.copyOf(attributes);
-    }
-
-    /**
-     * Gets an attribute value from the attributes map, converts the value by applying it
-     * to mapping function, and returns the result.
-     *
-     * <p>If the attribute is a default attribute then this method first attempts to
-     * get the attribute whose name is the empty string, otherwise if there is no such
-     * attribute present or the attribute is not a default attribute then this method
-     * attempts to get the attribute with the given name.
-     *
-     * <p>On successfully obtaining the attribute its value is converted by applying the value
-     * to the mapping function. A {@code null} value is represented by the value
-     * {@link ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
-     *
-     * <p>If no attribute is present the {@code null} value is applied to the mapping function.
-     *
-     * @param name      the attribute name.
-     * @param isDefault true if the attribute is a default attribute
-     * @param mapper    the function used to convert the attribute value
-     * @param <T>       the converted attribute value type
-     * @return the converted attribute value
-     */
-    public <T> T extractAttributeValue(String name, boolean isDefault, Function<Object, T> mapper) {
-        Object value = null;
-        if (isDefault && attributes.containsKey("")) {
-            value = attributes.get("");
-            assert value != null;
-        }
-
-        if (value == null && attributes.containsKey(name)) {
-            value = attributes.get(name);
-            assert value != null;
-        }
-
-        return mapper.apply(value);
     }
 
     /**
