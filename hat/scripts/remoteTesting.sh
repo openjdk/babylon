@@ -1,6 +1,6 @@
 #!/bin/env/bash
 
-# Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@ display_help() {
   echo "Options:"
   echo "  --help                  Display this help message and exit."
   echo "  --generate-config-file  Generate a default configuration file and exit."
-  echo "  --build-babylon         Build Babylon and HAT for all remote servers"
+  echo "  --build-babylon         Build Babylon and HAT for all remote servers."
   echo
   echo "How to use it?"
   echo "   1. Run this script with --generate-config-file "
@@ -144,110 +144,29 @@ read_config_file() {
 }
 
 build_babylon() {
-
-  echo "Build Babylon and HAT"
-  
+  echo "Build Babylon and HAT" 
   read_config_file
-
   for index in "${!listOfServers[@]}"
   do
     server=${listOfServers[$index]}
     user=${listOfUsers[$index]}
-
-    echo -e "${GREEN}[info] ssh $user@$server${NC}"
-    ssh -T $user@$server << EOF
-if [ ! -d $REMOTE_PATH ]; 
-then 
-  mkdir -p \$(dirname $REMOTE_PATH)
-  cd \$(dirname $REMOTE_PATH)
-  git clone $FORK \$(basename $REMOTE_PATH)
-fi
-
-#Assuming the remote path ends with babylon
-cd $REMOTE_PATH
-git fetch --all
-git checkout $BRANCH
-git pull
-
-echo "bash configure --with-boot-jdk=\$HOME/.sdkman/candidates/java/current"
-bash configure --with-boot-jdk="\$HOME/.sdkman/candidates/java/current" > jvmconfig.log
-make clean
-make images > jvmbuild.log
-
-## Build HAT 
-cd hat 
-if [ ! -d jextract-25 ];
-then
-  echo "ARCHITECTIRE \$(uname -m)"
-  if [[ "\$(uname -m)" == "x86_64" ]]; then
-      wget https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
-      tar xvzf openjdk-25-jextract+2-4_linux-x64_bin.tar.gz > /dev/null
-  elif [[ "\$(uname -m)" == "arm64" ]]; then
-      wget https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_macos-aarch64_bin.tar.gz
-      tar xvzf openjdk-25-jextract+2-4_macos-aarch64_bin.tar.gz > /dev/null
-  fi
-  echo "export PATH=\$(pwd)/jextract-25/bin:\$PATH" >> setup.sh
-  echo "source env.bash" >> setup.sh
-fi
-
-source setup.sh > /dev/null 2> /dev/null
-mvn clean package > hatCompilation.log 2> hatCompilationErrors.log
-EOF
-done
-
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $FORK $BRANCH $REMOTE_PATH' < scripts/build_babylon.sh ${NC}"
+    ssh -t $user@$server "bash -s -- ${FORK} ${BRANCH} ${REMOTE_PATH}" < scripts/build_babylon.sh
+  done
 }
 
 run_tests_hat() {
-
-read_config_file
-
-for index in "${!listOfServers[@]}"
-do
-
-server=${listOfServers[$index]}
-user=${listOfUsers[$index]}
-
-echo -e "\n${GREEN}[info] ssh $user@$server${NC}"
-backend_definition=$(typeset -p BACKENDS)
-ssh $user@$server bash << EOF
-$backend_definition
-cd "$REMOTE_PATH"
-cd hat/
-git fetch --all
-git checkout $BRANCH
-git pull
-
-# compile
-source setup.sh > /dev/null 2> /dev/null
-java @hat/clean > hatCompilation.log 2> hatCompilationErrors.log
-java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
-
-# run the test suite per backend
-for backend in "\${BACKENDS[@]}"
-do
-echo -e "${GREEN}[running] HAT=CHECK_SSA_LOWERING java @.test-suite  "\$backend" ${NC}"
-HAT=CHECK_SSA_LOWERING java @.test-suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
-done
-
-# Print logs
-for backend in "\${BACKENDS[@]}"
-do
-cat "\$backend".txt
-done
-
-## Run violajones
-for backend in "\${BACKENDS[@]}"
-do
-echo -e "${GREEN}[running] java @."\$backend"-example -Dheadless=true violajones.Main${NC}"
-java @."\$backend"-example -Dheadless=true violajones.Main > "\$backend"Violajones.log
-done
-
-for backend in "\${BACKENDS[@]}"
-do
-cat "\$backend"Violajones.log | grep "336faces found"
-done
-EOF
-done
+  read_config_file
+  for index in "${!listOfServers[@]}"
+  do
+    server=${listOfServers[$index]}
+    user=${listOfUsers[$index]}
+    list=${BACKENDS[@]}
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/compile.sh ${NC}"
+    ssh $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list}" < scripts/compile.sh
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/test.sh ${NC}"
+    ssh $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list}" < scripts/test.sh
+  done
 }
 
 while [[ $# -gt 0 ]]; do
