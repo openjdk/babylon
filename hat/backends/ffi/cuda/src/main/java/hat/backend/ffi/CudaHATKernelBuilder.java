@@ -995,13 +995,22 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         String varA = generateVariableName(INDEX_PREFIX);
         String varB = generateVariableName(INDEX_PREFIX);
 
+        // Switch indexes when the memory access layout is not in column major
+        if (!isColumnMajor) {
+            Value tmp = iIndex;
+            iIndex = jIndex;
+            jIndex = tmp;
+        }
+
+        Value finalIIndex = iIndex;
+        Value finalJIndex = jIndex;
         return id(MACRO_FRAGMENT_STORE).paren(_ ->
                 intValue(M).comma().sp()
                 .intValue(N).comma().sp()
                 .id(varA).comma().sp()
                 .id(varB).comma().sp()
-                .recurseResultOrThrow(iIndex).comma().sp()
-                .recurseResultOrThrow(jIndex).comma().sp()
+                .recurseResultOrThrow(finalIIndex).comma().sp()
+                .recurseResultOrThrow(finalJIndex).comma().sp()
                 .id(String.valueOf(isColumnMajor)).comma().sp()
                 .recurseResultOrThrow(ldSize).comma().sp()
                 .recurseResultOrThrow(reference).comma().sp()
