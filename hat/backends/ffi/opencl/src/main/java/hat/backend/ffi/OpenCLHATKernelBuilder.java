@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
@@ -189,6 +190,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
+                .when(useTensors(), _ -> defineMacroTensorLoad(MACRO_FRAGMENT_LOAD_F16))
                 .when(useTensors(), _ -> defineMacroTensorStore(MACRO_FRAGMENT_STORE));
     }
 
@@ -494,6 +496,43 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     public OpenCLHATKernelBuilder parenId(String id) {
         return paren(_ -> id(id));
+    }
+
+    public OpenCLHATKernelBuilder defineMacroTensorLoad(String macroName) {
+        List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad", "memAccessLayout");
+        final int from = 0;
+        return macroNoParenthesis(macroName, params, _ -> {
+            sp().backslash().nl();
+            forLoop("varA", Integer.toString(from), "M").sp().in();
+            String row = generateVariableName("row_");
+            brace(_ -> {
+                sp().backslash().nl().s32Type().sp().id(row).assign();
+                id("iIndexValue").plus().id("varA").semicolon().sp().backslash().nl();
+                forLoop("varB", String.valueOf(from), N).sp().in();
+                String col = generateVariableName("col_");
+                brace(_ -> {
+                    sp().backslash().nl().s32Type().sp().id(col).assign().id("jIndexValue").plus().id("varB").semicolon().sp().backslash().nl();
+                    String index = generateVariableName(INDEX_PREFIX);
+                    s32Type().sp().id(index).assign();
+
+                    id(MACRO_COND).paren(_ -> id(row).comma().id(col).comma().id("isColumnMajor")).sp().mul().sp();
+                    id("leadingDimension").sp().plus().id(MACRO_COND).paren(_ -> id(col).comma().id(row).comma().id("isColumnMajor")).semicolon().sp().backslash().nl();
+
+                    String ha = generateVariableName("ha_");
+
+                    // TODO: We assume a load from global memory. In future version, we will process loads from other memory regions of the accelerator
+                    HAT_GLOBAL_MEM().sp().suffix_t(F16Array.F16Impl.class).asterisk().sp().id(ha).assign().ampersand();
+
+                    id("reference").rarrow().id(ARRAY).sbrace( _ -> id(index)).semicolon().sp().backslash().nl();
+                    String r = generateVariableName("r_");
+                    f16Type().sp().id(r).assign().cast( _ -> f16Type()).brace( _-> id(ha).rarrow().id(VALUE)).semicolon().sp().backslash().nl();
+
+                    // store into the accumulator
+                    emitText("tensorToLoad").sbrace( _ -> id("varA").sp().mul().id(N).sp().plus().id("varB"));
+                    equals().sp().id(r).semicolon().sp().backslash().nl();
+                }).out().sp().backslash().nl();
+            }).out().sp().backslash().nl();
+        });
     }
 
     /**
@@ -859,13 +898,51 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         // This is important to get the loop-bounds correct if matrices are not square
         int tensorOrder = getTensorOrder(tensorVarOp.result());
 
-        boolean isColumnMajor = false;
+        boolean isColumnMajor;
         if (tensorLoadInvoke.op().operands().size() == 6) {
             isColumnMajor = isColumnMajor(operands.getLast());
+        } else {
+            isColumnMajor = false;
         }
 
-        generateTensorLoadF16(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp, tensorOrder);
-        return self();
+        //generateTensorLoadF16(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp, tensorOrder);
+
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        final int M;
+        final int N;
+
+        // ---------------------------
+        // Shapes:
+        // tensor A   with shape: MxK
+        // tensor B   with shape: KxN
+        // ---------------------------
+        String matrixOrder = tensorOrderTable.get(tensorOrder);
+        switch (matrixOrder) {
+            case TENSOR_MATRIX_A -> {
+                M = shape.get(0); // M
+                N = shape.get(2); // K
+            }
+            case TENSOR_MATRIX_B -> {
+                M = shape.get(2); // K
+                N = shape.get(1); // N
+            }
+            case null, default -> throw new IllegalStateException("Tensor load matrix order not detected");
+        }
+
+        return id(MACRO_FRAGMENT_LOAD_F16).paren(_ ->
+                intValue(M).comma().sp()
+                        .intValue(N).comma().sp()
+                        .id(varA).comma().sp()
+                        .id(varB).comma().sp()
+                        .recurseResultOrThrow(iIndexValue).comma().sp()
+                        .recurseResultOrThrow(jIndexValue).comma().sp()
+                        .id(String.valueOf(isColumnMajor)).comma().sp()
+                        .recurseResultOrThrow(leadingDimension).comma().sp()
+                        .recurseResultOrThrow(ptrValue).comma().sp()
+                        .id(tensorVarOp.varName()).comma().sp()
+                        .id(ZERO));
+
     }
 
     /**

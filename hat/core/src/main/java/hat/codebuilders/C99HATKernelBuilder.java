@@ -126,6 +126,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String MACRO_FRAMGMENT_CREATE = "FRAGMENT_CREATE";
     public static final String MACRO_FRAGMENT_FILL = "FRAGMENT_FILL";
     public static final String MACRO_FRAGMENT_MMA = "FRAGMENT_MMA";
+    public static final String MACRO_FRAGMENT_LOAD_F16 = "FRAGMENT_LOAD_F16";
     public static final String MACRO_FRAGMENT_STORE = "FRAGMENT_STORE";
     public static final String MACRO_COND = "MACRO_COND";
 
