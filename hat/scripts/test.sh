@@ -1,4 +1,4 @@
-#!/bin/env/bash
+#!/bin/bash
 
 # Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -31,36 +31,44 @@ fi
 GREEN="\033[0;32m"
 NC="\033[0m" # No Color (reset)
 
+## Run nvidia-smi if exists
+if command -v nvidia-smi >/dev/null 2>&1; then
+	nvidia-smi
+	## NVIDIA Env Variables
+	export CPLUS_INCLUDE_PATH=/usr/local/cuda/include
+	export LD_LIBRARY_PATH=/usr/local/cuda/lib64
+	export PATH=/usr/local/cuda/bin/:$PATH
+fi
+
 branch=$1
 remote_path=$2
 shift 2
 backends=("$@")
 
-cd $remote_path
-cd hat/
+cd $remote_path/hat/
 source setup.sh > /dev/null
 
-export HAT=CHECK_SSA_LOWERING 
+# HAT Env variables
+export HAT=CHECK_SSA_LOWERING
 
 # run the test suite per backend
 for backend in "${backends[@]}"
 do
 	echo -e "${GREEN}[running] java @.test-suite "$backend" ${NC}"
-	#java @.test-suite "$backend"  > "$backend".txt 2> "$backend"Errors.txt
-	java @.test-suite "$backend" 
+	java @.test-suite "$backend" > "$backend".txt 2> "$backend"Errors.txt
 done
 
 # Print logs
 for backend in "${backends[@]}"
 do
-	cat ffi-"$backend".txt
+	cat "$backend".txt
 done
 
 ## Run violajones
 for backend in "${backends[@]}"
 do
-	echo -e "${GREEN}[running] java @."\$backend"-example -Dheadless=true violajones.Main${NC}"
-	java @."$backend"-example -Dheadless=true violajones.Main > "\$backend"Violajones.log
+	echo -e "${GREEN}[running] java @."$backend"-example -Dheadless=true violajones.Main${NC}"
+	java @."$backend"-example -Dheadless=true violajones.Main > "$backend"Violajones.log
 done
 
 for backend in "${backends[@]}"

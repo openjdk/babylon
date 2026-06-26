@@ -1,4 +1,4 @@
-#!/bin/env/bash
+#!/bin/bash
 
 # Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -39,11 +39,18 @@ display_help() {
   echo "  --help                  Display this help message and exit."
   echo "  --generate-config-file  Generate a default configuration file and exit."
   echo "  --build-babylon         Build Babylon and HAT for all remote servers."
+  echo "  --build-hat             Build HAT for all remote servers and run the tests."
+  echo "  --tests                 Run HAT unittests. It assumes a previous build was performed."
+  
   echo
   echo "How to use it?"
   echo "   1. Run this script with --generate-config-file "
   echo "   2. Fill the template file: remoteTesting.conf"
-  echo "   3. Run again this script without any parameters "
+  echo "   3. If needed, you can run with --build-babylon to clone babylon and build HAT"
+  echo "   4. (Optional if we run step 3): --build-hat assumes Babylon JDK exists and just checks for latest changes "
+  echo "   5. Run tests: --tests"
+  echo " "
+  echo "Note: if run with no options, it will use --build-hat + --tests"
   exit 0
 }
 
@@ -155,7 +162,31 @@ build_babylon() {
   done
 }
 
+build_hat() {
+  read_config_file
+  for index in "${!listOfServers[@]}"
+  do
+    server=${listOfServers[$index]}
+    user=${listOfUsers[$index]}
+    list_backends=${BACKENDS[@]}
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/compile.sh ${NC}"
+    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/compile.sh
+  done
+}
+
 run_tests_hat() {
+  read_config_file
+  for index in "${!listOfServers[@]}"
+  do
+    server=${listOfServers[$index]}
+    user=${listOfUsers[$index]}
+    list_backends=${BACKENDS[@]}
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/test.sh ${NC}"
+    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/test.sh
+  done
+}
+
+build_and_and_test() {
   read_config_file
   for index in "${!listOfServers[@]}"
   do
@@ -185,6 +216,14 @@ main() {
         build_babylon
         exit 0
         ;;
+      --build-hat)
+        build_hat
+        exit 0
+        ;;
+      --tests)
+        run_tests_hat
+        exit 0
+        ;;
       *)
         # Unknown option
         echo "Error: Unknown option '$key'"
@@ -193,10 +232,10 @@ main() {
         ;;
     esac
   done
-  ## No options, we launch the tests
-  run_tests_hat
+  ## No options, builds HAT and run the tests
+  build_and_and_test
 }
 
-main
+main $@
 
 
