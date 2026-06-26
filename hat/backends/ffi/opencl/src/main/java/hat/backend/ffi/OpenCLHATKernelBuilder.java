@@ -499,7 +499,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     public OpenCLHATKernelBuilder defineMacroTensorLoad(String macroName) {
-        List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad", "memAccessLayout");
+        List<String> params = paramsOfTensorLoad();
         final int from = 0;
         return macroNoParenthesis(macroName, params, _ -> {
             sp().backslash().nl();
@@ -746,20 +746,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         }
     }
 
-    private CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
-        var tensorStoreLoadValue = tensorLoadOp.op().result().uses().getFirst();
-        if (tensorStoreLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp tensorStoreLoadOp) {
-            Value first = tensorStoreLoadOp.operands().getFirst();
-            if (first.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
-                return tensorVarOp;
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
-    }
-
     /**
      * Code example being generated:
      *
@@ -905,8 +891,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             isColumnMajor = false;
         }
 
-        //generateTensorLoadF16(shape, iIndexValue, jIndexValue, isColumnMajor, leadingDimension, ptrValue, tensorVarOp, tensorOrder);
-
         String varA = generateVariableName(INDEX_PREFIX);
         String varB = generateVariableName(INDEX_PREFIX);
         final int M;
@@ -930,6 +914,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             case null, default -> throw new IllegalStateException("Tensor load matrix order not detected");
         }
 
+        // params:         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad");
         return id(MACRO_FRAGMENT_LOAD_F16).paren(_ ->
                 intValue(M).comma().sp()
                         .intValue(N).comma().sp()
@@ -940,9 +925,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .id(String.valueOf(isColumnMajor)).comma().sp()
                         .recurseResultOrThrow(leadingDimension).comma().sp()
                         .recurseResultOrThrow(ptrValue).comma().sp()
-                        .id(tensorVarOp.varName()).comma().sp()
-                        .id(ZERO));
-
+                        .id(tensorVarOp.varName()));
     }
 
     /**

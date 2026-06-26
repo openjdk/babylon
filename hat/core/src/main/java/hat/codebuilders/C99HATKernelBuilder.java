@@ -1504,12 +1504,30 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return false;
     }
 
+    protected CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
+        var tensorStoreLoadValue = tensorLoadOp.op().result().uses().getFirst();
+        if (tensorStoreLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp tensorStoreLoadOp) {
+            Value first = tensorStoreLoadOp.operands().getFirst();
+            if (first.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
+                return tensorVarOp;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
     protected List<String> paramsOfTensorFillMacro() {
         return List.of("i", "j", ARRAY, "numRows", "numCols", "val");
     }
 
     protected List<String> paramsOfTensorMMAMacro() {
         return List.of("i", "j", "k", "acc", "tensorA", "tensorB", "tensorC", "tensorResult", "M", "N", "K");
+    }
+
+    protected List<String> paramsOfTensorLoad() {
+        return List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad");
     }
 
     protected T hatTensorFill(Invoke tensorFillOp) {

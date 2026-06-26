@@ -267,6 +267,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
+                .when(useTensors(), _ -> defineMacroTensorLoadF16(MACRO_FRAGMENT_LOAD_F16))
                 .when(useTensors(), _ -> defineMacroTensorStore(MACRO_FRAGMENT_STORE));
     }
 
@@ -520,6 +521,35 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     /**
      * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     * wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
+     * </code>
+     * </p>
+     *
+     * @param macroName Macro name
+     * @return {@link CudaHATKernelBuilder}
+     */
+    public CudaHATKernelBuilder defineMacroTensorLoadF16(String macroName) {
+        List<String> params = paramsOfTensorLoad();
+        return macroNoParenthesis(macroName, params, _ ->
+                sp().backslash().nl()
+                        .id(WMMA_LOAD_TENSOR)
+                        .paren(_ -> {
+                            id("tensorToLoad").comma();
+                            paren(_ -> type("half").asterisk());
+                            id("reference")
+                                    .rarrow().id(ARRAY)
+                                    .sp().plus().sp()
+                                    .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
+                                    .comma()
+                                    .id("leadingDimension");
+                        }));
+    }
+
+    /**
+     * Example of code being generated:
      * <code>
      *  nvcuda::wmma::store_matrix_sync(matrixC->array + cCol+(cRow*ldc), acc,ldc,nvcuda::wmma::mem_row_major);
      * </code>
@@ -527,21 +557,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     public CudaHATKernelBuilder defineMacroTensorStore(String macroName) {
-
         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
-        return macroNoParenthesis(macroName, params, _ -> {
-            sp().backslash().nl()
-                    .id(WMMA_STORE_TENSOR).paren(_ ->
-                    id("reference").rarrow().id(ARRAY)
-                            .sp().plus().sp()
-                            .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
-                            .comma()
-                            .id("tensorToStore")
-                            .comma()
-                            .id("leadingDimension")
-                            .comma()
-                            .id("memAccessLayout"));
-        });
+        return macroNoParenthesis(macroName, params, _ ->
+                sp().backslash().nl()
+                .id(WMMA_STORE_TENSOR).paren(_ ->
+                id("reference").rarrow().id(ARRAY)
+                        .sp().plus().sp()
+                        .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
+                        .comma()
+                        .id("tensorToStore")
+                        .comma()
+                        .id("leadingDimension")
+                        .comma()
+                        .id("memAccessLayout")));
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
@@ -895,25 +923,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
     }
 
-    private CudaHATKernelBuilder generateLoadTensor(OpHelper.Invoke tensorLoad, boolean isColumnMajor, String tensorName) {
-        // First operand is the reference to global memory
-        List<Value> operands = tensorLoad.op().operands();
-        Value reference = operands.getFirst();
-        id(WMMA_LOAD_TENSOR)
-                .paren(_ -> {
-                    id(tensorName).comma();
-                    paren(_ -> type("half").asterisk());
-                    recurseResultOrThrow(reference);
-                    rarrow().id(ARRAY)
-                            .sp().plus().sp()
-                            .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
-                            .comma();
-                    recurseResultOrThrow(operands.get(3));
-                });
-
-        return self();
-    }
-
     /**
      * Example of code being generated:
      *
@@ -930,29 +939,75 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      */
     @Override
     protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoad) {
-        // Find name tensor of the first argument
-        String tensorName = "";
-        SequencedSet<Op.Result> uses = tensorLoad.op().result().uses();
-        VarOp tensorVarOp = null;
-        for (Op.Result result : uses) {
-            if (result.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp storeLoadOp) {
-                // obtain first arg from tensorStoreOp
-                Value first = storeLoadOp.operands().getFirst();
-                if (first.declaringElement() instanceof VarOp varOp) {
-                    tensorVarOp = varOp;
-                    tensorName = tensorVarOp.varName();
-                } else {
-                    throw new IllegalStateException("Expected a VarOp, but found `" + first.declaringElement() + "` instead");
-                }
-            }
+        List<Value> operands = tensorLoad.op().operands();
+        var ptrValue = operands.getFirst();
+        var iIndexValue = operands.get(1);
+        var jIndexValue = operands.get(2);
+        var leadingDimension = operands.get(3);
+        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorLoad);
+        List<Integer> shape;
+        if (tensorVarOp != null) {
+            shape = obtainShapeTensor(operands.get(4));
+        } else {
+            throw new IllegalStateException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
         }
 
-        boolean isColumnMajor = false;
-        if (tensorVarOp != null && tensorLoad.op().operands().size() > 5) {
-            Value value = tensorLoad.op().operands().getLast();
-            isColumnMajor = isColumnMajor(value);
+        // Obtain if tensorA or tensorB is being loaded.
+        // This is important to get the loop-bounds correct if matrices are not square
+        int tensorOrder = getTensorOrder(tensorVarOp.result());
+
+        boolean isColumnMajor;
+        if (tensorLoad.op().operands().size() == 6) {
+            isColumnMajor = isColumnMajor(operands.getLast());
+        } else {
+            isColumnMajor = false;
         }
-        return generateLoadTensor(tensorLoad, isColumnMajor, tensorName);
+
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        final int M;
+        final int N;
+
+        // ---------------------------
+        // Shapes:
+        // tensor A   with shape: MxK
+        // tensor B   with shape: KxN
+        // ---------------------------
+        String matrixOrder = tensorOrderTable.get(tensorOrder);
+        switch (matrixOrder) {
+            case TENSOR_MATRIX_A -> {
+                M = shape.get(0); // M
+                N = shape.get(2); // K
+            }
+            case TENSOR_MATRIX_B -> {
+                M = shape.get(2); // K
+                N = shape.get(1); // N
+            }
+            case null, default -> throw new IllegalStateException("Tensor load matrix order not detected");
+        }
+
+        // Switch indexes when the memory access layout is not in column major
+        if (!isColumnMajor) {
+            Value tmp = iIndexValue;
+            iIndexValue = jIndexValue;
+            jIndexValue = tmp;
+        }
+
+        // params:         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad");
+        Value finalIIndexValue = iIndexValue;
+        Value finalJIndexValue = jIndexValue;
+        return id(MACRO_FRAGMENT_LOAD_F16).paren(_ ->
+                intValue(M).comma().sp()
+                        .intValue(N).comma().sp()
+                        .id(varA).comma().sp()
+                        .id(varB).comma().sp()
+                        .recurseResultOrThrow(finalIIndexValue).comma().sp()
+                        .recurseResultOrThrow(finalJIndexValue).comma().sp()
+                        .id(String.valueOf(isColumnMajor)).comma().sp()
+                        .recurseResultOrThrow(leadingDimension).comma().sp()
+                        .recurseResultOrThrow(ptrValue).comma().sp()
+                        .id(tensorVarOp.varName()));
+
     }
 
     /**
