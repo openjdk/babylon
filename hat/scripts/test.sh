@@ -73,5 +73,9 @@ done
 
 for backend in "${backends[@]}"
 do
-	cat "$backend"Violajones.log | grep "336faces found"
+	if grep -q "336faces found" "$backend"Violajones.log; then
+		echo "✅ ViolaJones for backend: $backend ....... [pass]"
+	else
+		echo "❌ ViolaJones for backend: $backend ....... [fail]"
+	fi
 done
