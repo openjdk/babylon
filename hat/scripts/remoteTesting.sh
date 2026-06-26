@@ -187,17 +187,8 @@ run_tests_hat() {
 }
 
 build_and_and_test() {
-  read_config_file
-  for index in "${!listOfServers[@]}"
-  do
-    server=${listOfServers[$index]}
-    user=${listOfUsers[$index]}
-    list_backends=${BACKENDS[@]}
-    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/compile.sh ${NC}"
-    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/compile.sh
-    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/test.sh ${NC}"
-    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/test.sh
-  done
+  build_hat
+  run_tests_hat
 }
 
 main() {
