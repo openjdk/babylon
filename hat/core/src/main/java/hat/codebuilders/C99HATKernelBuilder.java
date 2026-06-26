@@ -1484,12 +1484,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return varianceName;
     }
 
-    protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
-        Value a = isColumnMajor ? iIndex : jIndex;
-        Value b = isColumnMajor ? jIndex : iIndex;
-        return recurseResultOrThrow(a).plus().paren(_ -> recurseResultOrThrow(b).mul().recurseResultOrThrow(ldSize));
-    }
-
     protected boolean isColumnMajor(Value tensorLayout) {
         if (tensorLayout.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
             var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);

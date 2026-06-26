@@ -929,10 +929,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     /**
-     * Code example being generated:
+     * Code example being generated via the {@code MACRO_FRAGMENT_STORE} macro.
      *
      * <p>
-     * <code>
+     * {@code
      *  for (int m = 0; m < WMMA_M; m++) {
      *  int rowC = cRow + m;
      *   for (int n = 0; n < WMMA_N; n++) {
@@ -941,7 +941,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
      *      matrixC->array[idxC] = acc[m * 16 + n];
      *   }
      * }
-     * </code>
+     * }
      * </p>
      *
      * @param tensorStoreInvoke
@@ -951,15 +951,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     protected OpenCLHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStoreInvoke) {
         List<Value> operands = tensorStoreInvoke.op().operands();
-        var ptrValue = findVarOpOrThrow(operands.getFirst());
-        var iIndexValue = findVarOpOrThrow(operands.get(1));
-        var jIndexValue = findVarOpOrThrow(operands.get(2));
-        var tensorVarOp = findVarOpOrThrow(operands.get(3));
-        var leadingDimension = findVarOpOrThrow(operands.get(4));
-
+        Value reference = operands.getFirst();
+        Value iIndex = operands.get(1);
+        Value jIndex = operands.get(2);
+        Value tensorToStore = operands.get(3);
+        Value ldSize = operands.get(4);
+        CoreOp.VarOp tensorVarOp = findVarOpOrThrow(tensorToStore);
         var shape = getShapeFromTensorVarOp(tensorVarOp);
-
-        boolean isColumnMajor;
+        final boolean isColumnMajor;
         if (tensorStoreInvoke.op().operands().size() == 6) {
             isColumnMajor = isColumnMajor(operands.getLast());
         } else {
@@ -978,11 +977,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .intValue(N).comma().sp()
                         .id(varA).comma().sp()
                         .id(varB).comma().sp()
-                        .id(iIndexValue.varName()).comma().sp()
-                        .id(jIndexValue.varName()).comma().sp()
+                        .recurseResultOrThrow(iIndex).comma().sp()
+                        .recurseResultOrThrow(jIndex).comma().sp()
                         .id(String.valueOf(isColumnMajor)).comma().sp()
-                        .id(leadingDimension.varName()).comma().sp()
-                        .id(ptrValue.varName()).comma().sp()
+                        .recurseResultOrThrow(ldSize).comma().sp()
+                        .recurseResultOrThrow(reference).comma().sp()
                         .id(tensorVarOp.varName()).comma().sp()
                         .id(ZERO));
     }
