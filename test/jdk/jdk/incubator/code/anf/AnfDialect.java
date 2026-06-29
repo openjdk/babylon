@@ -280,12 +280,11 @@ public final class AnfDialect {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
-
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_FUNC_NAME);
+            String funcName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
             return new AnfFuncOp(funcName, def.bodyDefinitions().get(0));
         }
 
@@ -389,11 +388,11 @@ public final class AnfDialect {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            String callsiteName = def.extractAttributeValue(ATTRIBUTE_CALLSITE_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_CALLSITE_NAME);
+            String callsiteName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
             return new AnfApplyStub(callsiteName, def.operands(), def.resultType());
         }
 
@@ -446,6 +445,11 @@ public final class AnfDialect {
             op.setLocation(def.location());
         }
         return op;
+    }
+
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
     }
 
     static final OpFactory FACTORY = AnfDialect::createOp;
