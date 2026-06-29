@@ -81,6 +81,36 @@ questions.
             <artifactId>hat-example-life</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-example-matmul</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-example-tensors</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-example-dft</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-example-fft</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-example-shade</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-example-experiments</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
  <build>

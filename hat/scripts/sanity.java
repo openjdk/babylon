@@ -43,9 +43,6 @@ void main(String[] args) throws IOException{
                      var tab = new ArrayList<Integer>();
                      var eolWs = new ArrayList<Integer>();
                      var copyright = SKIP_COPYRIGHT_EXTENSIONS.stream().anyMatch(name::endsWith);
-                     if (copyright){
-                        IO.println("No copyright needed for "+name);
-                     }
                      for (int i = 0; i < lines.size(); i++) {
                         var line = lines.get(i);
                         copyright = copyright || COPYRIGHT_PATTERN.matcher(line).find();

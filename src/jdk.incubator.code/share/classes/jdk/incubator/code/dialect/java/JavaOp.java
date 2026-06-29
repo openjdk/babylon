@@ -487,14 +487,7 @@ public sealed abstract class JavaOp extends Op {
         final boolean isReflectable;
 
         LambdaOp(ExternalizedOp def) {
-            boolean isReflectable = def.extractAttributeValue(ATTRIBUTE_LAMBDA_IS_REFLECTABLE,
-                    false, v -> switch (v) {
-                        case Boolean b -> b;
-                        case null -> false;
-                        default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_LAMBDA_IS_REFLECTABLE, v);
-                    });
-
-            this(def.resultType(), requireSingleBody(def), isReflectable);
+            this(def.resultType(), requireSingleBody(def), optionalBooleanAttribute(def, ATTRIBUTE_LAMBDA_IS_REFLECTABLE));
         }
 
         LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ct) {
@@ -996,31 +989,25 @@ public sealed abstract class JavaOp extends Op {
             MethodRef invokeRef = requireAttribute(def, ATTRIBUTE_INVOKE_REF, true, MethodRef.class);
 
             // If not present defaults to false
-            boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_INVOKE_VARARGS,
-                    false, v -> switch (v) {
-                        case Boolean b -> b;
-                        case null -> false;
-                        default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_VARARGS, v);
-                    });
+            boolean isVarArgs = optionalBooleanAttribute(def, ATTRIBUTE_INVOKE_VARARGS);
 
             // If not present and is not varargs defaults to class or instance invocation
             // based on number of operands and parameters
-            InvokeKind ik = def.extractAttributeValue(ATTRIBUTE_INVOKE_KIND,
-                    false, v -> switch (v) {
+            InvokeKind ik = optionalAttribute(def, ATTRIBUTE_INVOKE_KIND, false, Object.class).map(v ->
+                    switch (v) {
                         case String s -> InvokeKind.valueOf(s);
                         case InvokeKind k -> k;
-                        case null -> {
-                            if (isVarArgs) {
-                                // If varargs then we cannot infer invoke kind
-                                throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_KIND, v);
-                            }
-                            int paramCount = invokeRef.signature().parameterTypes().size();
-                            int argCount = def.operands().size();
-                            yield (argCount == paramCount + 1)
-                                    ? InvokeKind.INSTANCE
-                                    : InvokeKind.STATIC;
-                        }
                         default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_KIND, v);
+                    }).orElseGet(() -> {
+                        if (isVarArgs) {
+                            // If varargs then we cannot infer invoke kind
+                            throw unsupportedAttributeValueException(def, ATTRIBUTE_INVOKE_KIND, null);
+                        }
+                        int paramCount = invokeRef.signature().parameterTypes().size();
+                        int argCount = def.operands().size();
+                        return (argCount == paramCount + 1)
+                                ? InvokeKind.INSTANCE
+                                : InvokeKind.STATIC;
                     });
 
 
@@ -1227,18 +1214,10 @@ public sealed abstract class JavaOp extends Op {
         final CodeType resultType;
 
         NewOp(ExternalizedOp def) {
-            // Required attribute
-            MethodRef constructorRef = requireAttribute(def, ATTRIBUTE_NEW_REF, true, MethodRef.class);
-
-            // If not present defaults to false
-            boolean isVarArgs = def.extractAttributeValue(ATTRIBUTE_NEW_VARARGS,
-                    false, v -> switch (v) {
-                        case Boolean b -> b;
-                        case null -> false;
-                        default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_NEW_VARARGS, v);
-                    });
-
-            this(isVarArgs, def.resultType(), constructorRef, def.operands());
+            this(optionalBooleanAttribute(def, ATTRIBUTE_NEW_VARARGS),
+                 def.resultType(),
+                 requireAttribute(def, ATTRIBUTE_NEW_REF, true, MethodRef.class),
+                 def.operands());
         }
 
         NewOp(NewOp that, CodeContext cc) {
@@ -5917,13 +5896,7 @@ public sealed abstract class JavaOp extends Op {
 
             TypePatternOp(ExternalizedOp def) {
                 super(List.of());
-
-                this.bindingName = def.extractAttributeValue(ATTRIBUTE_BINDING_NAME, true,
-                        v -> switch (v) {
-                            case String s -> s;
-                            case null -> null;
-                            default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_BINDING_NAME, v);
-                        });
+                this.bindingName = optionalAttribute(def, ATTRIBUTE_BINDING_NAME, true, String.class).orElse(null);
                 // @@@ Cannot use canonical constructor because it wraps the given type
                 this.resultType = def.resultType();
             }
