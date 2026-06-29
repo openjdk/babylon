@@ -93,24 +93,12 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         if (effect.terminatingOp() instanceof JavaOp.BreakOp bop && bop.labelOperand().equals(op.labelIdentifier())) {
             return new OpResultEffect(null, e);
         }
-        if (effect.terminatingOp() instanceof CoreOp.YieldOp yop) {
-            if (yop.ancestorBody() == op.body()) {
-                return new OpResultEffect(null, e);
-            }
-            throw new InterpreterException("YieldOp not from the body of LabeledOp");
-        }
-        return effect;
+        return processVoidEffect(effect, op.body(), e);
     }
 
     OpEffect executeBlockOp(JavaOp.BlockOp op, Env e) {
         TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
-        if (effect.terminatingOp() instanceof CoreOp.YieldOp yop) {
-            if (yop.ancestorBody() == op.body()) {
-                return new OpResultEffect(null, e);
-            }
-            throw new InterpreterException("YieldOp not from the body of BlockOp");
-        }
-        return effect;
+        return processVoidEffect(effect, op.body(), e);
     }
 
     @Override
@@ -148,15 +136,11 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         loop:
         while (true) {
             var condEffect = executeBody(op.condBody(), args, e);
-            boolean p;
-            switch (condEffect.terminatingOp()) {
-                case CoreOp.YieldOp _ when !condEffect.operands().isEmpty() &&
-                        condEffect.operands().getFirst() instanceof Boolean b -> p = b;
-                case CoreOp.YieldOp _ -> throw new InterpreterException("Condition body of ForOp yields non boolean value");
-                default -> {
-                    return condEffect;
-                }
+            var opt = processBooleanEffect(condEffect);
+            if (opt.isEmpty()) {
+                return condEffect;
             }
+            var p = opt.get();
             if (!p)
                 break loop;
 
@@ -194,15 +178,11 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             } else {
                 Body pred = bodies.get(i);
                 var condEffect = executeBody(pred, List.of(), e);
-                boolean p;
-                switch (condEffect.terminatingOp()) {
-                    case CoreOp.YieldOp _ when !condEffect.operands().isEmpty() &&
-                            condEffect.operands().getFirst() instanceof Boolean b -> p = b;
-                    case CoreOp.YieldOp _ -> throw new InterpreterException("Predicate body of IfOp yields non boolean value");
-                    default -> {
-                        return condEffect;
-                    }
+                var opt = processBooleanEffect(condEffect);
+                if (opt.isEmpty()) {
+                    return condEffect;
                 }
+                boolean p = opt.get();
                 if (p) {
                     action = bodies.get(i + 1);
                 }
@@ -304,5 +284,24 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             }
         }
         return cb;
+    }
+
+    static OpEffect processVoidEffect(TerminatingOpEffect eff, Body body, Env e) {
+        if (eff.terminatingOp() instanceof CoreOp.YieldOp yop) {
+            if (yop.ancestorBody() == body) {
+                return new OpResultEffect(null, e);
+            }
+            throw new InterpreterException("YieldOp not from the body");
+        }
+        return eff;
+    }
+
+    static Optional<Boolean> processBooleanEffect(TerminatingOpEffect eff) {
+        return switch (eff.terminatingOp()) {
+            case CoreOp.YieldOp _ when !eff.operands().isEmpty()
+                    && eff.operands().getFirst() instanceof Boolean b -> Optional.of(b);
+            case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp witn no boolean operand");
+            default -> Optional.empty(); // abrupt completion
+        };
     }
 }
