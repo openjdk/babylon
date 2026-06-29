@@ -813,15 +813,14 @@ public sealed abstract class JavaOp extends Op {
         private final List<Body> bodies;
 
         AssertOp(ExternalizedOp def) {
-            this(requireBodies(def, 1, 2));
+            this(def.bodyDefinitions());
         }
 
         AssertOp(List<Body.Builder> bodies) {
-            super(List.of());
-
             if (bodies.size() != 1 && bodies.size() != 2) {
-                throw new IllegalArgumentException("Assert must have one or two bodies.");
+                throw structuralException(NAME, "requires 1 or 2 bodies, found %d".formatted(bodies.size()));
             }
+            super(List.of());
             this.bodies = bodies.stream().map(b -> b.build(this)).toList();
         }
 
@@ -1044,7 +1043,12 @@ public sealed abstract class JavaOp extends Op {
             int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
-                throw new IllegalArgumentException(invokeKind + " " + isVarArgs + " " + invokeRef);
+                throw structuralException(NAME, "kind=%s, varargs=%s, requires %s%d operands, found=%d".formatted(
+                        invokeKind,
+                        isVarArgs,
+                        isVarArgs ? "at least " : "",
+                        isVarArgs ? paramCount - 1 : paramCount,
+                        argCount));
             }
         }
 
@@ -1234,13 +1238,11 @@ public sealed abstract class JavaOp extends Op {
         }
 
         NewOp(boolean isVarargs, CodeType resultType, MethodRef ctorRef, List<Value> args) {
-            super(args);
-
             validateArgCount(isVarargs, ctorRef, args);
             if (!ctorRef.isConstructor()) {
-                throw new IllegalArgumentException("Not a constructor reference: " + ctorRef);
+                throw structuralException(NAME, "requires a constructor reference, found %s".formatted(ctorRef));
             }
-
+            super(args);
             this.isVarArgs = isVarargs;
             this.constructorReference = ctorRef;
             this.resultType = resultType;
@@ -1251,7 +1253,11 @@ public sealed abstract class JavaOp extends Op {
             int argCount = operands.size();
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
-                throw new IllegalArgumentException(isVarArgs + " " + ctorRef);
+                throw structuralException(NAME, "varargs=%s, requires %s%d operands, found=%d".formatted(
+                        isVarArgs,
+                        isVarArgs ? "at least " : "",
+                        isVarArgs ? paramCount - 1 : paramCount,
+                        argCount));
             }
         }
 
@@ -1748,7 +1754,7 @@ public sealed abstract class JavaOp extends Op {
         final List<Block.Reference> references;
 
         ExceptionRegionEnter(ExternalizedOp def) {
-            this(requireMinSuccessors(def, 2));
+            this(def.successors());
         }
 
         ExceptionRegionEnter(ExceptionRegionEnter that, CodeContext cc) {
@@ -1763,12 +1769,10 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ExceptionRegionEnter(List<Block.Reference> references) {
-            super(List.of());
-
             if (references.size() < 2) {
-                throw new IllegalArgumentException("Operation must have two or more successors " + this);
+                throw structuralException(NAME, "requires at least 2 successors, found %d".formatted(references.size()));
             }
-
+            super(List.of());
             this.references = List.copyOf(references);
         }
 
@@ -1813,11 +1817,7 @@ public sealed abstract class JavaOp extends Op {
         final Block.Reference end;
 
         ExceptionRegionExit(ExternalizedOp def) {
-            Value enter = requireSingleOperand(def);
-            if (!(enter instanceof Op.Result or && or.op() instanceof ExceptionRegionEnter)) {
-                throw structuralException(def, "Value's is not an exception region entry: " + def.operands().getFirst());
-            }
-            this(enter, requireSingleSuccessor(def));
+            this(requireSingleOperand(def), requireSingleSuccessor(def));
         }
 
         ExceptionRegionExit(ExceptionRegionExit that, CodeContext cc) {
@@ -1832,6 +1832,9 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ExceptionRegionExit(Value enter, Block.Reference end) {
+            if (!(enter instanceof Op.Result or && or.op() instanceof ExceptionRegionEnter)) {
+                throw structuralException(NAME, "Value's is not an exception region entry: " + enter);
+            }
             super(List.of(enter));
             this.end = end;
         }
@@ -2869,14 +2872,7 @@ public sealed abstract class JavaOp extends Op {
 
         BlockOp(Body.Builder bodyC) {
             super(List.of());
-
-            this.body = bodyC.build(this);
-            if (!body.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodySignature());
-            }
-            if (!body.bodySignature().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodySignature());
-            }
+            this.body = requireVoidBodySignature(NAME, bodyC).build(this);
         }
 
         @Override
@@ -2955,22 +2951,14 @@ public sealed abstract class JavaOp extends Op {
         // @@@: builder?
         SynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
             super(List.of());
-
+            if (exprC.bodySignature().returnType().equals(VOID)) {
+                throw structuralException(NAME, "expression body requires to return non-void value");
+            }
+            if (!exprC.bodySignature().parameterTypes().isEmpty()) {
+                throw structuralException(NAME, "expression body requires no parameters, found: %s".formatted(exprC.bodySignature()));
+            }
             this.exprBody = exprC.build(this);
-            if (exprBody.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Expression body should return non-void value: " + exprBody.bodySignature());
-            }
-            if (!exprBody.bodySignature().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Expression body should have zero parameters: " + exprBody.bodySignature());
-            }
-
-            this.blockBody = bodyC.build(this);
-            if (!blockBody.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Block body should return void: " + blockBody.bodySignature());
-            }
-            if (!blockBody.bodySignature().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Block body should have zero parameters: " + blockBody.bodySignature());
-            }
+            this.blockBody = requireVoidBodySignature(NAME, bodyC).build(this);
         }
 
         @Override
@@ -3118,14 +3106,7 @@ public sealed abstract class JavaOp extends Op {
 
         LabeledOp(Body.Builder bodyC) {
             super(List.of());
-
-            this.body = bodyC.build(this);
-            if (!body.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + body.bodySignature());
-            }
-            if (!body.bodySignature().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Body should have zero parameters: " + body.bodySignature());
-            }
+            this.body = requireVoidBodySignature(NAME, bodyC).build(this);
         }
 
         @Override
@@ -4430,7 +4411,7 @@ public sealed abstract class JavaOp extends Op {
                 Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(body.entryBlock());
 
-                return new WhileOp(List.of(predicate, body));
+                return new WhileOp(predicate, body);
             }
         }
 
@@ -4439,34 +4420,14 @@ public sealed abstract class JavaOp extends Op {
         private final List<Body> bodies;
 
         WhileOp(ExternalizedOp def) {
-            this(requireBodies(def, 2));
-        }
-
-        WhileOp(List<Body.Builder> bodyCs) {
-            super(List.of());
-
-            this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
+            List<Body.Builder> bodies = requireBodies(def, 2);
+            this(bodies.get(0), bodies.get(1));
         }
 
         WhileOp(Body.Builder predicate, Body.Builder body) {
             super(List.of());
-
-            Objects.requireNonNull(body);
-
-            this.bodies = Stream.of(predicate, body).filter(Objects::nonNull)
-                    .map(bc -> bc.build(this)).toList();
-
-            // @@@ This will change with pattern bindings
-            if (!bodies.get(0).bodySignature().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException(
-                        "Predicate body signature should be " + CoreType.functionType(BOOLEAN) +
-                                " but is " + bodies.get(0).bodySignature());
-            }
-            if (!bodies.get(1).bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
-                throw new IllegalArgumentException(
-                        "Body type should be " + CoreType.functionType(VOID) +
-                                " but is " + bodies.get(1).bodySignature());
-            }
+            this.bodies = List.of(requireBodySignature(NAME, predicate, CoreType.functionType(BOOLEAN)).build(this),
+                                  requireVoidBodySignature(NAME, body).build(this));
         }
 
         WhileOp(WhileOp that, CodeContext cc, CodeTransformer ct) {
@@ -4568,8 +4529,7 @@ public sealed abstract class JavaOp extends Op {
             public DoWhileOp predicate(Consumer<Block.Builder> c) {
                 Body.Builder predicate = Body.Builder.of(connectedAncestorBody, CoreType.functionType(BOOLEAN));
                 c.accept(predicate.entryBlock());
-
-                return new DoWhileOp(List.of(body, predicate));
+                return new DoWhileOp(body, predicate);
             }
         }
 
@@ -4602,13 +4562,8 @@ public sealed abstract class JavaOp extends Op {
         private final List<Body> bodies;
 
         DoWhileOp(ExternalizedOp def) {
-            this(requireBodies(def, 2));
-        }
-
-        DoWhileOp(List<Body.Builder> bodyCs) {
-            super(List.of());
-
-            this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
+            List<Body.Builder> bodies = requireBodies(def, 2);
+            this(bodies.get(0), bodies.get(1));
         }
 
         DoWhileOp(Body.Builder body, Body.Builder predicate) {
@@ -4616,19 +4571,8 @@ public sealed abstract class JavaOp extends Op {
 
             Objects.requireNonNull(body);
 
-            this.bodies = Stream.of(body, predicate).filter(Objects::nonNull)
-                    .map(bc -> bc.build(this)).toList();
-
-            if (!bodies.get(0).bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
-                throw new IllegalArgumentException(
-                        "Body type should be " + CoreType.functionType(VOID) +
-                                " but is " + bodies.get(1).bodySignature());
-            }
-            if (!bodies.get(1).bodySignature().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException(
-                        "Predicate body signature should be " + CoreType.functionType(BOOLEAN) +
-                                " but is " + bodies.get(0).bodySignature());
-            }
+            this.bodies = List.of(requireVoidBodySignature(NAME, body).build(this),
+                                  requireBodySignature(NAME, predicate, CoreType.functionType(BOOLEAN)).build(this));
         }
 
         DoWhileOp(DoWhileOp that, CodeContext cc, CodeTransformer ct) {
@@ -5192,7 +5136,7 @@ public sealed abstract class JavaOp extends Op {
                 bodyIndex++;
             }
             if (bodyIndex == bodies.size()) {
-                throw structuralException(def, "no void try body found");
+                throw structuralException(def.name(), "no void try body found");
             }
             List<Body.Builder> resources = bodies.subList(0, bodyIndex);
             Body.Builder body = bodies.get(bodyIndex);
