@@ -83,8 +83,7 @@ public class ArithMathOps {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
 
-            Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE,true,
-                    v -> processConstantValue(def.resultType(), v));
+            Object value = processConstantValue(def.resultType(), getDefaultAttributeValue(def, ATTRIBUTE_CONSTANT_VALUE));
             return new ConstantOp(def, value);
         }
 
@@ -395,12 +394,12 @@ public class ArithMathOps {
         final CompareKind ck;
 
         public static CompareOp create(ExternalizedOp def) {
-            CompareKind ck = def.extractAttributeValue(ATTRIBUTE_PREDICATE, true,
-                    v -> switch (v) {
-                        case String s -> CompareKind.valueOf(s);
-                        case CompareKind k -> k;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_PREDICATE);
+            CompareKind ck = switch (v) {
+                case String s -> CompareKind.valueOf(s);
+                case CompareKind k -> k;
+                case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
+            };
             return new CompareOp(def, ck);
         }
 
@@ -471,6 +470,11 @@ public class ArithMathOps {
         } else {
             throw new UnsupportedOperationException("Unsupported type: " + t);
         }
+    }
+
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
     }
 
     public static final OpFactory OP_FACTORY = def -> {

@@ -8,7 +8,7 @@ JAVA_HOME=<path to the Babylon JDK home>
 mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.mnist.MNISTDemo
 ```
 
-### ONNX Runtime with CoreML running facial emotion recognition from Java source.
+### ONNX Runtime with CoreML running facial emotion recognition from Java source
 
 Download the `.data` file from [emotion-ferplus-8.onnx.data](https://github.com/ammbra/fer-model-weights/raw/refs/heads/main/emotion-ferplus-8.onnx.data) and place it under `cr-examples/onnx/src/test/resources/oracle/code/onnx/fer` folder.
 
@@ -18,18 +18,24 @@ JAVA_HOME=<path to the Babylon JDK home>
 mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.fer.FERCoreMLDemo
 ```
 
-#### How to (Re)Generate the CoreML Java Bindings
+### ONNX Runtime running an embedding model from Java source
+
+[all-MiniLM-L6-v2](https://huggingface.co/onnx-community/all-MiniLM-L6-v2-ONNX) is a popular, lightweight, sentence embedding model.
+This model converts sentences into 384 dimensional vectors, an aspect very useful for semantic search and information retrieval.
+
+Download `model.onnx_data` and `vocab.json` data files from [all-MiniLM-L6-v2](https://huggingface.co/onnx-community/all-MiniLM-L6-v2-ONNX) and put them into `cr-examples/onnx/src/test/resources/oracle/code/onnx/bert` folder.
+
+To run the EmbeddingDemo, execute:
+
+```
+JAVA_HOME=<path to the Babylon JDK home>
+mvn process-test-classes exec:java -Dexec.mainClass=oracle.code.onnx.bert.EmbeddingDemo
+```
+
+#### How to (Re)Generate the Java Bindings
 
 The following instructions are for Mac users only as the CoreML Execution Provider (EP) requires iOS devices with iOS 13 or higher, or Mac computers with macOS 10.15 or higher.
-Build and install custom ONNX Runtime with CoreML enabled:
-
-```
-git clone --recursive https://github.com/microsoft/onnxruntime.git
-cd onnxruntime
-./build.sh --config Release --build_shared_lib --use_coreml --parallel
-# get the path to where current built library is available
-pwd
-```
+Download ONNX Runtime from a published release.
 
 Inside `cr-examples/onnx/opgen` project you will find the `setup.sh` script that takes as argument the path to your cloned `onnxruntime` and uses `jextract` to regenerate the binaries.
 Prior to running it make sure that `jextract` is in your system `$PATH` :
@@ -37,10 +43,13 @@ Prior to running it make sure that `jextract` is in your system `$PATH` :
 ```shell
 jextract --version
 ```
-Provide the path to your cloned `onnxruntime` and the script will regenerate the CoreML Java bindings inside the `oracle.code.onnx.foreign`:
+
+Provide the path to your cloned `onnxruntime` and the script will regenerate the Java bindings inside the `oracle.code.onnx.foreign`:
 
 ```
-sh setup.sh path/to/cloned/onnxruntime
+export ONNX_INCLUDE_DIR=/path/to/onnx/include/onnxruntime/include
+export ONNX_GEN_AI_INCLUDE_DIR=/path/to/onnx/include/onnxruntime-genai/include
+sh setup.sh
 ```
 
 ### ONNX GenAI running large language model from Java source.

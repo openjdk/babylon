@@ -205,9 +205,7 @@ public abstract class OnnxOp extends Op {
             switch (operand) {
                 case Value v -> l.add(v);
                 case Optional<?> ov -> {
-                    if (ov.isPresent()) {
-                        l.add((Value) ov.get());
-                    }
+                    ov.ifPresent(o -> l.add((Value) o));
                 }
                 case List<?> vs -> {
                     for (Object v : vs) {
@@ -240,20 +238,18 @@ public abstract class OnnxOp extends Op {
         this.resultType = def.resultType();
 
         // @@@ Filter optional
-        this.optionalInputArguments = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_INPUTS,
-                false, v -> switch (v) {
+        this.optionalInputArguments = switch (def.attributes().get(ATTRIBUTE_OPTIONAL_INPUTS)) {
                     case List<?> s -> (List<OnnxParameter>) s;
                     case null -> List.of();
                     default -> throw new UnsupportedOperationException();
-                });
+                };
 
         // @@@ Filter optional
-        this.optionalOutputParameters = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_OUTPUTS,
-                false, v -> switch (v) {
+        this.optionalOutputParameters = switch (def.attributes().get(ATTRIBUTE_OPTIONAL_OUTPUTS)) {
                     case List<?> s -> (List<OnnxParameter>) s;
                     case null -> List.of();
                     default -> throw new UnsupportedOperationException();
-                });
+                };
     }
 
     OnnxOp(OnnxOp that, CodeContext cc) {

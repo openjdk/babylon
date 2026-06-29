@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,9 @@
  */
 package oracle.code.onnx.llm;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.nio.file.Path;
@@ -37,10 +40,15 @@ public class LlamaDemo {
         try (Arena arena = Arena.ofConfined()) {
             var modelInstance = new LlamaModel(arena);
             try (OnnxGenRuntimeSession session = OnnxGenRuntimeSession.buildFromCodeReflection(MethodHandles.lookup(), modelInstance, "forward", modelRoot, "model.onnx", "model.data")) {
-                session.prompt("""
-                        <|start_header_id|>user<|end_header_id|>Hello, tell me a joke.<|eot_id|>
-                        <|start_header_id|>assistant<|end_header_id|>
-                        """, System.out::print);
+                Reader inreader = new InputStreamReader(System.in);
+                BufferedReader in = new BufferedReader(inreader);
+                String str;
+                System.out.print("> ");
+                while ((str = in.readLine()) != null) {
+                    session.prompt(str, System.out::print);
+                    System.out.print("> ");
+                }
+                in.close();
             }
         }
     }

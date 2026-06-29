@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -159,7 +160,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
                 throw new IllegalStateException("Unsupported os:" + os);
             }
             try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
-                Files.copy(libStream, runtime);
+                Files.copy(Objects.requireNonNull(libStream), runtime);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
@@ -187,6 +188,9 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
             AtomicLong offset = new AtomicLong();
             byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.namesMap(), t -> {
                 byte[] data = t.data().toArray(ValueLayout.JAVA_BYTE);
+                if (data.length <= 4*1024) {
+                    return null;
+                }
                 try {
                     dataOutput.write(data);
                 } catch (IOException e) {

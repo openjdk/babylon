@@ -17,9 +17,9 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  * typedef OrtStatus *(*RegisterCustomOpsFn)(OrtSessionOptions *, const OrtApiBase *)
  * }
  */
-public class RegisterCustomOpsFn {
+public final class RegisterCustomOpsFn {
 
-    RegisterCustomOpsFn() {
+    private RegisterCustomOpsFn() {
         // Should not be called directly
     }
 
@@ -58,9 +58,11 @@ public class RegisterCustomOpsFn {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment options, MemorySegment api) {
+    public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment options, MemorySegment api) {
         try {
             return (MemorySegment) DOWN$MH.invokeExact(funcPtr, options, api);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }

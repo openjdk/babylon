@@ -26,6 +26,7 @@
 package jdk.incubator.code.internal;
 
 import java.util.List;
+import java.util.Optional;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Value;
@@ -118,10 +119,11 @@ public final class StructuralPreconditions {
         return succ;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T requireAttribute(ExternalizedOp def, String attributeName, boolean isDefaultAttribute, Class<T> attributeType) {
         Object attr = requireAttribute(def, attributeName, isDefaultAttribute);
         if (attributeType.isInstance(attr)) {
-            return attributeType.cast(attr);
+            return (T)attr;
         }
         throw unsupportedAttributeValueException(def, attributeName, attr);
     }
@@ -134,6 +136,19 @@ public final class StructuralPreconditions {
             return def.attributes().get(attributeName);
         }
         throw structuralException(def, "requires attribute %s".formatted(attributeName));
+    }
+
+    public static boolean optionalBooleanAttribute(ExternalizedOp def, String attributeName) {
+        return optionalAttribute(def, attributeName, false, Boolean.class).orElse(false);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Optional<T> optionalAttribute(ExternalizedOp def, String attributeName, boolean isDefaultAttribute, Class<T> attributeType) {
+        Object attr = def.attributes().get(isDefaultAttribute && def.attributes().containsKey("") ? "" : attributeName);
+        if (attr == null || attributeType.isInstance(attr)) {
+            return Optional.ofNullable((T)attr);
+        }
+        throw unsupportedAttributeValueException(def, attributeName, attr);
     }
 
     public static IllegalStateException structuralException(ExternalizedOp def, String msg) {
