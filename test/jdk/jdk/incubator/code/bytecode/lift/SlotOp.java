@@ -85,12 +85,12 @@ sealed abstract class SlotOp extends Op {
         final CodeType resultType;
 
         public SlotLoadOp(ExternalizedOp def) {
-            int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
-                    v -> switch (v) {
-                        case String s -> Integer.parseInt(s);
-                        case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_SLOT);
+            int slot = switch (v) {
+                case String s -> Integer.parseInt(s);
+                case Integer i -> i;
+                default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
+            };
             this(slot, def.resultType());
         }
 
@@ -135,12 +135,12 @@ sealed abstract class SlotOp extends Op {
         }
 
         public SlotStoreOp(ExternalizedOp def) {
-            int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
-                    v -> switch (v) {
-                        case String s -> Integer.parseInt(s);
-                        case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_SLOT);
+            int slot = switch (v) {
+                case String s -> Integer.parseInt(s);
+                case Integer i -> i;
+                default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
+            };
             this(slot, def.operands().getFirst());
         }
 
@@ -182,5 +182,11 @@ sealed abstract class SlotOp extends Op {
             default ->
                 TypeKind.REFERENCE;
         };
+    }
+
+
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
     }
 }

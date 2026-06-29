@@ -993,17 +993,9 @@ public sealed abstract class CoreOp extends Op {
         final VarType resultType;
 
         VarOp(ExternalizedOp def) {
-            List<Value> operands = requireOperands(def, 0, 1);
-            String name = def.extractAttributeValue(ATTRIBUTE_NAME, true, v -> switch (v) {
-                case String s -> s;
-                case null -> "";
-                default -> throw unsupportedAttributeValueException(def, ATTRIBUTE_NAME, v);
-            });
-
             // @@@ Cannot use canonical constructor because type is wrapped
-            super(operands);
-
-            this.varName = name;
+            super(requireOperands(def, 0, 1));
+            this.varName = optionalAttribute(def, ATTRIBUTE_NAME, true, String.class).orElse("");
             if (!(def.resultType() instanceof VarType vt)) {
                 throw structuralException(def, "invalid result type: " + def.resultType());
             }
