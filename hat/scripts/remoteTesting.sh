@@ -1,6 +1,6 @@
-#!/bin/env/bash
+#!/bin/bash
 
-# Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -38,12 +38,19 @@ display_help() {
   echo "Options:"
   echo "  --help                  Display this help message and exit."
   echo "  --generate-config-file  Generate a default configuration file and exit."
-  echo "  --build-babylon         Build Babylon and HAT for all remote servers"
+  echo "  --build-babylon         Build Babylon and HAT for all remote servers."
+  echo "  --build-hat             Build HAT for all remote servers and run the tests."
+  echo "  --tests                 Run HAT unittests. It assumes a previous build was performed."
+  
   echo
   echo "How to use it?"
   echo "   1. Run this script with --generate-config-file "
   echo "   2. Fill the template file: remoteTesting.conf"
-  echo "   3. Run again this script without any parameters "
+  echo "   3. If needed, you can run with --build-babylon to clone babylon and build HAT"
+  echo "   4. (Optional if we run step 3): --build-hat assumes Babylon JDK exists and just checks for latest changes "
+  echo "   5. Run tests: --tests"
+  echo " "
+  echo "Note: if run with no options, it will use --build-hat + --tests"
   exit 0
 }
 
@@ -144,136 +151,82 @@ read_config_file() {
 }
 
 build_babylon() {
-
-  echo "Build Babylon and HAT"
-  
+  echo "Build Babylon and HAT" 
   read_config_file
-
   for index in "${!listOfServers[@]}"
   do
     server=${listOfServers[$index]}
     user=${listOfUsers[$index]}
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $FORK $BRANCH $REMOTE_PATH' < scripts/build_babylon.sh ${NC}"
+    ssh -t $user@$server "bash -s -- ${FORK} ${BRANCH} ${REMOTE_PATH}" < scripts/build_babylon.sh
+  done
+}
 
-    echo -e "${GREEN}[info] ssh $user@$server${NC}"
-    ssh -T $user@$server << EOF
-if [ ! -d $REMOTE_PATH ]; 
-then 
-  mkdir -p \$(dirname $REMOTE_PATH)
-  cd \$(dirname $REMOTE_PATH)
-  git clone $FORK \$(basename $REMOTE_PATH)
-fi
-
-#Assuming the remote path ends with babylon
-cd $REMOTE_PATH
-git fetch --all
-git checkout $BRANCH
-git pull
-
-echo "bash configure --with-boot-jdk=\$HOME/.sdkman/candidates/java/current"
-bash configure --with-boot-jdk="\$HOME/.sdkman/candidates/java/current" > jvmconfig.log
-make clean
-make images > jvmbuild.log
-
-## Build HAT 
-cd hat 
-if [ ! -d jextract-22 ];
-then
-  echo "ARCHITECTIRE \$(uname -m)"
-  if [[ "\$(uname -m)" == "x86_64" ]]; then
-      wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
-      tar xvzf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz > /dev/null
-  elif [[ "\$(uname -m)" == "arm64" ]]; then
-      wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz
-      tar xvzf openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz > /dev/null
-  fi
-  echo "export PATH=\$(pwd)/jextract-22/bin:\$PATH" >> setup.sh
-  echo "source env.bash" >> setup.sh
-fi
-
-source setup.sh > /dev/null 2> /dev/null
-java @hat/clean > hatCompilation.log 2> hatCompilationErrors.log
-java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
-EOF
-done
-
+build_hat() {
+  read_config_file
+  for index in "${!listOfServers[@]}"
+  do
+    server=${listOfServers[$index]}
+    user=${listOfUsers[$index]}
+    list_backends=${BACKENDS[@]}
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/compile.sh ${NC}"
+    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/compile.sh
+  done
 }
 
 run_tests_hat() {
-
-read_config_file
-
-for index in "${!listOfServers[@]}"
-do
-
-server=${listOfServers[$index]}
-user=${listOfUsers[$index]}
-
-echo -e "\n${GREEN}[info] ssh $user@$server${NC}"
-backend_definition=$(typeset -p BACKENDS)
-ssh $user@$server bash << EOF
-$backend_definition
-cd "$REMOTE_PATH"
-cd hat/
-git fetch --all
-git checkout $BRANCH
-git pull
-
-# compile
-source setup.sh > /dev/null 2> /dev/null
-java @hat/clean > hatCompilation.log 2> hatCompilationErrors.log
-java @hat/bld >> hatCompilation.log 2>> hatCompilationErrors.log
-
-# run the test suite per backend
-for backend in "\${BACKENDS[@]}"
-do
-echo -e "${GREEN}[running] java -cp hat/job.jar hat.java test "\$backend" ${NC}"
-java -cp hat/job.jar hat.java test-suite "\$backend" > "\$backend".txt 2> "\$backend"Errors.txt
-done
-
-# Print logs
-for backend in "\${BACKENDS[@]}"
-do
-cat "\$backend".txt
-done
-
-## Run violajones
-for backend in "\${BACKENDS[@]}"
-do
-echo -e "${GREEN}[running] java -cp hat/job.jar hat.java run "\$backend" -Dheadless=true violajones${NC}"
-java -cp hat/job.jar hat.java run "\$backend" -Dheadless=true violajones > "\$backend"Violajones.log
-done
-
-for backend in "\${BACKENDS[@]}"
-do
-cat "\$backend"Violajones.log | grep "336faces found"
-done
-EOF
-done
+  read_config_file
+  for index in "${!listOfServers[@]}"
+  do
+    server=${listOfServers[$index]}
+    user=${listOfUsers[$index]}
+    list_backends=${BACKENDS[@]}
+    echo -e "\n${GREEN}[info] ssh -t $user@$server 'bash -s -- $BRANCH $REMOTE_PATH ${BACKENDS[@]}' < scripts/test.sh ${NC}"
+    ssh -t $user@$server "bash -s -- ${BRANCH} ${REMOTE_PATH} ${list_backends}" < scripts/test.sh
+  done
 }
 
-while [[ $# -gt 0 ]]; do
-  key="$1"
-  case $key in
-    --help)
-      display_help
-      exit
-      ;;
-    --generate-config-file)
-      generate_config_file
-      exit 
-      ;;
-    --build-babylon)
-      build_babylon
-      exit 0
-      ;;
-    *)
-      # Unknown option
-      echo "Error: Unknown option '$key'"
-      echo "Use --help for a list of available options."
-      exit 1
-      ;;
-  esac
-done
+build_and_and_test() {
+  build_hat
+  run_tests_hat
+}
 
-run_tests_hat
+main() {
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+      --help)
+        display_help
+        exit
+        ;;
+      --generate-config-file)
+        generate_config_file
+        exit 
+        ;;
+      --build-babylon)
+        build_babylon
+        exit 0
+        ;;
+      --build-hat)
+        build_hat
+        exit 0
+        ;;
+      --tests)
+        run_tests_hat
+        exit 0
+        ;;
+      *)
+        # Unknown option
+        echo "Error: Unknown option '$key'"
+        echo "Use --help for a list of available options."
+        exit 1
+        ;;
+    esac
+  done
+  ## No options, builds HAT and run the tests
+  build_and_and_test
+}
+
+main $@
+
 
