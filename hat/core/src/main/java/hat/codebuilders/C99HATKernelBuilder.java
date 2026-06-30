@@ -63,6 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
@@ -122,6 +123,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String F16_TO_FLOAT_1 = "F16_TO_FLOAT_1";
     public static final String BF16_TO_FLOAT_0 = "BF16_TO_FLOAT_0";
     public static final String BF16_TO_FLOAT_1 = "BF16_TO_FLOAT_1";
+    public static final String MACRO_FRAMGMENT_CREATE = "FRAGMENT_CREATE";
+    public static final String MACRO_FRAGMENT_FILL = "FRAGMENT_FILL";
+    public static final String MACRO_FRAGMENT_MMA = "FRAGMENT_MMA";
+    public static final String MACRO_FRAGMENT_LOAD_F16 = "FRAGMENT_LOAD_F16";
+    public static final String MACRO_FRAGMENT_STORE = "FRAGMENT_STORE";
+    public static final String MACRO_COND = "MACRO_COND";
+
+    protected static final String INDEX_PREFIX = "index_$";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -423,16 +432,17 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
         if (isVecOrMatType(scopedCodeBuilderContext().lookup(), javaType)) {
             handleType(self(), javaType);
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, Tensor.class)) {
+                HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
         } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
-                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)
-        ) {
+                && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(KernelContext.class).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, F16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, F16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
-        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, BF16.class)) {// TODO: update this with a custom op, to avoid direct use of Impls
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, BF16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(BF16Array.BF16Impl.class).asterisk();
         } else {
             type(javaType.toString());
@@ -514,6 +524,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected static final String VALUE = "value";
     protected static final String ARRAY = "array";
+    protected static final String ZERO = "0";
 
     private T binaryOperationsForBfloat16(Invoke invoke) {
         var lookup = scopedCodeBuilderContext().lookup();
@@ -898,7 +909,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case "fill" -> hatTensorFill(invoke);
             case "shape" -> self();
             case "store" -> hatTensorStore(invoke);
-            case "load", "loadF16" -> hatTensorLoad(invoke);
+            case "loadF16" -> hatTensorLoad(invoke);
             case "mma" -> hatTensorMMA(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
@@ -923,8 +934,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 parenWhen(
                         invoke.operandCount() > 1
                                 && invoke(scopedCodeBuilderContext().lookup(), instance.op()) instanceof Invoke invoke0
-                                && invoke0.returnsClassType()
-                        ,
+                                && invoke0.returnsClassType(),
                         // When we have patterns like:
                         //
                         // myiFaceArray.array().value(storeAValue);
@@ -1238,6 +1248,16 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return self();
     }
 
+    protected String generateVariableName(String prefix) {
+        String vocab = "abcdefghijklmnopqrstuvxyz";
+        Random r = new Random();
+        StringBuilder varA = new StringBuilder(prefix);
+        for (int i = 0; i < 3; i++) {
+            varA.append(vocab.charAt(r.nextInt(vocab.length())));
+        }
+        return varA.toString();
+    }
+
     protected List<Integer> obtainShapeTensor(Value shapeValue) {
         List<Integer> shape = new ArrayList<>();
         obtainShapeTensor(shapeValue, shape);
@@ -1301,11 +1321,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return shape;
     }
 
-    protected static CoreOp.VarOp findTensorVarOp(Value value) {
+    protected static CoreOp.VarOp findVarOpOrThrow(Value value) {
         return switch (value.declaringElement()) {
-            case CoreOp.VarAccessOp.VarLoadOp varlOadOp -> findTensorVarOp(varlOadOp.operands().getFirst());
+            case CoreOp.VarAccessOp.VarLoadOp varlOadOp -> findVarOpOrThrow(varlOadOp.operands().getFirst());
             case CoreOp.VarOp varOp -> varOp;
-            case null, default -> null;
+            case null, default -> throw new IllegalStateException("Op not expected");
         };
     }
 
@@ -1464,26 +1484,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return varianceName;
     }
 
-    protected T indexForTensor(boolean isColumnMajor, Value iIndex, Value jIndex, Value ldSize) {
-        Value a = isColumnMajor ? iIndex : jIndex;
-        Value b = isColumnMajor ? jIndex : iIndex;
-
-        if (a instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        plus();
-        oparen();
-        if (b instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        mul();
-        if (ldSize instanceof Op.Result r) {
-            recurse(r.op());
-        }
-        cparen();
-        return self();
-    }
-
     protected boolean isColumnMajor(Value tensorLayout) {
         if (tensorLayout.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
             var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
@@ -1498,6 +1498,85 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return false;
     }
 
+    protected CoreOp.VarOp findTensorVarOp(OpHelper.Invoke tensorLoadOp) {
+        var tensorStoreLoadValue = tensorLoadOp.op().result().uses().getFirst();
+        if (tensorStoreLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp tensorStoreLoadOp) {
+            Value first = tensorStoreLoadOp.operands().getFirst();
+            if (first.declaringElement() instanceof CoreOp.VarOp tensorVarOp) {
+                return tensorVarOp;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    protected List<String> paramsOfTensorFillMacro() {
+        return List.of("i", "j", ARRAY, "numRows", "numCols", "val");
+    }
+
+    protected List<String> paramsOfTensorMMAMacro() {
+        return List.of("i", "j", "k", "acc", "tensorA", "tensorB", "tensorC", "tensorResult", "M", "N", "K");
+    }
+
+    protected List<String> paramsOfTensorLoad() {
+        return List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad");
+    }
+
+    protected T hatTensorFill(Invoke tensorFillOp) {
+        // 1. Access to the variable name
+        var tensorValue = tensorFillOp.op().operands().getFirst();
+        CoreOp.VarOp tensorVarOp = findVarOpOrThrow(tensorValue);
+
+        // 2. Access the shape
+        // Second parameters: analysis of the shape
+        List<Integer> shape = getShapeFromTensorCreateValue(tensorVarOp.operands().getFirst());
+
+        // 3. Access the layout
+        var tensorInitValue = tensorFillOp.op().operands().get(1);
+        float initValue = getValueConstantTensor(tensorInitValue);
+
+        // 4. Generate the fill operation
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        List<String> params = List.of(
+                varA,
+                varB,
+                tensorVarOp.varName(),
+                String.valueOf(shape.getFirst()),
+                String.valueOf(shape.get(1)),
+                String.valueOf(initValue));
+        id(MACRO_FRAGMENT_FILL).paren(_ -> commaSpaceSeparated(params, this::id));
+        return self();
+    }
+
+    protected T hatTensorMMA(Invoke tensorMMAInvoke) {
+        var resulTensorValue = tensorMMAInvoke.op().operands().getFirst();
+        var tensorAValue = tensorMMAInvoke.op().operands().get(1);
+        var tensorBValue = tensorMMAInvoke.op().operands().get(2);
+        var tensorCValue = tensorMMAInvoke.op().operands().get(3);
+        var tensorA = findVarOpOrThrow(tensorAValue);
+        var tensorB = findVarOpOrThrow(tensorBValue);
+        var tensorC = findVarOpOrThrow(tensorCValue);
+        var tensorResult = findVarOpOrThrow(resulTensorValue);
+        List<Integer> shape = getShapeFromTensorVarOp(tensorResult);
+
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        String varC = generateVariableName(INDEX_PREFIX);
+        String acc = generateVariableName("sum_");
+        final String M = Integer.toString(shape.get(0));
+        final String N = Integer.toString(shape.get(1));
+        final String K = Integer.toString(shape.get(2));
+        List<String> params = List.of(varA, varB, varC, acc, tensorA.varName(), tensorB.varName(), tensorC.varName(), tensorResult.varName(), M, N, K);
+        return id(MACRO_FRAGMENT_MMA).paren(_ -> commaSpaceSeparated(params, this::id));
+    }
+
+    protected T varOpTensor(CoreOp.VarOp varOp) {
+        return recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+    }
+
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 
     protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
@@ -1510,17 +1589,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
-    protected abstract T varOpTensor(CoreOp.VarOp varOp);
-
     protected abstract T hatTensorCreateOperation(Invoke invoke);
-
-    protected abstract T hatTensorFill(Invoke invoke);
 
     protected abstract T hatTensorStore(Invoke invoke);
 
     protected abstract T hatTensorLoad(Invoke invoke);
-
-    protected abstract T hatTensorMMA(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 

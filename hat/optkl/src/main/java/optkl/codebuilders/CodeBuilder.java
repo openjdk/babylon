@@ -451,6 +451,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return symbol("\"");
     }
 
+    public final T backslash() {
+        return symbol("\\");
+    }
+
     final  public T odquote() {
         return dquote();
     }
@@ -557,6 +561,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
             consumers[i].accept(self());
         }
         return self();
+    }
+
+    public final <I> T spaceSeparated(Iterable<I> iterable, Consumer<I> consumer) {
+        return sep(iterable, _ -> sp(), consumer);
     }
 
     final   public T args(Consumer<T>... consumers) {
