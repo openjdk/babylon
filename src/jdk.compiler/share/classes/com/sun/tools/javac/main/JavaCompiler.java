@@ -383,8 +383,6 @@ public class JavaCompiler {
 
     protected CompileStates compileStates;
 
-    private boolean hasCodeReflectionModule;
-
     /** Construct a new compiler using a shared context.
      */
     @SuppressWarnings("this-escape")
@@ -1064,14 +1062,6 @@ public class JavaCompiler {
 
     public List<JCCompilationUnit> initModules(List<JCCompilationUnit> roots) {
         modules.initModules(roots);
-
-        if (modules.modulesInitialized()) {
-            // This has to happen precisely here. At this point, we have all we need to
-            // determine whether jdk.incubator.module is part of the module graph
-            // but we have yet to trigger an ENTER event. This gives the code reflection plugin
-            // a window to check whether code reflection should be enabled for this compilation unit.
-            hasCodeReflectionModule = modules.getObservableModule(names.jdk_incubator_code) != null;
-        }
 
         if (roots.isEmpty()) {
             enterDone();
@@ -1761,20 +1751,24 @@ public class JavaCompiler {
                 // we are in an exploded build, so just use the boot layer
                 CODE_LAYER = ModuleLayer.boot();
             } else if (java.lang.module.ModuleFinder.ofSystem().find("jdk.incubator.code").isPresent()) {
-                // the code module is installed, but not in the boot layer, create a new layer which contains it
+                // The incubating jdk.incubator.code module is installed, but not in the boot layer
+                // The module needs to be resolved so the jdk.compiler module can find and use the service provider
+                // for CodeReflectionTransformer
                 ModuleLayer parent = ModuleLayer.boot();
+                // Create a new configuration from the boot layer configuration with the resolved jdk.incubator.code module
                 Configuration cf = parent.configuration()
                         .resolve(java.lang.module.ModuleFinder.of(), java.lang.module.ModuleFinder.ofSystem(), Set.of("jdk.incubator.code"));
                 ClassLoader scl = ClassLoader.getSystemClassLoader();
+                // Create the code module layer using the new configuration and the system class loader
                 CODE_LAYER = parent.defineModulesWithOneLoader(cf, scl);
                 Module codeReflectionModule = CODE_LAYER.findModule("jdk.incubator.code").get();
                 Module jdkCompilerModule = JavaCompiler.class.getModule();
-                // We need to add exports all jdk.compiler packages so that the plugin can use them
+                // Add exports to all jdk.compiler packages so that the jdk.incubator.code module can use them
                 for (String packageName : jdkCompilerModule.getPackages()) {
                     jdkCompilerModule.addExports(packageName, codeReflectionModule);
                 }
-                // We also need to add exports all java.base packages so that the plugin can use them
-                // But we need to do so by calling a method in java.base reflectively
+                // Add exports to all java.base packages so that the jdk.incubator.code module can use them
+                // We need to do so by calling a method in java.base reflectively
                 try {
                     Class<?> codeModuleLayerInit = Class.forName("jdk.internal.access.code.CodeModuleLayerInit");
                     Method initLayerMethod = codeModuleLayerInit.getDeclaredMethod("initCodeModuleLayer", ModuleLayer.class);
@@ -1783,7 +1777,7 @@ public class JavaCompiler {
                     throw new AssertionError(ex);
                 }
             } else {
-                // if we run in bootstrap mode, there might be no jdk.incubator.code
+                // If we run in bootstrap mode, there might be no jdk.incubator.code
                 CODE_LAYER = null;
             }
         }
@@ -1942,10 +1936,6 @@ public class JavaCompiler {
 
     public boolean isEnterDone() {
         return enterDone;
-    }
-
-    public boolean hasCodeReflectionModule() {
-        return hasCodeReflectionModule;
     }
 
     private Name readModuleName(JavaFileObject fo) {

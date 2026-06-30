@@ -31,16 +31,16 @@ import com.sun.tools.javac.util.Context;
 import java.io.IOException;
 
 /**
- * This is a proxy interface for the code reflection tree translator.
- * This compiler step is optionally enabled depending on whether
- * the incubating module jdk.incubator.code is part of the module graph.
+ * The service provider interface for the code reflection tree translator.
+ * The service provider implementation is provided by the incubating module
+ * jdk.incubator.code when it is present in the module graph.
+ * When present the compiler looks up the provider and invokes it during phases of the
+ * compilation process to generate code models for reflectable code and emit
+ * additional class files that store the code models.
  */
 public interface CodeReflectionTransformer {
     /**
-     * Analyze the code in the provided class, generating code models for the following program elements:
-     * <li>methods annotated with {@code CodeReflection};
-     * <li>lambdas or method references whose target type is a functional interface annotated with {@code CodeReflection}; and
-     * <li>lambdas or method references whose target is a cast that contains the {@code CodeReflection} annotation.
+     * Analyze the code in the provided class, generating code models for reflectable methods and lambda expressions
      * @param context the compiler context
      * @param tree the tree to analyze
      * @param make the tree maker
