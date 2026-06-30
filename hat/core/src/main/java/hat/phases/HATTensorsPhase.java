@@ -26,7 +26,6 @@ package hat.phases;
 
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -78,32 +77,6 @@ public record HATTensorsPhase() implements HATPhase {
         }, varTable).funcOp();
     }
 
-    private record DeclTensorData(Op marker, JavaOp.InvokeOp invokeOp, CoreOp.VarOp varOp) {
-    }
-
-    record ControlFlowLastOp(CodeElement<?, ?> previous, boolean hitControlFlow) {}
-
-    private ControlFlowLastOp obtainLastOpBeforeControlFlow(CoreOp.FuncOp funcOp) {
-        CodeElement<?, ?> previousOp = funcOp.bodies().getFirst().blocks().getFirst().firstOp();
-        List<CodeElement<?, ?>> elements = funcOp.elements().toList();
-        boolean hitControlFlow = false;
-        for (CodeElement<?, ?> element : elements) {
-            if (Objects.requireNonNull(element) instanceof Op.Loop
-                    || element instanceof JavaOp.IfOp
-                    || element instanceof JavaOp.SwitchExpressionOp) {
-                hitControlFlow = true;
-                break;
-            }
-            previousOp = element;
-        }
-
-        if (!hitControlFlow) {
-            // We do not have any control-flow flow, we point to the first instruction instead.
-            previousOp = funcOp.bodies().getFirst().blocks().getFirst().firstOp();
-        }
-        return new ControlFlowLastOp(previousOp, hitControlFlow);
-    }
-
     public static class TensorMarkers {
         public static Tensor create() {
             return null;
@@ -116,57 +89,39 @@ public record HATTensorsPhase() implements HATPhase {
     private static final MethodRef FILL_FUNCTION = MethodRef.method(Tensor.class, "fill", void.class, Tensor.class, float.class);
     private static final MethodRef MMA_FUNCTION = MethodRef.method(Tensor.class, "mma", Tensor.class, Tensor.class, Tensor.class, Tensor.class);
 
-    private void appendTensorDeclarationToBlock0(List<DeclTensorData> declTensorList, Block.Builder blockBuilder, Map<CoreOp.VarOp, Value> mapValueTensor, VarTable varTable, String functionName) {
-        // And add the missing declarations
-        for (DeclTensorData c : declTensorList) {
-            // Add a TensorCreateOp
-            JavaOp.InvokeOp declInvoke = c.invokeOp;
-            CoreOp.VarOp declVar = c.varOp;
-            JavaOp.InvokeOp invoke = JavaOp.invoke(CREATE_FUNCTION, List.of());
-            Op.Result op1 = blockBuilder.add(invoke);
-
-            // Add a TensorVarOp associated with teh TensorCreateOp
-            CoreOp.VarOp varOp = CoreOp.var(declVar.varName(), op1);
-            Op.Result op2 = blockBuilder.add(varOp);
-            varTable.addIfNeededOrThrow(functionName, op2.op(), VarTable.HATOpAttribute.TENSOR);
-
-            // Include in a new HashMap the new tensorVarOp to be propagated for the Stores and VarLoadOps.
-            mapValueTensor.put(declVar, op2);
-
-            blockBuilder.context().mapValue(declInvoke.result(), op2);
-        }
+    private void appendTensorDeclaration(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, CoreOp.VarOp oldVarOp, VarTable varTable, String functionName,Map<CoreOp.VarOp, Value> mapValueTensor) {
+        JavaOp.InvokeOp invoke = JavaOp.invoke(CREATE_FUNCTION, List.of());
+        Op.Result op1 = blockBuilder.add(invoke);
+        // Add a TensorVarOp associated with teh TensorCreateOp
+        CoreOp.VarOp varOp = CoreOp.var(oldVarOp.varName(), op1);
+        Op.Result op2 = blockBuilder.add(varOp);
+        varTable.addIfNeededOrThrow(functionName, op2.op(), VarTable.HATOpAttribute.TENSOR);
+        // Include in a new HashMap the new tensorVarOp to be propagated for the Stores and VarLoadOps.
+        mapValueTensor.put(oldVarOp, op2);
+        blockBuilder.context().mapValue(invokeOp.result(), op2);
     }
 
-    private CoreOp.FuncOp transformWithRelocate(CoreOp.FuncOp funcOp, VarTable varTable, Set<Op> opsToProcess, Map<Op, List<DeclTensorData>> markerTable, Op markerOp) {
-        // 3. Transform the model to insert:
-        // 3.1: All tensor declaration from the marker.
-        // 3.2 The load-invoke keeps intact since it will be processed in another phase
-        // 3.3 Replace the VarOp declaration associated with a load with a TensorStoreLoadOp
-        // 3.4 Replace the reference of subsequent VarLoapOp with the new declaration
+    private CoreOp.FuncOp transformWithRelocate(CoreOp.FuncOp funcOp, VarTable varTable, Set<Op> opsToProcess) {
         Map<CoreOp.VarOp, Value> mapValueTensor = new HashMap<>();
         Map<Op, Value> mapUsages = new HashMap<>();
         Map<Op, Value> invokeMap = new HashMap<>();
         final String functionName = funcOp.funcName();
-        CoreOp.FuncOp finalFuncOp = funcOp;
         funcOp = funcOp.transform((blockBuilder, op) -> {
             if (!opsToProcess.contains(op)) {
                 Op.Result opNew = blockBuilder.add(op);
                 varTable.passthrough(functionName, op, opNew.op());
-            } else if (markerTable.containsKey(op)) {
-                // In this block, we insert all pending tensor declaration, starting with the marker.
-
-                List<DeclTensorData> declTensorList = markerTable.get(markerOp);
-                // Insert the marker
-                blockBuilder.add(markerOp);
-                appendTensorDeclarationToBlock0(declTensorList, blockBuilder, mapValueTensor, varTable, finalFuncOp.funcName());
             } else if (op instanceof JavaOp.InvokeOp invokeOp) {
-                // The Load/LoadF16 is propagated
+                if (invokeOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp oldVarOp) {
+                    appendTensorDeclaration(blockBuilder, invokeOp, oldVarOp, varTable, functionName, mapValueTensor);
+                } else {
+                    throw new IllegalStateException("[Error] Expected a VarOp, but found: " + invokeOp.result().uses().getFirst().declaringElement().getClass());
+                }
+                // The Load/LoadF16 operation is inserted back into the tree
                 Op.Result invokeResult = blockBuilder.add(invokeOp);
                 invokeMap.put(invokeOp, invokeResult);
             } else if (op instanceof CoreOp.VarOp varOp) {
                 // Replace the VarOp with a TensorStoreLoadOp using the reference of the tensorVarOp
                 // declared in a previous block (block 0)
-
                 Value tensorVarOp = mapValueTensor.get(varOp);
 
                 // Update the usages
@@ -204,31 +159,19 @@ public record HATTensorsPhase() implements HATPhase {
 
         // 1. Obtain the last Op before any control flow. We need to find a suitable location in basic block 0
         // to insert the declaration of tensors coming from the Load operations
-        ControlFlowLastOp controlFlowLastOp = obtainLastOpBeforeControlFlow(funcOp);
-
-        // 2. Analyze the code model to obtain:
-        // 2.1: A set for all nodes to be processed (load-invoke, and the varOp associated with it)
-        // 2.2: A map that relates the marker position (suitable last op) with a list of pending declaration to perform
-        Map<Op, List<DeclTensorData>> markerTable  = new HashMap<>();
-        Op markerOp = (Op) controlFlowLastOp.previous;
         Set<Op> opsToProcess = new HashSet<>();
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("load") || invoke.name().equals("loadF16"))
                 .forEach(invoke -> {
-                    markerTable.putIfAbsent(markerOp, new ArrayList<>());
-                    opsToProcess.add(markerOp);
                     opsToProcess.add(invoke.op());
                     invoke.op().result().uses().stream()
                             .filter(result -> (result.op() instanceof CoreOp.VarOp))
                             .map(result -> (CoreOp.VarOp) result.op())
-                            .forEach(varOp -> {
-                                opsToProcess.add(varOp);
-                                markerTable.get(markerOp).add(new DeclTensorData(markerOp, invoke.op(), varOp));
-                            });
+                            .forEach(opsToProcess::add);
                 });
-        return transformWithRelocate(funcOp, varTable, opsToProcess, markerTable, markerOp);
+        return transformWithRelocate(funcOp, varTable, opsToProcess);
     }
 
     private CoreOp.FuncOp createTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
