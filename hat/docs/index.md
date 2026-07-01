@@ -8,6 +8,8 @@
       * [NVIDIA notes](Build/nvidia-notes.md)
 * [Testing](Testing/testing.md)
 * [Running Examples](Examples/examples.md)
+* Profiling
+  * [OpenCL Intercept Layer](Profiling/opencl-intercept-layer.md)
 * Programming model
    * [HAT Programming Model](ProgrammingModel/programming-model.md)
 * Interface Mapping
