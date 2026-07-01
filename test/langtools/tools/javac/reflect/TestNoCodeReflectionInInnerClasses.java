@@ -42,4 +42,34 @@ class TestNoCodeReflectionInInnerClasses {
             Runnable q = (@Reflect Runnable) this::test2;
         }
     }
+
+    void local() {
+        class Local {
+            @Reflect
+            public void test1() { }
+
+            void test2() {
+                Runnable q = (@Reflect Runnable) () -> { };
+            }
+
+            void test3() {
+                Runnable q = (@Reflect Runnable) this::test2;
+            }
+        }
+    }
+
+    void anon() {
+        new Object() {
+            @Reflect
+            public void test1() { }
+
+            void test2() {
+                Runnable q = (@Reflect Runnable) () -> { };
+            }
+
+            void test3() {
+                Runnable q = (@Reflect Runnable) this::test2;
+            }
+        };
+    }
 }

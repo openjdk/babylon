@@ -196,11 +196,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
     }
 
+    boolean isInsideInnerOrLocalClass() {
+        return currentClassSym.type.getEnclosingType().hasTag(CLASS) ||
+                currentClassSym.isDirectlyOrIndirectlyLocal();
+    }
+
     @Override
     public void visitMethodDef(JCMethodDecl tree) {
         boolean isReflectable = isReflectable(tree);
         if (isReflectable) {
-            if (currentClassSym.type.getEnclosingType().hasTag(CLASS) || currentClassSym.isDirectlyOrIndirectlyLocal()) {
+            if (isInsideInnerOrLocalClass()) {
                 // Reflectable methods in local classes are not supported
                 if (reflectAll) {
                     log.warning(tree, Warnings.ReflectableMethodInnerClass(currentClassSym.enclClass()));
@@ -303,7 +308,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     public void visitLambda(JCLambda tree) {
         boolean isReflectable = isReflectable(tree);
         if (isReflectable) {
-            if (currentClassSym.type.getEnclosingType().hasTag(CLASS) || currentClassSym.isDirectlyOrIndirectlyLocal()) {
+            if (isInsideInnerOrLocalClass()) {
                 // Reflectable lambdas in local classes are not supported
                 if (reflectAll) {
                     log.warning(tree, Warnings.ReflectableLambdaInnerClass(currentClassSym.enclClass()));
@@ -355,7 +360,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         JCLambda lambdaTree = memberReferenceToLambda.lambda();
 
         if (isReflectable(tree)) {
-            if (currentClassSym.type.getEnclosingType().hasTag(CLASS)) {
+            if (isInsideInnerOrLocalClass()) {
                 // Reflectable method references in local classes are not supported
                 if (reflectAll) {
                     log.warning(tree, Warnings.ReflectableMrefInnerClass(currentClassSym.enclClass()));
