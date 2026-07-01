@@ -43,20 +43,23 @@ public class JavaLowInterpreter extends Interpreter {
     public JavaLowInterpreter() {
     }
 
-    static final class JavaEnv implements Env {
+    static class JavaEnv implements Env {
         final Map<Value, Object> bindings;
         final MethodHandles.Lookup l;
         final Deque<List<Block>> catchBlocks;
 
-        public JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l) {
-            this.bindings = bindings;
-            this.l = l;
-            this.catchBlocks = new ArrayDeque<>();
-        }
-        private JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
+        protected JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
             this.bindings = bindings;
             this.l = l;
             this.catchBlocks = catchBlocks;
+        }
+
+        protected Env newEnv(Map<Value, Object> m) {
+            return new JavaEnv(m, l, catchBlocks);
+        }
+
+        protected JavaEnv newEnv(Deque<List<Block>> catchBlocks) {
+            return new JavaEnv(bindings, l, catchBlocks);
         }
 
         Map<Value, Object> newBindings() {
@@ -70,14 +73,14 @@ public class JavaLowInterpreter extends Interpreter {
             for (int i = 0; i < l; i++) {
                 m.put(symbolicValues.get(i), runtimeValues.get(i));
             }
-            return new JavaEnv(m, this.l, this.catchBlocks);
+            return newEnv(m);
         }
 
         @Override
         public Env bind(Value symbolicValue, Object runtimeValue) {
             Map<Value, Object> m = newBindings();
             m.put(symbolicValue, runtimeValue);
-            return new JavaEnv(m, l, this.catchBlocks);
+            return newEnv(m);
         }
 
         @Override
@@ -101,7 +104,7 @@ public class JavaLowInterpreter extends Interpreter {
         public JavaEnv registerCatchBlocks(List<Block> catchBlocks) {
             var stack = new ArrayDeque<>(this.catchBlocks);
             stack.addFirst(catchBlocks);
-            return new JavaEnv(bindings, l, stack);
+            return newEnv(stack);
         }
 
         public JavaEnv removeCatchBlocks(List<Block> catchBlocks) {
@@ -110,12 +113,12 @@ public class JavaLowInterpreter extends Interpreter {
             if (!l.equals(catchBlocks)) {
                 throw new InternalError();
             }
-            return new JavaEnv(bindings, this.l, stack);
+            return newEnv(stack);
         }
 
         @Override
-        public BlockEffect onAbruptCompletion(TerminatingOpEffect eff) {
-            Optional<SuccessorEffect> opt = this.findCatchBlock((Throwable) eff.operands().getFirst());
+        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
+            Optional<SuccessorEffect> opt = this.findCatchBlock(op.parent(), (Throwable) eff.operands().getFirst());
             if (opt.isPresent()) {
                 return opt.get();
             } else {
@@ -124,13 +127,18 @@ public class JavaLowInterpreter extends Interpreter {
             }
         }
 
-        private Optional<SuccessorEffect> findCatchBlock(Throwable t) {
+        // @@@ review this area and improve the code
+        private Optional<SuccessorEffect> findCatchBlock(Block executedBlock, Throwable t) {
             Block cb = null;
             int blockListToRemove = 0;
             l:
             for (List<Block> blocks : catchBlocks) {
                 blockListToRemove++;
                 for (Block block : blocks) {
+                    // make sure we are searching for catch block within the same body
+                    if (block.parent() != executedBlock.parent()) {
+                        break l;
+                    }
                     Class<?> c;
                     try {
                         c = resolveToClass(l, block.parameters().getFirst().type());
@@ -158,7 +166,7 @@ public class JavaLowInterpreter extends Interpreter {
         }
 
         private JavaEnv removeAllCatchBlocks() {
-            return new JavaEnv(bindings, l);
+            return newEnv(new ArrayDeque<>());
         }
     }
 
@@ -170,8 +178,12 @@ public class JavaLowInterpreter extends Interpreter {
                 argsAndCaptures.subList(0, op.parameters().size()).toArray());
     }
 
+    protected Env newEnv(MethodHandles.Lookup l) {
+        return new JavaEnv(new HashMap<>(), l, new ArrayDeque<>());
+    }
+
     private <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        Env e = new JavaEnv(new HashMap<>(), l);
+        Env e = newEnv(l);
         e = e.bind(op.capturedValues(), Arrays.asList(captures));
         var effect = executeBody(op.body(), Arrays.asList(args), e);
         switch (effect.terminatingOp()) {
@@ -297,7 +309,7 @@ public class JavaLowInterpreter extends Interpreter {
                     }
                     try {
                         JavaEnv je = (JavaEnv) e;
-                        result = new JavaLowInterpreter().interpret(funcOp, e.valuesOf(o.operands()), je.l);
+                        result = interpret(funcOp, e.valuesOf(o.operands()), je.l);
                     } catch (InterpreterException ex) {
                         throw ex;
                     } catch (Throwable t) {
@@ -514,7 +526,7 @@ public class JavaLowInterpreter extends Interpreter {
                 List<Object> operands = e.valuesOf(o.operands());
                 yield new TerminatingOpEffect(o, operands, e);
             }
-            case JavaOp.ThrowOp o -> e.onAbruptCompletion(new TerminatingOpEffect(o, e.valuesOf(o.operands()),e));
+            case JavaOp.ThrowOp o -> e.onAbruptCompletion(o, new TerminatingOpEffect(o, e.valuesOf(o.operands()),e));
             case CoreOp.YieldOp o -> {
                 if (o.ancestorBody().ancestorBody() == null) {
                     throw new IllegalStateException("Yielding to no parent body");
@@ -577,7 +589,7 @@ public class JavaLowInterpreter extends Interpreter {
         b.add(JavaOp.throw_(b.parameters().get(0)));
     });
     // to treat implicit and explicit exceptions the same
-    private static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
+    protected static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
 
     private static final MethodHandle interpretLambdaOpMH;
     static {
@@ -593,7 +605,7 @@ public class JavaLowInterpreter extends Interpreter {
         return interpret_(op, l, captures, args);
     }
 
-    private static final class VarBox
+    protected static final class VarBox
             implements CoreOp.Var<Object> {
         Object value;
 

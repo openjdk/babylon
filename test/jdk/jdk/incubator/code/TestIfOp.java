@@ -82,6 +82,7 @@ public class TestIfOp {
 
         for (int i = 0; i < 6; i++) {
             Assertions.assertEquals(f(i), Interpreter.invoke(MethodHandles.lookup(), lf, i));
+            Assertions.assertEquals(f(i), Interpreter.invoke(MethodHandles.lookup(), f, i));
         }
     }
 }
