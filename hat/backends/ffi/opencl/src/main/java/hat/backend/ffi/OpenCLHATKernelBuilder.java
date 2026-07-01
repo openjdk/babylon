@@ -169,6 +169,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .when(useThreadConstruct("bsx"), _-> hashDefine("HAT_BSX", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstZero()))))
                 .when(useThreadConstruct("bsy"), _-> hashDefine("HAT_BSY", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstOne()))))
                 .when(useThreadConstruct("bsz"), _-> hashDefine("HAT_BSZ", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("wrs"), _-> hashDefine("HAT_WRS", _ -> paren(_ -> intValue(OPENCL_WARP_SIZE))))
 
                 // Math Functions
                 .when(useS16Types(), _->maxMacro("MAX_HAT"))
@@ -672,7 +673,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     protected OpenCLHATKernelBuilder hatWarpSize() {
-        return intConst(OPENCL_WARP_SIZE);
+        return id("HAT_WRS");
     }
 
     private OpenCLHATKernelBuilder generateHatTensorCreate(List<Integer> shape, Object klass, String varTensorName, Value v, int ordering) {
