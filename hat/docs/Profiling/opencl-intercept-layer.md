@@ -26,7 +26,7 @@ export PATH=/path/to/opencl-intercept-layer/build/cliloader:$PATH
 ```bash
 cliloader \
   -d -h \
-  java @hat/run ffi-opencl tensors --iterations=10 --verbose
+  java @.ffi-opencl-example tensors.Main --iterations=10 --verbose
 ```
 
 Example of output:
@@ -79,7 +79,13 @@ cliloader -d -h \
   --chrome-device-timeline \
   --chrome-kernel-timeline \
   --chrome-device-stages \
-  java @hat/run ffi-opencl tensors --iterations=10 --verbose
+  java @.ffi-opencl-example tensors.Main --iterations=10 --verbose
+```
+
+The same functionality could be achived by invoking the `scripts/cliloader-chrome-opencl.bash` script.
+
+```bash
+sh scripts/cliloader-opencl.bash tensors.Main --iterations=10 --verbose
 ```
 
 Then open Chrome and enter the following url: `chrome://tracing`.
