@@ -262,9 +262,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
                 .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
                 .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
-                .when(useTensors(), _ -> includeSys("mma.h")) // only enable if tensor views are used
 
                 // Tensor Macros
+                .when(useTensors(), _ -> includeSys("mma.h"))
                 .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
