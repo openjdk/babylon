@@ -25,9 +25,7 @@ public class AllMiniLML6V2EmbeddingModel {
             NUM_HEADS = 12, // num_attention_heads
             MAX_POSITION_EMBEDDINGS = 512, // max_position_embeddings
             TYPE_VOCAB_SIZE = 2, // type_vocab_size
-            VOCAB_SIZE = 30522, // vocab_size
-            HEAD_SIZE = HIDDEN_SIZE / NUM_HEADS;
-
+            VOCAB_SIZE = 30522; // vocab_size
     public static final float EPSILON = 1.0E-12f, // layer_norm_eps
             ATTENTION_SCALE = 0.17677669f; // 1/sqrt(HIDDEN_SIZE/NUM_HEADS) = 1/ sqrt(32)
 
@@ -144,32 +142,28 @@ public class AllMiniLML6V2EmbeddingModel {
                 of(-1L)).Y();
 
         Tensor<Float> mask = Cast(attentionMask, empty(), 1L, empty());
-        Tensor<Float> invertedMask = Sub(Constant(empty(), empty(), empty(), of(1.0F), empty(), empty(), empty(), empty()), mask);
-        Tensor<Float> attentionBias = Mul(invertedMask, Constant(empty(), empty(), empty(), of(-3.4028235E38F), empty(), empty(), empty(), empty()));
-        attentionBias = Unsqueeze(Unsqueeze(attentionBias, axis1), axis2);
-
-        Tensor<Long> maskShape = Shape(attentionMask, empty(), empty());
-        Tensor<Long> batch = Unsqueeze(Gather(maskShape, scalar0, of(0L)), axis0);
-        Tensor<Long> seq = Unsqueeze(Gather(maskShape, scalar1, of(0L)), axis0);
-        Tensor<Long> heads = Constant(empty(), empty(), empty(), empty(), empty(), of(new long[]{NUM_HEADS}), empty(), empty());
-        attentionBias = Expand(attentionBias, Concat(java.util.List.of(batch, heads, seq, seq), 0L));
+        Tensor<Integer> keyPaddingMask = Cast(attentionMask, empty(), 6L, empty());
 
         for (int layer = 0; layer < LAYERS; layer++) {
             Tensor<Float> query = Add(MatMul(hidden, attnQWeight[layer]), attnQBias[layer]);
             Tensor<Float> key = Add(MatMul(hidden, attnKWeight[layer]), attnKBias[layer]);
             Tensor<Float> value = Add(MatMul(hidden, attnVWeight[layer]), attnVBias[layer]);
+            var attention = MultiHeadAttention(
+                    query,
+                    key,
+                    value,
+                    java.util.Optional.<Tensor<Float>>empty(),
+                    of(keyPaddingMask),
+                    java.util.Optional.<Tensor<Float>>empty(),
+                    java.util.Optional.<Tensor<Float>>empty(),
+                    java.util.Optional.<Tensor<Float>>empty(),
+                    java.util.Optional.<Tensor<Float>>empty(),
+                    NUM_HEADS,
+                    java.util.Optional.<Float>empty(),
+                    of(ATTENTION_SCALE),
+                    java.util.Optional.<Long>empty());
 
-            Tensor<Long> headSize = Constant(empty(), empty(), empty(), empty(), empty(), of(new long[]{HEAD_SIZE}), empty(), empty());
-            Tensor<Long> hiddenSize = Constant(empty(), empty(), empty(), empty(), empty(), of(new long[]{HIDDEN_SIZE}), empty(), empty());
-            Tensor<Long> attentionShape = Concat(java.util.List.of(batch, seq, heads, headSize), 0L);
-            Tensor<Long> outputShape = Concat(java.util.List.of(batch, seq, hiddenSize), 0L);
-            Tensor<Float> queryHeads = Transpose(Reshape(query, attentionShape, empty()), of(new long[]{0L, 2L, 1L, 3L}));
-            Tensor<Float> keyHeads = Transpose(Reshape(key, attentionShape, empty()), of(new long[]{0L, 2L, 3L, 1L}));
-            Tensor<Float> valueHeads = Transpose(Reshape(value, attentionShape, empty()), of(new long[]{0L, 2L, 1L, 3L}));
-            Tensor<Float> scores = Add(Mul(MatMul(queryHeads, keyHeads), Constant(empty(), empty(), empty(), of(ATTENTION_SCALE), empty(), empty(), empty(), empty())), attentionBias);
-            Tensor<Float> context = MatMul(Softmax(scores, of(-1L)), valueHeads);
-            Tensor<Float> attentionOutput = Add(MatMul(Reshape(Transpose(context, of(new long[]{0L, 2L, 1L, 3L})), outputShape, empty()), attnOWeight[layer]), attnOBias[layer]);
-            Tensor<Float> attentionResidual = Add(attentionOutput, hidden);
+            Tensor<Float> attentionResidual = Add(attention.output(), hidden);
             Tensor<Float> attentionNorm = LayerNormalization(
                     attentionResidual,
                     attentionOutputNormWeight[layer],

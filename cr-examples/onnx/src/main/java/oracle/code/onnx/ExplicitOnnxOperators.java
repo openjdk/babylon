@@ -29,9 +29,10 @@ import java.lang.foreign.ValueLayout;
 import jdk.incubator.code.Reflect;
 import java.util.List;
 import java.util.Optional;
+
 import oracle.code.onnx.ir.OnnxOps;
 
-class ExplicitOnnxOperators {
+public class ExplicitOnnxOperators {
 
     // Explicit constant operators
 
@@ -107,7 +108,6 @@ class ExplicitOnnxOperators {
     }
 
     // @@@ this should be generated from contrib operators
-
     public record GroupQueryAttention<T>(Tensor<T> output, Tensor<T> present_key, Tensor<T> present_value) { }
     public static <T, M> GroupQueryAttention<T> GroupQueryAttention(Tensor<T> query, Optional<Tensor<T>> key, Optional<Tensor<T>> value, Optional<Tensor<T>> past_key, Optional<Tensor<T>> past_value, Tensor<M> seqlens_k, Tensor<M> total_sequence_length, Optional<Tensor<T>> cos_cache, Optional<Tensor<T>> sin_cache, Optional<Long> do_rotary, long kv_num_heads, Optional<Long> local_window_size, long num_heads, Optional<Long> rotary_interleaved, Optional<Float> scale) {
         Object result = OnnxInterpreter.interpret(OnnxOps.GroupQueryAttention.class, List.of(query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache), List.of(do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale));
@@ -117,8 +117,8 @@ class ExplicitOnnxOperators {
 
     public record MultiHeadAttention<T>(Tensor<T> output,  Tensor<T> present_key, Tensor<T> present_value) {}
 
-    public static <T, M> MultiHeadAttention<T> MultiHeadAttention(Tensor<T> query, Tensor<T> key, Tensor<T> value, Optional<Tensor<T>> bias, Optional<Tensor<T>> key_padding_mask, Optional<Tensor<T>> relative_position_bias, Optional<Tensor<T>> past_key, Optional<Tensor<T>> past_value, Optional<Tensor<T>> attention_bias, Optional<Float> mask_filter_value, long num_heads, Optional<Float> scale, Optional<Long> unidirectional) {
-        Object result = OnnxInterpreter.interpret(OnnxOps.MultiHeadAttention.class, List.of(query, key, value, bias, past_value, key_padding_mask, relative_position_bias, past_key, past_value, attention_bias), List.of(mask_filter_value, scale, unidirectional));
+    public static <T, M> MultiHeadAttention<T> MultiHeadAttention(Tensor<T> query, Tensor<T> key, Tensor<T> value, Optional<Tensor<T>> bias, Optional<Tensor<M>> key_padding_mask, Optional<Tensor<T>> relative_position_bias, Optional<Tensor<T>> past_key, Optional<Tensor<T>> past_value, Optional<Tensor<T>> attention_bias, long num_heads, Optional<Float> mask_filter_value, Optional<Float> scale, Optional<Long> unidirectional) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.MultiHeadAttention.class, List.of(query, key, value, bias, key_padding_mask, relative_position_bias, past_key, past_value, attention_bias), List.of(mask_filter_value, num_heads, scale, unidirectional));
         Object[] resultArray = (Object[]) result;
         return new MultiHeadAttention<>((Tensor<T>)resultArray[0], (Tensor<T>)resultArray[1], (Tensor<T>)resultArray[2]);
     }
