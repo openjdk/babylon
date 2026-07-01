@@ -1,4 +1,10 @@
-TestNoCodeReflectionInInnerClasses.java:35:21: compiler.err.reflectable.method.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-TestNoCodeReflectionInInnerClasses.java:38:46: compiler.err.reflectable.lambda.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-TestNoCodeReflectionInInnerClasses.java:42:46: compiler.err.reflectable.mref.inner.class: TestNoCodeReflectionInInnerClasses.Inner
-3 errors
+TestNoCodeReflectionInInnerClasses.java:12:21: compiler.err.reflectable.method.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+TestNoCodeReflectionInInnerClasses.java:15:46: compiler.err.reflectable.lambda.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+TestNoCodeReflectionInInnerClasses.java:19:46: compiler.err.reflectable.mref.inner.class: TestNoCodeReflectionInInnerClasses.Inner
+TestNoCodeReflectionInInnerClasses.java:26:25: compiler.err.reflectable.method.inner.class: Local
+TestNoCodeReflectionInInnerClasses.java:29:50: compiler.err.reflectable.lambda.inner.class: Local
+TestNoCodeReflectionInInnerClasses.java:33:50: compiler.err.reflectable.mref.inner.class: Local
+TestNoCodeReflectionInInnerClasses.java:41:25: compiler.err.reflectable.method.inner.class: compiler.misc.anonymous.class: TestNoCodeReflectionInInnerClasses$1
+TestNoCodeReflectionInInnerClasses.java:44:50: compiler.err.reflectable.lambda.inner.class: compiler.misc.anonymous.class: TestNoCodeReflectionInInnerClasses$1
+TestNoCodeReflectionInInnerClasses.java:48:50: compiler.err.reflectable.mref.inner.class: compiler.misc.anonymous.class: TestNoCodeReflectionInInnerClasses$1
+9 errors
