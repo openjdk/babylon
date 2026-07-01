@@ -17,9 +17,9 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  * typedef void (*OrtThreadWorkerFn)(void *)
  * }
  */
-public class OrtThreadWorkerFn {
+public final class OrtThreadWorkerFn {
 
-    OrtThreadWorkerFn() {
+    private OrtThreadWorkerFn() {
         // Should not be called directly
     }
 
@@ -56,9 +56,11 @@ public class OrtThreadWorkerFn {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static void invoke(MemorySegment funcPtr,MemorySegment ort_worker_fn_param) {
+    public static void invoke(MemorySegment funcPtr, MemorySegment ort_worker_fn_param) {
         try {
              DOWN$MH.invokeExact(funcPtr, ort_worker_fn_param);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }

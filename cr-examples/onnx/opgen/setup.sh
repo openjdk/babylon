@@ -1,37 +1,22 @@
 #!/bin/bash
 
-# Check if the search path is provided
-if [ -z "$1" ]; then
-    echo "Please provide the path to search for libonnxruntime.*.dylib"
-    exit 1
-fi
-
-# Search for libonnxruntime.dylib in the given path
-LIB_PATH="$(find "$1" -name libonnxruntime.*.dylib -print -quit)"
-
-if [ -z "$LIB_PATH" ]; then
-    echo "libonnxruntime.*.dylib not found in $1"
-    exit 1
-fi
-
-# Infer other paths based on the location of libonnxruntime.*.dylib
-ONNXRT_DIR=$(dirname $(dirname $(dirname $(dirname $LIB_PATH))))
-INCLUDE_DIR=$ONNXRT_DIR/include/onnxruntime
+# Provide paths based on the location of libonnxruntime.*.[dylib|so|dll]
+ONNX_INCLUDE_DIR=/path/to/onnx/include/onnxruntime/include
+ONNX_GEN_AI_INCLUDE_DIR=/path/to/onnx/include/onnxruntime-genai/include
 OUTPUT_DIR=../src/main/java
 
-## Run jextract
+## Run jextract for ONNX runtime
 jextract --target-package oracle.code.onnx.foreign \
-  -l :$LIB_PATH \
-  --use-system-load-library \
-  -I $INCLUDE_DIR/core/session \
-  @symbols \
+  -I $ONNX_INCLUDE_DIR \
+  @symbols\
   --output $OUTPUT_DIR \
-  $INCLUDE_DIR/core/providers/coreml/coreml_provider_factory.h
+  --header-class-name onnxruntime_c_api_h \
+  $ONNX_INCLUDE_DIR/onnxruntime_c_api.h \
+  $ONNX_INCLUDE_DIR/coreml_provider_factory.h
 
-#jextract --target-package oracle.code.onnx.foreign \
-#  -l :$LIB_PATH \
-#  -I $INCLUDE_DIR \
-#  --header-class-name onnxruntime_c_api_h \
-#  --use-system-load-library \
-#  --output $OUTPUT_DIR \
-#  $INCLUDE_DIR/core/session/onnxruntime_c_api.h
+ ## Run jextract for Gen AI runtime
+ jextract --target-package oracle.code.onnx.foreign \
+   --output $OUTPUT_DIR \
+   --header-class-name OrtGenApi \
+   @symbolsai \
+   $ONNX_GEN_AI_INCLUDE_DIR/ort_genai_c.h

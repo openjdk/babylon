@@ -187,6 +187,13 @@ public abstract sealed class OnnxType implements CodeType {
 
                     return new Int64Type();
                 }
+                case UInt2Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new UInt2Type();
+                }
                 case UInt4Type.NAME: {
                     if (!tree.arguments().isEmpty()) {
                         throw new IllegalArgumentException();
@@ -644,6 +651,23 @@ public abstract sealed class OnnxType implements CodeType {
         }
     }
 
+    public static final class Int2Type extends OnnxElementType {
+        static final String NAME = "int2";
+
+        Int2Type() {
+        }
+
+        @Override
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 26;
+        }
+    }
+
     public static final class Int4Type extends OnnxElementType {
         static final String NAME = "int4";
 
@@ -726,6 +750,23 @@ public abstract sealed class OnnxType implements CodeType {
         @Override
         public int id() {
             return 7;
+        }
+    }
+
+    public static final class UInt2Type extends OnnxElementType {
+        static final String NAME = "uint2";
+
+        UInt2Type() {
+        }
+
+        @Override
+        public ExternalizedCodeType externalize() {
+            return new ExternalizedCodeType(NAME, List.of());
+        }
+
+        @Override
+        public int id() {
+            return 25;
         }
     }
 
@@ -882,12 +923,14 @@ public abstract sealed class OnnxType implements CodeType {
         }
     }
 
+    public static final Int2Type INT2 = new Int2Type();
     public static final Int4Type INT4 = new Int4Type();
     public static final Int8Type INT8 = new Int8Type();
     public static final Int16Type INT16 = new Int16Type();
     public static final Int32Type INT32 = new Int32Type();
     public static final Int64Type INT64 = new Int64Type();
 
+    public static final UInt2Type UINT2 = new UInt2Type();
     public static final UInt4Type UINT4 = new UInt4Type();
     public static final UInt8Type UINT8 = new UInt8Type();
     public static final UInt16Type UINT16 = new UInt16Type();
@@ -913,12 +956,14 @@ public abstract sealed class OnnxType implements CodeType {
     public static final StringType STRING = new StringType();
     public static final BoolType BOOL = new BoolType();
 
+    public static final TensorType TENSOR_INT2 = new TensorType(INT2);
     public static final TensorType TENSOR_INT4 = new TensorType(INT4);
     public static final TensorType TENSOR_INT8 = new TensorType(INT8);
     public static final TensorType TENSOR_INT16 = new TensorType(INT16);
     public static final TensorType TENSOR_INT32 = new TensorType(INT32);
     public static final TensorType TENSOR_INT64 = new TensorType(INT64);
 
+    public static final TensorType TENSOR_UINT2 = new TensorType(UINT2);
     public static final TensorType TENSOR_UINT4 = new TensorType(UINT4);
     public static final TensorType TENSOR_UINT8 = new TensorType(UINT8);
     public static final TensorType TENSOR_UINT16 = new TensorType(UINT16);
@@ -944,7 +989,7 @@ public abstract sealed class OnnxType implements CodeType {
     public static final TensorType TENSOR_STRING = new TensorType(STRING);
     public static final TensorType TENSOR_BOOL = new TensorType(BOOL);
 
-
+    public static Int2Type int2() { return INT2; }
     public static Int4Type int4() { return INT4; }
     public static Int8Type int8() { return INT8; }
     public static Int16Type int16() { return INT16; }
@@ -955,6 +1000,7 @@ public abstract sealed class OnnxType implements CodeType {
     public static Float32Type float32() { return FLOAT32; }
     public static Float64Type float64() { return FLOAT64; }
 
+    public static UInt2Type uint2() { return UINT2; }
     public static UInt4Type uint4() { return UINT4; }
     public static UInt8Type uint8() { return UINT8; }
     public static UInt16Type uint16() { return UINT16; }
@@ -978,12 +1024,14 @@ public abstract sealed class OnnxType implements CodeType {
 
     public static TensorType tensor(OnnxElementType e) {
         TensorType tt = switch (e) {
+            case Int2Type t -> OnnxType.TENSOR_INT2;
             case Int4Type t -> OnnxType.TENSOR_INT4;
             case Int8Type t -> OnnxType.TENSOR_INT8;
             case Int16Type t -> OnnxType.TENSOR_INT16;
             case Int32Type t -> OnnxType.TENSOR_INT32;
             case Int64Type t -> OnnxType.TENSOR_INT64;
 
+            case UInt2Type t -> OnnxType.TENSOR_UINT2;
             case UInt4Type t -> OnnxType.TENSOR_UINT4;
             case UInt8Type t -> OnnxType.TENSOR_UINT8;
             case UInt16Type t -> OnnxType.TENSOR_UINT16;

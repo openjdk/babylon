@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -346,9 +346,9 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     ///       |          |          |
     ///       ---MatMul---          |
     ///             |               |
-    ///  at_mask---Add              |
-    ///             |               |
     ///   softcap (if provided)     |
+    ///             |               |
+    ///  at_mask---Add              |
     ///             |               |
     ///          Softmax            |
     ///             |               |
@@ -464,6 +464,20 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     public static <T> Tensor<T> Binarizer(Tensor<T> X, Optional<Float> threshold) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Binarizer.class, List.of(X), List.of(threshold));
         return (Tensor<T>) result;
+    }
+
+    ///
+    /// Reinterprets the binary representation of a tensor as a different data type,
+    /// specified by the 'to' attribute. Unlike Cast, BitCast preserves the exact bit
+    /// pattern without any value conversion.
+    ///
+    /// The target data type must have the same bit-width as the input data type.
+    /// The output tensor has the same shape as the input tensor.
+    /// All types except string are supported. Implementations must treat the
+    /// underlying bytes as little endian.
+    public static <T1, T2> Tensor<T2> BitCast(Tensor<T1> input, long to) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.BitCast.class, List.of(input), List.of(to));
+        return (Tensor<T2>) result;
     }
 
     ///
@@ -609,8 +623,8 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// | NaN               | NaN           | NaN                    |
     /// | Inf               | E8M0_MAX      | NaN                    |
     /// | x > E8M0_MAX      | E8M0_MAX      | NaN                    |
-    /// | x \< E8M0_MIN     | E8M0_MIN      | NaN                    |
-    /// | x \< 0            | Unspecified   | Unspecified            |
+    /// | x < E8M0_MIN      | E8M0_MIN      | NaN                    |
+    /// | x < 0             | Unspecified   | Unspecified            |
     public static <T1, T2> Tensor<T2> Cast(Tensor<T1> input, Optional<Long> saturate, long to, Optional<String> round_mode) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Cast.class, List.of(input), List.of(saturate, to, round_mode));
         return (Tensor<T2>) result;
@@ -646,6 +660,32 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     public static <T1, T2> Tensor<T2> CategoryMapper(Tensor<T1> X, Optional<long[]> cats_int64s, Optional<String[]> cats_strings, Optional<Long> default_int64, Optional<String> default_string) {
         Object result = OnnxInterpreter.interpret(OnnxOps.CategoryMapper.class, List.of(X), List.of(cats_int64s, cats_strings, default_int64, default_string));
         return (Tensor<T2>) result;
+    }
+
+    public record CausalConvWithStateResult<T>(Tensor<T> output, Tensor<T> present_state) { }
+    ///
+    ///
+    /// Stateful causal 1D depthwise convolution.
+    ///
+    /// Used by Gated DeltaNet (Qwen3.5) and Mamba (Jamba, FalconMamba) as a preprocessing step.
+    /// Replaces the 3-op pattern (Concat + Conv + Slice) with a single fused operation.
+    ///
+    /// The convolution is causal (looks only at current and past positions) and depthwise
+    /// (each channel is convolved independently with its own kernel).
+    ///
+    /// The input, weight, past_state, output, and present_state tensors are rank-3 with
+    /// shape (batch_size, channels, length). The optional bias input is rank-1 with
+    /// shape (channels). For higher-dimensional data, use Reshape nodes before and
+    /// after this operator to pack extra dimensions into the batch or channel axis.
+    ///
+    /// Weight layout: (channels, 1, k) for depthwise convolution.
+    /// The carry state stores the last (k-1) positions for incremental decode.
+    ///
+    /// The optional activation attribute supports fused SiLU/Swish activation.
+    public static <T> CausalConvWithStateResult<T> CausalConvWithState(Tensor<T> input, Tensor<T> weight, Optional<Tensor<T>> bias, Optional<Tensor<T>> past_state, Optional<String> activation) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.CausalConvWithState.class, List.of(input, weight, bias, past_state), List.of(activation));
+        Object[] resultArray = (Object[]) result;
+        return new CausalConvWithStateResult<>((Tensor<T>)resultArray[0], (Tensor<T>)resultArray[1]);
     }
 
     ///
@@ -809,6 +849,32 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     }
 
     ///
+    /// Performs cumulative product of the input elements along the given axis.
+    /// By default, it will do the product inclusively meaning the first element is copied as is.
+    /// Through an `exclusive` attribute, this behavior can change to exclude the first element.
+    /// It can also perform product in the opposite direction of the axis. For that, set `reverse` attribute to 1.
+    ///
+    /// Example:
+    /// ```
+    /// input_x = [1, 2, 3]
+    /// axis=0
+    /// output = [1, 2, 6]
+    /// exclusive=1
+    /// output = [1, 1, 2]
+    /// exclusive=0
+    /// reverse=1
+    /// output = [6, 6, 3]
+    /// exclusive=1
+    /// reverse=1
+    /// output = [6, 3, 1]
+    /// ```
+    ///
+    public static <T, T2> Tensor<T> CumProd(Tensor<T> x, Tensor<T2> axis, Optional<Long> exclusive, Optional<Long> reverse) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.CumProd.class, List.of(x, axis), List.of(exclusive, reverse));
+        return (Tensor<T>) result;
+    }
+
+    ///
     /// Performs cumulative sum of the input elements along the given axis.
     /// By default, it will do the sum inclusively meaning the first element is copied as is.
     /// Through an `exclusive` attribute, this behavior can change to exclude the first element.
@@ -943,6 +1009,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     ///
     /// This operator supports **multidirectional (i.e., Numpy-style) broadcasting**; for more details please check [the doc](Broadcasting.md).
     ///
+    /// For integer inputs, the result is computed using truncating division (rounding toward zero).
     /// (Opset 14 change): Extend supported types to include uint8, int8, uint16, and int16.
     public static <T> Tensor<T> Div(Tensor<T> A, Tensor<T> B) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Div.class, List.of(A, B), List.of());
@@ -984,7 +1051,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// Zero point is calculated as:
     /// ```
     /// intermediate_zero_point = qmin - min(x)/y_scale
-    /// y_zero_point = cast(round(saturate(itermediate_zero_point)))
+    /// y_zero_point = cast(round(saturate(intermediate_zero_point)))
     /// ```
     ///
     /// * where qmax and qmin are max and min values for quantization range .i.e [0, 255] in case of uint8
@@ -1945,6 +2012,37 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
         return (Tensor<Boolean>) result;
     }
 
+    public record LinearAttentionResult<T, S>(Tensor<T> output, Tensor<S> present_state) { }
+    ///
+    /// Unified linear attention operator for autoregressive decoding (T=1) and prefill (T>1).
+    ///
+    /// The query, key, value, and (where applicable) decay/beta inputs use 3D packed format
+    /// [B, T, H*D], where heads are flattened into the last dimension; q_num_heads and
+    /// kv_num_heads are always required and are used to unpack to 4D internally for computation.
+    /// The optional past_state and present_state are 4D with shape (B, H_kv, d_k, d_v).
+    ///
+    /// Group-query attention (GQA) is supported: q_num_heads must be a positive multiple of
+    /// kv_num_heads. When q_num_heads == kv_num_heads this reduces to multi-headed linear
+    /// attention; when q_num_heads > kv_num_heads each KV head (and its recurrent state) is
+    /// shared by `q_num_heads / kv_num_heads` query heads (multi-query attention is the
+    /// special case kv_num_heads == 1).
+    ///
+    /// The update_rule attribute selects the recurrence type:
+    /// - "linear": S_t = S_{t-1} + k_t ⊗ v_t; o_t = scale * q_t^T S_t
+    /// - "gated": S_t = exp(g_t) * S_{t-1} + k_t ⊗ v_t; o_t = scale * q_t^T S_t
+    /// - "delta": S_t = S_{t-1} + β_t * k_t ⊗ (v_t - S_{t-1}^T k_t); o_t = scale * q_t^T S_t
+    /// - "gated_delta": S_t = exp(g_t) * S_{t-1} + β_t * k_t ⊗ (v_t - exp(g_t) * S_{t-1}^T k_t); o_t = scale * q_t^T S_t
+    ///
+    /// where g_t is the decay (in log-space), β_t is the update rate, and ⊗ denotes outer product.
+    ///
+    /// Semantics: Equivalent to running the recurrent update sequentially for each token,
+    /// but may be implemented using chunk-parallel algorithms for GPU efficiency.
+    public static <T, S> LinearAttentionResult<T, S> LinearAttention(Tensor<T> query, Tensor<T> key, Tensor<T> value, Optional<Tensor<S>> past_state, Optional<Tensor<T>> decay, Optional<Tensor<T>> beta, Optional<Long> chunk_size, Optional<String> update_rule, Optional<Float> scale, long q_num_heads, long kv_num_heads) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.LinearAttention.class, List.of(query, key, value, past_state, decay, beta), List.of(chunk_size, update_rule, scale, q_num_heads, kv_num_heads));
+        Object[] resultArray = (Object[]) result;
+        return new LinearAttentionResult<>((Tensor<T>)resultArray[0], (Tensor<S>)resultArray[1]);
+    }
+
     public record LinearClassifierResult<T2>(Tensor<T2> Y, Tensor<Float> Z) { }
     ///
     ///     Linear classifier
@@ -1988,6 +2086,9 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
 
     ///
     /// Given a matrix, apply Lp-normalization along the provided axis.
+    /// The output is computed as: `output = input / Lp_norm(input, axis)`.
+    /// When the Lp norm is zero (i.e., all elements along the axis are zero),
+    /// the output is defined to be zero to avoid division by zero.
     public static <T> Tensor<T> LpNormalization(Tensor<T> input, Optional<Long> p, Optional<Long> axis) {
         Object result = OnnxInterpreter.interpret(OnnxOps.LpNormalization.class, List.of(input), List.of(p, axis));
         return (Tensor<T>) result;
@@ -2399,6 +2500,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     ///
     /// Filter out boxes that have high intersection-over-union (IOU) overlap with previously selected boxes.
     /// Bounding boxes with score less than score_threshold are removed. Bounding box format is indicated by attribute center_point_box.
+    /// Boxes are suppressed if their IOU with a previously selected box is strictly greater than iou_threshold (i.e., boxes with IOU exactly equal to the threshold are kept).
     /// Note that this algorithm is agnostic to where the origin is in the coordinate system and more generally is invariant to
     /// orthogonal transformations and translations of the coordinate system; thus translating or reflections of the coordinate system
     /// result in the same boxes being selected by the algorithm.
@@ -2531,7 +2633,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// Given a tensor containing the data to be padded (`data`), a tensor containing the number of start and end pad values for axis (`pads`), (optionally) a `mode`, and (optionally) `constant_value`,
     /// a padded tensor (`output`) is generated.
     ///
-    /// The three supported `modes` are (similar to corresponding modes supported by `numpy.pad`):
+    /// The four supported `modes` are (similar to corresponding modes supported by `numpy.pad`):
     ///
     /// 1) `constant`(default) - pads with a given constant value as specified by `constant_value` (which defaults to 0, empty string, or False)
     ///
@@ -2685,6 +2787,8 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// - int8: [-128, 127]
     /// - uint4: [0, 15]
     /// - int4: [-8, 7]
+    /// - uint2: [0, 3]
+    /// - int2: [-2, 1]
     ///
     /// For `(x / y_scale)`, it rounds to the nearest even. Refer to https://en.wikipedia.org/wiki/Rounding for details.
     ///
@@ -2844,34 +2948,33 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// up to `limit` (exclusive).
     ///
     /// The number of elements in the output of range is computed as below:
-    ///
     /// ```
     /// number_of_elements = max( ceil( (limit - start) / delta ) , 0 )
     /// ```
-    ///
     /// The pseudocode determining the contents of the output is shown below:
-    ///
     /// ```
     /// for(int i=0; i<number_of_elements; ++i) {
     ///   output[i] =  start + (i * delta);
     /// }
     /// ```
-    ///
-    /// Example 1
-    ///
+    /// Example 1:
     /// ```
     /// Inputs: start = 3, limit = 9, delta = 3
     /// Output: [3, 6]
     /// ```
-    ///
-    /// Example 2
-    ///
+    /// Example 2:
     /// ```
     /// Inputs: start = 10, limit = 4, delta = -2
     /// Output: [10, 8, 6]
     /// ```
-    public static <T> Tensor<T> Range(Tensor<T> start, Tensor<T> limit, Tensor<T> delta) {
-        Object result = OnnxInterpreter.interpret(OnnxOps.Range.class, List.of(start, limit, delta), List.of());
+    ///
+    /// For `float16` and `bfloat16` inputs, the `stash_type` attribute controls the precision used for
+    /// intermediate accumulation. Setting `stash_type` to `1` (float) causes `start`, `limit`, and
+    /// `delta` to be cast to 32-bit float before the loop, with the output cast back to the original
+    /// type. This avoids precision loss for large ranges where successive additions in float16 or
+    /// bfloat16 would otherwise be inexact (e.g. `x + 1 == x` for large `x`).
+    public static <T> Tensor<T> Range(Tensor<T> start, Tensor<T> limit, Tensor<T> delta, Optional<Long> stash_type) {
+        Object result = OnnxInterpreter.interpret(OnnxOps.Range.class, List.of(start, limit, delta), List.of(stash_type));
         return (Tensor<T>) result;
     }
 
@@ -3440,7 +3543,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// output = np.copy(data)
     /// update_indices = indices.shape[:-1]
     /// for idx in np.ndindex(update_indices):
-    ///     output[indices[idx]] = updates[idx]
+    ///     output[tuple(indices[idx])] = updates[idx]
     /// ```
     ///
     /// The order of iteration in the above loop is not specified.
@@ -3457,7 +3560,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// output = np.copy(data)
     /// update_indices = indices.shape[:-1]
     /// for idx in np.ndindex(update_indices):
-    ///     output[indices[idx]] = f(output[indices[idx]], updates[idx])
+    ///     output[tuple(indices[idx])] = f(output[tuple(indices[idx])], updates[idx])
     /// ```
     ///
     /// where the `f` is `+`, `*`, `max` or `min` as specified.
@@ -4027,9 +4130,16 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     }
 
     ///
-    /// Transpose the input tensor similar to numpy.transpose. For example, when
-    /// perm=(1, 0, 2), given an input tensor of shape (1, 2, 3), the output shape
-    /// will be (2, 1, 3).
+    /// Returns a transpose of the input tensor. (Similar to `numpy.transpose`).
+    /// The optional attribute `perm` must be a permutation of the dimensions of
+    /// the input tensor. Axis `i` of the output tensor corresponds to the axis
+    /// `perm[i]` of the input tensor.
+    /// For example, when perm=(1, 0, 2), given an input tensor of shape (1, 2, 3),
+    /// the output shape will be (2, 1, 3).
+    /// When perm=(1, 2, 0), given an input tensor of shape (1, 2, 3),
+    /// the output shape will be (2, 3, 1).
+    /// If the attribute `perm` is omitted, its default value is `(n-1, ..., 0)`,
+    /// where `n` is the rank of the input tensor.
     public static <T> Tensor<T> Transpose(Tensor<T> data, Optional<long[]> perm) {
         Object result = OnnxInterpreter.interpret(OnnxOps.Transpose.class, List.of(data), List.of(perm));
         return (Tensor<T>) result;
