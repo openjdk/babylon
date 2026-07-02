@@ -207,11 +207,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         if (isReflectable) {
             if (isInsideInnerOrLocalClass()) {
                 // Reflectable methods in local classes are not supported
-                if (reflectAll) {
-                    log.warning(tree, Warnings.ReflectableMethodInnerClass(currentClassSym.enclClass()));
-                } else {
-                    log.error(tree, Errors.ReflectableMethodInnerClass(currentClassSym.enclClass()));
-                }
+                log.warning(tree, Warnings.ReflectableMethodInnerClass(currentClassSym.enclClass()));
                 super.visitMethodDef(tree);
                 return;
             } else {
@@ -221,13 +217,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 try {
                     funcOp = bodyScanner.scanMethod();
                 } catch (Exception e) {
-                    if (reflectAll) {
-                        // log as warning for debugging purposses when reflectAll enabled
-                        log.warning(tree, Warnings.ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
-                        super.visitMethodDef(tree);
-                        return;
-                    }
-                    throw e;
+                    // log as warning for debugging purposes when reflectAll enabled
+                    log.warning(tree, Warnings.ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
+                    super.visitMethodDef(tree);
+                    return;
                 }
                 if (dumpIR) {
                     // dump the method IR if requested
@@ -310,11 +303,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         if (isReflectable) {
             if (isInsideInnerOrLocalClass()) {
                 // Reflectable lambdas in local classes are not supported
-                if (reflectAll) {
-                    log.warning(tree, Warnings.ReflectableLambdaInnerClass(currentClassSym.enclClass()));
-                } else {
-                    log.error(tree, Errors.ReflectableLambdaInnerClass(currentClassSym.enclClass()));
-                }
+                log.warning(tree, Warnings.ReflectableLambdaInnerClass(currentClassSym.enclClass()));
                 super.visitLambda(tree);
                 return;
             }
@@ -325,12 +314,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             try {
                 funcOp = bodyScanner.scanLambda();
             } catch (Exception e) {
-                if (reflectAll) {
-                    log.warning(tree, Warnings.ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
-                    super.visitLambda(tree);
-                    return;
-                }
-                throw e;
+                log.warning(tree, Warnings.ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
+                super.visitLambda(tree);
+                return;
             }
             if (dumpIR) {
                 // dump the method IR if requested
@@ -362,11 +348,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         if (isReflectable(tree)) {
             if (isInsideInnerOrLocalClass()) {
                 // Reflectable method references in local classes are not supported
-                if (reflectAll) {
-                    log.warning(tree, Warnings.ReflectableMrefInnerClass(currentClassSym.enclClass()));
-                } else {
-                    log.error(tree, Errors.ReflectableMrefInnerClass(currentClassSym.enclClass()));
-                }
+                log.warning(tree, Warnings.ReflectableMrefInnerClass(currentClassSym.enclClass()));
                 super.visitReference(tree);
                 return;
             }
