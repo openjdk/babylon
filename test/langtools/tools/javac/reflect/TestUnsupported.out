@@ -1,0 +1,4 @@
+TestUnsupported.java:11:13: compiler.warn.reflectable.method.unsupported: TestUnsupported, jdk.incubator.code.internal.ReflectMethods$UnsupportedASTException:case String _, Integer _ -> yield true;
+- compiler.err.warnings.and.werror
+1 error
+1 warning
