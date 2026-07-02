@@ -77,10 +77,9 @@ public final class StructuralPreconditions {
         return bodies;
     }
 
-    public static List<Body.Builder> requireMinBodies(ExternalizedOp def, int expCount) {
-        List<Body.Builder> bodies = def.bodyDefinitions();
+    public static List<Body.Builder> requireMinBodies(String opName, List<Body.Builder> bodies, int expCount) {
         if (bodies.size() < expCount) {
-            throw structuralException(def.name(), "requires at least %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
+            throw structuralException(opName, "requires at least %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
         }
         return bodies;
     }

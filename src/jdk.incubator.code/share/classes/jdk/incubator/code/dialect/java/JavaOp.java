@@ -820,6 +820,10 @@ public sealed abstract class JavaOp extends Op {
             if (bodies.size() != 1 && bodies.size() != 2) {
                 throw structuralException(NAME, "requires 1 or 2 bodies, found %d".formatted(bodies.size()));
             }
+            requireBodySignature(NAME + " predicate", bodies.get(0), CoreType.functionType(BOOLEAN));
+            if (bodies.size() > 1) {
+                requireNonVoidReturnType(NAME + " details", bodies.get(1), 0);
+            }
             super(List.of());
             this.bodies = bodies.stream().map(b -> b.build(this)).toList();
         }
@@ -1043,7 +1047,7 @@ public sealed abstract class JavaOp extends Op {
             int argCount = operands.size() - (invokeKind == InvokeKind.STATIC ? 0 : 1);
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
-                throw structuralException(NAME, "kind=%s, varargs=%s, requires %s%d operands, found=%d".formatted(
+                throw structuralException(NAME, "kind=%s, varargs=%s, requires %s%d operands, found %d".formatted(
                         invokeKind,
                         isVarArgs,
                         isVarArgs ? "at least " : "",
@@ -1253,7 +1257,7 @@ public sealed abstract class JavaOp extends Op {
             int argCount = operands.size();
             if ((!isVarArgs && argCount != paramCount)
                     || argCount < paramCount - 1) {
-                throw structuralException(NAME, "varargs=%s, requires %s%d operands, found=%d".formatted(
+                throw structuralException(NAME, "varargs=%s, requires %s%d operands, found %d".formatted(
                         isVarArgs,
                         isVarArgs ? "at least " : "",
                         isVarArgs ? paramCount - 1 : paramCount,
@@ -1833,7 +1837,7 @@ public sealed abstract class JavaOp extends Op {
 
         ExceptionRegionExit(Value enter, Block.Reference end) {
             if (!(enter instanceof Op.Result or && or.op() instanceof ExceptionRegionEnter)) {
-                throw structuralException(NAME, "Value's is not an exception region entry: " + enter);
+                throw structuralException(NAME, "operand is not an exception region entry: " + enter);
             }
             super(List.of(enter));
             this.end = end;
@@ -2952,7 +2956,7 @@ public sealed abstract class JavaOp extends Op {
         SynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
             super(List.of());
             this.exprBody = requireNonVoidReturnType(NAME + " expression", exprC, 0).build(this);
-            this.blockBody = requireVoidBodySignature(NAME, bodyC).build(this);
+            this.blockBody = requireVoidBodySignature(NAME + " block", bodyC).build(this);
         }
 
         @Override
@@ -3337,7 +3341,7 @@ public sealed abstract class JavaOp extends Op {
                 throw structuralException(NAME, "requires 2 or more bodies, found %d".formatted(bodyCs.size()));
             }
             for (int i = 0; i < bodyCs.size(); i++) {
-                requireBodySignature(NAME, bodyCs.get(i), i % 2 == 0 && i < bodyCs.size() - 1 ? PREDICATE_SIGNATURE : ACTION_SIGNATURE);
+                requireBodySignature("%s body[%d]".formatted(NAME, i), bodyCs.get(i), i % 2 == 0 && i < bodyCs.size() - 1 ? PREDICATE_SIGNATURE : ACTION_SIGNATURE);
             }
             super(List.of());
 
@@ -4191,7 +4195,7 @@ public sealed abstract class JavaOp extends Op {
             super(List.of());
 
             this.exprBody = requireNonVoidReturnType(NAME + " expression", expressionC, 0).build(this);
-            this.initBody = requireNonVoidReturnType(NAME + " initilization", initC, 1).build(this);
+            this.initBody = requireNonVoidReturnType(NAME + " initialization", initC, 1).build(this);
             this.loopBody = requireVoidReturnType(NAME + " loop", bodyC, 1).build(this);
         }
 
@@ -4385,8 +4389,8 @@ public sealed abstract class JavaOp extends Op {
 
         WhileOp(Body.Builder predicate, Body.Builder body) {
             super(List.of());
-            this.bodies = List.of(requireBodySignature(NAME, predicate, CoreType.functionType(BOOLEAN)).build(this),
-                                  requireVoidBodySignature(NAME, body).build(this));
+            this.bodies = List.of(requireBodySignature(NAME + " predicate", predicate, CoreType.functionType(BOOLEAN)).build(this),
+                                  requireVoidBodySignature(NAME + " body", body).build(this));
         }
 
         WhileOp(WhileOp that, CodeContext cc, CodeTransformer ct) {
@@ -4530,8 +4534,8 @@ public sealed abstract class JavaOp extends Op {
 
             Objects.requireNonNull(body);
 
-            this.bodies = List.of(requireVoidBodySignature(NAME, body).build(this),
-                                  requireBodySignature(NAME, predicate, CoreType.functionType(BOOLEAN)).build(this));
+            this.bodies = List.of(requireVoidBodySignature(NAME + " body", body).build(this),
+                                  requireBodySignature(NAME + " predicate", predicate, CoreType.functionType(BOOLEAN)).build(this));
         }
 
         DoWhileOp(DoWhileOp that, CodeContext cc, CodeTransformer ct) {
@@ -4746,11 +4750,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConditionalAndOp(List<Body.Builder> bodyCs) {
-            if (bodyCs.size() < 2) {
-                throw structuralException(NAME, "requires at least 2 bodies, found: %d".formatted(bodyCs.size()));
-            }
             bodyCs.forEach(b -> requireBodySignature(NAME, b, BODY_TYPE));
-            super(bodyCs);
+            super(requireMinBodies(NAME, bodyCs, 2));
         }
 
         @Override
@@ -4819,11 +4820,8 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConditionalOrOp(List<Body.Builder> bodyCs) {
-            if (bodyCs.size() < 2) {
-                throw structuralException(NAME, "requires at least 2 bodies, found: %d".formatted(bodyCs.size()));
-            }
             bodyCs.forEach(b -> requireBodySignature(NAME, b, BODY_TYPE));
-            super(bodyCs);
+            super(requireMinBodies(NAME, bodyCs, 2));
         }
 
         @Override
@@ -4874,9 +4872,9 @@ public sealed abstract class JavaOp extends Op {
         ConditionalExpressionOp(CodeType expressionType, Body.Builder predicateBody, Body.Builder trueBody, Body.Builder falseBody) {
             super(List.of());
 
-            this.bodies = List.of(requireBodySignature(NAME, predicateBody, CoreType.functionType(BOOLEAN)).build(this),
-                                  requireNoParameters(NAME, trueBody).build(this),
-                                  requireNoParameters(NAME, falseBody).build(this));
+            this.bodies = List.of(requireBodySignature(NAME + " predicate", predicateBody, CoreType.functionType(BOOLEAN)).build(this),
+                                  requireNoParameters(NAME + " true body", trueBody).build(this),
+                                  requireNoParameters(NAME + " false body", falseBody).build(this));
             // @@@ when expressionType is null, we assume truepart and falsepart have the same yieldType
             this.resultType = expressionType == null ? bodies.get(1).yieldType() : expressionType;
         }
@@ -5080,7 +5078,10 @@ public sealed abstract class JavaOp extends Op {
         final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
-            List<Body.Builder> bodies = requireMinBodies(def, 1);
+            List<Body.Builder> bodies = def.bodyDefinitions();
+            if (bodies.size() < 1) {
+                throw structuralException(def.name(), "requires at least 1 body");
+            }
             int bodyIndex = 0;
             while (bodyIndex < bodies.size() && !bodies.get(bodyIndex).bodySignature().returnType().equals(VOID)) {
                 bodyIndex++;
@@ -5136,39 +5137,15 @@ public sealed abstract class JavaOp extends Op {
             for (Body.Builder _resource : resourcesC) {
                 requireNonVoidReturnType(NAME + " resource", _resource, resourceTypes.size());
                 if (!_resource.bodySignature().parameterTypes().equals(resourceTypes)) {
-                    throw structuralException(NAME, " resource requires %s parameter types, found %s".formatted(resourceTypes, _resource.bodySignature().parameterTypes()));
+                    throw structuralException(NAME, "resource #%d requires %s parameter types, found %s".formatted(resourceTypes.size(), resourceTypes, _resource.bodySignature().parameterTypes()));
                 }
                 resourceTypes.add(_resource.bodySignature().returnType());
             }
             this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
-
-            this.body = bodyC.build(this);
-            if (!body.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Try should return void: " + body.bodySignature());
-            }
-            if (!body.bodySignature().parameterTypes().equals(resourceTypes)) {
-                throw new IllegalArgumentException("Try should have parameters matching resource yields: "
-                        + body.bodySignature());
-            }
-
-            this.catchBodies = catchersC.stream().map(c -> c.build(this)).toList();
-            for (Body _catch : catchBodies) {
-                if (!_catch.bodySignature().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Catch should return void: " + _catch.bodySignature());
-                }
-                if (_catch.bodySignature().parameterTypes().size() != 1) {
-                    throw new IllegalArgumentException("Catch should have zero parameters: " + _catch.bodySignature());
-                }
-            }
-
+            this.body = requireBodySignature(NAME + " try", bodyC, CoreType.functionType(VOID, resourceTypes)).build(this);
+            this.catchBodies = catchersC.stream().map(c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
             if (finalizerC != null) {
-                this.finallyBody = finalizerC.build(this);
-                if (!finallyBody.bodySignature().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Finally should return void: " + finallyBody.bodySignature());
-                }
-                if (!finallyBody.bodySignature().parameterTypes().isEmpty()) {
-                    throw new IllegalArgumentException("Finally should have zero parameters: " + finallyBody.bodySignature());
-                }
+                this.finallyBody = requireVoidBodySignature(NAME + " finalizer", finalizerC).build(this);
             } else {
                 this.finallyBody = null;
             }

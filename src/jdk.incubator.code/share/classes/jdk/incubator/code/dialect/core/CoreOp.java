@@ -1356,8 +1356,8 @@ public sealed abstract class CoreOp extends Op {
         final int index;
 
         TupleWithOp(ExternalizedOp def) {
-            super(requireOperands(def, 2));
-            this.index = requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class);
+            List<Value> operands = requireOperands(def, 2);
+            this(operands.get(0), requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class), operands.get(1));
         }
 
         TupleWithOp(TupleWithOp that, CodeContext cc) {
