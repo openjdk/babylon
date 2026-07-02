@@ -203,7 +203,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
     @Override
     public void visitMethodDef(JCMethodDecl tree) {
-        boolean isReflectable = isReflectable(tree);
+        boolean isReflectable = !tree.sym.isConstructor() && isReflectable(tree);
         if (isReflectable) {
             if (isInsideInnerOrLocalClass()) {
                 // Reflectable methods in local classes are not supported
@@ -624,6 +624,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             @Override
             public void visitNewClass(JCNewClass tree) {
+                super.visitNewClass(tree); // this might scan an anon class def, so we need to do that first
                 if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
                     for (Symbol c : localCaptures.get(tree.type.tsym)) {
                         addFreeVar((VarSymbol) c);
@@ -632,7 +633,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 if (tree.encl == null && tree.type.tsym.hasOuterInstance()) {
                     capturesThis = true;
                 }
-                super.visitNewClass(tree);
             }
 
             @Override
