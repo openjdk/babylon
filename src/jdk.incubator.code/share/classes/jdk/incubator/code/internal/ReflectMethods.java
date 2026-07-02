@@ -2470,7 +2470,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         AssertionError unreachable() {
-            throw new AssertionError("Should not reach here!");
+            return new AssertionError("Should not reach here!");
         }
 
         CoreOp.FuncOp scanMethod(JCBlock body) {
