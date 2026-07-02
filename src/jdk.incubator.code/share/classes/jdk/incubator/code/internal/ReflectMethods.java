@@ -860,7 +860,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     Symbol sym = assign.sym;
                     switch (sym.getKind()) {
-                        case LOCAL_VARIABLE, PARAMETER -> {
+                        case LOCAL_VARIABLE, PARAMETER, EXCEPTION_PARAMETER -> {
                             Value varOp = varOpValue(sym);
                             append(CoreOp.varStore(varOp, result));
                         }
@@ -872,10 +872,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                                 append(JavaOp.fieldStore(fd, thisValue(), result));
                             }
                         }
-                        default -> {
-                            // @@@ Cannot reach here?
-                            throw unsupported(tree);
-                        }
+                        default -> throw unreachable();
                     }
                     break;
                 }
@@ -909,7 +906,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     break;
                 }
                 default:
-                    throw unsupported(tree);
+                    throw unreachable();
             }
         }
 
@@ -952,7 +949,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     case USR_ASG -> append(JavaOp.lshr(lhs, rhs));
 
 
-                    default -> throw unsupported(tree);
+                    default -> throw unreachable();
                 };
                 return result = convert(assignOpResult, tree.type);
             };
@@ -969,7 +966,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     Symbol sym = assign.sym;
                     switch (sym.getKind()) {
-                        case LOCAL_VARIABLE, PARAMETER -> {
+                        case LOCAL_VARIABLE, PARAMETER -> { // exception parameters not valid here!
                             Value varOp = varOpValue(sym);
 
                             Op.Result lhsOpValue = append(CoreOp.varLoad(varOp));
@@ -997,10 +994,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                                 append(JavaOp.fieldStore(fr, thisValue(), r));
                             }
                         }
-                        default -> {
-                            // @@@ Cannot reach here?
-                            throw unsupported(lhs);
-                        }
+                        default -> throw unreachable();
                     }
                 }
                 case SELECT -> {
@@ -1039,7 +1033,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     append(JavaOp.arrayStoreOp(array, index, r));
                 }
-                default -> throw unsupported(lhs);
+                default -> throw unreachable();
             }
         }
 
@@ -1072,13 +1066,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         }
                     }
                 }
-                case PACKAGE, INTERFACE, CLASS, RECORD, ENUM -> {
+                case PACKAGE, INTERFACE, CLASS, ANNOTATION_TYPE, RECORD, ENUM -> {
                     result = null;
                 }
-                default -> {
-                    // @@@ Cannot reach here?
-                    throw unsupported(tree);
-                }
+                default -> throw unreachable();
             }
         }
 
@@ -1112,8 +1103,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 if (tree.sym.equals(syms.lengthVar)) {
                     result = append(JavaOp.arrayLength(receiver));
                 } else {
-                    // Should not reach here
-                    throw unsupported(tree);
+                    throw unreachable();
                 }
             } else {
                 Symbol sym = tree.sym;
@@ -1132,13 +1122,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             }
                         }
                     }
-                    case PACKAGE, INTERFACE, CLASS, RECORD, ENUM -> {
+                    case PACKAGE, INTERFACE, CLASS, ANNOTATION_TYPE, RECORD, ENUM -> {
                         result = null;
                     }
-                    default -> {
-                        // @@@ Cannot reach here?
-                        throw unsupported(tree);
-                    }
+                    default -> throw unreachable();
                 }
             }
         }
@@ -1304,7 +1291,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             } else if (pattern instanceof JCTree.JCRecordPattern p) {
                 patternType = JavaOp.Pattern.recordType(typeToCodeType(p.record.type));
             } else {
-                throw unsupported(pattern);
+                throw unreachable(); // toplevel patterns are type test/record
             }
 
             // Push pattern body
@@ -1413,9 +1400,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 scan(tree.def);
             }
 
-            // @@@ Support local classes in pre-construction contexts
-            // this cannot happen, as constructors cannot be reflectable
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal() && (tree.type.tsym.flags() & NOOUTERTHIS) != 0) {
+                // local class creation in pre-construction context is not supported
                 throw unsupported(tree);
             }
 
@@ -1778,7 +1764,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 // Pop label
                 popBody();
             } else {
-                throw unsupported(tree);
+                throw unreachable();
             }
 
             return body;
@@ -2318,22 +2304,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         Value one = convert(append(numericOneValue(unboxedType)), unboxedType);
                         Value unboxedLhs = unboxIfNeeded(lhs);
 
-                        Value unboxedLhsPlusOne = switch (tree.getTag()) {
-                            // Arithmetic operations
-                            case POSTINC, PREINC -> append(JavaOp.add(unboxedLhs, one));
-                            case POSTDEC, PREDEC -> append(JavaOp.sub(unboxedLhs, one));
-
-                            default -> throw unsupported(tree);
-                        };
+                        Value unboxedLhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
+                            append(JavaOp.add(unboxedLhs, one)) :
+                            append(JavaOp.sub(unboxedLhs, one));
                         Value lhsPlusOne = convert(unboxedLhsPlusOne, tree.type);
 
                         // Assign expression result
-                        result =  switch (tree.getTag()) {
-                            case POSTINC, POSTDEC -> lhs;
-                            case PREINC, PREDEC -> lhsPlusOne;
-
-                            default -> throw unsupported(tree);
-                        };
+                        result = (tag == Tag.POSTINC || tag == Tag.POSTDEC) ?
+                                lhs : lhsPlusOne;
                         return lhsPlusOne;
                     };
 
@@ -2355,7 +2333,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // Result is value of the operand
                     result = toValue(tree.arg, tree.type);
                 }
-                default -> throw unsupported(tree);
+                default -> throw unreachable(); // NULLCHK not possible
             }
         }
 
@@ -2434,7 +2412,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     case SR -> append(JavaOp.ashr(lhs, rhs));
                     case USR -> append(JavaOp.lshr(lhs, rhs));
 
-                    default -> throw unsupported(tree);
+                    default -> throw unreachable();
                 };
             }
         }
@@ -2489,6 +2467,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         UnsupportedASTException unsupported(JCTree tree) {
             return new UnsupportedASTException(tree);
+        }
+
+        AssertionError unreachable() {
+            throw new AssertionError("Should not reach here!");
         }
 
         CoreOp.FuncOp scanMethod(JCBlock body) {
