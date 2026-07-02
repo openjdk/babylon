@@ -146,7 +146,11 @@ public final class Inliner {
 
 
         Block.Builder builder = returnBlocks.get(invokableOp.body());
-        return builder != null ? builder : _this;
+        if (builder != null) {
+            return builder.withContextAndTransformer(_this.context(), _this.transformer());
+        } else {
+            return _this;
+        }
     }
 
     private static Op getNearestInvokeableAncestorOp(Op op) {
