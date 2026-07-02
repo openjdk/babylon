@@ -560,14 +560,14 @@ public sealed abstract class CoreOp extends Op {
         }
 
         private Op getQuotedOp(Body quotedBody) {
-            if (quotedBody.blocks().size() > 1) {
-                throw new IllegalArgumentException();
+            if (quotedBody.blocks().size() != 1) {
+                throw structuralException(NAME, "quoted body requires single block, found %d".formatted(quotedBody.blocks().size()));
             }
             if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
-                throw new IllegalArgumentException();
+                throw structuralException(NAME, "quoted body requires yield terminal operation, found %s".formatted(quotedBody.entryBlock().terminatingOp()));
             }
             if (!(yop.yieldValue() instanceof Result r)) {
-                throw new IllegalArgumentException();
+                throw structuralException(NAME, "quoted body yield value requires to be an operation result, found %s".formatted(yop.yieldValue()));
             }
             return r.op();
         }
@@ -674,9 +674,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "yield";
 
         YieldOp(ExternalizedOp def) {
-            requireOperands(def, 0, 1);
-
-            this(def.operands());
+            this(requireOperands(def, 0, 1));
         }
 
         YieldOp(YieldOp that, CodeContext cc) {
@@ -997,7 +995,7 @@ public sealed abstract class CoreOp extends Op {
             super(requireOperands(def, 0, 1));
             this.varName = optionalAttribute(def, ATTRIBUTE_NAME, true, String.class).orElse("");
             if (!(def.resultType() instanceof VarType vt)) {
-                throw structuralException(def, "invalid result type: " + def.resultType());
+                throw structuralException(def.name(), "invalid result type: " + def.resultType());
             }
             this.resultType = vt;
         }
@@ -1125,9 +1123,9 @@ public sealed abstract class CoreOp extends Op {
             return (VarOp) varValue.op();
         }
 
-        static void requireVarOp(ExternalizedOp opdef, Value varValue) {
+        static void requireVarOp(String opName, Value varValue) {
             if (!(varValue.type() instanceof VarType)) {
-                throw structuralException(opdef, "value's type is not a variable type: " + varValue);
+                throw structuralException(opName, "value's type is not a variable type: " + varValue);
             }
         }
 
@@ -1148,7 +1146,7 @@ public sealed abstract class CoreOp extends Op {
 
             VarLoadOp(ExternalizedOp opdef) {
                 Value varValue = requireSingleOperand(opdef);
-                requireVarOp(opdef, varValue);
+                requireVarOp(opdef.name(), varValue);
                 this(varValue);
             }
 
@@ -1163,6 +1161,7 @@ public sealed abstract class CoreOp extends Op {
 
             // (Variable)VarType
             VarLoadOp(Value varValue) {
+                requireVarOp(NAME, varValue);
                 super(List.of(varValue));
             }
 
@@ -1189,7 +1188,7 @@ public sealed abstract class CoreOp extends Op {
 
             VarStoreOp(ExternalizedOp opdef) {
                 List<Value> operands = requireOperands(opdef, 2);
-                requireVarOp(opdef, operands.getFirst());
+                requireVarOp(opdef.name(), operands.getFirst());
                 super(operands);
             }
 
@@ -1204,6 +1203,7 @@ public sealed abstract class CoreOp extends Op {
 
             // (Variable, VarType)void
             VarStoreOp(Value varValue, Value v) {
+                requireVarOp(NAME, varValue);
                 super(List.of(varValue, v));
             }
 
@@ -1298,8 +1298,11 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleLoadOp(Value tupleValue, int index) {
+            if (!(tupleValue.type() instanceof TupleType tt)) {
+                throw structuralException(NAME, "requires tuple value type, found %s".formatted(tupleValue.type()));
+            }
+            Objects.checkIndex(index, tt.componentTypes().size());
             super(List.of(tupleValue));
-
             this.index = index;
         }
 
@@ -1353,8 +1356,8 @@ public sealed abstract class CoreOp extends Op {
         final int index;
 
         TupleWithOp(ExternalizedOp def) {
-            super(requireOperands(def, 2));
-            this.index = requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class);
+            List<Value> operands = requireOperands(def, 2);
+            this(operands.get(0), requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class), operands.get(1));
         }
 
         TupleWithOp(TupleWithOp that, CodeContext cc) {
@@ -1369,9 +1372,11 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleWithOp(Value tupleValue, int index, Value value) {
+            if (!(tupleValue.type() instanceof TupleType tt)) {
+                throw structuralException(NAME, "requires tuple value type, found %s".formatted(tupleValue.type()));
+            }
+            Objects.checkIndex(index, tt.componentTypes().size());
             super(List.of(tupleValue, value));
-
-            // @@@ Validate tuple type and index
             this.index = index;
         }
 

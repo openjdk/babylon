@@ -29,7 +29,11 @@ import java.util.List;
 import java.util.Optional;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 public final class StructuralPreconditions {
@@ -48,7 +52,7 @@ public final class StructuralPreconditions {
     public static List<Value> requireOperands(ExternalizedOp def, int expCount) {
         List<Value> operands = def.operands();
         if (operands.size() != expCount) {
-            throw structuralException(def, "requires %d operand%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", operands.size()));
+            throw structuralException(def.name(), "requires %d operand%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", operands.size()));
         }
         return operands;
     }
@@ -56,7 +60,7 @@ public final class StructuralPreconditions {
     public static List<Value> requireOperands(ExternalizedOp def, int expCount1, int expCount2) {
         int count = def.operands().size();
         if (count != expCount1 && count != expCount2) {
-            throw structuralException(def, "requires %d or %d operands, found %d".formatted(expCount1, expCount2, count));
+            throw structuralException(def.name(), "requires %d or %d operands, found %d".formatted(expCount1, expCount2, count));
         }
         return def.operands();
     }
@@ -68,33 +72,22 @@ public final class StructuralPreconditions {
     public static List<Body.Builder> requireBodies(ExternalizedOp def, int expCount) {
         List<Body.Builder> bodies = def.bodyDefinitions();
         if (bodies.size() != expCount) {
-            throw structuralException(def, "requires %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
+            throw structuralException(def.name(), "requires %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
         }
         return bodies;
     }
 
-    public static List<Body.Builder> requireMinBodies(ExternalizedOp def, int expCount) {
-        List<Body.Builder> bodies = def.bodyDefinitions();
+    public static List<Body.Builder> requireMinBodies(String opName, List<Body.Builder> bodies, int expCount) {
         if (bodies.size() < expCount) {
-            throw structuralException(def, "requires at least %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
+            throw structuralException(opName, "requires at least %d bod%s, found %d".formatted(expCount, expCount == 1 ? "y" : "ies", bodies.size()));
         }
         return bodies;
     }
 
-    public static List<Body.Builder> requireBodies(ExternalizedOp def, int expCount1, int expCount2) {
-        List<Body.Builder> bodies = def.bodyDefinitions();
-        int count = bodies.size();
-        if (count != expCount1 && count != expCount2) {
-            throw structuralException(def, "requires %d or %d bodies, found %d".formatted(expCount1, expCount2, count));
-        }
-        return bodies;
-    }
-
-    public static List<Body.Builder> requireBodyPairs(ExternalizedOp def) {
-        List<Body.Builder> bodies = def.bodyDefinitions();
+    public static List<Body.Builder> requireBodyPairs(String opName, List<Body.Builder> bodies) {
         int count = bodies.size();
         if (count < 2 || count % 2 == 1) {
-            throw structuralException(def, "requires one or more body pairs, found %d".formatted(count));
+            throw structuralException(opName, "requires one or more body pairs, found %d".formatted(count));
         }
         return bodies;
     }
@@ -106,15 +99,7 @@ public final class StructuralPreconditions {
     public static List<Block.Reference> requireSuccessors(ExternalizedOp def, int expCount) {
         List<Block.Reference> succ = def.successors();
         if (succ.size() != expCount) {
-            throw structuralException(def, "requires %d successor%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", succ.size()));
-        }
-        return succ;
-    }
-
-    public static List<Block.Reference> requireMinSuccessors(ExternalizedOp def, int expCount) {
-        List<Block.Reference> succ = def.successors();
-        if (succ.size() < expCount) {
-            throw structuralException(def, "requires at least %d successor%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", succ.size()));
+            throw structuralException(def.name(), "requires %d successor%s, found %d".formatted(expCount, expCount == 1 ? "" : "s", succ.size()));
         }
         return succ;
     }
@@ -135,7 +120,7 @@ public final class StructuralPreconditions {
         if (def.attributes().containsKey(attributeName)) {
             return def.attributes().get(attributeName);
         }
-        throw structuralException(def, "requires attribute %s".formatted(attributeName));
+        throw structuralException(def.name(), "requires attribute %s".formatted(attributeName));
     }
 
     public static boolean optionalBooleanAttribute(ExternalizedOp def, String attributeName) {
@@ -151,8 +136,46 @@ public final class StructuralPreconditions {
         throw unsupportedAttributeValueException(def, attributeName, attr);
     }
 
-    public static IllegalStateException structuralException(ExternalizedOp def, String msg) {
-        return new IllegalStateException("Operation " + def.name() + " " + msg);
+    public static Body.Builder requireVoidBodySignature(String opName, Body.Builder bodyC) {
+        return requireBodySignature(opName, bodyC, CoreType.FUNCTION_TYPE_VOID);
+    }
+
+    public static Body.Builder requireBodySignature(String opName, Body.Builder bodyC, FunctionType signature) {
+        if (!bodyC.bodySignature().equals(signature)) {
+            throw structuralException(opName, "requires body signature %s, found %s".formatted(signature, bodyC.bodySignature()));
+        }
+        return bodyC;
+    }
+
+    public static Body.Builder requireNonVoidReturnType(String opName, Body.Builder bodyC, int parameters) {
+        if (bodyC.bodySignature().returnType().equals(JavaType.VOID)) {
+            throw structuralException(opName, "requires non-void return type");
+        }
+        if (bodyC.bodySignature().parameterTypes().size() != parameters) {
+            throw structuralException(opName, "requires %d parameters, found %d".formatted(parameters, bodyC.bodySignature().parameterTypes().size()));
+        }
+        return bodyC;
+    }
+
+    public static Body.Builder requireVoidReturnType(String opName, Body.Builder bodyC, int parameters) {
+        if (!bodyC.bodySignature().returnType().equals(JavaType.VOID)) {
+            throw structuralException(opName, "requires void return type, found: %s".formatted(bodyC.bodySignature().returnType()));
+        }
+        if (bodyC.bodySignature().parameterTypes().size() != parameters) {
+            throw structuralException(opName, "requires %d parameters, found %d".formatted(parameters, bodyC.bodySignature().parameterTypes().size()));
+        }
+        return bodyC;
+    }
+
+    public static Body.Builder requireNoParameters(String opName, Body.Builder bodyC) {
+        if (!bodyC.bodySignature().parameterTypes().isEmpty()) {
+            throw structuralException(opName, "requires no parameters, found %s".formatted(bodyC.bodySignature()));
+        }
+        return bodyC;
+    }
+
+    public static IllegalStateException structuralException(String opName, String msg) {
+        return new IllegalStateException("Operation " + opName + " " + msg);
     }
 
     public static UnsupportedOperationException unsupportedAttributeValueException(ExternalizedOp def, String attributeName, Object value) {
