@@ -2951,13 +2951,7 @@ public sealed abstract class JavaOp extends Op {
         // @@@: builder?
         SynchronizedOp(Body.Builder exprC, Body.Builder bodyC) {
             super(List.of());
-            if (exprC.bodySignature().returnType().equals(VOID)) {
-                throw structuralException(NAME, "expression body requires to return non-void value");
-            }
-            if (!exprC.bodySignature().parameterTypes().isEmpty()) {
-                throw structuralException(NAME, "expression body requires no parameters, found: %s".formatted(exprC.bodySignature()));
-            }
-            this.exprBody = exprC.build(this);
+            this.exprBody = requireNonVoidReturnType(NAME + " expression", exprC, 0).build(this);
             this.blockBody = requireVoidBodySignature(NAME, bodyC).build(this);
         }
 
@@ -3322,7 +3316,7 @@ public sealed abstract class JavaOp extends Op {
 
         IfOp(ExternalizedOp def) {
             requireNoOperands(def);
-            this(requireMinBodies(def, 2));
+            this(def.bodyDefinitions());
         }
 
         IfOp(IfOp that, CodeContext cc, CodeTransformer ct) {
@@ -3339,6 +3333,12 @@ public sealed abstract class JavaOp extends Op {
         }
 
         IfOp(List<Body.Builder> bodyCs) {
+            if (bodyCs.size() < 2) {
+                throw structuralException(NAME, "requires 2 or more bodies, found %d".formatted(bodyCs.size()));
+            }
+            for (int i = 0; i < bodyCs.size(); i++) {
+                requireBodySignature(NAME, bodyCs.get(i), i % 2 == 0 && i < bodyCs.size() - 1 ? PREDICATE_SIGNATURE : ACTION_SIGNATURE);
+            }
             super(List.of());
 
             // Normalize by adding an empty else action
@@ -3350,27 +3350,7 @@ public sealed abstract class JavaOp extends Op {
                 end.entryBlock().add(core_yield());
                 bodyCs.add(end);
             }
-
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
-
-            if (bodies.size() < 2) {
-                throw new IllegalArgumentException("Incorrect number of bodies: " + bodies.size());
-            }
-            for (int i = 0; i < bodies.size(); i += 2) {
-                Body action;
-                if (i == bodies.size() - 1) {
-                    action = bodies.get(i);
-                } else {
-                    action = bodies.get(i + 1);
-                    Body fromPred = bodies.get(i);
-                    if (!fromPred.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal predicate body signature: " + fromPred.bodySignature());
-                    }
-                }
-                if (!action.bodySignature().equals(CoreType.FUNCTION_TYPE_VOID)) {
-                throw new IllegalArgumentException("Illegal action body signature: " + action.bodySignature());
-                }
-            }
         }
 
         @Override
@@ -3650,7 +3630,7 @@ public sealed abstract class JavaOp extends Op {
         final CodeType resultType;
 
         SwitchExpressionOp(ExternalizedOp def) {
-            this(def.resultType(), requireSingleOperand(def), requireBodyPairs(def));
+            this(def.resultType(), requireSingleOperand(def), def.bodyDefinitions());
         }
 
         SwitchExpressionOp(SwitchExpressionOp that, CodeContext cc, CodeTransformer ct) {
@@ -3665,8 +3645,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         SwitchExpressionOp(CodeType resultType, Value target, List<Body.Builder> bodyCs) {
-            super(target, bodyCs);
-
+            super(target, requireBodyPairs(NAME, bodyCs));
             this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
         }
 
@@ -3691,7 +3670,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.switch.statement";
 
         SwitchStatementOp(ExternalizedOp def) {
-            this(requireSingleOperand(def), requireBodyPairs(def));
+            this(requireSingleOperand(def), def.bodyDefinitions());
         }
 
         SwitchStatementOp(SwitchStatementOp that, CodeContext cc, CodeTransformer ct) {
@@ -3704,7 +3683,7 @@ public sealed abstract class JavaOp extends Op {
         }
 
         SwitchStatementOp(Value target, List<Body.Builder> bodyCs) {
-            super(target, bodyCs);
+            super(target, requireBodyPairs(NAME, bodyCs));
         }
 
         @Override
@@ -3944,18 +3923,18 @@ public sealed abstract class JavaOp extends Op {
               Body.Builder bodyC) {
             super(List.of());
 
-            this.initBody = initC.build(this);
+            List<CodeType> varTypes = switch (initC.bodySignature().returnType()) {
+                case TupleType tt -> tt.componentTypes();
+                case PrimitiveType pt when pt.equals(VOID) -> List.of();
+                case CodeType t -> List.of(t);
+            };
+            FunctionType condType = CoreType.functionType(BOOLEAN, varTypes);
+            FunctionType bodyType = CoreType.functionType(VOID, varTypes);
 
-            this.condBody = condC.build(this);
-            this.updateBody = updateC.build(this);
-            if (!updateBody.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Update should return void: " + updateBody.bodySignature());
-            }
-
-            this.loopBody = bodyC.build(this);
-            if (!loopBody.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + loopBody.bodySignature());
-            }
+            this.initBody = requireNoParameters(NAME + " init", initC).build(this);
+            this.condBody = requireBodySignature(NAME + " predicate", condC, condType).build(this);
+            this.updateBody = requireBodySignature(NAME + " update", updateC, bodyType).build(this);
+            this.loopBody = requireBodySignature(NAME + " loop", bodyC, bodyType).build(this);
         }
 
         @Override
@@ -4211,29 +4190,9 @@ public sealed abstract class JavaOp extends Op {
         EnhancedForOp(Body.Builder expressionC, Body.Builder initC, Body.Builder bodyC) {
             super(List.of());
 
-            this.exprBody = expressionC.build(this);
-            if (exprBody.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Expression should return non-void value: " + exprBody.bodySignature());
-            }
-            if (!exprBody.bodySignature().parameterTypes().isEmpty()) {
-                throw new IllegalArgumentException("Expression should have zero parameters: " + exprBody.bodySignature());
-            }
-
-            this.initBody = initC.build(this);
-            if (initBody.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Initialization should return non-void value: " + initBody.bodySignature());
-            }
-            if (initBody.bodySignature().parameterTypes().size() != 1) {
-                throw new IllegalArgumentException("Initialization should have one parameter: " + initBody.bodySignature());
-            }
-
-            this.loopBody = bodyC.build(this);
-            if (!loopBody.bodySignature().returnType().equals(VOID)) {
-                throw new IllegalArgumentException("Body should return void: " + loopBody.bodySignature());
-            }
-            if (loopBody.bodySignature().parameterTypes().size() != 1) {
-                throw new IllegalArgumentException("Body should have one parameter: " + loopBody.bodySignature());
-            }
+            this.exprBody = requireNonVoidReturnType(NAME + " expression", expressionC, 0).build(this);
+            this.initBody = requireNonVoidReturnType(NAME + " initilization", initC, 1).build(this);
+            this.loopBody = requireVoidReturnType(NAME + " loop", bodyC, 1).build(this);
         }
 
         @Override
@@ -4645,6 +4604,9 @@ public sealed abstract class JavaOp extends Op {
      */
     public sealed static abstract class JavaConditionalOp extends JavaOp
             implements Op.Nested, Op.Lowerable, JavaExpression {
+
+        static final FunctionType BODY_TYPE = CoreType.functionType(BOOLEAN);
+
         final List<Body> bodies;
 
         JavaConditionalOp(JavaConditionalOp that, CodeContext cc, CodeTransformer ct) {
@@ -4654,23 +4616,9 @@ public sealed abstract class JavaOp extends Op {
             this.bodies = that.bodies.stream().map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
-        JavaConditionalOp(ExternalizedOp def) {
-            this(requireMinBodies(def, 2));
-        }
-
         JavaConditionalOp(List<Body.Builder> bodyCs) {
             super(List.of());
-
-            if (bodyCs.isEmpty()) {
-                throw new IllegalArgumentException();
-            }
-
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
-            for (Body b : bodies) {
-                if (!b.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
-                    throw new IllegalArgumentException("Body conditional body signature: " + b.bodySignature());
-                }
-            }
         }
 
         @Override
@@ -4785,7 +4733,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.cand";
 
         ConditionalAndOp(ExternalizedOp def) {
-            super(def);
+            this(def.bodyDefinitions());
         }
 
         ConditionalAndOp(ConditionalAndOp that, CodeContext cc, CodeTransformer ct) {
@@ -4798,6 +4746,10 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConditionalAndOp(List<Body.Builder> bodyCs) {
+            if (bodyCs.size() < 2) {
+                throw structuralException(NAME, "requires at least 2 bodies, found: %d".formatted(bodyCs.size()));
+            }
+            bodyCs.forEach(b -> requireBodySignature(NAME, b, BODY_TYPE));
             super(bodyCs);
         }
 
@@ -4854,7 +4806,7 @@ public sealed abstract class JavaOp extends Op {
         static final String NAME = "java.cor";
 
         ConditionalOrOp(ExternalizedOp def) {
-            super(def);
+            this(def.bodyDefinitions());
         }
 
         ConditionalOrOp(ConditionalOrOp that, CodeContext cc, CodeTransformer ct) {
@@ -4867,6 +4819,10 @@ public sealed abstract class JavaOp extends Op {
         }
 
         ConditionalOrOp(List<Body.Builder> bodyCs) {
+            if (bodyCs.size() < 2) {
+                throw structuralException(NAME, "requires at least 2 bodies, found: %d".formatted(bodyCs.size()));
+            }
+            bodyCs.forEach(b -> requireBodySignature(NAME, b, BODY_TYPE));
             super(bodyCs);
         }
 
@@ -4897,7 +4853,8 @@ public sealed abstract class JavaOp extends Op {
         final List<Body> bodies;
 
         ConditionalExpressionOp(ExternalizedOp def) {
-            this(def.resultType(), requireBodies(def, 3));
+            List<Body.Builder> bodies = requireBodies(def, 3);
+            this(def.resultType(), bodies.get(0), bodies.get(1), bodies.get(2));
         }
 
         ConditionalExpressionOp(ConditionalExpressionOp that, CodeContext cc, CodeTransformer ct) {
@@ -4914,21 +4871,14 @@ public sealed abstract class JavaOp extends Op {
             return new ConditionalExpressionOp(this, cc, ct);
         }
 
-        ConditionalExpressionOp(CodeType expressionType, List<Body.Builder> bodyCs) {
+        ConditionalExpressionOp(CodeType expressionType, Body.Builder predicateBody, Body.Builder trueBody, Body.Builder falseBody) {
             super(List.of());
 
-            this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
+            this.bodies = List.of(requireBodySignature(NAME, predicateBody, CoreType.functionType(BOOLEAN)).build(this),
+                                  requireNoParameters(NAME, trueBody).build(this),
+                                  requireNoParameters(NAME, falseBody).build(this));
             // @@@ when expressionType is null, we assume truepart and falsepart have the same yieldType
             this.resultType = expressionType == null ? bodies.get(1).yieldType() : expressionType;
-
-            if (bodies.size() < 3) {
-                throw new IllegalArgumentException("Incorrect number of bodies: " + bodies.size());
-            }
-
-            Body cond = bodies.get(0);
-            if (!cond.bodySignature().equals(CoreType.functionType(BOOLEAN))) {
-                throw new IllegalArgumentException("Illegal cond body signature: " + cond.bodySignature());
-            }
         }
 
         @Override
@@ -5182,19 +5132,15 @@ public sealed abstract class JavaOp extends Op {
               Body.Builder finalizerC) {
             super(List.of());
 
-            this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
             List<CodeType> resourceTypes = new ArrayList<>();
-            for (Body _resource : resourcesBodies) {
-                if (_resource.bodySignature().returnType().equals(VOID)) {
-                    throw new IllegalArgumentException("Resource should not return void: " + _resource.bodySignature());
-                }
+            for (Body.Builder _resource : resourcesC) {
+                requireNonVoidReturnType(NAME + " resource", _resource, resourceTypes.size());
                 if (!_resource.bodySignature().parameterTypes().equals(resourceTypes)) {
-                    throw new IllegalArgumentException(
-                            "Resource should have parameters matching preceding resource yields: "
-                                    + _resource.bodySignature());
+                    throw structuralException(NAME, " resource requires %s parameter types, found %s".formatted(resourceTypes, _resource.bodySignature().parameterTypes()));
                 }
                 resourceTypes.add(_resource.bodySignature().returnType());
             }
+            this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
 
             this.body = bodyC.build(this);
             if (!body.bodySignature().returnType().equals(VOID)) {
@@ -5926,6 +5872,9 @@ public sealed abstract class JavaOp extends Op {
             RecordPatternOp(RecordTypeRef recordReference, List<Value> nestedPatterns) {
                 // The type of each value is a subtype of Pattern
                 // The number of values corresponds to the number of components of the record
+                if (recordReference.components().size() != nestedPatterns.size()) {
+                    throw structuralException(NAME, "requires %d nested pattern operands, found %d".formatted(recordReference.components().size(), nestedPatterns.size()));
+                }
                 super(List.copyOf(nestedPatterns));
 
                 this.recordReference = recordReference;
@@ -6037,7 +5986,7 @@ public sealed abstract class JavaOp extends Op {
             MatchOp(Value target, Body.Builder patternC, Body.Builder matchC) {
                 super(List.of(target));
 
-                this.patternBody = patternC.build(this);
+                this.patternBody = requireNoParameters(NAME + " pattern", patternC).build(this);
                 this.matchBody = matchC.build(this);
             }
 
@@ -7401,13 +7350,17 @@ public sealed abstract class JavaOp extends Op {
      * Creates a conditional operation
      *
      * @param expressionType the result type of the expression
-     * @param bodies         the body builders for the predicate, true, and false bodies
+     * @param predicateBody  the body builder for the predicate body
+     * @param trueBody       the body builder for the true body
+     * @param falseBody      the body builder for the false body
      * @return the conditional operation
      */
     public static ConditionalExpressionOp conditionalExpression(CodeType expressionType,
-                                                                List<Body.Builder> bodies) {
+                                                                Body.Builder predicateBody,
+                                                                Body.Builder trueBody,
+                                                                Body.Builder falseBody) {
         Objects.requireNonNull(expressionType);
-        return new ConditionalExpressionOp(expressionType, bodies);
+        return new ConditionalExpressionOp(expressionType, predicateBody, trueBody, falseBody);
     }
 
     /**
@@ -7415,11 +7368,15 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * The result type of the operation will be derived from the yield type of the true body.
      *
-     * @param bodies the body builders for the predicate, true, and false bodies
+     * @param predicateBody  the body builder for the predicate body
+     * @param trueBody       the body builder for the true body
+     * @param falseBody      the body builder for the false body
      * @return the conditional operation
      */
-    public static ConditionalExpressionOp conditionalExpression(List<Body.Builder> bodies) {
-        return new ConditionalExpressionOp(null, bodies);
+    public static ConditionalExpressionOp conditionalExpression(Body.Builder predicateBody,
+                                                                Body.Builder trueBody,
+                                                                Body.Builder falseBody) {
+        return new ConditionalExpressionOp(null, predicateBody, trueBody, falseBody);
     }
 
     /**

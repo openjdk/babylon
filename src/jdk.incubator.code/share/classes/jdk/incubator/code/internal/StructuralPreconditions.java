@@ -29,9 +29,11 @@ import java.util.List;
 import java.util.Optional;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 public final class StructuralPreconditions {
@@ -83,11 +85,10 @@ public final class StructuralPreconditions {
         return bodies;
     }
 
-    public static List<Body.Builder> requireBodyPairs(ExternalizedOp def) {
-        List<Body.Builder> bodies = def.bodyDefinitions();
+    public static List<Body.Builder> requireBodyPairs(String opName, List<Body.Builder> bodies) {
         int count = bodies.size();
         if (count < 2 || count % 2 == 1) {
-            throw structuralException(def.name(), "requires one or more body pairs, found %d".formatted(count));
+            throw structuralException(opName, "requires one or more body pairs, found %d".formatted(count));
         }
         return bodies;
     }
@@ -143,6 +144,33 @@ public final class StructuralPreconditions {
     public static Body.Builder requireBodySignature(String opName, Body.Builder bodyC, FunctionType signature) {
         if (!bodyC.bodySignature().equals(signature)) {
             throw structuralException(opName, "requires body signature %s, found %s".formatted(signature, bodyC.bodySignature()));
+        }
+        return bodyC;
+    }
+
+    public static Body.Builder requireNonVoidReturnType(String opName, Body.Builder bodyC, int parameters) {
+        if (bodyC.bodySignature().returnType().equals(JavaType.VOID)) {
+            throw structuralException(opName, "requires non-void return type");
+        }
+        if (bodyC.bodySignature().parameterTypes().size() != parameters) {
+            throw structuralException(opName, "requires %d parameters, found %d".formatted(parameters, bodyC.bodySignature().parameterTypes().size()));
+        }
+        return bodyC;
+    }
+
+    public static Body.Builder requireVoidReturnType(String opName, Body.Builder bodyC, int parameters) {
+        if (!bodyC.bodySignature().returnType().equals(JavaType.VOID)) {
+            throw structuralException(opName, "requires void return type, found: %s".formatted(bodyC.bodySignature().returnType()));
+        }
+        if (bodyC.bodySignature().parameterTypes().size() != parameters) {
+            throw structuralException(opName, "requires %d parameters, found %d".formatted(parameters, bodyC.bodySignature().parameterTypes().size()));
+        }
+        return bodyC;
+    }
+
+    public static Body.Builder requireNoParameters(String opName, Body.Builder bodyC) {
+        if (!bodyC.bodySignature().parameterTypes().isEmpty()) {
+            throw structuralException(opName, "requires no parameters, found %s".formatted(bodyC.bodySignature()));
         }
         return bodyC;
     }

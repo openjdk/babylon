@@ -2051,8 +2051,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitConditional(JCTree.JCConditional tree) {
-            List<Body.Builder> bodies = new ArrayList<>();
-
             JCTree.JCExpression cond = TreeInfo.skipParens(tree.cond);
 
             // Push condition
@@ -2061,7 +2059,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Value condVal = toValue(cond);
             // Yield the boolean result of the condition
             append(CoreOp.core_yield(condVal));
-            bodies.add(stack.body);
+            Body.Builder predicateBody = stack.body;
 
             // Pop condition
             popBody();
@@ -2077,7 +2075,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Value trueVal = toValue(truepart, condType);
             // Yield the result
             append(CoreOp.core_yield(trueVal));
-            bodies.add(stack.body);
+            Body.Builder trueBody = stack.body;
 
             // Pop true body
             popBody();
@@ -2091,12 +2089,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Value falseVal = toValue(falsepart, condType);
             // Yield the result
             append(CoreOp.core_yield(falseVal));
-            bodies.add(stack.body);
+            Body.Builder falseBody = stack.body;
 
             // Pop false body
             popBody();
 
-            result = append(JavaOp.conditionalExpression(typeToCodeType(condType), bodies));
+            result = append(JavaOp.conditionalExpression(typeToCodeType(condType), predicateBody, trueBody, falseBody));
         }
 
         private Type condType(JCExpression tree, Type type) {
