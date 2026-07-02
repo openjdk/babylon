@@ -276,4 +276,24 @@ public class ConstantsTest {
     void test18() {
         Class<?> s = boolean[][][].class;
     }
+
+    @interface A { }
+    static class B {
+        @interface C { }
+    }
+
+    @IR("""
+            func @"test19" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @java.type:"ConstantsTest$A";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"a";
+                %3 : java.type:"java.lang.Class" = constant @java.type:"ConstantsTest$B$C";
+                %4 : Var<java.type:"java.lang.Class<?>"> = var %3 @"c";
+                return;
+            };
+            """)
+    @Reflect
+    void test19() {
+        Class<?> a = A.class;
+        Class<?> c = B.C.class;
+    }
 }

@@ -283,4 +283,28 @@ public class TryTest {
         }
      }
 
+    @Reflect
+    @IR("""
+            func @"test7" (%0 : java.type:"TryTest")java.type:"void" -> {
+                java.try
+                    ()java.type:"void" -> {
+                        %1 : java.type:"java.lang.Exception" = new @java.ref:"java.lang.Exception::()";
+                        throw %1;
+                    }
+                    (%2 : java.type:"java.lang.Exception")java.type:"void" -> {
+                        %3 : Var<java.type:"java.lang.Exception"> = var %2 @"exception";
+                        %4 : java.type:"java.lang.Exception" = constant @null;
+                        var.store %3 %4;
+                        yield;
+                    };
+                return;
+            };
+            """)
+    void test7() {
+        try {
+            throw new Exception();
+        } catch (Exception exception) {
+            exception = null;
+        }
+    }
 }
