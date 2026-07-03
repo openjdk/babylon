@@ -421,8 +421,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
         try {
             this.make = make;
             currentClassSym = classSym;
-            BodyScanner bodyScanner = new BodyScanner(methodDecl);
-            return bodyScanner.scanMethod(attributedBody);
+            // same checks as in ReflectMethods::visitMethodDef
+            boolean isReflectable = !methodDecl.sym.isConstructor() && isReflectable(methodDecl);
+            if (isReflectable && !isInsideInnerOrLocalClass()) {
+                BodyScanner bodyScanner = new BodyScanner(methodDecl);
+                return bodyScanner.scanMethod(attributedBody);
+            } else {
+                return null;
+            }
         } finally {
             currentClassSym = null;
             this.make = null;
