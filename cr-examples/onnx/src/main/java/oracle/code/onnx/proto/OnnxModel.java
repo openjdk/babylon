@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -575,19 +575,23 @@ public sealed interface OnnxModel {
         /// When this field is present, the data_type field MUST be FLOAT or COMPLEX64.
         @f(4) List<float[]> floatData,
 
-        /// For int32, uint8, int8, uint16, int16, uint4, int4, bool, (b)float16, float8, and float4:
+        /// For int32, uint8, int8, uint16, int16, uint4, int4, uint2, int2, bool, (b)float16, float8, and float4:
         /// - (b)float16 and float8 values MUST be converted bit-wise into an unsigned integer
         ///   representation before being written to the buffer.
         /// - Each pair of uint4, int4, and float4 values MUST be packed as two 4-bit elements into a single byte.
         ///   The first element is stored in the 4 least significant bits (LSB),
         ///   and the second element is stored in the 4 most significant bits (MSB).
+        /// - Each group of four uint2, int2 values MUST be packed as four 2-bit elements into a single byte.
+        ///   The elements are packed from LSB to MSB, with the first element in bits 0-1, second element in bits 2-3,
+        ///   third element in bits 4-5, and fourth element in bits 6-7.
         ///
         /// Consequently:
         /// - For data types with a bit-width of 8 or greater, each `int32_data` stores one element.
         /// - For 4-bit data types, each `int32_data` stores two elements.
+        /// - For 2-bit data types, each `int32_data` stores four elements.
         ///
         /// When this field is present, the data_type field MUST be
-        /// INT32, INT16, INT8, INT4, UINT16, UINT8, UINT4, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0, FLOAT4E2M1
+        /// INT32, INT16, INT8, INT4, INT2, UINT16, UINT8, UINT4, UINT2, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0, FLOAT4E2M1
         @f(5) List<int[]> int32Data,
 
         /// For strings.
@@ -619,6 +623,8 @@ public sealed interface OnnxModel {
         /// Complex128 elements must be written as two consecutive DOUBLE values, real component first.
         /// Boolean type MUST be written one byte per tensor element (00000001 for true, 00000000 for false).
         /// uint4 and int4 values must be packed to 4bitx2, the first element is stored in the 4 LSB and the second element is stored in the 4 MSB.
+        /// uint2 and int2 values must be packed to 2bitx4, with elements packed from LSB to MSB in a single byte as: x0 | (x1 << 2) | (x2 << 4) | (x3 << 6)
+        /// where x0, x1, x2, x3 are consecutive elements.
         ///
         /// Note: the advantage of specific field rather than the raw_data field is
         /// that in some cases (e.g. int data), protobuf does a better packing via

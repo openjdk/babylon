@@ -17,9 +17,9 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  * typedef OrtStatus *(*OrtWriteBufferFunc)(void *, const void *, size_t)
  * }
  */
-public class OrtWriteBufferFunc {
+public final class OrtWriteBufferFunc {
 
-    OrtWriteBufferFunc() {
+    private OrtWriteBufferFunc() {
         // Should not be called directly
     }
 
@@ -59,9 +59,11 @@ public class OrtWriteBufferFunc {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment state, MemorySegment buffer, long buffer_num_bytes) {
+    public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment state, MemorySegment buffer, long buffer_num_bytes) {
         try {
             return (MemorySegment) DOWN$MH.invokeExact(funcPtr, state, buffer, buffer_num_bytes);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }

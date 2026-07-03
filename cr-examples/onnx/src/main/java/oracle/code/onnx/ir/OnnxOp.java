@@ -205,9 +205,7 @@ public abstract class OnnxOp extends Op {
             switch (operand) {
                 case Value v -> l.add(v);
                 case Optional<?> ov -> {
-                    if (ov.isPresent()) {
-                        l.add((Value) ov.get());
-                    }
+                    ov.ifPresent(o -> l.add((Value) o));
                 }
                 case List<?> vs -> {
                     for (Object v : vs) {

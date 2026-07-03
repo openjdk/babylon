@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,11 +26,7 @@
 package oracle.code.onnx;
 
 import java.lang.foreign.ValueLayout;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SequencedMap;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import jdk.incubator.code.Block;
@@ -149,7 +145,7 @@ public final class OnnxProtoBuilder {
         var mainFunc = functions.removeLast();
         var mainBlock = mainFunc.body().entryBlock();
 
-        var model = buildModel(
+        return buildModel(
                 graph(domain, mainFunc.funcName(), indexer, mainBlock, initializers, 0, tensorDataExternalizer),
                 imports,
                 functions.stream().map(f ->
@@ -157,19 +153,15 @@ public final class OnnxProtoBuilder {
                                  expandTuples(indexer, f.parameters()),
                                  expandTuples(indexer, f.body().entryBlock().terminatingOp().operands()),
                                  nodes(domain, indexer, f.body().entryBlock().ops()))).toList());
-
-//        System.out.println(OnnxModel.readFrom(model).toText());
-        return model;
     }
 
     // @@@ unchecked constraints:
     //         tensor FuncOp parameters and single tensor return type
     //         OnnxOps (with tensor operands and single tensor return value) and ReturnOp (returning single tensor)
     //         entry block only
-    static byte[] buildModel(Block block, List<oracle.code.onnx.Tensor> initializers) {
+    static byte[] buildModel(Block block, List<Tensor> initializers) {
         var indexer = new Indexer(block.ancestorOp(), Map.of());
         var model = buildModel(graph(null, null, indexer, block, initializers, 0), List.of(), List.of());
-//        System.out.println(OnnxModel.readFrom(model).toText());
         return model;
     }
 
@@ -214,16 +206,39 @@ public final class OnnxProtoBuilder {
         }
     }
 
-    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<? extends Object> initializers, int scalarArgs) {
+    static List<ValueInfoProto> tensorInfos(Indexer indexer, List<? extends Value> values) {
+        var infos = new ArrayList<ValueInfoProto>();
+        tensorInfos(indexer, infos, values);
+        return infos;
+    }
+
+    private static void tensorInfos(Indexer indexer, ArrayList<ValueInfoProto> infos, List<? extends Value> values) {
+        for (var v: values) {
+            if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleOp op) {
+                tensorInfos(indexer, infos, op.operands());
+            } else if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp top) {
+                infos.add(tensorInfo(indexer.nameOf(top.operands().getFirst(), top.index()), v.type()));
+            } else if (v.type() instanceof TupleType tt) {
+                var ct = tt.componentTypes();
+                for (int i = 0; i < ct.size(); i++) {
+                    infos.add(tensorInfo(indexer.nameOf(v, i), ct.get(i)));
+                }
+            } else {
+                infos.add(tensorInfo(indexer.nameOf(v), v.type()));
+            }
+        }
+    }
+
+    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<?> initializers, int scalarArgs) {
         return graph(domain, graphName, indexer, block, initializers, scalarArgs, _ -> null);
     }
 
-    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<? extends Object> initializers, int scalarArgs, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer) {
+    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<?> initializers, int scalarArgs, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer) {
         var params = block.parameters();
         params.forEach(indexer::nameOf);
         int firstInitializer = params.size() - initializers.size();
         var args = params.subList(0, firstInitializer);
-        return graph(graphName,
+        return graphWithOutputs(graphName,
                 IntStream.range(0, initializers.size()).boxed().<TensorProto>mapMulti((i, tps) -> {
                     Object val = initializers.get(i);
                     if (val instanceof Record) {
@@ -243,7 +258,7 @@ public final class OnnxProtoBuilder {
                 }).toList(),
                 tensorInfos(indexer, args, scalarArgs),
                 nodes(domain, indexer, block.ops()),
-                expandTuples(indexer, block.terminatingOp().operands()));
+                tensorInfos(indexer, block.terminatingOp().operands()));
     }
 
     static List<String> opInputNames(Indexer indexer, SequencedMap<OnnxOp.OnnxParameter, Object> inputs) {
@@ -251,7 +266,7 @@ public final class OnnxProtoBuilder {
                 .<String>mapMulti((v, dump) -> {
                     switch (v) {
                         case Value val -> dump.accept(indexer.nameOf(val));
-                        case java.util.Optional<?> o when o.isPresent() && o.get() instanceof Value val -> dump.accept(indexer.nameOf(val));
+                        case Optional<?> o when o.isPresent() && o.get() instanceof Value val -> dump.accept(indexer.nameOf(val));
                         case List l -> l.forEach(val -> dump.accept(indexer.nameOf((Value)val)));
                         default -> dump.accept(""); // empty names for unused optional inputs
                     }
@@ -318,11 +333,15 @@ public final class OnnxProtoBuilder {
         for (var arg : args) {
             switch (arg.type()) {
                 case OnnxType.TensorType tt ->
-                    infos.add(tensorInfo(indexer.nameOf(arg), tt.eType().id(), infos.size() < scalarArgs));
+                    infos.add(infos.size() < scalarArgs
+                            ? tensorInfo(indexer.nameOf(arg), tt.eType().id(), true)
+                            : tensorInfo(indexer.nameOf(arg),tt));
                 case TupleType tt -> {
                     var ct = tt.componentTypes();
                     for (int i = 0; i < ct.size(); i++) {
-                        infos.add(tensorInfo(indexer.nameOf(arg, i), ((OnnxType.TensorType)ct.get(i)).eType().id(), infos.size() < scalarArgs));
+                        infos.add(infos.size() < scalarArgs && ct.get(i) instanceof OnnxType.TensorType tensorType
+                                ? tensorInfo(indexer.nameOf(arg, i), tensorType.eType().id(), true)
+                                : tensorInfo(indexer.nameOf(arg, i), ct.get(i)));
                     }
                 }
                 default ->
@@ -333,16 +352,19 @@ public final class OnnxProtoBuilder {
     }
 
     static GraphProto graph(String name, List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<String> outputNames) {
+        return graphWithOutputs(name, initializers, inputs, ops, outputNames.stream().map(oName -> new ValueInfoProto().name(oName)).toList());
+    }
+
+    static GraphProto graphWithOutputs(String name, List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<ValueInfoProto> outputs) {
         return new GraphProto()
                 .name(name)
                 .forEach(initializers, (g, i) -> g.initializer(i))
                 .forEach(inputs, (g, i) -> g.input(i))
                 .forEach(ops, (g, op) -> g.node(op))
-                .forEach(outputNames, (g, oName) -> g.output(new ValueInfoProto().name(oName)));
+                .forEach(outputs, (g, o) -> g.output(o));
     }
 
     static FunctionProto function(String functionDomain, List<String> imports, String functionName, List<String> inputNames, List<String> outputNames, List<NodeProto> ops) {
-        int di = functionName.lastIndexOf('.');
         return new FunctionProto()
                 .domain(functionDomain)
                 .name(functionName)
@@ -353,7 +375,7 @@ public final class OnnxProtoBuilder {
                 .forEach(imports, (f, d) -> f.opsetImport(new OperatorSetIdProto().domain(d).version(1)));
     }
 
-    static NodeProto node(String domain, String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
+    static NodeProto node(String domain, String opName, List<String> inputNames, List<String> outputNames, Map<String, Object> attributes) {
         return new NodeProto()
                 .domain(domain)
                 .opType(opName)
@@ -362,7 +384,7 @@ public final class OnnxProtoBuilder {
                 .forEach(outputNames, (n, oName) -> n.output(oName));
     }
 
-    static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
+    static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, Map<String, Object> attributes) {
         int di = opName.lastIndexOf('.');
         return node(di < 0 ? null : opName.substring(0, di), opName.substring(di + 1), inputNames, outputNames, attributes);
     }
@@ -372,14 +394,49 @@ public final class OnnxProtoBuilder {
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape) {
+        return tensorInfo(name, tensorElementType, addScalarShape ? List.of() : determineLlmShape(name));
+    }
+
+    static ValueInfoProto tensorInfo(String name, Object type) {
+        return type instanceof OnnxType.TensorType tensorType
+                ? tensorInfo(name, tensorType)
+                : new ValueInfoProto().name(name);
+    }
+
+    static ValueInfoProto tensorInfo(String name, OnnxType.TensorType tensorType) {
+        List<Object> shapes = (tensorType.shape() != null) ? tensorType.shape() : determineLlmShape(name);
+        return tensorInfo(name, tensorType.eType().id(), shapes);
+    }
+
+    static ValueInfoProto tensorInfo(String name, int tensorElementType, List<Object> shapes) {
         var t = new TypeProto.Tensor().elemType(tensorElementType);
-        if (addScalarShape) t.shape(new TensorShapeProto());
+        if (shapes != null) {
+            var tensorShape = new TensorShapeProto();
+            for (Object dim : shapes) {
+                tensorShape.dim(switch (dim) {
+                    case Number n -> new TensorShapeProto.Dimension().dimValue(n.longValue());
+                    case String s -> new TensorShapeProto.Dimension().dimParam(s);
+                    default -> throw new IllegalArgumentException("Unsupported tensor dimension " + dim);
+                });
+            }
+            t.shape(tensorShape);
+        }
         return new ValueInfoProto()
                 .name(name)
                 .type(new TypeProto().tensorType(t));
     }
 
-    static TensorProto tensorProto(String name, oracle.code.onnx.Tensor tensor, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer) {
+    private static List<Object> determineLlmShape(String name) {
+        return switch (name) {
+            case String shapeName when (shapeName.equals("inputIds") ||  shapeName.equals("attentionMask")) -> List.of("bath_size", "sequence_length");
+            case String shapeName when (shapeName.equals("logits")) ->  List.of("batch_size", "sequence_length", 128256L);
+            case String shapeName when (shapeName.matches("past(Key|Value)\\.\\d+")) ->  List.of("bath_size", 8L, "past_sequence_length", 64L);
+            case String shapeName when (shapeName.matches("present(Key|Value)\\.\\d+")) -> List.of("bath_size", 8L, "total_sequence_length", 64L);
+            case String _ -> null;
+        };
+    }
+
+    static TensorProto tensorProto(String name,Tensor tensor, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer) {
         ExternalTensorDataInfo extInfo = tensorDataExternalizer.apply(tensor);
         TensorProto tp = new TensorProto()
                 .name(name)
@@ -393,7 +450,7 @@ public final class OnnxProtoBuilder {
                     .dataLocation(DataLocation.EXTERNAL);
     }
 
-    static TensorProto tensorProto(oracle.code.onnx.Tensor tensor) {
+    static TensorProto tensorProto(Tensor tensor) {
         return new TensorProto()
                 .dataType(tensor.elementType().id)
                 .dims(tensor.shape())
