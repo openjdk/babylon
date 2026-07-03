@@ -123,7 +123,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    // @Test
+    @Test
     void testCasePatternMultiLabel() {
         CoreOp.FuncOp lmodel = lower("casePatternMultiLabel");
         Object[] args = {(byte) 1, (short) 2, 'A', 3, 4L, 5f, 6d, true, "str"};
@@ -131,9 +131,8 @@ public class TestSwitchExpressionOp {
             Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
-    // @Reflect
-    // code model for such as code is not supported
-    // @@@ support this case and uncomment its test
+
+    @Reflect
     private static String casePatternMultiLabel(Object o) {
         return switch (o) {
             case Integer _, Long _, Character _, Byte _, Short _-> "integral type";

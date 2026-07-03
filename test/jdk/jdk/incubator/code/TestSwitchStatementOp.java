@@ -135,6 +135,44 @@ public class TestSwitchStatementOp {
     }
 
     @Test
+    void testCasePatternMultiLabel() {
+        CoreOp.FuncOp lmodel = lower("casePatternMultiLabel");
+        Object[] args = {(byte) 1, (short) 2, 'A', 3, 4L, 5f, 6d, true, "str"};
+        for (Object arg : args) {
+            Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String casePatternMultiLabel(Object o) {
+        String s = null;
+        switch (o) {
+            case Integer _, Long _, Character _, Byte _, Short _-> s = "integral type";
+            default -> s = "non integral type";
+        };
+        return s;
+    }
+
+    @Test
+    void testCasePatternGuardedMultiLabel() {
+        CoreOp.FuncOp lmodel = lower("casePatternGuardedMultiLabel");
+        Object[] args = {(byte) -1, (short) 2, 'A', -3, 4L, -5f, 6d, true, "str"};
+        for (Object arg : args) {
+            Assertions.assertEquals(casePatternGuardedMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String casePatternGuardedMultiLabel(Object o) {
+        String s = null;
+        switch (o) {
+            case Integer _, Long _, Byte _, Short _ when ((Number)o).intValue() > 0 -> s = "integral type";
+            default -> s = "non integral type";
+        };
+        return s;
+    }
+
+    @Test
     void testCaseConstantThrow() {
         CoreOp.FuncOp lmodel = lower("caseConstantThrow");
 

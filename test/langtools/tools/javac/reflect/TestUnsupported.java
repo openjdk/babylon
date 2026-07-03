@@ -10,8 +10,7 @@ public class TestUnsupported {
     @Reflect
     boolean m(Object o) {
         return switch (o) {
-            case String _, Integer _ -> true;
-            default -> false;
+            case null, default -> true;
         };
     }
 }
