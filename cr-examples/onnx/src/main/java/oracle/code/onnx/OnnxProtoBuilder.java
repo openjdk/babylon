@@ -38,6 +38,7 @@ import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.OpWriter;
+import oracle.code.onnx.shape.NonTensorShapeResolver;
 import oracle.code.onnx.shape.TensorShapeResolver;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
@@ -49,6 +50,7 @@ public final class OnnxProtoBuilder {
 
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
+    static final TensorShapeResolver NONE = new NonTensorShapeResolver();
 
     private static final class Indexer {
 
@@ -126,7 +128,7 @@ public final class OnnxProtoBuilder {
     }
 
     public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers, Map<Value, String> explicitValueNames, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer) {
-        return buildModel(domain, module, initializers, explicitValueNames, tensorDataExternalizer, TensorShapeResolver.NONE);
+        return buildModel(domain, module, initializers, explicitValueNames, tensorDataExternalizer, NONE);
     }
 
     public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers, Map<Value, String> explicitValueNames, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer, TensorShapeResolver shapeResolver) {
@@ -235,7 +237,7 @@ public final class OnnxProtoBuilder {
     }
 
     static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<?> initializers, int scalarArgs) {
-        return graph(domain, graphName, indexer, block, initializers, scalarArgs, _ -> null, TensorShapeResolver.NONE);
+        return graph(domain, graphName, indexer, block, initializers, scalarArgs, _ -> null, NONE);
     }
 
     static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<?> initializers, int scalarArgs, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer, TensorShapeResolver shapeResolver) {
@@ -391,11 +393,11 @@ public final class OnnxProtoBuilder {
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType) {
-        return tensorInfo(name, tensorElementType, false, TensorShapeResolver.NONE);
+        return tensorInfo(name, tensorElementType, false, NONE);
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape) {
-        return tensorInfo(name, tensorElementType, addScalarShape, TensorShapeResolver.NONE);
+        return tensorInfo(name, tensorElementType, addScalarShape, NONE);
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape, TensorShapeResolver shapeResolver) {

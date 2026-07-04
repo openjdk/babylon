@@ -25,7 +25,6 @@ package oracle.code.onnx.shape;
 import java.util.List;
 
 public sealed interface TensorShapeResolver permits NonTensorShapeResolver, LLMTensorShapeResolver{
-    TensorShapeResolver NONE = new NonTensorShapeResolver();
 
     List<Object> shape (String name);
 }
