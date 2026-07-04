@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,23 +28,35 @@ import java.nio.file.Path;
 
 public class TensorShapeResolverFactory {
 
+    static final String GENAI_CONFIG_JSON = "genai_config.json";
+    private static final String VOCAB_SIZE = "vocab_size";
+    private static final String NUM_KEY_VALUE_HEADS = "num_key_value_heads";
+    private static final String HEAD_SIZE = "head_size";
+    private static final String INPUT_IDS = "input_ids";
+    private static final String ATTENTION_MASK = "attention_mask";
+    private static final String LOGITS = "logits";
+    private static final String PAST_KEY_NAMES = "past_key_names";
+    private static final String PAST_VALUE_NAMES = "past_value_names";
+    private static final String PRESENT_KEY_NAMES = "present_key_names";
+    private static final String PRESENT_VALUE_NAMES = "present_value_names";
+
     private TensorShapeResolverFactory() {
     }
 
     public static TensorShapeResolver fromConfig(Path configPath) throws IOException {
         String config = Files.readString(configPath);
-        if (configPath.endsWith("genai_config.json")) {
+        if (configPath.endsWith(GENAI_CONFIG_JSON)) {
             return new LLMTensorShapeResolver(
-                    longValue(config, "vocab_size"),
-                    longValue(config, "num_key_value_heads"),
-                    longValue(config, "head_size"),
-                    stringValue(config, "input_ids"),
-                    stringValue(config, "attention_mask"),
-                    stringValue(config, "logits"),
-                    stringValue(config, "past_key_names"),
-                    stringValue(config, "past_value_names"),
-                    stringValue(config, "present_key_names"),
-                    stringValue(config, "present_value_names"));
+                    longValue(config, VOCAB_SIZE),
+                    longValue(config, NUM_KEY_VALUE_HEADS),
+                    longValue(config, HEAD_SIZE),
+                    stringValue(config, INPUT_IDS),
+                    stringValue(config, ATTENTION_MASK),
+                    stringValue(config, LOGITS),
+                    stringValue(config, PAST_KEY_NAMES),
+                    stringValue(config, PAST_VALUE_NAMES),
+                    stringValue(config, PRESENT_KEY_NAMES),
+                    stringValue(config, PRESENT_VALUE_NAMES));
         }
         throw new UnsupportedOperationException("Language model configuration not handled " + configPath);
     }
@@ -65,7 +77,7 @@ public class TensorShapeResolverFactory {
     private static String stringValue(String json, String key) throws IOException {
         int start = valueStart(json, key);
 
-        if(start < json.length() && json.charAt(start) == 34) {
+        if (start < json.length() && json.charAt(start) == 34) {
             int end = json.indexOf(34, start + 1);
             if (end > start)
                 return json.substring(start + 1, end);

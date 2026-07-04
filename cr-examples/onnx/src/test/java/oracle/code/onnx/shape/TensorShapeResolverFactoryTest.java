@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, 2026 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
+import static oracle.code.onnx.shape.TensorShapeResolverFactory.GENAI_CONFIG_JSON;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumingThat;
 
@@ -39,9 +41,9 @@ class TensorShapeResolverFactoryTest {
 
     @Test
     void fromConfigWithValidContent() {
-        assumingThat(Files.exists(Path.of(LlamaDemo.class.getResource("genai_config.json").getPath())),
+        assumingThat(Files.exists(Path.of(Objects.requireNonNull(LlamaDemo.class.getResource(GENAI_CONFIG_JSON)).getPath())),
                 () -> {
-                    Path genConfigLocation = Path.of(LlamaDemo.class.getResource("genai_config.json").getPath());
+                    Path genConfigLocation = Path.of(Objects.requireNonNull(LlamaDemo.class.getResource(GENAI_CONFIG_JSON)).getPath());
                     var resolver = TensorShapeResolverFactory.fromConfig(genConfigLocation);
                     assertEquals(List.of("batch_size", "sequence_length"), resolver.shape("inputIds"));
                     assertEquals(List.of("batch_size", "sequence_length"), resolver.shape("attentionMask"));
@@ -84,7 +86,7 @@ class TensorShapeResolverFactoryTest {
                     }
                 }
                 """;
-        Path path = Path.of("genai_config.json");
+        Path path = Path.of(GENAI_CONFIG_JSON);
         Files.writeString(path, fixture, StandardCharsets.UTF_8);
 
         var resolver = TensorShapeResolverFactory.fromConfig(path);
@@ -96,5 +98,13 @@ class TensorShapeResolverFactoryTest {
         assertEquals(List.of("batch_size", 8L, "total_sequence_length", 64L), resolver.shape("presentKey.0"));
         assertEquals(List.of("batch_size", 8L, "total_sequence_length", 64L), resolver.shape("presentValue.15"));
         assertNull(resolver.shape("unknown"));
+    }
+
+    @Test
+    void fromConfigThrowsException() throws IOException {
+        Path path = Path.of("config.json");
+        String fixture = "";
+        Files.writeString(path, fixture, StandardCharsets.UTF_8);
+        assertThrows(UnsupportedOperationException.class, () -> TensorShapeResolverFactory.fromConfig(path));
     }
 }
