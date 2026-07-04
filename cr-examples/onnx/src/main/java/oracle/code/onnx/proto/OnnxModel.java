@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1019,7 +1019,7 @@ public sealed interface OnnxModel {
 
     private static void print(StringBuilder out, int indent, String name, Object value, boolean skipBigData) throws ReflectiveOperationException {
         if (value == null) return;
-        out.append("  ".repeat(indent)).append(name);
+        out.repeat("  ", indent).append(name);
         switch (value) {
             case List l -> {
                 out.append(name.endsWith("s") ? ":" : "s:").append(System.lineSeparator());

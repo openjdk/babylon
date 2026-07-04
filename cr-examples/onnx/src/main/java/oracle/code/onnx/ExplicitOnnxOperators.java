@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -99,7 +99,7 @@ public class ExplicitOnnxOperators {
 
     public static <T> T Loop(Tensor<Long> max, Tensor<Boolean> cond, T values, LoopBody<T> loopBody) {
         long m = max.data().get(ValueLayout.JAVA_LONG, 0);
-        for (var i = Tensor.ofScalar(0l); longValue(i) < m && booleanValue(cond); set(i, longValue(i) + 1)) {
+        for (var i = Tensor.ofScalar(0L); longValue(i) < m && booleanValue(cond); set(i, longValue(i) + 1)) {
             LoopResult<T> ret = loopBody.invoke(i, cond, values);
             cond = ret.cond();
             values = ret.output();

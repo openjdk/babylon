@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -151,6 +151,13 @@ public abstract sealed class OnnxType implements CodeType {
                     }
 
                     return new Float4e2m1Type();
+                }
+                case Int2Type.NAME: {
+                    if (!tree.arguments().isEmpty()) {
+                        throw new IllegalArgumentException();
+                    }
+
+                    return new Int2Type();
                 }
                 case Int4Type.NAME: {
                     if (!tree.arguments().isEmpty()) {

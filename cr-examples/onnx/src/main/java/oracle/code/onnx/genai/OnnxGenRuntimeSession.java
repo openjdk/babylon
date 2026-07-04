@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,6 +42,8 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import oracle.code.onnx.OnnxProtoBuilder;
 import oracle.code.onnx.OnnxRuntime;
 import oracle.code.onnx.compiler.OnnxTransformer;
+import oracle.code.onnx.shape.TensorShapeResolver;
+import oracle.code.onnx.shape.TensorShapeResolverFactory;
 
 import static oracle.code.onnx.foreign.OrtGenApi.*;
 
@@ -136,6 +138,7 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
 public class OnnxGenRuntimeSession implements AutoCloseable {
 
     static final System.Logger LOG = System.getLogger("oracle.code.onnx");
+    public static final int PAYLOAD_LIMIT = 4 * 1024;
 
     /**
      * Loads {@code onnxruntime-genai} native library from the given folder.
@@ -186,9 +189,10 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
         List<Object> initializers = OnnxRuntime.getInitValues(l, onnxModel.initializers(), List.of(codeReflectionModelInstance));
         try (OutputStream dataOutput = Files.newOutputStream(targetOnnxModelDir.resolve(targetExternalDataFileName))) {
             AtomicLong offset = new AtomicLong();
+            TensorShapeResolver shapeResolver = TensorShapeResolverFactory.fromConfig(Path.of(targetOnnxModelDir+"/genai_config.json"));
             byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.namesMap(), t -> {
                 byte[] data = t.data().toArray(ValueLayout.JAVA_BYTE);
-                if (data.length <= 4*1024) {
+                if (data.length <= PAYLOAD_LIMIT) {
                     return null;
                 }
                 try {
@@ -197,7 +201,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
                     throw new RuntimeException(e);
                 }
                 return new OnnxProtoBuilder.ExternalTensorDataInfo(targetExternalDataFileName, offset.getAndAdd(data.length), data.length);
-            });
+            }, shapeResolver);
             Files.write(targetOnnxModelDir.resolve(targetOnnxModelFileName), protobufModel);
         }
         return new OnnxGenRuntimeSession(targetOnnxModelDir);
