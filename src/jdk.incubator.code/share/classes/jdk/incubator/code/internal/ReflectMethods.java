@@ -61,7 +61,10 @@ import com.sun.tools.javac.tree.JCTree.JCArrayAccess;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBinary;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
+import com.sun.tools.javac.tree.JCTree.JCCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
+import com.sun.tools.javac.tree.JCTree.JCConstantCaseLabel;
+import com.sun.tools.javac.tree.JCTree.JCDefaultCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
@@ -1271,6 +1274,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
         }
 
+        Body.Builder scanPatternAsBody(JCTree.JCPattern pattern, Value target) {
+            pushBody(pattern, CoreType.functionType(JavaType.BOOLEAN));
+            Value localTarget = boxIfNeeded(target);
+            Value patVal = scanPattern(pattern, localTarget);
+            append(CoreOp.core_yield(patVal));
+            Body.Builder patternBody = stack.body;
+            popBody();
+            return patternBody;
+        }
+
         Value scanPattern(JCTree.JCPattern pattern, Value target) {
             // Type of pattern
             JavaType patternType;
@@ -1625,11 +1638,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
             boolean hasDefaultCase = false;
 
             for (JCTree.JCCase c : cases) {
+                if (isNull(c.labels.head) && c.labels.tail.head instanceof JCDefaultCaseLabel) {
+                    // case null, default unsupported
+                    throw unsupported(c);
+                }
                 Body.Builder caseLabel = visitCaseLabel(tree, target, c);
                 Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType, cases.getLast() == c);
                 bodies.add(caseLabel);
                 bodies.add(caseBody);
-                hasDefaultCase = c.labels.head instanceof JCTree.JCDefaultCaseLabel;
+                hasDefaultCase |= c.labels.head instanceof JCDefaultCaseLabel;
             }
 
             if (!hasDefaultCase && isDefaultCaseNeeded) {
@@ -1649,6 +1666,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             return bodies;
+        }
+
+        boolean isNull(JCCaseLabel label) {
+            return label instanceof JCConstantCaseLabel constantCaseLabel &&
+                    TreeInfo.isNull(constantCaseLabel.expr);
         }
 
         private Value processConstantLabel(Value target, JCTree.JCConstantCaseLabel label) {
@@ -1677,9 +1699,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             JCTree.JCCaseLabel headCl = c.labels.head;
             if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
-                if (c.labels.size() > 1) {
-                    throw unsupported(c);
-                }
+                boolean isMultiLabel = c.labels.size() > 1;
 
                 pushBody(pcl, caseLabelType);
 
@@ -1688,13 +1708,24 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 if (c.guard != null) {
                     List<Body.Builder> clBodies = new ArrayList<>();
 
-                    pushBody(pcl.pat, CoreType.functionType(JavaType.BOOLEAN));
+                    if (isMultiLabel) {
+                        // push a body for or-ing the patterns
+                        pushBody(pcl, CoreType.functionType(JavaType.BOOLEAN));
+                    }
 
-                    localTarget = boxIfNeeded(localTarget);
-                    Value patVal = scanPattern(pcl.pat, localTarget);
-                    append(CoreOp.core_yield(patVal));
-                    clBodies.add(stack.body);
-                    popBody();
+                    for (JCCaseLabel l : c.labels) {
+                        JCTree.JCPatternCaseLabel pat = (JCTree.JCPatternCaseLabel)l;
+                        clBodies.add(scanPatternAsBody(pat.pat, localTarget));
+                    }
+
+                    if (isMultiLabel) {
+                        // or the pattern bodies and replace clBodies with a single body
+                        Value patternOrResult = append(JavaOp.conditionalOr(clBodies));
+                        append(CoreOp.core_yield(patternOrResult));
+                        clBodies.clear();
+                        clBodies.add(stack.body);
+                        popBody();
+                    }
 
                     pushBody(c.guard, CoreType.functionType(JavaType.BOOLEAN));
                     append(CoreOp.core_yield(toValue(c.guard)));
@@ -1702,6 +1733,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     popBody();
 
                     localResult = append(JavaOp.conditionalAnd(clBodies));
+                } else if (isMultiLabel) {
+                    List<Body.Builder> clBodies = new ArrayList<>();
+                    for (JCCaseLabel l : c.labels) {
+                        JCTree.JCPatternCaseLabel pat = (JCTree.JCPatternCaseLabel)l;
+                        clBodies.add(scanPatternAsBody(pat.pat, localTarget));
+                    }
+                    localResult = append(JavaOp.conditionalOr(clBodies));
                 } else {
                     localTarget = boxIfNeeded(localTarget);
                     localResult = scanPattern(pcl.pat, localTarget);

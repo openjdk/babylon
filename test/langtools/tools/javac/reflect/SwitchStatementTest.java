@@ -1531,12 +1531,225 @@ public class SwitchStatementTest {
         return r;
     }
 
-    // @@@ code model for such as code is not supported
-//    @Reflect
+    @IR("""
+            func @"casePatternMultiLabel" (%0 : java.type:"java.lang.Object")java.type:"java.lang.String" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %2 : java.type:"java.lang.String" = constant @"";
+                %3 : Var<java.type:"java.lang.String"> = var %2 @"r";
+                %4 : java.type:"java.lang.Object" = var.load %1;
+                %5 : java.type:"java.lang.Integer" = constant @null;
+                %6 : Var<java.type:"java.lang.Integer"> = var %5;
+                %7 : java.type:"java.lang.Long" = constant @null;
+                %8 : Var<java.type:"java.lang.Long"> = var %7;
+                %9 : java.type:"java.lang.Character" = constant @null;
+                %10 : Var<java.type:"java.lang.Character"> = var %9;
+                %11 : java.type:"java.lang.Byte" = constant @null;
+                %12 : Var<java.type:"java.lang.Byte"> = var %11;
+                %13 : java.type:"java.lang.Short" = constant @null;
+                %14 : Var<java.type:"java.lang.Short"> = var %13;
+                java.switch.statement %4
+                    (%15 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %16 : java.type:"boolean" = java.cor
+                            ()java.type:"boolean" -> {
+                                %17 : java.type:"boolean" = pattern.match %15
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                        %18 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type;
+                                        yield %18;
+                                    }
+                                    (%19 : java.type:"java.lang.Integer")java.type:"void" -> {
+                                        var.store %6 %19;
+                                        yield;
+                                    };
+                                yield %17;
+                            }
+                            ()java.type:"boolean" -> {
+                                %20 : java.type:"boolean" = pattern.match %15
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Long>" -> {
+                                        %21 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Long>" = pattern.type;
+                                        yield %21;
+                                    }
+                                    (%22 : java.type:"java.lang.Long")java.type:"void" -> {
+                                        var.store %8 %22;
+                                        yield;
+                                    };
+                                yield %20;
+                            }
+                            ()java.type:"boolean" -> {
+                                %23 : java.type:"boolean" = pattern.match %15
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Character>" -> {
+                                        %24 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Character>" = pattern.type;
+                                        yield %24;
+                                    }
+                                    (%25 : java.type:"java.lang.Character")java.type:"void" -> {
+                                        var.store %10 %25;
+                                        yield;
+                                    };
+                                yield %23;
+                            }
+                            ()java.type:"boolean" -> {
+                                %26 : java.type:"boolean" = pattern.match %15
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Byte>" -> {
+                                        %27 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Byte>" = pattern.type;
+                                        yield %27;
+                                    }
+                                    (%28 : java.type:"java.lang.Byte")java.type:"void" -> {
+                                        var.store %12 %28;
+                                        yield;
+                                    };
+                                yield %26;
+                            }
+                            ()java.type:"boolean" -> {
+                                %29 : java.type:"boolean" = pattern.match %15
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Short>" -> {
+                                        %30 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Short>" = pattern.type;
+                                        yield %30;
+                                    }
+                                    (%31 : java.type:"java.lang.Short")java.type:"void" -> {
+                                        var.store %14 %31;
+                                        yield;
+                                    };
+                                yield %29;
+                            };
+                        yield %16;
+                    }
+                    ()java.type:"void" -> {
+                        %32 : java.type:"java.lang.String" = var.load %3;
+                        %33 : java.type:"java.lang.String" = constant @"integral type";
+                        %34 : java.type:"java.lang.String" = concat %32 %33;
+                        var.store %3 %34;
+                        yield;
+                    }
+                    ()java.type:"boolean" -> {
+                        %35 : java.type:"boolean" = constant @true;
+                        yield %35;
+                    }
+                    ()java.type:"void" -> {
+                        %36 : java.type:"java.lang.String" = var.load %3;
+                        %37 : java.type:"java.lang.String" = constant @"non integral type";
+                        %38 : java.type:"java.lang.String" = concat %36 %37;
+                        var.store %3 %38;
+                        yield;
+                    };
+                %39 : java.type:"java.lang.String" = var.load %3;
+                return %39;
+            };
+            """)
+    @Reflect
     private static String casePatternMultiLabel(Object o) {
         String r = "";
         switch (o) {
             case Integer _, Long _, Character _, Byte _, Short _-> r += "integral type";
+            default -> r += "non integral type";
+        }
+        return r;
+    }
+
+    @IR("""
+            func @"casePatternGuardedMultiLabel" (%0 : java.type:"java.lang.Object")java.type:"java.lang.String" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %2 : java.type:"java.lang.String" = constant @"";
+                %3 : Var<java.type:"java.lang.String"> = var %2 @"r";
+                %4 : java.type:"java.lang.Object" = var.load %1;
+                %5 : java.type:"java.lang.Integer" = constant @null;
+                %6 : Var<java.type:"java.lang.Integer"> = var %5;
+                %7 : java.type:"java.lang.Long" = constant @null;
+                %8 : Var<java.type:"java.lang.Long"> = var %7;
+                %9 : java.type:"java.lang.Byte" = constant @null;
+                %10 : Var<java.type:"java.lang.Byte"> = var %9;
+                %11 : java.type:"java.lang.Short" = constant @null;
+                %12 : Var<java.type:"java.lang.Short"> = var %11;
+                java.switch.statement %4
+                    (%13 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %14 : java.type:"boolean" = java.cand
+                            ()java.type:"boolean" -> {
+                                %15 : java.type:"boolean" = java.cor
+                                    ()java.type:"boolean" -> {
+                                        %16 : java.type:"boolean" = pattern.match %13
+                                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" -> {
+                                                %17 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Integer>" = pattern.type;
+                                                yield %17;
+                                            }
+                                            (%18 : java.type:"java.lang.Integer")java.type:"void" -> {
+                                                var.store %6 %18;
+                                                yield;
+                                            };
+                                        yield %16;
+                                    }
+                                    ()java.type:"boolean" -> {
+                                        %19 : java.type:"boolean" = pattern.match %13
+                                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Long>" -> {
+                                                %20 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Long>" = pattern.type;
+                                                yield %20;
+                                            }
+                                            (%21 : java.type:"java.lang.Long")java.type:"void" -> {
+                                                var.store %8 %21;
+                                                yield;
+                                            };
+                                        yield %19;
+                                    }
+                                    ()java.type:"boolean" -> {
+                                        %22 : java.type:"boolean" = pattern.match %13
+                                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Byte>" -> {
+                                                %23 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Byte>" = pattern.type;
+                                                yield %23;
+                                            }
+                                            (%24 : java.type:"java.lang.Byte")java.type:"void" -> {
+                                                var.store %10 %24;
+                                                yield;
+                                            };
+                                        yield %22;
+                                    }
+                                    ()java.type:"boolean" -> {
+                                        %25 : java.type:"boolean" = pattern.match %13
+                                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Short>" -> {
+                                                %26 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Short>" = pattern.type;
+                                                yield %26;
+                                            }
+                                            (%27 : java.type:"java.lang.Short")java.type:"void" -> {
+                                                var.store %12 %27;
+                                                yield;
+                                            };
+                                        yield %25;
+                                    };
+                                yield %15;
+                            }
+                            ()java.type:"boolean" -> {
+                                %28 : java.type:"java.lang.Object" = var.load %1;
+                                %29 : java.type:"java.lang.Number" = cast %28 @java.type:"java.lang.Number";
+                                %30 : java.type:"int" = invoke %29 @java.ref:"java.lang.Number::intValue():int";
+                                %31 : java.type:"int" = constant @0;
+                                %32 : java.type:"boolean" = gt %30 %31;
+                                yield %32;
+                            };
+                        yield %14;
+                    }
+                    ()java.type:"void" -> {
+                        %33 : java.type:"java.lang.String" = var.load %3;
+                        %34 : java.type:"java.lang.String" = constant @"integral type";
+                        %35 : java.type:"java.lang.String" = concat %33 %34;
+                        var.store %3 %35;
+                        yield;
+                    }
+                    ()java.type:"boolean" -> {
+                        %36 : java.type:"boolean" = constant @true;
+                        yield %36;
+                    }
+                    ()java.type:"void" -> {
+                        %37 : java.type:"java.lang.String" = var.load %3;
+                        %38 : java.type:"java.lang.String" = constant @"non integral type";
+                        %39 : java.type:"java.lang.String" = concat %37 %38;
+                        var.store %3 %39;
+                        yield;
+                    };
+                %40 : java.type:"java.lang.String" = var.load %3;
+                return %40;
+            };
+            """)
+    @Reflect
+    private static String casePatternGuardedMultiLabel(Object o) {
+        String r = "";
+        switch (o) {
+            case Integer _, Long _, Byte _, Short _ when ((Number)o).intValue() > 0 -> r += "integral type";
             default -> r += "non integral type";
         }
         return r;
