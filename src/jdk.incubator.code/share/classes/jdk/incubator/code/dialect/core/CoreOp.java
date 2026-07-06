@@ -266,6 +266,10 @@ public sealed abstract class CoreOp extends Op {
             return JavaType.VOID;
         }
 
+        /**
+         * Return the reference to the method this function operation models.
+         * @return the reference to the method this function operation models.
+         */
         public Optional<MethodRef> sourceRef() {
             return isFakeSource() ? Optional.of(source) : Optional.empty();
         }
