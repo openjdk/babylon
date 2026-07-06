@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -25,7 +23,6 @@
 
 /*
  * @test
- * @ignore Reflection on the contents of local classes is not supported.
  * @summary Smoke test for code reflection with local class creation expressions.
  * @modules jdk.incubator.code
  * @build LocalClassTest
@@ -302,5 +299,20 @@ public class LocalClassTest {
             }
             return new L();
         };
+    }
+
+    @Reflect
+    @IR("""
+            func @"testAnonInLambda" (%0 : java.type:"LocalClassTest")java.type:"void" -> {
+                %1 : java.type:"java.util.function.Supplier<java.lang.Object>" = lambda @lambda.isReflectable=true ()java.type:"java.lang.Object" -> {
+                    %2 : java.type:"LocalClassTest::$5" = new %0 @java.ref:"LocalClassTest::$5::(LocalClassTest)";
+                    return %2;
+                };
+                %3 : Var<java.type:"java.util.function.Supplier<java.lang.Object>"> = var %1 @"so";
+                return;
+            };
+            """)
+    void testAnonInLambda() {
+        Supplier<Object> so = () -> new Object() { };
     }
 }

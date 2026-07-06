@@ -270,7 +270,8 @@ module jdk.compiler {
         jdk.incubator.code;
     exports com.sun.tools.javac.file to
         jdk.jdeps,
-        jdk.javadoc;
+        jdk.javadoc,
+        jdk.incubator.code;
     exports com.sun.tools.javac.jvm to
         jdk.javadoc,
         jdk.incubator.code;

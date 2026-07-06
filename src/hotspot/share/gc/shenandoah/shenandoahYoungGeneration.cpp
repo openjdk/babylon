@@ -100,11 +100,6 @@ size_t ShenandoahYoungGeneration::used() const {
   return _free_set->young_used();
 }
 
-size_t ShenandoahYoungGeneration::bytes_allocated_since_gc_start() const {
-  assert(ShenandoahHeap::heap()->mode()->is_generational(), "Young implies generational");
-  return _free_set->get_bytes_allocated_since_gc_start();
-}
-
 size_t ShenandoahYoungGeneration::get_affiliated_region_count() const {
   return _free_set->young_affiliated_regions();
 }
@@ -131,6 +126,14 @@ size_t ShenandoahYoungGeneration::free_unaffiliated_regions() const {
   return _free_set->young_unaffiliated_regions();
 }
 
+size_t ShenandoahYoungGeneration::available_with_reserve() const {
+  shenandoah_assert_heaplocked();
+  ShenandoahFreeSet* free_set = ShenandoahHeap::heap()->free_set();
+  size_t mutator_available = free_set->available_locked();
+  size_t collector_available = free_set->collector_available_locked();
+  return mutator_available + collector_available;
+}
+
 size_t ShenandoahYoungGeneration::available() const {
   // The collector reserve may eat into what the mutator is allowed to use. Make sure we are looking
   // at what is available to the mutator when reporting how much memory is available.
@@ -138,8 +141,8 @@ size_t ShenandoahYoungGeneration::available() const {
   return MIN2(available, ShenandoahHeap::heap()->free_set()->available());
 }
 
-size_t ShenandoahYoungGeneration::soft_available() const {
-  size_t available = this->ShenandoahGeneration::soft_available();
+size_t ShenandoahYoungGeneration::soft_mutator_available() const {
+  size_t available = this->ShenandoahGeneration::soft_mutator_available();
   return MIN2(available, ShenandoahHeap::heap()->free_set()->available());
 }
 

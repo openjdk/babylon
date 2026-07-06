@@ -110,10 +110,6 @@ public abstract sealed class HATPtrOp extends HATOp {
             super(name, resultType, bufferClass, operands);
         }
 
-        public HATPtrStoreOp(List<Value> operands) {
-            super(operands);
-        }
-
         public HATPtrStoreOp(HATPtrStoreOp op, CodeContext copyContext) {
             super(op, copyContext);
         }
@@ -138,10 +134,6 @@ public abstract sealed class HATPtrOp extends HATOp {
             super(name, resultType, bufferClass, operands);
         }
 
-        public HATPtrLoadOp(List<Value> operands) {
-            super(operands);
-        }
-
         public HATPtrLoadOp(HATPtrLoadOp op, CodeContext copyContext) {
             super(op, copyContext);
         }
@@ -163,10 +155,6 @@ public abstract sealed class HATPtrOp extends HATOp {
 
         public HATPtrLengthOp(String name, CodeType resultType, Class<?> bufferClass, List<Value> operands) {
             super(name, resultType, bufferClass, operands);
-        }
-
-        public HATPtrLengthOp(List<Value> operands) {
-            super(operands);
         }
 
         public HATPtrLengthOp(HATPtrLengthOp op, CodeContext copyContext) {

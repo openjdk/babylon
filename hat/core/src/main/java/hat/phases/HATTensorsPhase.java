@@ -29,190 +29,308 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp.VarAccessOp.VarLoadOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedSet;
 import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
-import static hat.dialect.HATTensorOp.TensorCreateOp;
-import static hat.dialect.HATTensorOp.TensorFillOp;
-import static hat.dialect.HATTensorOp.TensorLoadOp;
-import static hat.dialect.HATTensorOp.TensorMMAOp;
-import static hat.dialect.HATTensorOp.TensorStoreLoadOp;
-import static hat.dialect.HATTensorOp.TensorStoreOp;
-import static hat.dialect.HATTensorOp.TensorVarLoadOp;
-import static hat.dialect.HATTensorOp.TensorVarOp;
+import static jdk.incubator.code.dialect.core.CoreOp.varLoad;
+import static jdk.incubator.code.dialect.java.JavaType.FLOAT;
+import static jdk.incubator.code.dialect.java.JavaType.VOID;
 
 public record HATTensorsPhase() implements HATPhase {
 
     private interface TensorTransformer {
-
-        void transform(Block.Builder blockBuilder, Op op);
-
-        default void replaceOp(Block.Builder blockBuilder, Op oldOp, Op newOp) {
-            newOp.setLocation(oldOp.location());
-            Op.Result newOpResult = blockBuilder.op(newOp);
-            blockBuilder.context().mapValue(oldOp.result(), newOpResult);
-        }
-
+        void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable);
     }
 
     private static class TensorView implements TensorTransformer {
 
         @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
-            List<Value> operands = blockBuilder.context().getValues(op.operands());
-            switch (op) {
-                case CoreOp.VarOp varOp -> replaceOp(blockBuilder, varOp, new TensorVarOp(varOp.varName(), varOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorCreateOp(invokeOp.resultType(), operands));
-                default -> blockBuilder.op(op);
-            }
-        }
-    }
-
-    private static class TensorFill implements TensorTransformer {
-
-        @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
-            List<Value> operands = blockBuilder.context().getValues(op.operands());
-            switch (op) {
-                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorFillOp(invokeOp.resultType(), operands));
-                default -> blockBuilder.op(op);
-            }
-        }
-    }
-
-    private static class TensorMMA implements TensorTransformer {
-
-        @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
-            List<Value> operands = blockBuilder.context().getValues(op.operands());
-            switch (op) {
-                case CoreOp.VarAccessOp.VarLoadOp loadOp -> replaceOp(blockBuilder, loadOp, new TensorVarLoadOp(loadOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp -> replaceOp(blockBuilder, invokeOp, new TensorMMAOp(invokeOp.resultType(), operands));
-                default -> blockBuilder.op(op);
-            }
-        }
-    }
-
-    private static class TensorLoad implements TensorTransformer {
-
-        @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
-            List<Value> operands = blockBuilder.context().getValues(op.operands());
-            switch (op) {
-                case CoreOp.VarAccessOp.VarStoreOp storeOp ->
-                        replaceOp(blockBuilder, storeOp, new TensorStoreLoadOp(storeOp.resultType(), operands));
-                case JavaOp.InvokeOp invokeOp ->
-                        replaceOp(blockBuilder, invokeOp, new TensorLoadOp(invokeOp.resultType(), operands));
-                default -> blockBuilder.op(op);
-            }
-        }
-    }
-
-    private static class TensorStore implements TensorTransformer {
-
-        @Override
-        public void transform(Block.Builder blockBuilder, Op op) {
-            if (Objects.requireNonNull(op) instanceof JavaOp.InvokeOp invokeOp) {
-                replaceOp(blockBuilder, invokeOp, new TensorStoreOp(invokeOp.resultType(), blockBuilder.context().getValues(invokeOp.operands())));
+        public void transform(CoreOp.FuncOp funcOp, Block.Builder blockBuilder, Op op, VarTable varTable) {
+            if (Objects.requireNonNull(op) instanceof CoreOp.VarOp varOp) {
+                Op.Result opResult = blockBuilder.add(varOp);
+                varTable.addIfNeededOrThrow(funcOp.funcName(), opResult.op(), VarTable.HATOpAttribute.TENSOR);
             } else {
-                blockBuilder.op(op);
+                blockBuilder.add(op);
             }
         }
     }
 
-    private CoreOp.FuncOp transformWithPredicate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, BiConsumer<Block.Builder, Op> function, Set<Op> opsToProcess ) {
+    private CoreOp.FuncOp transformWithPredicate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, TensorTransformer function, Set<Op> opsToProcess, VarTable varTable) {
         return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            function.accept(blockBuilder, op);
+            function.transform(funcOp, blockBuilder, op, varTable);
             return blockBuilder;
-        }).funcOp();
+        }, varTable).funcOp();
     }
 
-    private CoreOp.FuncOp createTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    public static class TensorMarkers {
+        public static Tensor create() {
+            return null;
+        }
+
+        private TensorMarkers() {}
+    }
+
+    private static final MethodRef CREATE_FUNCTION = MethodRef.method(TensorMarkers.class, "create", Tensor.class);
+    private static final MethodRef FILL_FUNCTION = MethodRef.method(Tensor.class, "fill", void.class, Tensor.class, float.class);
+    private static final MethodRef MMA_FUNCTION = MethodRef.method(Tensor.class, "mma", Tensor.class, Tensor.class, Tensor.class, Tensor.class);
+
+    private void appendTensorDeclaration(Block.Builder blockBuilder, JavaOp.InvokeOp invokeOp, CoreOp.VarOp oldVarOp, VarTable varTable, String functionName,Map<CoreOp.VarOp, Value> mapValueTensor) {
+        JavaOp.InvokeOp invoke = JavaOp.invoke(CREATE_FUNCTION, List.of());
+        Op.Result op1 = blockBuilder.add(invoke);
+        // Add a TensorVarOp associated with teh TensorCreateOp
+        CoreOp.VarOp varOp = CoreOp.var(oldVarOp.varName(), op1);
+        Op.Result op2 = blockBuilder.add(varOp);
+        varTable.addIfNeededOrThrow(functionName, op2.op(), VarTable.HATOpAttribute.TENSOR);
+        // Include in a new HashMap the new tensorVarOp to be propagated for the Stores and VarLoadOps.
+        mapValueTensor.put(oldVarOp, op2);
+        blockBuilder.context().mapValue(invokeOp.result(), op2);
+    }
+
+    private CoreOp.FuncOp transformWithRelocate(CoreOp.FuncOp funcOp, VarTable varTable, Set<Op> opsToProcess) {
+        Map<CoreOp.VarOp, Value> mapValueTensor = new HashMap<>();
+        Map<Op, Value> mapUsages = new HashMap<>();
+        Map<Op, Value> invokeMap = new HashMap<>();
+        final String functionName = funcOp.funcName();
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            if (!opsToProcess.contains(op)) {
+                Op.Result opNew = blockBuilder.add(op);
+                varTable.passthrough(functionName, op, opNew.op());
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                if (invokeOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp oldVarOp) {
+                    appendTensorDeclaration(blockBuilder, invokeOp, oldVarOp, varTable, functionName, mapValueTensor);
+                } else {
+                    throw new IllegalStateException("[Error] Expected a VarOp, but found: " + invokeOp.result().uses().getFirst().declaringElement().getClass());
+                }
+                // The Load/LoadF16 operation is inserted back into the tree
+                Op.Result invokeResult = blockBuilder.add(invokeOp);
+                invokeMap.put(invokeOp, invokeResult);
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                // Replace the VarOp with a TensorStoreLoadOp using the reference of the tensorVarOp
+                // declared in a previous block (block 0)
+                Value tensorVarOp = mapValueTensor.get(varOp);
+
+                // Update the usages
+                SequencedSet<Op.Result> uses = varOp.result().uses();
+                for (Op.Result r : uses) {
+                    opsToProcess.add(r.op());
+                    mapUsages.put(r.op(), tensorVarOp);
+                }
+
+                Value v;
+                if (varOp.operands().getFirst().declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                    v = invokeMap.get(invokeOp);
+                } else {
+                    throw new IllegalStateException("Expected an invokeOp");
+                }
+
+                CoreOp.VarAccessOp.VarStoreOp varStoreOp = CoreOp.varStore(tensorVarOp, v);
+                Op.Result storeResult = blockBuilder.add(varStoreOp);
+                blockBuilder.context().mapValue(varOp.result(), storeResult);
+
+            } else if (op instanceof VarLoadOp varLoadOp) {
+                // This means a tensor is loading, and we expect the varLoadOp to be present already in the mapUsages,
+                // since the declaration is always traversed before teh varLoadOp.
+                Value tensorValue = mapUsages.get(varLoadOp);
+                VarLoadOp varLoadOpNew = varLoad(tensorValue);
+                Op.Result op1 = blockBuilder.add(varLoadOpNew);
+                blockBuilder.context().mapValue(varLoadOp.result(), op1);
+            }
+            return blockBuilder;
+        });
+        return funcOp;
+    }
+
+    private CoreOp.FuncOp createTensorsToRelocate(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+
+        // 1. Obtain the last Op before any control flow. We need to find a suitable location in basic block 0
+        // to insert the declaration of tensors coming from the Load operations
+        Set<Op> opsToProcess = new HashSet<>();
+        OpHelper.Invoke.stream(lookup, funcOp)
+                .filter(invoke -> !invoke.returnsVoid())
+                .filter(invoke -> invoke.refIs(Tensor.class))
+                .filter(invoke -> invoke.name().equals("load") || invoke.name().equals("loadF16"))
+                .forEach(invoke -> {
+                    opsToProcess.add(invoke.op());
+                    invoke.op().result().uses().stream()
+                            .filter(result -> (result.op() instanceof CoreOp.VarOp))
+                            .map(result -> (CoreOp.VarOp) result.op())
+                            .forEach(opsToProcess::add);
+                });
+        return transformWithRelocate(funcOp, varTable, opsToProcess);
+    }
+
+    private CoreOp.FuncOp createTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = new HashSet<>();
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
                 .filter(invoke -> invoke.name().equals("create") || invoke.name().equals("of"))
-                .forEach( invoke -> {
-                    opsToProcess.add(invoke.op());
-                    invoke.op().result().uses().stream()
-                            .filter(result -> (result.op() instanceof CoreOp.VarOp))
-                            .map(result -> (CoreOp.VarOp) result.op())
-                            .findFirst()
-                            .ifPresent(opsToProcess::add);
-                });
+                .forEach( invoke ->
+                        invoke.op().result().uses().stream()
+                        .filter(result -> (result.op() instanceof CoreOp.VarOp))
+                        .map(result -> (CoreOp.VarOp) result.op())
+                        .findFirst()
+                        .ifPresent(opsToProcess::add));
 
-        return transformWithPredicate(lookup, funcOp, new TensorView()::transform, opsToProcess);
+        return transformWithPredicate(lookup, funcOp, new TensorView(), opsToProcess, varTable);
     }
 
-    private Set<Op> filterOps(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, String methodIntrinsicName) {
-        Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(OpHelper.Invoke::returnsVoid)
-                .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals(methodIntrinsicName))
-                .forEach(invoke -> {
-                    opsToProcess.add(invoke.op());
-                    Value varLoadValue = invoke.op().operands().getFirst();
-                    if (varLoadValue.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                        opsToProcess.add(varLoadOp);
-                    }
-                });
-        return opsToProcess;
-    }
-
-    private CoreOp.FuncOp fillTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        Set<Op> opsToProcess = filterOps(lookup, funcOp, "fill");
-        return transformWithPredicate(lookup, funcOp, new TensorFill()::transform, opsToProcess);
-    }
-
-    private CoreOp.FuncOp mmaTensor(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        Set<Op> opsToProcess = filterOps(lookup, funcOp, "mma");
-        return transformWithPredicate(lookup, funcOp, new TensorMMA()::transform, opsToProcess);
-    }
-
-    private CoreOp.FuncOp tensorLoad(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp tensorShape(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = new HashSet<>();
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals("load"))
-                .forEach(invoke -> {
-                    opsToProcess.add(invoke.op());
-                    invoke.op().result().uses().stream()
-                            .filter(result -> (result.op() instanceof CoreOp.VarAccessOp.VarStoreOp))
-                            .map(result -> (CoreOp.VarAccessOp.VarStoreOp) result.op())
-                            .forEach(opsToProcess::add);
-                });
-        return transformWithPredicate(lookup, funcOp, new TensorLoad()::transform, opsToProcess);
+                .filter(invoke -> invoke.name().equals("shape"))
+                .forEach( invoke ->
+                        invoke.op().result().uses().stream()
+                                .filter(result -> (result.op() instanceof CoreOp.VarOp))
+                                .map(result -> (CoreOp.VarOp) result.op())
+                                .findFirst()
+                                .ifPresent(opsToProcess::add));
+
+        CoreOp.FuncOp finalFuncOp = funcOp;
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            if (!opsToProcess.contains(op)) {
+                Op.Result opNew = blockBuilder.add(op);
+                varTable.passthrough(finalFuncOp.funcName(), op, opNew.op());
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                Op.Result tensorShape = blockBuilder.add(varOp);
+                varTable.addIfNeededOrThrow(finalFuncOp.funcName(), tensorShape.op(), VarTable.HATOpAttribute.TENSOR_SHAPE);
+            }
+            return blockBuilder;
+        });
+        return funcOp;
+
     }
 
-    private CoreOp.FuncOp tensorStoreOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    private CoreOp.FuncOp zerosTensors(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = new HashSet<>();
         OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(OpHelper.Invoke::returnsVoid)
+                .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(Tensor.class))
-                .filter(invoke -> invoke.name().equals("store"))
-                .forEach(invoke -> opsToProcess.add(invoke.op()));
-        return transformWithPredicate(lookup, funcOp, new TensorStore()::transform, opsToProcess);
+                .filter(invoke -> invoke.name().equals("zeros"))
+                .forEach(invoke -> {
+                    opsToProcess.add(invoke.op());
+                    Value varValue = invoke.op().result().uses().getFirst();
+                    if (varValue.declaringElement() instanceof CoreOp.VarOp varOp) {
+                        opsToProcess.add(varOp);
+                    }
+                });
+
+        Map<Op, Value> map = new HashMap<>();
+        CoreOp.FuncOp finalFuncOp = funcOp;
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            if (!opsToProcess.contains(op)) {
+                Op.Result opNew = blockBuilder.add(op);
+                varTable.passthrough(finalFuncOp.funcName(), op, opNew.op());
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                // Create Tensor
+                Op.Result op1 = blockBuilder.add(invokeOp);
+                Op.Result valueVar = invokeOp.result().uses().getFirst();
+                if (valueVar.declaringElement() instanceof CoreOp.VarOp varOp) {
+                    // Add Var
+                    CoreOp.VarOp varOp1 = CoreOp.var(varOp.varName(), op1);
+                    Op.Result op2 = blockBuilder.add(varOp1);
+                    varTable.addIfNeededOrThrow(finalFuncOp.funcName(), op2.op(), VarTable.HATOpAttribute.TENSOR);
+
+                    // Add VarLoadOp
+                    VarLoadOp varLoadOp = varLoad(op2);
+                    Op.Result op3 = blockBuilder.add(varLoadOp);
+
+                    // Add Fill Invoke
+                    CoreOp.ConstantOp constant = CoreOp.constant(FLOAT, 0.0f);
+                    Op.Result op4 = blockBuilder.add(constant);
+
+                    List<Value> argsFill = List.of(op3, op4);
+                    JavaOp.InvokeOp fillInvoke = JavaOp.invoke(VOID, FILL_FUNCTION, argsFill);
+                    Op.Result op5 = blockBuilder.add(fillInvoke);
+                    map.put(varOp, op2);
+                    blockBuilder.context().mapValue(invokeOp.result(), op5);
+                } else {
+                    throw new IllegalStateException("Expected a VarOp");
+                }
+            } else if (op instanceof CoreOp.VarOp varOp) {
+                // Pass through value using the TensorVarOp created before
+                blockBuilder.context().mapValue(varOp.result(), map.get(varOp));
+            }
+            return blockBuilder;
+        });
+        return funcOp;
+    }
+
+    private CoreOp.FuncOp mmaTensorWithStore(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+        Set<Op> opsToProcess = OpHelper.Invoke.stream(lookup, funcOp)
+                .filter(invoke -> !invoke.returnsVoid())
+                .filter(invoke -> invoke.refIs(Tensor.class))
+                .filter(invoke -> invoke.name().equals("mma"))
+                .map(OpHelper::op)
+                .collect(Collectors.toSet());
+
+        CoreOp.FuncOp finalFuncOp = funcOp;
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            if (!opsToProcess.contains(op)) {
+                Op.Result opNew = blockBuilder.add(op);
+                varTable.passthrough(finalFuncOp.funcName(), op, opNew.op());
+            } else if (op instanceof JavaOp.InvokeOp invokeOp) {
+                Op.Result result = invokeOp.result().uses().getFirst();
+                if (result.declaringElement() instanceof CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
+                    // insert a VarLodOp for the result operand that was already declared
+                    List<Value> args = new ArrayList<>();
+                    args.add(varStoreOp.operands().getFirst());
+                    List<Value> operands = blockBuilder.context().getValues(args);
+                    VarLoadOp varLoadOp = varLoad(operands.getFirst());
+                    Op.Result op1 = blockBuilder.add(varLoadOp);
+
+                    args.clear();
+                    args.add(op1);
+                    args.addAll(blockBuilder.context().getValues(invokeOp.operands()));
+
+                    // insert an MMA Invoke
+                    JavaOp.InvokeOp tensorMMAOp = JavaOp.invoke(MMA_FUNCTION, args);
+                    tensorMMAOp.setLocation(invokeOp.location());
+                    Op.Result op2 = blockBuilder.add(tensorMMAOp);
+                    blockBuilder.context().mapValue(invokeOp.result(), op2);
+                } else {
+                    throw new IllegalStateException("Expected a VarStoreOp, but found " + result.op());
+                }
+            }
+            return blockBuilder;
+        });
+        return funcOp;
+    }
+
+    @FunctionalInterface
+    private interface ActionTensorTransformer {
+        CoreOp.FuncOp apply(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable);
     }
 
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
-        funcOp = createTensors(lookup, funcOp);
-        funcOp = fillTensors(lookup, funcOp);
-        funcOp = mmaTensor(lookup, funcOp);
-        funcOp = tensorLoad(lookup, funcOp);
-        funcOp = tensorStoreOp(lookup, funcOp);
-        return funcOp;
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+        List<ActionTensorTransformer> tensorTransformer = List.of(
+                this::createTensorsToRelocate,
+                this::createTensors,
+                this::tensorShape,
+                this::zerosTensors,
+                this::mmaTensorWithStore);
+        CoreOp.FuncOp[] function =  new CoreOp.FuncOp[] {funcOp};
+        tensorTransformer.forEach(action ->
+                function[0] = action.apply(lookup, function[0], varTable)
+        );
+        return function[0];
     }
 }

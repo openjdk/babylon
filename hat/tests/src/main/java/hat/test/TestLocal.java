@@ -80,9 +80,7 @@ public class TestLocal {
     public void testLocal() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
-        accelerator.compute(computeContext -> {
-            TestLocal.myCompute(computeContext, data);
-        });
+        accelerator.compute(computeContext -> TestLocal.myCompute(computeContext, data));
 
         // Check result
         boolean isCorrect = true;

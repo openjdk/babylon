@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,7 +68,7 @@ public final class LoweringTransform {
             }
             case Op.Lowerable lop -> lop.lower(block, null);
             default -> {
-                block.op(op);
+                block.add(op);
                 yield block;
             }
         };
@@ -106,13 +106,13 @@ public final class LoweringTransform {
 
         for (int i = 0; i < targets.size(); i++) {
             Block.Builder curr = blocks.get(i);
-            curr.body(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
+            curr.transformBody(targets.get(i).parent(), blocks.get(i).parameters(), (b, op) -> switch (op) {
                 case YieldOp _ when swOp instanceof JavaOp.SwitchStatementOp -> {
-                    b.op(branch(exit.reference()));
+                    b.add(branch(exit.reference()));
                     yield b;
                 }
                 case YieldOp yop when swOp instanceof JavaOp.SwitchExpressionOp -> {
-                    b.op(branch(exit.reference(b.context().getValue(yop.yieldValue()))));
+                    b.add(branch(exit.reference(b.context().getValue(yop.yieldValue()))));
                     yield b;
                 }
                 default -> transformer.acceptOp(b, op);
@@ -123,9 +123,9 @@ public final class LoweringTransform {
         if (integralReferenceTypes.contains(selector.type())) {
             // unbox selector
             if (selector.type().equals(J_L_CHARACTER)) {
-                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "charValue", JavaType.CHAR), selector));
+                selector = block.add(JavaOp.invoke(MethodRef.method(selector.type(), "charValue", JavaType.CHAR), selector));
             } else {
-                selector = block.op(JavaOp.invoke(MethodRef.method(selector.type(), "intValue", JavaType.INT), selector));
+                selector = block.add(JavaOp.invoke(MethodRef.method(selector.type(), "intValue", JavaType.INT), selector));
             }
         }
         var labels = labelsAndTargets.labels();
@@ -134,7 +134,7 @@ public final class LoweringTransform {
             labels.add(null);
             blocks.add(exit);
         }
-        block.op(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
+        block.add(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
         return exit;
     }
 

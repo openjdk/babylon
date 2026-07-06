@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,30 +27,33 @@ package jdk.incubator.code;
 
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+
 import java.util.*;
+import java.util.stream.IntStream;
 
 /**
- * A body containing a sequence of (basic) blocks.
+ * A body containing a sequence of blocks.
  * <p>
- * The sequence of blocks form a graph topologically sorted in reverse postorder.
+ * The sequence of blocks form a control-flow graph topologically sorted in reverse postorder.
  * The first block in the sequence is the entry block, and no other blocks refer to it as a successor.
  * The last operation in a block, a terminating operation, may refer to other blocks in the sequence as successors,
  * thus forming the graph. Otherwise, the last operation defines how the body passes control back to the parent
  * operation, and in doing so may optionally yield a value.
  * <p>
- * A body has a function type whose return type is the body's yield type and whose parameter types are the entry
- * block's parameters types, in order.
- * The function type describes the sequence of input parameters types for arguments that are passed to the
+ * A body has a signature, a function type, whose return type is the body's yield type and whose parameter types are the
+ * entry block's parameters types, in order.
+ * The signature describes the sequence of input parameters types for arguments that are passed to the
  * body when control is passed to it, and describes the return type of values that are yielded when the body passes
  * control back to its parent operation.
  * <p>
- * A body is built using a {@link Body.Builder body builder} that creates and {@link Builder#entryBlock() exposes} an
- * entry {@link Block.Builder block builder} from which further non-entry sibling blocks in the body may be created and
- * {@link Block.Builder#block(CodeType...) built}. A block builder can also be used to
- * {@link Block.Builder#reference(Value...) create} references to non-entry sibling blocks that can be used as
- * successors of terminal operations.
- * When a body completes {@link Body.Builder#build(Op) building} with a given operation all blocks in the body are also
- * built. The given operation becomes the body's {@link #parent()}.
+ * A body is either open or isolated. An open body may {@link #capturedValues() capture} values, depending on how the
+ * body's descendant operations use values. An {@link #isIsolated() isolated} body is guaranteed to never capture
+ * values.
+ * <p>
+ * A body is built using a {@link Body.Builder}, which specifies the
+ * <a href="Body.Builder.html#body-building-process">building process</a>. An open body is built by a
+ * <a href="Body.Builder.html#connected-builder">connected</a> body builder. An isolated body is built by an
+ * <a href="Body.Builder.html#isolated-builder">isolated</a> body builder.
  */
 public final class Body implements CodeElement<Body, Block> {
     // @Stable?
@@ -58,24 +61,26 @@ public final class Body implements CodeElement<Body, Block> {
     // Non-null when body is built, and therefore child of an operation
     Op parentOp;
 
-    // The ancestor body, when null the body is isolated and cannot refer to values defined outside
-    // When non-null and body is built, ancestorBody == parentOp.result.block.parentBody
-    final Body ancestorBody;
+    // The connected ancestor body
+    // When non-null the body is open and when built/observable, connectedAncestorBody == this.ancestorBody()
+    // When null the body is isolated, and cannot refer to values defined outside
+    final Body connectedAncestorBody;
 
     final CodeType yieldType;
 
     // Sorted in reverse postorder
     final List<Block> blocks;
 
-    // Map of a block to its immediate dominator
-    // Computed lazily, null if not computed
-    Map<Block, Block> idoms;
+    // Lazily computed map of a block to its immediate dominator
+    // Computed after body is built
+    // @@@ when dominance checks are implemented, may be computed and used in build method
+    LazyConstant<Map<Block, Block>> idoms = LazyConstant.of(this::computeImmediateDominators);
 
     /**
-     * Constructs a body, whose ancestor is the given ancestor body.
+     * Constructs a body, whose connected ancestor body is the given ancestor body.
      */
-    Body(Body ancestorBody, CodeType yieldType) {
-        this.ancestorBody = ancestorBody;
+    Body(Body connectedAncestorBody, CodeType yieldType) {
+        this.connectedAncestorBody = connectedAncestorBody;
         this.yieldType = yieldType;
         this.blocks = new ArrayList<>();
     }
@@ -139,11 +144,23 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns a map of block to its immediate dominator.
+     * Returns a map of block to its immediate dominator, for all blocks in this body.
+     * <p>
+     * A block's immediate dominator is the unique block that strictly dominates that block, but does not strictly
+     * dominate any other block that strictly dominates that block.
+     * <p>
+     * The entry block has no immediate dominator, since it is not strictly dominated by any other block. Its
+     * corresponding entry in the map has a {@code null} value.
      *
      * @return a map of block to its immediate dominator, as an unmodifiable map
+     * @see Block#immediateDominator()
      */
     public Map<Block, Block> immediateDominators() {
+        return idoms.get();
+    }
+
+    // Called by LazyConstant field
+    private Map<Block, Block> computeImmediateDominators() {
         /*
          * Compute dominators of blocks in a body.
          * <p>
@@ -152,15 +169,11 @@ public final class Body implements CodeElement<Body, Block> {
          * Keith D. Cooper, Timothy J. Harvey, and Ken Kennedy
          */
 
-        if (idoms != null) {
-            return idoms;
-        }
-
         // @@@ Compute the idoms as a block index mapping using int[]
         // and wrap and a specific map implementation
 
         Map<Block, Block> doms = new HashMap<>();
-        doms.put(entryBlock(), entryBlock());
+        doms.put(entryBlock(), null);
 
         // Blocks are sorted in reverse postorder
         boolean changed;
@@ -178,7 +191,7 @@ public final class Body implements CodeElement<Body, Block> {
                         break;
                     }
                 }
-                assert b.predecessors().isEmpty() || newIdom != null : b;
+                assert newIdom != null : b;
 
                 // For all other predecessors, p, of b
                 for (Block p : b.predecessors()) {
@@ -199,7 +212,7 @@ public final class Body implements CodeElement<Body, Block> {
             }
         } while (changed);
 
-        return idoms = Collections.unmodifiableMap(doms);
+        return Collections.unmodifiableMap(doms);
     }
 
     static Block intersect(Map<Block, Block> doms, Block b1, Block b2) {
@@ -263,13 +276,21 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Returns a map of block to its immediate post dominator.
+     * Returns a map of block to its immediate post dominator, for all blocks in this body.
      * <p>
-     * If there are two or more blocks with no successors then
-     * a single exit point is synthesized using the {@link #IPDOM_EXIT}
-     * block, which represents the immediate post dominator of those blocks.
+     * If there are two or more blocks with no successors then a single exit block is synthesized using the
+     * {@link #IPDOM_EXIT} block, which represents the immediate post dominator of those blocks. The returned map
+     * will contain an entry mapping {@code IPDOM_EXIT} to {@code null}.
+     * <p>
+     * A block's immediate post dominator is the unique block that strictly post dominates that block, but does not
+     * strictly post dominate any other block that strictly post dominates that block.
+     * <p>
+     * The exit block has no immediate post dominator, since it is not strictly post dominated by any other block. Its
+     * corresponding entry in the map has a {@code null} value.
      *
      * @return a map of block to its immediate post dominator, as an unmodifiable map
+     * @throws IllegalStateException if there is no single exit block, synthesized or otherwise
+     * @see Block#immediatePostDominator()
      */
     public Map<Block, Block> immediatePostDominators() {
         Map<Block, Block> pdoms = new HashMap<>();
@@ -279,12 +300,11 @@ public final class Body implements CodeElement<Body, Block> {
         // the exit blocks
         boolean nSuccessors = blocks.stream().filter(b -> b.successors().isEmpty()).count() > 1;
 
-        if (nSuccessors) {
-            pdoms.put(IPDOM_EXIT, IPDOM_EXIT);
-        } else {
-            Block exit = blocks.getLast();
-            assert blocks.stream().filter(b -> b.successors().isEmpty()).findFirst().orElseThrow() == exit;
-            pdoms.put(exit, exit);
+        List<Block> exits = blocks.stream().filter(b -> b.successors().isEmpty()).toList();
+        switch (exits.size()) {
+            case 0 -> throw new IllegalStateException();
+            case 1 -> pdoms.put(exits.getFirst(), null);
+            default -> pdoms.put(IPDOM_EXIT, null);
         }
 
         // Blocks are sorted in reverse postorder
@@ -380,6 +400,20 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
+     * {@return true if this body is isolated}
+     * <p>
+     * An isolated body, built by an <a href="Body.Builder.html#isolated-builder">isolated</a> body builder, is
+     * guaranteed to never {@link #capturedValues() capture} values. Conversely, an open body, built by a
+     * <a href="Body.Builder.html#connected-builder">connected</a> body builder, may or may not capture values,
+     * depending on how the body's descendant operations use values.
+     *
+     * @see #capturedValues()
+     */
+    public boolean isIsolated() {
+        return connectedAncestorBody == null;
+    }
+
+    /**
      * Computes values captured by this body. A captured value is a value that is used
      * but not declared by any descendant block or operation of this body.
      * <p>
@@ -424,13 +458,44 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * A builder of a body.
+     * A builder for a body.
      * <p>
-     * When the body builder is {@link Body.Builder#build(Op) built} all associated {@link Block.Builder block builders}
-     * are also built and their blocks become children of the body.
+     * <a id="body-building-process"></a>
+     * The process of building a body starts with the {@link Builder#of(Builder, FunctionType, CodeContext, CodeTransformer) creation}
+     * of a body builder, which {@link Builder#entryBlock exposes} a {@link Block.Builder block builder} for the body's
+     * entry block.
      * <p>
-     * A body builder has an entry block {@link #entryBlock builder} from which sibling block builders may be
-     * {@link Block.Builder#block(List) created}.
+     * Building then progresses with the building of the body's structure, where:
+     * <ul>
+     * <li>
+     * the entry block builder is used to {@link Block.Builder#block(List) create} block builders for sibling blocks,
+     * and likewise those block builders can also be used to create block builders for additional sibling blocks and so
+     * on;
+     * <li>
+     * a block builder is used to {@link Block.Builder#add(Op) append} operations to the block,
+     * {@link Block.Builder#parameter(CodeType) append} parameters to the block's parameters, and
+     * {@link Block.Builder#reference(List) create} references to the block, which can be used as successors of a
+     * terminating operation that is the last operation that is appended to the block or a sibling block; and
+     * <li>
+     * <a id="body-building-observability"></a>
+     * the body and its child blocks are not observable; attempts to observe them through appended operations, their
+     * operation results, block parameters, or block references, throw an {@link IllegalStateException}.
+     * </ul>
+     * <p>
+     * Building finishes by invoking {@link #build(Op)}, with a given operation that becomes the body's
+     * parent.
+     * <p>
+     * <a id="body-building-finishing"></a>
+     * After building finishes, the body and its child blocks become observable, and the body builder and its block
+     * builders all become inoperable, regardless of whether building succeeds or fails with an exception.
+     * Further attempts to operate on the builders throw an {@link IllegalStateException}.
+     * <p>
+     * A body builder may be connected to its {@link #connectedAncestorBody() nearest ancestor} body builder. This
+     * connection constrains the order in which the connected builders can finish building, ancestors cannot finish
+     * before their descendants, and determines the <a href="Block.Builder.html#reachable-value">reachability</a> of
+     * values used by appended operations.
+     * <p>
+     * Body builders are not thread-safe. Block builders associated with a body builder are also not thread-safe.
      */
     public final class Builder {
         /**
@@ -438,66 +503,83 @@ public final class Body implements CodeElement<Body, Block> {
          * {@link CodeContext#create() new} code context and a {@link CodeTransformer#COPYING_TRANSFORMER copying}
          * code transformer.
          *
-         * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
-         * @param bodySignature the body's signature
+         * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
+         * {@code null} if the created body builder is isolated
+         * @param bodySignature the initial body signature
          * @return the body builder
-         * @throws IllegalStateException if the ancestor body builder is built
+         * @throws IllegalStateException if the ancestor body builder is finished
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder ancestorBody, FunctionType bodySignature) {
+        public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature) {
             // @@@ Creation of CodeContext
-            return of(ancestorBody, bodySignature, CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
+            return of(connectedAncestorBody, bodySignature, CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
         }
 
         /**
          * Creates a body builder, with an entry block {@link #entryBlock builder} that has the given code context
          * and a {@link CodeTransformer#COPYING_TRANSFORMER copying} code transformer.
          *
-         * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
-         * @param bodySignature the body's signature
+         * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
+         * {@code null} if the created body builder is isolated
+         * @param bodySignature the initial body signature
          * @param cc            the code context
          * @return the body builder
-         * @throws IllegalStateException if the ancestor body builder is built
+         * @throws IllegalStateException if the ancestor body builder is finished
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder ancestorBody, FunctionType bodySignature, CodeContext cc) {
-            return of(ancestorBody, bodySignature, cc, CodeTransformer.COPYING_TRANSFORMER);
+        public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature, CodeContext cc) {
+            return of(connectedAncestorBody, bodySignature, cc, CodeTransformer.COPYING_TRANSFORMER);
         }
 
         /**
-         * Creates a body builder, with entry block {@link #entryBlock builder} that has the given code context
-         * and code transformer.
+         * Creates a body builder whose entry block {@link #entryBlock builder} uses the given code context and code
+         * transformer.
          * <p>
-         * Structurally, the created body builder must be built before its ancestor body builder (if non-null) is built,
-         * otherwise an {@code IllegalStateException} will occur.
+         * If {@code connectedAncestorBody} is non-{@code null}, the created body builder is
+         * <a id="connected-builder"><i>connected</i></a> to {@code connectedAncestorBody} as the
+         * {@link #connectedAncestorBody() nearest ancestor} body builder, builds an <i>open</i> body, and the following
+         * apply:
+         * <ul>
+         * <li>
+         * the created body builder must finish before the nearest ancestor body builder finishes, which implies the
+         * ancestor body builder cannot finish until all body builders connected to it finish; and
+         * <li>
+         * the body built by the created body builder must have, as its nearest {@link Body#ancestorBody() ancestor body},
+         * the body built by the nearest ancestor body builder.
+         * </ul>
+         * If {@code connectedAncestorBody} is {@code null}, the created body builder is
+         * <a id="isolated-builder"><i>isolated</i></a>, it has no nearest ancestor body builder, builds an
+         * <i>isolated</i> body, and the following applies:
+         * <ul>
+         * <li>
+         * the scope of <a href="Block.Builder.html#reachable-value">reachable</a> values used by operations is
+         * reduced to that up to and including the created body builder.
+         * </ul>
          * <p>
-         * A function type, referred to as the body's signature, defines the body's yield type and the initial sequence
-         * of entry block parameters.
-         * The body's yield type is the function type's return type.
-         * An entry block builder is created with appended block parameters corresponding, in order, to
-         * the function type's parameter types.
+         * One or more body builders can be connected to the created body builder, as their nearest ancestor body
+         * builder, whether the created body builder be connected or isolated, which implies the created body builder
+         * cannot finish until all of its connected body builders finish.
          * <p>
-         * If the ancestor body is {@code null} then the created body builder is isolated and descendant operations may
-         * only use values declared within the created body builder. Otherwise, operations may use reachable values
-         * declared in the ancestor body builders (outside the created body builder).
-         * <p>
-         * The entry block {@link #entryBlock builder}
+         * The initial body signature's return type defines the body's yield type, and its parameter types are used,
+         * in order, to create the initial parameters of the entry block builder.
          *
-         * @param ancestorBody  the nearest ancestor body builder, may be {@code null} if isolated
-         * @param bodySignature the body's signature
-         * @param cc            the code context
-         * @param ct            the code transformer
+         * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
+         * {@code null} if the created body builder is isolated
+         * @param bodySignature the initial body signature
+         * @param cc            the code context for the entry block builder
+         * @param ct            the code transformer for the entry block builder
          * @return the body builder
-         * @throws IllegalStateException if the ancestor body builder is built
+         * @throws IllegalStateException if the connected ancestor body builder is finished
          */
-        public static Builder of(Builder ancestorBody, FunctionType bodySignature,
+        public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature,
                                  CodeContext cc, CodeTransformer ct) {
-            Body body = new Body(ancestorBody != null ? ancestorBody.target() : null, bodySignature.returnType());
-            return body.new Builder(ancestorBody, bodySignature, cc, ct);
+            Body body = new Body(connectedAncestorBody != null ? connectedAncestorBody.target() : null,
+                    bodySignature.returnType());
+            return body.new Builder(connectedAncestorBody, bodySignature, cc, ct);
         }
 
-        // The ancestor body, may be null
-        final Builder ancestorBody;
+        // The connected nearest ancestor body, may be null
+        final Builder connectedAncestorBody;
 
         // The entry block of this body, whose parameters are given by the body's function type
         final Block.Builder entryBlock;
@@ -505,19 +587,19 @@ public final class Body implements CodeElement<Body, Block> {
         // When non-null contains one or more great-grandchildren
         List<Builder> greatgrandchildren;
 
-        // True when built
-        boolean closed;
+        // True when finished
+        boolean finished;
 
-        Builder(Builder ancestorBody, FunctionType bodySignature,
+        Builder(Builder connectedAncestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
             // Structural check
-            // The ancestor body should not be built before this body is created
-            if (ancestorBody != null) {
-                ancestorBody.check();
-                ancestorBody.addGreatgrandchild(this);
+            // The connected ancestor body should not be built before this body is built
+            if (connectedAncestorBody != null) {
+                connectedAncestorBody.check();
+                connectedAncestorBody.addGreatgrandchild(this);
             }
 
-            this.ancestorBody = ancestorBody;
+            this.connectedAncestorBody = connectedAncestorBody;
             // Create entry block from the body's function type
             Block eb = Body.this.createBlock(bodySignature.parameterTypes());
             this.entryBlock = eb.new Builder(this, cc, ct);
@@ -530,80 +612,248 @@ public final class Body implements CodeElement<Body, Block> {
         }
 
         /**
-         * Builds the body and its child blocks, associating the body with a parent operation.
+         * Finishes building the body and its child blocks, associating the body with a parent operation.
          * <p>
-         * Structurally, any descendant body builders must be built before this body is built,
-         * otherwise an {@code IllegalStateException} will occur.
+         * The parent operation must report the built body as one of its child bodies.
          * <p>
-         * Any unreferenced empty blocks are ignored and do not become children of the body. An unreferenced block is
-         * a non-entry block with no predecessors.
+         * After building finishes, the body builder and its block builders all become inoperable, regardless of whether
+         * building succeeds or fails with an exception. Further attempts to operate on the builders throw an exception.
+         * <p>
+         * Body builders connected to this body builder must finish building before this body builder finishes.
+         * <p>
+         * The entry block and all blocks reachable from it, by following successors, become children of the body. The
+         * reachable blocks are sorted in reverse postorder and form a control-flow graph. In that graph, the entry
+         * block dominates every other block. Any block not reached from the entry block is unreachable, does not become
+         * a child of the body, and remains unobservable after building finishes. An unreachable block may have a
+         * successor whose target is a reachable block, and may use a value declared in a reachable block or an ancestor
+         * block being built.
+         *
+         * @apiNote
+         * This method is commonly called from the parent operation's constructor, which holds a reference to the built
+         * body so it can report it as one of its child bodies.
          *
          * @param op the parent operation
          * @return the built body
-         * @throws IllegalStateException if this body builder is built
-         * @throws IllegalStateException if any descendant body builders are not built
-         * @throws IllegalStateException if a block has no terminal operation, unless unreferenced and empty
+         * @throws IllegalStateException if this body builder has finished
+         * @throws IllegalStateException if any connected body builder finishes unsuccessfully
+         * @throws IllegalStateException if any connected body builder finishes successfully and its body's parent
+         * operation is unplaced
+         * @throws IllegalStateException if a reachable block has no terminating operation
+         * @throws IllegalStateException if a reachable block has a successor whose number of arguments is greater than
+         * the number of parameters of the successor's target block
+         * @throws IllegalStateException if an operation result or block parameter declared in an unreachable block is
+         * used by an operation in a reachable block or a descendant block of a reachable block.
+         * @throws IllegalStateException if an operation result or block parameter declared in a reachable block does
+         * not {@link Value#isDominatedBy(Value) dominate} a use of that value
          */
-        // @@@ Check every operand dominates the operation result.
-        //     An operation in block B that uses a value declared in block B requires no special checks, since an
-        //     operation result does not exist until an operation is appended to a block, and B's parameters always
-        //     occur before any of its operations.
-        //     Similarly, when an operation uses a value declared in an ancestor no special checks are required due to
-        //     structural checks and reachability checks when building.
-        //     Therefore, a body with only one entry block requires no special checks when building.
-        //     A body with two or more blocks requires dominance checks. An operation in block C that uses a value
-        //     declared in block B, where C and B are siblings, requires that B dominates C.
-        //     Since blocks are already sorted in reverse postorder the work to compute the immediate dominator map
-        //     is incremental and can it be represented efficiently as an integer array of block indexes.
         public Body build(Op op) {
             Objects.requireNonNull(op);
 
             // Structural check
-            // This body should not be closed
+            // This body builder should not be finished
             check();
-            closed = true;
+            finished = true;
 
             // Structural check
             // All great-grandchildren bodies should be built
             if (greatgrandchildren != null) {
                 for (Builder greatgrandchild : greatgrandchildren) {
-                    if (!greatgrandchild.closed) {
+                    if (!greatgrandchild.finished || greatgrandchild.target().parentOp == null) {
+                        // Building did not finish, or finished with an exception
                         throw new IllegalStateException("Descendant body builder is not built");
                     }
-                }
-            }
 
-            Iterator<Block> i = blocks.iterator();
-            while (i.hasNext()) {
-                Block block = i.next();
-
-                // Structural check
-                // All referenced blocks should have a terminating operation as the last operation
-                if (block.ops.isEmpty()) {
-                    if (block.isEntryBlock() || !block.predecessors.isEmpty()) {
-                        throw noTerminatingOperation();
+                    Op.Result grandchild = greatgrandchild.target().parentOp.result;
+                    if (grandchild == null) {
+                        throw new IllegalStateException("Parent operation of descendant body is unplaced");
                     }
-
-                    // Remove unreferenced empty block
-                    assert !block.isEntryBlock() && block.predecessors.isEmpty();
-                    i.remove();
-                } else if (!(block.ops.getLast() instanceof Op.Terminating)) {
-                    throw noTerminatingOperation();
+                    assert Body.this == grandchild.block.parentBody;
                 }
             }
 
             sortReversePostorder();
+            checkValueUse();
 
             Body.this.parentOp = op;
             return Body.this;
         }
 
-        static IllegalStateException noTerminatingOperation() {
-            return new IllegalStateException("Block has no terminating operation as the last operation");
+        private static final int UNSORTED_INDEX = Block.UNBUILT_BLOCK_INDEX;
+        private static final int UNASSIGNED_INDEX = -2;
+
+        // Sort blocks in reverse post order, removing any unreachable blocks
+        // After sorting the following holds for a block
+        //   block.parentBody().blocks().indexOf(block) == block.index()
+        private void sortReversePostorder() {
+            if (blocks.size() == 1) {
+                Block e = blocks.getFirst();
+                checkBlock(e);
+
+                e.index = 0;
+                return;
+            }
+
+            Deque<Block> stack = new ArrayDeque<>();
+            stack.push(blocks.get(0));
+
+            // Postorder iteration, starting from the entry block
+            int index = blocks.size();
+            while (!stack.isEmpty()) {
+                Block n = stack.peek();
+                if (n.index == UNASSIGNED_INDEX) {
+                    // If n's successor has been processed then add n
+                    stack.pop();
+                    n.index = --index;
+                } else if (n.index != UNSORTED_INDEX) {
+                    // If n has already been processed then ignore
+                    stack.pop();
+                } else {
+                    checkBlock(n);
+
+                    // Mark before processing successors, a successor may refer back to n
+                    n.index = UNASSIGNED_INDEX;
+                    for (Block.Reference s : n.successors()) {
+                        Block target = s.target;
+
+                        // Check successor arity
+                        if (s.arguments().size() > target.parameters().size()) {
+                            String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
+                                    target, s.arguments().size(), target.parameters().size());
+                            throw new IllegalStateException(m);
+                        }
+
+                        // Update target's predecessors with n
+                        target.predecessors.add(n);
+                        if (target.index != UNSORTED_INDEX) {
+                            continue;
+                        }
+
+                        stack.push(target);
+                    }
+                }
+            }
+
+            // Sort blocks by their reverse postorder indexes
+            blocks.sort(Comparator.comparingInt(b -> b.index < 0 ? Integer.MAX_VALUE : b.index));
+            // Remove unreachable blocks, those that are not dominated by the entry block
+            // They will be sorted at the end
+            int nUnreachableBlocks = blocks.get(0).index;
+            if (nUnreachableBlocks > 0) {
+                removeUnreachableBlocksAndValueUses(nUnreachableBlocks);
+            }
+
+            assert IntStream.range(0, blocks().size()).allMatch(i -> i == blocks.get(i).index);
+            assert blocks.stream().<List<Block>>mapMulti((b, consumer) -> {
+                for (Block.Reference s : b.successors()) {
+                    consumer.accept(List.of(s.target, b));
+                }
+            }).allMatch(l -> l.get(0).predecessors.contains(l.get(1)));
+        }
+
+        private static void checkBlock(Block b) {
+            if (b.ops.isEmpty() || !(b.ops.getLast() instanceof Op.Terminating)) {
+                throw new IllegalStateException("Block has no terminating operation as the last operation");
+            }
+        }
+
+        private void removeUnreachableBlocksAndValueUses(int nUnreachableBlocks) {
+            List<Block> unreachableBlocks = blocks.subList(blocks.size() - nUnreachableBlocks, blocks.size());
+            // Remove uses of values in unreachable blocks
+            for (Block b : unreachableBlocks) {
+                assert b.index == UNSORTED_INDEX;
+
+                // It is ok to traverse the unobservable blocks via elements() prior to removal
+                // Direct access of the uses field is required since public access requires an observable block
+
+                // If an operation in an unreachable block uses a value not declared in an unreachable
+                // block, then the use needs to be removed.
+                // It is simpler to remove all uses, rather than check for specific uses.
+                b.elements().forEach(ce -> {
+                    switch (ce) {
+                        case Op op -> {
+                            Op.Result use = op.result;
+                            for (Value v : op.operands()) {
+                                v.uses.remove(use);
+                            }
+
+                            for (Block.Reference s : op.successors()) {
+                                for (Value v : s.arguments()) {
+                                    v.uses.remove(use);
+                                }
+                            }
+                        }
+                        default -> {
+                        }
+                    }
+                });
+            }
+            // Check uses of values declared in unreachable blocks
+            for (Block b : unreachableBlocks) {
+                // If an operation result or block parameter declared in an unreachable block is used by an operation
+                // in block that is not an unreachable block, then such use is invalid.
+                // Given the prior removal of all uses we only need to check if a declared value has uses or not.
+                // If so they must be from a block that is not unreachable and therefore the is invalid
+                b.elements().forEach(ce -> {
+                    switch (ce) {
+                        case Op op -> {
+                            Op.Result use = op.result;
+                            if (!use.uses.isEmpty()) {
+                                throw new IllegalStateException("Use of an operation result is not dominated by the result");
+                            }
+                        }
+                        case Block bb -> {
+                            for (Block.Parameter p : bb.parameters()) {
+                                if (!p.uses.isEmpty()) {
+                                    throw new IllegalStateException("Use of block parameter is not dominated by the parameter");
+                                }
+                            }
+                        }
+                        default -> {
+                        }
+                    }
+                });
+            }
+            // Remove unreachable blocks
+            unreachableBlocks.clear();
+
+            // Reassign indexes to their natural indexes, sort order is preserved
+            for (int i = 0; i < blocks.size(); i++) {
+                blocks.get(i).index = i;
+            }
+        }
+
+        // Validate each use of a value declared in the body.
+        // The use's declaring block must be dominated by the value's declaring block
+        private void checkValueUse() {
+            if (blocks.size() > 1) {
+                // Only need to check when there is more than one block, since for one block
+                // the use's declaring block will be the same as or a descendant of the
+                // value's declaring block.
+                // No need to check use within the same block, since operation results
+                // cannot be used until an operation is appended.
+                for (Block block : blocks) {
+                    for (Block.Parameter p : block.parameters()) {
+                        for (Op.Result use : p.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+
+                    for (Op o : block.ops()) {
+                        Op.Result r = o.result();
+                        for (Op.Result use : r.uses()) {
+                            if (!use.declaringBlock().isDominatedBy(block)) {
+                                throw new IllegalStateException("Use of value is not dominated by value");
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /**
-         * Returns the body builder's signature, represented as a function type.
+         * Returns this body builder's signature, represented as a function type.
          * <p>
          * The signature's return type is the body builder's yield type and parameter types are
          * the currently built entry block's parameter types, in order.
@@ -611,39 +861,45 @@ public final class Body implements CodeElement<Body, Block> {
          * @return the body builder's signature
          */
         public FunctionType bodySignature() {
+            check();
             CodeType returnType = Body.this.yieldType();
             Block eb = Body.this.entryBlock();
             return CoreType.functionType(returnType, eb.parameterTypes());
         }
 
         /**
-         * {@return the body builder's nearest ancestor body builder}
+         * {@return this body builder's connected ancestor body builder if this body builder is
+         * <a href="#connected-builder">connected</a>, otherwise {@code null} if this body builder is isolated}
          */
-        public Builder ancestorBody() {
-            return ancestorBody;
+        public Builder connectedAncestorBody() {
+            check();
+            return connectedAncestorBody;
         }
 
         /**
-         * {@return the body's entry block builder}
+         * {@return this body builder's entry block builder}
          */
         public Block.Builder entryBlock() {
+            check();
             return entryBlock;
         }
 
         @Override
         public boolean equals(Object o) {
+            check();
             if (this == o) return true;
             return o instanceof Builder that && Body.this == that.target();
         }
 
         @Override
         public int hashCode() {
+            check();
             return Body.this.hashCode();
         }
 
         void check() {
-            if (closed) {
-                throw new IllegalStateException("Builder is closed");
+            if (finished) {
+                throw new IllegalStateException("Builder is finished");
             }
         }
 
@@ -661,45 +917,41 @@ public final class Body implements CodeElement<Body, Block> {
     }
 
     /**
-     * Copies the contents of this body.
-     *
-     * @param cc the code context
-     * @return the builder of a body containing the copied body
-     * @see #transform(CodeContext, CodeTransformer)
-     */
-    // @@@ Remove
-    public Builder copy(CodeContext cc) {
-        return transform(cc, CodeTransformer.COPYING_TRANSFORMER);
-    }
-
-    /**
-     * Transforms this body.
+     * Transforms this body, returning an output body builder containing the transformed body.
      * <p>
-     * A new body builder is first {@link Body.Builder#of(Builder, FunctionType, CodeContext, CodeTransformer) created}
-     * with the following arguments:
-     * <ul>
-     * <li>an ancestor body builder that is the {@link Block.Builder#parentBody parent} body builder of the entry block
-     * builder {@link CodeContext#getBlock(Block) associated} with this body's ancestor entry block in the parent code
-     * context, otherwise {@code null} if this body has no ancestor entry block or there is no associated entry block
-     * builder.
-     * <li>this body's signature.
-     * <li>a {@link CodeContext#create(CodeContext) child} code context of the given parent code context.
-     * <li>the given code transformer.
-     * </ul>
-     * Then the given code transformer is used to transform this body by
-     * {@link CodeTransformer#acceptBody accepting} the new body builder's entry block builder, this body, and the entry
-     * block builder's parameters.
+     * This method creates an output body builder for this input body's {@link #bodySignature() signature}, with a
+     * {@link CodeContext#create(CodeContext) child} of the given parent code context, and the given code transformer.
+     * <p>
+     * The output body builder is <a href="Body.Builder.html#connected-builder">connected</a> to a body builder, as its
+     * nearest ancestor body builder, if that builder can be determined from this input body and the given parent code
+     * context. Otherwise, the output body builder is <a href="Body.Builder.html#isolated-builder">isolated</a>.
+     * <p>
+     * This method then transforms this input body by invoking
+     * {@link CodeTransformer#acceptBody(Block.Builder, Body, List)} with the created output body builder's
+     * {@link Body.Builder#entryBlock() entry} block builder, this input body, and that entry block builder's
+     * parameters.
+     *
+     * @apiNote
+     * To copy a body use the {@link CodeTransformer#COPYING_TRANSFORMER copying transformer}.
+     * <p>
+     * The body builder connected to the output body builder can be explicitly determined when this
+     * input body's {@link Body#ancestorBody() nearest ancestor} body is present and observable, and the given parent
+     * code context can be used to {@link CodeContext#queryBody(Body) query} the present body builder for that ancestor
+     * body. For example, in such cases:
+     * {@snippet lang = "java":
+     * Body nearestAncestorBody = this.ancestorBody(); // @link substring="ancestorBody" target="jdk.incubator.code.CodeElement#ancestorBody"
+     * Body.Builder connectedBodyBuilder = cc.queryBody(nearestAncestorBody).orElseThrow(); // @link substring="queryBody" target="jdk.incubator.code.CodeContext#queryBody"
+     * }
      *
      * @param cc the parent code context
      * @param ct the code transformer
      * @return a body builder containing the transformed body
      */
     public Builder transform(CodeContext cc, CodeTransformer ct) {
-        Block.Builder ancestorBlockBuilder = ancestorBody != null
-                ? cc.getBlock(ancestorBody.entryBlock()) : null;
-        Builder ancestorBodyBuilder = ancestorBlockBuilder != null
-                ? ancestorBlockBuilder.parentBody() : null;
-        Builder bodyBuilder = Builder.of(ancestorBodyBuilder,
+        Builder connectedAncestorBodyBuilder = connectedAncestorBody != null
+                ? cc.queryBody(connectedAncestorBody).orElse(null)
+                : null;
+        Builder bodyBuilder = Builder.of(connectedAncestorBodyBuilder,
                 bodySignature(),
                 // Create child context for mapped code items contained in this body
                 // thereby not polluting the given context
@@ -708,60 +960,6 @@ public final class Body implements CodeElement<Body, Block> {
         // Transform body starting from the entry block builder
         ct.acceptBody(bodyBuilder.entryBlock, this, bodyBuilder.entryBlock.parameters());
         return bodyBuilder;
-    }
-
-    // Sort blocks in reverse post order
-    // After sorting the following holds for a block
-    //   block.parentBody().blocks().indexOf(block) == block.index()
-    private void sortReversePostorder() {
-        if (blocks.size() < 2) {
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
-            }
-            return;
-        }
-
-        // Reset block indexes
-        // Also ensuring blocks with no predecessors occur last
-        for (Block b : blocks) {
-            b.index = Integer.MAX_VALUE;
-        }
-
-        Deque<Block> stack = new ArrayDeque<>();
-        stack.push(blocks.get(0));
-
-        // Postorder iteration
-        int index = blocks.size();
-        while (!stack.isEmpty()) {
-            Block n = stack.peek();
-            if (n.index == Integer.MIN_VALUE) {
-                // If n's successor has been processed then add n
-                stack.pop();
-                n.index = --index;
-            } else if (n.index < Integer.MAX_VALUE) {
-                // If n has already been processed then ignore
-                stack.pop();
-            } else {
-                // Mark before processing successors, a successor may refer back to n
-                n.index = Integer.MIN_VALUE;
-                for (Block.Reference s : n.successors()) {
-                    if (s.target.index < Integer.MAX_VALUE) {
-                        continue;
-                    }
-
-                    stack.push(s.target);
-                }
-            }
-        }
-
-        blocks.sort(Comparator.comparingInt(b -> b.index));
-        if (blocks.get(0).index > 0) {
-            // There are blocks with no predecessors
-            // Reassign indexes to their natural indexes, sort order is preserved
-            for (int i = 0; i < blocks.size(); i++) {
-                blocks.get(i).index = i;
-            }
-        }
     }
 
     // Modifying methods

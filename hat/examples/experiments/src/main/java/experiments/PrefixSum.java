@@ -37,6 +37,7 @@ import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import optkl.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface.RO;
@@ -369,29 +370,25 @@ public class PrefixSum {
         }
     }
 
-    public static void main(String[] args) throws ReflectiveOperationException {
-
+    static void main() throws ReflectiveOperationException {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var methodRef= MethodRef.method(PrefixSum.class, "compute", void.class, ComputeContext.class,S32Array.class);
         var funcOp = CoreOp.FuncOp.ofMethod(methodRef.resolveToMethod(MethodHandles.lookup())).get();
-       Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(),funcOp);
+
+        VarTable varTable = new VarTable(funcOp.funcName());
+        Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(), funcOp, varTable);
         JavaCodeBuilder jc = new JavaCodeBuilder(accelerator.lookup(),funcOp);
         System.out.println(jc.toText());
         S32Array input = S32Array.create(accelerator, GROUP_SIZE * GROUP_SIZE);
 
-        int result = 0;
         for (int i = 0; i < input.length(); i++) {
             var randInt = (int) Math.round(Math.random());
-            result += randInt;
             input.array(i, randInt);
         }
-
 
         // Compute on the accelerator
         accelerator.compute((@Reflect Compute)
                 cc -> PrefixSum.compute(cc, input));
-
-
     }
 
 }

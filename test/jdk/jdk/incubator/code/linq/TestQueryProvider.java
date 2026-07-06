@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -62,7 +62,7 @@ public final class TestQueryProvider extends QueryProvider {
             // Initial expression is an identity function
             var funType = functionType(queryableType, queryableType);
             this.expression = func("query", funType)
-                    .body(b -> b.op(return_(b.parameters().get(0))));
+                    .body(b -> b.add(return_(b.parameters().get(0))));
         }
 
         TestQueryable(JavaType elementType, TestQueryProvider provider, CoreOp.FuncOp expression) {

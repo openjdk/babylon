@@ -25,126 +25,44 @@
 package hat.codebuilders;
 
 import hat.dialect.HATBarrierOp;
-import hat.dialect.HATF16Op;
-import hat.dialect.HATMemoryDefOp;
-import hat.dialect.HATMemoryVarOp;
 import hat.dialect.HATOp;
-import hat.dialect.HATPtrOp;
-import hat.dialect.HATTensorOp;
 import hat.dialect.HATThreadOp;
-import hat.dialect.HATVectorOp;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
 import optkl.codebuilders.ScopedCodeBuilderContext;
+
+import static hat.dialect.HATPtrOp.HATPtrLengthOp;
+import static hat.dialect.HATPtrOp.HATPtrLoadOp;
+import static hat.dialect.HATPtrOp.HATPtrStoreOp;
 
 /* this should not be too C99 specific but can reference HAT ops.  */
 public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
     T hatBarrierOp( HATBarrierOp barrierOp);
 
-    T hatLocalVarOp( HATMemoryVarOp.HATLocalVarOp barrierOp);
-
-    T hatPrivateVarOp( HATMemoryVarOp.HATPrivateVarOp hatLocalVarOp);
-
     T hatThreadIdOp( HATThreadOp hatThreadOp);
 
-    T hatVectorVarOp( HATVectorOp.HATVectorVarOp hatVectorVarOp);
+    T hatPtrLoadOp(HATPtrLoadOp hatPtrLoadOp);
 
-    T hatVectorStoreOp( HATVectorOp.HATVectorStoreView hatFloat4StoreOp);
+    T hatPtrStoreOp( HATPtrStoreOp hatPtrStoreOp);
 
-    T hatBinaryVectorOp( HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp);
-
-    T hatVectorLoadOp( HATVectorOp.HATVectorLoadOp hatVectorLoadOp);
-
-    T hatSelectLoadOp( HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp);
-
-    T hatSelectStoreOp( HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp);
-
-    T hatVectorVarLoadOp( HATVectorOp.HATVectorVarLoadOp hatVectorVarLoadOp);
-
-    T hatF16VarOp( HATF16Op.HATF16VarOp hatF16VarOp);
-
-    T hatF16BinaryOp( HATF16Op.HATF16BinaryOp hatF16BinaryOp);
-
-    T hatF16VarLoadOp( HATF16Op.HATF16VarLoadOp hatF16VarLoadOp);
-
-    T hatF16ConvOp( HATF16Op.HATF16ConvOp hatF16ConvOp);
-
-    T hatVectorOfOps( HATVectorOp.HATVectorOfOp hatVectorOp);
-
-    T hatVectorMakeOf( HATVectorOp.HATVectorMakeOfOp hatVectorMakeOfOp);
-
-    T hatF16ToFloatConvOp( HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp);
-
-    T hatPrivateVarInitOp( HATMemoryVarOp.HATPrivateInitVarOp hatPrivateInitVarOp);
-
-    T hatMemoryLoadOp( HATMemoryDefOp.HATMemoryLoadOp hatMemoryLoadOp);
-
-    T hatPtrLoadOp(HATPtrOp.HATPtrLoadOp hatPtrLoadOp);
-
-    T hatPtrStoreOp( HATPtrOp.HATPtrStoreOp hatPtrStoreOp);
-
-    T hatPtrLengthOp( HATPtrOp.HATPtrLengthOp hatPtrLengthOp);
-
-    T hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp);
-
-    T hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp);
-
-    T hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp);
-
-    T hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp);
-
-    T hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp);
-
-    T hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp tensorStoreLoadOp);
-
-    T hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp);
-
-    T hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp);
-
+    T hatPtrLengthOp( HATPtrLengthOp hatPtrLengthOp);
 
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
             switch (hatOp) {
-                case HATBarrierOp $ -> hatBarrierOp($);
-                case HATMemoryVarOp.HATLocalVarOp $ -> hatLocalVarOp($);
-                case HATMemoryVarOp.HATPrivateVarOp $ -> hatPrivateVarOp($);
-                case HATMemoryVarOp.HATPrivateInitVarOp $ -> hatPrivateVarInitOp($);
-                case HATThreadOp $ -> hatThreadIdOp($);
-                case HATVectorOp.HATVectorVarOp $ -> hatVectorVarOp($);
-                case HATVectorOp.HATVectorStoreView $ -> hatVectorStoreOp($);
-                case HATVectorOp.HATVectorBinaryOp $ -> hatBinaryVectorOp($);
-                case HATVectorOp.HATVectorLoadOp $ -> hatVectorLoadOp($);
-                case HATVectorOp.HATVectorSelectLoadOp $ -> hatSelectLoadOp($);
-                case HATVectorOp.HATVectorSelectStoreOp $ -> hatSelectStoreOp($);
-                case HATVectorOp.HATVectorVarLoadOp $ -> hatVectorVarLoadOp($);
-                case HATVectorOp.HATVectorOfOp $ -> hatVectorOfOps($);
-                case HATF16Op.HATF16VarOp $ -> hatF16VarOp($);
-                case HATF16Op.HATF16BinaryOp $ -> hatF16BinaryOp($);
-                case HATF16Op.HATF16VarLoadOp $ -> hatF16VarLoadOp($);
-                case HATF16Op.HATF16ConvOp $ -> hatF16ConvOp($);
-                case HATVectorOp.HATVectorMakeOfOp $ -> hatVectorMakeOf($);
-                case HATPtrOp.HATPtrLoadOp $ -> hatPtrLoadOp($);
-                case HATPtrOp.HATPtrStoreOp $ -> hatPtrStoreOp($);
-                case HATPtrOp.HATPtrLengthOp $ -> hatPtrLengthOp($);
-                case HATF16Op.HATF16ToFloatConvOp $ -> hatF16ToFloatConvOp($);
-                case HATMemoryDefOp.HATMemoryLoadOp $ -> hatMemoryLoadOp($);
-                case HATTensorOp.TensorVarOp $ -> hatTensorVarOp($);
-                case HATTensorOp.TensorCreateOp $ -> hatTensorCreateOp($);
-                case HATTensorOp.TensorVarLoadOp $ -> hatTensorVarLoadOp($);
-                case HATTensorOp.TensorFillOp $ -> hatTensorFillOp($);
-                case HATTensorOp.TensorMMAOp $ -> hatTensorMMAOp($);
-                case HATTensorOp.TensorStoreLoadOp $ -> hatTensorStoreLoadOp($);
-                case HATTensorOp.TensorLoadOp $ -> hatTensorLoadOp($);
-                case HATTensorOp.TensorStoreOp $ -> hatTensorStoreOp($);
+                case HATBarrierOp hatBarrierOp -> hatBarrierOp(hatBarrierOp);
+                case HATThreadOp hatThreadOp -> hatThreadIdOp(hatThreadOp);
+                case HATPtrLoadOp hatPtrLoadOp -> hatPtrLoadOp(hatPtrLoadOp);
+                case HATPtrStoreOp hatPtrStoreOp -> hatPtrStoreOp(hatPtrStoreOp);
+                case HATPtrLengthOp hatPtrLengthOp -> hatPtrLengthOp(hatPtrLengthOp);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {
             BabylonOpDispatcher.super.recurse(op);
         }
-
         return (T) this;
     }
 }

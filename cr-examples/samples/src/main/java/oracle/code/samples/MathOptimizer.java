@@ -154,7 +154,7 @@ public class MathOptimizer {
 
                     if (canApplyBitShift) {
                         // Narrow type from DOUBLE to INT for the input parameter of the new function.
-                        Op.Result op2 = blockBuilder.op(JavaOp.conv(JavaType.INT, operands.get(1)));
+                        Op.Result op2 = blockBuilder.add(JavaOp.conv(JavaType.INT, operands.get(1)));
                         List<Value> newOperandList = new ArrayList<>();
                         newOperandList.add(op2);
 
@@ -164,9 +164,9 @@ public class MathOptimizer {
                         newInvoke.setLocation(invokeOp.location());
 
                         // Replace the invoke node with the new optimized invoke
-                        Op.Result newResult = blockBuilder.op(newInvoke);
+                        Op.Result newResult = blockBuilder.add(newInvoke);
                         // Apply type conversion to double
-                        newResult = blockBuilder.op(JavaOp.conv(JavaType.DOUBLE, newResult));
+                        newResult = blockBuilder.add(JavaOp.conv(JavaType.DOUBLE, newResult));
                         // Propagate the new result
                         blockBuilder.context().mapValue(invokeOp.result(), newResult);
 
@@ -179,15 +179,15 @@ public class MathOptimizer {
                         newInvoke.setLocation(invokeOp.location());
 
                         // Replace the invoke node with the new optimized invoke
-                        Op.Result newResult = blockBuilder.op(newInvoke);
+                        Op.Result newResult = blockBuilder.add(newInvoke);
                         blockBuilder.context().mapValue(invokeOp.result(), newResult);
 
                     } else {
                         // ignore the transformation
-                        blockBuilder.op(op);
+                        blockBuilder.add(op);
                     }
                 }
-                default -> blockBuilder.op(op);
+                default -> blockBuilder.add(op);
             }
             return blockBuilder;
         });

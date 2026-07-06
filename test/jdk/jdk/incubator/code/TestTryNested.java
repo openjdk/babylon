@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -94,23 +94,25 @@ public class TestTryNested {
 
         System.out.println(lf.toText());
 
-        for (int ra = -1; ra < 6; ra++) {
-            int fra = ra;
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            for (int ra = -1; ra < 6; ra++) {
+                int fra = ra;
 
-            Consumer<IntConsumer> test = testConsumer(
-                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
-                    c -> tryCatchFinally(c, fra)
-            );
+                Consumer<IntConsumer> test = testConsumer(
+                        c -> Interpreter.invoke(MethodHandles.lookup(), op, c, fra),
+                        c -> tryCatchFinally(c, fra)
+                );
 
-            test.accept(i -> {});
-            for (int ea = 0; ea < 6; ea++) {
-                int fea = ea;
-                test.accept(i -> {
-                    if (i == fea) throw new IllegalStateException();
-                });
-                test.accept(i -> {
-                    if (i == fea) throw new RuntimeException();
-                });
+                test.accept(i -> {});
+                for (int ea = 0; ea < 6; ea++) {
+                    int fea = ea;
+                    test.accept(i -> {
+                        if (i == fea) throw new IllegalStateException();
+                    });
+                    test.accept(i -> {
+                        if (i == fea) throw new RuntimeException();
+                    });
+                }
             }
         }
     }
@@ -153,23 +155,25 @@ public class TestTryNested {
 
         System.out.println(lf.toText());
 
-        for (int ra = -1; ra < 4; ra++) {
-            int fra = ra;
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            for (int ra = -1; ra < 4; ra++) {
+                int fra = ra;
 
-            Consumer<IntConsumer> test = testConsumer(
-                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
-                    c -> tryCatchBreak(c, fra)
-            );
+                Consumer<IntConsumer> test = testConsumer(
+                        c -> Interpreter.invoke(MethodHandles.lookup(), op, c, fra),
+                        c -> tryCatchBreak(c, fra)
+                );
 
-            test.accept(i -> {});
-            for (int ea = 0; ea <= 4; ea++) {
-                int fea = ea;
-                test.accept(i -> {
-                    if (i == fea) throw new IllegalStateException();
-                });
-                test.accept(i -> {
-                    if (i == fea) throw new RuntimeException();
-                });
+                test.accept(i -> {});
+                for (int ea = 0; ea <= 4; ea++) {
+                    int fea = ea;
+                    test.accept(i -> {
+                        if (i == fea) throw new IllegalStateException();
+                    });
+                    test.accept(i -> {
+                        if (i == fea) throw new RuntimeException();
+                    });
+                }
             }
         }
     }
@@ -221,23 +225,25 @@ public class TestTryNested {
 
         System.out.println(lf.toText());
 
-        for (int ra = -1; ra < 6; ra++) {
-            int fra = ra;
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            for (int ra = -1; ra < 6; ra++) {
+                int fra = ra;
 
-            Consumer<IntConsumer> test = testConsumer(
-                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
-                    c -> tryCatchFinallyBreak(c, fra)
-            );
+                Consumer<IntConsumer> test = testConsumer(
+                        c -> Interpreter.invoke(MethodHandles.lookup(), op, c, fra),
+                        c -> tryCatchFinallyBreak(c, fra)
+                );
 
-            test.accept(i -> {});
-            for (int ea = 0; ea <= 6; ea++) {
-                int fea = ea;
-                test.accept(i -> {
-                    if (i == fea) throw new IllegalStateException();
-                });
-                test.accept(i -> {
-                    if (i == fea) throw new RuntimeException();
-                });
+                test.accept(i -> {});
+                for (int ea = 0; ea <= 6; ea++) {
+                    int fea = ea;
+                    test.accept(i -> {
+                        if (i == fea) throw new IllegalStateException();
+                    });
+                    test.accept(i -> {
+                        if (i == fea) throw new RuntimeException();
+                    });
+                }
             }
         }
     }
@@ -272,20 +278,22 @@ public class TestTryNested {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryNested::tryForLoop
-        );
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryNested::tryForLoop
+            );
 
-        test.accept(i -> { });
-        for (int ea = 0; ea <= 4; ea++) {
-            int fea = ea;
-            test.accept(i -> {
-                if (i == fea) throw new IllegalStateException();
-            });
-            test.accept(i -> {
-                if (i == fea) throw new RuntimeException();
-            });
+            test.accept(i -> {});
+            for (int ea = 0; ea <= 4; ea++) {
+                int fea = ea;
+                test.accept(i -> {
+                    if (i == fea) throw new IllegalStateException();
+                });
+                test.accept(i -> {
+                    if (i == fea) throw new RuntimeException();
+                });
+            }
         }
     }
 
@@ -318,20 +326,22 @@ public class TestTryNested {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryNested::tryForLoopFinally
-        );
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryNested::tryForLoopFinally
+            );
 
-        test.accept(i -> { });
-        for (int ea = 0; ea <= 4; ea++) {
-            int fea = ea;
-            test.accept(i -> {
-                if (i == fea) throw new IllegalStateException();
-            });
-            test.accept(i -> {
-                if (i == fea) throw new RuntimeException();
-            });
+            test.accept(i -> {});
+            for (int ea = 0; ea <= 4; ea++) {
+                int fea = ea;
+                test.accept(i -> {
+                    if (i == fea) throw new IllegalStateException();
+                });
+                test.accept(i -> {
+                    if (i == fea) throw new RuntimeException();
+                });
+            }
         }
     }
 
@@ -370,12 +380,13 @@ public class TestTryNested {
 
         System.out.println(lf.toText());
 
-        Consumer<IntConsumer> test = testConsumer(
-                c -> Interpreter.invoke(MethodHandles.lookup(), lf, c),
-                TestTryNested::tryLabeledForLoop
-        );
-
-        test.accept(i -> { });
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryNested::tryLabeledForLoop
+            );
+            test.accept(i -> { });
+        }
     }
 
 
@@ -409,13 +420,15 @@ public class TestTryNested {
 
         System.out.println(lf.toText());
 
-        for (int ra = 0; ra < 2; ra++) {
-            final int fra = ra;
-            Consumer<IntConsumer> test = testConsumer(
-                    c -> Interpreter.invoke(MethodHandles.lookup(), lf, c, fra),
-                    c -> tryLambda(c, fra)
-            );
-            test.accept(i -> { });
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            for (int ra = 0; ra < 2; ra++) {
+                final int fra = ra;
+                Consumer<IntConsumer> test = testConsumer(
+                        c -> Interpreter.invoke(MethodHandles.lookup(), op, c, fra),
+                        c -> tryLambda(c, fra)
+                );
+                test.accept(i -> { });
+            }
         }
     }
 

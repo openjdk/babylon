@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -91,7 +91,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                     // Merge the successor's target block with this block
                     mergeBlock(b, br.targetBlock());
                 } else {
-                    b.op(CoreOp.branch(b.context().getReferenceOrCreate(br)));
+                    b.add(CoreOp.branch(b.context().getReferenceOrCreate(br)));
                 }
 
                 // Remove the conditional dispatching block if all predecessor reference args are constants
@@ -108,21 +108,21 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
             case JavaOp.ExceptionRegionEnter ere -> {
                 // Cannot remove block parameters from exception handlers
                 removeUnusedBlockParameters(b, ere.startReference());
-                b.op(op);
+                b.add(op);
             }
             case JavaOp.ExceptionRegionExit ere -> {
                 // Cannot remove block parameters from exception handlers
                 removeUnusedBlockParameters(b, ere.endReference());
-                b.op(op);
+                b.add(op);
             }
             case Op.BlockTerminating _ -> {
                 for (Block.Reference successor : op.successors()) {
                     removeUnusedBlockParameters(b, successor);
                 }
-                b.op(op);
+                b.add(op);
             }
             default -> {
-                b.op(op);
+                b.add(op);
             }
         }
         return b;

@@ -451,6 +451,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return symbol("\"");
     }
 
+    public final T backslash() {
+        return symbol("\\");
+    }
+
     final  public T odquote() {
         return dquote();
     }
@@ -511,7 +515,7 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return self();
     }
 
-    final  public T either(boolean c, Consumer<T> lhs, Consumer<T> rhs) {
+    public final T either(boolean c, Consumer<T> lhs, Consumer<T> rhs) {
         if (c) {
             accept(lhs);
         } else {
@@ -520,9 +524,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return self();
     }
 
+    public final T dotOrArrow(boolean c) {
+        return either(c, _ -> dot(), _ -> rarrow());
+    }
 
-
-    final   public <I> T sep(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
+    public final <I> T sep(Iterable<I> iterable, Consumer<T> separator, Consumer<I> consumer) {
         var first = Mutable.of(true);
         iterable.forEach(t -> {
             if (first.get()) {
@@ -555,6 +561,10 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
             consumers[i].accept(self());
         }
         return self();
+    }
+
+    public final <I> T spaceSeparated(Iterable<I> iterable, Consumer<I> consumer) {
+        return sep(iterable, _ -> sp(), consumer);
     }
 
     final   public T args(Consumer<T>... consumers) {
@@ -776,11 +786,12 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
                 * questions."""
         );
     }
-    final public T varName(String name) {
+
+    public final T varName(String name) {
         return id(name);
     }
 
-    final public T varName(CoreOp.VarOp varOp) {
+    public final T varName(CoreOp.VarOp varOp) {
         return varName(varOp.varName());
     }
     final public T varName(CoreOp.VarAccessOp.VarLoadOp varOp) {

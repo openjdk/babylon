@@ -91,7 +91,7 @@ public class InlineExample {
 
                     // Build a new op with a pre-defined constant. We will place this constant
                     // as one of the parameters of the function and then inline with the new values.
-                    Op.Result myConstantValue = blockBuilder.op(CoreOp.ConstantOp.constant(JavaType.FLOAT, 50.f));
+                    Op.Result myConstantValue = blockBuilder.add(CoreOp.ConstantOp.constant(JavaType.FLOAT, 50.f));
 
                     // Inline the function with the new values
                     Inliner.inline(blockBuilder,

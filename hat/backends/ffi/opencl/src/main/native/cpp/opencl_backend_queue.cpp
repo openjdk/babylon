@@ -23,6 +23,7 @@
  * questions.
  */
 #include "opencl_backend.h"
+
 /*
 While based on OpenCL's event list, I think we need to use a MOD eventMax queue.
 
@@ -250,12 +251,12 @@ void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelCon
 
     // Adjust depending on the total number of threads in the local-work-group
     while (totalThreads > max_group_size) {
-        // Here just a simple heuristic, starting with the first dimension, 16, 4, 1 local group sizxe
+        // Here just a simple heuristic, starting with the first dimension, 16, 4, 2 local group size
         if (local_work_size[0] >= 16) {
             local_work_size[0] /= 2;
         } else if (local_work_size[1] >= 4) {
             local_work_size[1] /= 2;
-        } else if (local_work_size[2] >= 1) {
+        } else if (local_work_size[2] >= 2) {
             local_work_size[2] /= 2;
         }
         totalThreads = local_work_size[0] * local_work_size[1] * local_work_size[2];
@@ -292,13 +293,13 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
     };
 
     if (kernelContext->tlx > 0) {
-        global_work_size[0] /= kernelContext->tlx;
+        global_work_size[0] = ceil_div(global_work_size[0], kernelContext->tlx);
     }
     if (kernelContext->tly > 0) {
-        global_work_size[1] /= kernelContext->tly;
+        global_work_size[1] = ceil_div(global_work_size[1], kernelContext->tly);
     }
     if (kernelContext->tlz > 0) {
-        global_work_size[2] /= kernelContext->tlz;
+        global_work_size[2] = ceil_div(global_work_size[2], kernelContext->tlz);
     }
 
     // In the OpenCL backend, we don't currently support warp-sizes to be able to run with OpenCL 1.2 (Apple)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -64,6 +64,8 @@ public class TestForOp {
         System.out.println(lf.toText());
 
         Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), lf));
+
+        Assertions.assertEquals(f(), Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     @Reflect
@@ -87,6 +89,8 @@ public class TestForOp {
         System.out.println(lf.toText());
 
         Assertions.assertEquals(f2(), Interpreter.invoke(MethodHandles.lookup(), lf));
+
+        Assertions.assertEquals(f2(), Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     @Reflect
@@ -112,6 +116,8 @@ public class TestForOp {
         System.out.println(lf.toText());
 
         Assertions.assertEquals(f3(), Interpreter.invoke(MethodHandles.lookup(), lf));
+
+        Assertions.assertEquals(f3(), Interpreter.invoke(MethodHandles.lookup(), f));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {

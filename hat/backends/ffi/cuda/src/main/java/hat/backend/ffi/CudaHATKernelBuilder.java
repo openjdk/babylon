@@ -26,55 +26,107 @@ package hat.backend.ffi;
 
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.dialect.HATF16Op;
-import hat.dialect.HATTensorOp;
-import hat.dialect.HATVectorOp;
+import hat.dialect.BinaryOpEnum;
+import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.codebuilders.CodeBuilder;
+import optkl.OpHelper.Invoke;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static hat.phases.HATPhaseUtils.isArrayReference;
+import static hat.phases.HATPhaseUtils.isMathLib;
+import static hat.phases.HATPhaseUtils.isOperandF32;
+import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
+import static hat.phases.HATPhaseUtils.mapLane;
+import static hat.phases.HATPhaseUtils.reduceFloatType;
+import static hat.phases.HATPhaseUtils.reduceFloatTypeFromReturnType;
+import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
+import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuilder> {
 
-    protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
-        super(kernelCallGraph, scopedCodeBuilderContext);
+    // Mapping between API function names and CUDA intrinsics for the math operations
+    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
+
+    static {
+        MATH_FUNCTIONS.put("maxf", "max");
+        MATH_FUNCTIONS.put("maxd", "max");
+        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
+        MATH_FUNCTIONS.put("minf", "min");
+        MATH_FUNCTIONS.put("mind", "min");
+        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
+
+        MATH_FUNCTIONS.put("expf", "expf");
+        MATH_FUNCTIONS.put("expd", "exp");
+        MATH_FUNCTIONS.put("expf16", "hexp");
+
+        MATH_FUNCTIONS.put("cosf", "cosf");
+        MATH_FUNCTIONS.put("cosd", "cos");
+        MATH_FUNCTIONS.put("sinf", "sinf");
+        MATH_FUNCTIONS.put("sind", "sin");
+        MATH_FUNCTIONS.put("tanf", "tanf");
+        MATH_FUNCTIONS.put("tand", "tan");
+
+        MATH_FUNCTIONS.put("native_cosf", "__cosf");
+        MATH_FUNCTIONS.put("native_sinf", "__sinf");
+        MATH_FUNCTIONS.put("native_tanf", "__tanf");
+        MATH_FUNCTIONS.put("native_expf", "__expf");
+
+        MATH_FUNCTIONS.put("sqrtf", "sqrtf");
+        MATH_FUNCTIONS.put("sqrtd", "sqrt");
     }
 
-    @Override
-    protected CudaHATKernelBuilder hatWarpSize() {
-        return constant("32");
+    private final Map<Op, String> mapVectorName;
+    private final Deque<String> stack;
+    private static final int CUDA_WARP_SIZE = 32;
+
+    protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
+        super(kernelCallGraph, scopedCodeBuilderContext);
+        stack = new ConcurrentLinkedDeque<>();
+        mapVectorName = new ConcurrentHashMap<>();
     }
 
     private CudaHATKernelBuilder half2float() {
         return id("__half2float");
     }
 
-    private CudaHATKernelBuilder __nv_bfloat16() {
+    private CudaHATKernelBuilder float2half() {
+        return id("__float2half");
+    }
+
+    private CudaHATKernelBuilder nvBFloat16() {
         return id("__nv_bfloat16");
     }
 
-    private CudaHATKernelBuilder __bfloat162float() {
+    private CudaHATKernelBuilder bfloat162float() {
         return id("__bfloat162float");
     }
 
-    private CudaHATKernelBuilder reinterpret_cast() {
+    private CudaHATKernelBuilder reinterpretCast() {
         return keyword("reinterpret_cast");
     }
 
@@ -143,14 +195,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    protected CudaHATKernelBuilder hatWarpSize() {
+        return id("HAT_WRS");
+    }
+
+    @Override
     public CudaHATKernelBuilder defines() {
         return self()
                 .hashDefine("HAT_CUDA")
-                .hashDefine("HAT_GLOBAL_MEM", _ -> {
-                })
+                .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
                 .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())//.keyword("inline"))
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().keyword("__global__"))
+
+                // threads
                 .hashDefine("HAT_GIX", _ -> paren(_ -> HAT_BIX().asterisk().HAT_LSX().plus().HAT_LIX()))
                 .hashDefine("HAT_GIY", _ -> paren(_ -> HAT_BIY().asterisk().HAT_LSY().plus().HAT_LIY()))
                 .hashDefine("HAT_GIZ", _ -> paren(_ -> HAT_BIZ().asterisk().HAT_LSZ().plus().HAT_LIZ()))
@@ -169,14 +227,49 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BSX", _ -> gridDimX())
                 .hashDefine("HAT_BSY", _ -> gridDimY())
                 .hashDefine("HAT_BSZ", _ -> gridDimZ())
-                .hashDefine("HAT_BARRIER", _ -> keyword("__syncthreads").ocparen())
-                .maxMacro("MAX_HAT")
-                .minMacro("MIN_HAT")
-                .includeSys("cuda_fp16.h", "cuda_bf16.h")
-                .hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16"))
-                .typedefSingleValueStruct("F16", "half")
-                .typedefSingleValueStruct("BF16", "BFLOAT16")
-                .includeSys("mma.h"); // only enable if tensor views are used
+                .hashDefine("HAT_WRS", _ -> paren( _ -> intValue(CUDA_WARP_SIZE)))
+
+                // Barrier
+                .when(useBarrier(), _ -> hashDefine("HAT_BARRIER", _ -> keyword("__syncthreads").ocparen()))
+
+                // Math
+                .when(useS16Types(), _ -> maxMacro("MAX_HAT"))
+                .when(useS16Types(), _ ->minMacro("MIN_HAT"))
+
+                // General Macros
+                .when(useVectors() || useVectors(), _ -> concatMacro())
+                .when(useVectors() || useVectors(), _ -> prefixMacro())
+
+                // Vectors
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_0",false))
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_1",true))
+                .when(useVectors(), _ -> defineMacroVLoadN())
+                .when(useVectors(), _ -> defineMacroVStoreN())
+                .when(useVectors(), _ -> defineMacroVectorOf(2))
+                .when(useVectors(), _ -> defineMacroVectorOf(3))
+                .when(useVectors(), _ -> defineMacroVectorOf(4))
+                .when(useVectors(), _ -> defineMacroVectorSelectLoad(VSELECT_LOAD))
+                .when(useVectors(), _ -> defineMacroVectorSelectStore(VSELECT_STORE))
+
+                // S16 types
+                .when(useS16Types(), _ -> defineMacroF16Of(F16_OF))
+                .when(useS16Types(), _ -> defineMacroBF16Of(BF16_OF))
+                .when(useS16Types(), _ -> defineMacroF162Float(F16_TO_FLOAT_0, false))
+                .when(useS16Types(), _ -> defineMacroF162Float(F16_TO_FLOAT_1, true))
+                .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_0, false))
+                .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_1, true))
+                .when(useS16Types(), _ -> includeSys("cuda_fp16.h", "cuda_bf16.h"))
+                .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
+                .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
+                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
+
+                // Tensor Macros
+                .when(useTensors(), _ -> includeSys("mma.h"))
+                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
+                .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
+                .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
+                .when(useTensors(), _ -> defineMacroTensorLoadF16(MACRO_FRAGMENT_LOAD_F16))
+                .when(useTensors(), _ -> defineMacroTensorStore(MACRO_FRAGMENT_STORE));
     }
 
     @Override
@@ -184,199 +277,435 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("atomicAdd").paren(_ -> ampersand().recurseResultOrThrow(instanceResult).rarrow().id(name).comma().literal(1));
     }
 
-    @Override
-    public CudaHATKernelBuilder hatVectorStoreOp(HATVectorOp.HATVectorStoreView hatVectorStoreView) {
-        Value dest = hatVectorStoreView.operands().get(0);
-        Value index = hatVectorStoreView.operands().get(2);
-        keyword("reinterpret_cast").ltgt(_ -> type(hatVectorStoreView.buildType()).sp().asterisk());
-        paren(_ -> {
-            ampersand().recurseResultOrThrow(dest);
-            either(hatVectorStoreView instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id(ARRAY).sbrace(_ -> recurseResultOrThrow(index));
+    /**
+     * <code>
+     *     #define VLOADN(N, addr, index, isLocal) reinterpret_cast<CONCAT(float, N) *>(CONCAT(VECTOR_, isLocal)(addr, index))[0]
+     * </code>
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVLoadN() {
+        List<String> params = getMacroVectorParamsLoad();
+        return macroNoParenthesis(VLOADN, params, _ ->
+                reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
+                .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
+                .sbrace( _ -> intConstZero()));
+    }
+
+    /**
+     * <code>
+     *     #define VSTOREN(N, a, index, isLocal, vectorVal) reinterpret_cast<CONCAT(float, N)*>(CONCAT(VECTOR_, isLocal)(a, index))[0] = vectorVal
+     * </code>
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVStoreN() {
+        List<String> params = getMacroVectorParamsStore();
+        return macroNoParenthesis(VSTOREN, params, _ ->
+                reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
+                        .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
+                        .sbrace( _ -> intConstZero()).sp().equals().sp().id(VECTOR_VAL));
+    }
+
+    /**
+     * <code>
+     *    #define VECTOR_OF2(elementType, p0, p1) (PREFIX(make_,CONCAT(elementType,2)))(p0,p1)
+     *    #define VECTOR_OF3(elementType, p0, p1, p2) (PREFIX(make_,CONCAT(elementType,3)))(p0,p1,p2)
+     *    #define VECTOR_OF4(elementType, p0, p1, p2, p3) (PREFIX(make_,CONCAT(elementType,4)))(p0,p1,p2,p3)
+     * </code>
+     * @param lanes
+     *    Vector width
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
+        List<String> params = new ArrayList<>();
+        params.add(ELEMENT_TYPE);
+        IntStream.range(0, lanes).mapToObj(i -> "p" + i).forEach(params::add);
+        return macroNoParenthesis(VECTOR_OF + lanes, params, _ -> {
+            paren(_ -> id(PREFIX).paren(_ ->
+                    id(MAKE_).comma().id(CONCAT).paren(_ -> id(ELEMENT_TYPE).comma().id(String.valueOf(lanes)))));
+            paren(_ -> {
+                for (int i = 1; i < params.size(); i++) {
+                    id(params.get(i));
+                    either((i < params.size() - 1), _ -> comma(), _ -> self());
+                }
+            });
         });
-        sbrace(_ -> intConstZero());
-        sp().equals().sp();
-        // if the value to be stored is an operation, recurse on the operation
-        if (hatVectorStoreView.operands().get(1) instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-            recurse(r.op());
-        } else {
-            varName(hatVectorStoreView);
+    }
+
+    private CudaHATKernelBuilder defineS16macro(String name, Consumer<CudaHATKernelBuilder> type, Consumer<CudaHATKernelBuilder> buildFunction) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> type.accept(self()))
+                        .brace(_ -> {
+                            buildFunction.accept(self());
+                            paren(_-> id("val"));
+                        }));
+    }
+
+    /**
+     * <code>
+     *    #define F16_OF(val) (F16_t){__float2half(val)}
+     * </code>
+     * @param name
+     *     Name of the CUDA Macro
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroF16Of(String name) {
+        return defineS16macro(name, _ -> f16Type(), _ -> float2half());
+    }
+
+    /**
+     * <code>
+     *    #define BF16_OF(val) (BF16_t){__nv_bfloat16(val)}
+     * </code>
+     * @param name
+     *    Name of the CUDA Macro
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroBF16Of(String name) {
+        return defineS16macro(name, _ -> bf16Type(), _ -> nvBFloat16());
+    }
+
+    private CudaHATKernelBuilder defineMacroS16Conversion(String name, Consumer<CudaHATKernelBuilder> type, boolean isLocal) {
+        List<String> params = List.of("val");
+        return macroNoParenthesis(name, params, _ ->
+                paren(_ -> type.accept(self()))
+                        .paren(_-> id("val")
+                                .dotOrArrow(isLocal)
+                                .id(VALUE)));
+    }
+
+    /**
+     * <code>
+     *    #define F16_TO_FLOAT_0(val) (__half2float)(val->value)
+     *    #define F16_TO_FLOAT_1(val) (__half2float)(val.value)
+     * </code>
+     * @param name
+     *    Name of the CUDA Macro
+     * @param isLocal
+     *    Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
+        return defineMacroS16Conversion(name, _ -> half2float(), isLocal);
+    }
+
+    /**
+     * <code>
+     *     #define BF16_TO_FLOAT_0(val) (__bfloat162float(val->value))
+     *     #define BF16_TO_FLOAT_1(val) (__bfloat162float(val.value))
+     * </code>
+     * @param name
+     *     Name of the CUDA Macro
+     * @param isLocal
+     *     Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
+        return defineMacroS16Conversion(name, _ -> bfloat162float(), isLocal);
+    }
+
+    private static final String INVALID = "INVALID";
+
+    /**
+     * List of macros using __VA_ARGS__:
+     *
+     * <p>
+     * <code>
+     * #define FRAGMENT_CREATE_3(type, name, size) type name[size]
+     * #define FRAGMENT_CREATE_7(kind, size, m, n, k, type, name) nvcuda::wmma::fragment<nvcuda::wmma::kind, m, n, k, type> name
+     * #define FRAGMENT_CREATE_8(kind, size, m, n, k, type, layout, name) nvcuda::wmma::fragment<nvcuda::wmma::kind, m, n, k, type, layout> name
+     * #define FRAGMENT_CREATE_SELECT(_1, _2, _3, _4, _5, _6, _7, _8, NAME, ...) NAME
+     * #define FRAGMENT_CREATE(...) FRAGMENT_CREATE_SELECT(__VA_ARGS__,FRAGMENT_CREATE_8,FRAGMENT_CREATE_7,INVALID,INVALID,INVALID,FRAGMENT_CREATE_3)(__VA_ARGS__)
+     * </code>
+     * </p>
+     *
+     * @param macroName
+     * @return {@link CudaHATKernelBuilder}
+     */
+    public CudaHATKernelBuilder defineFragmentCreate(String macroName) {
+        List<String> params = List.of("type",  "name", "size");
+        macroNoParenthesis(macroName + "_3", params, _ ->
+                id(params.getFirst()).sp().id(params.get(1)).sbrace(_ -> id(params.get(2))));
+
+        List<String> params1  = List.of("kind", "size", "m", "n", "k", "type", "name");
+        macroNoParenthesis(macroName + "_7", params1, _ ->
+                id(WMMA_FRAGMENT_BASE)
+                    .ltgt(_ ->
+                        id(WMMA_PREFIX).id("kind")
+                            .comma().sp()
+                            .id("m")
+                            .comma().sp()
+                            .id("n")
+                            .comma().sp()
+                            .id("k")
+                            .comma().sp()
+                            .id("type")).sp().id("name"));
+
+        List<String> params2 = List.of("kind", "size", "m", "n", "k", "type", "layout", "name");
+        macroNoParenthesis(macroName + "_8", params2, _ ->
+                id(WMMA_FRAGMENT_BASE)
+                        .ltgt(_ ->
+                                id(WMMA_PREFIX).id("kind")
+                                        .comma().sp()
+                                        .id("m")
+                                        .comma().sp()
+                                        .id("n")
+                                        .comma().sp()
+                                        .id("k")
+                                        .comma().sp()
+                                        .id("type")
+                                        .comma().sp()
+                                        .id("layout")).sp().id("name"));
+
+        List<String> params3 = List.of("_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "NAME", "...");
+        macroNoParenthesis("FRAGMENT_CREATE_SELECT", params3, _ ->
+                id("NAME"));
+
+        List<String> params4 = List.of("...");
+        macroNoParenthesis("FRAGMENT_CREATE", params4, _ ->
+                id("FRAGMENT_CREATE_SELECT").paren(_ ->
+                                id("__VA_ARGS__").comma()
+                                        .id("FRAGMENT_CREATE_8").comma()
+                                        .id("FRAGMENT_CREATE_7").comma()
+                                        .id(INVALID).comma()
+                                        .id(INVALID).comma()
+                                        .id(INVALID).comma()
+                                        .id("FRAGMENT_CREATE_3"))
+                        .paren( _ -> id("__VA_ARGS__")));
+        return self();
+    }
+
+    /**
+     * Example of code being generated:
+     * <code>
+     *   nvcuda::wmma::fill_fragment(acc, initValue);
+     * </code>
+     *
+     * @param name
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroTensorFill(String name) {
+        List<String> params = paramsOfTensorFillMacro();
+        return macroNoParenthesis(name, params, _ ->
+                paren( _ ->
+                        id(WMMA_FILL_TENSOR).paren( _->
+                                id(params.get(2)).comma().id(params.get(5)))));
+    }
+
+    /**
+     * Example of code being generated:
+     * <code>
+     *  nvcuda::wmma::mma_sync(acc,tensorA,tensorB,acc);
+     * </code>
+     * @param macroName
+     *
+     * @return {@link CudaHATKernelBuilder}
+     */
+    private CudaHATKernelBuilder defineMacroTensorMMA(String macroName) {
+        // Args: "i", "j", "k", "acc", "tensorA", "tensorB", "tensorC", "tensorResult", "M", "N", "K";
+        List<String> params = paramsOfTensorMMAMacro();
+        List<String> cudaMMAArgs = new ArrayList<>();
+        cudaMMAArgs.add(params.get(7)); // tensorResult
+        cudaMMAArgs.add(params.get(4)); // tensorA
+        cudaMMAArgs.add(params.get(5)); // tensorB
+        cudaMMAArgs.add(params.get(6)); // tensorC
+        return macroNoParenthesis(macroName, params, _ ->
+                paren( _ ->
+                        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(cudaMMAArgs, this::id))));
+    }
+
+    /**
+     * Example of code being generated:
+     *
+     * <p>
+     * <code>
+     * wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
+     * </code>
+     * </p>
+     *
+     * @param macroName Macro name
+     * @return {@link CudaHATKernelBuilder}
+     */
+    public CudaHATKernelBuilder defineMacroTensorLoadF16(String macroName) {
+        List<String> params = paramsOfTensorLoad();
+        return macroNoParenthesis(macroName, params, _ ->
+                sp().backslash().nl()
+                        .id(WMMA_LOAD_TENSOR)
+                        .paren(_ -> {
+                            id("tensorToLoad").comma();
+                            paren(_ -> type("half").asterisk());
+                            id("reference")
+                                    .rarrow().id(ARRAY)
+                                    .sp().plus().sp()
+                                    .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
+                                    .comma()
+                                    .id("leadingDimension");
+                        }));
+    }
+
+    /**
+     * Example of code being generated:
+     * <code>
+     *  nvcuda::wmma::store_matrix_sync(matrixC->array + cCol+(cRow*ldc), acc,ldc,nvcuda::wmma::mem_row_major);
+     * </code>
+     * @param macroName
+     * @return {@link CudaHATKernelBuilder}
+     */
+    public CudaHATKernelBuilder defineMacroTensorStore(String macroName) {
+        List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
+        return macroNoParenthesis(macroName, params, _ ->
+                sp().backslash().nl()
+                .id(WMMA_STORE_TENSOR).paren(_ ->
+                id("reference").rarrow().id(ARRAY)
+                        .sp().plus().sp()
+                        .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
+                        .comma()
+                        .id("tensorToStore")
+                        .comma()
+                        .id("leadingDimension")
+                        .comma()
+                        .id("memAccessLayout")));
+    }
+
+    private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
+        Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
+        IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
+        String type = vectorShape.codeType().toString() + vectorShape.lanes();
+        String current = stack.peek();
+        type(type).sp().id(current + postfix).semicolon().nl();
+        stack.push(current + postfix);
+        mapVectorName.put(invokeOp, current + postfix);
+        recurse(invokeOp);
+    }
+
+    private CudaHATKernelBuilder generateHATBinaryVectorOperation(OpHelper.Invoke invoke, String nameVector) {
+        Value op1 = invoke.op().operands().get(0);
+        Value op2 = invoke.op().operands().get(1);
+        IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
+        for (int lane = 0; lane < vectorShape.lanes(); lane++) {
+            id(nameVector).dot().id(mapLane(lane)).sp().equals().sp();
+            if (op1 instanceof Op.Result r) {
+                if (!(r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp)))) {
+                    recurse(r.op());
+                } else {
+                    id(mapVectorName.get(invokeOp));
+                }
+            }
+            dot().id(mapLane(lane)).sp();
+            id(BinaryOpEnum.of(invoke.op()).symbol()).sp();
+            if (op2 instanceof Op.Result r) {
+                if (!(r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp)))) {
+                    recurse(r.op());
+                } else {
+                    id(mapVectorName.get(invokeOp));
+                }
+            }
+            dot().id(mapLane(lane)).semicolon().nl();
         }
         return self();
     }
 
     @Override
-    public CudaHATKernelBuilder hatBinaryVectorOp(HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp) {
+    public CudaHATKernelBuilder hatBinaryVectorOp(OpHelper.Invoke invoke) {
 
-        Value op1 = hatVectorBinaryOp.operands().get(0);
-        Value op2 = hatVectorBinaryOp.operands().get(1);
+        Value op1 = invoke.op().operands().get(0);
+        Value op2 = invoke.op().operands().get(1);
 
         final String postFixOp1 = "_1";
         final String postFixOp2 = "_2";
 
-        if (op1 instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp1) {
-            type(hatVectorBinaryOp1.buildType()).sp()
-                    .id(hatVectorBinaryOp.varName() + postFixOp1)
-                    .semicolon().nl();
-            hatVectorBinaryOp1.varName(hatVectorBinaryOp.varName() + postFixOp1);
-            recurse(hatVectorBinaryOp1);
-        }
-
-        if (op2 instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp2) {
-            type(hatVectorBinaryOp2.buildType()).sp()
-                    .id(hatVectorBinaryOp.varName() + postFixOp2)
-                    .semicolon().nl();
-            hatVectorBinaryOp2.varName(hatVectorBinaryOp.varName() + postFixOp2);
-            recurse(hatVectorBinaryOp2);
-        }
-
-        for (int i = 0; i < hatVectorBinaryOp.vectorShape().lanes(); i++) {
-            // this is where varName is null
-            id(hatVectorBinaryOp.varName()).dot().id(hatVectorBinaryOp.mapLane(i)).sp().equals().sp();
-
-            if (op1 instanceof Op.Result r) {
-                if (!(r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp1)) {
-                    recurse(r.op());
-                } else {
-                    id(hatVectorBinaryOp1.varName());
-                }
+        SequencedSet<Op.Result> uses = invoke.op().result().uses();
+        String nameVector = null;
+        for (Op.Result result : uses) {
+            if (result.declaringElement() instanceof CoreOp.VarOp varOp) {
+                // This means we have a vector declaration that we need to operate on using
+                // the individual components
+                stack.push(varOp.varName());
+                nameVector = varOp.varName();
             }
-            dot().id(hatVectorBinaryOp.mapLane(i)).sp();
-            id(hatVectorBinaryOp.operationType().symbol()).sp();
-
-            if (op2 instanceof Op.Result r) {
-                if (!(r.op() instanceof HATVectorOp.HATVectorBinaryOp hatVectorBinaryOp2)) {
-                    recurse(r.op());
-                } else {
-                    id(hatVectorBinaryOp2.varName());
-                }
-            }
-            dot().id(hatVectorBinaryOp.mapLane(i)).semicolon().nl();
         }
 
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatVectorLoadOp(HATVectorOp.HATVectorLoadOp hatVectorLoadOp) {
-        Value source = hatVectorLoadOp.operands().get(0);
-        Value index = hatVectorLoadOp.operands().get(1);
-
-        reinterpret_cast().ltgt(_ -> type(hatVectorLoadOp.buildType()).sp().asterisk());
-        paren(_ -> {
-            ampersand();recurseResultOrThrow(source);
-            either(hatVectorLoadOp instanceof HATVectorOp.Shared, CodeBuilder::dot, CodeBuilder::rarrow);
-            id(ARRAY).sbrace(_ -> recurseResultOrThrow(index));
-        });
-        sbrace(_ -> intConstZero());
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatSelectLoadOp(HATVectorOp.HATVectorSelectLoadOp hatVSelectLoadOp) {
-        id(hatVSelectLoadOp.varName()).dot().id(hatVSelectLoadOp.mapLane());
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatSelectStoreOp(HATVectorOp.HATVectorSelectStoreOp hatVSelectStoreOp) {
-        id(hatVSelectStoreOp.varName()).dot().id(hatVSelectStoreOp.mapLane()).sp().equals().sp();
-        if (hatVSelectStoreOp.resolvedName() != null) {
-            // We have detected a direct resolved result (resolved name)
-            varName(hatVSelectStoreOp.resolvedName());
+        if (nameVector != null) {
+            // We add the name on the stack to process pending
+            // vector operations as operands
+            stack.push(nameVector);
         } else {
-            // otherwise, we traverse to resolve the expression
-            recurseResultOrThrow(hatVSelectStoreOp.operands().get(1));
+            // it must be already in the haspMap
+            nameVector = mapVectorName.get(invoke.op());
         }
-        return self();
-    }
 
-    @Override
-    public CudaHATKernelBuilder hatF16ConvOp(HATF16Op.HATF16ConvOp hatF16ConvOp) {
-        var float16Class = hatF16ConvOp.float16Class();
-        paren(_ -> f16OrBF16(float16Class)).brace(_ -> {
-            buildFloat16Class(float16Class);
-            paren(_ ->
-                recurseResultOrThrow(hatF16ConvOp.operands().getFirst())
-            );
-        });
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatF16ToFloatConvOp(HATF16Op.HATF16ToFloatConvOp hatF16ToFloatConvOp) {
-        buildFloat16Class(hatF16ToFloatConvOp.float16Class());
-        paren(_ -> {
-            recurseResultOrThrow(hatF16ToFloatConvOp.operands().getFirst());
-            if (!hatF16ToFloatConvOp.isLocal()) {
-                rarrow().id("value");
-            } else if (!hatF16ToFloatConvOp.wasFloat()) {
-                dot().id("value");
-            }
-        });
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatVectorVarOp(HATVectorOp.HATVectorVarOp hatVectorVarOp) {
-        type(hatVectorVarOp.buildType()).sp().varName(hatVectorVarOp);
-        Value operand = hatVectorVarOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof HATVectorOp.HATVectorBinaryOp) {
-            semicolon().nl();
-        } else {
-            assign();
+        if (nameVector == null) {
+            // main name can't be null
+            // This is only triggered for VectorArrayViews
+            // which means that probably we need a check in the ArrayViews
+            return self();
         }
-        return recurseResultOrThrow(operand);
+
+        if (op1 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp))) {
+            recurseVectorOperand(invokeOp, postFixOp1);
+        }
+
+        if (!stack.isEmpty()) {
+            stack.pop();
+        }
+
+        if (op2 instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext.lookup(), invokeOp))) {
+            recurseVectorOperand(invokeOp, postFixOp2);
+        }
+
+        if (!stack.isEmpty()) {
+            stack.pop();
+        }
+        return generateHATBinaryVectorOperation(invoke, nameVector);
     }
 
     @Override
-    public CudaHATKernelBuilder genVectorIdentifier(HATVectorOp.HATVectorOfOp hatVectorOfOp) {
-        return id("make_" + hatVectorOfOp.buildType());
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatF16BinaryOp(HATF16Op.HATF16BinaryOp hatF16BinaryOp) {
-
-        Value op1 = hatF16BinaryOp.operands().get(0);
-        Value op2 = hatF16BinaryOp.operands().get(1);
-        boolean isFirstOperandReference = isArrayReference(op1);
-        boolean isSecondOperandReference = isArrayReference(op2);
+    public CudaHATKernelBuilder hatF16BinaryOp(Invoke invoke, Class<?> reducedFloatType) {
+        Value op1 = invoke.op().operands().get(0);
+        Value op2 = invoke.op().operands().get(1);
+        boolean isFirstOperandReference = isArrayReference(scopedCodeBuilderContext.lookup(), op1);
+        boolean isSecondOperandReference = isArrayReference(scopedCodeBuilderContext.lookup(), op2);
 
         final byte f32Mixed;
         if (!isFirstOperandReference && isOperandF32(op1)) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.FIRST_OP;
+            f32Mixed = HATFP16Phase.FIRST_OP;
         } else if (!isSecondOperandReference && isOperandF32(op2)) {
-            f32Mixed = HATF16Op.HATF16BinaryOp.LAST_OP;
+            f32Mixed = HATFP16Phase.LAST_OP;
         } else {
             f32Mixed = 0x00;
         }
-        var float16Class = hatF16BinaryOp.float16Class();
-        paren(_ -> f16OrBF16(float16Class));
+        paren(_ -> f16OrBF16(reducedFloatType));
         brace(_ ->
                 paren(_ -> {
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
-                        generateFloat16ConversionToFloat(float16Class).oparen();
+                    if (f32Mixed == HATFP16Phase.LAST_OP) {
+                        s16ToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op1);
                     if (isFirstOperandReference) {
-                        rarrow().id("value");
+                        rarrow().id(VALUE);
                     } else if (op1 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id("value");
+                        dot().id(VALUE);
                     }
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.LAST_OP) {
+                    if (f32Mixed == HATFP16Phase.LAST_OP) {
                         cparen();
                     }
-                    sp().id(hatF16BinaryOp.binaryOperationType().symbol()).sp();
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
-                        generateFloat16ConversionToFloat(float16Class).oparen();
+                    sp().id(matchSymbol(invoke.name())).sp();
+                    if (f32Mixed == HATFP16Phase.FIRST_OP) {
+                        s16ToFloat(reducedFloatType).oparen();
                     }
                     recurseResultOrThrow(op2);
                     if (isSecondOperandReference) {
-                        rarrow().id("value");
+                        rarrow().id(VALUE);
                     } else if (op2 instanceof Op.Result r && !(r.op().resultType() instanceof PrimitiveType)) {
-                        dot().id("value");
+                        dot().id(VALUE);
                     }
-                    if (f32Mixed == HATF16Op.HATF16BinaryOp.FIRST_OP) {
+                    if (f32Mixed == HATFP16Phase.FIRST_OP) {
                         cparen();
                     }
 
@@ -385,60 +714,93 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private CudaHATKernelBuilder buildFloat16Class(Class<?> float16Class) {
+    private CudaHATKernelBuilder s16ToFloat(Class<?> float16Class) {
         if (F16.class.isAssignableFrom(float16Class)) {
             return half2float();
         } else if (BF16.class.isAssignableFrom(float16Class)) {
-            return __nv_bfloat16();
+            return bfloat162float();
         } else {
             throw new IllegalStateException("Unexpected value: " + float16Class);
         }
-    }
-
-    private CudaHATKernelBuilder generateFloat16ConversionToFloat(Class<?> float16Class) {
-        if (F16.class.isAssignableFrom(float16Class)) {
-            return half2float();
-        } else if (BF16.class.isAssignableFrom(float16Class)) {
-            return __bfloat162float();
-        } else {
-            throw new IllegalStateException("Unexpected value: " + float16Class);
-        }
-    }
-
-    // Mapping between API function names and CUDA intrinsics for the math operations
-    private static final Map<String, String> MATH_FUNCTIONS = new HashMap<>();
-
-    static {
-        MATH_FUNCTIONS.put("maxf", "max");
-        MATH_FUNCTIONS.put("maxd", "max");
-        MATH_FUNCTIONS.put("maxf16", "MAX_HAT");
-        MATH_FUNCTIONS.put("minf", "min");
-        MATH_FUNCTIONS.put("mind", "min");
-        MATH_FUNCTIONS.put("minf16", "MIN_HAT");
-
-        MATH_FUNCTIONS.put("expf", "expf");
-        MATH_FUNCTIONS.put("expd", "exp");
-        MATH_FUNCTIONS.put("expf16", "hexp");
-
-        MATH_FUNCTIONS.put("cosf", "cosf");
-        MATH_FUNCTIONS.put("cosd", "cos");
-        MATH_FUNCTIONS.put("sinf", "sinf");
-        MATH_FUNCTIONS.put("sind", "sin");
-        MATH_FUNCTIONS.put("tanf", "tanf");
-        MATH_FUNCTIONS.put("tand", "tan");
-
-        MATH_FUNCTIONS.put("native_cosf", "__cosf");
-        MATH_FUNCTIONS.put("native_sinf", "__sinf");
-        MATH_FUNCTIONS.put("native_tanf", "__tanf");
-        MATH_FUNCTIONS.put("native_expf", "__expf");
-
-        MATH_FUNCTIONS.put("sqrtf", "sqrtf");
-        MATH_FUNCTIONS.put("sqrtd", "sqrt");
     }
 
     @Override
     protected String mapMathIntrinsic(String hatMathIntrinsicName) {
         return MATH_FUNCTIONS.getOrDefault(hatMathIntrinsicName, hatMathIntrinsicName);
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpForNarrowType(CoreOp.VarOp varOp) {
+        Value first = varOp.operands().getFirst();
+        Class<?> narrowCategory;
+        if (first.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+            // Find the category - This is the generic case, when ALL custom ops are removed
+            Stream<Invoke> stream = Invoke.stream(kernelCallGraph.lookup(), invokeOp);
+            Optional<Invoke> invoke = stream.findFirst();
+            narrowCategory = reduceFloatType(invoke);
+            if (narrowCategory == null && isMathLib(invoke)) {
+                narrowCategory = reduceFloatTypeFromReturnType(invoke);
+            }
+        } else {
+            throw new IllegalStateException("Expected an invoke, but found: " + first.declaringElement().getClass());
+        }
+        if (narrowCategory == null) {
+            throw new IllegalStateException("Narrow type can't be null: ");
+        }
+        // handle narrow types (F16 and BFloat)
+        return f16OrBF16(narrowCategory).sp().assign(
+                _ -> id(varOp.varName()),
+                _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpForVectors(CoreOp.VarOp varOp) {
+        VarType resultType = varOp.resultType();
+        if (!(resultType.valueType() instanceof PrimitiveType)) {
+            IfaceValue.Vector.Shape vectorShape = null;
+            if (resultType.valueType() instanceof ClassType classType) {
+                vectorShape = getVectorShape(kernelCallGraph.lookup(), classType);
+            } else if (resultType.valueType() instanceof VarType varType) {
+                vectorShape = getVectorShape(kernelCallGraph.lookup(), varType.valueType());
+            }
+            if (vectorShape == null) {
+                // guarantee we don't have a null shape. Otherwise. we can't generate the correct code
+                throw new IllegalStateException("Could not find vector shape");
+            }
+
+            type(vectorShape.codeType().toString() + vectorShape.lanes()).sp().varName(varOp);
+            Value operand = varOp.operands().getFirst();
+            if (operand instanceof Op.Result r && r.op() instanceof JavaOp.InvokeOp invokeOp && isVectorBinaryOperation(invoke(scopedCodeBuilderContext().lookup(), invokeOp))) {
+                semicolon().nl();
+            } else {
+                assign();
+            }
+            return recurseResultOrThrow(operand);
+        }
+        return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpInit(CoreOp.VarOp varOp) {
+        return suffix_t((ClassType) varOp.varValueType()).sp()
+                .assign(_ -> id(varOp.varName()),
+                        _ -> recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op()));
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpLocalMemory(CoreOp.VarOp varOp) {
+        return HAT_LOCAL_MEM().sp().varOpPrivateMemory(varOp);
+    }
+
+    @Override
+    protected CudaHATKernelBuilder varOpPrivateMemory(CoreOp.VarOp varOp) {
+        VarType resultType = varOp.resultType();
+        if (resultType.valueType() instanceof VarType varType) {
+            suffix_t((ClassType) varType.valueType());
+        } else if (resultType.valueType() instanceof ClassType classType) {
+            suffix_t(classType);
+        }
+        return sp().varName(varOp);
     }
 
     public static final String WMMA_MEM_COL_MAJOR = "nvcuda::wmma::mem_col_major";
@@ -449,160 +811,117 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public static final String WMMA_FILL_TENSOR = "nvcuda::wmma::fill_fragment";
     public static final String WMMA_COL_MAJOR = "nvcuda::wmma::col_major";
     public static final String WMMA_ROW_MAJOR = "nvcuda::wmma::row_major";
-    public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment<nvcuda::wmma::";
+    public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment";
+    public static final String WMMA_PREFIX = "nvcuda::wmma::";
 
-    @Override
-    public CudaHATKernelBuilder hatTensorVarOp(HATTensorOp.TensorVarOp tensorVarOp) {
-        recurse(OpHelper.asResultOrThrow(tensorVarOp.operands().getFirst()).op());
-        sp().id(tensorVarOp.varName());
-        return self();
-    }
-
-    private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access) {
-        id(WMMA_FRAGMENT_BASE)
-                .id(matrixOrder)
-                .comma().sp()
-                .intValue(shape.getFirst())
-                .comma().sp()
-                .intValue(shape.get(1))
-                .comma().sp()
-                .intValue(shape.get(2))
-                .comma().sp()
-                .type(type);
-
-        if (matrixOrder.equals(TENSOR_ACC)) {
-            gt();
-        } else {// infer from the last parameter
-            if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
-                // Expecting an invokeOp
-                var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
-                comma();
-                if (invoke.resultTypeIs(Tensor.ColumMajor.class)) {
-                    id(WMMA_COL_MAJOR);
-                } else if (invoke.resultTypeIs(Tensor.RowMajor.class)) {
+    private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access, String tensorVar) {
+        // Params: "kind", "size", "m", "n", "k", "type", "layout", "name";
+        // call the macro with the right args
+        id(MACRO_FRAMGMENT_CREATE).paren(_ -> {
+            id(matrixOrder).comma()
+                    .id(ZERO).comma().sp()           // For the CUDA backend, this value is not used
+                    .intValue(shape.getFirst()).comma().sp()
+                    .intValue(shape.get(1)).comma().sp()
+                    .intValue(shape.get(2)).comma().sp()
+                    .type(type).sp().comma();
+            if (!matrixOrder.equals(TENSOR_ACC)) {
+                if (access == null) {
                     id(WMMA_ROW_MAJOR);
-                } else {
-                    throw new CUDACodeGenException("[Error]");
+                } else if (access.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
+                    // Expecting an invokeOp
+                    var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+                    if (invoke != null && invoke.resultTypeIs(Tensor.ColumMajor.class)) {
+                        id(WMMA_COL_MAJOR);
+                    } else if (invoke != null && invoke.resultTypeIs(Tensor.RowMajor.class)) {
+                        id(WMMA_ROW_MAJOR);
+                    } else {
+                        throw new IllegalStateException("[Error]");
+                    }
                 }
-                gt();
+                comma().sp();
             }
-        }
-        return self();
-    }
 
-    private static final String TENSOR_MATRIX_A = "matrix_a";
-    private static final String TENSOR_MATRIX_B = "matrix_b";
-    private final String TENSOR_ACC = "accumulator";
-
-    private String getMatrixOrder(Value valueParameter) {
-        if (valueParameter instanceof Op.Result r && r.op() instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-            FieldRef fieldRef = fieldLoadOp.fieldReference();
-            return switch (fieldRef.name()) {
-                case "FIRST" -> TENSOR_MATRIX_A;
-                case "SECOND" -> TENSOR_MATRIX_B;
-                default -> TENSOR_ACC;
-            };
-        }
-        return null;
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatTensorCreateOp(HATTensorOp.TensorCreateOp tensorCreateOp) {
-        // infer first parameter
-        List<Value> operands = tensorCreateOp.operands();
-        Value first = operands.getFirst();
-        // The first operand  gives us the matrix order or accumulator
-        String matrixOrder = getMatrixOrder(first);
-
-        // Second parameters: analysis of the shape
-        List<Integer> shape = new ArrayList<>();
-
-        Value second = operands.get(1);
-        if (second.declaringElement() instanceof JavaOp.InvokeOp invokeOp) {
-            List<Value> shapeOperands = invokeOp.operands();
-            for (Value shapeOperand : shapeOperands) {
-                if (shapeOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
-                    shape.add((int) constantOp.value());
-                } else {
-                    throw new CUDACodeGenException("Error: expected to find a ConstantOp, but found a " + shapeOperand.declaringElement().getClass());
-                }
-            }
-        } else {
-            throw new CUDACodeGenException("InvokeOp expected, but found: " + second.declaringElement().getClass());
-        }
-        if (shape.size() != 3) {
-            throw new CUDACodeGenException("Shape must have three values");
-        }
-
-        // The third parameter is the type. It could be `half` or `float` as first implementation
-        // This parameter is another constant with the type
-        Value classOperand = operands.get(2);
-        Object klass = null;
-        if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
-            klass = constantOp.value();
-        }
-
-        String type = "";
-        if (klass instanceof ClassType classType && classType.toClassName().equals(F16.class.getCanonicalName())) {
-            type = "half";
-        } else if (klass instanceof PrimitiveType primitiveType && primitiveType.equals(PrimitiveType.FLOAT)) {
-            type = "float";
-        }
-
-        Value access = operands.getLast();
-        return generateCreateTensor(shape, matrixOrder, type, access);
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatTensorVarLoadOp(HATTensorOp.TensorVarLoadOp hatTensorVarLoadOp) {
-        Value operand = hatTensorVarLoadOp.operands().getFirst();
-        if (operand instanceof Op.Result r && r.op() instanceof HATTensorOp.TensorVarOp tensorVarOp) {
-            varName(tensorVarOp.varName());
-        } else {
-            throw new CUDACodeGenException("[ERROR] Expected HATTensorVarOp");
-        }
-        return self();
-    }
-
-    @Override
-    public CudaHATKernelBuilder hatTensorFillOp(HATTensorOp.TensorFillOp tensorFillOp) {
-        id(WMMA_FILL_TENSOR).paren( _-> {
-            List<Value> operands = tensorFillOp.operands();
-            recurseResultOrThrow(operands.getFirst())
-                    .comma()
-                    .recurseResultOrThrow(operands.get(1));
+            id(tensorVar);
         });
         return self();
     }
 
-    @Override
-    public CUDACodeGenException launchBackendException(String message) {
-        return new CUDACodeGenException(message);
+
+    private static final Map<String, String> tensorTypeTable = new HashMap<>();
+    static {
+        tensorTypeTable.put("loadF16", "half");
+        tensorTypeTable.put("load",    "float");
+        tensorTypeTable.put("loadF32", "float");
+    }
+
+    private CudaHATKernelBuilder generateTensorAccumulateCreate(Invoke tensorCreate) {
+        // tensor declaration for the accumulator
+        Value shapeValue = tensorCreate.op().operands().getFirst();
+        List<Integer> shape = obtainShapeTensor(shapeValue);
+        Value classOperand = tensorCreate.op().operands().get(1);
+        Object klass = null;
+        if (classOperand.declaringElement() instanceof CoreOp.ConstantOp constantOp) {
+            klass = constantOp.value();
+        }
+        String tensorType = null;
+        if (klass != null) {
+            switch (klass) {
+                case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> tensorType = "half";
+                case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> tensorType = "float";
+                default -> throw new IllegalStateException("Type class not supported for Tensors: " + klass);
+            }
+        }
+        Value v = tensorCreate.op().result().uses().getFirst();
+        VarOp tensorVarOp;
+        if (v.declaringElement() instanceof CoreOp.VarOp varOp) {
+            tensorVarOp = varOp;
+        } else {
+            throw new IllegalStateException("Expected a VarOp");
+        }
+        Value valueAccessLayout = tensorCreate.op().operands().getLast();
+        return generateCreateTensor(shape, TENSOR_ACC, tensorType, valueAccessLayout, tensorVarOp.varName());
+    }
+
+    private CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreate) {
+        Value v = tensorCreate.op().result().uses().getFirst();
+        // Find the declaration value of the tensor
+        // otherwise, we have to inspect the shape from the TensorLoadOp
+        if (v.declaringElement() instanceof VarOp tensorVarOp) {
+            String matrixOrder = tensorOrderTable.get(TENSOR_ORDER_DEFAULT);
+            Value tensorValue = tensorVarOp.result();
+            // Inspect the code-model to reach the MMA op and determine the ordering of matrices
+            int indexOrdering = getTensorOrder(tensorValue);
+            if (tensorOrderTable.containsKey(indexOrdering)) {
+                matrixOrder = tensorOrderTable.get(indexOrdering);
+            }
+
+            var shapeValue = findShape(tensorVarOp.result(), tensorVarOp.result());
+            var shape = obtainShapeTensor(shapeValue);
+            String loadVariance = findLoadVariance(tensorValue, tensorVarOp);
+            var type = tensorTypeTable.getOrDefault(loadVariance, null);
+            var valueAccessLayout = findAccessLayout(tensorValue, tensorVarOp);
+
+            if (shape.size() != 3) {
+                throw new IllegalStateException("Tensor Shape must have 3 values" + type);
+            }
+            if (type == null) {
+                throw new IllegalStateException("Load Type not supported:" + type);
+            }
+            return generateCreateTensor(shape, matrixOrder, type, valueAccessLayout, tensorVarOp.varName());
+        } else {
+            throw new IllegalStateException("Value not supported");
+        }
     }
 
     @Override
-    public CudaHATKernelBuilder hatTensorMMAOp(HATTensorOp.TensorMMAOp tensorMMAOp) {
-        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(tensorMMAOp.operands(), this::recurseResultOrThrow));
-        return self();
-    }
-
-    private CudaHATKernelBuilder generateLoadTensor(HATTensorOp.TensorLoadOp tensorLoadOp, boolean isColumnMajor, String tensorName) {
-        // First operand is the reference to global memory
-        List<Value> operands = tensorLoadOp.operands();
-        Value reference = operands.getFirst();
-        id(WMMA_LOAD_TENSOR)
-                .paren(_ -> {
-                    id(tensorName).comma();
-                    paren(_ -> type("half").asterisk());
-                    recurseResultOrThrow(reference);
-                    rarrow().id(ARRAY)
-                            .sp().plus().sp()
-                            .indexForTensor(isColumnMajor, operands.get(1), operands.get(2), operands.get(3))
-                            .comma();
-                    recurseResultOrThrow(operands.get(3));
-                });
-
-        return self();
+    public CudaHATKernelBuilder hatTensorCreateOperation(Invoke tensorCreate) {
+        if (tensorCreate.op().operands().isEmpty()) {
+            // this corresponds to a tensor declaration for the input data
+            return generateTensorCreate(tensorCreate);
+        } else {
+            // generate accumulate for the tensors
+            return generateTensorAccumulateCreate(tensorCreate);
+        }
     }
 
     /**
@@ -614,43 +933,82 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * </code>
      * </p>
      *
-     * @param tensorLoadOp
+     * @param tensorLoad
+     *      Invoke node that represents the tensor load operation
      *
      * @return {@link CudaHATKernelBuilder}
      */
     @Override
-    public CudaHATKernelBuilder hatTensorLoadOp(HATTensorOp.TensorLoadOp tensorLoadOp) {
-        // Find name tensor of the first argument
-        String tensorName = "";
-        SequencedSet<Op.Result> uses = tensorLoadOp.result().uses();
-        HATTensorOp.TensorVarOp tensorVarOp = null;
-        for (Op.Result result : uses) {
-            if (result.declaringElement() instanceof HATTensorOp.TensorStoreLoadOp storeLoadOp) {
-                // obtain first arg from tensorStoreOp
-                Value first = storeLoadOp.operands().getFirst();
-                if (first.declaringElement() instanceof HATTensorOp.TensorVarOp varOp) {
-                    tensorVarOp = varOp;
-                    tensorName = tensorVarOp.varName();
-                }
-            }
-        }
-
-        boolean isColumnMajor = true;
+    protected CudaHATKernelBuilder hatTensorLoad(OpHelper.Invoke tensorLoad) {
+        List<Value> operands = tensorLoad.op().operands();
+        var ptrValue = operands.getFirst();
+        var iIndexValue = operands.get(1);
+        var jIndexValue = operands.get(2);
+        var leadingDimension = operands.get(3);
+        CoreOp.VarOp tensorVarOp = findTensorVarOp(tensorLoad);
+        List<Integer> shape;
         if (tensorVarOp != null) {
-            Value value = tensorVarOp.operands().getFirst();
-            if (value.declaringElement() instanceof HATTensorOp.TensorCreateOp createOp) {
-                Value tensorLayout = createOp.operands().getLast();
-                isColumnMajor = isColumnMajor(tensorLayout);
-            }
+            shape = obtainShapeTensor(operands.get(4));
+        } else {
+            throw new IllegalStateException("[Error][CodeGen] Expected to see an instance of tensorVarOp but `null` found");
         }
-        return generateLoadTensor(tensorLoadOp, isColumnMajor, tensorName);
-    }
 
-    @Override
-    public CudaHATKernelBuilder hatTensorStoreLoadOp(HATTensorOp.TensorStoreLoadOp hatTensorStoreLoadOp) {
-        List<Value> operands = hatTensorStoreLoadOp.operands();
-        recurseResultOrThrow(operands.getLast());
-        return self();
+        // Obtain if tensorA or tensorB is being loaded.
+        // This is important to get the loop-bounds correct if matrices are not square
+        int tensorOrder = getTensorOrder(tensorVarOp.result());
+
+        boolean isColumnMajor;
+        if (tensorLoad.op().operands().size() == 6) {
+            isColumnMajor = isColumnMajor(operands.getLast());
+        } else {
+            isColumnMajor = false;
+        }
+
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+        final int M;
+        final int N;
+
+        // ---------------------------
+        // Shapes:
+        // tensor A   with shape: MxK
+        // tensor B   with shape: KxN
+        // ---------------------------
+        String matrixOrder = tensorOrderTable.get(tensorOrder);
+        switch (matrixOrder) {
+            case TENSOR_MATRIX_A -> {
+                M = shape.get(0); // M
+                N = shape.get(2); // K
+            }
+            case TENSOR_MATRIX_B -> {
+                M = shape.get(2); // K
+                N = shape.get(1); // N
+            }
+            case null, default -> throw new IllegalStateException("Tensor load matrix order not detected");
+        }
+
+        // Switch indexes when the memory access layout is not in column major
+        if (!isColumnMajor) {
+            Value tmp = iIndexValue;
+            iIndexValue = jIndexValue;
+            jIndexValue = tmp;
+        }
+
+        // params:         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad");
+        Value finalIIndexValue = iIndexValue;
+        Value finalJIndexValue = jIndexValue;
+        return id(MACRO_FRAGMENT_LOAD_F16).paren(_ ->
+                intValue(M).comma().sp()
+                        .intValue(N).comma().sp()
+                        .id(varA).comma().sp()
+                        .id(varB).comma().sp()
+                        .recurseResultOrThrow(finalIIndexValue).comma().sp()
+                        .recurseResultOrThrow(finalJIndexValue).comma().sp()
+                        .id(String.valueOf(isColumnMajor)).comma().sp()
+                        .recurseResultOrThrow(leadingDimension).comma().sp()
+                        .recurseResultOrThrow(ptrValue).comma().sp()
+                        .id(tensorVarOp.varName()));
+
     }
 
     /**
@@ -662,44 +1020,60 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * </code>
      * </p>
      *
-     * @param operands
-     * @param isColumnMajor
+     * @param tensorStore
+     *      Invoke node that represents the tensor store operation
      *
      * @return {@link CudaHATKernelBuilder}
      */
-    private CudaHATKernelBuilder generateStoreTensor(List<Value> operands, boolean isColumnMajor) {
-        Value reference = operands.getFirst();
-        id(WMMA_STORE_TENSOR).paren(_ -> {
-            Value iIndex = operands.get(1);
-            Value jIndex = operands.get(2);
-            Value tensorToStore = operands.get(3);
-            Value ldSize = operands.get(4);
-
-            recurseResultOrThrow(reference)
-                    .rarrow().id(ARRAY)
-                    .sp().plus().sp()
-                    .indexForTensor(isColumnMajor, iIndex, jIndex, ldSize)
-                    .comma()
-                    .recurseResultOrThrow(tensorToStore)
-                    .comma()
-                    .recurseResultOrThrow(ldSize)
-                    .comma();
-
-            if (isColumnMajor) {
-                id(WMMA_MEM_COL_MAJOR);
-            } else {
-                id(WMMA_MEM_ROW_MAJOR);
-            }
-        });
-        return self();
-    }
-
     @Override
-    public CudaHATKernelBuilder hatTensorStoreOp(HATTensorOp.TensorStoreOp tensorStoreOp) {
-        List<Value> operands = tensorStoreOp.operands();
+    protected CudaHATKernelBuilder hatTensorStore(OpHelper.Invoke tensorStore) {
+        List<Value> operands = tensorStore.op().operands();
         // Access layout is the last operand
-        final boolean isColumnMajor = isColumnMajor(operands.get(5));
-        return generateStoreTensor(operands, isColumnMajor);
+        boolean isColumnMajor;
+        // Since the Access Layout is an optional parameter, we check
+        if (tensorStore.op().operands().size() == 6) {
+            isColumnMajor = isColumnMajor(operands.getLast());
+        } else {
+            isColumnMajor = false;
+        }
+
+        Value reference = operands.getFirst();
+        Value iIndex = operands.get(1);
+        Value jIndex = operands.get(2);
+        Value tensorToStore = operands.get(3);
+        Value ldSize = operands.get(4);
+        CoreOp.VarOp tensorVarOp = findVarOpOrThrow(tensorToStore);
+
+        var shape = getShapeFromTensorVarOp(tensorVarOp);
+        // Output is MxN, given the shape in an (M,N,K) triplet
+        final int M = shape.get(0);
+        final int N = shape.get(1);
+        String varA = generateVariableName(INDEX_PREFIX);
+        String varB = generateVariableName(INDEX_PREFIX);
+
+        // Switch indexes when the memory access layout is not in column major
+        if (!isColumnMajor) {
+            Value tmp = iIndex;
+            iIndex = jIndex;
+            jIndex = tmp;
+        }
+
+        Value finalIIndex = iIndex;
+        Value finalJIndex = jIndex;
+        return id(MACRO_FRAGMENT_STORE).paren(_ ->
+                intValue(M).comma().sp()
+                .intValue(N).comma().sp()
+                .id(varA).comma().sp()
+                .id(varB).comma().sp()
+                .recurseResultOrThrow(finalIIndex).comma().sp()
+                .recurseResultOrThrow(finalJIndex).comma().sp()
+                .id(String.valueOf(isColumnMajor)).comma().sp()
+                .recurseResultOrThrow(ldSize).comma().sp()
+                .recurseResultOrThrow(reference).comma().sp()
+                .id(tensorVarOp.varName()).comma().sp()
+                .either(isColumnMajor,
+                _ -> id(WMMA_MEM_COL_MAJOR),
+                _ -> id(WMMA_MEM_ROW_MAJOR)));
     }
 
     private static final String ARRAY = "array";

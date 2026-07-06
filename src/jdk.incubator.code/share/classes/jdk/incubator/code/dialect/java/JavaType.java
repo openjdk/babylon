@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -137,7 +137,7 @@ public sealed interface JavaType extends CodeType
     /** {@link JavaType} representing {@link Object} */
     ClassType J_L_OBJECT = new ClassType(ConstantDescs.CD_Object);
 
-    /** {@link JavaType} representing {@link Object[]} */
+    /** {@link JavaType} representing {@code Object[]} */
     ArrayType J_L_OBJECT_ARRAY = new ArrayType(J_L_OBJECT);
 
     /** {@link JavaType} representing {@link Class} */

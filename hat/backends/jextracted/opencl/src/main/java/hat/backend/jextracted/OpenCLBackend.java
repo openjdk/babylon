@@ -63,7 +63,8 @@ public class OpenCLBackend extends C99JExtractedBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         //System.out.println("OpenCL backend received computeContext");
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
+        KernelCallGraph kernelCallGraph = computeContext.computeCallGraph().kernelCallGraphMap.get(computeContext.computeCallGraph().callDag.entryPoint.funcOp().funcName());
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp(), kernelCallGraph.getVarTable()));
     }
 
     @Override

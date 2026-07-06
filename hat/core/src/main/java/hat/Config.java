@@ -130,6 +130,12 @@ public class Config {
     public boolean showComputeModelJavaCode() {
         return SHOW_COMPUTE_MODEL_JAVA_CODE.isSet(this);
     }
+
+    public static final Bit CHECK_SSA_LOWERING = Bit.nextBit(SHOW_COMPUTE_MODEL_JAVA_CODE, "CHECK_SSA_LOWERING","CSSAL", "Verify that code model can be lowered to SSA");
+    public boolean checkSSALowering() {
+        return CHECK_SSA_LOWERING.isSet(this);
+    }
+
     public static final List<Bit> bitList = List.of(
             PLATFORM,
             DEVICE,
@@ -155,7 +161,8 @@ public class Config {
             SHOW_LOWERED_KERNEL_MODEL,
             SHOW_COMPILATION_PHASES,
             PROFILE_CUDA_KERNEL,
-            SHOW_COMPUTE_MODEL_JAVA_CODE
+            SHOW_COMPUTE_MODEL_JAVA_CODE,
+            CHECK_SSA_LOWERING
     );
 
     private final int bits;

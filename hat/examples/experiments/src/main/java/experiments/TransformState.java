@@ -31,6 +31,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -51,11 +52,11 @@ public class TransformState {
             if (op instanceof JavaOp.AddOp) {
                 CodeContext cc = block.context();
                 var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
-                Op.Result result = block.op(newSubOp);
+                Op.Result result = block.add(newSubOp);
                 cc.mapValue(op.result(), result);
                 oldOpToNewOpMap.put(op,newSubOp);// <-- this maps op -> new subOp
             } else {
-                var result = block.op(op);
+                var result = block.add(op);
                 oldOpToNewOpMap.put(op,result.op()); //<-- this maps op ->  op'
             }
             return block;
@@ -82,11 +83,11 @@ public class TransformState {
             if (op instanceof JavaOp.AddOp) {
                 CodeContext cc = block.context();
                 var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
-                Op.Result result = block.op(newSubOp);
+                Op.Result result = block.add(newSubOp);
                 cc.mapValue(op.result(), result);
                 transformedOpMapState.put(op,newSubOp);// <-- this maps op -> new subOp
             } else {
-                var result = block.op(op);
+                var result = block.add(op);
                 transformedOpMapState.put(op,result.op()); //<-- this maps op ->  op'
             }
             return block;
@@ -96,11 +97,11 @@ public class TransformState {
                     if (op instanceof JavaOp.AddOp) {
                         CodeContext cc = block.context();
                         var newSubOp = JavaOp.sub(cc.getValue(op.operands().get(0)), cc.getValue(op.operands().get(1)));
-                        Op.Result r = block.op(newSubOp);
+                        Op.Result r = block.add(newSubOp);
                         cc.mapValue(op.result(), r);
                         transformedOpMapState.put(op,newSubOp);
                     } else {
-                        var r = block.op(op);
+                        var r = block.add(op);
                         transformedOpMapState.put(op,r.op());
                     }
                     return block;
@@ -132,7 +133,7 @@ public class TransformState {
                 return t.apply(block, op);
             } finally {
                 Value in = op.result();
-                Value out = block.context().getValueOrDefault(in, null);
+                Value out = block.context().queryValue(in).orElse(null);
                 mapAction.accept(in, out);
             }
         };
@@ -154,12 +155,12 @@ public class TransformState {
                 (block, op) -> {
                     if (op instanceof JavaOp.AddOp) {
                         CodeContext cc = block.context();
-                        Op.Result r = block.op(JavaOp.sub(
+                        Op.Result r = block.add(JavaOp.sub(
                                 cc.getValue(op.operands().get(0)),
                                 cc.getValue(op.operands().get(1))));
                         cc.mapValue(op.result(), r);
                     } else {
-                        block.op(op);
+                        block.add(op);
                     }
                     return block;
                 },
@@ -179,14 +180,20 @@ public class TransformState {
     static CodeTransformer trackingValueAndThenTransformer(
             CodeTransformer t,
             BiConsumer<Value, Value> mapAction) {
-        return CodeTransformer.andThen(t, (block, op) -> {
+
+        // This only composes CodeTransformer.acceptOp.
+        // If the given code transformer overrides acceptBody or acceptBlock,
+        // that behavior is not preserved
+        return ((builder, op) -> {
+            builder = t.acceptOp(builder, op);
+
             Value in = op.result();
-            Value out = block.context().getValueOrDefault(in, null);
+            Value out = builder.context().queryValue(in).orElse(null);
             mapAction.accept(in, out);
-            return block;
+
+            return builder;
         });
     }
-
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TransformState.class.getDeclaredMethods())

@@ -1,0 +1,1 @@
+--enable-preview --add-modules=jdk.incubator.code --enable-native-access=ALL-UNNAMED -Djava.library.path=build --class-path build/hat-ffi-cuda-examples-1.0.jar 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 
 #include "classfile/vmClasses.hpp"
 #include "classfile/vmSymbols.hpp"
+#include "code/aotCodeCache.hpp"
 #include "code/codeCache.hpp"
 #include "code/compiledIC.hpp"
 #include "code/nmethod.hpp"
@@ -66,6 +67,7 @@
 #include "runtime/handles.inline.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/javaCalls.hpp"
+#include "runtime/mountUnmountDisabler.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/signature.hpp"
 #include "runtime/stackWatermarkSet.hpp"
@@ -92,12 +94,9 @@
 #define C2_STUB_FIELD_NAME(name) _ ## name ## _Java
 #define C2_STUB_FIELD_DEFINE(name, f, t, r) \
   address OptoRuntime:: C2_STUB_FIELD_NAME(name) = nullptr;
-#define C2_JVMTI_STUB_FIELD_DEFINE(name) \
-  address OptoRuntime:: STUB_FIELD_NAME(name) = nullptr;
-C2_STUBS_DO(C2_BLOB_FIELD_DEFINE, C2_STUB_FIELD_DEFINE, C2_JVMTI_STUB_FIELD_DEFINE)
+C2_STUBS_DO(C2_BLOB_FIELD_DEFINE, C2_STUB_FIELD_DEFINE)
 #undef C2_BLOB_FIELD_DEFINE
 #undef C2_STUB_FIELD_DEFINE
-#undef C2_JVMTI_STUB_FIELD_DEFINE
 
 // This should be called in an assertion at the start of OptoRuntime routines
 // which are entered from compiled code (all of them)
@@ -153,24 +152,11 @@ static bool check_compiled_frame(JavaThread* thread) {
                   pass_retpc);                                        \
   if (C2_STUB_FIELD_NAME(name) == nullptr) { return false; }          \
 
-#define C2_JVMTI_STUB_C_FUNC(name) CAST_FROM_FN_PTR(address, SharedRuntime::name)
-
-#define GEN_C2_JVMTI_STUB(name)                                       \
-  STUB_FIELD_NAME(name) =                                             \
-    generate_stub(env,                                                \
-                  notify_jvmti_vthread_Type,                          \
-                  C2_JVMTI_STUB_C_FUNC(name),                         \
-                  C2_STUB_NAME(name),                                 \
-                  C2_STUB_ID(name),                                   \
-                  0,                                                  \
-                  true,                                               \
-                  false);                                             \
-  if (STUB_FIELD_NAME(name) == nullptr) { return false; }             \
-
 bool OptoRuntime::generate(ciEnv* env) {
 
-  C2_STUBS_DO(GEN_C2_BLOB, GEN_C2_STUB, GEN_C2_JVMTI_STUB)
-
+  C2_STUBS_DO(GEN_C2_BLOB, GEN_C2_STUB)
+  // disallow any further c2 stub generation
+  AOTCodeCache::set_c2_stubs_complete();
   return true;
 }
 
@@ -182,8 +168,6 @@ bool OptoRuntime::generate(ciEnv* env) {
 #undef C2_STUB_NAME
 #undef GEN_C2_STUB
 
-#undef C2_JVMTI_STUB_C_FUNC
-#undef GEN_C2_JVMTI_STUB
 // #undef gen
 
 const TypeFunc* OptoRuntime::_new_instance_Type                   = nullptr;
@@ -225,6 +209,7 @@ const TypeFunc* OptoRuntime::_digestBase_implCompress_without_sha3_Type   = null
 const TypeFunc* OptoRuntime::_digestBase_implCompressMB_with_sha3_Type    = nullptr;
 const TypeFunc* OptoRuntime::_digestBase_implCompressMB_without_sha3_Type = nullptr;
 const TypeFunc* OptoRuntime::_double_keccak_Type                  = nullptr;
+const TypeFunc* OptoRuntime::_quad_keccak_Type                    = nullptr;
 const TypeFunc* OptoRuntime::_multiplyToLen_Type                  = nullptr;
 const TypeFunc* OptoRuntime::_montgomeryMultiply_Type             = nullptr;
 const TypeFunc* OptoRuntime::_montgomerySquare_Type               = nullptr;
@@ -252,17 +237,17 @@ const TypeFunc* OptoRuntime::_string_IndexOf_Type                 = nullptr;
 const TypeFunc* OptoRuntime::_poly1305_processBlocks_Type         = nullptr;
 const TypeFunc* OptoRuntime::_intpoly_montgomeryMult_P256_Type    = nullptr;
 const TypeFunc* OptoRuntime::_intpoly_assign_Type                 = nullptr;
+const TypeFunc* OptoRuntime::_intpoly_mult_25519_Type             = nullptr;
+const TypeFunc* OptoRuntime::_intpoly_square_25519_Type           = nullptr;
 const TypeFunc* OptoRuntime::_updateBytesCRC32_Type               = nullptr;
 const TypeFunc* OptoRuntime::_updateBytesCRC32C_Type              = nullptr;
 const TypeFunc* OptoRuntime::_updateBytesAdler32_Type             = nullptr;
 const TypeFunc* OptoRuntime::_osr_end_Type                        = nullptr;
 const TypeFunc* OptoRuntime::_register_finalizer_Type             = nullptr;
+const TypeFunc* OptoRuntime::_vthread_transition_Type             = nullptr;
 #if INCLUDE_JFR
 const TypeFunc* OptoRuntime::_class_id_load_barrier_Type          = nullptr;
 #endif // INCLUDE_JFR
-#if INCLUDE_JVMTI
-const TypeFunc* OptoRuntime::_notify_jvmti_vthread_Type           = nullptr;
-#endif // INCLUDE_JVMTI
 const TypeFunc* OptoRuntime::_dtrace_method_entry_exit_Type       = nullptr;
 const TypeFunc* OptoRuntime::_dtrace_object_alloc_Type            = nullptr;
 
@@ -274,11 +259,10 @@ address OptoRuntime::generate_stub(ciEnv* env,
                                    bool return_pc) {
 
   // Matching the default directive, we currently have no method to match.
-  DirectiveSet* directive = DirectivesStack::getDefaultDirective(CompileBroker::compiler(CompLevel_full_optimization));
-  CompilationMemoryStatisticMark cmsm(directive);
+  CompilerDirectiveMatcher default_directive(CompileBroker::compiler(CompLevel_full_optimization));
+  CompilationMemoryStatisticMark cmsm(default_directive.directive_set());
   ResourceMark rm;
-  Compile C(env, gen, C_function, name, stub_id, is_fancy_jump, pass_tls, return_pc, directive);
-  DirectivesStack::release(directive);
+  Compile C(env, gen, C_function, name, stub_id, is_fancy_jump, pass_tls, return_pc, default_directive.directive_set());
   return  C.stub_entry_point();
 }
 
@@ -572,6 +556,26 @@ JRT_BLOCK_ENTRY(void, OptoRuntime::monitor_notifyAll_C(oopDesc* obj, JavaThread*
   JRT_BLOCK_END;
 JRT_END
 
+JRT_ENTRY(void, OptoRuntime::vthread_end_first_transition_C(oopDesc* vt, jboolean is_mount, JavaThread* current))
+  MountUnmountDisabler::end_transition(current, vt, true /*is_mount*/, true /*is_thread_start*/);
+JRT_END
+
+JRT_ENTRY(void, OptoRuntime::vthread_start_final_transition_C(oopDesc* vt, jboolean is_mount, JavaThread* current))
+  java_lang_Thread::set_is_in_vthread_transition(vt, false);
+  current->set_is_in_vthread_transition(false);
+  MountUnmountDisabler::start_transition(current, vt, false /*is_mount */, true /*is_thread_end*/);
+JRT_END
+
+JRT_ENTRY(void, OptoRuntime::vthread_start_transition_C(oopDesc* vt, jboolean is_mount, JavaThread* current))
+  java_lang_Thread::set_is_in_vthread_transition(vt, false);
+  current->set_is_in_vthread_transition(false);
+  MountUnmountDisabler::start_transition(current, vt, is_mount, false /*is_thread_end*/);
+JRT_END
+
+JRT_ENTRY(void, OptoRuntime::vthread_end_transition_C(oopDesc* vt, jboolean is_mount, JavaThread* current))
+  MountUnmountDisabler::end_transition(current, vt, is_mount, false /*is_thread_start*/);
+JRT_END
+
 static const TypeFunc* make_new_instance_Type() {
   // create input type (domain)
   const Type **fields = TypeTuple::fields(1);
@@ -587,8 +591,7 @@ static const TypeFunc* make_new_instance_Type() {
   return TypeFunc::make(domain, range);
 }
 
-#if INCLUDE_JVMTI
-static const TypeFunc* make_notify_jvmti_vthread_Type() {
+static const TypeFunc* make_vthread_transition_Type() {
   // create input type (domain)
   const Type **fields = TypeTuple::fields(2);
   fields[TypeFunc::Parms+0] = TypeInstPtr::NOTNULL; // VirtualThread oop
@@ -602,7 +605,6 @@ static const TypeFunc* make_notify_jvmti_vthread_Type() {
 
   return TypeFunc::make(domain,range);
 }
-#endif
 
 static const TypeFunc* make_athrow_Type() {
   // create input type (domain)
@@ -1222,6 +1224,26 @@ static const TypeFunc* make_double_keccak_Type() {
     return TypeFunc::make(domain, range);
 }
 
+static const TypeFunc* make_quad_keccak_Type() {
+    int argcnt = 4;
+
+    const Type** fields = TypeTuple::fields(argcnt);
+    int argp = TypeFunc::Parms;
+    fields[argp++] = TypePtr::NOTNULL;      // status0
+    fields[argp++] = TypePtr::NOTNULL;      // status1
+    fields[argp++] = TypePtr::NOTNULL;      // status2
+    fields[argp++] = TypePtr::NOTNULL;      // status3
+
+    assert(argp == TypeFunc::Parms + argcnt, "correct decoding");
+    const TypeTuple* domain = TypeTuple::make(TypeFunc::Parms + argcnt, fields);
+
+    // result type needed
+    fields = TypeTuple::fields(1);
+    fields[TypeFunc::Parms + 0] = TypeInt::INT;
+    const TypeTuple* range = TypeTuple::make(TypeFunc::Parms + 1, fields);
+    return TypeFunc::make(domain, range);
+}
+
 static const TypeFunc* make_multiplyToLen_Type() {
   // create input type (domain)
   int num_args      = 5;
@@ -1766,6 +1788,41 @@ static const TypeFunc* make_intpoly_assign_Type() {
   return TypeFunc::make(domain, range);
 }
 
+static const TypeFunc* make_intpoly_mult_25519_Type() {
+  int argcnt = 3;
+
+  const Type** fields = TypeTuple::fields(argcnt);
+  int argp = TypeFunc::Parms;
+  fields[argp++] = TypePtr::NOTNULL;    // a array
+  fields[argp++] = TypePtr::NOTNULL;    // b array
+  fields[argp++] = TypePtr::NOTNULL;    // r(esult) array
+  assert(argp == TypeFunc::Parms + argcnt, "correct decoding");
+  const TypeTuple* domain = TypeTuple::make(TypeFunc::Parms+argcnt, fields);
+
+  // result type needed
+  fields = TypeTuple::fields(1);
+  fields[TypeFunc::Parms + 0] = nullptr; // void
+  const TypeTuple* range = TypeTuple::make(TypeFunc::Parms, fields);
+  return TypeFunc::make(domain, range);
+}
+
+static const TypeFunc* make_intpoly_square_25519_Type() {
+  int argcnt = 2;
+
+  const Type** fields = TypeTuple::fields(argcnt);
+  int argp = TypeFunc::Parms;
+  fields[argp++] = TypePtr::NOTNULL;    // a array
+  fields[argp++] = TypePtr::NOTNULL;    // r(esult) array
+  assert(argp == TypeFunc::Parms + argcnt, "correct decoding");
+  const TypeTuple* domain = TypeTuple::make(TypeFunc::Parms+argcnt, fields);
+
+  // result type needed
+  fields = TypeTuple::fields(1);
+  fields[TypeFunc::Parms + 0] = nullptr; // void
+  const TypeTuple* range = TypeTuple::make(TypeFunc::Parms, fields);
+  return TypeFunc::make(domain, range);
+}
+
 //------------- Interpreter state for on stack replacement
 static const TypeFunc* make_osr_end_Type() {
   // create input type (domain)
@@ -1866,6 +1923,8 @@ JRT_ENTRY_NO_ASYNC(address, OptoRuntime::handle_exception_C_helper(JavaThread* c
   // The stack watermark barrier takes care of detecting that and ensuring the frame
   // has updated oops.
   StackWatermarkSet::after_unwind(current);
+
+  MACOS_AARCH64_ONLY(os::thread_wx_enable_write());
 
   // Do not confuse exception_oop with pending_exception. The exception_oop
   // is only used to pass arguments into the method. Not for general
@@ -2304,6 +2363,7 @@ void OptoRuntime::initialize_types() {
   _digestBase_implCompressMB_with_sha3_Type    = make_digestBase_implCompressMB_Type(/* is_sha3= */ true);
   _digestBase_implCompressMB_without_sha3_Type = make_digestBase_implCompressMB_Type(/* is_sha3= */ false);
   _double_keccak_Type                 = make_double_keccak_Type();
+  _quad_keccak_Type                   = make_quad_keccak_Type();
   _multiplyToLen_Type                 = make_multiplyToLen_Type();
   _montgomeryMultiply_Type            = make_montgomeryMultiply_Type();
   _montgomerySquare_Type              = make_montgomerySquare_Type();
@@ -2331,17 +2391,17 @@ void OptoRuntime::initialize_types() {
   _poly1305_processBlocks_Type        = make_poly1305_processBlocks_Type();
   _intpoly_montgomeryMult_P256_Type   = make_intpoly_montgomeryMult_P256_Type();
   _intpoly_assign_Type                = make_intpoly_assign_Type();
+  _intpoly_mult_25519_Type            = make_intpoly_mult_25519_Type();
+  _intpoly_square_25519_Type          = make_intpoly_square_25519_Type();
   _updateBytesCRC32_Type              = make_updateBytesCRC32_Type();
   _updateBytesCRC32C_Type             = make_updateBytesCRC32C_Type();
   _updateBytesAdler32_Type            = make_updateBytesAdler32_Type();
   _osr_end_Type                       = make_osr_end_Type();
   _register_finalizer_Type            = make_register_finalizer_Type();
+  _vthread_transition_Type            = make_vthread_transition_Type();
   JFR_ONLY(
     _class_id_load_barrier_Type       = make_class_id_load_barrier_Type();
   )
-#if INCLUDE_JVMTI
-  _notify_jvmti_vthread_Type          = make_notify_jvmti_vthread_Type();
-#endif // INCLUDE_JVMTI
   _dtrace_method_entry_exit_Type      = make_dtrace_method_entry_exit_Type();
   _dtrace_object_alloc_Type           = make_dtrace_object_alloc_Type();
 }

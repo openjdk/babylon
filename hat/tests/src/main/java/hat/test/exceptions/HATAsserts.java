@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,6 +42,9 @@ public class HATAsserts {
     }
 
     public static void assertEquals(String expected, String actual) {
+        if (expected == null || actual == null) {
+            throw new HATAssertionError("Null values are not allowed");
+        }
         if (!expected.equals(actual)) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
@@ -54,13 +57,15 @@ public class HATAsserts {
     }
 
     public static void assertEquals(float expected, float actual, float delta) {
-        if (Math.abs(expected - actual) > delta) {
+        float diff = Math.abs(expected - actual);
+        if (Float.isNaN(diff) || (diff > delta)) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
 
     public static void assertEquals(double expected, double actual, double delta) {
-        if (Math.abs(expected - actual) > delta) {
+        double diff = Math.abs(expected - actual);
+        if (Double.isNaN(diff) || (diff > delta)) {
             throw new HATAssertionError("Expected: " + expected + " != actual: " + actual);
         }
     }
@@ -68,24 +73,20 @@ public class HATAsserts {
     public static void assertEquals(Float4 expected, Float4 actual, float delta) {
         float[] arrayExpected = expected.toArray();
         float[] arrayActual = actual.toArray();
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < Float4.shape.lanes(); i++) {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
-            if (Math.abs(expectedValue - actualValue) > delta) {
-                throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
-            }
+            assertEquals(expectedValue, actualValue, delta);
         }
     }
 
     public static void assertEquals(Float2 expected, Float2 actual, float delta) {
         float[] arrayExpected = expected.toArray();
         float[] arrayActual = actual.toArray();
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < Float2.shape.lanes(); i++) {
             var expectedValue = arrayExpected[i];
             var actualValue = arrayActual[i];
-            if (Math.abs(expectedValue - actualValue) > delta) {
-                throw new HATAssertionError("Expected: " + expectedValue + " != actual: " + actualValue);
-            }
+            assertEquals(expectedValue, actualValue, delta);
         }
     }
 
@@ -100,4 +101,8 @@ public class HATAsserts {
             throw new HATAssertionError("Expected: " + isCorrect);
         }
     }
+
+    private HATAsserts() {
+    }
+
 }

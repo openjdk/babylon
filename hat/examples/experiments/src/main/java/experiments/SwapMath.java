@@ -26,6 +26,7 @@
 package experiments;
 
 
+import optkl.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 import optkl.Trxfmr;
 import static optkl.OpHelper.Invoke;
@@ -52,17 +53,17 @@ public class SwapMath {
                 .body(builder -> {// double rsqrt(double arg){return 1 / Math.sqrt(qrg)}
                    // var arg = builder.parameters().getFirst();
                     var argOp = CoreOp.var("arg", builder.parameters().getFirst());
-                    var arg = builder.op(argOp);
+                    var arg = builder.add(argOp);
 
                     // We can pass builder.parameters().getFirst() directly as arg below.  But then we don't know the name
                     var sqrtInvoke = JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathSqrt, arg);
-                    var _1f = builder.op(CoreOp.constant(JavaType.DOUBLE, 1.0));
+                    var _1f = builder.add(CoreOp.constant(JavaType.DOUBLE, 1.0));
 
-                    Op.Result invokeResult = builder.op(sqrtInvoke);
-                    Op.Result divResult = builder.op(
+                    Op.Result invokeResult = builder.add(sqrtInvoke);
+                    Op.Result divResult = builder.add(
                             JavaOp.div(_1f, invokeResult)
                     );
-                    builder.op(CoreOp.return_(divResult));
+                    builder.add(CoreOp.return_(divResult));
                 });
         var javaCodeBuilder = new JavaCodeBuilder<>(lookup,rsqrt);
         System.out.println(rsqrt.toText());
@@ -78,10 +79,10 @@ public class SwapMath {
                 var absStaticMethod = MethodRef.method(Math.class, "abs", double.class, double.class);
                 var absInvoke =  JavaOp.invoke(InvokeKind.STATIC, false, absStaticMethod.signature().returnType(), absStaticMethod,
                         builder.context().getValue(op.operands().get(0)));
-                var absResult= builder.op(absInvoke);
+                var absResult= builder.add(absInvoke);
                 builder.context().mapValue(op.result(), absResult);
             }else{
-                builder.op(op);
+                builder.add(op);
             }
             return builder;
         });
@@ -92,8 +93,9 @@ public class SwapMath {
 
 
         System.out.println("Now using txfmr--------------------------");
-        var newAbs =Trxfmr.of(lookup,rsqrt)
-                .transform("usingAbs", ce-> invoke(lookup,ce) instanceof Invoke.Static $
+        VarTable varTable = new VarTable(rsqrt.funcName());
+        var newAbs =Trxfmr.of(lookup, rsqrt)
+                .transform("usingAbs", varTable, ce-> invoke(lookup,ce) instanceof Invoke.Static $
                                 && $.named("sqrt")
                                 && $.returns(double.class)
                                 && $.receives(double.class)

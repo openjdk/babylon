@@ -181,7 +181,7 @@
 ///         void.class, Object.class);
 /// static Optional<String> isPrintConstantString(CodeElement<?, ?> e) {
 ///     if (e instanceof InvokeOp i && // @link substring="InvokeOp" target="jdk.incubator.code.dialect.java.JavaOp.InvokeOp"
-///             i.invokeDescriptor().equals(PRINTLN) &&
+///             i.invokeReference().equals(PRINTLN) &&
 ///             i.operands().get(0).declaringElement() instanceof ConstantOp cop && // @link substring="ConstantOp" target="jdk.incubator.code.dialect.core.CoreOp.ConstantOp"
 ///             cop.value() instanceof String s) {
 ///         return Optional.of(s);
@@ -259,7 +259,6 @@
 ///}
 ///
 /// ## <a id="code-models-heading"/>Code models
-///
 ///
 /// A code model is an _immutable_ instance of data structures that can, in general, model many kinds of code, be it
 /// Java code or foreign code. It has some properties like an Abstract Syntax Tree ([AST][AST]) used by a source
@@ -434,21 +433,21 @@
 ///
 ///         // int a
 ///         VarOp varOpA = var("a", builder.parameters().get(0)); // @link substring="var(" target="jdk.incubator.code.dialect.core.CoreOp#var"
-///         Op.Result varA = builder.op(varOpA); // @link substring="builder.op(" target="jdk.incubator.code.Block.Builder#op"
+///         Op.Result varA = builder.add(varOpA); // @link substring="builder.add(" target="jdk.incubator.code.Block.Builder#add"
 ///
 ///         // int b
 ///         VarOp varOpB = var("b", builder.parameters().get(1));
-///         Op.Result varB = builder.op(varOpB);
+///         Op.Result varB = builder.add(varOpB);
 ///
 ///         // IO.println("Example:method:add")
-///         builder.op(invoke(PRINTLN, // // @link substring="invoke(" target="jdk.incubator.code.dialect.java.JavaOp#invoke"
-///                 builder.op(constant(JavaType.J_L_STRING, "Example:method:add"))));
+///         builder.add(invoke(PRINTLN, // // @link substring="invoke(" target="jdk.incubator.code.dialect.java.JavaOp#invoke"
+///                 builder.add(constant(JavaType.J_L_STRING, "Example:method:add"))));
 ///
 ///         // return a + b;
-///         builder.op(return_(
-///                 builder.op(add( // @link substring="add(" target="jdk.incubator.code.dialect.java.JavaOp#add"
-///                         builder.op(varLoad(varA)),
-///                         builder.op(varLoad(varB))))));
+///         builder.add(return_(
+///                 builder.add(add( // @link substring="add(" target="jdk.incubator.code.dialect.java.JavaOp#add"
+///                         builder.add(varLoad(varA)),
+///                         builder.add(varLoad(varB))))));
 ///     });
 /// IO.println(builtCodeModel.toText());
 ///}
@@ -471,14 +470,16 @@
 /// run time uses it to produce models that are accessed. Instead, we anticipate many users will build parts of models
 /// when they transform them.
 ///
-/// ## <a id="transforming-heading"/> Transforming
+/// ## <a id="transforming-heading"/>Transforming
 ///
 /// Code reflection supports the transformation of code models by combining traversing and building. A code model
-/// transformation is represented by a function that takes an operation, encountered in the (input) model being
-/// transformed, and a code model builder for the resulting transformed (output) model, and mediates how, if at all,
-/// that operation is transformed into other code elements that are built. We were inspired by the functional
-/// [transformation][cf-transformation] approach devised by the Class-File API and adapted that design to work on the
-/// nested structure of code models that are immutable trees of code elements.
+/// transformation is represented by a [CodeTransformer][jdk.incubator.code.CodeTransformer] that accepts input bodies,
+/// blocks, and operations while building an output code model with block builders. During transformation, a block
+/// builder may serve as the current output block builder. A transformer emits output operations by appending operations
+/// with output block builders, and emits output blocks by creating block builders for those blocks and appending
+/// operations using those builders. We were inspired by the functional [transformation][cf-transformation] approach
+/// devised by the Class-File API and adapted that design to work on the nested structure of code models that are
+/// immutable trees of code elements.
 ///
 /// [cf-transformation]: https://openjdk.org/jeps/484#Transforming-class-files
 ///
@@ -503,16 +504,17 @@
 ///}
 ///
 /// The code transformation function, passed as lambda expression to
-/// [CodeTransformer.opTransformer][jdk.incubator.code.CodeTransformer#opTransformer], accepts as parameters a block
-/// builder function, `builder`, an operation encountered when traversing the input code model, `inputOp`, and a list of
-/// values in the output model being built that are associated with input operation’s operands, `outputOperands`. We
-/// must have previously encountered and transformed the input operations whose results are associated with those
-/// values, since values can only be used after they have been declared.
+/// [CodeTransformer.opTransformer][jdk.incubator.code.CodeTransformer#opTransformer], accepts as parameters a
+/// operation-building function, `builder`, an operation encountered when traversing the input code model, `inputOp`,
+/// and `outputOperands`, a list with one entry for each input operation operand. Each entry is the output value
+/// currently mapped from the corresponding input operand, or `null` if no output value is mapped. In this example, the
+/// input operations that produce operands of the matched `add` operation have already been encountered and copied, so
+/// the corresponding output operands are mapped before the `add` operation is transformed.
 ///
 /// In the code transformer we switch over the input operation, and in this case we just match on `add` operation and
-/// by default any other operation. In the latter case we apply the input operation to the builder function, which
-/// creates a new output operation that is a copy of the input operation, appends the new operation to the block being
-/// built, and associates the new operation’s result with the input operation’s result. When we match on an `add`
+/// by default any other operation. In the latter case we apply the input operation to the operation-building function,
+/// which creates a new output operation that is a copy of the input operation, appends the new operation to the block
+/// being built, and associates the new operation’s result with the input operation’s result. When we match on an `add`
 /// operation we replace it by building part of a code model, a method `invoke` operation to the `Integer.sum` method
 /// constructed with the given output operands. The result of the output `invoke` operation is automatically associated
 /// with the result of the input `add` operation.
@@ -566,13 +568,13 @@
 ///             // Get output operands mapped to input op's operands
 ///             List<Value> outputOperands = builder.context().getValues(inputOp.operands());
 ///
-///             Op.Result r = builder.op(invoke(SUM, outputOperands));
+///             Op.Result r = builder.add(invoke(SUM, outputOperands));
 ///
 ///             // Map input op's result to output result of invocation operation
 ///             builder.context().mapValue(inputOp.result(), r);
 ///         }
 ///         // Copy operation
-///         default -> builder.op(inputOp);
+///         default -> builder.add(inputOp);
 ///     }
 ///     // Return the block builder to continue building from for next operation
 ///     return builder;
@@ -594,6 +596,12 @@
 /// model. However, in general, code transformers are not required to preserve program behavior and some will
 /// intentionally not do so as they may transform into a different output programming domain that partially maps from
 /// the input programming domain.
+///
+/// ## Thread safety
+///
+/// The processes of building and transforming code models are not thread-safe. Unless otherwise specified, objects used
+/// to build and transform code models are not thread-safe. Built code models are immutable and may be safely queried
+/// concurrently by multiple threads.
 ///
 /// ## Code model structure
 ///
@@ -708,15 +716,17 @@
 ///
 /// If the selected operation is a non-terminating operation then the non-terminating operation is executed:
 ///
-/// - If execution of the operation produces an operation result effect then the next operation becomes the selected
-/// operation, and the current environment is updated by binding the operation's result to the effect's run time value.
-/// Execution of the selected operation then proceeds as previously described.
+/// - If execution of the operation completes normally it produces an operation result effect. The next operation
+/// becomes the selected operation, and the current environment is updated by binding the operation's result to the
+/// effect's run time value. Execution of the selected operation then proceeds as previously described.
 ///
-/// - If execution of the operation produces a terminating operation effect then execution of the block completes and
-/// it produces that effect (passing the effect to execution of the parent body, which in turn passes the effect to the
-/// execution of the parent operation, and which may result in execution completing abruptly).
+/// - If execution of the operation completes abruptly it produces a terminating operation effect. The current
+/// environment is queried with the operation and the terminating operation effect to produce a block effect, and
+/// execution of the block completes abruptly with that block effect (passing the effect to execution of the parent
+/// body). When queried the environment will, according to the operation's specified behavior, return the terminating
+/// operation effect it was given or translate it to a successor effect.
 ///
-/// If the selected operation is a terminating operation then the terminating operation is executed, producing an
+/// If the selected operation is a terminating operation then the terminating operation is executed, producing a block
 /// effect, and execution of the block completes with that effect (passing the effect to execution of the parent body).
 ///
 /// ### Implementing code model behavior
@@ -732,6 +742,7 @@
 ///     Env bind(Value symbolicValue, Object runtimeValue);
 ///     List<Object> valuesOf(List<? extends Value> symbolicValues);
 ///     Object valueOf(Value symbolicValue);
+///     BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff);
 /// }
 /// }
 ///
@@ -788,11 +799,12 @@
 ///         switch (executeOp(op, e)) {
 ///             // operation completed normally, pass control to next operation
 ///             case OpResultEffect eff -> e = e.bind(op.result(), eff.result);
-///             // operation completed abruptly, pass control to parent body
-///             case TerminatingOpEffect eff -> { return eff; }
+///             // operation completed abruptly, pass control to parent body or a sibling block
+///             case TerminatingOpEffect eff -> { return e.onAbruptCompletion(op, eff); }
 ///         }
 ///     }
 ///
+///     // pass control to parent body or a sibling block
 ///     return executeTerminatingOp((Op & Op.Terminating) op, e);
 /// }
 /// }

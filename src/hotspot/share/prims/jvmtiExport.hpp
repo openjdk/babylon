@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -320,6 +320,9 @@ class JvmtiExport : public AllStatic {
   static void expose_single_stepping(JvmtiThreadState* state) NOT_JVMTI_RETURN;
   static JvmtiThreadState* hide_single_stepping(JavaThread *thread) NOT_JVMTI_RETURN_(nullptr);
 
+  // frame pop management
+  static bool has_frame_pop_for_top_frame(JavaThread *current);
+
   // Methods that notify the debugger that something interesting has happened in the VM.
   static void post_early_vm_start        () NOT_JVMTI_RETURN;
   static void post_vm_start              () NOT_JVMTI_RETURN;
@@ -585,29 +588,12 @@ class JvmtiSampledObjectAllocEventCollector : public JvmtiObjectAllocEventCollec
   static bool object_alloc_is_safe_to_sample() NOT_JVMTI_RETURN_(false);
 };
 
-// Marker class to disable the posting of VMObjectAlloc events
-// within its scope.
-//
-// Usage :-
-//
-// {
-//   NoJvmtiVMObjectAllocMark njm;
-//   :
-//   // VMObjAlloc event will not be posted
-//   JvmtiExport::vm_object_alloc_event_collector(obj);
-//   :
-// }
-
-class NoJvmtiVMObjectAllocMark : public StackObj {
- private:
-  // enclosing collector if enabled, null otherwise
-  JvmtiVMObjectAllocEventCollector *_collector;
-
-  bool was_enabled()    { return _collector != nullptr; }
+// Marker class to temporary disable posting of jvmti events.
+class NoJvmtiEventsMark : public StackObj {
 
  public:
-  NoJvmtiVMObjectAllocMark() NOT_JVMTI_RETURN;
-  ~NoJvmtiVMObjectAllocMark() NOT_JVMTI_RETURN;
+  NoJvmtiEventsMark() NOT_JVMTI_RETURN;
+  ~NoJvmtiEventsMark() NOT_JVMTI_RETURN;
 };
 
 

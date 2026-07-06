@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,8 +36,11 @@ import jdk.incubator.code.internal.OpDeclaration;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static jdk.incubator.code.internal.StructuralPreconditions.*;
 
 /**
  * The top-level operation class for core operations.
@@ -87,18 +90,18 @@ public sealed abstract class CoreOp extends Op {
          * A builder for constructing a function operation.
          */
         public static class Builder {
-            final Body.Builder ancestorBody;
+            final Body.Builder connectedAncestorBody;
             final MethodRef source;
 
-            Builder(Body.Builder ancestorBody, String funcName, FunctionType signature) {
-                this.ancestorBody = ancestorBody;
+            Builder(Body.Builder connectedAncestorBody, String funcName, FunctionType signature) {
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.source = MethodRef.method(JavaType.VOID, funcName, signature);
             }
 
-            Builder(Body.Builder ancestorBody, MethodRef source) {
+            Builder(Body.Builder connectedAncestorBody, MethodRef source) {
                 Objects.requireNonNull(source, "func source can't be null");
 
-                this.ancestorBody = ancestorBody;
+                this.connectedAncestorBody = connectedAncestorBody;
                 this.source = source;
             }
 
@@ -109,7 +112,7 @@ public sealed abstract class CoreOp extends Op {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, source.signature());
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, source.signature());
                 c.accept(body.entryBlock());
                 if (source.refType().equals(JavaType.VOID)) {
                     return new FuncOp(source.name(), body);
@@ -131,24 +134,16 @@ public sealed abstract class CoreOp extends Op {
         final MethodRef source;
 
         FuncOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty() || def.bodyDefinitions().size() != 1) {
-                throw new IllegalStateException("Bad op " + def.name());
+            requireNoOperands(def);
+            Body.Builder body = requireSingleBody(def);
+            Optional<MethodRef> optSource = optionalAttribute(def, ATTRIBUTE_FUNC_SOURCE, false, MethodRef.class);
+            MethodRef source;
+            if (optSource.isEmpty()) {
+                String fn = requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class);
+                source = MethodRef.method(JavaType.VOID, fn, body.bodySignature());
+            } else {
+                source = optSource.get();
             }
-
-            Body.Builder body = def.bodyDefinitions().getFirst();
-            MethodRef source = def.extractAttributeValue(ATTRIBUTE_FUNC_SOURCE, false,
-                    v -> switch (v) {
-                        case MethodRef mr -> mr;
-                        case null -> {
-                            String fn = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                                    u -> switch (u) {
-                                        case String s -> s;
-                                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + u);
-                                    });
-                            yield MethodRef.method(JavaType.VOID, fn, body.bodySignature());
-                        }
-                        default -> throw new UnsupportedOperationException("Unsupported func source:" + v);
-                    });
 
             this(source, body);
         }
@@ -260,9 +255,9 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
-            b.rebind(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).add(this);
             return b;
         }
 
@@ -304,13 +299,7 @@ public sealed abstract class CoreOp extends Op {
         final CodeType resultType;
 
         FuncCallOp(ExternalizedOp def) {
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
-
-            this(funcName, def.resultType(), def.operands());
+            this(requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class), def.resultType(), def.operands());
         }
 
         FuncCallOp(FuncCallOp that, CodeContext cc) {
@@ -371,11 +360,8 @@ public sealed abstract class CoreOp extends Op {
         final Body body;
 
         ModuleOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
-                throw new IllegalStateException("Bad op " + def.name());
-            }
-
-            this(def.bodyDefinitions().get(0));
+            requireNoOperands(def);
+            this(requireSingleBody(def));
         }
 
         ModuleOp(ModuleOp that, CodeContext cc, CodeTransformer ct) {
@@ -423,9 +409,9 @@ public sealed abstract class CoreOp extends Op {
             Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
             for (FuncOp f : functions) {
-                entryBlock.op(f);
+                entryBlock.add(f);
             }
-            entryBlock.op(CoreOp.unreachable());
+            entryBlock.add(CoreOp.unreachable());
 
             this(bodyC);
         }
@@ -448,8 +434,8 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
-            b.rebind(b.context(), CodeTransformer.LOWERING_TRANSFORMER).op(this);
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
+            b.withContextAndTransformer(b.context(), CodeTransformer.LOWERING_TRANSFORMER).add(this);
             return b;
         }
 
@@ -511,7 +497,7 @@ public sealed abstract class CoreOp extends Op {
                             calledFuncs.add(calledFunc);
                             funcNames.computeIfAbsent(calledFunc,
                                     f -> f.funcName() + "_" + funcNames.size());
-                            Op.Result result = blockBuilder.op(CoreOp.funcCall(
+                            Op.Result result = blockBuilder.add(CoreOp.funcCall(
                                     funcNames.get(calledFunc),
                                     calledFunc.invokableSignature(),
                                     blockBuilder.context().getValues(iop.operands())));
@@ -519,7 +505,7 @@ public sealed abstract class CoreOp extends Op {
                             return blockBuilder;
                         }
                     }
-                    blockBuilder.op(op);
+                    blockBuilder.add(op);
                     return blockBuilder;
                 }));
 
@@ -590,7 +576,8 @@ public sealed abstract class CoreOp extends Op {
         final Op quotedOp;
 
         QuotedOp(ExternalizedOp def) {
-            this(def.bodyDefinitions().get(0));
+            requireNoOperands(def);
+            this(requireSingleBody(def));
         }
 
         QuotedOp(QuotedOp that, CodeContext cc, CodeTransformer ct) {
@@ -625,10 +612,10 @@ public sealed abstract class CoreOp extends Op {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.rebind(b.context(), CodeTransformer.COPYING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER).add(this);
             return b;
         }
 
@@ -638,14 +625,14 @@ public sealed abstract class CoreOp extends Op {
         }
 
         private Op getQuotedOp(Body quotedBody) {
-            if (quotedBody.blocks().size() > 1) {
-                throw new IllegalArgumentException();
+            if (quotedBody.blocks().size() != 1) {
+                throw structuralException(NAME, "quoted body requires single block, found %d".formatted(quotedBody.blocks().size()));
             }
             if (!(quotedBody.entryBlock().terminatingOp() instanceof YieldOp yop)) {
-                throw new IllegalArgumentException();
+                throw structuralException(NAME, "quoted body requires yield terminal operation, found %s".formatted(quotedBody.entryBlock().terminatingOp()));
             }
             if (!(yop.yieldValue() instanceof Result r)) {
-                throw new IllegalArgumentException();
+                throw structuralException(NAME, "quoted body yield value requires to be an operation result, found %s".formatted(yop.yieldValue()));
             }
             return r.op();
         }
@@ -665,11 +652,8 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "return";
 
         ReturnOp(ExternalizedOp def) {
-            if (def.operands().size() > 1) {
-                throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
-            }
-
-            this(def.operands().isEmpty() ? null : def.operands().get(0));
+            List<Value> operands = requireOperands(def, 0, 1);
+            this(operands.isEmpty() ? null : operands.getFirst());
         }
 
         ReturnOp(ReturnOp that, CodeContext cc) {
@@ -718,10 +702,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "unreachable";
 
         UnreachableOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
-                throw new IllegalArgumentException("Operation must zero operands " + def.name());
-            }
-
+            requireNoOperands(def);
             this();
         }
 
@@ -758,11 +739,7 @@ public sealed abstract class CoreOp extends Op {
         static final String NAME = "yield";
 
         YieldOp(ExternalizedOp def) {
-            if (def.operands().size() > 1) {
-                throw new IllegalArgumentException("Operation must have zero or one operand " + def.name());
-            }
-
-            this(def.operands());
+            this(requireOperands(def, 0, 1));
         }
 
         YieldOp(YieldOp that, CodeContext cc) {
@@ -816,11 +793,8 @@ public sealed abstract class CoreOp extends Op {
         final Block.Reference branch;
 
         BranchOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty() || def.successors().size() != 1) {
-                throw new IllegalArgumentException("Operation must have zero arguments and one successor" + def.name());
-            }
-
-            this(def.successors().get(0));
+            requireNoOperands(def);
+            this(requireSingleSuccessor(def));
         }
 
         BranchOp(BranchOp that, CodeContext cc) {
@@ -878,11 +852,8 @@ public sealed abstract class CoreOp extends Op {
         final Block.Reference falseBranch;
 
         ConditionalBranchOp(ExternalizedOp def) {
-            if (def.operands().size() != 1 || def.successors().size() != 2) {
-                throw new IllegalArgumentException("Operation must one operand and two successors" + def.name());
-            }
-
-            this(def.operands().getFirst(), def.successors().get(0), def.successors().get(1));
+            List<Block.Reference> succ = requireSuccessors(def, 2);
+            this(requireSingleOperand(def), succ.get(0), succ.get(1));
         }
 
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
@@ -959,17 +930,12 @@ public sealed abstract class CoreOp extends Op {
         final CodeType resultType;
 
         ConstantOp(ExternalizedOp def) {
-            if (!def.operands().isEmpty()) {
-                throw new IllegalArgumentException("Operation must have zero operands");
-            }
-
-            Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE, true,
-                    v -> processConstantValue(def.resultType(), v));
-
-            this(def.resultType(), value);
+            requireNoOperands(def);
+            Object v = requireAttribute(def, ATTRIBUTE_CONSTANT_VALUE, true);
+            this(def.resultType(), processConstantValue(def, def.resultType(), v));
         }
 
-        static Object processConstantValue(CodeType t, Object value) {
+        static Object processConstantValue(ExternalizedOp def, CodeType t, Object value) {
             if (t.equals(JavaType.BOOLEAN) && value instanceof Boolean) {
                 return value;
             } else if (t.equals(JavaType.BYTE) && value instanceof Number n) {
@@ -995,8 +961,7 @@ public sealed abstract class CoreOp extends Op {
             } else if (value == ExternalizedOp.NULL_ATTRIBUTE_VALUE) {
                 return null; // null constant
             }
-
-            throw new UnsupportedOperationException("Unsupported constant type and value: " + t + " " + value);
+            throw unsupportedAttributeValueException(def, ATTRIBUTE_CONSTANT_VALUE, value);
         }
 
         ConstantOp(ConstantOp that, CodeContext cc) {
@@ -1091,22 +1056,13 @@ public sealed abstract class CoreOp extends Op {
         final VarType resultType;
 
         VarOp(ExternalizedOp def) {
-            if (def.operands().size() > 1) {
-                throw new IllegalStateException("Operation must have zero or one operand");
-            }
-
-            String name = def.extractAttributeValue(ATTRIBUTE_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null -> "";
-                        default -> throw new UnsupportedOperationException("Unsupported var name value:" + v);
-                    });
-
             // @@@ Cannot use canonical constructor because type is wrapped
-            super(def.operands());
-
-            this.varName = name;
-            this.resultType = (VarType) def.resultType();
+            super(requireOperands(def, 0, 1));
+            this.varName = optionalAttribute(def, ATTRIBUTE_NAME, true, String.class).orElse("");
+            if (!(def.resultType() instanceof VarType vt)) {
+                throw structuralException(def.name(), "invalid result type: " + def.resultType());
+            }
+            this.resultType = vt;
         }
 
         VarOp(VarOp that, CodeContext cc) {
@@ -1232,9 +1188,9 @@ public sealed abstract class CoreOp extends Op {
             return (VarOp) varValue.op();
         }
 
-        static void checkIsVarOp(Value varValue) {
+        static void requireVarOp(String opName, Value varValue) {
             if (!(varValue.type() instanceof VarType)) {
-                throw new IllegalArgumentException("Value's type is not a variable type: " + varValue);
+                throw structuralException(opName, "value's type is not a variable type: " + varValue);
             }
         }
 
@@ -1254,12 +1210,9 @@ public sealed abstract class CoreOp extends Op {
             static final String NAME = "var.load";
 
             VarLoadOp(ExternalizedOp opdef) {
-                if (opdef.operands().size() != 1) {
-                    throw new IllegalArgumentException("Operation must have one operand");
-                }
-                checkIsVarOp(opdef.operands().get(0));
-
-                this(opdef.operands().get(0));
+                Value varValue = requireSingleOperand(opdef);
+                requireVarOp(opdef.name(), varValue);
+                this(varValue);
             }
 
             VarLoadOp(VarLoadOp that, CodeContext cc) {
@@ -1273,6 +1226,7 @@ public sealed abstract class CoreOp extends Op {
 
             // (Variable)VarType
             VarLoadOp(Value varValue) {
+                requireVarOp(NAME, varValue);
                 super(List.of(varValue));
             }
 
@@ -1298,20 +1252,13 @@ public sealed abstract class CoreOp extends Op {
             static final String NAME = "var.store";
 
             VarStoreOp(ExternalizedOp opdef) {
-                if (opdef.operands().size() != 2) {
-                    throw new IllegalArgumentException("Operation must have two operands");
-                }
-                checkIsVarOp(opdef.operands().get(0));
-
-                this(opdef.operands().get(0), opdef.operands().get(1));
+                List<Value> operands = requireOperands(opdef, 2);
+                requireVarOp(opdef.name(), operands.getFirst());
+                super(operands);
             }
 
             VarStoreOp(VarStoreOp that, CodeContext cc) {
                 super(that, cc);
-            }
-
-            VarStoreOp(List<Value> values) {
-                super(values);
             }
 
             @Override
@@ -1321,6 +1268,7 @@ public sealed abstract class CoreOp extends Op {
 
             // (Variable, VarType)void
             VarStoreOp(Value varValue, Value v) {
+                requireVarOp(NAME, varValue);
                 super(List.of(varValue, v));
             }
 
@@ -1400,17 +1348,7 @@ public sealed abstract class CoreOp extends Op {
         final int index;
 
         TupleLoadOp(ExternalizedOp def) {
-            if (def.operands().size() != 1) {
-                throw new IllegalStateException("Operation must have one operand");
-            }
-
-            int index = def.extractAttributeValue(ATTRIBUTE_INDEX, true,
-                    v -> switch (v) {
-                        case Integer i -> i;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
-                    });
-
-            this(def.operands().get(0), index);
+            this(requireSingleOperand(def), requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class));
         }
 
         TupleLoadOp(TupleLoadOp that, CodeContext cc) {
@@ -1425,8 +1363,11 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleLoadOp(Value tupleValue, int index) {
+            if (!(tupleValue.type() instanceof TupleType tt)) {
+                throw structuralException(NAME, "requires tuple value type, found %s".formatted(tupleValue.type()));
+            }
+            Objects.checkIndex(index, tt.componentTypes().size());
             super(List.of(tupleValue));
-
             this.index = index;
         }
 
@@ -1480,17 +1421,8 @@ public sealed abstract class CoreOp extends Op {
         final int index;
 
         TupleWithOp(ExternalizedOp def) {
-            if (def.operands().size() != 2) {
-                throw new IllegalStateException("Operation must have two operands");
-            }
-
-            int index = def.extractAttributeValue(ATTRIBUTE_INDEX, true,
-                    v -> switch (v) {
-                        case Integer i -> i;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported tuple index value:" + v);
-                    });
-
-            this(def.operands().get(0), index, def.operands().get(1));
+            List<Value> operands = requireOperands(def, 2);
+            this(operands.get(0), requireAttribute(def, ATTRIBUTE_INDEX, true, Integer.class), operands.get(1));
         }
 
         TupleWithOp(TupleWithOp that, CodeContext cc) {
@@ -1505,9 +1437,11 @@ public sealed abstract class CoreOp extends Op {
         }
 
         TupleWithOp(Value tupleValue, int index, Value value) {
+            if (!(tupleValue.type() instanceof TupleType tt)) {
+                throw structuralException(NAME, "requires tuple value type, found %s".formatted(tupleValue.type()));
+            }
+            Objects.checkIndex(index, tt.componentTypes().size());
             super(List.of(tupleValue, value));
-
-            // @@@ Validate tuple type and index
             this.index = index;
         }
 
@@ -1700,17 +1634,18 @@ public sealed abstract class CoreOp extends Op {
     /**
      * Creates a quoted operation.
      *
-     * @param ancestorBody the nearest ancestor body builder from which to construct
-     *                     the body builder for this operation
-     * @param opFunc       a function that accepts a builder for the quoted operation body and returns the operation to be quoted
+     * @param connectedAncestorBody the nearest ancestor body builder to which body builders for this operation are
+     *                              connected, or {@code null} if they are isolated
+     * @param opFunc                a function that accepts a builder for the quoted operation body and returns the
+     *                              operation to be quoted
      * @return the quoted operation
      */
-    public static QuotedOp quoted(Body.Builder ancestorBody,
+    public static QuotedOp quoted(Body.Builder connectedAncestorBody,
                                   Function<Block.Builder, Op> opFunc) {
-        Body.Builder body = Body.Builder.of(ancestorBody, CoreType.FUNCTION_TYPE_VOID);
+        Body.Builder body = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
         Block.Builder block = body.entryBlock();
-        block.op(core_yield(
-                block.op(opFunc.apply(block))));
+        block.add(core_yield(
+                block.add(opFunc.apply(block))));
         return new QuotedOp(body);
     }
 

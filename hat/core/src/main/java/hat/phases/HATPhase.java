@@ -25,10 +25,11 @@
 package hat.phases;
 
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 
 public sealed interface HATPhase
-        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATTensorsPhase, HATThreadsPhase, HATVectorPhase, HATVectorSelectPhase, HATVectorStorePhase, HATWarpSizePhase {
-    CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp);
+        permits HATArrayViewPhase, HATBarrierPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATTensorsPhase, HATThreadsPhase, HATVectorPhase, HATWarpSizePhase {
+    CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable);
 }

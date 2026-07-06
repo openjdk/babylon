@@ -70,24 +70,8 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
             case "bsy" -> new HATThreadOp.HAT_BS.HAT_BSY();
             case "bsz" -> new HATThreadOp.HAT_BS.HAT_BSZ();
             case "wrs" -> new HATThreadOp.HAT_WARP_SIZE();
-            default -> throw new RuntimeException("[ERROR] Illegal/unsupported parallel construct: " + name);
+            default -> throw new IllegalStateException("[ERROR] Illegal/unsupported parallel construct: " + name);
         };
-    }
-
-    public static final class HAT_WARP_SIZE extends HATThreadOp {
-
-        public HAT_WARP_SIZE() {
-            super(List.of());
-        }
-
-        public HAT_WARP_SIZE(HAT_WARP_SIZE op, CodeContext codeContext) {
-            super(op, codeContext);
-        }
-
-        @Override
-        public Op transform(CodeContext codeContext, CodeTransformer codeTransformer) {
-            return new HAT_WARP_SIZE(this, codeContext);
-        }
     }
 
     public abstract static sealed class HAT_LI extends HATThreadOp {
@@ -427,6 +411,21 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
                 return new HAT_GSZ(this, copyContext);
             }
         }
+    }
 
+    public static final class HAT_WARP_SIZE extends HATThreadOp {
+
+        public HAT_WARP_SIZE() {
+            super(List.of());
+        }
+
+        public HAT_WARP_SIZE(HAT_WARP_SIZE op, CodeContext codeContext) {
+            super(op, codeContext);
+        }
+
+        @Override
+        public Op transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new HAT_WARP_SIZE(this, codeContext);
+        }
     }
 }

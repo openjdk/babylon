@@ -51,11 +51,17 @@ import static optkl.ifacemapper.MappableIface.RO;
 import static optkl.ifacemapper.MappableIface.WO;
 
 /**
- * Check tensor operations in HAT. How to run?
+ * Test tensor operations in HAT.
  *
- * <p>
+ * <p>How to run?</p>
+ * <p>For the CUDA backend:
  * <code>
  * HAT=SHOW_CODE java -cp hat/job.jar hat.java test ffi-cuda hat.test.TestTensors
+ * </code>
+ * </p>
+ *
+ * <p>For the OpenCL backend:
+ * <code>
  * HAT=SHOW_CODE java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTensors
  * </code>
  * </p>
@@ -65,9 +71,10 @@ public class TestTensors {
 
     @Reflect
     public static void mxmTensorsColumnMajor(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
-        final int WMMA_M = 16;
-        final int WMMA_N = 16;
-        final int WMMA_K = 16;
+        final int SHAPE = 16;
+        final int WMMA_M = SHAPE;
+        final int WMMA_N = SHAPE;
+        final int WMMA_K = SHAPE;
         int warpM = kc.gix / kc.wrs;
         int warpN = kc.giy;
 
@@ -75,31 +82,37 @@ public class TestTensors {
         final int ldb = 1024;
         final int ldc = 1024;
 
-        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
-        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
-        Tensor acc = Tensor.create(Tensor.ACC, Tensor.shape(16, 16, 16), float.class);
+        var shape = Tensor.shape(WMMA_M, WMMA_N, WMMA_K);
 
-        Tensor.fill(acc, 0.0f);
+        // Initialize a tensor accumulator with zeros
+        Tensor acc = Tensor.zeros(shape, float.class);
 
         for (int i = 0; i < size; i += WMMA_K) {
             int aRow = warpM * WMMA_M;
             int aCol = i;
-
             int bRow = i;
             int bCol = warpN * WMMA_N;
 
             if (aRow < lda && aCol < lda && bRow < ldb && bCol < ldb) {
+                // Load data from matrix A with the specified shape using column-major into a tensor of FP16
+                Tensor tensorA = Tensor.loadF16(matrixA, aRow, aCol, lda, shape, Tensor.ofColumnMajor());
 
-                tensorA = Tensor.load(matrixA, aRow, aCol, lda);
-                tensorB = Tensor.load(matrixB, bRow, bCol, ldb);
+                // Load data from matrix B with the specified shape using column-major into a tensor of FP16
+                Tensor tensorB = Tensor.loadF16(matrixB, bRow, bCol, ldb, shape, Tensor.ofColumnMajor());
 
+                // Perform the MMA operation:
                 // acc = tensorA * tensorB + acc
-                Tensor.mma(acc, tensorA, tensorB, acc);
+                acc = Tensor.mma(tensorA, tensorB, acc);
             }
         }
         int cRow = warpM * WMMA_M;
         int cCol = warpN * WMMA_N;
-        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+
+        // Store the resulting tensor into main memory using column-major layout.
+        if (cRow < size && cCol < size) {
+            // We operate with square matrices
+            Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+        }
     }
 
     @Reflect
@@ -119,6 +132,7 @@ public class TestTensors {
 
     @Reflect
     public static void mxmTensorsRowColumnMajor(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
@@ -129,31 +143,28 @@ public class TestTensors {
         final int ldb = 1024;
         final int ldc = 1024;
 
-        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.shape(16, 16, 16), F16.class, Tensor.ofRowMajor());
-        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.shape(16, 16, 16), F16.class, Tensor.ofColumnMajor());
-        Tensor acc = Tensor.create(Tensor.ACC, Tensor.shape(16, 16, 16), float.class);
+        // We keep explicit constant in this version to check shape with ConstantOp
+        Tensor acc = Tensor.create(Tensor.shape(16, 16, 16), float.class);
 
         Tensor.fill(acc, 0.0f);
 
         for (int i = 0; i < size; i += WMMA_K) {
             int aRow = warpM * WMMA_M;
             int aCol = i;
-
             int bRow = i;
             int bCol = warpN * WMMA_N;
-
             if (aRow < lda && aCol < lda && bRow < ldb && bCol < ldb) {
-
-                tensorA = Tensor.load(matrixA, aRow, aCol, lda);
-                tensorB = Tensor.load(matrixB, bRow, bCol, ldb);
-
-                // acc = tensorA * tensorB + acc
-                Tensor.mma(acc, tensorA, tensorB, acc);
+                Tensor tensorA = Tensor.loadF16(matrixA, aRow, aCol, lda, Tensor.shape(16, 16, 16), Tensor.ofRowMajor());
+                Tensor tensorB = Tensor.loadF16(matrixB, bRow, bCol, ldb, Tensor.shape(16, 16, 16),Tensor.ofColumnMajor());
+                acc = Tensor.mma(tensorA, tensorB, acc);
             }
         }
         int cRow = warpM * WMMA_M;
         int cCol = warpN * WMMA_N;
-        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+        if (cRow < size && cCol < size) {
+            // We operate with square matrices
+            Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofColumnMajor());
+        }
     }
 
     @Reflect
@@ -183,9 +194,7 @@ public class TestTensors {
         final int ldb = 1024;
         final int ldc = 1024;
 
-        Tensor tensorA = Tensor.create(Tensor.FIRST, Tensor.shape(16, 16, 16), F16.class, Tensor.ofRowMajor());
-        Tensor tensorB = Tensor.create(Tensor.SECOND, Tensor.shape(16, 16, 16), F16.class, Tensor.ofRowMajor());
-        Tensor acc = Tensor.create(Tensor.ACC, Tensor.shape(16, 16, 16), float.class);
+        Tensor acc = Tensor.create(Tensor.shape(16, 16, 16), float.class);
 
         Tensor.fill(acc, 0.0f);
 
@@ -198,16 +207,18 @@ public class TestTensors {
 
             if (aRow < lda && aCol < lda && bRow < ldb && bCol < ldb) {
 
-                tensorA = Tensor.load(matrixA, aRow, aCol, lda);
-                tensorB = Tensor.load(matrixB, bRow, bCol, ldb);
+                Tensor tensorA = Tensor.loadF16(matrixA, aRow, aCol, lda, Tensor.shape(16, 16, 16), Tensor.ofRowMajor());
+                Tensor tensorB = Tensor.loadF16(matrixB, bRow, bCol, ldb, Tensor.shape(16, 16, 16), Tensor.ofRowMajor());
 
                 // acc = tensorA * tensorB + acc
-                Tensor.mma(acc, tensorA, tensorB, acc);
+                acc = Tensor.mma(tensorA, tensorB, acc);
             }
         }
         int cRow = warpM * WMMA_M;
         int cCol = warpN * WMMA_N;
-        Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofRowMajor());
+        if (cRow < size && cCol < size) {
+            Tensor.store(matrixC, cRow, cCol, acc, ldc, Tensor.ofRowMajor());
+        }
     }
 
     @Reflect
@@ -218,6 +229,46 @@ public class TestTensors {
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
         cc.dispatchKernel(ndRange, kc -> mxmTensorsRowMajor(kc, matrixA, matrixB, matrixC, globalSize));
+    }
+
+    @Reflect
+    public static void mxmTensorsDefaultAccess(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32ArrayPadded matrixC, int size) {
+        final int sizeShape = 16;
+        final int WMMA_M = sizeShape;
+        final int WMMA_N = sizeShape;
+        final int WMMA_K = sizeShape;
+        int warpM = kc.gix / kc.wrs;
+        int warpN = kc.giy;
+
+        final int lda = 1024;
+        final int ldb = 1024;
+        final int ldc = 1024;
+
+        var shape = Tensor.shape(sizeShape, sizeShape, sizeShape);
+        Tensor acc = Tensor.zeros(shape, float.class);
+        for (int i = 0; i < size; i += WMMA_K) {
+            int aRow = warpM * WMMA_M;
+            int bCol = warpN * WMMA_N;
+            if (aRow < lda && i < lda && i < ldb && bCol < ldb) {
+                Tensor tensorA = Tensor.loadF16(matrixA, aRow, i, lda, shape);
+                Tensor tensorB = Tensor.loadF16(matrixB, i, bCol, ldb, shape);
+                acc = Tensor.mma(tensorA, tensorB, acc);
+            }
+        }
+        int cRow = warpM * WMMA_M;
+        int cCol = warpN * WMMA_N;
+        if (cRow < size && cCol < size) {
+            Tensor.store(matrixC, cRow, cCol, acc, ldc);
+        }
+    }
+
+    @Reflect
+    public static void mxmTensorsDefaultAccess(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32ArrayPadded matrixC, int globalSize) {
+        var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize),
+                Local2D.of(128, 4),
+                Tile2D.of(16, 16),
+                Warp2D.of(true, false));
+        cc.dispatchKernel(ndRange, kc -> mxmTensorsDefaultAccess(kc, matrixA, matrixB, matrixC, globalSize));
     }
 
     private static void runSequentialColMajor(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {
@@ -282,6 +333,7 @@ public class TestTensors {
             matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
 
+        // Run multiple time
         for (int i = 0; i < 10; i++) {
             accelerator.compute(cc -> mxmTensorsColumnMajor(cc, matrixAHalf, matrixBHalf, matrixC, size));
         }
@@ -319,9 +371,7 @@ public class TestTensors {
             matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
 
-        for (int i = 0; i < 10; i++) {
-            accelerator.compute(cc -> mxmTensorsRowColumnMajor(cc, matrixAHalf, matrixBHalf, matrixC, size));
-        }
+        accelerator.compute(cc -> mxmTensorsRowColumnMajor(cc, matrixAHalf, matrixBHalf, matrixC, size));
 
         runSequentialRowAndColMajor(matrixAHalf, matrixBHalf, resultSequential, size);
 
@@ -359,10 +409,45 @@ public class TestTensors {
             matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
             matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
         }
+        accelerator.compute(cc -> mxmTensorsRowMajor(cc, matrixAHalf, matrixBHalf, matrixC, size));
+        runSequentialRowMajor(matrixAHalf, matrixBHalf, resultSequential, size);
 
-        for (int i = 0; i < 10; i++) {
-            accelerator.compute(cc -> mxmTensorsRowMajor(cc, matrixAHalf, matrixBHalf, matrixC, size));
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                final int index = j * size + i;
+                float expectedValue = resultSequential.array(index);
+                float gotValue = matrixC.array(index);
+                try {
+                    HATAsserts.assertEquals(expectedValue, gotValue, 0.1f);
+                } catch (HATAssertionError e) {
+                    throw new HATExpectedPrecisionError("Expected: " + expectedValue + " but got " + gotValue);
+                }
+            }
         }
+    }
+
+    @HatTest
+    @Reflect
+    public void testTensor04() {
+
+        // To be able to run tensor-matmul in a row-major layout, we need to add padding.
+        // Thus, the result matrix must be of type F32ArrayPadded.
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+
+        F16Array matrixAHalf = F16Array.create(accelerator, size * size);
+        F16Array matrixBHalf = F16Array.create(accelerator, size * size);
+        F32ArrayPadded matrixC = F32ArrayPadded.create(accelerator, size * size);
+        F32Array resultSequential = F32Array.create(accelerator, size * size);
+
+        Random r = new Random(19);
+        for (int j = 0; j < matrixAHalf.length(); j++) {
+            matrixAHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
+            matrixBHalf.array(j).value(F16.floatToF16(r.nextFloat()).value());
+        }
+
+        accelerator.compute(cc -> mxmTensorsDefaultAccess(cc, matrixAHalf, matrixBHalf, matrixC, size));
 
         runSequentialRowMajor(matrixAHalf, matrixBHalf, resultSequential, size);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -232,7 +232,7 @@ public final class SSA {
         private Value resolveValue(CodeContext context, Val val) {
             return switch (val) {
                 case Uninitialized _ -> throw new IllegalStateException("Uninitialized variable");
-                case Holder holder -> context.getValueOrDefault(holder.value(), holder.value());
+                case Holder holder -> context.queryValue(holder.value()).orElse(holder.value());
                 case Phi phi -> {
                     List<Phi> phis = this.additionalParameters.get(phi.block());
                     int additionalParameterIndex = phis.indexOf(phi);
@@ -269,9 +269,9 @@ public final class SSA {
                         Block.Builder successorBlockBuilder = context.getBlock(successorBlock);
                         context.mapReference(successor, successorBlockBuilder.reference(values));
                     }
-                    block.op(op);
+                    block.add(op);
                 }
-                default -> block.op(op);
+                default -> block.add(op);
             }
             return block;
         }
@@ -451,9 +451,9 @@ public final class SSA {
                         }
                     }
 
-                    block.op(op);
+                    block.add(op);
                 } else {
-                    block.op(op);
+                    block.add(op);
                 }
 
                 return block;
@@ -679,19 +679,21 @@ public final class SSA {
 
         static Node buildDomTree(Block entryBlock, Map<Block, Block> idoms) {
             Map<Block, Node> tree = new HashMap<>();
+            Node root = new Node(entryBlock, new HashSet<>());
+            tree.put(entryBlock, root);
             for (Map.Entry<Block, Block> e : idoms.entrySet()) {
-                Block id = e.getValue();
                 Block b = e.getKey();
-
-                Node parent = tree.computeIfAbsent(id, _k -> new Node(_k, new HashSet<>()));
-                if (b == entryBlock) {
+                Block id = e.getValue();
+                if (id == null) {
+                    assert b == entryBlock;
                     continue;
                 }
 
+                Node parent = tree.computeIfAbsent(id, _k -> new Node(_k, new HashSet<>()));
                 Node child = tree.computeIfAbsent(b, _k -> new Node(_k, new HashSet<>()));
                 parent.children.add(child);
             }
-            return tree.get(entryBlock);
+            return root;
         }
     }
 }

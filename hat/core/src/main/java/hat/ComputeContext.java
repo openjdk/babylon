@@ -145,7 +145,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     }
     record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
-    private Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+    private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
 
     /** Creating the kernel callsite involves
          walking the code model of the lambda

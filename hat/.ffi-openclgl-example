@@ -1,0 +1,8 @@
+--enable-preview
+--add-modules=jdk.incubator.code 
+--enable-native-access=ALL-UNNAMED
+-Djava.library.path=build
+-XstartOnFirstThread
+ --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar:build/hat-extracted-opengl-1.0.jar:build/hat-extracted-opencl-1.0.jar:build/hat-wrap-opengl-1.0.jar:build/hat-wrap-shared-1.0.jar:build/hat-wrap-opencl-1.0.jar:build/hat-example-nbodygl-1.0.jar
+
+

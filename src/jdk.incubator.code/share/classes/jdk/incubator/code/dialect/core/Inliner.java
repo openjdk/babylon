@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.*;
@@ -21,14 +45,14 @@ public final class Inliner {
      * An inline consumer that inserts a return operation with a value, if non-null.
      */
     public static final BiConsumer<Block.Builder, Value> INLINE_RETURN = (block, value) -> {
-        block.op(value != null ? return_(value) : CoreOp.return_());
+        block.add(value != null ? return_(value) : CoreOp.return_());
     };
 
     /**
      * Inlines the invokable operation into the given block builder and returns the block builder from which to
      * continue building.
      * <p>
-     * This method {@link Block.Builder#body(Body, List, CodeContext, CodeTransformer) transforms} the
+     * This method {@link Block.Builder#transformBody(Body, List, CodeContext, CodeTransformer) transforms} the
      * body of the invokable operation with the given arguments, a new context, and an code transformer that
      * replaces return operations by applying the given consumer to a block builder and a return value.
      * <p>
@@ -60,7 +84,7 @@ public final class Inliner {
      *
      * @param _this the block builder
      * @param invokableOp the invokable operation
-     * @param args the arguments to map to the invokable operation's parameters
+     * @param args the arguments to map, in order, from a prefix of the invokable operation's parameters
      * @param inlineConsumer the consumer applied to process the return from the invokable operation.
      *                       This is called once for each grandparent body of a return operation, with a block to
      *                       build replacement operations and the return value, or null for void return.
@@ -72,7 +96,7 @@ public final class Inliner {
                          BiConsumer<Block.Builder, Value> inlineConsumer) {
         Map<Body, Block.Builder> returnBlocks = new HashMap<>();
         // Create new context, ensuring inlining is isolated
-        _this.body(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
+        _this.transformBody(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
             // If the return operation is associated with the invokable operation
             if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
                 // Compute the return block
@@ -110,13 +134,13 @@ public final class Inliner {
                     List<Value> arg = rop.returnValue() != null
                             ? List.of(block.context().getValue(rop.returnValue()))
                             : List.of();
-                    block.op(branch(returnBlock.reference(arg)));
+                    block.add(branch(returnBlock.reference(arg)));
                 }
 
                 return block;
             }
 
-            block.op(op);
+            block.add(op);
             return block;
         });
 

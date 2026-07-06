@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -275,7 +275,7 @@ public class CoreBinaryOpsTest {
                     ? type
                     : functionType.returnType();
             return CoreOp.func(original.funcName(), CoreType.functionType(retType, type, type))
-                    .body(builder -> builder.body(original.body(), builder.parameters(), CodeTransformer.COPYING_TRANSFORMER)
+                    .body(builder -> builder.transformBody(original.body(), builder.parameters(), CodeTransformer.COPYING_TRANSFORMER)
                     );
         }
 

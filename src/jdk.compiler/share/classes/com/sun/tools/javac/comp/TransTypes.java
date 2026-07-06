@@ -106,7 +106,9 @@ public class TransTypes extends TreeTranslator {
         if (!types.isSameType(tree.type, target)) {
             if (!resolve.isAccessible(env, target.tsym))
                 resolve.logAccessErrorInternal(env, tree, target);
-            tree = make.TypeCast(make.Type(target), tree).setType(target);
+            tree = explicitCastTP != null && types.isSameType(target, explicitCastTP) ?
+                    tree :
+                    make.TypeCast(make.Type(target), tree).setType(target);
         }
         make.pos = oldpos;
         return tree;
@@ -246,9 +248,6 @@ public class TransTypes extends TreeTranslator {
                                                meth.name,
                                                bridgeType,
                                                origin);
-        /* once JDK-6996415 is solved it should be checked if this approach can
-         * be applied to method addOverrideBridgesIfNeeded
-         */
         bridge.params = createBridgeParams(impl, bridge, bridgeType);
         bridge.setAttributes(impl);
 
@@ -437,16 +436,29 @@ public class TransTypes extends TreeTranslator {
     /** Visitor argument: proto-type.
      */
     private Type pt;
+    /** we use this type to indicate that "upstream" there is an explicit cast to this type,
+     *  this way we can avoid generating redundant type casts. Redundant casts are not
+     *  innocuous as they can trump user provided ones and affect the offset
+     *  calculation of type annotations applied to the user provided type cast.
+     */
+    private Type explicitCastTP;
 
     /** Visitor method: perform a type translation on tree.
      */
     public <T extends JCTree> T translate(T tree, Type pt) {
+        return translate(tree, pt, pt == explicitCastTP ? explicitCastTP : null);
+    }
+
+    public <T extends JCTree> T translate(T tree, Type pt, Type castTP) {
         Type prevPt = this.pt;
+        Type prevCastPT = this.explicitCastTP;
         try {
             this.pt = pt;
+            this.explicitCastTP = castTP;
             return translate(tree);
         } finally {
             this.pt = prevPt;
+            this.explicitCastTP = prevCastPT;
         }
     }
 
@@ -1036,7 +1048,9 @@ public class TransTypes extends TreeTranslator {
         tree.clazz = translate(tree.clazz, null);
         Type originalTarget = tree.type;
         tree.type = erasure(tree.type);
-        JCExpression newExpression = translate(tree.expr, tree.type);
+        JCExpression newExpression = tree.clazz.hasTag(Tag.ANNOTATED_TYPE) ?
+                translate(tree.expr, tree.type, tree.type) :
+                translate(tree.expr, tree.type);
         if (newExpression != tree.expr) {
             JCTypeCast typeCast = newExpression.hasTag(Tag.TYPECAST)
                 ? (JCTypeCast) newExpression

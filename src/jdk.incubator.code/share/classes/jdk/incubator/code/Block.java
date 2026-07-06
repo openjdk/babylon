@@ -29,17 +29,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * A (basic) block containing an ordered sequence of operations, where the last operation is
- * a {@link Op.Terminating terminating} operation.
+ * A block containing an ordered sequence of operations, where the last operation is a
+ * {@link Op.Terminating terminating} operation.
  * <p>
- * The terminating operation, according to its specification, may branch to other blocks contained in the
- * same parent body, by way of its {@link Op#successors() successors}, or exit the parent body and optionally
- * yield a result.
+ * The terminating operation, according to its specification, may branch to other blocks contained in the same parent
+ * body, by way of its {@link Op#successors() successors}, or exit the parent body and optionally yield a result.
  * <p>
  * Blocks declare zero or more block parameters.
  * <p>
- * A block is built using a {@link Block.Builder block builder} that is used to append operations to the block
- * being built.
+ * A block is built using a {@link Block.Builder}, as part of the
+ * <a href="Body.Builder.html#body-building-process">process of building</a> its parent body.
  */
 public final class Block implements CodeElement<Block, Op> {
 
@@ -77,15 +76,17 @@ public final class Block implements CodeElement<Block, Op> {
          *     if (p.invokableOperation() instanceof CoreOp.FuncOp f) {
          *         assert f.parameters().indexOf(p) == p.index(); // @link substring="parameters()" target="Op.Invokable#parameters()"
          *     }
-         *}
+         * }
          *
          * @return the invokable operation, otherwise {@code null} if the operation
          * is not an instance of {@link Op.Invokable}.
+         * @throws IllegalStateException if an <a href="Body.Builder.html#body-building-observability">unobservable</a>
+         * block is encountered
          * @see Op.Invokable#parameters()
          */
         public Op.Invokable invokableOperation() {
-            if (declaringBlock().isEntryBlock() &&
-                    declaringBlock().ancestorOp() instanceof Op.Invokable o) {
+            Block b = declaringBlock();
+            if (b.isEntryBlock() && b.ancestorOp() instanceof Op.Invokable o) {
                 return o;
             } else {
                 return null;
@@ -94,6 +95,8 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the index of this block parameter in the parameters of its declaring block.}
+         * @throws IllegalStateException if this parameter's declaring block is
+         * <a href="Body.Builder.html#body-building-observability">unobservable</a>
          * @see Value#declaringBlock()
          * @see Block#parameters()
          */
@@ -126,11 +129,12 @@ public final class Block implements CodeElement<Block, Op> {
 
         /**
          * {@return the target block.}
-         * @throws IllegalStateException if the target block is being built and is not observable.
+         * @throws IllegalStateException if the target block is
+         * <a href="Body.Builder.html#body-building-observability">unobservable</a>
          */
         public Block targetBlock() {
             if (!isBuilt()) {
-                throw new IllegalStateException("Target block is being built and is not observable");
+                throw new IllegalStateException("Target block is unobservable");
             }
 
             return target;
@@ -154,15 +158,15 @@ public final class Block implements CodeElement<Block, Op> {
 
     final List<Op> ops;
 
-    // @@@ In topological order
-    // @@@ Create lazily
-    //     Can the representation be more efficient e.g. an array?
+    // In topological order of reverse postorder traversal
+    // @@@ Use bitset of block indexes?
     final SequencedSet<Block> predecessors;
 
     // Reverse postorder index
     // Set when block's body has sorted its blocks and therefore set when built
-    // Block is inoperable when < 0 i.e., when not built
-    int index = -1;
+    // Block is unobservable when < 0 i.e., when not built
+    static final int UNBUILT_BLOCK_INDEX = -1;
+    int index = UNBUILT_BLOCK_INDEX;
 
     Block(Body parentBody) {
         this(parentBody, List.of());
@@ -339,8 +343,9 @@ public final class Block implements CodeElement<Block, Op> {
      * @return the set of target blocks, as an unmodifiable set.
      */
     public SequencedSet<Block> successorTargets() {
-        return successors().stream().map(Block.Reference::targetBlock)
+        LinkedHashSet<Block> targets = successors().stream().map(Reference::targetBlock)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        return Collections.unmodifiableSequencedSet(targets);
     }
 
     /**
@@ -396,7 +401,7 @@ public final class Block implements CodeElement<Block, Op> {
         // Traverse the immediate dominators until dom is reached or the entry block
         Map<Block, Block> idoms = b.ancestorBody().immediateDominators();
         Block idom = idoms.get(b);
-        while (idom != entry) {
+        while (idom != null) {
             if (idom == dom) {
                 return true;
             }
@@ -413,40 +418,42 @@ public final class Block implements CodeElement<Block, Op> {
      * <p>
      * The immediate dominator is the unique block that strictly dominates this block, but does not strictly dominate
      * any other block that strictly dominates this block.
+     * <p>
+     * The entry block has no immediate dominator, since it is not strictly dominated by any other block.
      *
      * @return the immediate dominator of this block, otherwise {@code null} if this block is the entry block.
+     * @see Body#immediateDominators()
      */
     public Block immediateDominator() {
-        if (this == ancestorBody().entryBlock()) {
-            return null;
-        }
-
-        Map<Block, Block> idoms = ancestorBody().immediateDominators();
-        return idoms.get(this);
+        return ancestorBody().immediateDominators().get(this);
     }
 
     /**
      * Returns the immediate post dominator of this block.
      * <p>
-     * If this block has no successors then this method returns the synthetic block
-     * {@link Body#IPDOM_EXIT} representing the synthetic exit used to compute
-     * the immediate post dominators.
+     * If this block is one of many block's in the same body with no successors, then there are multiple exit blocks,
+     * and the immediate post dominator of those blocks is the synthetic block {@link Body#IPDOM_EXIT} representing the
+     * single exit block. Otherwise, if this block is the only block in the body with no successors, then that block is
+     * the single exit block, and this method returns {@code null}.
      * <p>
-     * Both this block and the immediate post dominator (if defined) have the same parent body,
-     * except for the synthetic block {@link Body#IPDOM_EXIT}.
+     * Both this block and the immediate post dominator (if defined) have the same parent body, except for the
+     * synthetic block {@link Body#IPDOM_EXIT}.
      * <p>
-     * The immediate post dominator is the unique block that strictly post dominates this block,
-     * but does not strictly post dominate any other block that strictly post dominates this block.
+     * The immediate post dominator is the unique block that strictly post dominates this block, but does not strictly
+     * post dominate any other block that strictly post dominates this block.
+     * <p>
+     * The exit block has no immediate post dominator, since it is not strictly post dominated by any other block.
      *
-     * @return the immediate post dominator of this block, otherwise {@code Body#IPDOM_EXIT}.
+     * @return the immediate post dominator of this block, {@code Body#IPDOM_EXIT} if the synthetic exit is this block's
+     * immediate post dominator, or {@code null} if this block is the single exit block.
+     * @throws IllegalStateException if there is no single exit block, synthesized or otherwise
+     * @see Body#immediatePostDominators()
      */
     public Block immediatePostDominator() {
-        Map<Block, Block> ipdoms = ancestorBody().immediatePostDominators();
-        Block ipdom = ipdoms.get(this);
-        return ipdom == this ? Body.IPDOM_EXIT : ipdom;
+        return ancestorBody().immediatePostDominators().get(this);
     }
 
-    // @@@ isPostDominatedBy and immediatePostDominator
+    // @@@ isPostDominatedBy
 
     private static Block findBlockForDomBody(Block b, final Body domr) {
         Body rb = b.ancestorBody();
@@ -464,22 +471,28 @@ public final class Block implements CodeElement<Block, Op> {
     }
 
     /**
-     * A builder of a block.
+     * A builder for a block.
      * <p>
-     * A block builder is built when its {@link #parent() parent} body builder is {@link Body.Builder#build(Op) built}.
-     * If a built builder is operated on to append a block parameter, append an operation, build a sibling block,
-     * then an {@code IllegalStateException} is thrown.
+     * A block builder builds one block as part of the <a href="Body.Builder.html#body-building-process">building process</a>
+     * of building its parent body. The block is not <a href="Body.Builder.html#body-building-observability">observable</a>
+     * until the parent body builder <a href="Body.Builder.html#body-building-finishing">finishes</a>.
+     * After <a href="Body.Builder.html#body-building-finishing">building finishes</a>,
+     * the block becomes observable, and the block builder becomes inoperable,
+     * regardless of whether building succeeds or fails with an exception.
+     * Further attempts to operate on the block builder throws an {@link IllegalStateException}.
      * <p>
-     * A block is not observable while it is being built. Attempts to access a block being built through the block's
-     * parameters, appended operations, their operation results, or block references, result in an exception.
-     * <p>
-     * A block builder has a code {@link #context() context} and code {@link #transformer() transformer} which are used
-     * to transform an attached or root operation that is {@link #op appended}. Any sibling block builder
+     * A block builder has a code {@link #context() context} and code {@link #transformer() transformer}. These are used
+     * to perform <i>transform-on-append</i> when {@link #add appending} a placed operation. Any sibling block builder
      * {@link #block(List) created} from a block builder will have the same code context and code transformer.
      * <p>
-     * A block builder may be {@link #rebind rebound} to new block builder that builds the same block but with a
-     * different code context and code transformer. The rebound block builder can be used to apply alternative
-     * transformations to attached or root operations that are appended.
+     * A block builder may be obtained with a different code context and code transformer by calling
+     * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}. Such a block builder builds the same block, and
+     * can be used to apply alternative transformations to placed operations that are appended.
+     * <p>
+     * During {@link CodeTransformer code transformation}, a block builder may also serve as the current output block
+     * builder.
+     * <p>
+     * Block builders are not thread-safe.
      */
     public final class Builder {
         final Body.Builder parentBody;
@@ -497,70 +510,79 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         Block target() {
+            check();
             return Block.this;
         }
 
         /**
-         * {@return the block builder's code transformer}
+         * {@return this block builder's code transformer}
          */
         public CodeTransformer transformer() {
+            check();
             return ct;
         }
 
         /**
-         * {@return the block builder's context}
+         * {@return this block builder's code context}
          */
         public CodeContext context() {
+            check();
             return cc;
         }
 
         /**
-         * {@return the parent body builder}
+         * {@return this block builder's parent body builder}
          */
         public Body.Builder parentBody() {
+            check();
             return parentBody;
         }
 
         /**
-         * Returns the entry block builder for parent body.
+         * Returns the entry block builder of this builder's parent body builder.
+         * <p>
+         * The returned block builder has this block builder's code context and code transformer.
          *
-         * <p>The returned block is rebound if necessary to this block builder's
-         * context and transformer.
-         *
-         * @return the entry block builder for parent body builder
+         * @return the entry block builder of this builder's parent body builder
          */
         public Block.Builder entryBlock() {
-            return parentBody.entryBlock.rebind(cc, ct);
+            check();
+            return parentBody.entryBlock.withContextAndTransformer(cc, ct);
         }
 
         /**
-         * {@return true if this block builder is a builder of the entry block}
+         * {@return true if this block builder builds the entry block of its parent body}
          */
         public boolean isEntryBlock() {
+            check();
             return Block.this == parentBody.target().entryBlock();
         }
 
         /**
-         * Rebinds this block builder to a new block builder with the given context and code transformer.
+         * Returns a block builder for the same block with the given code context and code transformer.
+         * <p>
+         * Both this block builder and the returned block builder may be operated on to build the same block. Both are
+         * equal to each other, and both become inoperable when the parent body builder
+         * <a href="Body.Builder.html#body-building-finishing">finishes</a>.
          *
-         * <p>Either this block builder and the rebound block builder may be operated on to build
-         * the same block.
-         * Both are equal to each other, and both are closed when the parent body builder is closed.
-         *
-         * @param cc the context
+         * @param cc the code context
          * @param ct the code transformer
-         * @return the rebound block builder
+         * @return the block builder with the given code context and code transformer
          */
-        public Block.Builder rebind(CodeContext cc, CodeTransformer ct) {
+        public Block.Builder withContextAndTransformer(CodeContext cc, CodeTransformer ct) {
+            check();
             return this.cc == cc && this.ct == ct
                     ? this
                     : this.target().new Builder(parentBody(), cc, ct);
         }
 
         /**
-         * Creates a new sibling block builder in the same parent body as this block builder.
+         * Creates a builder for a new sibling block in this builder's parent body.
+         * <p>
+         * The returned builder has the same code context and code transformer as this
+         * block builder.
          *
-         * @param params the block's parameter types
+         * @param params the parameter types of the new block
          * @return the new block builder
          */
         public Block.Builder block(CodeType... params) {
@@ -568,26 +590,31 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Creates a new sibling block builder in the same parent body as this block builder.
+         * Creates a builder for a new sibling block in this builder's parent body.
+         * <p>
+         * The returned builder has the same code context and code transformer as this
+         * block builder.
          *
-         * @param params the block's parameter types
+         * @param params the parameter types of the new block
          * @return the new block builder
          */
         public Block.Builder block(List<CodeType> params) {
+            check();
             return parentBody.block(params, cc, ct);
         }
 
         /**
-         * Returns an unmodifiable list of the block's parameters.
+         * Returns an unmodifiable list of this block's parameters.
          *
-         * @return the unmodifiable list of the block's parameters
+         * @return the unmodifiable list of this block's parameters
          */
         public List<Parameter> parameters() {
+            check();
             return Collections.unmodifiableList(parameters);
         }
 
         /**
-         * Appends a block parameter to the block's parameters.
+         * Appends a parameter of the given type to this block.
          *
          * @param p the parameter type
          * @return the appended block parameter
@@ -598,34 +625,34 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Creates a block reference to this block that can be used as a successor of a terminating operation.
+         * Creates a reference to this block that can be used as a successor of a terminating operation.
          * <p>
-         * A reference can only be constructed with block arguments whose declaring block is being built, otherwise
-         * construction fails with an exception.
+         * A reference can only be created with arguments whose declaring block is being built.
          *
          * @param args the block arguments
-         * @return the reference to this block
-         * @throws IllegalStateException if this block builder is associated with the entry block.
-         * @throws IllegalArgumentException if a block argument's declaring block is built.
+         * @return a reference to this block
+         * @throws IllegalStateException if this block builder builds the entry block.
+         * @throws IllegalArgumentException if any argument's declaring block is built.
          */
         public Reference reference(Value... args) {
             return reference(List.of(args));
         }
 
         /**
-         * Creates a block reference to this block that can be used as a successor of a terminating operation.
+         * Creates a reference to this block that can be used as a successor of a terminating operation.
          * <p>
-         * A reference can only be constructed with block arguments whose declaring block is being built, otherwise
-         * construction fails with an exception.
+         * A reference can only be created with arguments whose declaring block is being built.
          *
          * @param args the block arguments
-         * @return the reference to this block
-         * @throws IllegalStateException if this block builder is associated with the entry block.
-         * @throws IllegalArgumentException if a block argument's declaring block is built.
+         * @return a reference to this block
+         * @throws IllegalStateException if this block builder builds the entry block.
+         * @throws IllegalArgumentException if any argument's declaring block is built.
          */
         public Reference reference(List<? extends Value> args) {
+            check();
+
             if (isEntryBlock()) {
-                throw new IllegalStateException("Entry block cannot be referenced and used as a successor");
+                throw new IllegalStateException("Entry block cannot be referenced and targeted as a successor");
             }
             for (Value operand : args) {
                 if (operand.isBuilt()) {
@@ -637,117 +664,146 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         /**
-         * Transforms a body starting from this block builder, using a {@link CodeContext#create(CodeContext) child}
-         * context of this builder's context and a given code transformer.
+         * Transforms the given body into this block builder's parent body, using this block builder as the current
+         * output block builder, a {@link CodeContext#create(CodeContext) child} of this block builder's code context,
+         * and the given code transformer.
+         * <p>
+         * This method behaves as if invoking {@link #transformBody(Body, List, CodeContext, CodeTransformer)} with the given
+         * body, the given entry values, a child of this block builder's code context, and the given code transformer.
          *
          * @param body the body to transform
-         * @param values the output values to map to the input parameters of the body's entry block
+         * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
+         *                    parameters
          * @param ct the code transformer
-         * @see #body(Body, List, CodeContext, CodeTransformer)
+         * @throws IllegalArgumentException if there are more output entry values than entry block parameters
+         * @see #transformBody(Body, List, CodeContext, CodeTransformer)
          */
-        public void body(Body body, List<? extends Value> values,
-                         CodeTransformer ct) {
+        public void transformBody(Body body, List<? extends Value> entryValues,
+                                  CodeTransformer ct) {
             check();
 
-            body(body, values, CodeContext.create(cc), ct);
+            transformBody(body, entryValues, CodeContext.create(cc), ct);
         }
 
         /**
-         * Transforms a body starting from this block builder, using a given context and code transformer.
+         * Transforms the given body into this block builder's parent body, using this block builder as the current
+         * output block builder, the given code context, and the given code transformer.
          * <p>
-         * This method first {@link #rebind rebinds} this builder with the given context
-         * and code transformer, and then transforms the body using the code transformer by
-         * {@link CodeTransformer#acceptBody(Builder, Body, List) accepting}
-         * the rebound builder, the body, and the values.
+         * This method first obtains a block builder with the given code context and code transformer by calling
+         * {@link #withContextAndTransformer(CodeContext, CodeTransformer)}, and then transforms the body using the code
+         * transformer by {@link CodeTransformer#acceptBody(Builder, Body, List) accepting} the obtained block builder,
+         * the body, and the entry values.
+         * <p>
+         * A prefix of the input body's entry block parameters is mapped, in order, to the given output entry values.
+         * Any remaining entry block parameters are not mapped.
          *
          * @apiNote
-         * The passing of a context can ensure block and value mappings produced by
-         * the transformation do not affect this builder's context.
+         * Supplying an explicit code context can ensure block and value mappings produced by the transformation do not
+         * affect this builder's code context. The explicit code context can also be used when some of the input body's
+         * entry block parameters have already been mapped prior to transforming the body. This is useful when the
+         * transformation removes some entry block parameters. In such cases an empty list of output entry values can be
+         * given.
          *
          * @param body the body to transform
-         * @param values the output values to map to the input parameters of the body's entry block
+         * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
+         *                    parameters
          * @param cc the code context
          * @param ct the code transformer
-         * @see #rebind(CodeContext, CodeTransformer)
+         * @throws IllegalArgumentException if there are more output entry values than entry block parameters
+         * @see #withContextAndTransformer(CodeContext, CodeTransformer)
          * @see CodeTransformer#acceptBody(Builder, Body, List)
          */
-        public void body(Body body, List<? extends Value> values,
-                         CodeContext cc, CodeTransformer ct) {
+        public void transformBody(Body body, List<? extends Value> entryValues,
+                                  CodeContext cc, CodeTransformer ct) {
             check();
 
-            ct.acceptBody(rebind(cc, ct), body, values);
+            ct.acceptBody(withContextAndTransformer(cc, ct), body, entryValues);
         }
 
         /**
-         * Appends an operation to the sequence of operations of this block builder, first transforming the operation
-         * if it is attached to a block, or a root operation.
+         * Appends an operation to the end of this block.
          * <p>
-         * If the operation is unattached, then the operation is appended and attached to this block, and the operation
-         * is assigned an operation result.
-         * Otherwise, the operation (an attached or root operation) is first
-         * {@link Op#transform(CodeContext, CodeTransformer) transformed} with this builder's code context and
-         * code transformer, the resulting transformed and unattached operation is appended and attached, and the
-         * operation's result mapped to the transformed operation's result, using the builder's code context.
+         * If the operation is unplaced, it is appended directly to this block.
          * <p>
-         * If the operation (transformed, or otherwise) is structurally invalid then an
-         * {@code IllegalStateException} is thrown. An operation is structurally invalid if:
+         * If the operation is placed, this method performs <a id="transform-on-append"><i>transform-on-append</i></a>:
+         * the operation is first {@link Op#transform(CodeContext, CodeTransformer) transformed} using this block
+         * builder's code context and code transformer. The resulting unplaced operation is then appended to this block.
+         * If the operation being appended has a result, it is implicitly
+         * {@link CodeContext#mapValue(Value, Value) mapped}, if no such mapping already exists, to the result of the
+         * appended operation in this block builder's code context.
+         * <p>
+         * The appended operation must be structurally valid for this block, requiring:
          * <ul>
-         * <li>any of its bodies does not have the same ancestor body as this block's parent body.
-         * <li>any of its operands (values) is not reachable from this block.
-         * <li>any of its successors is not a sibling of this block.
-         * <li>any of its successors arguments (values) is not reachable from this block.
-         * <li>a terminating operation is already appended as the last operation.
+         * <li>for each child body, the body builder for that child body is
+         * <a href="Body.Builder.html#connected-builder">connected</a> to this block builder's parent
+         * body builder, or is <a href="Body.Builder.html#isolated-builder">isolated</a>.
+         * <li>each operand is reachable from the operation;
+         * <li>each successor argument is reachable from the operation;
+         * <li>each successor target is a sibling of this block; and
+         * <li>this block does not already end with a terminating operation.
          * </ul>
-         * A value is reachable from this block if there is a path from this block's parent body,
-         * via its ancestor bodies, to the value's declaring block's parent body. (Note this structural check
-         * ensures values are only used from the same code model tree being built, but it is weaker than a
-         * dominance check that can only be performed when the parent body is built.)
+         * <a id="reachable-value"></a>A value is reachable if this block builder's {@link #parentBody() parent} body
+         * builder is the same as or is connected, directly or indirectly through its
+         * {@link Body.Builder#connectedAncestorBody() nearest ancestor} body builder and so on, to the body builder for the
+         * value's declaring block's parent body. A value is not reachable if an isolated body builder is encountered
+         * (the isolated body builder's nearest ancestor body builder is {@code null} and therefore there is no
+         * connection, directly or indirectly).
+         * This structural reachable check ensures values are only used from the same code model being built. It is
+         * weaker than the {@link Value#isDominatedBy(Value) dominance} check required for structurally valid use of a
+         * value, that can only be performed when the parent body is built.
+         *
+         * @apiNote
+         * Copying is a special case of transform-on-append when this block builder's code transformer is, or
+         * behaves as a copying transformer, such as {@link CodeTransformer#COPYING_TRANSFORMER}.
          *
          * @param op the operation to append
-         * @return the operation result of the appended operation
+         * @return the result of the appended operation
          * @throws IllegalStateException if the operation is structurally invalid
+         * @see Op#transform(CodeContext, CodeTransformer)
          */
-        public Op.Result op(Op op) {
+        public Op.Result add(Op op) {
             check();
 
-            final Op.Result oprToTransform = op.result();
+            // Perform transform-on-append for a placed operation
+            Op outputOp = op.isPlacedInBlock() || op.isRoot()
+                    ? op.transform(cc, ct)
+                    : op;
+            assert outputOp.result == null;
 
-            Op transformedOp = op;
-            if (op.isRoot() || oprToTransform != null) {
-                // If operation is assigned to block, or it's sealed, then copy it and transform its contents
-                transformedOp = op.transform(cc, ct);
-                assert transformedOp.result == null;
-            }
+            Op.Result outputResult = insertOp(outputOp);
 
-            Op.Result transformedOpr = insertOp(transformedOp);
-
-            if (oprToTransform != null) {
+            Op.Result inputResult = op.result();
+            if (inputResult != null) {
                 // Map the result of the first transformation
                 // @@@ If the same operation is transformed more than once then subsequent
                 //  transformed ops will not get implicitly mapped
-                //  Should this be an error?
-                cc.mapValueIfAbsent(oprToTransform, transformedOpr);
+                //  Should this be an error? Or should last transformation win?
+                if (cc.queryValue(inputResult).isEmpty()) {
+                    cc.mapValue(inputResult, outputResult);
+                }
             }
 
-            return transformedOpr;
+            return outputResult;
         }
 
         /**
          * Returns true if this block builder is equal to the other object.
-         * <p>This block builder is equal if the other object is an instance of a block builder, and they are
-         * associated with the same block (but perhaps bound to different contexts and transformers).
+         * <p>This block builder is equal if the other object is an instance of a block builder, and they build
+         * the same block (but maybe bound to different code contexts and code transformers).
          *
          * @param o the other object
-         * @return true if this builder is equal to the other object.
+         * @return true if this block builder is equal to the other object.
          */
         @Override
         public boolean equals(Object o) {
+            check();
             if (this == o) return true;
             return o instanceof Builder that && Block.this == that.target();
         }
 
         @Override
         public int hashCode() {
+            check();
             return Block.this.hashCode();
         }
     }
@@ -774,11 +830,11 @@ public final class Block implements CodeElement<Block, Op> {
     private void bindOp(Op.Result opr, Op op) {
         // Structural checks
         if (!ops.isEmpty() && ops.getLast() instanceof Op.Terminating) {
-            throw new IllegalStateException("Operation cannot be appended, the block has a terminal operation");
+            throw new IllegalStateException("Operation cannot be appended, the block has a terminating operation");
         }
 
         for (Body b : op.bodies()) {
-            if (b.ancestorBody != null && b.ancestorBody != this.parentBody) {
+            if (b.connectedAncestorBody != null && b.connectedAncestorBody != this.parentBody) {
                 throw new IllegalStateException("Body of operation is connected to a different ancestor body: ");
             }
         }
@@ -806,7 +862,7 @@ public final class Block implements CodeElement<Block, Op> {
         }
 
         // State updates after structural checks
-        // @@@ The alternative is to close the body builder on failure, rendering it inoperable,
+        // @@@ The alternative is to finish the body builder on failure, rendering it inoperable,
         // so checks and updates can be merged
         for (Value v : op.operands()) {
             v.uses.add(opr);
@@ -816,18 +872,16 @@ public final class Block implements CodeElement<Block, Op> {
             for (Value v : s.arguments()) {
                 v.uses.add(opr);
             }
-
-            s.target.predecessors.add(Block.this);
         }
 
         op.result = opr;
     }
 
-    // Determine if the parent body of value's block is an ancestor of this block
+    // Determine if the parent body of value's block is the same as or an ancestor of this block
     private boolean isReachable(Value v) {
         Body b = parentBody;
         while (b != null && b != v.block.parentBody) {
-            b = b.ancestorBody;
+            b = b.connectedAncestorBody;
         }
         return b != null;
     }

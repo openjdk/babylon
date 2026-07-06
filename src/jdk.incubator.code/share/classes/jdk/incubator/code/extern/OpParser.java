@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -233,10 +233,10 @@ public final class OpParser {
             for (OpNode on : bn.ops) {
                 ValueNode r = on.result;
                 if (r != null) {
-                    Op.Result v = b.op(nodeToOp(on, r.type, c, body));
+                    Op.Result v = b.add(nodeToOp(on, r.type, c, body));
                     c.putValue(r.name, v);
                 } else {
-                    b.op(nodeToOp(on, VOID, c, body));
+                    b.add(nodeToOp(on, VOID, c, body));
                 }
             }
         }

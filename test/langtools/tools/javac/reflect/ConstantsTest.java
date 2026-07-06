@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -275,5 +275,25 @@ public class ConstantsTest {
     @Reflect
     void test18() {
         Class<?> s = boolean[][][].class;
+    }
+
+    @interface A { }
+    static class B {
+        @interface C { }
+    }
+
+    @IR("""
+            func @"test19" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"java.lang.Class" = constant @java.type:"ConstantsTest$A";
+                %2 : Var<java.type:"java.lang.Class<?>"> = var %1 @"a";
+                %3 : java.type:"java.lang.Class" = constant @java.type:"ConstantsTest$B$C";
+                %4 : Var<java.type:"java.lang.Class<?>"> = var %3 @"c";
+                return;
+            };
+            """)
+    @Reflect
+    void test19() {
+        Class<?> a = A.class;
+        Class<?> c = B.C.class;
     }
 }

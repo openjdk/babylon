@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,8 @@
  * questions.
  */
 package hat.backend.ffi;
+
+import hat.dialect.HATThreadOp;
 
 import optkl.FuncOpParams;
 import optkl.ParamVar;
@@ -63,7 +65,11 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         NTID_X ("ntid.x", false),
         CTAID_X ("ctaid.x", false),
         TID_X ("tid.x", false),
+        NTID_Y ("ntid.y", false),
+        CTAID_Y ("ctaid.y", false),
+        TID_Y ("tid.y", false),
         KC_X ("x", false),
+        KC_Y ("y", false),
         KC_ADDR("kc", true),
         KC_MAXX ("maxX", false);
 
@@ -188,6 +194,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case CoreOp.VarOp $ -> varDeclaration($);
             case CoreOp.ReturnOp $ -> ret($);
             case JavaOp.BreakOp $ -> javaBreak($);
+            case HATThreadOp $ -> hatThreadOp($);
             default -> { // Why are  these switch ops not just inlined above?
                 switch (op){
                     case CoreOp.BranchOp $ -> branch($);
@@ -199,6 +206,69 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             }
         }
         return this;
+    }
+
+    private void hatThreadOp(HATThreadOp threadOp) {
+        switch (threadOp) {
+            case HATThreadOp.HAT_GI.HAT_GIX $ -> hatGix($);
+            case HATThreadOp.HAT_GI.HAT_GIY $ -> hatGiy($);
+            case HATThreadOp.HAT_GS.HAT_GSX $ -> hatGsx($);
+            case HATThreadOp.HAT_GS.HAT_GSY $ -> hatGsy($);
+            default -> throw new IllegalStateException("thread op translation doesn't exist");
+        }
+    }
+
+    public void hatGix(HATThreadOp.HAT_GI.HAT_GIX op) {
+        ensureThreadXRegs();
+        if (!fieldToRegMap.containsKey(Field.KC_X)) {
+            mad().lo().s32().sp().fieldReg(Field.KC_X).csp().fieldReg(Field.CTAID_X)
+                    .csp().fieldReg(Field.NTID_X).csp().fieldReg(Field.TID_X).ptxNl();
+        }
+        mov().u32().sp().resultReg(op, PTXRegister.Type.U32).csp().fieldReg(Field.KC_X);
+    }
+
+    public void hatGsx(HATThreadOp.HAT_GS.HAT_GSX op) {
+        ensureKcAddr();
+        ld().global().u32().sp().resultReg(op, PTXRegister.Type.U32).csp()
+                .address(fieldToRegMap.get(Field.KC_ADDR).name(), 16);
+    }
+
+    public void hatGiy(HATThreadOp.HAT_GI.HAT_GIY op) {
+        ensureThreadYRegs();
+        if (!fieldToRegMap.containsKey(Field.KC_Y)) {
+            mad().lo().s32().sp().fieldReg(Field.KC_Y).csp().fieldReg(Field.CTAID_Y)
+                    .csp().fieldReg(Field.NTID_Y).csp().fieldReg(Field.TID_Y).ptxNl();
+        }
+        mov().u32().sp().resultReg(op, PTXRegister.Type.U32).csp().fieldReg(Field.KC_Y);
+    }
+
+    public void hatGsy(HATThreadOp.HAT_GS.HAT_GSY op) {
+        ensureKcAddr();
+        ld().global().u32().sp().resultReg(op, PTXRegister.Type.U32).csp()
+                .address(fieldToRegMap.get(Field.KC_ADDR).name(), 20);
+    }
+
+    private void ensureKcAddr() {
+        if (!fieldToRegMap.containsKey(Field.KC_ADDR)) {
+            cvta().to().global().size().sp().fieldReg(Field.KC_ADDR).csp()
+                    .reg(paramObjects.get(paramNames.indexOf(Field.KC_ADDR.toString())), addressType()).ptxNl();
+        }
+    }
+
+    private void ensureThreadXRegs() {
+        if (!fieldToRegMap.containsKey(Field.NTID_X)) {
+            mov().u32().sp().fieldReg(Field.NTID_X).csp().percent().regName(Field.NTID_X.toString()).ptxNl();
+            mov().u32().sp().fieldReg(Field.CTAID_X).csp().percent().regName(Field.CTAID_X.toString()).ptxNl();
+            mov().u32().sp().fieldReg(Field.TID_X).csp().percent().regName(Field.TID_X.toString()).ptxNl();
+        }
+    }
+
+    private void ensureThreadYRegs() {
+        if (!fieldToRegMap.containsKey(Field.NTID_Y)) {
+            mov().u32().sp().fieldReg(Field.NTID_Y).csp().percent().regName(Field.NTID_Y.toString()).ptxNl();
+            mov().u32().sp().fieldReg(Field.CTAID_Y).csp().percent().regName(Field.CTAID_Y.toString()).ptxNl();
+            mov().u32().sp().fieldReg(Field.TID_Y).csp().percent().regName(Field.TID_Y.toString()).ptxNl();
+        }
     }
 
     public void ptxPtr(PTXPtrOp op) {

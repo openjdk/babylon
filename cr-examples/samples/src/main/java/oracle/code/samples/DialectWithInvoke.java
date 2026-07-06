@@ -122,7 +122,7 @@ public class DialectWithInvoke {
                 FMAIntrinsicOp myCustomFunction = new FMAIntrinsicOp(invokeOp.resultType(), outputOperands);
 
                 // Add the new node to the code builder
-                Op.Result outputResult = blockBuilder.op(myCustomFunction);
+                Op.Result outputResult = blockBuilder.add(myCustomFunction);
 
                 // Preserve the location from the original invoke
                 myCustomFunction.setLocation(invokeOp.location());
@@ -130,7 +130,7 @@ public class DialectWithInvoke {
                 // Map input-> new output
                 context.mapValue(invokeOp.result(), outputResult);
             } else {
-                blockBuilder.op(op);
+                blockBuilder.add(op);
             }
             return blockBuilder;
         });

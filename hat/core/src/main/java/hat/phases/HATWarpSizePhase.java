@@ -30,6 +30,7 @@ import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
@@ -40,7 +41,7 @@ import static optkl.OpHelper.FieldAccess.fieldAccess;
 public record HATWarpSizePhase() implements HATPhase {
 
     @Override
-    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
+    public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
         return Trxfmr.of(lookup, funcOp)
                 .transform(c -> {
@@ -48,9 +49,9 @@ public record HATWarpSizePhase() implements HATPhase {
                             && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("wrs")) {
                         varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());
                         c.replace(HATThreadOp.create(fieldAccess.name()));
-                    }})
+                    }}, varTable)
                 .remap(varAccessesToBeRemoved)
-                .remove(varAccessesToBeRemoved::contains)
+                .remove(varAccessesToBeRemoved::contains, varTable)
                 .funcOp();
     }
 }

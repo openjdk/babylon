@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -435,7 +435,7 @@ public final class OpWriter {
     public void writeOp(Op op) {
         if (op.parent() != null) {
             Op.Result opr = op.result();
-            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)) {
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID) || !opr.uses().isEmpty()) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }
