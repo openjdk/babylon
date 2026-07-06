@@ -220,7 +220,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 try {
                     funcOp = bodyScanner.scanMethod();
                 } catch (Exception e) {
-                    // log as warning for debugging purposes when reflectAll enabled
                     log.warning(tree, Warnings.ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
                     super.visitMethodDef(tree);
                     return;
