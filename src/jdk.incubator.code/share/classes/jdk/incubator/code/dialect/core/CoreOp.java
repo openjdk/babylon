@@ -95,7 +95,7 @@ public sealed abstract class CoreOp extends Op {
 
             Builder(Body.Builder connectedAncestorBody, String funcName, FunctionType signature) {
                 this.connectedAncestorBody = connectedAncestorBody;
-                this.source = MethodRef.method(JavaType.VOID, funcName, signature);
+                this.source = fakeSource(funcName, signature);
             }
 
             Builder(Body.Builder connectedAncestorBody, MethodRef source) {
@@ -140,7 +140,7 @@ public sealed abstract class CoreOp extends Op {
             MethodRef source;
             if (optSource.isEmpty()) {
                 String fn = requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class);
-                source = MethodRef.method(JavaType.VOID, fn, body.bodySignature());
+                source = fakeSource(fn, body.bodySignature());
             } else {
                 source = optSource.get();
             }
@@ -191,7 +191,7 @@ public sealed abstract class CoreOp extends Op {
         FuncOp(String funcName, Body.Builder bodyBuilder) {
             super(List.of());
 
-            this.source = MethodRef.method(JavaType.VOID, funcName, bodyBuilder.bodySignature());
+            this.source = fakeSource(funcName, bodyBuilder.bodySignature());
             this.body = bodyBuilder.build(this);
         }
 
@@ -234,7 +234,7 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             Map<String, Object> m = new HashMap<>();
-            if (wasSourceProvided()) {
+            if (isFakeSource()) {
                 m.put(ATTRIBUTE_FUNC_SOURCE, source);
             } else {
                 m.put("", source.name());
@@ -267,11 +267,15 @@ public sealed abstract class CoreOp extends Op {
         }
 
         public Optional<MethodRef> sourceRef() {
-            return wasSourceProvided() ? Optional.of(source) : Optional.empty();
+            return isFakeSource() ? Optional.of(source) : Optional.empty();
         }
 
-        private boolean wasSourceProvided() {
+        private boolean isFakeSource() {
             return !source.refType().equals(JavaType.VOID);
+        }
+
+        static MethodRef fakeSource(String fn, FunctionType ft) {
+            return MethodRef.method(JavaType.VOID, fn, ft);
         }
     }
 
