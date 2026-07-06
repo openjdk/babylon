@@ -1728,7 +1728,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     localResult = append(JavaOp.conditionalAnd(clBodies));
                 } else if (isMultiLabel) {
-                    // push a body for or-ing the patterns
                     List<Body.Builder> clBodies = new ArrayList<>();
                     for (JCCaseLabel l : c.labels) {
                         JCTree.JCPatternCaseLabel pat = (JCTree.JCPatternCaseLabel)l;
