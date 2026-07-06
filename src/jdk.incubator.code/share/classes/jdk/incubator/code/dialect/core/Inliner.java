@@ -82,7 +82,7 @@ public final class Inliner {
      * non-trivial and outside the scope of this method. In such cases the invokable operation can be transformed
      * with a lowering transformation after which it can then be inlined.
      *
-     * @param _this the block builder
+     * @param inBlock the block builder
      * @param invokableOp the invokable operation
      * @param args the arguments to map, in order, from a prefix of the invokable operation's parameters
      * @param inlineConsumer the consumer applied to process the return from the invokable operation.
@@ -92,11 +92,11 @@ public final class Inliner {
      * @param <O> The invokable type
      */
     public static <O extends Op & Op.Invokable>
-    Block.Builder inline(Block.Builder _this, O invokableOp, List<? extends Value> args,
+    Block.Builder inline(Block.Builder inBlock, O invokableOp, List<? extends Value> args,
                          BiConsumer<Block.Builder, Value> inlineConsumer) {
         Map<Body, Block.Builder> returnBlocks = new HashMap<>();
         // Create new context, ensuring inlining is isolated
-        _this.transformBody(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
+        inBlock.transformBody(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
             // If the return operation is associated with the invokable operation
             if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
                 // Compute the return block
@@ -147,9 +147,9 @@ public final class Inliner {
 
         Block.Builder builder = returnBlocks.get(invokableOp.body());
         if (builder != null) {
-            return builder.withContextAndTransformer(_this.context(), _this.transformer());
+            return builder.withContextAndTransformer(inBlock.context(), inBlock.transformer());
         } else {
-            return _this;
+            return inBlock;
         }
     }
 
