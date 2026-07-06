@@ -94,7 +94,8 @@ public class CodeReflectionTester {
 
     static void check(Method method) {
         if (!method.isAnnotationPresent(Reflect.class)) return;
-        String found = canonicalizeModel(method, Op.ofMethod(method).orElseThrow());
+        CoreOp.FuncOp op = Op.ofMethod(method).orElseThrow();
+        String found = canonicalizeModel(method, removeSourceAttribute(op));
         IR ir = method.getAnnotation(IR.class);
         if (ir == null) {
             // nothing to check
@@ -111,6 +112,12 @@ public class CodeReflectionTester {
         Quoted<?> quoted = Op.ofLambda(quotable).get();
         String found = canonicalizeModel(field, getModelOfQuotedOp(quoted));
         checkModel(field, found, ir);
+    }
+
+    static CoreOp.FuncOp removeSourceAttribute(CoreOp.FuncOp fop) {
+        return func(fop.funcName(), fop.invokableSignature()).body(b -> {
+            b.transformBody(fop.body(), b.parameters(), CodeTransformer.COPYING_TRANSFORMER);
+        });
     }
 
     // serializes dropping location information, parses, and then serializes, dropping location information
