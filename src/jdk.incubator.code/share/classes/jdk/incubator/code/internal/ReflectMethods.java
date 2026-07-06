@@ -63,6 +63,7 @@ import com.sun.tools.javac.tree.JCTree.JCBinary;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
 import com.sun.tools.javac.tree.JCTree.JCCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
+import com.sun.tools.javac.tree.JCTree.JCConstantCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCDefaultCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
@@ -1631,15 +1632,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
             boolean hasDefaultCase = false;
 
             for (JCTree.JCCase c : cases) {
-                boolean anyLabelIsDefault = c.labels.stream().anyMatch(l -> l instanceof JCTree.JCDefaultCaseLabel);
-                if (anyLabelIsDefault && !(c.labels.head instanceof JCDefaultCaseLabel)) {
+                if (isNull(c.labels.head) && c.labels.tail.head instanceof JCDefaultCaseLabel) {
+                    // case null, default unsupported
                     throw unsupported(c);
                 }
                 Body.Builder caseLabel = visitCaseLabel(tree, target, c);
                 Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType, cases.getLast() == c);
                 bodies.add(caseLabel);
                 bodies.add(caseBody);
-                hasDefaultCase |= anyLabelIsDefault;
+                hasDefaultCase |= c.labels.head instanceof JCDefaultCaseLabel;
             }
 
             if (!hasDefaultCase && isDefaultCaseNeeded) {
@@ -1659,6 +1660,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             return bodies;
+        }
+
+        boolean isNull(JCCaseLabel label) {
+            return label instanceof JCConstantCaseLabel constantCaseLabel &&
+                    TreeInfo.isNull(constantCaseLabel.expr);
         }
 
         private Value processConstantLabel(Value target, JCTree.JCConstantCaseLabel label) {
