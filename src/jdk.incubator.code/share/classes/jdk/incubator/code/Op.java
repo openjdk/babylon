@@ -780,7 +780,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     /**
      * Returns the code model of a executable element.
      * <p>
-     * Repeated invocations of this method will return different instances of the code model.
+     * Repeated invocations of this method will return distinct instances of the code model.
      *
      * @param processingEnvironment the annotation processing environment
      * @param e the executable element.
