@@ -778,15 +778,13 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the code model of provided executable element (if any).
+     * Returns the code model of an executable element.
      * <p>
-     * If the executable element has a code model then it will be an instance of
-     * {@code java.lang.reflect.code.op.CoreOps.FuncOp}.
-     * Note: due to circular dependencies we cannot refer to the type explicitly.
+     * Repeated invocations of this method will return distinct instances of the code model.
      *
      * @param processingEnvironment the annotation processing environment
      * @param e the executable element.
-     * @return the code model of the provided executable element (if any).
+     * @return the code model, or an empty optional if the executable element is not reflectable.
      */
     public static Optional<FuncOp> ofElement(ProcessingEnvironment processingEnvironment, ExecutableElement e) {
         if (e.getModifiers().contains(Modifier.ABSTRACT) ||
