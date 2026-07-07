@@ -216,4 +216,26 @@ public class TestInline {
         Assertions.assertEquals(42, a[0]);
     }
 
+    @Reflect
+    static void n() {
+    }
+    @Reflect
+    static int m(int i) {
+        n();
+        return i; // this make sure context needs to be set properly after inlining, for the transformation to work
+    }
+
+    @Test
+    void testInlineInTransformation() throws NoSuchMethodException {
+        FuncOp m = Op.ofMethod(this.getClass().getDeclaredMethod("m", int.class)).get();
+        FuncOp n = Op.ofMethod(this.getClass().getDeclaredMethod("n")).get();
+        m.transform((b, o) -> {
+            if (o instanceof JavaOp.InvokeOp iop && iop.invokeReference().name().equals("n")) {
+                return Inliner.inline(b, n, List.of(), (b2, o2) -> {});
+            }
+            b.add(o);
+            return b;
+        });
+    }
+
 }
