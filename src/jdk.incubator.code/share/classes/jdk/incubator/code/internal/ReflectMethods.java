@@ -1401,11 +1401,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 scan(tree.def);
             }
 
-            if (tree.type.tsym.isDirectlyOrIndirectlyLocal() && (tree.type.tsym.flags() & NOOUTERTHIS) != 0) {
-                // local class creation in pre-construction context is not supported
-                throw unsupported(tree);
-            }
-
             List<CodeType> argtypes = new ArrayList<>();
             Type type = tree.type;
             List<Value> args = new ArrayList<>();
