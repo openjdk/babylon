@@ -778,7 +778,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
     }
 
     /**
-     * Returns the code model of a executable element.
+     * Returns the code model of an executable element.
      * <p>
      * Repeated invocations of this method will return distinct instances of the code model.
      *
