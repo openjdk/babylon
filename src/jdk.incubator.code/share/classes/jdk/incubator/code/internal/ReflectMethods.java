@@ -219,7 +219,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 CoreOp.FuncOp funcOp;
                 try {
                     funcOp = bodyScanner.scanMethod();
-                } catch (Exception e) {
+                } catch (UnsupportedASTException e) {
                     log.warning(tree, Warnings.ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
                     super.visitMethodDef(tree);
                     return;
@@ -315,7 +315,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             CoreOp.FuncOp funcOp;
             try {
                 funcOp = bodyScanner.scanLambda();
-            } catch (Exception e) {
+            } catch (UnsupportedASTException e) {
                 log.warning(tree, Warnings.ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
                 super.visitLambda(tree);
                 return;
