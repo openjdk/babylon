@@ -286,9 +286,16 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    // @Reflect
-    // compiler code doesn't support case null, default
-    // @@@ support such as case and test the switch expression lowering for this case
+    @Test
+    void testCaseConstantNullAndDefault() {
+        CoreOp.FuncOp lmodel = lower("caseConstantNullAndDefault");
+        String[] args = { "abc", "hello", null };
+        for (String arg : args) {
+            Assertions.assertEquals(caseConstantNullAndDefault(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
     private static String caseConstantNullAndDefault(String s) {
         return switch (s) {
             case "abc" -> "alphabet";

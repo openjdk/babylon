@@ -509,7 +509,7 @@ public class SwitchExpressionTest2 {
             func @"caseConstantNullLabel" (%0 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %1 : Var<java.type:"java.lang.String"> = var %0 @"s";
                 %2 : java.type:"java.lang.String" = var.load %1;
-                %3 : java.type:"java.lang.String" = java.switch.expression %2
+                %3 : java.type:"java.lang.String" = java.switch.expression %2 @switch.handle.nulls=true
                     (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %5 : java.type:"java.lang.Object" = constant @null;
                         %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
@@ -538,9 +538,32 @@ public class SwitchExpressionTest2 {
         };
     }
 
-    // @Reflect
-    // compiler code doesn't support case null, default
-    // @@@ support such as case and test the switch expression lowering for this case
+    @IR("""
+            func @"caseConstantNullAndDefault" (%0 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"s";
+                %2 : java.type:"java.lang.String" = var.load %1;
+                %3 : java.type:"java.lang.String" = java.switch.expression %2 @switch.handle.nulls=true
+                    (%4 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %5 : java.type:"java.lang.String" = constant @"abc";
+                        %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        yield %6;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %7 : java.type:"java.lang.String" = constant @"alphabet";
+                        yield %7;
+                    }
+                    ()java.type:"boolean" -> {
+                        %8 : java.type:"boolean" = constant @true;
+                        yield %8;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %9 : java.type:"java.lang.String" = constant @"null or default";
+                        yield %9;
+                    };
+                return %3;
+            };
+            """)
+    @Reflect
     private static String caseConstantNullAndDefault(String s) {
         return switch (s) {
             case "abc" -> "alphabet";

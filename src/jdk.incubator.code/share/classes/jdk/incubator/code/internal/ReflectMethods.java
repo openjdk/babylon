@@ -1607,10 +1607,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Type switchType = adaptBottom(tree.type);
             FunctionType caseBodyType = CoreType.functionType(typeToCodeType(switchType));
 
-            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, caseBodyType,
+            SwitchBodyInfo bodyInfo = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, caseBodyType,
                     !tree.hasUnconditionalPattern);
 
-            result = append(JavaOp.switchExpression(caseBodyType.returnType(), target, bodies));
+            result = append(JavaOp.switchExpression(caseBodyType.returnType(), target, bodyInfo.handlesNull, bodyInfo.bodies));
         }
 
         @Override
@@ -1619,28 +1619,32 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             FunctionType actionType = CoreType.FUNCTION_TYPE_VOID;
 
-            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, actionType,
+            SwitchBodyInfo bodyInfo = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, actionType,
                     tree.patternSwitch && !tree.hasUnconditionalPattern);
 
-            result = append(JavaOp.switchStatement(target, bodies));
+            result = append(JavaOp.switchStatement(target, bodyInfo.handlesNull, bodyInfo.bodies));
         }
 
-        private List<Body.Builder> visitSwitchStatAndExpr(JCTree tree, JCExpression selector, Value target,
+        record SwitchBodyInfo(boolean handlesNull, List<Body.Builder> bodies) { }
+
+        private SwitchBodyInfo visitSwitchStatAndExpr(JCTree tree, JCExpression selector, Value target,
                                                           List<JCTree.JCCase> cases, FunctionType caseBodyType,
                                                           boolean isDefaultCaseNeeded) {
             List<Body.Builder> bodies = new ArrayList<>();
             boolean hasDefaultCase = false;
+            boolean handlesNull = false;
 
             for (JCTree.JCCase c : cases) {
-                if (isNull(c.labels.head) && c.labels.tail.head instanceof JCDefaultCaseLabel) {
-                    // case null, default unsupported
-                    throw unsupported(c);
+                if (handlesNull(c)) {
+                    handlesNull = true;
+                }
+                if (isDefault(c)) {
+                    hasDefaultCase = true;
                 }
                 Body.Builder caseLabel = visitCaseLabel(tree, target, c);
                 Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType, cases.getLast() == c);
                 bodies.add(caseLabel);
                 bodies.add(caseBody);
-                hasDefaultCase |= c.labels.head instanceof JCDefaultCaseLabel;
             }
 
             if (!hasDefaultCase && isDefaultCaseNeeded) {
@@ -1659,12 +1663,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 popBody();
             }
 
-            return bodies;
+            return new SwitchBodyInfo(handlesNull, bodies);
         }
 
-        boolean isNull(JCCaseLabel label) {
-            return label instanceof JCConstantCaseLabel constantCaseLabel &&
-                    TreeInfo.isNull(constantCaseLabel.expr);
+        boolean handlesNull(JCTree.JCCase caseTree) {
+            return caseTree.labels.stream().anyMatch(l -> l instanceof JCConstantCaseLabel constLabel &&
+                    TreeInfo.isNull(constLabel.expr));
+        }
+
+        boolean isDefault(JCTree.JCCase caseTree) {
+            return caseTree.labels.stream().anyMatch(l -> l instanceof JCDefaultCaseLabel);
         }
 
         private Value processConstantLabel(Value target, JCTree.JCConstantCaseLabel label) {
@@ -1692,7 +1700,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
             FunctionType caseLabelType = CoreType.functionType(JavaType.BOOLEAN, target.type());
 
             JCTree.JCCaseLabel headCl = c.labels.head;
-            if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
+            if (isDefault(c)) {
+                // @@@ Do we need to model the default label body?
+                pushBody(headCl, CoreType.functionType(JavaType.BOOLEAN));
+
+                append(CoreOp.core_yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
+                body = stack.body;
+
+                // Pop label
+                popBody();
+            } else if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
                 boolean isMultiLabel = c.labels.size() > 1;
 
                 pushBody(pcl, caseLabelType);
@@ -1773,15 +1790,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 body = stack.body;
 
                 // Pop labels
-                popBody();
-            } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                // @@@ Do we need to model the default label body?
-                pushBody(headCl, CoreType.functionType(JavaType.BOOLEAN));
-
-                append(CoreOp.core_yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
-                body = stack.body;
-
-                // Pop label
                 popBody();
             } else {
                 throw unreachable();

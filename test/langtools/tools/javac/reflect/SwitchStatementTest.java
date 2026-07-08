@@ -394,7 +394,7 @@ public class SwitchStatementTest {
                 %2 : java.type:"java.lang.String" = constant @"";
                 %3 : Var<java.type:"java.lang.String"> = var %2 @"r";
                 %4 : java.type:"java.lang.String" = var.load %1;
-                java.switch.statement %4
+                java.switch.statement %4 @switch.handle.nulls=true
                     (%5 : java.type:"java.lang.String")java.type:"boolean" -> {
                         %6 : java.type:"java.lang.Object" = constant @null;
                         %7 : java.type:"boolean" = invoke %5 %6 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
@@ -432,8 +432,41 @@ public class SwitchStatementTest {
         return r;
     }
 
-//    @Reflect
-//    @@@ not supported
+    @IR("""
+            func @"caseConstantNullAndDefault" (%0 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
+                %1 : Var<java.type:"java.lang.String"> = var %0 @"s";
+                %2 : java.type:"java.lang.String" = constant @"";
+                %3 : Var<java.type:"java.lang.String"> = var %2 @"r";
+                %4 : java.type:"java.lang.String" = var.load %1;
+                java.switch.statement %4 @switch.handle.nulls=true
+                    (%5 : java.type:"java.lang.String")java.type:"boolean" -> {
+                        %6 : java.type:"java.lang.String" = constant @"abc";
+                        %7 : java.type:"boolean" = invoke %5 %6 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        yield %7;
+                    }
+                    ()java.type:"void" -> {
+                        %8 : java.type:"java.lang.String" = var.load %3;
+                        %9 : java.type:"java.lang.String" = constant @"alphabet";
+                        %10 : java.type:"java.lang.String" = concat %8 %9;
+                        var.store %3 %10;
+                        yield;
+                    }
+                    ()java.type:"boolean" -> {
+                        %11 : java.type:"boolean" = constant @true;
+                        yield %11;
+                    }
+                    ()java.type:"void" -> {
+                        %12 : java.type:"java.lang.String" = var.load %3;
+                        %13 : java.type:"java.lang.String" = constant @"null or default";
+                        %14 : java.type:"java.lang.String" = concat %12 %13;
+                        var.store %3 %14;
+                        yield;
+                    };
+                %15 : java.type:"java.lang.String" = var.load %3;
+                return %15;
+            };
+            """)
+    @Reflect
     private static String caseConstantNullAndDefault(String s) {
         String r = "";
         switch (s) {
@@ -1031,7 +1064,7 @@ public class SwitchStatementTest {
                 %2 : java.type:"java.lang.String" = constant @"";
                 %3 : Var<java.type:"java.lang.String"> = var %2 @"r";
                 %4 : java.type:"SwitchStatementTest$E" = var.load %1;
-                java.switch.statement %4
+                java.switch.statement %4 @switch.handle.nulls=true
                     (%5 : java.type:"SwitchStatementTest$E")java.type:"boolean" -> {
                         %6 : java.type:"SwitchStatementTest$E" = field.load @java.ref:"SwitchStatementTest$E::A:SwitchStatementTest$E";
                         %7 : java.type:"boolean" = eq %5 %6;
