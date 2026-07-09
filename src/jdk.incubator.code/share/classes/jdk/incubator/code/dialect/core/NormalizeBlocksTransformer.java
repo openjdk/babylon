@@ -74,12 +74,6 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
     @Override
     public Block.Builder acceptOp(Block.Builder b, Op op) {
         switch (op) {
-            case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
-                // Merge the successor's target block with this block, and so on
-                // The terminal branch operation is replaced with the operations in the
-                // successor's target block
-                mergeBlock(b, bop);
-            }
             case CoreOp.BranchOp bop when isPureConditionalDispatchingBlock(bop.branch().targetBlock())
                     && bop.branch().arguments().getFirst() instanceof Op.Result or
                     && or.op() instanceof CoreOp.ConstantOp cop -> {
@@ -99,6 +93,12 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                         .allMatch(r -> r.arguments().getFirst() instanceof Op.Result orr && orr.op() instanceof CoreOp.ConstantOp)) {
                     mergedBlocks.add(bop.branch().targetBlock());
                 }
+            }
+            case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
+                // Merge the successor's target block with this block, and so on
+                // The terminal branch operation is replaced with the operations in the
+                // successor's target block
+                mergeBlock(b, bop);
             }
             case CoreOp.ConstantOp cop when cop.resultType().equals(JavaType.BOOLEAN)
                 && cop.result().uses().stream().allMatch(cr -> cr.op() instanceof CoreOp.BranchOp bop

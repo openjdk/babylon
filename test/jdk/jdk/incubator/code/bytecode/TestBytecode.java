@@ -544,6 +544,14 @@ public class TestBytecode {
         return Arrays.asList(a, s).toString();
     }
 
+    @Reflect
+    static int patternMatchSameType(String s) {
+        if (s instanceof String ss) {
+            return ss.length();
+        }
+        return -1;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
