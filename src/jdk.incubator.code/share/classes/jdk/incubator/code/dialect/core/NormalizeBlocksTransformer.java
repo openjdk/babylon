@@ -74,6 +74,8 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
     @Override
     public Block.Builder acceptOp(Block.Builder b, Op op) {
         switch (op) {
+            // Handle constant dispatch before generic merge.
+            // Boolean constants used only as dispatch arguments are dropped and generic merge cannot handle them.
             case CoreOp.BranchOp bop when isPureConditionalDispatchingBlock(bop.branch().targetBlock())
                     && bop.branch().arguments().getFirst() instanceof Op.Result or
                     && or.op() instanceof CoreOp.ConstantOp cop -> {
