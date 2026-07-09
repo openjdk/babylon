@@ -768,7 +768,7 @@ public final class Block implements CodeElement<Block, Op> {
             Op outputOp = op.isPlacedInBlock() || op.isRoot()
                     ? op.transform(cc, ct)
                     : op;
-            assert outputOp.result == null;
+            assert ((AbstractOp) outputOp).result == null;
 
             Op.Result outputResult = insertOp(outputOp);
 
@@ -874,7 +874,7 @@ public final class Block implements CodeElement<Block, Op> {
             }
         }
 
-        op.result = opr;
+        ((AbstractOp) op).result = opr;
     }
 
     // Determine if the parent body of value's block is the same as or an ancestor of this block

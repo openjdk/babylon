@@ -26,12 +26,8 @@ package jdk.incubator.code.bytecode.impl;
 
 import java.util.List;
 import java.util.Map;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Value;
+
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
 
 /**
@@ -44,7 +40,7 @@ import jdk.incubator.code.dialect.java.JavaType;
  * Default is a successor with corresponds null label value.
  * The selected successor refers to the next block to branch to.
  */
-public final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminating {
+public final class ConstantLabelSwitchOp extends AbstractOp implements Op.BlockTerminating {
 
     final List<Integer> labels;
     final List<Block.Reference> targets;
