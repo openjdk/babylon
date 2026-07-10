@@ -25,9 +25,9 @@
 
 package experiments;
 
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
-import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.classfile.ClassFile;
@@ -37,7 +37,7 @@ public class JavaPMe {
     @Reflect
     public static void main(String[] args) throws ReflectiveOperationException {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
-        CoreOp.FuncOp.ofMethod(
+        Op.ofMethod(
                 MethodRef.method(JavaPMe.class, "main", void.class, String[].class)
                         .resolveToMethod(lookup)).ifPresent(mainFuncOp -> {
             System.out.print(mainFuncOp.toText());

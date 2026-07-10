@@ -35,7 +35,7 @@ import hat.annotations.TypeDef;
 import hat.backend.Backend;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
@@ -373,7 +373,7 @@ public class PrefixSum {
     static void main() throws ReflectiveOperationException {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var methodRef= MethodRef.method(PrefixSum.class, "compute", void.class, ComputeContext.class,S32Array.class);
-        var funcOp = CoreOp.FuncOp.ofMethod(methodRef.resolveToMethod(MethodHandles.lookup())).get();
+        var funcOp = Op.ofMethod(methodRef.resolveToMethod(MethodHandles.lookup())).get();
 
         VarTable varTable = new VarTable(funcOp.funcName());
         Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(), funcOp, varTable);

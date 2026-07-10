@@ -39,7 +39,7 @@ import java.util.function.Consumer;
 public class SCFOps {
 
     @OpFactoryHelper.OpDeclaration(ForOp.NAME)
-    public static final class ForOp extends Op implements Op.Loop {
+    public static final class ForOp extends AbstractOp implements Op.Loop {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -114,7 +114,7 @@ public class SCFOps {
     }
 
     @OpFactoryHelper.OpDeclaration(YieldOp.NAME)
-    public static class YieldOp extends Op implements Op.Terminating {
+    public static class YieldOp extends AbstractOp implements Op.Terminating {
         public static final String NAME = "scf.yield";
 
         public YieldOp(ExternalizedOp def) {

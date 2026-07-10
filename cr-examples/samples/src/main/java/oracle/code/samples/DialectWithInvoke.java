@@ -24,6 +24,7 @@
  */
 package oracle.code.samples;
 
+import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
@@ -66,7 +67,7 @@ public class DialectWithInvoke {
     }
 
     // Custom/Dialect Nodes extends from Op
-    public static class FMAIntrinsicOp extends Op { // externalized
+    public static class FMAIntrinsicOp extends AbstractOp { // externalized
 
         private final CodeType typeDescriptor;
 
@@ -75,7 +76,7 @@ public class DialectWithInvoke {
             this.typeDescriptor = typeDescriptor;
         }
 
-        FMAIntrinsicOp(Op that, CodeContext cc) {
+        FMAIntrinsicOp(FMAIntrinsicOp that, CodeContext cc) {
             super(that, cc);
             this.typeDescriptor = that.resultType();
         }

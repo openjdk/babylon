@@ -25,15 +25,12 @@
 
 package oracle.code.onnx.ir;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.*;
 
-public abstract class OnnxOp extends Op {
+public abstract class OnnxOp extends AbstractOp {
 
     public interface OnnxAttribute {
         String name();
