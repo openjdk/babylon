@@ -312,11 +312,10 @@ public class BinopTest {
                 var.store %4 %34;
                 %35 : java.type:"byte" = var.load %4;
                 %36 : java.type:"long" = constant @1L;
-                %37 : java.type:"int" = conv %36;
-                %38 : java.type:"int" = conv %35;
-                %39 : java.type:"int" = ashr %38 %37;
-                %40 : java.type:"byte" = conv %39;
-                var.store %4 %40;
+                %37 : java.type:"int" = conv %35;
+                %38 : java.type:"int" = ashr %37 %36;
+                %39 : java.type:"byte" = conv %38;
+                var.store %4 %39;
                 return;
             };
             """)
