@@ -904,14 +904,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public void visitAssignop(JCTree.JCAssignOp tree) {
             // Capture applying rhs and operation
             Function<Value, Value> scanRhs = (lhs) -> {
-                Type unboxedType = types.unboxedTypeOrType(tree.operator.getReturnType());
+                Type target = tree.operator.getReturnType();
                 Value rhs;
                 if (tree.operator.opcode == ByteCodes.string_add && tree.rhs.type.isPrimitive()) {
                     rhs = toValue(tree.rhs);
                 } else {
-                    rhs = toValue(tree.rhs, unboxedType);
+                    rhs = toValue(tree.rhs, target);
                 }
-                lhs = convert(lhs, unboxedType);
+                lhs = convert(lhs, target);
 
                 Value assignOpResult = switch (tree.getTag()) {
 
