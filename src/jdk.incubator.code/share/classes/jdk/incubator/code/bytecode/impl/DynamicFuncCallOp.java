@@ -26,7 +26,9 @@ package jdk.incubator.code.bytecode.impl;
 
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
@@ -80,6 +82,19 @@ public final class DynamicFuncCallOp extends Op {
     @Override
     public CodeType resultType() {
         return resultType;
+    }
+
+    @Override
+    public Map<String, Object> externalize() {
+        // for debug print
+        LinkedHashMap<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("func", funcName);
+        attributes.put("bootstrap", bootstrapMethod);
+        attributes.put("invocationName", invocationName);
+        attributes.put("invocationType", invocationType);
+        attributes.put("interfaceMethodType", interfaceMethodType);
+        attributes.put("dynamicMethodType", dynamicMethodType);
+        return attributes;
     }
 
     public String funcName() {
