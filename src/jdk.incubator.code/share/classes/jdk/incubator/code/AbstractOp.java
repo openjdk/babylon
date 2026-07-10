@@ -104,24 +104,6 @@ public non-sealed abstract class AbstractOp implements Op {
     final List<Value> operands;
 
     /**
-     * Constructs an operation with operands mapped from, and location copied from, the given operation.
-     * <p>
-     * The constructed operation's operands are the values computed, in order, by mapping the given operation's operands
-     * using the given code context. The new operation's location is the given operation's location, if any.
-     *
-     * @param that the given operation
-     * @param cc   the code context
-     */
-    protected AbstractOp(AbstractOp that, CodeContext cc) {
-        List<Value> outputOperands = cc.getValues(that.operands);
-        // Values should be guaranteed to connect to blocks being built since
-        // the context only allows such mappings, assert for clarity
-        assert outputOperands.stream().noneMatch(Value::isBuilt);
-        this.operands = List.copyOf(outputOperands);
-        this.location = that.location;
-    }
-
-    /**
      * Constructs an operation with a list of operands.
      *
      * @param operands the list of operands, a copy of the list is performed if required.
@@ -134,6 +116,22 @@ public non-sealed abstract class AbstractOp implements Op {
             }
         }
         this.operands = List.copyOf(operands);
+    }
+
+    /**
+     * Constructs an operation with operands mapped from, and location copied from, the given operation.
+     * <p>
+     * The constructed operation's operands are the values computed, in order, by mapping the given operation's operands
+     * using the given code context. The new operation's location is the given operation's location, if any.
+     *
+     * @param that the operation
+     * @param cc   the code context
+     * @throws IllegalArgumentException if an operation's operand has no context mapping
+     * @throws IllegalArgumentException if an operand's declaring block is built.
+     */
+    protected AbstractOp(AbstractOp that, CodeContext cc) {
+        this(cc.getValues(that.operands));
+        this.location = that.location;
     }
 
     @Override
