@@ -121,13 +121,13 @@ public non-sealed abstract class AbstractOp implements Op {
     /**
      * Constructs an operation with operands mapped from, and location copied from, the given operation.
      * <p>
-     * The constructed operation's operands are the values computed, in order, by mapping the given operation's operands
-     * using the given code context. The new operation's location is the given operation's location, if any.
+     * The constructed operation's operands are the values mapped, in order, from the given operation's operands using
+     * the given code context. The new operation's location is the given operation's location, if any.
      *
      * @param that the operation
      * @param cc   the code context
      * @throws IllegalArgumentException if an operation's operand has no context mapping
-     * @throws IllegalArgumentException if an operand's declaring block is built.
+     * @throws IllegalArgumentException if a mapped value's declaring block is built.
      */
     protected AbstractOp(AbstractOp that, CodeContext cc) {
         this(cc.getValues(that.operands));
