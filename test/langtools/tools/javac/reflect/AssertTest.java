@@ -71,4 +71,20 @@ public class AssertTest {
     public static void assertTest2(int i) {
         assert (i == 1);
     }
+
+    @Reflect
+    @IR("""
+            func @"assertTest3" (%0 : java.type:"java.lang.Boolean")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Boolean"> = var %0 @"b";
+                assert ()java.type:"boolean" -> {
+                    %2 : java.type:"java.lang.Boolean" = var.load %1;
+                    %3 : java.type:"boolean" = invoke %2 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                    yield %3;
+                };
+                return;
+            };
+            """)
+    public static void assertTest3(Boolean b) {
+        assert (b);
+    }
 }

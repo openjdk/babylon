@@ -118,4 +118,31 @@ public class ConditionalAndOrTest {
     void test3(int i) {
         boolean b = i > 1 && i < 10 || i == 100;
     }
+
+    @Reflect
+    @IR("""
+            func @"test4" (%0 : java.type:"ConditionalAndOrTest", %1 : java.type:"java.lang.Boolean", %2 : java.type:"int", %3 : java.type:"int")java.type:"int" -> {
+                %4 : Var<java.type:"java.lang.Boolean"> = var %1 @"c";
+                %5 : Var<java.type:"int"> = var %2 @"i1";
+                %6 : Var<java.type:"int"> = var %3 @"i2";
+                %7 : java.type:"int" = java.cexpression
+                    ()java.type:"boolean" -> {
+                        %8 : java.type:"java.lang.Boolean" = var.load %4;
+                        %9 : java.type:"boolean" = invoke %8 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %9;
+                    }
+                    ()java.type:"int" -> {
+                        %10 : java.type:"int" = var.load %5;
+                        yield %10;
+                    }
+                    ()java.type:"int" -> {
+                        %11 : java.type:"int" = var.load %6;
+                        yield %11;
+                    };
+                return %7;
+            };
+            """)
+    int test4(Boolean c, int i1, int i2) {
+        return c ? i1 : i2;
+    }
 }

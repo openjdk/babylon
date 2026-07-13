@@ -1545,8 +1545,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 // Push if condition
                 pushBody(cond,
                         CoreType.functionType(JavaType.BOOLEAN));
-                Value last = toValue(cond);
-                last = convert(last, codeTypeToType(JavaType.BOOLEAN));
+                Value last = toValue(cond, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(last));
                 bodies.add(stack.body);
@@ -1727,7 +1726,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     }
 
                     pushBody(c.guard, CoreType.functionType(JavaType.BOOLEAN));
-                    append(CoreOp.core_yield(toValue(c.guard)));
+                    append(CoreOp.core_yield(toValue(c.guard, syms.booleanType)));
                     clBodies.add(stack.body);
                     popBody();
 
@@ -1847,9 +1846,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Push while condition
             pushBody(cond, CoreType.functionType(JavaType.BOOLEAN));
-            Value last = toValue(cond);
+            Value last = toValue(cond, syms.booleanType);
             // Yield the boolean result of the condition
-            last = convert(last, codeTypeToType(JavaType.BOOLEAN));
             append(CoreOp.core_yield(last));
             Body.Builder condition = stack.body;
 
@@ -1885,8 +1883,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Push while condition
             pushBody(cond, CoreType.functionType(JavaType.BOOLEAN));
-            Value last = toValue(cond);
-            last = convert(last, codeTypeToType(JavaType.BOOLEAN));
+            Value last = toValue(cond, syms.booleanType);
             // Yield the boolean result of the condition
             append(CoreOp.core_yield(last));
             Body.Builder condition = stack.body;
@@ -2014,7 +2011,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             if (tree.cond != null) {
                 vds.mapVarsToBlockArguments();
 
-                Value last = toValue(tree.cond);
+                Value last = toValue(tree.cond, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(last));
             } else {
@@ -2063,7 +2060,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Push condition
             pushBody(cond,
                     CoreType.functionType(JavaType.BOOLEAN));
-            Value condVal = toValue(cond);
+            Value condVal = toValue(cond, syms.booleanType);
             // Yield the boolean result of the condition
             append(CoreOp.core_yield(condVal));
             Body.Builder predicateBody = stack.body;
@@ -2128,7 +2125,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Push condition
             pushBody(cond,
                     CoreType.functionType(JavaType.BOOLEAN));
-            Value condVal = toValue(cond);
+            Value condVal = toValue(cond, syms.booleanType);
 
             // Yield the boolean result of the condition
             append(CoreOp.core_yield(condVal));
@@ -2367,7 +2364,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 // Push lhs
                 pushBody(tree.lhs, CoreType.functionType(JavaType.BOOLEAN));
-                Value lhs = toValue(tree.lhs);
+                Value lhs = toValue(tree.lhs, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(lhs));
                 Body.Builder bodyLhs = stack.body;
@@ -2377,7 +2374,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 // Push rhs
                 pushBody(tree.rhs, CoreType.functionType(JavaType.BOOLEAN));
-                Value rhs = toValue(tree.rhs);
+                Value rhs = toValue(tree.rhs, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(rhs));
                 Body.Builder bodyRhs = stack.body;
@@ -2400,11 +2397,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 result = append(JavaOp.concat(lhs, rhs));
             }
             else {
-                Type opType = tree.operator.type.getParameterTypes().getFirst();
-                // @@@ potentially handle shift input conversion like other binary ops
-                boolean isShift = tag == Tag.SL || tag == Tag.SR || tag == Tag.USR;
-                Value lhs = toValue(tree.lhs, opType);
-                Value rhs = toValue(tree.rhs, isShift ? tree.operator.type.getParameterTypes().getLast() : opType);
+                Type lhsType = tree.operator.type.getParameterTypes().head;
+                Type rhsType = tree.operator.type.getParameterTypes().tail.head;
+                Value lhs = toValue(tree.lhs, lhsType);
+                Value rhs = toValue(tree.rhs, rhsType);
 
                 result = switch (tag) {
                     // Arithmetic operations

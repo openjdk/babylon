@@ -332,4 +332,122 @@ public class BinopTest {
 
         a >>= 1L;
     }
+
+    @Reflect
+    @IR("""
+            func @"test10" (%0 : java.type:"BinopTest", %1 : java.type:"boolean", %2 : java.type:"java.lang.Boolean")java.type:"void" -> {
+                %3 : Var<java.type:"boolean"> = var %1 @"b";
+                %4 : Var<java.type:"java.lang.Boolean"> = var %2 @"B";
+                %5 : java.type:"boolean" = java.cor
+                    ()java.type:"boolean" -> {
+                        %6 : java.type:"boolean" = var.load %3;
+                        yield %6;
+                    }
+                    ()java.type:"boolean" -> {
+                        %7 : java.type:"java.lang.Boolean" = var.load %4;
+                        %8 : java.type:"boolean" = invoke %7 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %8;
+                    };
+                %9 : Var<java.type:"boolean"> = var %5 @"or1";
+                %10 : java.type:"boolean" = java.cor
+                    ()java.type:"boolean" -> {
+                        %11 : java.type:"java.lang.Boolean" = var.load %4;
+                        %12 : java.type:"boolean" = invoke %11 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %12;
+                    }
+                    ()java.type:"boolean" -> {
+                        %13 : java.type:"boolean" = var.load %3;
+                        yield %13;
+                    };
+                %14 : Var<java.type:"boolean"> = var %10 @"or2";
+                %15 : java.type:"boolean" = java.cor
+                    ()java.type:"boolean" -> {
+                        %16 : java.type:"boolean" = var.load %3;
+                        yield %16;
+                    }
+                    ()java.type:"boolean" -> {
+                        %17 : java.type:"boolean" = var.load %3;
+                        yield %17;
+                    };
+                %18 : Var<java.type:"boolean"> = var %15 @"or3";
+                %19 : java.type:"boolean" = java.cor
+                    ()java.type:"boolean" -> {
+                        %20 : java.type:"java.lang.Boolean" = var.load %4;
+                        %21 : java.type:"boolean" = invoke %20 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %21;
+                    }
+                    ()java.type:"boolean" -> {
+                        %22 : java.type:"java.lang.Boolean" = var.load %4;
+                        %23 : java.type:"boolean" = invoke %22 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %23;
+                    };
+                %24 : Var<java.type:"boolean"> = var %19 @"or4";
+                %25 : java.type:"boolean" = java.cand
+                    ()java.type:"boolean" -> {
+                        %26 : java.type:"boolean" = var.load %3;
+                        yield %26;
+                    }
+                    ()java.type:"boolean" -> {
+                        %27 : java.type:"java.lang.Boolean" = var.load %4;
+                        %28 : java.type:"boolean" = invoke %27 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %28;
+                    };
+                %29 : Var<java.type:"boolean"> = var %25 @"and1";
+                %30 : java.type:"boolean" = java.cand
+                    ()java.type:"boolean" -> {
+                        %31 : java.type:"java.lang.Boolean" = var.load %4;
+                        %32 : java.type:"boolean" = invoke %31 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %32;
+                    }
+                    ()java.type:"boolean" -> {
+                        %33 : java.type:"boolean" = var.load %3;
+                        yield %33;
+                    };
+                %34 : Var<java.type:"boolean"> = var %30 @"and2";
+                %35 : java.type:"boolean" = java.cand
+                    ()java.type:"boolean" -> {
+                        %36 : java.type:"boolean" = var.load %3;
+                        yield %36;
+                    }
+                    ()java.type:"boolean" -> {
+                        %37 : java.type:"boolean" = var.load %3;
+                        yield %37;
+                    };
+                %38 : Var<java.type:"boolean"> = var %35 @"and3";
+                %39 : java.type:"boolean" = java.cand
+                    ()java.type:"boolean" -> {
+                        %40 : java.type:"java.lang.Boolean" = var.load %4;
+                        %41 : java.type:"boolean" = invoke %40 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %41;
+                    }
+                    ()java.type:"boolean" -> {
+                        %42 : java.type:"java.lang.Boolean" = var.load %4;
+                        %43 : java.type:"boolean" = invoke %42 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                        yield %43;
+                    };
+                %44 : Var<java.type:"boolean"> = var %39 @"and4";
+                %45 : java.type:"boolean" = var.load %3;
+                %46 : java.type:"boolean" = not %45;
+                %47 : Var<java.type:"boolean"> = var %46 @"not1";
+                %48 : java.type:"java.lang.Boolean" = var.load %4;
+                %49 : java.type:"boolean" = invoke %48 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                %50 : java.type:"boolean" = not %49;
+                %51 : Var<java.type:"boolean"> = var %50 @"not2";
+                return;
+            };
+            """)
+    void test10(boolean b, Boolean B) {
+        var or1 = b || B;
+        var or2 = B || b;
+        var or3 = b || b;
+        var or4 = B || B;
+
+        var and1 = b && B;
+        var and2 = B && b;
+        var and3 = b && b;
+        var and4 = B && B;
+
+        var not1 = !b;
+        var not2 = !B;
+    }
 }
