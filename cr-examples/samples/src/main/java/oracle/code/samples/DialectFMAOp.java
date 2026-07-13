@@ -24,6 +24,7 @@
  */
 package oracle.code.samples;
 
+import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
@@ -69,7 +70,7 @@ public class DialectFMAOp {
     }
 
     // Custom Node inherits from Op
-    private static class FMA extends Op {
+    private static class FMA extends AbstractOp {
         private static final String NAME = "fma";
 
         private final CodeType codeType;
@@ -79,7 +80,7 @@ public class DialectFMAOp {
             this.codeType = codeType;
         }
 
-        FMA(Op that, CodeContext cc) {
+        FMA(FMA that, CodeContext cc) {
             super(that, cc);
             this.codeType = that.resultType();
         }

@@ -32,7 +32,7 @@ import jdk.incubator.code.internal.OpDeclaration;
 import java.util.List;
 import java.util.Map;
 
-sealed abstract class SlotOp extends Op {
+sealed abstract class SlotOp extends AbstractOp {
     public static final String ATTRIBUTE_SLOT = "slot";
 
     public static SlotLoadOp load(int slot, TypeKind tk) {

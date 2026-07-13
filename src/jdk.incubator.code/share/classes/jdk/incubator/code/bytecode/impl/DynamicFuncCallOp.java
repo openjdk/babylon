@@ -30,13 +30,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-public final class DynamicFuncCallOp extends Op {
+public final class DynamicFuncCallOp extends AbstractOp {
     private final CodeType resultType;
     private final String funcName;
     private final DirectMethodHandleDesc bootstrapMethod;

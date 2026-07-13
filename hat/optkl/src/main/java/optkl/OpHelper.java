@@ -107,7 +107,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
     }
 
     static CoreOp.FuncOp methodModelOrNull(Method method) {
-        return CoreOp.FuncOp.ofMethod(method).orElse(null);
+        return Op.ofMethod(method).orElse(null);
     }
 
     static CoreOp.FuncOp methodModelOrThrow(Method method) {

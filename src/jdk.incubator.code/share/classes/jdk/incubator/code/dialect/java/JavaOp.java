@@ -71,9 +71,9 @@ import static jdk.incubator.code.internal.StructuralPreconditions.*;
  * This transformation preserves programming meaning. The resulting lowered code model also represents the same Java
  * program.
  */
-public sealed abstract class JavaOp extends Op {
+public sealed abstract class JavaOp extends AbstractOp {
 
-    JavaOp(Op that, CodeContext cc) {
+    JavaOp(AbstractOp that, CodeContext cc) {
         super(that, cc);
     }
 

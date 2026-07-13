@@ -60,9 +60,9 @@ import java.util.function.BiFunction;
  *
  * <h2>Operation construction</h2>
  * <p>
- * Constructing an operation creates an <i>unplaced</i> operation. An unplaced operation is not yet part of a code
- * model. The operation's operands, successors, bodies, and operation-specific state are fixed when construction
- * completes.
+ * An operation is constructed by creating an concrete instance of {@link AbstractOp}. Construction creates an
+ * <i>unplaced</i> operation. An unplaced operation is not yet part of a code model. The operation's operands,
+ * successors, bodies, and operation-specific state are fixed when construction completes.
  * <p>
  * An operation can only be constructed with operands whose declaring block is being built. Otherwise, construction
  * fails with an exception.
@@ -94,43 +94,6 @@ import java.util.function.BiFunction;
  * An unplaced operation, or an operation placed in a block whose parent body builder has not
  * <a href="Body.Builder.html#body-building-finishing">finished</a>, is not thread-safe.
  *
- * <h2>Operation implementation requirements</h2>
- * <p>
- * A concrete operation class must satisfy the following requirements:
- * <ul>
- * <li>
- * implement {@link #resultType()} to return the result type of operation instances;
- * <li>
- * implement {@link #transform(CodeContext, CodeTransformer)} to return a newly constructed, unplaced copy whose
- * concrete class is the concrete operation class;
- * <li>
- * call an appropriate {@code Op} superclass constructor from each concrete operation constructor. Constructors
- * for new operations pass the operation's operands to {@link #Op(List)}. Constructors for transformed copies can
- * pass the input operation and code context to {@link #Op(Op, CodeContext)};
- * <li>
- * override {@link #bodies()} if instances may have bodies. If the operation class implements {@link Op.Nested}, then
- * {@code bodies()} must return one or more bodies;
- * <li>
- * override {@link #successors()} if instances may have successors. If the operation class implements
- * {@link Op.BlockTerminating}, then {@code successors()} must return one or more successors;
- * <li>
- * copy mutable constructor arguments that define successors, bodies, and operation-specific state, ensuring
- * they are all fixed when construction completes; and
- * <li>
- * return unmodifiable views or immutable values from accessors that expose successors, bodies, and operation-specific
- * state.
- * </ul>
- * <p>
- * A concrete operation class may additionally:
- * <ul>
- * <li>
- * override {@link #externalizeOpName()} and {@link #externalize()} to define an external form;
- * <li>
- * implement {@link Op.Lowerable} to define a lowering; and
- * <li>
- * provide operation-specific accessors for operation-specific state.
- * </ul>
- *
  * @apiNote
  * An operation might model the {@link JavaOp.AddOp addition} of two integers, or a method
  * {@link JavaOp.InvokeOp invocation} expression. Alternatively an operation may model something more complex like
@@ -138,7 +101,7 @@ import java.util.function.BiFunction;
  * expressions, or {@link JavaOp.TryOp try} statements. In such cases an operation will contain one or more bodies
  * modeling the nested structure.
  */
-public non-sealed abstract class Op implements CodeElement<Op, Body> {
+public sealed interface Op extends CodeElement<Op, Body> permits AbstractOp {
 
     /**
      * An operation characteristic indicating the operation is pure and has no side effects.
@@ -206,15 +169,11 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
 
         /**
          * Computes values captured by this invokable operation's body.
-         * @implSpec
-         * The default implementation returns an empty unmodifiable list.
          *
          * @return the captured values.
          * @see Body#capturedValues()
          */
-        default List<Value> capturedValues() {
-            return List.of();
-        }
+        List<Value> capturedValues();
     }
 
     /**
@@ -334,7 +293,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         /**
          * If assigned to an operation's result field, indicates the operation is a root operation.
          */
-        private static final Result ROOT_RESULT = new Result();
+        static final Result ROOT_RESULT = new Result();
 
         final Op op;
 
@@ -398,33 +357,6 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
         }
     }
 
-    // Set when op is placed in a block or as a root operation, otherwise null when unplaced
-    // @@@ stable value?
-    Result result;
-
-    // null if not specified
-    // @@@ stable value?
-    Location location;
-
-    final List<Value> operands;
-
-    /**
-     * Constructs an operation with operands mapped from, and location copied from, the given operation.
-     * <p>
-     * The constructed operation's operands are the values computed, in order, by mapping the given operation's operands
-     * using the given code context. The new operation's location is the given operation's location, if any.
-     *
-     * @param that the given operation
-     * @param cc   the code context
-     */
-    protected Op(Op that, CodeContext cc) {
-        List<Value> outputOperands = cc.getValues(that.operands);
-        // Values should be guaranteed to connect to blocks being built since
-        // the context only allows such mappings, assert for clarity
-        assert outputOperands.stream().noneMatch(Value::isBuilt);
-        this.operands = List.copyOf(outputOperands);
-        this.location = that.location;
-    }
 
     /**
      * Transforms this operation, copying the operation and transforming any of its bodies.
@@ -448,22 +380,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the transformed operation
      * @see CodeTransformer#COPYING_TRANSFORMER
      */
-    public abstract Op transform(CodeContext cc, CodeTransformer ct);
-
-    /**
-     * Constructs an operation with a list of operands.
-     *
-     * @param operands the list of operands, a copy of the list is performed if required.
-     * @throws IllegalArgumentException if an operand's declaring block is built.
-     */
-    protected Op(List<? extends Value> operands) {
-        for (Value operand : operands) {
-            if (operand.isBuilt()) {
-                throw new IllegalArgumentException("Operand's declaring block is built: " + operand);
-            }
-        }
-        this.operands = List.copyOf(operands);
-    }
+    public Op transform(CodeContext cc, CodeTransformer ct);
 
     /**
      * Sets the originating source location of this operation.
@@ -471,21 +388,12 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @param l the location, the {@link Location#NO_LOCATION} value indicates the location is not specified.
      * @throws IllegalStateException if this operation is a root operation, or is placed in a built block.
      */
-    public final void setLocation(Location l) {
-        // @@@ Fail if location != null?
-        if (isRoot() || (result != null && result.block.isBuilt())) {
-            throw new IllegalStateException("Built operation");
-        }
-
-        location = l;
-    }
+    public void setLocation(Location l);
 
     /**
      * {@return the originating source location of this operation, otherwise {@code null} if not specified}
      */
-    public final Location location() {
-        return location;
-    }
+    public Location location();
 
     /**
      * Returns this operation's parent block, or {@code null} if this operation is unplaced or a root operation.
@@ -498,60 +406,34 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @see Value#declaringBlock()
      */
     @Override
-    public final Block parent() {
-        if (isRoot() || result == null) {
-            return null;
-        }
-
-        if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Parent block is unobservable");
-        }
-
-        return result.block;
-    }
-
-    @Override
-    public final List<Body> children() {
-        return bodies();
-    }
+    public Block parent();
 
     /**
      * {@return the operation's bodies, as an unmodifiable list}
-     * @implSpec this implementation returns an unmodifiable empty list.
      * @see #children()
      */
-    public List<Body> bodies() {
-        return List.of();
-    }
+    public List<Body> bodies();
 
     /**
      * {@return the operation's result type}
      */
-    public abstract CodeType resultType();
-
+    public CodeType resultType();
 
     /**
      * {@return the operation's result, or {@code null} if this operation is unplaced or a
      * root operation.}
      */
-    public final Result result() {
-        return result == Result.ROOT_RESULT ? null : result;
-    }
+    public Result result();
 
     /**
      * {@return the operation's operands, as an unmodifiable list}
      */
-    public final List<Value> operands() {
-        return operands;
-    }
+    public List<Value> operands();
 
     /**
      * {@return the operation's successors, as an unmodifiable list}
-     * @implSpec this implementation returns an unmodifiable empty list.
      */
-    public List<Block.Reference> successors() {
-        return List.of();
-    }
+    public List<Block.Reference> successors();
 
     /**
      * Returns the operation's signature, represented as a function type.
@@ -561,10 +443,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      *
      * @return the operation's signature
      */
-    public final FunctionType opSignature() {
-        List<CodeType> operandTypes = operands.stream().map(Value::type).toList();
-        return CoreType.functionType(resultType(), operandTypes);
-    }
+    public FunctionType opSignature();
 
     /**
      * Computes values captured by this operation. A captured value is a value that is used but not declared by any
@@ -576,15 +455,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @return the list of captured values, modifiable
      * @see Body#capturedValues()
      */
-    public final List<Value> capturedValues() {
-        Set<Value> cvs = new LinkedHashSet<>();
-
-        Deque<Body> bodyStack = new ArrayDeque<>();
-        for (Body childBody : bodies()) {
-            Body.capturedValues(cvs, bodyStack, childBody);
-        }
-        return new ArrayList<>(cvs);
-    }
+    public List<Value> capturedValues();
 
     /**
      * Builds this operation, placing it as the root operation of a code model. After this operation is placed as a root
@@ -597,65 +468,38 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * @see #isRoot()
      * @see Body#isIsolated
      */
-    public final void buildAsRoot() {
-        if (result == Result.ROOT_RESULT) {
-            return;
-        }
-        if (!bodies().stream().allMatch(Body::isIsolated)) {
-            throw new IllegalStateException("One of the operation bodies is not isolated");
-        }
-        if (!operands().isEmpty()) {
-            throw new IllegalStateException("Operation has operands");
-        }
-        if (!successors().isEmpty()) {
-            throw new IllegalStateException("Operation has successors");
-        }
-        if (result != null) {
-            throw new IllegalStateException("Operation is placed in a block");
-        }
-        result = Result.ROOT_RESULT;
-    }
+    public void buildAsRoot();
 
     /**
      * {@return {@code true} if this operation is a root operation.}
      * @see #buildAsRoot()
      * @see #isPlacedInBlock()
      */
-    public final boolean isRoot() {
-        return result == Result.ROOT_RESULT;
-    }
+    public boolean isRoot();
 
     /**
      * {@return {@code true} if this operation is placed in a block.}
      * @see #buildAsRoot()
      * @see #isRoot()
      */
-    public final boolean isPlacedInBlock() {
-        return !isRoot() && result != null;
-    }
+    public boolean isPlacedInBlock();
 
     /**
      * Externalizes this operation's name as a string.
-     * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
      *
      * @return the operation name
      */
-    public String externalizeOpName() {
-        return this.getClass().getName();
-    }
+    public String externalizeOpName();
 
     /**
      * Externalizes this operation's specific state as a map of attributes.
      *
      * <p>A null attribute value is represented by the constant
      * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
-     * @implSpec this implementation returns an unmodifiable empty map.
      *
      * @return the operation's externalized state, as an unmodifiable map
      */
-    public Map<String, Object> externalize() {
-        return Map.of();
-    }
+    public Map<String, Object> externalize();
 
     /**
      * Returns the code model text for this operation.
@@ -667,9 +511,7 @@ public non-sealed abstract class Op implements CodeElement<Op, Body> {
      * and comprehension.
      * @see OpWriter#toText(Op, OpWriter.Option...)
      */
-    public final String toText() {
-        return OpWriter.toText(this);
-    }
+    public String toText();
 
 
     /**

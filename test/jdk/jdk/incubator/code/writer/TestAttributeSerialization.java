@@ -39,7 +39,7 @@ import java.util.Map;
 
 public class TestAttributeSerialization {
 
-    static class TestOp extends Op {
+    static class TestOp extends AbstractOp {
         final Object attributeValue;
 
         TestOp(ExternalizedOp opdef) {
