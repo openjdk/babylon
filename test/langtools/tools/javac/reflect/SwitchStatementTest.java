@@ -2573,4 +2573,66 @@ public class SwitchStatementTest {
         return r;
     }
 
+    @IR("""
+            func @"caseBoxedGuard" (%0 : java.type:"java.lang.Object", %1 : java.type:"java.lang.Boolean")java.type:"java.lang.String" -> {
+                %2 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %3 : Var<java.type:"java.lang.Boolean"> = var %1 @"B";
+                %4 : java.type:"java.lang.String" = constant @"";
+                %5 : Var<java.type:"java.lang.String"> = var %4 @"r";
+                %6 : java.type:"java.lang.Object" = var.load %2;
+                %7 : java.type:"java.lang.Object" = constant @null;
+                %8 : Var<java.type:"java.lang.Object"> = var %7;
+                java.switch.statement %6
+                    (%9 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %10 : java.type:"boolean" = java.cand
+                            ()java.type:"boolean" -> {
+                                %11 : java.type:"boolean" = pattern.match %9
+                                    ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Object>" -> {
+                                        %12 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Object>" = pattern.type;
+                                        yield %12;
+                                    }
+                                    (%13 : java.type:"java.lang.Object")java.type:"void" -> {
+                                        var.store %8 %13;
+                                        yield;
+                                    };
+                                yield %11;
+                            }
+                            ()java.type:"boolean" -> {
+                                %14 : java.type:"java.lang.Boolean" = var.load %3;
+                                %15 : java.type:"boolean" = invoke %14 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                                yield %15;
+                            };
+                        yield %10;
+                    }
+                    ()java.type:"void" -> {
+                        %16 : java.type:"java.lang.String" = var.load %5;
+                        %17 : java.type:"java.lang.String" = constant @"match";
+                        %18 : java.type:"java.lang.String" = concat %16 %17;
+                        var.store %5 %18;
+                        yield;
+                    }
+                    ()java.type:"boolean" -> {
+                        %19 : java.type:"boolean" = constant @true;
+                        yield %19;
+                    }
+                    ()java.type:"void" -> {
+                        %20 : java.type:"java.lang.String" = var.load %5;
+                        %21 : java.type:"java.lang.String" = constant @"no match";
+                        %22 : java.type:"java.lang.String" = concat %20 %21;
+                        var.store %5 %22;
+                        yield;
+                    };
+                %23 : java.type:"java.lang.String" = var.load %5;
+                return %23;
+            };
+            """)
+    @Reflect
+    private static String caseBoxedGuard(Object o, Boolean B) {
+        String r = "";
+        switch (o) {
+            case Object _ when B -> r += "match";
+            default -> r += "no match";
+        }
+        return r;
+    }
 }
