@@ -114,6 +114,7 @@ import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
+import static com.sun.tools.javac.code.TypeTag.INT;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
 import static com.sun.tools.javac.main.Option.G_CUSTOM;
@@ -2327,14 +2328,21 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case POSTINC, POSTDEC, PREINC, PREDEC -> {
                     // Capture applying rhs and operation
                     Function<Value, Value> scanRhs = (lhs) -> {
-                        Type unboxedType = types.unboxedTypeOrType(tree.type);
-                        Value one = convert(append(numericOneValue(unboxedType)), unboxedType);
-                        Value unboxedLhs = unboxIfNeeded(lhs);
+                        // arithmetic operators are all of kind (T, T)T
+                        Type opType = tree.operator.type.getReturnType();
+                        if (!opType.hasTag(INT) &&
+                                opType.getTag().isSubRangeOf(INT)) {
+                            // unary ++/-- can use sub-int operator types,
+                            // which doesn't make sense for the model
+                            opType = syms.intType;
+                        }
+                        Value one = append(numericOneValue(opType));
+                        Value lhsConv = convert(lhs, opType);
 
-                        Value unboxedLhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
-                            append(JavaOp.add(unboxedLhs, one)) :
-                            append(JavaOp.sub(unboxedLhs, one));
-                        Value lhsPlusOne = convert(unboxedLhsPlusOne, tree.type);
+                        Value lhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
+                            append(JavaOp.add(lhsConv, one)) :
+                            append(JavaOp.sub(lhsConv, one));
+                        lhsPlusOne = convert(lhsPlusOne, tree.type);
 
                         // Assign expression result
                         result = (tag == Tag.POSTINC || tag == Tag.POSTDEC) ?
