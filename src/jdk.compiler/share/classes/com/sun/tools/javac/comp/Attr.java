@@ -3376,7 +3376,7 @@ public class Attr extends JCTree.Visitor {
                         }
                         bound = types.removeWildcards(bound);
                         components.add(bound);
-                    }
+                    }`
                     currentTarget = types.makeIntersectionType(components.toList());
                     currentTarget.tsym.flags_field |= INTERFACE;
                     lambdaType = types.findDescriptorType(currentTarget);

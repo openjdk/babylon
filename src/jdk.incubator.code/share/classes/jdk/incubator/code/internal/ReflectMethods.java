@@ -1859,6 +1859,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Push while condition
             pushBody(cond, CoreType.functionType(JavaType.BOOLEAN));
             Value last = toValue(cond, syms.booleanType);
+            // Yield the boolean result of the condition
             append(CoreOp.core_yield(last));
             Body.Builder condition = stack.body;
 
