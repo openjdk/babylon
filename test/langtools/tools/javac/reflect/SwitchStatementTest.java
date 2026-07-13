@@ -1073,46 +1073,44 @@ public class SwitchStatementTest {
                     ()java.type:"void" -> {
                         %8 : java.type:"java.lang.String" = var.load %3;
                         %9 : java.type:"SwitchStatementTest$E" = field.load @java.ref:"SwitchStatementTest$E::A:SwitchStatementTest$E";
-                        %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
-                        %11 : java.type:"java.lang.String" = concat %8 %10;
-                        var.store %3 %11;
+                        %10 : java.type:"java.lang.String" = concat %8 %9;
+                        var.store %3 %10;
                         yield;
                     }
-                    (%12 : java.type:"SwitchStatementTest$E")java.type:"boolean" -> {
-                        %13 : java.type:"SwitchStatementTest$E" = field.load @java.ref:"SwitchStatementTest$E::B:SwitchStatementTest$E";
-                        %14 : java.type:"boolean" = eq %12 %13;
-                        yield %14;
+                    (%11 : java.type:"SwitchStatementTest$E")java.type:"boolean" -> {
+                        %12 : java.type:"SwitchStatementTest$E" = field.load @java.ref:"SwitchStatementTest$E::B:SwitchStatementTest$E";
+                        %13 : java.type:"boolean" = eq %11 %12;
+                        yield %13;
                     }
                     ()java.type:"void" -> {
-                        %15 : java.type:"java.lang.String" = var.load %3;
-                        %16 : java.type:"SwitchStatementTest$E" = field.load @java.ref:"SwitchStatementTest$E::B:SwitchStatementTest$E";
-                        %17 : java.type:"java.lang.String" = cast %16 @java.type:"java.lang.String";
-                        %18 : java.type:"java.lang.String" = concat %15 %17;
-                        var.store %3 %18;
+                        %14 : java.type:"java.lang.String" = var.load %3;
+                        %15 : java.type:"SwitchStatementTest$E" = field.load @java.ref:"SwitchStatementTest$E::B:SwitchStatementTest$E";
+                        %16 : java.type:"java.lang.String" = concat %14 %15;
+                        var.store %3 %16;
                         yield;
                     }
-                    (%19 : java.type:"SwitchStatementTest$E")java.type:"boolean" -> {
-                        %20 : java.type:"java.lang.Object" = constant @null;
-                        %21 : java.type:"boolean" = eq %19 %20;
-                        yield %21;
+                    (%17 : java.type:"SwitchStatementTest$E")java.type:"boolean" -> {
+                        %18 : java.type:"java.lang.Object" = constant @null;
+                        %19 : java.type:"boolean" = eq %17 %18;
+                        yield %19;
                     }
                     ()java.type:"void" -> {
-                        %22 : java.type:"java.lang.String" = var.load %3;
-                        %23 : java.type:"java.lang.String" = constant @"null";
-                        %24 : java.type:"java.lang.String" = concat %22 %23;
-                        var.store %3 %24;
+                        %20 : java.type:"java.lang.String" = var.load %3;
+                        %21 : java.type:"java.lang.String" = constant @"null";
+                        %22 : java.type:"java.lang.String" = concat %20 %21;
+                        var.store %3 %22;
                         yield;
                     }
                     ()java.type:"boolean" -> {
-                        %25 : java.type:"boolean" = constant @true;
-                        yield %25;
+                        %23 : java.type:"boolean" = constant @true;
+                        yield %23;
                     }
                     ()java.type:"void" -> {
-                        %26 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %26;
+                        %24 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
+                        throw %24;
                     };
-                %27 : java.type:"java.lang.String" = var.load %3;
-                return %27;
+                %25 : java.type:"java.lang.String" = var.load %3;
+                return %25;
             };
             """)
     @Reflect

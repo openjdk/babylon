@@ -114,6 +114,7 @@ import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
+import static com.sun.tools.javac.code.TypeTag.INT;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
 import static com.sun.tools.javac.main.Option.G_CUSTOM;
@@ -888,49 +889,50 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitAssignop(JCTree.JCAssignOp tree) {
-            // Capture applying rhs and operation
-            Function<Value, Value> scanRhs = (lhs) -> {
-                Type unboxedType = types.unboxedTypeOrType(tree.type);
-                Value rhs;
-                if (tree.operator.opcode == ByteCodes.string_add && tree.rhs.type.isPrimitive()) {
-                    rhs = toValue(tree.rhs);
-                } else {
-                    rhs = toValue(tree.rhs, unboxedType);
-                }
-                lhs = unboxIfNeeded(lhs);
+            if (tree.operator.opcode == ByteCodes.string_add) {
+                // string concat
+                applyCompoundAssign(tree.lhs, lhs -> {
+                    Type rhsType = tree.rhs.type;
+                    Value rhs = toValue(tree.rhs,
+                            rhsType.hasTag(BOT) ? syms.stringType : rhsType);
+                    // lhs cannot have null type, no target type needed
+                    Value assignOpResult = append(JavaOp.concat(lhs, rhs));
+                    return result = convert(assignOpResult, tree.type);
+                });
+            } else {
+                // arithmetic op
+                applyCompoundAssign(tree.lhs, lhs -> {
+                    Type lhsType = tree.operator.type.getParameterTypes().head;
+                    Type rhsType = tree.operator.type.getParameterTypes().tail.head;
 
-                Value assignOpResult = switch (tree.getTag()) {
+                    Value rhs = toValue(tree.rhs, rhsType);
+                    lhs = convert(lhs, lhsType);
 
-                    // Arithmetic operations
-                    case PLUS_ASG -> {
-                        if (tree.operator.opcode == ByteCodes.string_add) {
-                            yield append(JavaOp.concat(lhs, rhs));
-                        } else {
-                            yield append(JavaOp.add(lhs, rhs));
-                        }
-                    }
-                    case MINUS_ASG -> append(JavaOp.sub(lhs, rhs));
-                    case MUL_ASG -> append(JavaOp.mul(lhs, rhs));
-                    case DIV_ASG -> append(JavaOp.div(lhs, rhs));
-                    case MOD_ASG -> append(JavaOp.mod(lhs, rhs));
+                    Value assignOpResult = switch (tree.getTag()) {
 
-                    // Bitwise operations (including their boolean variants)
-                    case BITOR_ASG -> append(JavaOp.or(lhs, rhs));
-                    case BITAND_ASG -> append(JavaOp.and(lhs, rhs));
-                    case BITXOR_ASG -> append(JavaOp.xor(lhs, rhs));
+                        // Arithmetic operations
+                        case PLUS_ASG -> append(JavaOp.add(lhs, rhs));
+                        case MINUS_ASG -> append(JavaOp.sub(lhs, rhs));
+                        case MUL_ASG -> append(JavaOp.mul(lhs, rhs));
+                        case DIV_ASG -> append(JavaOp.div(lhs, rhs));
+                        case MOD_ASG -> append(JavaOp.mod(lhs, rhs));
 
-                    // Shift operations
-                    case SL_ASG -> append(JavaOp.lshl(lhs, rhs));
-                    case SR_ASG -> append(JavaOp.ashr(lhs, rhs));
-                    case USR_ASG -> append(JavaOp.lshr(lhs, rhs));
+                        // Bitwise operations (including their boolean variants)
+                        case BITOR_ASG -> append(JavaOp.or(lhs, rhs));
+                        case BITAND_ASG -> append(JavaOp.and(lhs, rhs));
+                        case BITXOR_ASG -> append(JavaOp.xor(lhs, rhs));
+
+                        // Shift operations
+                        case SL_ASG -> append(JavaOp.lshl(lhs, rhs));
+                        case SR_ASG -> append(JavaOp.ashr(lhs, rhs));
+                        case USR_ASG -> append(JavaOp.lshr(lhs, rhs));
 
 
-                    default -> throw unreachable();
-                };
-                return result = convert(assignOpResult, tree.type);
-            };
-
-            applyCompoundAssign(tree.lhs, scanRhs);
+                        default -> throw unreachable();
+                    };
+                    return result = convert(assignOpResult, tree.type);
+                });
+            }
         }
 
         void applyCompoundAssign(JCTree.JCExpression lhs, Function<Value, Value> scanRhs) {
@@ -2312,14 +2314,21 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case POSTINC, POSTDEC, PREINC, PREDEC -> {
                     // Capture applying rhs and operation
                     Function<Value, Value> scanRhs = (lhs) -> {
-                        Type unboxedType = types.unboxedTypeOrType(tree.type);
-                        Value one = convert(append(numericOneValue(unboxedType)), unboxedType);
-                        Value unboxedLhs = unboxIfNeeded(lhs);
+                        // arithmetic operators are all of kind (T, T)T
+                        Type opType = tree.operator.type.getReturnType();
+                        if (!opType.hasTag(INT) &&
+                                opType.getTag().isSubRangeOf(INT)) {
+                            // unary ++/-- can use sub-int operator types,
+                            // which doesn't make sense for the model
+                            opType = syms.intType;
+                        }
+                        Value one = append(numericOneValue(opType));
+                        Value lhsConv = convert(lhs, opType);
 
-                        Value unboxedLhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
-                            append(JavaOp.add(unboxedLhs, one)) :
-                            append(JavaOp.sub(unboxedLhs, one));
-                        Value lhsPlusOne = convert(unboxedLhsPlusOne, tree.type);
+                        Value lhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
+                            append(JavaOp.add(lhsConv, one)) :
+                            append(JavaOp.sub(lhsConv, one));
+                        lhsPlusOne = convert(lhsPlusOne, tree.type);
 
                         // Assign expression result
                         result = (tag == Tag.POSTINC || tag == Tag.POSTDEC) ?
