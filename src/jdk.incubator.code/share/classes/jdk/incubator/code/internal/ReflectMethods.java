@@ -902,53 +902,50 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitAssignop(JCTree.JCAssignOp tree) {
-            // Capture applying rhs and operation
-            Function<Value, Value> scanRhs = (lhs) -> {
-                Type lhsType = tree.operator.type.getParameterTypes().head;
-                Type rhsType = tree.operator.type.getParameterTypes().tail.head;
+            if (tree.operator.opcode == ByteCodes.string_add) {
+                // string concat
+                applyCompoundAssign(tree.lhs, lhs -> {
+                    Type rhsType = tree.rhs.type;
+                    Value rhs = toValue(tree.rhs,
+                            rhsType.hasTag(BOT) ? syms.stringType : rhsType);
+                    // lhs cannot have null type, no target type needed
+                    Value assignOpResult = append(JavaOp.concat(lhs, rhs));
+                    return result = convert(assignOpResult, tree.type);
+                });
+            } else {
+                // arithmetic op
+                applyCompoundAssign(tree.lhs, lhs -> {
+                    Type lhsType = tree.operator.type.getParameterTypes().head;
+                    Type rhsType = tree.operator.type.getParameterTypes().tail.head;
 
-                Value rhs;
-                if (tree.operator.opcode == ByteCodes.string_add) {
-                    Type concatRhsType = tree.rhs.type;
-                    rhs = toValue(tree.rhs,
-                            concatRhsType.hasTag(BOT) ? syms.stringType : concatRhsType);
-                } else {
-                    rhs = toValue(tree.rhs, rhsType);
-                }
-                lhs = convert(lhs, lhsType);
+                    Value rhs = toValue(tree.rhs, rhsType);
+                    lhs = convert(lhs, lhsType);
 
-                Value assignOpResult = switch (tree.getTag()) {
+                    Value assignOpResult = switch (tree.getTag()) {
 
-                    // Arithmetic operations
-                    case PLUS_ASG -> {
-                        if (tree.operator.opcode == ByteCodes.string_add) {
-                            yield append(JavaOp.concat(lhs, rhs));
-                        } else {
-                            yield append(JavaOp.add(lhs, rhs));
-                        }
-                    }
-                    case MINUS_ASG -> append(JavaOp.sub(lhs, rhs));
-                    case MUL_ASG -> append(JavaOp.mul(lhs, rhs));
-                    case DIV_ASG -> append(JavaOp.div(lhs, rhs));
-                    case MOD_ASG -> append(JavaOp.mod(lhs, rhs));
+                        // Arithmetic operations
+                        case PLUS_ASG -> append(JavaOp.add(lhs, rhs));
+                        case MINUS_ASG -> append(JavaOp.sub(lhs, rhs));
+                        case MUL_ASG -> append(JavaOp.mul(lhs, rhs));
+                        case DIV_ASG -> append(JavaOp.div(lhs, rhs));
+                        case MOD_ASG -> append(JavaOp.mod(lhs, rhs));
 
-                    // Bitwise operations (including their boolean variants)
-                    case BITOR_ASG -> append(JavaOp.or(lhs, rhs));
-                    case BITAND_ASG -> append(JavaOp.and(lhs, rhs));
-                    case BITXOR_ASG -> append(JavaOp.xor(lhs, rhs));
+                        // Bitwise operations (including their boolean variants)
+                        case BITOR_ASG -> append(JavaOp.or(lhs, rhs));
+                        case BITAND_ASG -> append(JavaOp.and(lhs, rhs));
+                        case BITXOR_ASG -> append(JavaOp.xor(lhs, rhs));
 
-                    // Shift operations
-                    case SL_ASG -> append(JavaOp.lshl(lhs, rhs));
-                    case SR_ASG -> append(JavaOp.ashr(lhs, rhs));
-                    case USR_ASG -> append(JavaOp.lshr(lhs, rhs));
+                        // Shift operations
+                        case SL_ASG -> append(JavaOp.lshl(lhs, rhs));
+                        case SR_ASG -> append(JavaOp.ashr(lhs, rhs));
+                        case USR_ASG -> append(JavaOp.lshr(lhs, rhs));
 
 
-                    default -> throw unreachable();
-                };
-                return result = convert(assignOpResult, tree.type);
-            };
-
-            applyCompoundAssign(tree.lhs, scanRhs);
+                        default -> throw unreachable();
+                    };
+                    return result = convert(assignOpResult, tree.type);
+                });
+            }
         }
 
         void applyCompoundAssign(JCTree.JCExpression lhs, Function<Value, Value> scanRhs) {
