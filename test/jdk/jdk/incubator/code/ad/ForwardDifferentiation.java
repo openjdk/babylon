@@ -200,7 +200,7 @@ public final class ForwardDifferentiation {
                 Value da = diffValueMapping.getOrDefault(a, zero);
                 yield block.add(return_(da));
             }
-            case Op.BlockTerminating _ -> {
+            case Op.Terminating _ -> {
                 // Update with differentiated block arguments
                 op.successors().forEach(s -> adaptSuccessor(block.context(), s));
                 yield block.add(op);

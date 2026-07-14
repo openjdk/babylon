@@ -116,29 +116,6 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
     }
 
     /**
-     * An operation characteristic indicating the operation is a body-terminating operation
-     * occurring as the last operation in a block.
-     * <p>
-     * A body-terminating operation passes control back to its nearest ancestor body.
-     */
-    public interface BodyTerminating {
-    }
-
-    /**
-     * An operation characteristic indicating the operation is a block-terminating operation
-     * occurring as the last operation in a block.
-     * <p>
-     * The operation has one or more successors to other blocks within the same parent body, and passes
-     * control to one of those blocks.
-     */
-    public interface BlockTerminating {
-        /**
-         * {@return a non-empty list of this operation's successors.}
-         */
-        List<Block.Reference> successors();
-    }
-
-    /**
      * An operation characteristic indicating the operation is pure and has no side effects.
      */
     public interface Pure {

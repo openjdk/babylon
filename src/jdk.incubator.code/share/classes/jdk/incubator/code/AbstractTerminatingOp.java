@@ -12,8 +12,7 @@ import java.util.List;
  * operation specified by {@link AbstractOp} in addition to the following requirements:
  * <ul>
  * <li>
- * override {@link #successors()} if instances may have successors. If the operation class implements
- * {@link Op.BlockTerminating}, then {@code successors()} must return one or more successors;
+ * override {@link #successors()} if instances may have successors;
  * </ul>
  * <p>
  * A concrete terminating operation class may additionally:

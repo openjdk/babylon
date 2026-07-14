@@ -682,9 +682,8 @@
 /// produces a terminating operation effect.
 ///
 /// Execution of a terminating operation may produce a successor effect or a terminating operation effect, according to
-/// its specification, An operation that is an of instance of [jdk.incubator.code.Op.BlockTerminating] can produce a
-/// successor effect. An operation that is an of instance of [jdk.incubator.code.Op.BodyTerminating] can produce a
-/// terminating operation effect.
+/// its specification. A block terminating operation can only produce a successor effect. A body termination operation
+/// can only produce a terminating operation effect.
 ///
 /// If an operation has one or more bodies it may execute them according to its specification. The effect produced by
 /// executing a body may be used to determine whether to select and execute another body and so on until execution of

@@ -561,14 +561,14 @@ public sealed interface CoreOp {
     /**
      * The return operation, that can model exit from the body of a function operation or a lambda operation.
      * <p>
-     * A return operation is a body-terminating operation that accepts zero or one operand, corresponding to the
+     * A return operation is a body terminating operation that accepts zero or one operand, corresponding to the
      * value returned from the function operation or lambda operation.
      * <p>
      * The result type of a return operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ReturnOp.NAME)
     public static final class ReturnOp extends AbstractCoreTerminatingOp
-            implements Op.BodyTerminating, JavaOp.JavaStatement {
+            implements JavaOp.JavaStatement {
         static final String NAME = "return";
 
         ReturnOp(ExternalizedOp def) {
@@ -610,15 +610,14 @@ public sealed interface CoreOp {
     /**
      * The unreachable operation, that can model exit from a body that cannot complete normally.
      * <p>
-     * An unreachable operation is a body-terminating operation.
+     * An unreachable operation is a body terminating operation.
      * <p>
      * The result type of an unreachable operation is {@link JavaType#VOID}.
      *
      * @jls 14.22 Unreachable Statements
      */
     @OpDeclaration(UnreachableOp.NAME)
-    public static final class UnreachableOp extends AbstractCoreTerminatingOp
-            implements Op.BodyTerminating {
+    public static final class UnreachableOp extends AbstractCoreTerminatingOp {
         static final String NAME = "unreachable";
 
         UnreachableOp(ExternalizedOp def) {
@@ -648,14 +647,13 @@ public sealed interface CoreOp {
     /**
      * The yield operation, that can model exit from a body.
      * <p>
-     * A yield operation is a body-terminating operation that accepts zero or one operand, corresponding to the value
+     * A yield operation is a body terminating operation that accepts zero or one operand, corresponding to the value
      * yielded from the body to its parent operation.
      * <p>
      * The result type of a yield operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends AbstractCoreTerminatingOp
-            implements Op.BodyTerminating {
+    public static final class YieldOp extends AbstractCoreTerminatingOp {
         static final String NAME = "yield";
 
         YieldOp(ExternalizedOp def) {
@@ -700,14 +698,13 @@ public sealed interface CoreOp {
     /**
      * The unconditional branch operation, that can model transfer of control from one block to a successor block.
      * <p>
-     * A branch operation is a block-terminating operation that accepts no operands and one successor, the next block
+     * A branch operation is a block terminating operation that accepts no operands and one successor, the next block
      * to branch to. The arguments of the successor are assigned to the parameters to the target block.
      * <p>
      * The result type of a branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(BranchOp.NAME)
-    public static final class BranchOp extends AbstractCoreTerminatingOp
-            implements Op.BlockTerminating {
+    public static final class BranchOp extends AbstractCoreTerminatingOp {
         static final String NAME = "branch";
 
         BranchOp(ExternalizedOp def) {
@@ -745,7 +742,7 @@ public sealed interface CoreOp {
      * The conditional branch operation, that can model transfer of control from one block to one of two successor
      * blocks.
      * <p>
-     * A conditional branch operation is a block-terminating operation that accepts one boolean operand and two
+     * A conditional branch operation is a block terminating operation that accepts one boolean operand and two
      * successors, the true successor and the false successor. When the operand is true the true successor is
      * selected, otherwise the false successor is selected. The arguments of the selected successor are assigned
      * to the parameters to the target block.
@@ -753,8 +750,7 @@ public sealed interface CoreOp {
      * The result type of a conditional branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ConditionalBranchOp.NAME)
-    public static final class ConditionalBranchOp extends AbstractCoreTerminatingOp
-            implements Op.BlockTerminating {
+    public static final class ConditionalBranchOp extends AbstractCoreTerminatingOp {
         static final String NAME = "cbranch";
 
         ConditionalBranchOp(ExternalizedOp def) {

@@ -31,7 +31,8 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
 
 /**
- * The terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch} instructions.
+ * A block terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch}
+ * instructions.
  * <p>
  * This operation accepts an int computational type operand (JVMS 2.11.1-B),
  * variable number of distinct constant labels and the same number of successors.
@@ -40,7 +41,7 @@ import jdk.incubator.code.dialect.java.JavaType;
  * Default is a successor with corresponds null label value.
  * The selected successor refers to the next block to branch to.
  */
-public final class ConstantLabelSwitchOp extends AbstractTerminatingOp implements Op.BlockTerminating {
+public final class ConstantLabelSwitchOp extends AbstractTerminatingOp {
 
     final List<Integer> labels;
 

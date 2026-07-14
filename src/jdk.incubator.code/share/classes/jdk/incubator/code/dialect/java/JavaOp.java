@@ -552,7 +552,7 @@ public sealed interface JavaOp {
     /**
      * The throw operation, that can model the Java language throw statement.
      * <p>
-     * A throw operation is a body-terminating operation that features one operand, the value being thrown.
+     * A throw operation is a body terminating operation that features one operand, the value being thrown.
      * <p>
      * The result type of a throw operation is {@link JavaType#VOID}.
      *
@@ -560,7 +560,7 @@ public sealed interface JavaOp {
      */
     @OpDeclaration(ThrowOp.NAME)
     public static final class ThrowOp extends AbstractJavaTerminatingOp
-            implements Op.BodyTerminating, JavaStatement {
+            implements JavaStatement {
         static final String NAME = "throw";
 
         ThrowOp(ExternalizedOp def) {
@@ -1545,12 +1545,11 @@ public sealed interface JavaOp {
     /**
      * The exception region start operation, that can model entry into an exception region.
      * <p>
-     * An exception region start operation is a block-terminating operation whose first successor is the starting
+     * An exception region start operation is a block terminating operation whose first successor is the starting
      * block of the exception region, and whose remaining successors are the catch blocks for that region.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
-    public static final class ExceptionRegionEnter extends AbstractJavaTerminatingOp
-            implements Op.BlockTerminating {
+    public static final class ExceptionRegionEnter extends AbstractJavaTerminatingOp {
         static final String NAME = "exception.region.enter";
 
         // First successor is the non-exceptional successor whose target indicates
@@ -1601,13 +1600,12 @@ public sealed interface JavaOp {
     /**
      * The exception region end operation, that can model exit from an exception region.
      * <p>
-     * An exception region end operation is a block-terminating operation with one operand and one successor.
+     * An exception region end operation is a block terminating operation with one operand and one successor.
      * The operand is the result of the dominant {@link ExceptionRegionEnter}. The successor is the block that
      * follows the exception region.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
-    public static final class ExceptionRegionExit extends AbstractJavaTerminatingOp
-            implements Op.BlockTerminating {
+    public static final class ExceptionRegionExit extends AbstractJavaTerminatingOp {
         static final String NAME = "exception.region.exit";
 
         ExceptionRegionExit(ExternalizedOp def) {
@@ -2378,7 +2376,7 @@ public sealed interface JavaOp {
     /**
      * A statement target operation, that can model Java language statements associated with label identifiers.
      * <p>
-     * A statement target operation is a body-terminating operation that features zero or one operand, the label
+     * A statement target operation is a body terminating operation that features zero or one operand, the label
      * identifier. If present, the label identifier is modeled as a {@link ConstantOp} value.
      * <p>
      * The result type of a statement target operation is {@link JavaType#VOID}.
@@ -2387,7 +2385,7 @@ public sealed interface JavaOp {
      * @jls 14.16 The continue Statement
      */
     public sealed static abstract class StatementTargetOp extends AbstractJavaTerminatingOp
-            implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
+            implements Op.Lowerable, JavaStatement {
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -2549,7 +2547,7 @@ public sealed interface JavaOp {
     /**
      * The yield operation, that can model Java language yield statements.
      * <p>
-     * A yield operation is a body-terminating operation that features one operand, the yielded value.
+     * A yield operation is a body terminating operation that features one operand, the yielded value.
      * <p>
      * The result type of a yield operation is {@link JavaType#VOID}.
      *
@@ -2557,7 +2555,7 @@ public sealed interface JavaOp {
      */
     @OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends AbstractJavaTerminatingOp
-            implements Op.BodyTerminating, JavaStatement, Op.Lowerable {
+            implements JavaStatement, Op.Lowerable {
         static final String NAME = "java.yield";
 
         YieldOp(ExternalizedOp def) {
@@ -3525,11 +3523,11 @@ public sealed interface JavaOp {
      * The switch fall-through operation, that can model fall-through to the next statement in the switch block after
      * the last statement of the current switch label.
      * <p>
-     * A switch fall-through operation is a body-terminating operation.
+     * A switch fall-through operation is a body terminating operation.
      */
     @OpDeclaration(SwitchFallthroughOp.NAME)
     public static final class SwitchFallthroughOp extends AbstractJavaTerminatingOp
-            implements Op.BodyTerminating, Op.Lowerable {
+            implements Op.Lowerable {
         static final String NAME = "java.switch.fallthrough";
 
         SwitchFallthroughOp(ExternalizedOp def) {
