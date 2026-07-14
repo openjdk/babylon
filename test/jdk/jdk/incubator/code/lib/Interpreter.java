@@ -59,8 +59,7 @@ public abstract class Interpreter {
     }
 
     public BlockEffect executeBlock(Block block, Env env) {
-        var op = block.firstOp();
-        for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
+        for (var op = block.firstOp(); !(op instanceof Op.Terminating top); op = block.nextOp(op)) {
             switch (executeOp(op, env)) {
                 // op completed abruptly, pass control to ancestor op
                 case TerminatingOpEffect e -> {
@@ -71,7 +70,7 @@ public abstract class Interpreter {
             }
         }
 
-        return executeTerminatingOp(block.terminatingOp(), env);
+        return executeTerminatingOp(top, env);
     }
 
     public interface Env {

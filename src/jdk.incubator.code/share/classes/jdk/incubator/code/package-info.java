@@ -767,7 +767,7 @@
 ///
 /// {@snippet lang = "java":
 /// public abstract OpEffect executeOp(Op op, Env e);
-/// public abstract <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e);
+/// public abstract BlockEffect executeTerminatingOp(Op.Terminating op, Env e);
 /// }
 ///
 /// The execution of a body can be implemented as follows.
@@ -794,8 +794,7 @@
 ///
 /// {@snippet lang = "java":
 /// public BlockEffect executeBlock(Block block, Env e) {
-///     var op = block.firstOp();
-///     for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
+///     for (var op = block.firstOp(); !(op instanceof Op.Terminating top); op = block.nextOp(op)) {
 ///         switch (executeOp(op, e)) {
 ///             // operation completed normally, pass control to next operation
 ///             case OpResultEffect eff -> e = e.bind(op.result(), eff.result);
@@ -805,7 +804,7 @@
 ///     }
 ///
 ///     // pass control to parent body or a sibling block
-///     return executeTerminatingOp((Op & Op.Terminating) op, e);
+///     return executeTerminatingOp(top, e);
 /// }
 /// }
 ///
