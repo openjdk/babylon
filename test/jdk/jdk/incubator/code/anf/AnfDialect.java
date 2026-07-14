@@ -36,7 +36,7 @@ public final class AnfDialect {
     private AnfDialect() {
     }
 
-    public static final class AnfLetOp extends AbstractOp implements Op.Terminating, Op.Nested {
+    public static final class AnfLetOp extends AbstractTerminatingOp implements Op.Nested {
         public static final String NAME = "anf.let";
 
         public static class Builder {
@@ -93,7 +93,7 @@ public final class AnfDialect {
     }
 
 
-    public static final class AnfLetRecOp extends AbstractOp implements Op.Terminating, Op.Nested {
+    public static final class AnfLetRecOp extends AbstractTerminatingOp implements Op.Nested {
         public static final String NAME = "anf.letrec";
 
         public static class Builder {
@@ -159,7 +159,7 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfIfOp extends AbstractOp implements Op.Terminating, Op.Nested {
+    public static final class AnfIfOp extends AbstractTerminatingOp implements Op.Nested {
         public static final String NAME = "anf.if";
 
         public static class ThenBuilder {
@@ -340,7 +340,7 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfApply extends AbstractOp implements Op.Terminating {
+    public static final class AnfApply extends AbstractTerminatingOp {
         public static final String NAME = "anf.apply";
 
         public AnfApply(ExternalizedOp def) {
@@ -375,7 +375,7 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfApplyStub extends AbstractOp implements Op.Terminating {
+    public static final class AnfApplyStub extends AbstractTerminatingOp {
         public static final String NAME = "anf.apply.stub";
         public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
         public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";

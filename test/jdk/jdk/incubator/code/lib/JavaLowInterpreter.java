@@ -509,7 +509,7 @@ public class JavaLowInterpreter extends Interpreter {
     }
 
     @Override
-    public <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e) {
+    public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
         return switch (op) {
             case CoreOp.BranchOp o -> {
                 Block.Reference r = o.successors().getFirst();

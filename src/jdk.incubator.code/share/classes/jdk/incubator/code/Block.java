@@ -264,10 +264,10 @@ public final class Block implements CodeElement<Block, Op> {
      *
      * @return the last, terminating, operation in this block.
      */
-    public Op terminatingOp() {
+    public Op.Terminating terminatingOp() {
         Op lop = ops.getLast();
         assert lop instanceof Op.Terminating;
-        return lop;
+        return (Op.Terminating) lop;
     }
 
     /**

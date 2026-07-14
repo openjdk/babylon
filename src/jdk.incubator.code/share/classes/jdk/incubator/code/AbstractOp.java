@@ -191,6 +191,7 @@ public non-sealed abstract class AbstractOp implements Op {
      * @implSpec this implementation returns an unmodifiable empty list.
      */
     @Override
+    // @@@ final
     public List<Block.Reference> successors() {
         return List.of();
     }

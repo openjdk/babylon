@@ -101,7 +101,39 @@ import java.util.function.BiFunction;
  * expressions, or {@link JavaOp.TryOp try} statements. In such cases an operation will contain one or more bodies
  * modeling the nested structure.
  */
-public sealed interface Op extends CodeElement<Op, Body> permits AbstractOp {
+public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating, AbstractOp {
+
+    /**
+     * An terminating operation that occurs as the last operation in a block.
+     * <p>
+     * A terminating operation passes control to either another block within the same parent body
+     * or to that parent body.
+     */
+    public sealed interface Terminating extends Op permits AbstractTerminatingOp {
+    }
+
+    /**
+     * An operation characteristic indicating the operation is a body-terminating operation
+     * occurring as the last operation in a block.
+     * <p>
+     * A body-terminating operation passes control back to its nearest ancestor body.
+     */
+    public interface BodyTerminating {
+    }
+
+    /**
+     * An operation characteristic indicating the operation is a block-terminating operation
+     * occurring as the last operation in a block.
+     * <p>
+     * The operation has one or more successors to other blocks within the same parent body, and passes
+     * control to one of those blocks.
+     */
+    public interface BlockTerminating {
+        /**
+         * {@return a non-empty list of this operation's successors.}
+         */
+        List<Block.Reference> successors();
+    }
 
     /**
      * An operation characteristic indicating the operation is pure and has no side effects.
@@ -250,39 +282,6 @@ public sealed interface Op extends CodeElement<Op, Body> permits AbstractOp {
                 }
             };
         }
-    }
-
-    /**
-     * An operation characteristic indicating the operation is a terminating operation
-     * that occurs as the last operation in a block.
-     * <p>
-     * A terminating operation passes control to either another block within the same parent body
-     * or to that parent body.
-     */
-    public interface Terminating {
-    }
-
-    /**
-     * An operation characteristic indicating the operation is a body-terminating operation
-     * occurring as the last operation in a block.
-     * <p>
-     * A body-terminating operation passes control back to its nearest ancestor body.
-     */
-    public interface BodyTerminating extends Terminating {
-    }
-
-    /**
-     * An operation characteristic indicating the operation is a block-terminating operation
-     * occurring as the last operation in a block.
-     * <p>
-     * The operation has one or more successors to other blocks within the same parent body, and passes
-     * control to one of those blocks.
-     */
-    public interface BlockTerminating extends Terminating {
-        /**
-         * {@return a non-empty list of this operation's successors.}
-         */
-        List<Block.Reference> successors();
     }
 
     /**

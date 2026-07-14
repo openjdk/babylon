@@ -40,22 +40,19 @@ import jdk.incubator.code.dialect.java.JavaType;
  * Default is a successor with corresponds null label value.
  * The selected successor refers to the next block to branch to.
  */
-public final class ConstantLabelSwitchOp extends AbstractOp implements Op.BlockTerminating {
+public final class ConstantLabelSwitchOp extends AbstractTerminatingOp implements Op.BlockTerminating {
 
     final List<Integer> labels;
-    final List<Block.Reference> targets;
 
     public ConstantLabelSwitchOp(Value intSelector, List<Integer> labels, List<Block.Reference> targets) {
-        super(List.of(intSelector));
         assert targets.size() == labels.size();
+        super(List.of(intSelector), targets);
         this.labels = labels;
-        this.targets = targets;
     }
 
     ConstantLabelSwitchOp(ConstantLabelSwitchOp that, CodeContext cc) {
         super(that, cc);
         this.labels = that.labels;
-        this.targets = that.targets.stream().map(cc::getReferenceOrCreate).toList();
     }
 
     @Override
@@ -73,13 +70,7 @@ public final class ConstantLabelSwitchOp extends AbstractOp implements Op.BlockT
     }
 
     @Override
-    public List<Block.Reference> successors() {
-        return targets;
-    }
-
-    @Override
     public Map<String, Object> externalize() {
         return Map.of("", labels);
     }
-
 }

@@ -73,6 +73,44 @@ import static jdk.incubator.code.internal.StructuralPreconditions.*;
  */
 public sealed abstract class JavaOp extends AbstractOp {
 
+    static abstract class AbstractJavaOp extends AbstractOp  {
+        AbstractJavaOp(List<? extends Value> operands) {
+            super(operands);
+        }
+
+        AbstractJavaOp(AbstractOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public String externalizeOpName() {
+            OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+            assert opDecl != null : this.getClass().getName();
+            return opDecl.value();
+        }
+    }
+
+    static sealed abstract class Terminating extends AbstractTerminatingOp {
+        Terminating(List<? extends Value> operands, List<Block.Reference> successors) {
+            super(operands, successors);
+        }
+
+        Terminating(List<? extends Value> operands) {
+            super(operands);
+        }
+
+        Terminating(AbstractOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public String externalizeOpName() {
+            OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+            assert opDecl != null : this.getClass().getName();
+            return opDecl.value();
+        }
+    }
+
     JavaOp(AbstractOp that, CodeContext cc) {
         super(that, cc);
     }
@@ -757,7 +795,7 @@ public sealed abstract class JavaOp extends AbstractOp {
      * @jls 14.18 The throw Statement
      */
     @OpDeclaration(ThrowOp.NAME)
-    public static final class ThrowOp extends JavaOp
+    public static final class ThrowOp extends JavaOp.Terminating
             implements BodyTerminating, JavaStatement {
         static final String NAME = "throw";
 
@@ -1747,7 +1785,7 @@ public sealed abstract class JavaOp extends AbstractOp {
      * block of the exception region, and whose remaining successors are the catch blocks for that region.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
-    public static final class ExceptionRegionEnter extends JavaOp
+    public static final class ExceptionRegionEnter extends JavaOp.Terminating
             implements BlockTerminating {
         static final String NAME = "exception.region.enter";
 
@@ -1755,7 +1793,6 @@ public sealed abstract class JavaOp extends AbstractOp {
         // the first block in the exception region.
         // One or more subsequent successors target the exception catching blocks
         // each of which have one block argument whose type is an exception type.
-        final List<Block.Reference> references;
 
         ExceptionRegionEnter(ExternalizedOp def) {
             this(def.successors());
@@ -1763,8 +1800,6 @@ public sealed abstract class JavaOp extends AbstractOp {
 
         ExceptionRegionEnter(ExceptionRegionEnter that, CodeContext cc) {
             super(that, cc);
-
-            this.references = that.references.stream().map(cc::getReferenceOrCreate).toList();
         }
 
         @Override
@@ -1776,27 +1811,21 @@ public sealed abstract class JavaOp extends AbstractOp {
             if (references.size() < 2) {
                 throw structuralException(NAME, "requires at least 2 successors, found %d".formatted(references.size()));
             }
-            super(List.of());
-            this.references = List.copyOf(references);
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return references;
+            super(List.of(), references);
         }
 
         /**
          * {@return the starting block reference of this exception region}
          */
         public Block.Reference startReference() {
-            return references.get(0);
+            return successors().get(0);
         }
 
         /**
          * {@return the catch block references of this exception region}
          */
         public List<Block.Reference> catchReferences() {
-            return references.subList(1, references.size());
+            return successors().subList(1, successors().size());
         }
 
         @Override
@@ -1813,12 +1842,9 @@ public sealed abstract class JavaOp extends AbstractOp {
      * follows the exception region.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
-    public static final class ExceptionRegionExit extends JavaOp
+    public static final class ExceptionRegionExit extends JavaOp.Terminating
             implements BlockTerminating {
         static final String NAME = "exception.region.exit";
-
-        // Non-exceptional successor
-        final Block.Reference end;
 
         ExceptionRegionExit(ExternalizedOp def) {
             this(requireSingleOperand(def), requireSingleSuccessor(def));
@@ -1826,8 +1852,6 @@ public sealed abstract class JavaOp extends AbstractOp {
 
         ExceptionRegionExit(ExceptionRegionExit that, CodeContext cc) {
             super(that, cc);
-
-            this.end = cc.getReferenceOrCreate(that.end);
         }
 
         @Override
@@ -1835,24 +1859,19 @@ public sealed abstract class JavaOp extends AbstractOp {
             return new ExceptionRegionExit(this, cc);
         }
 
+        // Non-exceptional successor
         ExceptionRegionExit(Value enter, Block.Reference end) {
             if (!(enter instanceof Op.Result or && or.op() instanceof ExceptionRegionEnter)) {
                 throw structuralException(NAME, "operand is not an exception region entry: " + enter);
             }
-            super(List.of(enter));
-            this.end = end;
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return List.of(end);
+            super(List.of(enter), List.of(end));
         }
 
         /**
          * {@return the block reference reached after exiting this exception region}
          */
         public Block.Reference endReference() {
-            return end;
+            return successors().get(0);
         }
 
         /**
@@ -2603,7 +2622,7 @@ public sealed abstract class JavaOp extends AbstractOp {
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class StatementTargetOp extends JavaOp
+    public sealed static abstract class StatementTargetOp extends JavaOp.Terminating
             implements Op.Lowerable, Op.BodyTerminating, JavaStatement {
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
@@ -2773,7 +2792,7 @@ public sealed abstract class JavaOp extends AbstractOp {
      * @jls 14.21 The yield Statement
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends JavaOp
+    public static final class YieldOp extends JavaOp.Terminating
             implements Op.BodyTerminating, JavaStatement, Op.Lowerable {
         static final String NAME = "java.yield";
 
@@ -3745,7 +3764,7 @@ public sealed abstract class JavaOp extends AbstractOp {
      * A switch fall-through operation is a body-terminating operation.
      */
     @OpDeclaration(SwitchFallthroughOp.NAME)
-    public static final class SwitchFallthroughOp extends JavaOp
+    public static final class SwitchFallthroughOp extends JavaOp.Terminating
             implements Op.BodyTerminating, Op.Lowerable {
         static final String NAME = "java.switch.fallthrough";
 

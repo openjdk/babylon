@@ -51,6 +51,46 @@ import static jdk.incubator.code.internal.StructuralPreconditions.*;
  */
 public sealed abstract class CoreOp extends AbstractOp {
 
+    // Make CoreOp an interface and
+
+    static abstract class AbstractCoreOp extends AbstractOp  {
+        AbstractCoreOp(List<? extends Value> operands) {
+            super(operands);
+        }
+
+        AbstractCoreOp(AbstractOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public String externalizeOpName() {
+            OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+            assert opDecl != null : this.getClass().getName();
+            return opDecl.value();
+        }
+    }
+
+    static sealed abstract class AbstractCoreTerminatingOp extends AbstractTerminatingOp {
+        AbstractCoreTerminatingOp(List<? extends Value> operands, List<Block.Reference> successors) {
+            super(operands, successors);
+        }
+
+        AbstractCoreTerminatingOp(List<? extends Value> operands) {
+            super(operands);
+        }
+
+        AbstractCoreTerminatingOp(AbstractOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public String externalizeOpName() {
+            OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+            assert opDecl != null : this.getClass().getName();
+            return opDecl.value();
+        }
+    }
+
     CoreOp(AbstractOp that, CodeContext cc) {
         super(that, cc);
     }
@@ -582,7 +622,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * The result type of a return operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ReturnOp.NAME)
-    public static final class ReturnOp extends CoreOp
+    public static final class ReturnOp extends AbstractCoreTerminatingOp
             implements Op.BodyTerminating, JavaOp.JavaStatement {
         static final String NAME = "return";
 
@@ -632,7 +672,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * @jls 14.22 Unreachable Statements
      */
     @OpDeclaration(UnreachableOp.NAME)
-    public static final class UnreachableOp extends CoreOp
+    public static final class UnreachableOp extends AbstractCoreTerminatingOp
             implements Op.BodyTerminating {
         static final String NAME = "unreachable";
 
@@ -669,7 +709,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * The result type of a yield operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends CoreOp
+    public static final class YieldOp extends AbstractCoreTerminatingOp
             implements Op.BodyTerminating {
         static final String NAME = "yield";
 
@@ -721,11 +761,9 @@ public sealed abstract class CoreOp extends AbstractOp {
      * The result type of a branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(BranchOp.NAME)
-    public static final class BranchOp extends CoreOp
+    public static final class BranchOp extends AbstractCoreTerminatingOp
             implements Op.BlockTerminating {
         static final String NAME = "branch";
-
-        final Block.Reference branch;
 
         BranchOp(ExternalizedOp def) {
             requireNoOperands(def);
@@ -734,8 +772,6 @@ public sealed abstract class CoreOp extends AbstractOp {
 
         BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
-
-            this.branch = cc.getReferenceOrCreate(that.branch);
         }
 
         @Override
@@ -744,21 +780,14 @@ public sealed abstract class CoreOp extends AbstractOp {
         }
 
         BranchOp(Block.Reference successor) {
-            super(List.of());
-
-            this.branch = successor;
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return List.of(branch);
+            super(List.of(), List.of(successor));
         }
 
         /**
          * {@return The block reference to branch to}
          */
         public Block.Reference branch() {
-            return branch;
+            return successors().get(0);
         }
 
         @Override
@@ -779,12 +808,9 @@ public sealed abstract class CoreOp extends AbstractOp {
      * The result type of a conditional branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ConditionalBranchOp.NAME)
-    public static final class ConditionalBranchOp extends CoreOp
+    public static final class ConditionalBranchOp extends AbstractCoreTerminatingOp
             implements Op.BlockTerminating {
         static final String NAME = "cbranch";
-
-        final Block.Reference trueBranch;
-        final Block.Reference falseBranch;
 
         ConditionalBranchOp(ExternalizedOp def) {
             List<Block.Reference> succ = requireSuccessors(def, 2);
@@ -793,9 +819,6 @@ public sealed abstract class CoreOp extends AbstractOp {
 
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
-
-            this.trueBranch = cc.getReferenceOrCreate(that.trueBranch);
-            this.falseBranch = cc.getReferenceOrCreate(that.falseBranch);
         }
 
         @Override
@@ -804,15 +827,7 @@ public sealed abstract class CoreOp extends AbstractOp {
         }
 
         ConditionalBranchOp(Value p, Block.Reference trueBranch, Block.Reference falseBranch) {
-            super(List.of(p));
-
-            this.trueBranch = trueBranch;
-            this.falseBranch = falseBranch;
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return List.of(trueBranch, falseBranch);
+            super(List.of(p), List.of(trueBranch, falseBranch));
         }
 
         /**
@@ -826,14 +841,14 @@ public sealed abstract class CoreOp extends AbstractOp {
          * {@return the block reference to branch to when the condition is true}
          */
         public Block.Reference trueBranch() {
-            return trueBranch;
+            return successors().get(0);
         }
 
         /**
          * {@return the block reference to branch to when the condition is false}
          */
         public Block.Reference falseBranch() {
-            return falseBranch;
+            return successors().get(1);
         }
 
         @Override
