@@ -408,7 +408,7 @@ public class OpBuilder {
                     Body.Builder l = Body.Builder.of(b.parentBody(), functionType(BOOLEAN));
                     Block.Parameter target = l.entryBlock().parameter(INT);
                     Integer typeIndex = e.getValue().getLast();
-                    Result p = l.entryBlock().add(eq(target, l.entryBlock().add(constant(INT, typeIndex))));
+                    Op.Result p = l.entryBlock().add(eq(target, l.entryBlock().add(constant(INT, typeIndex))));
                     l.entryBlock().add(core_yield(p));
 
                     Body.Builder expr = Body.Builder.of(b.parentBody(), EXTER_TYPE_BUILDER_F_TYPE);
@@ -416,11 +416,11 @@ public class OpBuilder {
                     args.add(expr.entryBlock().add(constant(J_L_STRING, e.getKey().identifier())));
                     for (int j = 0; j < e.getValue().size() - 1; j++) {
                         Value index = expr.entryBlock().add(constant(INT, e.getValue().get(j)));
-                        Result opr = expr.entryBlock().add(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, index));
+                        Op.Result opr = expr.entryBlock().add(funcCall(EXTER_TYPE_BUILDER_F_NAME, EXTER_TYPE_BUILDER_F_TYPE, index));
                         args.add(opr);
                     }
                     MethodRef mr;
-                    Result type;
+                    Op.Result type;
                     if (e.getKey().arguments().size() < 5) {
                         List<Class<?>> params = new ArrayList<>();
                         params.add(String.class);

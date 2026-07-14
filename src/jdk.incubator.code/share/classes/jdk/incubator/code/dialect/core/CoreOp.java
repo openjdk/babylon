@@ -49,62 +49,7 @@ import static jdk.incubator.code.internal.StructuralPreconditions.*;
  * variables, tuples, constants, and control flow. Core operations may appear on their own or together with
  * operations expressed in other dialects.
  */
-public sealed abstract class CoreOp extends AbstractOp {
-
-    // Make CoreOp an interface and
-
-    static abstract class AbstractCoreOp extends AbstractOp  {
-        AbstractCoreOp(List<? extends Value> operands) {
-            super(operands);
-        }
-
-        AbstractCoreOp(AbstractOp that, CodeContext cc) {
-            super(that, cc);
-        }
-
-        @Override
-        public String externalizeOpName() {
-            OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
-            assert opDecl != null : this.getClass().getName();
-            return opDecl.value();
-        }
-    }
-
-    static sealed abstract class AbstractCoreTerminatingOp extends AbstractTerminatingOp {
-        AbstractCoreTerminatingOp(List<? extends Value> operands, List<Block.Reference> successors) {
-            super(operands, successors);
-        }
-
-        AbstractCoreTerminatingOp(List<? extends Value> operands) {
-            super(operands);
-        }
-
-        AbstractCoreTerminatingOp(AbstractOp that, CodeContext cc) {
-            super(that, cc);
-        }
-
-        @Override
-        public String externalizeOpName() {
-            OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
-            assert opDecl != null : this.getClass().getName();
-            return opDecl.value();
-        }
-    }
-
-    CoreOp(AbstractOp that, CodeContext cc) {
-        super(that, cc);
-    }
-
-    CoreOp(List<? extends Value> operands) {
-        super(operands);
-    }
-
-    @Override
-    public String externalizeOpName() {
-        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
-        assert opDecl != null : this.getClass().getName();
-        return opDecl.value();
-    }
+public sealed interface CoreOp {
 
     /**
      * The function operation, that can model a named function.
@@ -123,7 +68,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * @jls 8.4 Method Declarations
      */
     @OpDeclaration(FuncOp.NAME)
-    public static final class FuncOp extends CoreOp
+    public static final class FuncOp extends AbstractCoreOp
             implements Op.Invokable, Op.Isolated, Op.Lowerable {
 
         /**
@@ -262,7 +207,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      */
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
     @OpDeclaration(FuncCallOp.NAME)
-    public static final class FuncCallOp extends CoreOp {
+    public static final class FuncCallOp extends AbstractCoreOp {
         static final String NAME = "func.call";
 
         /**
@@ -326,7 +271,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * The result type of a module operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ModuleOp.NAME)
-    public static final class ModuleOp extends CoreOp
+    public static final class ModuleOp extends AbstractCoreOp
             implements Op.Isolated, Op.Lowerable {
 
         static final String NAME = "module";
@@ -535,7 +480,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * {@link #QUOTED_OP_TYPE}.
      */
     @OpDeclaration(QuotedOp.NAME)
-    public static final class QuotedOp extends CoreOp
+    public static final class QuotedOp extends AbstractCoreOp
             implements Op.Nested, Op.Lowerable, Op.Pure {
         static final String NAME = "quoted";
 
@@ -867,7 +812,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * @jls 15.29 Constant Expressions
      */
     @OpDeclaration(ConstantOp.NAME)
-    public static final class ConstantOp extends CoreOp
+    public static final class ConstantOp extends AbstractCoreOp
             implements Op.Pure, JavaOp.JavaExpression {
         static final String NAME = "constant";
 
@@ -993,7 +938,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * @jls 15.27.1 Lambda Parameters
      */
     @OpDeclaration(VarOp.NAME)
-    public static final class VarOp extends CoreOp
+    public static final class VarOp extends AbstractCoreOp
             implements JavaOp.JavaStatement {
         static final String NAME = "var";
 
@@ -1100,7 +1045,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      *
      * @see JavaOp.FieldAccessOp
      */
-    public sealed abstract static class VarAccessOp extends CoreOp
+    public sealed abstract static class VarAccessOp extends AbstractCoreOp
             implements JavaOp.AccessOp {
         VarAccessOp(VarAccessOp that, CodeContext cc) {
             super(that, cc);
@@ -1250,7 +1195,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * @see TupleWithOp
      */
     @OpDeclaration(TupleOp.NAME)
-    public static final class TupleOp extends CoreOp {
+    public static final class TupleOp extends AbstractCoreOp {
         static final String NAME = "tuple";
 
         TupleOp(ExternalizedOp def) {
@@ -1287,7 +1232,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * @see TupleOp
      */
     @OpDeclaration(TupleLoadOp.NAME)
-    public static final class TupleLoadOp extends CoreOp {
+    public static final class TupleLoadOp extends AbstractCoreOp {
         static final String NAME = "tuple.load";
 
         /**
@@ -1360,7 +1305,7 @@ public sealed abstract class CoreOp extends AbstractOp {
      * @see TupleOp
      */
     @OpDeclaration(TupleWithOp.NAME)
-    public static final class TupleWithOp extends CoreOp {
+    public static final class TupleWithOp extends AbstractCoreOp {
         static final String NAME = "tuple.with";
 
         /**
@@ -1433,7 +1378,7 @@ public sealed abstract class CoreOp extends AbstractOp {
         }
     }
 
-    static Op createOp(ExternalizedOp def) {
+    private static Op createOp(ExternalizedOp def) {
         Op op = switch (def.name()) {
             case "branch" -> new BranchOp(def);
             case "cbranch" -> new ConditionalBranchOp(def);
@@ -1792,5 +1737,41 @@ public sealed abstract class CoreOp extends AbstractOp {
      */
     public static TupleWithOp tupleWith(Value tuple, int index, Value value) {
         return new TupleWithOp(tuple, index, value);
+    }
+}
+sealed abstract class AbstractCoreOp extends AbstractOp implements CoreOp  {
+    AbstractCoreOp(List<? extends Value> operands) {
+        super(operands);
+    }
+
+    AbstractCoreOp(AbstractOp that, CodeContext cc) {
+        super(that, cc);
+    }
+
+    @Override
+    public String externalizeOpName() {
+        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+        assert opDecl != null : this.getClass().getName();
+        return opDecl.value();
+    }
+}
+sealed abstract class AbstractCoreTerminatingOp extends AbstractTerminatingOp implements CoreOp {
+    AbstractCoreTerminatingOp(List<? extends Value> operands, List<Block.Reference> successors) {
+        super(operands, successors);
+    }
+
+    AbstractCoreTerminatingOp(List<? extends Value> operands) {
+        super(operands);
+    }
+
+    AbstractCoreTerminatingOp(AbstractOp that, CodeContext cc) {
+        super(that, cc);
+    }
+
+    @Override
+    public String externalizeOpName() {
+        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+        assert opDecl != null : this.getClass().getName();
+        return opDecl.value();
     }
 }
