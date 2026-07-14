@@ -149,10 +149,6 @@ public abstract class OnnxOp extends Op {
 
         Quantifier quantifier();
 
-        default List<Object> onnxShapeHints() {
-            return List.of();
-        }
-
         interface None extends OnnxParameter {
             @Override
             default String name() {

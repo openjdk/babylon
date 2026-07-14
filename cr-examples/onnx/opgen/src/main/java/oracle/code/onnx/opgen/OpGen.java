@@ -322,23 +322,7 @@ public class OpGen {
                 }
             }
 
-            w.write(")");
-            List<Object> onnxShapeHints = onnxShapeHints(s, input);
-            if (!onnxShapeHints.isEmpty()) {
-                w.write(" {\n");
-                w.in();
-                w.write("""
-                        @Override
-                        public List<Object> onnxShapeHints() {
-                        """);
-                w.write("   return List.of(\"" + onnxShapeHints.getFirst() + "\");\n");
-                w.write("""
-                        }
-                        """);
-                w.out();
-                w.write("}");
-            }
-            w.write(",\n");
+            w.write("),\n");
         }
         w.write(";\n");
         w.write("\n");
@@ -366,15 +350,6 @@ public class OpGen {
         w.out();
         w.write("}\n");
         w.write("\n");
-    }
-
-    private List<Object> onnxShapeHints(OpSchema s, OpSchema.FormalParameter input) {
-        boolean isShapeInput = switch (s.name()) {
-            case "ConstantOfShape" -> input.name().equals("input");
-            case "Expand", "RandomUniform", "RandomNormal", "Reshape" -> input.name().equals("shape");
-            default -> false;
-        };
-        return isShapeInput ? List.of(s.name() + "_" + input.name() + "_rank") : List.of();
     }
 
     private void genOutputParameterEnum(IndentWriter w, OpSchema s,
@@ -588,7 +563,7 @@ public class OpGen {
         genAttributeAccessMethods(w, s);
     }
 
-    private static void genResultTypeMethod(IndentWriter w, OpSchema s) {
+    private static void genResultTypeMethod(IndentWriter w, OpSchema s) throws IOException {
     }
 
     private static void genOutputParameterMethods(IndentWriter w, OpSchema s) throws IOException {
@@ -619,6 +594,7 @@ public class OpGen {
             w.write(p.name() + "()");
 
             first = false;
+            ;
         }
         w.write(")");
         w.write(");\n");

@@ -33,7 +33,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -41,8 +40,6 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import oracle.code.onnx.OnnxProtoBuilder;
 import oracle.code.onnx.OnnxRuntime;
-import oracle.code.onnx.metadata.ModelMetadata;
-import oracle.code.onnx.metadata.ModelMetadataResolver;
 import oracle.code.onnx.compiler.OnnxTransformer;
 
 import static oracle.code.onnx.foreign.OrtGenApi.*;
@@ -163,7 +160,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
                 throw new IllegalStateException("Unsupported os:" + os);
             }
             try (var libStream = OnnxRuntime.class.getResourceAsStream(libResource)) {
-                Files.copy(Objects.requireNonNull(libStream), runtime);
+                Files.copy(libStream, runtime);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
@@ -185,12 +182,11 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
     public static OnnxGenRuntimeSession buildFromCodeReflection(MethodHandles.Lookup l, Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
         Method method = Stream.of(codeReflectionModelInstance.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(methodName)).findFirst().orElseThrow();
         CoreOp.FuncOp javaModel = OnnxTransformer.evaluate(l, Op.ofMethod(method).orElseThrow());
-        ModelMetadata metadata = ModelMetadataResolver.from(method);
-        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(l, javaModel, metadata);
+        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(l, javaModel);
         List<Object> initializers = OnnxRuntime.getInitValues(l, onnxModel.initializers(), List.of(codeReflectionModelInstance));
         try (OutputStream dataOutput = Files.newOutputStream(targetOnnxModelDir.resolve(targetExternalDataFileName))) {
             AtomicLong offset = new AtomicLong();
-            byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.valueInfo(), t -> {
+            byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.namesMap(), t -> {
                 byte[] data = t.data().toArray(ValueLayout.JAVA_BYTE);
                 if (data.length <= PAYLOAD_LIMIT) {
                     return null;

@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import jdk.incubator.code.Reflect;
 import oracle.code.onnx.Tensor;
-import oracle.code.onnx.metadata.ElementShape;
-import oracle.code.onnx.metadata.Shape;
 import oracle.code.onnx.genai.TensorDataStream;
 
 import static java.util.Optional.*;
@@ -51,7 +49,7 @@ public final class LlamaModel {
     public static final float EPSILON = 1.0E-5f,
                               SCALE = 0.125f;
 
-    public final Tensor<Long> flat1, scalar1;
+    public final Tensor<Long> flat1, scalar1, logitsShape, kvShape;
     public final Tensor<Float> tokensWeights, initWeight, cosCache, sinCache;
     public final Tensor<Float>[] postAttentionWeights = new Tensor[LAYERS],
                                  inputWeights = new Tensor[LAYERS],
@@ -71,8 +69,11 @@ public final class LlamaModel {
                                 mlpDownWeight = new Tensor[LAYERS];
 
     public LlamaModel(Arena arena) throws IOException {
-        flat1 = Tensor.ofFlat(arena, 1L);
-        scalar1 = Tensor.ofScalar(arena, 1L);
+        flat1 = Tensor.ofFlat(arena, 1l);
+        scalar1 = Tensor.ofScalar(arena, 1l);
+        logitsShape = Tensor.ofFlat(arena, 1L, -1L, VOCAB_SIZE);
+        kvShape = Tensor.ofFlat(arena, 1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE);
+
         var modelData = new TensorDataStream(arena, LlamaModel.class.getResource("model_q4.onnx_data").getPath());
         tokensWeights = modelData.nextTensor(FLOAT, VOCAB_SIZE, HIDEN_SIZE);
         initWeight = modelData.nextTensor(FLOAT, HIDEN_SIZE);
@@ -100,24 +101,21 @@ public final class LlamaModel {
         }
     }
 
-    public record ForwardResponse(@Shape({1L, -1L, VOCAB_SIZE}) Tensor<Float> logits,
-                                  @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] presentKey,
-                                  @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] presentValue) {
+    public record ForwardResponse(Tensor<Float> logits,
+                                  Tensor<Float>[] presentKey,
+                                  Tensor<Float>[] presentValue) {
     }
 
     @Reflect
-    public ForwardResponse forward(@Shape({1L, -1L}) Tensor<Long> inputIds,
-                                   @Shape({1L, -1L}) Tensor<Long> attentionMask,
-                                   @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] pastKey,
-                                   @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] pastValue) {
+    public ForwardResponse forward(Tensor<Long> inputIds, Tensor<Long> attentionMask, Tensor<Float>[] pastKey, Tensor<Float>[] pastValue) {
 
         Tensor<Integer> amSL = Cast(Sub(ReduceSum(attentionMask, of(flat1), empty(), empty()), flat1), empty(), OnnxType.INT32.id(), empty());
-        Tensor<Integer> amTSL = Cast(Gather(Shape(attentionMask, empty(), empty()), scalar1, of(0L)), empty(), OnnxType.INT32.id(), empty());
+        Tensor<Integer> amTSL = Cast(Gather(Shape(attentionMask, empty(), empty()), scalar1, of(0l)), empty(), OnnxType.INT32.id(), empty());
         Tensor<Float> skipBias = Gather(tokensWeights, inputIds, empty());
-        Tensor<Float> input = LayerNormalization(skipBias, initWeight, empty(), of(EPSILON), of(1L), of(-1L)).Y();
+        Tensor<Float> input = LayerNormalization(skipBias, initWeight, empty(), of(EPSILON), of(1l), of(-1l)).Y();
 
         Tensor<Float>[] presentKeys = new Tensor[LAYERS];
-        Tensor[] presentValues = new Tensor[LAYERS];
+        Tensor<Float>[] presentValues = new Tensor[LAYERS];
 
         for (int i = 0; i < LAYERS; i++) {
             GroupQueryAttention<Float> attn = GroupQueryAttention(MatMulNBits(input,
@@ -159,11 +157,11 @@ public final class LlamaModel {
 
             input = norm.output();
             skipBias = norm.input_skip_bias_sum();
-            presentKeys[i] = attn.present_key();
-            presentValues[i] = attn.present_value();
+            presentKeys[i] = Reshape(attn.present_key(), kvShape, empty());
+            presentValues[i] = Reshape(attn.present_value(), kvShape, empty());
         }
 
-        Tensor<Float> logits = MatMul(input, Transpose(tokensWeights, of(new long[] {1L, 0L})));
+        Tensor<Float> logits = Reshape(MatMul(input, Transpose(tokensWeights, of(new long[] {1L, 0L}))), logitsShape, empty());
 
         return new ForwardResponse(logits, presentKeys, presentValues);
     }

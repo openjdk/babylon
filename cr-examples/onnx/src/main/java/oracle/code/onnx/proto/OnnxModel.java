@@ -1019,7 +1019,7 @@ public sealed interface OnnxModel {
 
     private static void print(StringBuilder out, int indent, String name, Object value, boolean skipBigData) throws ReflectiveOperationException {
         if (value == null) return;
-        out.repeat("  ", indent).append(name);
+        out.append("  ".repeat(indent)).append(name);
         switch (value) {
             case List l -> {
                 out.append(name.endsWith("s") ? ":" : "s:").append(System.lineSeparator());

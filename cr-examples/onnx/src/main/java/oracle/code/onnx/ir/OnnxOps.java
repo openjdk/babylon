@@ -5971,12 +5971,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         }
         
         public enum InputParameter implements OnnxParameter {
-            input(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED) {
-                @Override
-                public List<Object> onnxShapeHints() {
-                   return List.of("ConstantOfShape_input_rank");
-                }
-            },
+            input(TypeConstraint.T1.typeVariable(), Quantifier.REQUIRED),
             ;
             
             final OnnxType type;
@@ -9198,12 +9193,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         
         public enum InputParameter implements OnnxParameter {
             input(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
-            shape(OnnxType.tensor(OnnxType.int64()), Quantifier.REQUIRED) {
-                @Override
-                public List<Object> onnxShapeHints() {
-                   return List.of("Expand_shape_rank");
-                }
-            },
+            shape(OnnxType.tensor(OnnxType.int64()), Quantifier.REQUIRED),
             ;
             
             final OnnxType type;
@@ -23632,12 +23622,7 @@ public final class OnnxOps extends ExplicitOnnxOps {
         
         public enum InputParameter implements OnnxParameter {
             data(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
-            shape(OnnxType.tensor(OnnxType.int64()), Quantifier.REQUIRED) {
-                @Override
-                public List<Object> onnxShapeHints() {
-                   return List.of("Reshape_shape_rank");
-                }
-            },
+            shape(OnnxType.tensor(OnnxType.int64()), Quantifier.REQUIRED),
             ;
             
             final OnnxType type;
