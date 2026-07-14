@@ -25,18 +25,15 @@
 
 package jdk.incubator.code;
 
-import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.extern.OpWriter;
-
 import java.util.*;
 
 /**
- * The abstract implementation of an operation. All concrete operations extend this class.
+ * The abstract implementation of a non-terminating operation. All concrete non-terminating operations extend this
+ * class and implement {@link Op}.
  *
  * <h2>Operation implementation requirements</h2>
  * <p>
- * A concrete operation class must satisfy the following requirements:
+ * A concrete non-terminating operation class must satisfy the following requirements:
  * <ul>
  * <li>
  * implement {@link #resultType()} to return the result type of operation instances;
@@ -51,9 +48,6 @@ import java.util.*;
  * override {@link #bodies()} if instances may have bodies. If the operation class implements {@link Op.Nested}, then
  * {@code bodies()} must return one or more bodies;
  * <li>
- * override {@link #successors()} if instances may have successors. If the operation class implements
- * {@link Op.BlockTerminating}, then {@code successors()} must return one or more successors;
- * <li>
  * copy mutable constructor arguments that define successors, bodies, and operation-specific state, ensuring they are
  * all fixed when construction completes; and
  * <li>
@@ -61,7 +55,7 @@ import java.util.*;
  * state.
  * </ul>
  * <p>
- * A concrete operation class may additionally:
+ * A concrete non-terminating operation class may additionally:
  * <ul>
  * <li>
  * override {@link #externalizeOpName()} and {@link #externalize()} to define an external form;
@@ -73,7 +67,7 @@ import java.util.*;
  */
 public non-sealed abstract class AbstractOp extends InternalAbstractOp {
     /**
-     * Constructs an operation with a list of operands.
+     * Constructs a non-terminating operation with a list of operands.
      *
      * @param operands the list of operands, a copy of the list is performed if required.
      * @throws IllegalArgumentException if an operand's declaring block is built.
@@ -83,10 +77,10 @@ public non-sealed abstract class AbstractOp extends InternalAbstractOp {
     }
 
     /**
-     * Constructs an operation with operands mapped from, and location copied from, the given operation.
+     * Constructs a non-terminating with operands mapped from, and location copied from, the given operation.
      * <p>
      * The constructed operation's operands are the values mapped, in order, from the given operation's operands using
-     * the given code context. The new operation's location is the given operation's location, if any.
+     * the given code context. The constructed operation's location is the given operation's location, if any.
      *
      * @param that the operation
      * @param cc   the code context

@@ -104,10 +104,13 @@ import java.util.function.BiFunction;
 public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating, InternalAbstractOp {
 
     /**
-     * An terminating operation that occurs as the last operation in a block.
+     * A terminating operation that occurs as the last operation in a block.
      * <p>
      * A terminating operation passes control to either another block within the same parent body
      * or to that parent body.
+     * <p>
+     * A terminating operation is a body terminating operation if it guaranteed to always have zero successors.
+     * A terminating operation is a block terminating operation if it guaranteed to always have one or more successors.
      */
     public sealed interface Terminating extends Op permits AbstractTerminatingOp {
     }
@@ -431,7 +434,14 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
 
     /**
      * {@return the operation's successors, as an unmodifiable list}
+     * <p>
+     * If this operation is not an instance of {@link Op.Terminating} then the operation has zero successors
+     * and this method returns an empty unmodifiable list. Otherwise, if this operation is an instance of
+     * {@code Op.Terminating}, this method may return zero or more successors.
+     *
+     * @see Op.Terminating
      */
+    // @@@ Move to Op.Terminating?
     public List<Block.Reference> successors();
 
     /**
