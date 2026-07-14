@@ -43,7 +43,7 @@ import java.util.function.Function;
 import static jdk.incubator.code.internal.StructuralPreconditions.*;
 
 /**
- * The top-level operation class for core operations.
+ * The interface marking all core operations and declaring factory methods for constructing core operations.
  * <p>
  * Core operations model the foundational, language-agnostic structure of code, such as functions, modules,
  * variables, tuples, constants, and control flow. Core operations may appear on their own or together with

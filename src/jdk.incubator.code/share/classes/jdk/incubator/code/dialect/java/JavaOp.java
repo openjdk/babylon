@@ -49,7 +49,7 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
 import static jdk.incubator.code.internal.StructuralPreconditions.*;
 
 /**
- * The top-level operation class for Java operations.
+ * The interface marking all Java operations and declaring factory methods for constructing Java operations.
  * <p>
  * A code model, produced by the Java compiler from Java program source, may consist of core operations and Java
  * operations. Such a model represents the same Java program and preserves the program meaning as defined by the
