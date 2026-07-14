@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.lang.foreign.Arena;
 import jdk.incubator.code.Reflect;
 import oracle.code.onnx.Tensor;
+import oracle.code.onnx.metadata.ElementShape;
+import oracle.code.onnx.metadata.Shape;
 import oracle.code.onnx.genai.TensorDataStream;
 
 import static java.util.Optional.*;
@@ -45,8 +47,7 @@ public final class LlamaModel {
                              HIDEN_SIZE = 2048,
                              KV_HIDEN_SIZE = 512,
                              CONTEXT_SIZE = 131072,
-                             INTERMEDIATE_SIZE = 8192,
-                             ATTN_WEIGHTS_SIZE = 3072;
+                             INTERMEDIATE_SIZE = 8192;
     public static final float EPSILON = 1.0E-5f,
                               SCALE = 0.125f;
 
@@ -70,8 +71,8 @@ public final class LlamaModel {
                                 mlpDownWeight = new Tensor[LAYERS];
 
     public LlamaModel(Arena arena) throws IOException {
-        flat1 = Tensor.ofFlat(arena, 1l);
-        scalar1 = Tensor.ofScalar(arena, 1l);
+        flat1 = Tensor.ofFlat(arena, 1L);
+        scalar1 = Tensor.ofScalar(arena, 1L);
         var modelData = new TensorDataStream(arena, LlamaModel.class.getResource("model_q4.onnx_data").getPath());
         tokensWeights = modelData.nextTensor(FLOAT, VOCAB_SIZE, HIDEN_SIZE);
         initWeight = modelData.nextTensor(FLOAT, HIDEN_SIZE);
@@ -99,21 +100,24 @@ public final class LlamaModel {
         }
     }
 
-    public record ForwardResponse(Tensor<Float> logits,
-                                  Tensor<Float>[] presentKey,
-                                  Tensor<Float>[] presentValue) {
+    public record ForwardResponse(@Shape({1L, -1L, VOCAB_SIZE}) Tensor<Float> logits,
+                                  @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] presentKey,
+                                  @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] presentValue) {
     }
 
     @Reflect
-    public ForwardResponse forward(Tensor<Long> inputIds, Tensor<Long> attentionMask, Tensor<Float>[] pastKey, Tensor<Float>[] pastValue) {
+    public ForwardResponse forward(@Shape({1L, -1L}) Tensor<Long> inputIds,
+                                   @Shape({1L, -1L}) Tensor<Long> attentionMask,
+                                   @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] pastKey,
+                                   @ElementShape(value = {1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE}, count = LAYERS) Tensor<Float>[] pastValue) {
 
         Tensor<Integer> amSL = Cast(Sub(ReduceSum(attentionMask, of(flat1), empty(), empty()), flat1), empty(), OnnxType.INT32.id(), empty());
-        Tensor<Integer> amTSL = Cast(Gather(Shape(attentionMask, empty(), empty()), scalar1, of(0l)), empty(), OnnxType.INT32.id(), empty());
+        Tensor<Integer> amTSL = Cast(Gather(Shape(attentionMask, empty(), empty()), scalar1, of(0L)), empty(), OnnxType.INT32.id(), empty());
         Tensor<Float> skipBias = Gather(tokensWeights, inputIds, empty());
-        Tensor<Float> input = LayerNormalization(skipBias, initWeight, empty(), of(EPSILON), of(1l), of(-1l)).Y();
+        Tensor<Float> input = LayerNormalization(skipBias, initWeight, empty(), of(EPSILON), of(1L), of(-1L)).Y();
 
         Tensor<Float>[] presentKeys = new Tensor[LAYERS];
-        Tensor<Float>[] presentValues = new Tensor[LAYERS];
+        Tensor[] presentValues = new Tensor[LAYERS];
 
         for (int i = 0; i < LAYERS; i++) {
             GroupQueryAttention<Float> attn = GroupQueryAttention(MatMulNBits(input,
@@ -130,7 +134,7 @@ public final class LlamaModel {
                     amSL,
                     amTSL,
                     of(cosCache),
-                    of(sinCache), of(1l), NUM_KEY_VALUE_HEADS, empty(), BLOCK_SIZE, of(0l), of(SCALE));
+                    of(sinCache), of(1L), NUM_KEY_VALUE_HEADS, empty(), BLOCK_SIZE, of(0L), of(SCALE));
 
             SkipSimplifiedLayerNormalization<Float> postAttnLayernorm = SkipSimplifiedLayerNormalization(
                     skipBias,

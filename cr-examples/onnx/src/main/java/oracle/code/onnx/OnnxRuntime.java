@@ -515,7 +515,7 @@ public final class OnnxRuntime {
             boolean bypassInits = options != null && options.bypassInitilizers;
             List<Object> initValues = getInitValues(l, mi.initializers(), q.capturedValues().sequencedValues());
             LOG.log(System.Logger.Level.DEBUG, "Building ONNX binary " + domainName);
-            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), bypassInits ? List.of() : initValues);
+            byte[] protobufModel = OnnxProtoBuilder.buildModel(domainName, mi.module(), bypassInits ? List.of() : initValues, mi.valueInfo(), _-> null);
 
             if (DEBUG) {
                 System.out.println(mi.module().toText());

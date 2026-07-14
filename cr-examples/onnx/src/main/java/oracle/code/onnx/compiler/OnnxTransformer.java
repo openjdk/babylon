@@ -16,8 +16,11 @@ import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.java.*;
+import oracle.code.onnx.ExplicitOnnxOperators;
 import oracle.code.onnx.OnnxOperators;
 import oracle.code.onnx.Tensor;
+import oracle.code.onnx.metadata.ModelMetadata;
+import oracle.code.onnx.metadata.TensorMetadata;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.ExplicitOnnxOps;
@@ -51,12 +54,26 @@ Analysis and Transformations, in order
 public final class OnnxTransformer {
 
     static final JavaType ONNX_OPERATORS_CLASS = JavaType.type(OnnxOperators.class);
+    static final JavaType EXPLICIT_ONNX_OPERATORS_CLASS = JavaType.type(ExplicitOnnxOperators.class);
     static final JavaType TENSOR_CLASS = JavaType.type(Tensor.class);
     static final JavaType LIST_CLASS = JavaType.type(List.class);
 
     static final System.Logger LOG = System.getLogger("oracle.code.onnx");
 
-    public record ModuleAndInitializers(CoreOp.ModuleOp module, SequencedCollection<FieldRef> initializers, Map<Value, String> namesMap) {}
+    public record OnnxValueInfo(String name, long[] shape) {
+    }
+
+    public record ModuleAndInitializers(
+            CoreOp.ModuleOp module,
+            SequencedCollection<FieldRef> initializers,
+            Map<Value, OnnxValueInfo> valueInfo) {
+
+        public ModuleAndInitializers {
+            initializers = (initializers != null) ? initializers : List.of();
+            valueInfo = (valueInfo != null) ? valueInfo : Map.of();
+        }
+
+    }
 
     public static ModuleAndInitializers transform(MethodHandles.Lookup l, Quoted<JavaOp.LambdaOp> quotedLambda) {
         JavaOp.LambdaOp lambda = quotedLambda.op();
@@ -93,6 +110,10 @@ public final class OnnxTransformer {
     }
 
     public static ModuleAndInitializers transform(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc) {
+        return transform(l, inputFunc, null);
+    }
+
+    public static ModuleAndInitializers transform(MethodHandles.Lookup l, CoreOp.FuncOp inputFunc, ModelMetadata metadata) {
         CoreOp.ModuleOp m = collectModuleFunctions(l, inputFunc);
         TypeConvertor tc = new TypeConvertor(l);
         for (CoreOp.FuncOp f : m.functionTable().sequencedValues()) {
@@ -100,7 +121,179 @@ public final class OnnxTransformer {
         }
         ModuleAndInitializers mi = remapInitializers(tc, m);
         Map<Value, String> namesMap = new HashMap<>();
-        return new ModuleAndInitializers(transformModule(tc, mi.module(), namesMap), mi.initializers(), namesMap);
+        CoreOp.ModuleOp transformedModule = transformModule(tc, mi.module, namesMap);
+        Map<String, long[]> valueShapes = Map.of();
+        if (metadata != null) {
+            List<String> parameterNames = mainFunctionParameterNames(transformedModule, namesMap);
+            valueShapes = valueShapes(metadata, parameterNames);
+        }
+        Map<Value, OnnxValueInfo> valueInfo = inferValueInfo(transformedModule, namesMap, valueShapes);
+        return new ModuleAndInitializers(transformedModule, mi.initializers(), valueInfo);
+    }
+
+    private static Map<Value, OnnxValueInfo> inferValueInfo(CoreOp.ModuleOp module, Map<Value, String> namesMap, Map<String, long[]> valueShapes) {
+        Map<Value, OnnxValueInfo> valueInfos = toValueInfo(namesMap);
+        var shapes = new IdentityHashMap<Value, long[]>();
+        var tupleShapes = new IdentityHashMap<Value, List<long[]>>();
+        for (Map.Entry<Value, String> entry : namesMap.entrySet()) {
+            long[] shape = valueShape(entry.getValue(), valueShapes);
+            if (shape != null) {
+                shapes.put(entry.getKey(), shape);
+            }
+        }
+
+        var shapeInputs = Collections.newSetFromMap(new IdentityHashMap<Value, Boolean>());
+        module.functionTable().sequencedValues().forEach(func -> inferBlockShapes(func.body().entryBlock(), namesMap, valueShapes, shapes, tupleShapes, shapeInputs));
+        var inferred = new IdentityHashMap<Value, OnnxValueInfo>();
+        for (Map.Entry<Value, OnnxValueInfo> entry: valueInfos.entrySet()) {
+            var value = entry.getKey();
+            var info = entry.getValue();
+
+            long[] shape = info.shape();
+            if (shape == null) {
+                shape = shapes.get(value);
+            }
+            if (shape == null) {
+                shape = valueShape(info.name(), valueShapes);
+            }
+            inferred.put(value, shape == null ? info : new OnnxValueInfo(info.name(), shape.clone()));
+        }
+
+        for (Value input : shapeInputs) {
+            long[] shape = shapes.get(input);
+            if (shape != null) {
+                inferred.putIfAbsent(input, new OnnxValueInfo(namesMap.get(input), shape.clone()));
+            }
+        }
+
+        return Map.copyOf(inferred);
+    }
+
+    private static Map<Value, OnnxValueInfo> toValueInfo(Map<Value, String> namesMap) {
+        if (namesMap == null || namesMap.isEmpty()) {
+            return Map.of();
+        }
+        return namesMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> new OnnxValueInfo(e.getValue(), null)));
+    }
+
+    private static long[] valueShape(String name, Map<String, long[]> valueShapes) {
+        if (name == null || valueShapes == null || valueShapes.isEmpty()) {
+            return null;
+        }
+        long[] shape = valueShapes.get(name);
+        if (shape == null) {
+            int dot = name.lastIndexOf('.');
+            if (dot > 0) {
+                try {
+                    Integer.parseInt(name.substring(dot + 1));
+                    shape = valueShapes.get(name.substring(0, dot));
+                } catch (NumberFormatException _) {
+                    LOG.log(System.Logger.Level.DEBUG, "Not a tuple-expanded name " + dot);
+                }
+            }
+        }
+        return (shape != null) ? shape.clone() : null;
+    }
+
+    private static void inferBlockShapes(Block block, Map<Value, String> namesMap, Map<String, long[]> valueShapes,
+                                         IdentityHashMap<Value, long[]> shapes, IdentityHashMap<Value, List<long[]>> tupleShapes, Set<Value> shapeInputs) {
+
+        for (Block.Parameter parameter : block.parameters()) {
+            long[] shape = valueShape(namesMap.get(parameter), valueShapes);
+            if (shape != null) {
+                shapes.put(parameter, shape);
+            }
+        }
+
+        for (Op op : block.ops()) {
+            switch (op) {
+                case CoreOp.TupleLoadOp tlo -> {
+                    long[] shape = tupleElementShape(tlo.operands().getFirst(), tlo.index(), namesMap, valueShapes, shapes, tupleShapes);
+                    putShape(tlo.result(), shape, shapes);
+                }
+                case CoreOp.TupleOp to ->
+                        tupleShapes.put(to.result(), to.operands().stream().map(shapes::get).toList());
+                case JavaOp.InvokeOp io when io.invokeReference().refType().equals(LIST_CLASS) && io.invokeReference().name().equals("get") -> {
+                    if (io.operands().getLast() instanceof Op.Result or && or.op() instanceof CoreOp.ConstantOp co && co.value() instanceof Integer i) {
+                        putShape(io.result(), tupleElementShape(io.operands().getFirst(), i, namesMap, valueShapes, shapes, tupleShapes), shapes);
+                    }
+                }
+                case JavaOp.InvokeOp io when io.invokeReference().refType().equals(LIST_CLASS) && io.invokeReference().name().equals("of") ->
+                        tupleShapes.put(io.result(), io.operands().stream().map(shapes::get).toList());
+                case OnnxOp onnxOp -> collectShapeInputs(onnxOp, shapes, shapeInputs);
+                default -> LOG.log(System.Logger.Level.DEBUG, "Block shape could not be inferred for " + op);
+            }
+        }
+    }
+
+    private static long[] tupleElementShape(Value tuple, int index, Map<Value, String> namesMap, Map<String, long[]> valueShapes,
+                                            IdentityHashMap<Value, long[]> shapes, IdentityHashMap<Value, List<long[]>> tupleShapes) {
+        List<long[]> elements = tupleShapes.get(tuple);
+        if (elements != null && index < elements.size() && elements.get(index) != null) {
+            return elements.get(index).clone();
+        }
+        String name = namesMap.get(tuple) != null ? namesMap.get(tuple) + "." + index : null;
+        long[] shape = valueShape(name, valueShapes);
+        if (shape == null) {
+            shape = shapes.get(tuple);
+        }
+        return shape != null ? shape.clone() : null;
+    }
+
+    private static void putShape(Value value, long[] shape, IdentityHashMap<Value, long[]> shapes) {
+        if (shape != null) {
+            shapes.put(value, shape.clone());
+        }
+    }
+
+    private static void collectShapeInputs(OnnxOp op, IdentityHashMap<Value, long[]> shapes, Set<Value> shapeInputs) {
+        if (op instanceof ExplicitOnnxOps.If || op instanceof ExplicitOnnxOps.Loop)
+            return;
+
+        for (Map.Entry<OnnxOp.OnnxParameter, Object> entry : op.onnxInputs().entrySet()) {
+            var parameter = entry.getKey();
+            var input = entry.getValue();
+
+            List<Object> hints = parameter.onnxShapeHints();
+            if (!hints.isEmpty() && input instanceof Value value) {
+                shapeInputs.add(value);
+                putShape(value, hints.stream().mapToLong(_ -> -1).toArray(), shapes);
+            }
+        }
+    }
+
+    private static Map<String,long[]> valueShapes(ModelMetadata metadata, List<String> parameterNames) {
+        if (Objects.isNull(metadata))
+            return Map.of();
+
+        var shapes = new HashMap<String, long[]>();
+        metadata.values().forEach((name, valueMetadata) -> putValueShape(shapes, name, valueMetadata));
+        for (int i = 0; i < parameterNames.size(); i++) {
+            String name = parameterNames.get(i);
+            TensorMetadata valueMetadata  = metadata.parameters().get(i);
+            if (name != null && valueMetadata != null) {
+                putValueShape(shapes, name, valueMetadata);
+            }
+        }
+        return Map.copyOf(shapes);
+    }
+
+    private static void putValueShape(HashMap<String,long[]> shapes, String name, TensorMetadata valueMetadata) {
+        if (valueMetadata.shape() != null) {
+            shapes.put(name, Objects.requireNonNull(valueMetadata.shape()).clone());
+            for (int i = 0; i < valueMetadata.count(); i++) {
+                shapes.put(name + "." + i, Objects.requireNonNull(valueMetadata.shape()).clone());
+            }
+        }
+    }
+
+    private static List<String> mainFunctionParameterNames(CoreOp.ModuleOp module, Map<Value, String> namesMap) {
+        return module.functionTable().sequencedValues().reversed().stream()
+                .findFirst()
+                .stream()
+                .flatMap(func -> func.parameters().stream())
+                .map(namesMap::get)
+                .toList();
     }
 
     static void collectModuleFunctions(MethodHandles.Lookup l, SequencedMap<MethodRef, CoreOp.FuncOp> funcs, Set<CoreOp.FuncOp> doNotInline, CoreOp.FuncOp func) {
@@ -121,7 +314,7 @@ public final class OnnxTransformer {
         funcs.putLast(null, inputFunc);
 
         return CoreOp.module(funcs.sequencedValues().stream()
-                .filter(f -> doNotInline.contains(f))
+                .filter(doNotInline::contains)
                 .map(f -> mapOrInline(f, funcs, doNotInline)).toList());
     }
 
@@ -151,25 +344,25 @@ public final class OnnxTransformer {
     static ModuleAndInitializers remapInitializers(TypeConvertor tc, CoreOp.ModuleOp module) {
         // collect initializers (field load ops of tensors)
         record TI(CodeType type, int index) {}
-        LinkedHashMap<FieldRef, TI> initializers = new LinkedHashMap();
+        LinkedHashMap<FieldRef, TI> initializers = new LinkedHashMap<>();
         module.elements().forEach(op -> {
             if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp flo
                     && (flo.resultType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
-                     || tc.isRecord(flo.resultType())
-                     || flo.resultType() instanceof ArrayType at && at.componentType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
-                    )) {
+                    || tc.isRecord(flo.resultType())
+                    || flo.resultType() instanceof ArrayType at && at.componentType() instanceof ClassType ct && ct.rawType().equals(TENSOR_CLASS)
+            )) {
                 var targetType = tc.convertType(flo.result());
                 // computataion of the tuple size created out of the static array initializer field
-                initializers.compute(flo.fieldReference(), (fd, ti) -> ti == null
+                initializers.compute(flo.fieldReference(), (_, ti) -> ti == null
                         ? new TI(targetType, initializers.size())
                         : targetType instanceof TupleType newTt && ti.type() instanceof TupleType oldTt && newTt.componentTypes().size() > oldTt.componentTypes().size()
-                                ? new TI(newTt, ti.index())
-                                : ti);
+                          ? new TI(newTt, ti.index())
+                          : ti);
             }
         });
 
         if (initializers.isEmpty()) {
-            return new ModuleAndInitializers(module, List.of(), null);
+            return new ModuleAndInitializers(module, List.of(), Map.of());
         }
 
         // map all initializers field loads into additional arguments
@@ -224,9 +417,7 @@ public final class OnnxTransformer {
                     op -> switch (op) {
                         case CoreOp.ConstantOp _ -> true;
                         case JavaOp.FieldAccessOp.FieldLoadOp flo -> flo.resultType() instanceof PrimitiveType;
-                        case JavaOp.InvokeOp _ -> false;
-                        case CoreOp.ReturnOp _ -> false;
-                        case JavaOp.NewOp _ -> false;
+                        case JavaOp.InvokeOp _, CoreOp.ReturnOp _, JavaOp.NewOp _-> false;
                         default -> op.result() != null;
                     },
                     new HashSet<>(), f);
@@ -291,7 +482,7 @@ public final class OnnxTransformer {
         // collect param names
         String[] paramNames = new String[func.parameters().size()];
         for (int i = 0; i < paramNames.length; i++) {
-            if (func.parameters().get(i).uses().iterator().next().op() instanceof CoreOp.VarOp vo && !vo.varName().isEmpty()) {
+            if (func.parameters().get(i).uses().getFirst().op() instanceof CoreOp.VarOp vo && !vo.varName().isEmpty()) {
                 paramNames[i] = vo.varName();
             }
         }
@@ -321,9 +512,7 @@ public final class OnnxTransformer {
 
     static CoreOp.FuncOp transformToOnnx(TypeConvertor tc, CoreOp.FuncOp func, OnnxPartialEvaluator pe) {
         FunctionType ft = tc.convertType(func);
-        var func2 = CoreOp.func(func.funcName(), ft).body(b -> {
-            b.transformBody(func.body(), b.parameters(), toOnnxCodeTransformer(tc, pe));
-        });
+        var func2 = CoreOp.func(func.funcName(), ft).body(b -> b.transformBody(func.body(), b.parameters(), toOnnxCodeTransformer(tc, pe)));
         // double transformation to fix return type by the returned tuple type
         return CoreOp.func(func2.funcName(), tc.convertType(func2))
                 .body(b -> b.transformBody(func2.body(), b.parameters(), CodeTransformer.COPYING_TRANSFORMER));
@@ -336,9 +525,9 @@ public final class OnnxTransformer {
                 CodeContext cc = bb.context();
                 List<Value> newOperands = IntStream.range(0, fco.operands().size()).filter(i -> !argsToDrop.get(i)).mapToObj(i -> cc.getValue(fco.operands().get(i))).toList();
                 CoreOp.FuncCallOp newCall = CoreOp.funcCall(fco.funcName(),
-                                                            CoreType.functionType(fco.opSignature().returnType(),
-                                                                                      newOperands.stream().map(Value::type).toList()),
-                                                            newOperands);
+                        CoreType.functionType(fco.opSignature().returnType(),
+                                newOperands.stream().map(Value::type).toList()),
+                        newOperands);
                 cc.mapValue(op.result(), bb.add(newCall));
             } else {
                 bb.add(op);
@@ -381,14 +570,23 @@ public final class OnnxTransformer {
             }
             switch (op) {
                 // Transform invocation to ONNX operator to operation modeling the operator
-                case JavaOp.InvokeOp io when io.invokeReference().refType().equals(ONNX_OPERATORS_CLASS) -> {
+                case JavaOp.InvokeOp io when (io.invokeReference().refType().equals(ONNX_OPERATORS_CLASS)
+                        || io.invokeReference().refType().equals(EXPLICIT_ONNX_OPERATORS_CLASS)) -> {
                     String operatorName = io.invokeReference().name();
                     Class<? extends OnnxOp> opClass = onnxOpClassFromName(operatorName);
                     OnnxOp.OnnxSchema schema = schemaFromOnnxOpClass(opClass);
 
                     List<Object> attributes = pe.evaluatedAttributes.get(io);
 
-                    Method opMethod = Stream.of(OnnxOps.class.getMethods())
+                    Class<?> apiClass = io.invokeReference().refType().equals(EXPLICIT_ONNX_OPERATORS_CLASS)
+                            ? ExplicitOnnxOperators.class
+                            : OnnxOperators.class;
+                    attributes = orderAttributesInSchema(apiClass, operatorName, io.operands().size(), attributes, schema);
+
+                    Class<?> factoryClass = io.invokeReference().refType().equals(EXPLICIT_ONNX_OPERATORS_CLASS)
+                            ? ExplicitOnnxOps.class
+                            : OnnxOps.class;
+                    Method opMethod = Stream.of(factoryClass.getMethods())
                             .filter(m -> m.getName().equals(operatorName))
                             .findFirst().orElseThrow();
 
@@ -534,6 +732,32 @@ public final class OnnxTransformer {
         };
     }
 
+    private static List<Object> orderAttributesInSchema(Class<?> apiClass, String operatorName, int inputCount, List<Object> attributes, OnnxOp.OnnxSchema schema) {
+        if (attributes == null || attributes.isEmpty()) {
+            return attributes;
+        }
+        Method apiMethod = Stream.of(apiClass.getMethods())
+                .filter(m -> m.getName().equals(operatorName))
+                .filter(m -> m.getParameterCount() == inputCount + attributes.size())
+                .findFirst()
+                .orElse(null);
+        if (apiMethod == null || Stream.of(apiMethod.getParameters()).anyMatch(p -> !p.isNamePresent())) {
+            return attributes;
+        }
+        var attributesByName = new HashMap<String, Object>();
+        var parameters = apiMethod.getParameters();
+        for (int i = 0; i < attributes.size(); i++) {
+            attributesByName.put(parameters[inputCount + i].getName(), attributes.get(i));
+        }
+        var ordered = new ArrayList<>(attributes.size());
+        for (OnnxOp.OnnxAttribute attribute : schema.attributes()) {
+            if (attributesByName.containsKey(attribute.name())) {
+                ordered.add(attributesByName.get(attribute.name()));
+            }
+        }
+        return ordered.size() == attributes.size() ? ordered : attributes;
+    }
+
     static Value skipVars(Value v) {
         return v instanceof Op.Result or && or.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlo ? vlo.varOp().initOperand() : v;
     }
@@ -546,7 +770,7 @@ public final class OnnxTransformer {
         FunctionType inputType = iop.invokableSignature();
         FunctionType outputType = CoreType.functionType(
                 tc.convertType(inputType.returnType()),
-                inputType.parameterTypes().stream().map(pt -> tc.convertType(pt)).toList());
+                inputType.parameterTypes().stream().map(tc::convertType).toList());
 
         // @@@ It's not clear in the API when to pass CopyContext and OpTransformer
         // @@@ create a Body.Builder structurally connected as a descendant of a Block.Builder

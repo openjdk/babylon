@@ -38,8 +38,7 @@ import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.OpWriter;
-import oracle.code.onnx.shape.NonTensorShapeResolver;
-import oracle.code.onnx.shape.TensorShapeResolver;
+import oracle.code.onnx.compiler.OnnxTransformer.OnnxValueInfo;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
 import oracle.code.onnx.ir.OnnxType;
@@ -50,7 +49,6 @@ public final class OnnxProtoBuilder {
 
     static final int IR_VERSION = 10;
     static final int OPSET_VERSION = 21;
-    static final TensorShapeResolver NONE = new NonTensorShapeResolver();
 
     private static final class Indexer {
 
@@ -120,19 +118,23 @@ public final class OnnxProtoBuilder {
         }
     }
 
-    public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers) {
-        return buildModel(domain, module, initializers, Map.of(), _ -> null);
-    }
-
     public record ExternalTensorDataInfo(String location, long offset, long length) {
     }
 
-    public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers, Map<Value, String> explicitValueNames, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer) {
-        return buildModel(domain, module, initializers, explicitValueNames, tensorDataExternalizer, NONE);
-    }
-
-    public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers, Map<Value, String> explicitValueNames, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer, TensorShapeResolver shapeResolver) {
+    public static byte[] buildModel(String domain, CoreOp.ModuleOp module, List<Object> initializers, Map<Value, OnnxValueInfo> valueInfo, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer) {
+        var explicitValueNames = new HashMap<Value, String>();
+        valueInfo.forEach((value, info) -> {
+            if (info.name() != null) {
+                explicitValueNames.put(value, info.name());
+            }
+        });
         var indexer = new Indexer(module, explicitValueNames);
+        var valueShapes = new HashMap<String, long[]>();
+        valueInfo.forEach((value, info) -> {
+            if (info.shape() != null) {
+                valueShapes.put(info.name() != null ? info.name() : indexer.nameOf(value), info.shape());
+            }
+        });
 
         var functions = new ArrayList<>(module.functionTable().sequencedValues());
         var imports = new ArrayList<String>();
@@ -152,14 +154,15 @@ public final class OnnxProtoBuilder {
         var mainFunc = functions.removeLast();
         var mainBlock = mainFunc.body().entryBlock();
 
-        return buildModel(
-                graph(domain, mainFunc.funcName(), indexer, mainBlock, initializers, 0, tensorDataExternalizer, shapeResolver),
+        var model = buildModel(
+                graph(domain, mainFunc.funcName(), indexer, mainBlock, initializers, 0, tensorDataExternalizer, valueShapes, valueInfo),
                 imports,
                 functions.stream().map(f ->
                         function(domain, imports, f.funcName(),
                                 expandTuples(indexer, f.parameters()),
                                 expandTuples(indexer, f.body().entryBlock().terminatingOp().operands()),
-                                nodes(domain, indexer, f.body().entryBlock().ops(), shapeResolver))).toList());
+                                nodes(domain, indexer, f.body().entryBlock().ops(), valueShapes, Map.of()))).toList());
+        return model;
     }
 
     // @@@ unchecked constraints:
@@ -213,60 +216,87 @@ public final class OnnxProtoBuilder {
         }
     }
 
-    static List<ValueInfoProto> tensorInfos(Indexer indexer, List<? extends Value> values, TensorShapeResolver shapeResolver) {
+    static List<ValueInfoProto> tensorInfos(Indexer indexer, List<? extends Value> values, Map<String, long[]> valueShapes) {
         var infos = new ArrayList<ValueInfoProto>();
-        tensorInfos(indexer, infos, values, shapeResolver);
+        tensorInfos(indexer, infos, values, valueShapes);
         return infos;
     }
 
-    private static void tensorInfos(Indexer indexer, ArrayList<ValueInfoProto> infos, List<? extends Value> values, TensorShapeResolver shapeResolver) {
+    static void tensorInfos(Indexer indexer, List<ValueInfoProto> infos, List<? extends Value> values, Map<String, long[]> valueShapes) {
         for (var v : values) {
             if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleOp op) {
-                tensorInfos(indexer, infos, op.operands(), shapeResolver);
-            } else if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp top) {
-                infos.add(tensorInfo(indexer.nameOf(top.operands().getFirst(), top.index()), v.type(), shapeResolver));
+                tensorInfos(indexer, infos, op.operands(), valueShapes);
+            } else if (v instanceof Op.Result or && or.op() instanceof CoreOp.TupleLoadOp op) {
+                infos.add(tensorInfo(indexer.nameOf(op.operands().getFirst(), op.index()), v.type(), valueShapes));
             } else if (v.type() instanceof TupleType tt) {
                 var ct = tt.componentTypes();
                 for (int i = 0; i < ct.size(); i++) {
-                    infos.add(tensorInfo(indexer.nameOf(v, i), ct.get(i), shapeResolver));
+                    infos.add(tensorInfo(indexer.nameOf(v, i), ct.get(i), valueShapes));
                 }
             } else {
-                infos.add(tensorInfo(indexer.nameOf(v), v.type(), shapeResolver));
+                infos.add(tensorInfo(indexer.nameOf(v), v.type(), valueShapes));
             }
         }
     }
 
-    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<?> initializers, int scalarArgs) {
-        return graph(domain, graphName, indexer, block, initializers, scalarArgs, _ -> null, NONE);
+    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<? extends Object> initializers, int scalarArgs) {
+        return graph(domain, graphName, indexer, block, initializers, scalarArgs, _ -> null, Map.of(), Map.of());
     }
 
-    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<?> initializers, int scalarArgs, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer, TensorShapeResolver shapeResolver) {
+    static GraphProto graph(String domain, String graphName, Indexer indexer, Block block, List<? extends Object> initializers, int scalarArgs, Function<Tensor, ExternalTensorDataInfo> tensorDataExternalizer, Map<String, long[]> valueShapes, Map<Value, OnnxValueInfo> valueInfo) {
+        valueShapes = new HashMap<>(valueShapes);
         var params = block.parameters();
         params.forEach(indexer::nameOf);
         int firstInitializer = params.size() - initializers.size();
         var args = params.subList(0, firstInitializer);
-        return graphWithOutputs(graphName,
-                IntStream.range(0, initializers.size()).boxed().<TensorProto>mapMulti((i, tps) -> {
-                    Object val = initializers.get(i);
-                    if (val instanceof Record) {
-                        var rcs = val.getClass().getRecordComponents();
-                        for (int rci = 0; rci < rcs.length; rci++)
-                            try {
-                                tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), rci), (Tensor) (rcs[rci].getAccessor().invoke(val)), tensorDataExternalizer));
-                            } catch (ReflectiveOperationException e) {
-                                throw new IllegalArgumentException(e);
-                            }
-                    } else if (val instanceof Tensor[] tarr) {
-                        for (int tai = 0; tai < tarr.length; tai++) {
-                            tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), tai), tarr[tai], tensorDataExternalizer));
-                        }
-                    } else {
-                        tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer)), (Tensor) val, tensorDataExternalizer));
+        List<TensorProto> graphInitializers = IntStream.range(0, initializers.size()).boxed().<TensorProto>mapMulti((i, tps) -> {
+            Object val = initializers.get(i);
+            if (val instanceof Record) {
+                var rcs = val.getClass().getRecordComponents();
+                for (int rci = 0; rci < rcs.length; rci++)
+                    try {
+                        tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), rci), (Tensor) (rcs[rci].getAccessor().invoke(val)), tensorDataExternalizer));
+                    } catch (ReflectiveOperationException e) {
+                        throw new IllegalArgumentException(e);
                     }
-                }).toList(),
-                tensorInfos(indexer, args, scalarArgs, shapeResolver),
-                nodes(domain, indexer, block.ops(), shapeResolver),
-                tensorInfos(indexer, block.terminatingOp().operands(), shapeResolver));
+            } else if (val instanceof Tensor[] tarr) {
+                for (int tai = 0; tai < tarr.length; tai++) {
+                    tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer), tai), tarr[tai], tensorDataExternalizer));
+                }
+            } else {
+                tps.accept(tensorProto(indexer.nameOf(params.get(i + firstInitializer)), (Tensor) val, tensorDataExternalizer));
+            }
+        }).toList();
+        List<ValueInfoProto> graphInputs = tensorInfos(indexer, args, scalarArgs, valueShapes);
+        List<NodeProto> graphNodes = nodes(domain, indexer, block.ops(), valueShapes, valueInfo);
+        List<ValueInfoProto> graphOutputs = tensorInfos(indexer, block.terminatingOp().operands(), valueShapes);
+        var boundaryNames = new HashSet<String>();
+        boundaryNames.addAll(expandTuples(indexer, args));
+        boundaryNames.addAll(expandTuples(indexer, block.terminatingOp().operands()));
+        var blockValues = blockValues(block);
+        var graphValueInfoNames = new HashSet<String>();
+        List<ValueInfoProto> graphValueInfos = valueInfo.entrySet().stream()
+                .filter(entry -> entry.getValue().shape() != null)
+                .filter(entry -> blockValues.contains(entry.getKey()))
+                .<ValueInfoProto>mapMulti((entry, infos) -> {
+                    String name = entry.getValue().name() != null ? entry.getValue().name() : indexer.nameOf(entry.getKey());
+                    if (!boundaryNames.contains(name) && graphValueInfoNames.add(name)) {
+                        infos.accept(tensorInfo(name, OnnxType.INT64.id(), shapeOf(entry.getValue().shape())));
+                    }
+                })
+                .toList();
+        return graphWithOutputs(graphName, graphInitializers, graphInputs, graphNodes, graphValueInfos, graphOutputs);
+    }
+
+    static Set<Value> blockValues(Block block) {
+        var values = new HashSet<Value>();
+        values.addAll(block.parameters());
+        block.ops().forEach(op -> {
+            if (op.result() != null) {
+                values.add(op.result());
+            }
+        });
+        return values;
     }
 
     static List<String> opInputNames(Indexer indexer, SequencedMap<OnnxOp.OnnxParameter, Object> inputs) {
@@ -280,11 +310,10 @@ public final class OnnxProtoBuilder {
                         default -> dump.accept(""); // empty names for unused optional inputs
                     }
                 }).toList();
-        // trim trailing empty names
         return inputNames.reversed().stream().dropWhile(String::isEmpty).toList().reversed();
     }
 
-    static List<NodeProto> nodes(String domain, Indexer indexer, List<Op> ops, TensorShapeResolver shapeResolver) {
+    static List<NodeProto> nodes(String domain, Indexer indexer, List<Op> ops, Map<String, long[]> valueShapes, Map<Value, OnnxValueInfo> valueInfo) {
         return ops.stream().<NodeProto>mapMulti((op, opNodes) -> {
             switch (op) {
                 case OnnxOps.If ifOp -> opNodes.accept(node(
@@ -292,14 +321,14 @@ public final class OnnxProtoBuilder {
                         List.of(indexer.nameOf(ifOp.operands().getFirst())),
                         IntStream.range(0, ifOp.resultType() instanceof TupleType tt ? tt.componentTypes().size() : 1).mapToObj(o -> indexer.nameOf(ifOp.result(), o)).toList(),
                         java.util.Map.of(
-                                "then_branch", graph(domain, null, indexer, ifOp.thenBranch().entryBlock(), List.of(), 0, _ -> null, shapeResolver),
-                                "else_branch", graph(domain, null, indexer, ifOp.elseBranch().entryBlock(), List.of(), 0, _ -> null, shapeResolver))));
+                                "then_branch", graph(domain, null, indexer, ifOp.thenBranch().entryBlock(), List.of(), 0, _ -> null, valueShapes, Map.of()),
+                                "else_branch", graph(domain, null, indexer, ifOp.elseBranch().entryBlock(), List.of(), 0, _ -> null, valueShapes, Map.of()))));
                 case OnnxOps.Loop loopOp -> {
                     opNodes.accept(node(loopOp.schema().name(),
                             expandTuples(indexer, loopOp.operands()),
                             IntStream.range(0, loopOp.resultType() instanceof TupleType tt ? tt.componentTypes().size() : 1).mapToObj(o -> indexer.nameOf(loopOp.result(), o)).toList(),
                             java.util.Map.of(
-                                    "body", graph(domain, null, indexer, loopOp.loopBody().entryBlock(), List.of(), 2, _ -> null, shapeResolver))));
+                                    "body", graph(domain, null, indexer, loopOp.loopBody().entryBlock(), List.of(), 2, _ -> null, valueShapes, Map.of()))));
                 }
                 case OnnxOp onnxOp -> opNodes.accept(node(
                         onnxOp.schema().name(),
@@ -333,19 +362,19 @@ public final class OnnxProtoBuilder {
         }).toList();
     }
 
-    static List<ValueInfoProto> tensorInfos(Indexer indexer, List<Block.Parameter> args, int scalarArgs, TensorShapeResolver shapeResolver) {
+    static List<ValueInfoProto> tensorInfos(Indexer indexer, List<Block.Parameter> args, int scalarArgs, Map<String, long[]> valueShapes) {
         var infos = new ArrayList<ValueInfoProto>();
         for (var arg : args) {
             switch (arg.type()) {
                 case OnnxType.TensorType tt -> infos.add(infos.size() < scalarArgs
-                        ? tensorInfo(indexer.nameOf(arg), tt.eType().id(), true, shapeResolver)
-                        : tensorInfo(indexer.nameOf(arg), tt, shapeResolver));
+                        ? tensorInfo(indexer.nameOf(arg), tt.eType().id(), true, valueShapes)
+                        : tensorInfo(indexer.nameOf(arg), tt, valueShapes));
                 case TupleType tt -> {
                     var ct = tt.componentTypes();
                     for (int i = 0; i < ct.size(); i++) {
                         infos.add(infos.size() < scalarArgs && ct.get(i) instanceof OnnxType.TensorType tensorType
-                                ? tensorInfo(indexer.nameOf(arg, i), tensorType.eType().id(), true, shapeResolver)
-                                : tensorInfo(indexer.nameOf(arg, i), ct.get(i), shapeResolver));
+                                ? tensorInfo(indexer.nameOf(arg, i), tensorType.eType().id(), true, valueShapes)
+                                : tensorInfo(indexer.nameOf(arg, i), ct.get(i), valueShapes));
                     }
                 }
                 default -> throw new UnsupportedOperationException(arg.type().toString());
@@ -359,11 +388,16 @@ public final class OnnxProtoBuilder {
     }
 
     static GraphProto graphWithOutputs(String name, List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<ValueInfoProto> outputs) {
+        return graphWithOutputs(name, initializers, inputs, ops, List.of(), outputs);
+    }
+
+    static GraphProto graphWithOutputs(String name, List<TensorProto> initializers, List<ValueInfoProto> inputs, List<NodeProto> ops, List<ValueInfoProto> valueInfos, List<ValueInfoProto> outputs) {
         return new GraphProto()
                 .name(name)
                 .forEach(initializers, GraphProto::initializer)
                 .forEach(inputs, GraphProto::input)
                 .forEach(ops, GraphProto::node)
+                .forEach(valueInfos, GraphProto::valueInfo)
                 .forEach(outputs, GraphProto::output);
     }
 
@@ -387,44 +421,73 @@ public final class OnnxProtoBuilder {
                 .forEach(outputNames, NodeProto::output);
     }
 
-    static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, Map<String, Object> attributes) {
+    static NodeProto node(String opName, List<String> inputNames, List<String> outputNames, java.util.Map<String, Object> attributes) {
         int di = opName.lastIndexOf('.');
         return node(di < 0 ? null : opName.substring(0, di), opName.substring(di + 1), inputNames, outputNames, attributes);
     }
 
+    static List<Object> shapeOf(long[] shape) {
+        if (shape == null) {
+            return null;
+        }
+        var dims = new ArrayList<>(shape.length);
+        for (long dim : shape) {
+            dims.add(dim);
+        }
+        return dims;
+    }
+
+    static List<Object> shapeOf(String name, Map<String, long[]> valueShapes) {
+        long[] shape = valueShapes.get(name);
+        if (shape == null) {
+            int dot = name.lastIndexOf('.');
+            if (dot > 0) {
+                try {
+                    Integer.parseInt(name.substring(dot + 1));
+                    shape = valueShapes.get(name.substring(0, dot));
+                } catch (NumberFormatException _) {
+                    // Not a tuple-expanded value name.
+                }
+            }
+        }
+        return shapeOf(shape);
+    }
+
     static ValueInfoProto tensorInfo(String name, int tensorElementType) {
-        return tensorInfo(name, tensorElementType, false, NONE);
+        return tensorInfo(name, tensorElementType, false, Map.of());
     }
 
     static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape) {
-        return tensorInfo(name, tensorElementType, addScalarShape, NONE);
+        return tensorInfo(name, tensorElementType, addScalarShape, Map.of());
     }
 
-    static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape, TensorShapeResolver shapeResolver) {
-        return tensorInfo(name, tensorElementType, addScalarShape ? List.of() : shapeResolver.shape(name));
+    static ValueInfoProto tensorInfo(String name, int tensorElementType, boolean addScalarShape, Map<String, long[]> valueShapes) {
+        return tensorInfo(name, tensorElementType, addScalarShape ? List.of() : shapeOf(name, valueShapes));
     }
 
-    static ValueInfoProto tensorInfo(String name, Object type, TensorShapeResolver shapeResolver) {
+    static ValueInfoProto tensorInfo(String name, Object type, Map<String, long[]> valueShapes) {
         return type instanceof OnnxType.TensorType tensorType
-                ? tensorInfo(name, tensorType, shapeResolver)
+                ? tensorInfo(name, tensorType, valueShapes)
                 : new ValueInfoProto().name(name);
     }
 
-
-    static ValueInfoProto tensorInfo(String name, OnnxType.TensorType tensorType, TensorShapeResolver shapeResolver) {
-        List<Object> shapes = (tensorType.shape() != null) ? tensorType.shape() : shapeResolver.shape(name);
-        return tensorInfo(name, tensorType.eType().id(), shapes);
+    static ValueInfoProto tensorInfo(String name, OnnxType.TensorType tensorType, Map<String, long[]> valueShapes) {
+        List<Object> shape = tensorType.shape() != null && !tensorType.shape().isEmpty() ? tensorType.shape() : shapeOf(name, valueShapes);
+        return tensorInfo(name, tensorType.eType().id(), shape);
     }
 
-    static ValueInfoProto tensorInfo(String name, int tensorElementType, List<Object> shapes) {
+    static ValueInfoProto tensorInfo(String name, int tensorElementType, List<Object> shape) {
         var t = new TypeProto.Tensor().elemType(tensorElementType);
-        if (shapes != null) {
+        if (shape != null) {
             var tensorShape = new TensorShapeProto();
-            for (Object dim : shapes) {
+            for (int i = 0; i < shape.size(); i++) {
+                Object dim = shape.get(i);
                 tensorShape.dim(switch (dim) {
+                    case Number n when n.longValue() < 0 ->
+                            new TensorShapeProto.Dimension().dimParam(name + "_dim_" + i);
                     case Number n -> new TensorShapeProto.Dimension().dimValue(n.longValue());
                     case String s -> new TensorShapeProto.Dimension().dimParam(s);
-                    default -> throw new IllegalArgumentException("Unsupported tensor dimension " + dim);
+                    default -> throw new IllegalArgumentException("Unsupported tensor dimension: " + dim);
                 });
             }
             t.shape(tensorShape);

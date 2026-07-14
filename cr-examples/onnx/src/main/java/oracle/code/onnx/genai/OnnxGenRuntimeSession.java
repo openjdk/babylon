@@ -41,9 +41,9 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import oracle.code.onnx.OnnxProtoBuilder;
 import oracle.code.onnx.OnnxRuntime;
+import oracle.code.onnx.metadata.ModelMetadata;
+import oracle.code.onnx.metadata.ModelMetadataResolver;
 import oracle.code.onnx.compiler.OnnxTransformer;
-import oracle.code.onnx.shape.TensorShapeResolver;
-import oracle.code.onnx.shape.TensorShapeResolverFactory;
 
 import static oracle.code.onnx.foreign.OrtGenApi.*;
 
@@ -185,12 +185,12 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
     public static OnnxGenRuntimeSession buildFromCodeReflection(MethodHandles.Lookup l, Object codeReflectionModelInstance, String methodName, Path targetOnnxModelDir, String targetOnnxModelFileName, String targetExternalDataFileName) throws IOException {
         Method method = Stream.of(codeReflectionModelInstance.getClass().getDeclaredMethods()).filter(m -> m.getName().equals(methodName)).findFirst().orElseThrow();
         CoreOp.FuncOp javaModel = OnnxTransformer.evaluate(l, Op.ofMethod(method).orElseThrow());
-        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(l, javaModel);
+        ModelMetadata metadata = ModelMetadataResolver.from(method);
+        OnnxTransformer.ModuleAndInitializers onnxModel = OnnxTransformer.transform(l, javaModel, metadata);
         List<Object> initializers = OnnxRuntime.getInitValues(l, onnxModel.initializers(), List.of(codeReflectionModelInstance));
         try (OutputStream dataOutput = Files.newOutputStream(targetOnnxModelDir.resolve(targetExternalDataFileName))) {
             AtomicLong offset = new AtomicLong();
-            TensorShapeResolver shapeResolver = TensorShapeResolverFactory.fromConfig(Path.of(targetOnnxModelDir+"/genai_config.json"));
-            byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.namesMap(), t -> {
+            byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.valueInfo(), t -> {
                 byte[] data = t.data().toArray(ValueLayout.JAVA_BYTE);
                 if (data.length <= PAYLOAD_LIMIT) {
                     return null;
@@ -201,7 +201,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
                     throw new RuntimeException(e);
                 }
                 return new OnnxProtoBuilder.ExternalTensorDataInfo(targetExternalDataFileName, offset.getAndAdd(data.length), data.length);
-            }, shapeResolver);
+            });
             Files.write(targetOnnxModelDir.resolve(targetOnnxModelFileName), protobufModel);
         }
         return new OnnxGenRuntimeSession(targetOnnxModelDir);
