@@ -71,18 +71,7 @@ import java.util.*;
  * provide operation-specific accessors for operation-specific state.
  * </ul>
  */
-public non-sealed abstract class AbstractOp implements Op {
-
-    // Set when op is placed in a block or as a root operation, otherwise null when unplaced
-    // @@@ stable value?
-    Result result;
-
-    // null if not specified
-    // @@@ stable value?
-    Location location;
-
-    final List<Value> operands;
-
+public non-sealed abstract class AbstractOp extends InternalAbstractOp {
     /**
      * Constructs an operation with a list of operands.
      *
@@ -90,12 +79,7 @@ public non-sealed abstract class AbstractOp implements Op {
      * @throws IllegalArgumentException if an operand's declaring block is built.
      */
     protected AbstractOp(List<? extends Value> operands) {
-        for (Value operand : operands) {
-            if (operand.isBuilt()) {
-                throw new IllegalArgumentException("Operand's declaring block is built: " + operand);
-            }
-        }
-        this.operands = List.copyOf(operands);
+        super(operands);
     }
 
     /**
@@ -110,41 +94,7 @@ public non-sealed abstract class AbstractOp implements Op {
      * @throws IllegalArgumentException if a mapped value's declaring block is built.
      */
     protected AbstractOp(AbstractOp that, CodeContext cc) {
-        this(cc.getValues(that.operands));
-        this.location = that.location;
-    }
-
-    @Override
-    public final void setLocation(Location l) {
-        // @@@ Fail if location != null?
-        if (isRoot() || (result != null && result.block.isBuilt())) {
-            throw new IllegalStateException("Built operation");
-        }
-
-        location = l;
-    }
-
-    @Override
-    public final Location location() {
-        return location;
-    }
-
-    @Override
-    public final Block parent() {
-        if (isRoot() || result == null) {
-            return null;
-        }
-
-        if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Parent block is unobservable");
-        }
-
-        return result.block;
-    }
-
-    @Override
-    public final List<Body> children() {
-        return bodies();
+        super(that, cc);
     }
 
     /**
@@ -152,97 +102,7 @@ public non-sealed abstract class AbstractOp implements Op {
      * @implSpec this implementation returns an unmodifiable empty list.
      */
     @Override
-    public List<Body> bodies() {
+    public final List<Block.Reference> successors() {
         return List.of();
-    }
-
-    @Override
-    public final Result result() {
-        return result == Result.ROOT_RESULT ? null : result;
-    }
-
-    @Override
-    public final List<Value> operands() {
-        return operands;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns an unmodifiable empty list.
-     */
-    @Override
-    // @@@ final
-    public List<Block.Reference> successors() {
-        return List.of();
-    }
-
-    @Override
-    public final FunctionType opSignature() {
-        List<CodeType> operandTypes = operands.stream().map(Value::type).toList();
-        return CoreType.functionType(resultType(), operandTypes);
-    }
-
-    @Override
-    public final List<Value> capturedValues() {
-        Set<Value> cvs = new LinkedHashSet<>();
-
-        Deque<Body> bodyStack = new ArrayDeque<>();
-        for (Body childBody : bodies()) {
-            Body.capturedValues(cvs, bodyStack, childBody);
-        }
-        return new ArrayList<>(cvs);
-    }
-
-    @Override
-    public final void buildAsRoot() {
-        if (result == Result.ROOT_RESULT) {
-            return;
-        }
-        if (!bodies().stream().allMatch(Body::isIsolated)) {
-            throw new IllegalStateException("One of the operation bodies is not isolated");
-        }
-        if (!operands().isEmpty()) {
-            throw new IllegalStateException("Operation has operands");
-        }
-        if (!successors().isEmpty()) {
-            throw new IllegalStateException("Operation has successors");
-        }
-        if (result != null) {
-            throw new IllegalStateException("Operation is placed in a block");
-        }
-        result = Result.ROOT_RESULT;
-    }
-
-    @Override
-    public final boolean isRoot() {
-        return result == Result.ROOT_RESULT;
-    }
-
-    @Override
-    public final boolean isPlacedInBlock() {
-        return !isRoot() && result != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
-     */
-    @Override
-    public String externalizeOpName() {
-        return this.getClass().getName();
-    }
-
-    /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns an unmodifiable empty map.
-     */
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of();
-    }
-
-    @Override
-    public final String toText() {
-        return OpWriter.toText(this);
     }
 }

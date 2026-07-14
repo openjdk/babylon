@@ -1739,6 +1739,9 @@ public sealed interface CoreOp {
         return new TupleWithOp(tuple, index, value);
     }
 }
+// The following classes are required to override externalizeOpName
+// @@@ If externalization was instead expresses as an interface trait
+// these classes would not be required
 sealed abstract class AbstractCoreOp extends AbstractOp implements CoreOp  {
     AbstractCoreOp(List<? extends Value> operands) {
         super(operands);
@@ -1764,7 +1767,7 @@ sealed abstract class AbstractCoreTerminatingOp extends AbstractTerminatingOp im
         super(operands);
     }
 
-    AbstractCoreTerminatingOp(AbstractOp that, CodeContext cc) {
+    AbstractCoreTerminatingOp(AbstractCoreTerminatingOp that, CodeContext cc) {
         super(that, cc);
     }
 

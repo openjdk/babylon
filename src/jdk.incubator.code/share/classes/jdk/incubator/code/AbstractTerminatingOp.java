@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * X
  */
-public non-sealed abstract class AbstractTerminatingOp extends AbstractOp implements Op.Terminating {
+public non-sealed abstract class AbstractTerminatingOp extends InternalAbstractOp implements Op.Terminating {
 
     final List<Block.Reference> successors;
 
@@ -34,7 +34,7 @@ public non-sealed abstract class AbstractTerminatingOp extends AbstractOp implem
      * @param that x
      * @param cc x
      */
-    protected AbstractTerminatingOp(AbstractOp that, CodeContext cc) {
+    protected AbstractTerminatingOp(AbstractTerminatingOp that, CodeContext cc) {
         super(that, cc);
 
         // @@@ Remove CodeContext::getReferenceOrCreate

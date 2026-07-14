@@ -101,7 +101,7 @@ import java.util.function.BiFunction;
  * expressions, or {@link JavaOp.TryOp try} statements. In such cases an operation will contain one or more bodies
  * modeling the nested structure.
  */
-public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating, AbstractOp {
+public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating, InternalAbstractOp {
 
     /**
      * An terminating operation that occurs as the last operation in a block.

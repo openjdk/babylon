@@ -7337,6 +7337,7 @@ public sealed interface JavaOp {
         return new PatternOps.MatchAllPatternOp();
     }
 }
+// The following classes are required to override externalizeOpName
 abstract sealed class AbstractJavaOp extends AbstractOp implements JavaOp {
     AbstractJavaOp(List<? extends Value> operands) {
         super(operands);
@@ -7362,7 +7363,7 @@ sealed abstract class AbstractJavaTerminatingOp extends AbstractTerminatingOp im
         super(operands);
     }
 
-    AbstractJavaTerminatingOp(AbstractOp that, CodeContext cc) {
+    AbstractJavaTerminatingOp(AbstractTerminatingOp that, CodeContext cc) {
         super(that, cc);
     }
 
