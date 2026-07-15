@@ -25,6 +25,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -456,13 +457,19 @@ final class PartialEvaluator {
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
                 // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
+                String opName = (o instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalizeOpName()
+                        : o.getClass().getName();
+                MethodHandle mh = opHandle(l, opName, o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
                 // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
+                String opName = (o instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalizeOpName()
+                        : o.getClass().getName();
+                MethodHandle mh = opHandle(l, opName + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }

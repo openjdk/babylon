@@ -49,7 +49,7 @@ import static jdk.incubator.code.internal.StructuralPreconditions.*;
  * variables, tuples, constants, and control flow. Core operations may appear on their own or together with
  * operations expressed in other dialects.
  */
-public sealed abstract class CoreOp extends AbstractOp {
+public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp.Externalizable {
 
     CoreOp(AbstractOp that, CodeContext cc) {
         super(that, cc);

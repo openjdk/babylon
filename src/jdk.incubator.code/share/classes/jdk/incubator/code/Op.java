@@ -485,23 +485,6 @@ public sealed interface Op extends CodeElement<Op, Body> permits AbstractOp {
     public boolean isPlacedInBlock();
 
     /**
-     * Externalizes this operation's name as a string.
-     *
-     * @return the operation name
-     */
-    public String externalizeOpName();
-
-    /**
-     * Externalizes this operation's specific state as a map of attributes.
-     *
-     * <p>A null attribute value is represented by the constant
-     * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
-     *
-     * @return the operation's externalized state, as an unmodifiable map
-     */
-    public Map<String, Object> externalize();
-
-    /**
      * Returns the code model text for this operation.
      * <p>
      * The format of code model text is unspecified.

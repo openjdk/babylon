@@ -25,31 +25,11 @@
 
 package jdk.incubator.code;
 
-import com.sun.tools.javac.api.JavacScope;
-import com.sun.tools.javac.api.JavacTrees;
-import com.sun.tools.javac.code.Symbol.ClassSymbol;
-import com.sun.tools.javac.comp.Attr;
-import com.sun.tools.javac.model.JavacElements;
-import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-import com.sun.tools.javac.tree.TreeMaker;
-import com.sun.tools.javac.util.Context;
-import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.internal.ReflectMethods;
-import jdk.internal.access.SharedSecrets;
 
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
-import java.util.function.BiFunction;
 
 /**
  * The abstract implementation of an operation. All concrete operations extend this class.
@@ -84,7 +64,7 @@ import java.util.function.BiFunction;
  * A concrete operation class may additionally:
  * <ul>
  * <li>
- * override {@link #externalizeOpName()} and {@link #externalize()} to define an external form;
+ * implement {@link jdk.incubator.code.extern.ExternalizedOp.Externalizable} to define an external form;
  * <li>
  * implement {@link Op.Lowerable} to define a lowering; and
  * <li>
@@ -240,24 +220,6 @@ public non-sealed abstract class AbstractOp implements Op {
     @Override
     public final boolean isPlacedInBlock() {
         return !isRoot() && result != null;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
-     */
-    @Override
-    public String externalizeOpName() {
-        return this.getClass().getName();
-    }
-
-    /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns an unmodifiable empty map.
-     */
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of();
     }
 
     @Override

@@ -52,6 +52,37 @@ public record ExternalizedOp(String name,
                              List<Body.Builder> bodyDefinitions) {
 
     /**
+     * An operation characteristic indicating the operation's name and operation specific state is externalizable.
+     */
+    public interface Externalizable {
+        /**
+         * Externalizes this operation's name as a string.
+         *
+         * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
+         *
+         * @return the operation name
+         */
+        default String externalizeOpName() {
+            return this.getClass().getName();
+        }
+
+        /**
+         * Externalizes this operation's specific state as a map of attributes.
+         *
+         * <p>A null attribute value is represented by the constant
+         * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
+         *
+         * @implSpec this implementation returns an unmodifiable empty map.
+         *
+         * @return the operation's externalized state, as an unmodifiable map
+         */
+        default Map<String, Object> externalize() {
+            return Map.of();
+        }
+
+    }
+
+    /**
      * The attribute value that represents the external null value.
      */
     public static final Object NULL_ATTRIBUTE_VALUE = new Object();
@@ -83,12 +114,16 @@ public record ExternalizedOp(String name,
      */
     public static ExternalizedOp externalizeOp(CodeContext cc, Op op) {
         return new ExternalizedOp(
-                op.externalizeOpName(),
+                (op instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalizeOpName()
+                        : op.getClass().getName(),
                 op.location(),
                 cc.getValues(op.operands()),
                 op.successors().stream().map(cc::getReferenceOrCreate).toList(),
                 op.resultType(),
-                op.externalize(),
+                (op instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalize()
+                        : Map.of(),
                 op.bodies().stream().map(b -> b.transform(cc, CodeTransformer.COPYING_TRANSFORMER)).toList()
         );
     }

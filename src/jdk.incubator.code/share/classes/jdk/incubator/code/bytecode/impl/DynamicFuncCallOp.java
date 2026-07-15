@@ -35,8 +35,9 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.extern.ExternalizedOp;
 
-public final class DynamicFuncCallOp extends AbstractOp {
+public final class DynamicFuncCallOp extends AbstractOp implements ExternalizedOp.Externalizable {
     private final CodeType resultType;
     private final String funcName;
     private final DirectMethodHandleDesc bootstrapMethod;
