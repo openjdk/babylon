@@ -27,10 +27,13 @@ package hat.dialect;
 import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.List;
 
-public abstract sealed class HATOp extends AbstractOp permits HATBarrierOp, HATPtrOp, HATThreadOp {
+public abstract sealed class HATOp extends AbstractOp
+        implements ExternalizedOp.Externalizable
+        permits HATBarrierOp, HATPtrOp, HATThreadOp {
     protected HATOp(List<Value> operands) {
         super(operands);
     }

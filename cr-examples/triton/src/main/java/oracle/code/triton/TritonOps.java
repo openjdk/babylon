@@ -39,7 +39,7 @@ import java.util.function.Consumer;
 
 public class TritonOps {
 
-    static abstract class TritonOp extends AbstractOp {
+    static abstract class TritonOp extends AbstractOp implements ExternalizedOp.Externalizable {
         final CodeType resultType;
 
         public TritonOp(ExternalizedOp def) {

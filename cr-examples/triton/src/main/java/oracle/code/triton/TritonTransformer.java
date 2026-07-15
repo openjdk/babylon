@@ -36,6 +36,8 @@ import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedOp;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -139,7 +141,7 @@ public final class TritonTransformer {
                 case CompareOp _ -> {
                 }
                 case BinaryOp _, UnaryOp _ -> {
-                    CodeType t = checkWithTypeInterpreter(op, op.externalizeOpName(), valueTypeMap);
+                    CodeType t = checkWithTypeInterpreter(op, externalizeOpName(op), valueTypeMap);
                     valueTypeMap.put(op.result(), t);
                 }
                 case FieldAccessOp.FieldLoadOp flop -> {
@@ -217,6 +219,12 @@ public final class TritonTransformer {
                 default -> throw new UnsupportedOperationException("Unsupported operation: " + op);
             }
         });
+    }
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
     }
 
     static CodeType checkWithTypeInterpreter(Op op, String name, Map<Value, CodeType> valueTypeMap) {
@@ -608,7 +616,7 @@ public final class TritonTransformer {
                 }
             }
             case ArithmeticOperation _ -> {
-                Value result = tbi.build(op, op.externalizeOpName(), valueTypeMap);
+                Value result = tbi.build(op, externalizeOpName(op), valueTypeMap);
                 if (result != null) {
                     cc.mapValue(op.result(), result);
                 }

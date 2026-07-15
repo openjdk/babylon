@@ -40,6 +40,7 @@ import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedOp;
 import oracle.code.onnx.OnnxOperators;
 import oracle.code.onnx.Tensor;
 import oracle.code.onnx.ir.OnnxOp;
@@ -154,7 +155,7 @@ final class JavaTemplate {
                 }
                 switch (op) {
                     case OnnxOp oo -> {
-                        String opName = op.externalizeOpName();
+                        String opName = oo.externalizeOpName();
                         out.append(opName.substring(opName.lastIndexOf('.') + 1)).append('(');
                         OnnxOp.OnnxSchema schema = getSchema(oo);
                         SequencedMap<OnnxOp.OnnxParameter, Object> inputs = oo.onnxInputs();
