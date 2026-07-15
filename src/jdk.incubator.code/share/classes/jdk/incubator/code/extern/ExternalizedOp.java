@@ -79,7 +79,6 @@ public record ExternalizedOp(String name,
         default Map<String, Object> externalize() {
             return Map.of();
         }
-
     }
 
     /**
@@ -104,9 +103,9 @@ public record ExternalizedOp(String name,
     /**
      * Externalizes an operation's content.
      * <p>
-     * If the operation is an instanceof {@code ExternalizableOp} then the operation's
-     * specific content is externalized to an attribute map, otherwise the attribute map
-     * is empty.
+     * If the operation is an instanceof {@link Externalizable} then that instance is used to externalize the
+     * operation's name and the operation's specific state. Otherwise, the operation's name is externalized to the
+     * operation's class name and the operation's specific state is externalized as an empty unmodifiable map.
      *
      * @param cc the code context
      * @param op the operation

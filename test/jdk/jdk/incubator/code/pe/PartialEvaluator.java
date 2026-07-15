@@ -456,20 +456,12 @@ final class PartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                // @@@ TODO avoid use of opName
-                String opName = (o instanceof ExternalizedOp.Externalizable eop)
-                        ? eop.externalizeOpName()
-                        : o.getClass().getName();
-                MethodHandle mh = opHandle(l, opName, o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                // @@@ TODO avoid use of opName
-                String opName = (o instanceof ExternalizedOp.Externalizable eop)
-                        ? eop.externalizeOpName()
-                        : o.getClass().getName();
-                MethodHandle mh = opHandle(l, opName + "_" + o.opSignature().returnType(), o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o) + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -495,6 +487,12 @@ final class PartialEvaluator {
         }
     }
 
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
+    }
 
     static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
         MethodType mt = resolveToMethodType(l, ft).erase();
