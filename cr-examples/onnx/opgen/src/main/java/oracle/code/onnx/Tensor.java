@@ -87,8 +87,9 @@ public interface Tensor<T> {
         UINT4(21, Object.class),
         INT4(22, Object.class),
         FLOAT4E2M1(23, Object.class),
-        INT2(25, Object.class),
-        UINT2(26, Object.class)
+        FLOAT8E8M0(24, Object.class),
+        UINT2(25, Object.class),
+        INT2(26, Object.class)
         ;
 
         final int id;

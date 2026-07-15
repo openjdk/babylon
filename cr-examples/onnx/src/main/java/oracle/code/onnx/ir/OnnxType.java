@@ -637,7 +637,7 @@ public abstract sealed class OnnxType implements CodeType {
 
         @Override
         public int id() {
-            return 23;
+            return 24;
         }
     }
 

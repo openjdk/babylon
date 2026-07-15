@@ -27,6 +27,7 @@ import java.io.RandomAccessFile;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.stream.LongStream;
 import oracle.code.onnx.Tensor;
 
@@ -50,8 +51,7 @@ public final class TensorDataStream {
         long size = type.bitSize() * LongStream.of(shape).reduce(1L, (a, b) -> a * b) / 8L;
         if (offset + size > data.byteSize()) {
             throw new IllegalArgumentException("Tensor data file '" + dataFilePath + "' is too small:requested "
-                    + size + " bytes of offset " + offset + " for tensor shape "
-                    + LongStream.of(shape).mapToObj(Long::toString).toString()
+                    + size + " bytes of offset " + offset + " for tensor shape " + Arrays.toString(shape)
                     + ", but the mapped data contains only " + data.byteSize() + " bytes.");
         }
         Tensor<T> tensor = new Tensor<>(arena, data.asSlice(offset, size), type, shape);

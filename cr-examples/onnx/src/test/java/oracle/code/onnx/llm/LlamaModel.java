@@ -42,8 +42,8 @@ public final class LlamaModel {
                              ACCURACY_LEVEL = 4,
                              VOCAB_SIZE = 128256,
                              HEAD_SIZE = 64,
-                             HIDEN_SIZE = 2048,
-                             KV_HIDEN_SIZE = 512,
+                             HIDDEN_SIZE = 2048,
+                             KV_KV_HIDDEN_SIZE = 512,
                              CONTEXT_SIZE = 131072,
                              INTERMEDIATE_SIZE = 8192;
     public static final float EPSILON = 1.0E-5f,
@@ -75,29 +75,30 @@ public final class LlamaModel {
         kvShape = Tensor.ofFlat(arena, 1L, NUM_KEY_VALUE_HEADS, -1L, HEAD_SIZE);
 
         var modelData = new TensorDataStream(arena, LlamaModel.class.getResource("model_q4.onnx_data").getPath());
-        tokensWeights = modelData.nextTensor(FLOAT, VOCAB_SIZE, HIDEN_SIZE);
-        initWeight = modelData.nextTensor(FLOAT, HIDEN_SIZE);
+        tokensWeights = modelData.nextTensor(FLOAT, VOCAB_SIZE, HIDDEN_SIZE);
+        initWeight = modelData.nextTensor(FLOAT, HIDDEN_SIZE);
         cosCache = modelData.nextTensor(FLOAT, CONTEXT_SIZE, HEAD_SIZE / 2);
         sinCache = modelData.nextTensor(FLOAT, CONTEXT_SIZE, HEAD_SIZE / 2);
+
         for (int i = 0; i < LAYERS; i++) {
-            postAttentionWeights[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE);
-            inputWeights[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE);
+            postAttentionWeights[i] = modelData.nextTensor(FLOAT, HIDDEN_SIZE);
+            inputWeights[i] = modelData.nextTensor(FLOAT, HIDDEN_SIZE);
         }
         for (int i = 0; i < LAYERS; i++) {
-            attnQWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, HEAD_SIZE, 16);
-            attnQScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, HEAD_SIZE);
-            attnKWeight[i] = modelData.nextTensor(UINT8, KV_HIDEN_SIZE, HEAD_SIZE, 16);
-            attnKScales[i] = modelData.nextTensor(FLOAT, KV_HIDEN_SIZE, HEAD_SIZE);
-            attnVWeight[i] = modelData.nextTensor(UINT8, KV_HIDEN_SIZE, HEAD_SIZE, 16);
-            attnVScales[i] = modelData.nextTensor(FLOAT, KV_HIDEN_SIZE, HEAD_SIZE);
-            attnOWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, HEAD_SIZE, 16);
-            attnOScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, HEAD_SIZE);
+            attnQWeight[i] = modelData.nextTensor(UINT8, HIDDEN_SIZE, HEAD_SIZE, 16);
+            attnQScales[i] = modelData.nextTensor(FLOAT, HIDDEN_SIZE, HEAD_SIZE);
+            attnKWeight[i] = modelData.nextTensor(UINT8, KV_KV_HIDDEN_SIZE, HEAD_SIZE, 16);
+            attnKScales[i] = modelData.nextTensor(FLOAT, KV_KV_HIDDEN_SIZE, HEAD_SIZE);
+            attnVWeight[i] = modelData.nextTensor(UINT8, KV_KV_HIDDEN_SIZE, HEAD_SIZE, 16);
+            attnVScales[i] = modelData.nextTensor(FLOAT, KV_KV_HIDDEN_SIZE, HEAD_SIZE);
+            attnOWeight[i] = modelData.nextTensor(UINT8, HIDDEN_SIZE, HEAD_SIZE, 16);
+            attnOScales[i] = modelData.nextTensor(FLOAT, HIDDEN_SIZE, HEAD_SIZE);
             mlpGateWeight[i] = modelData.nextTensor(UINT8, INTERMEDIATE_SIZE, HEAD_SIZE, 16);
             mlpGateScales[i] = modelData.nextTensor(FLOAT, INTERMEDIATE_SIZE, HEAD_SIZE);
             mlpUpWeight[i] = modelData.nextTensor(UINT8, INTERMEDIATE_SIZE, HEAD_SIZE, 16);
             mlpUpScales[i] = modelData.nextTensor(FLOAT, INTERMEDIATE_SIZE, HEAD_SIZE);
-            mlpDownWeight[i] = modelData.nextTensor(UINT8, HIDEN_SIZE, 256, 16);
-            mlpDownScales[i] = modelData.nextTensor(FLOAT, HIDEN_SIZE, 256);
+            mlpDownWeight[i] = modelData.nextTensor(UINT8, HIDDEN_SIZE, 256, 16);
+            mlpDownScales[i] = modelData.nextTensor(FLOAT, HIDDEN_SIZE, 256);
         }
     }
 
@@ -120,13 +121,13 @@ public final class LlamaModel {
         for (int i = 0; i < LAYERS; i++) {
             GroupQueryAttention<Float> attn = GroupQueryAttention(MatMulNBits(input,
                                 attnQWeight[i],
-                                attnQScales[i], empty(), empty(), empty(), HIDEN_SIZE, HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
+                                attnQScales[i], empty(), empty(), empty(), HIDDEN_SIZE, HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
                     of(MatMulNBits(input,
                                 attnKWeight[i],
-                                attnKScales[i], empty(), empty(), empty(), HIDEN_SIZE, KV_HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                                attnKScales[i], empty(), empty(), empty(), HIDDEN_SIZE, KV_KV_HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                     of(MatMulNBits(input,
                                 attnVWeight[i],
-                                attnVScales[i], empty(), empty(), empty(), HIDEN_SIZE, KV_HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                                attnVScales[i], empty(), empty(), empty(), HIDDEN_SIZE, KV_KV_HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                     of(pastKey[i]),
                     of(pastValue[i]),
                     amSL,
@@ -138,21 +139,21 @@ public final class LlamaModel {
                     skipBias,
                     MatMulNBits(attn.output(),
                                 attnOWeight[i],
-                                attnOScales[i], empty(), empty(), empty(), HIDEN_SIZE, HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
+                                attnOScales[i], empty(), empty(), empty(), HIDDEN_SIZE, HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
                     postAttentionWeights[i], empty(), of(EPSILON));
 
             Tensor<Float> mlpGateProj = MatMulNBits(postAttnLayernorm.output(),
                                                     mlpGateWeight[i],
-                                                    mlpGateScales[i], empty(), empty(), empty(), HIDEN_SIZE, INTERMEDIATE_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE);
+                                                    mlpGateScales[i], empty(), empty(), empty(), HIDDEN_SIZE, INTERMEDIATE_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE);
 
             SkipSimplifiedLayerNormalization<Float> norm = SkipSimplifiedLayerNormalization(postAttnLayernorm.input_skip_bias_sum(),
                     MatMulNBits(Mul(Mul(mlpGateProj,
                                         Sigmoid(mlpGateProj)),
                                     MatMulNBits(postAttnLayernorm.output(),
                                                 mlpUpWeight[i],
-                                                mlpUpScales[i], empty(), empty(), empty(), HIDEN_SIZE, INTERMEDIATE_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                                                mlpUpScales[i], empty(), empty(), empty(), HIDDEN_SIZE, INTERMEDIATE_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                                 mlpDownWeight[i],
-                                mlpDownScales[i], empty(), empty(), empty(), INTERMEDIATE_SIZE, HIDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
+                                mlpDownScales[i], empty(), empty(), empty(), INTERMEDIATE_SIZE, HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
                     inputWeights[i], empty(), of(EPSILON));
 
             input = norm.output();
