@@ -905,6 +905,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     Type lhsType = tree.operator.type.getParameterTypes().head;
                     Type rhsType = tree.operator.type.getParameterTypes().tail.head;
 
+                    // We need to first convert LHS, then process RHS
+                    // as described in JLS 15.26.2
                     lhs = convert(lhs, lhsType);
                     Value rhs = toValue(tree.rhs, rhsType);
 
@@ -2319,6 +2321,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             // which doesn't make sense for the model
                             opType = syms.intType;
                         }
+
+                        // We first convert LHS, then process RHS
+                        // While JLS doesn't require this, javac generates bytecode this way
                         Value lhsConv = convert(lhs, opType);
                         Value one = append(numericOneValue(opType));
 
