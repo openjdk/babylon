@@ -204,7 +204,13 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
     }
 
     private final Arena arena;
-    private final MemorySegment ret, model, tokenizer, tokenizerStream, generatorParams, generator, count;
+    private final MemorySegment ret;
+    private final MemorySegment model;
+    private final MemorySegment tokenizer;
+    private final MemorySegment tokenizerStream;
+    private final MemorySegment generatorParams;
+    private MemorySegment generator;
+    private final MemorySegment count;
 
     /**
      * Constructs Onnx Generate API session (including model, tokenizer and generator) from assets stored in the Onnx model directory.
@@ -217,7 +223,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
         tokenizer = call(OgaCreateTokenizer(model, ret));
         tokenizerStream = call(OgaCreateTokenizerStream(tokenizer, ret));
         generatorParams = call(OgaCreateGeneratorParams(model, ret));
-        generator = call(OgaCreateGenerator(model, generatorParams, ret));
+        generator = MemorySegment.NULL;
         count = arena.allocate(C_LONG);
     }
 
@@ -241,63 +247,33 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
     /**
      * Runs generator with the provided prompt and feeds decoded response to the provided consumer.
      * @param prompt Text prompt to tokenize and append to the LLM model input.
-     * @param outputConsumer Consumer receiving decoded model response from the model generator.
-     */
-    public void prompt(String prompt, Consumer<String> outputConsumer) {
-        LOG.log(System.Logger.Level.DEBUG, "Create sequences");
-        var inputTokens = call(OgaCreateSequences(ret));
-        try {
-            call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(prompt), inputTokens));
-            LOG.log(System.Logger.Level.DEBUG, "Tokenizer encode");
-            generate(inputTokens, generator, outputConsumer);
-        } finally {
-            OgaDestroySequences(inputTokens);
-        }
-    }
-
-    private void generate(MemorySegment inputTokens, MemorySegment generator, Consumer<String> outputConsumer) {
-        call(OgaGenerator_AppendTokenSequences(generator, inputTokens));
-        LOG.log(System.Logger.Level.DEBUG, "Generator loop");
-        while (!OgaGenerator_IsDone(generator)) {
-            call(OgaGenerator_GenerateNextToken(generator));
-            int nextToken = call(OgaGenerator_GetNextTokens(generator, ret, count)).get(C_INT, 0);
-            String response = call(OgaTokenizerStreamDecode(tokenizerStream, nextToken, ret)).getString(0);
-            outputConsumer.accept(response);
-        }
-        outputConsumer.accept("\n");
-        LOG.log(System.Logger.Level.DEBUG, "Tokenizer stream decoded");
-    }
-
-    /**
-     * Runs generator with the provided prompt and feeds decoded response to the provided consumer.
-     * @param prompt Text prompt to tokenize and append to the LLM model input.
      * @param maxNewTokens Maximum number of output tokens generated.
      * @param outputConsumer Consumer receiving decoded model response from the model generator.
      */
     public void prompt(String prompt, int maxNewTokens, Consumer<String> outputConsumer) {
         if (maxNewTokens < 0) {
-            throw new IllegalArgumentException("maxNewTokens must be above 0, found " + maxNewTokens);
+            throw new IllegalArgumentException("maxNewTokens must be at least 0, found " + maxNewTokens);
         }
         LOG.log(System.Logger.Level.DEBUG, "Create sequences");
         var inputTokens = call(OgaCreateSequences(ret));
-
-        MemorySegment localGeneratorParams = MemorySegment.NULL;
-        MemorySegment localGenerator = MemorySegment.NULL;
         try {
             call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(prompt), inputTokens));
             LOG.log(System.Logger.Level.DEBUG, "Tokenizer encode");
             long promptTokens = OgaSequencesGetSequenceCount(inputTokens, 0L);
             long maxLength =  Math.addExact(promptTokens, maxNewTokens);
-            localGeneratorParams = call(OgaCreateGeneratorParams(model, ret));
-            call(OgaGeneratorParamsSetSearchNumber(localGeneratorParams, arena.allocateFrom("max_length"), maxLength));
-            localGenerator = call(OgaCreateGenerator(model, localGeneratorParams, ret));
-
-            generate(inputTokens, localGenerator, outputConsumer);
+            call(OgaGeneratorParamsSetSearchNumber(generatorParams, arena.allocateFrom("max_length"), maxLength));
+            generator = call(OgaCreateGenerator(model, generatorParams, ret));
+            call(OgaGenerator_AppendTokenSequences(generator, inputTokens));
+            LOG.log(System.Logger.Level.DEBUG, "Generator loop");
+            while (!OgaGenerator_IsDone(generator)) {
+                call(OgaGenerator_GenerateNextToken(generator));
+                int nextToken = call(OgaGenerator_GetNextTokens(generator, ret, count)).get(C_INT, 0);
+                String response = call(OgaTokenizerStreamDecode(tokenizerStream, nextToken, ret)).getString(0);
+                outputConsumer.accept(response);
+            }
+            outputConsumer.accept("\n");
+            LOG.log(System.Logger.Level.DEBUG, "Tokenizer stream decoded");
         } finally {
-            if (!localGeneratorParams.equals(MemorySegment.NULL))
-                OgaDestroyGeneratorParams(localGeneratorParams);
-            if (!localGenerator.equals(MemorySegment.NULL))
-                OgaDestroyGenerator(localGenerator);
             OgaDestroySequences(inputTokens);
         }
     }

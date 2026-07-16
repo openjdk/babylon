@@ -271,7 +271,8 @@ public class Tensor<T> extends OnnxNumber {
 
         public int bitSize() {
             return switch (this) {
-                case INT2, INT4, UINT2, UINT4, FLOAT4E2M1 -> 4;
+                case INT2, UINT2 -> 2;
+                case INT4, UINT4, FLOAT4E2M1 -> 4;
                 case UINT8, INT8, BOOL, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0 -> 8;
                 case UINT16, INT16, FLOAT16, BFLOAT16 -> 16;
                 case UINT32, INT32, FLOAT -> 32;
