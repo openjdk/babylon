@@ -281,7 +281,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
         LOG.log(System.Logger.Level.DEBUG, "Create sequences");
         var inputTokens = call(OgaCreateSequences(ret));
 
-        MemorySegment localGeneratorParams = null;
+        MemorySegment localGeneratorParams = MemorySegment.NULL;
         MemorySegment localGenerator = MemorySegment.NULL;
         try {
             call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(prompt), inputTokens));
