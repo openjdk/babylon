@@ -905,8 +905,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     Type lhsType = tree.operator.type.getParameterTypes().head;
                     Type rhsType = tree.operator.type.getParameterTypes().tail.head;
 
-                    Value rhs = toValue(tree.rhs, rhsType);
                     lhs = convert(lhs, lhsType);
+                    Value rhs = toValue(tree.rhs, rhsType);
 
                     Value assignOpResult = switch (tree.getTag()) {
 
@@ -2319,8 +2319,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             // which doesn't make sense for the model
                             opType = syms.intType;
                         }
-                        Value one = append(numericOneValue(opType));
                         Value lhsConv = convert(lhs, opType);
+                        Value one = append(numericOneValue(opType));
 
                         Value lhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
                             append(JavaOp.add(lhsConv, one)) :
