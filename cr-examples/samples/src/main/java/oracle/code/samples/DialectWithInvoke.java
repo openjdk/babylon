@@ -34,6 +34,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -67,7 +68,7 @@ public class DialectWithInvoke {
     }
 
     // Custom/Dialect Nodes extends from Op
-    public static class FMAIntrinsicOp extends AbstractOp { // externalized
+    public static class FMAIntrinsicOp extends AbstractOp implements ExternalizedOp.Externalizable { // externalized
 
         private final CodeType typeDescriptor;
 

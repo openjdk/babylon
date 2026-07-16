@@ -25,6 +25,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -455,14 +456,12 @@ final class PartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                // @@@ TODO avoid use of opName
-                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o) + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -488,6 +487,12 @@ final class PartialEvaluator {
         }
     }
 
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
+    }
 
     static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
         MethodType mt = resolveToMethodType(l, ft).erase();

@@ -22,7 +22,7 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.bytecode.impl.LoweringTransform;
+import jdk.incubator.code.bytecode.impl.LoweringTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -188,7 +188,7 @@ public class TestIsCaseConstantSwitch {
                 .filter(o -> o instanceof SwitchExpressionOp)
                 .map(o -> ((SwitchExpressionOp) o)).toList();
         for (SwitchExpressionOp swExprOp : swExprOps) {
-            boolean actual = LoweringTransform.isCaseConstantSwitchWithIntegralSelector(swExprOp, MethodHandles.lookup()).isPresent();
+            boolean actual = LoweringTransformer.isCaseConstantSwitchWithIntegralSelector(swExprOp, MethodHandles.lookup()).isPresent();
             Assertions.assertEquals(
                     expected,
                     actual,
@@ -206,7 +206,7 @@ public class TestIsCaseConstantSwitch {
         var funcOp = Op.ofMethod(this.getClass().getDeclaredMethod("caseConstantSwitchExpressions")).get();
         System.out.println(funcOp.toText());
         var swOp = (JavaSwitchOp) funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaSwitchOp).findFirst().get();
-        Optional<LoweringTransform.LabelsAndTargets> opt = LoweringTransform.isCaseConstantSwitchWithIntegralSelector(swOp, MethodHandles.lookup());
+        Optional<LoweringTransformer.LabelsAndTargets> opt = LoweringTransformer.isCaseConstantSwitchWithIntegralSelector(swOp, MethodHandles.lookup());
         Assertions.assertTrue(opt.isPresent());
         List<Integer> actualLabels = opt.get().labels();
         System.out.println(actualLabels);

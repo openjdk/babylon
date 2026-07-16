@@ -30,7 +30,7 @@ import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.*;
 
-public abstract class OnnxOp extends AbstractOp {
+public abstract class OnnxOp extends AbstractOp implements ExternalizedOp.Externalizable {
 
     public interface OnnxAttribute {
         String name();

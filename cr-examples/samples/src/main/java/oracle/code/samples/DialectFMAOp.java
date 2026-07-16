@@ -34,6 +34,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public class DialectFMAOp {
     }
 
     // Custom Node inherits from Op
-    private static class FMA extends AbstractOp {
+    private static class FMA extends AbstractOp implements ExternalizedOp.Externalizable {
         private static final String NAME = "fma";
 
         private final CodeType codeType;

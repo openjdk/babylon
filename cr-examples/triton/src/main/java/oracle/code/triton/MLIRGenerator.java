@@ -503,7 +503,8 @@ public final class MLIRGenerator {
      * @return the updated attributes
      */
     Map<String, Object> addAditionalAttributes(Op op, Map<String, Object> attributes) {
-        if (op.externalizeOpName().equals("tt.func")) {
+        String opName = externalizeOpName(op);
+        if (opName.equals("tt.func")) {
             String retType = op.bodies().get(0).bodySignature().returnType().toString();
             List<Block.Parameter> parameters = op.bodies().get(0).entryBlock().parameters();
             attributes = new HashMap<>(attributes);
@@ -523,10 +524,10 @@ public final class MLIRGenerator {
             sb.append(") -> ");
             sb.append(TypeConverter.mapType(retType));
             attributes.put("function_type", sb.toString());
-        } else if (op.externalizeOpName().equals("tt.load")) {
+        } else if (opName.equals("tt.load")) {
             attributes = new HashMap<>(attributes);
             attributes.put("operandSegmentSizes", "array<i32: " + (op.operands().size() < 3 ? "1, 1, 0" : "1, 1, 1") + ">");
-        } else if (op.externalizeOpName().equals("arith.constant")) {
+        } else if (opName.equals("arith.constant")) {
             if (op.result().type() instanceof TensorType) {
                 attributes = new HashMap<>(attributes);
                 String val = attributes.get("value")
@@ -545,30 +546,32 @@ public final class MLIRGenerator {
      * @param op the code model
      */
     public void writeOp(Op op) {
+        String opName = externalizeOpName(op);
         // We use var#number instead of tuple.load
-        if (op.externalizeOpName().equals("tuple.load")) {
+        if (opName.equals("tuple.load")) {
             write("// ");
         }
-        if (op.externalizeOpName() == "unreachable") {
+        if (opName.equals("unreachable")) {
             return;
         }
         if (op.parent() != null) {
             Op.Result opr = op.result();
             if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)) {
                 String number = writeValueDeclaration(opr);
-                if (op.externalizeOpName().equals("scf.for")) {
+                if (opName.equals("scf.for")) {
                     write(":" + String.valueOf(op.operands().size() - 3));
-                } else if (op.externalizeOpName().equals("tuple.load")) {
-                    Object value = op.externalize().isEmpty() ? 0 : op.externalize().values().toArray()[0];
+                } else if (opName.equals("tuple.load")) {
+                    Map<String, Object> attributes = externalize(op);
+                    Object value = attributes.isEmpty() ? 0 : attributes.values().toArray()[0];
                     m.put(number, namer.apply(op.operands().get(0)) + "#" + String.valueOf((int) value));
                 }
                 write(" = ");
             }
         }
         write("\"");
-        if (op.externalizeOpName().equals("module"))
+        if (opName.equals("module"))
             write("builtin.");
-        write(op.externalizeOpName());
+        write(opName);
         write("\"");
 
         write(" ");
@@ -611,13 +614,13 @@ public final class MLIRGenerator {
                 writeLocation(location);
             }
         }
-        Map<String, Object> attributes = op.externalize();
+        Map<String, Object> attributes = externalize(op);
         attributes = addAditionalAttributes(op, attributes);
         if (!attributes.isEmpty()) {
             write(" ");
             write("{");
             writeCommaSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
-            if (op.externalizeOpName().equals("arith.constant")) {
+            if (op instanceof ExternalizedOp.Externalizable eop && eop.externalizeOpName().equals("arith.constant")) {
                 // arith.constant verifier needs type information
                 write(":");
                 writeType(op.resultType());
@@ -629,6 +632,18 @@ public final class MLIRGenerator {
         writeCommaSeparatedList(op.operands(), this::writeValueType);
         write(") -> ");
         writeType(op.resultType());
+    }
+
+    static Map<String, Object> externalize(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalize()
+                : Map.of();
+    }
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
     }
 
     void writeLocation(Op.Location location) {
