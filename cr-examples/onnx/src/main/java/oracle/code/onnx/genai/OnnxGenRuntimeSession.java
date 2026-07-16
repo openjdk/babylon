@@ -204,13 +204,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
     }
 
     private final Arena arena;
-    private final MemorySegment ret;
-    private final MemorySegment model;
-    private final MemorySegment tokenizer;
-    private final MemorySegment tokenizerStream;
-    private final MemorySegment generatorParams;
-    private MemorySegment generator;
-    private final MemorySegment count;
+    private final MemorySegment ret, model, tokenizer, tokenizerStream, generatorParams, generator, count;
 
     /**
      * Constructs Onnx Generate API session (including model, tokenizer and generator) from assets stored in the Onnx model directory.
