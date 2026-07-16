@@ -716,7 +716,7 @@ public final class Body implements CodeElement<Body, Block> {
                         Block target = s.target;
 
                         // Check successor arity
-                        if (s.arguments().size() > target.parameters().size()) {
+                        if (s.arguments().size() != target.parameters().size()) {
                             String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
                                     target, s.arguments().size(), target.parameters().size());
                             throw new IllegalStateException(m);

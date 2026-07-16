@@ -2994,7 +2994,7 @@ public sealed abstract class JavaOp extends Op {
             Block.Builder syncRegionEnter = b.block();
             Block.Builder catcherFinally = b.block();
             Op.Result enter = b.add(exceptionRegionEnter(
-                    syncRegionEnter.reference(), catcherFinally.reference()));
+                    syncRegionEnter.reference(), catcherFinally.reference(b.add(constant(type(Throwable.class), null)))));
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
@@ -3025,7 +3025,8 @@ public sealed abstract class JavaOp extends Op {
             // The catcher, with an exception region back branching to itself
             Block.Builder catcherFinallyRegionEnter = b.block();
             Op.Result catcherEnter = catcherFinally.add(exceptionRegionEnter(
-                    catcherFinallyRegionEnter.reference(), catcherFinally.reference()));
+                    catcherFinallyRegionEnter.reference(),
+                    catcherFinally.reference(catcherFinally.add(constant(type(Throwable.class), null)))));
 
             // Monitor exit
             catcherFinallyRegionEnter.add(monitorExit(monitorTarget));
@@ -5290,8 +5291,9 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // Enter the try exception region
+            Result nullThrowable = b.add(constant(type(Throwable.class), null));
             List<Block.Reference> exitHandlers = catchers.stream()
-                    .map(Block.Builder::reference)
+                    .map(builder -> builder.reference(nullThrowable))
                     .toList();
             Op.Result enter = b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
 
@@ -5354,7 +5356,8 @@ public sealed abstract class JavaOp extends Op {
 
                     // Enter the catch exception region
                     Result catchExceptionRegion = catcher.add(
-                            exceptionRegionEnter(catchRegionEnter.reference(), catcherFinally.reference()));
+                            exceptionRegionEnter(catchRegionEnter.reference(),
+                                    catcherFinally.reference(catcher.add(constant(type(Throwable.class), null)))));
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
