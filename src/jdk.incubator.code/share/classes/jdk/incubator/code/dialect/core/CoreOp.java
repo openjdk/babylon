@@ -76,7 +76,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(FuncOp.NAME)
     public static final class FuncOp extends AbstractOp
-            implements Op.Invokable, Op.Isolated, Op.Lowerable {
+            implements CoreOp, Op.Invokable, Op.Isolated, Op.Lowerable {
 
         /**
          * A builder for constructing a function operation.
@@ -214,7 +214,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
     @OpDeclaration(FuncCallOp.NAME)
-    public static final class FuncCallOp extends AbstractOp {
+    public static final class FuncCallOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "func.call";
 
         /**
@@ -279,7 +280,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends AbstractOp
-            implements Op.Isolated, Op.Lowerable {
+            implements CoreOp, Op.Isolated, Op.Lowerable {
 
         static final String NAME = "module";
 
@@ -488,7 +489,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(QuotedOp.NAME)
     public static final class QuotedOp extends AbstractOp
-            implements Op.Nested, Op.Lowerable, Op.Pure {
+            implements CoreOp, Op.Nested, Op.Lowerable, Op.Pure {
         static final String NAME = "quoted";
 
         /**
@@ -575,7 +576,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ReturnOp.NAME)
     public static final class ReturnOp extends AbstractTerminatingOp
-            implements JavaOp.JavaStatement {
+            implements CoreOp, JavaOp.JavaStatement {
         static final String NAME = "return";
 
         ReturnOp(ExternalizedOp def) {
@@ -624,7 +625,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * @jls 14.22 Unreachable Statements
      */
     @OpDeclaration(UnreachableOp.NAME)
-    public static final class UnreachableOp extends AbstractTerminatingOp {
+    public static final class UnreachableOp extends AbstractTerminatingOp
+            implements CoreOp {
         static final String NAME = "unreachable";
 
         UnreachableOp(ExternalizedOp def) {
@@ -660,7 +662,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * The result type of a yield operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends AbstractTerminatingOp {
+    public static final class YieldOp extends AbstractTerminatingOp
+            implements CoreOp {
         static final String NAME = "yield";
 
         YieldOp(ExternalizedOp def) {
@@ -711,7 +714,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * The result type of a branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(BranchOp.NAME)
-    public static final class BranchOp extends AbstractTerminatingOp {
+    public static final class BranchOp extends AbstractTerminatingOp
+            implements CoreOp {
         static final String NAME = "branch";
 
         BranchOp(ExternalizedOp def) {
@@ -757,7 +761,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * The result type of a conditional branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ConditionalBranchOp.NAME)
-    public static final class ConditionalBranchOp extends AbstractTerminatingOp {
+    public static final class ConditionalBranchOp extends AbstractTerminatingOp
+            implements CoreOp {
         static final String NAME = "cbranch";
 
         ConditionalBranchOp(ExternalizedOp def) {
@@ -816,7 +821,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConstantOp.NAME)
     public static final class ConstantOp extends AbstractOp
-            implements Op.Pure, JavaOp.JavaExpression {
+            implements CoreOp, Op.Pure, JavaOp.JavaExpression {
         static final String NAME = "constant";
 
         /**
@@ -942,7 +947,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(VarOp.NAME)
     public static final class VarOp extends AbstractOp
-            implements JavaOp.JavaStatement {
+            implements CoreOp, JavaOp.JavaStatement {
         static final String NAME = "var";
 
         /**
@@ -1049,7 +1054,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * @see JavaOp.FieldAccessOp
      */
     public sealed abstract static class VarAccessOp extends AbstractOp
-            implements JavaOp.AccessOp {
+            implements CoreOp, JavaOp.AccessOp {
         VarAccessOp(VarAccessOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -1198,7 +1203,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * @see TupleWithOp
      */
     @OpDeclaration(TupleOp.NAME)
-    public static final class TupleOp extends AbstractOp {
+    public static final class TupleOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "tuple";
 
         TupleOp(ExternalizedOp def) {
@@ -1235,7 +1241,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * @see TupleOp
      */
     @OpDeclaration(TupleLoadOp.NAME)
-    public static final class TupleLoadOp extends AbstractOp {
+    public static final class TupleLoadOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "tuple.load";
 
         /**
@@ -1308,7 +1315,8 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * @see TupleOp
      */
     @OpDeclaration(TupleWithOp.NAME)
-    public static final class TupleWithOp extends AbstractOp {
+    public static final class TupleWithOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "tuple.with";
 
         /**

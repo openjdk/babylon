@@ -238,8 +238,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 9.9 Function Types
      */
     @OpDeclaration(LambdaOp.NAME)
-    public static final class LambdaOp extends AbstractJavaOp
-            implements Op.Invokable, Op.Lowerable, JavaExpression {
+    public static final class LambdaOp extends AbstractOp
+            implements JavaOp, Op.Invokable, Op.Lowerable, JavaExpression {
 
         /**
          * A builder for constructing a lambda operation.
@@ -566,8 +566,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.18 The throw Statement
      */
     @OpDeclaration(ThrowOp.NAME)
-    public static final class ThrowOp extends AbstractJavaTerminatingOp
-            implements JavaStatement {
+    public static final class ThrowOp extends AbstractTerminatingOp
+            implements JavaOp, JavaStatement {
         static final String NAME = "throw";
 
         ThrowOp(ExternalizedOp def) {
@@ -615,8 +615,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.10 The assert Statement
      */
     @OpDeclaration(AssertOp.NAME)
-    public static final class AssertOp extends AbstractJavaOp
-            implements Op.Nested, JavaStatement {
+    public static final class AssertOp extends AbstractOp
+            implements JavaOp, Op.Nested, JavaStatement {
         static final String NAME = "assert";
 
         private final List<Body> bodies;
@@ -675,7 +675,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     /**
      * A monitor operation.
      */
-    public sealed abstract static class MonitorOp extends AbstractJavaOp {
+    public sealed abstract static class MonitorOp extends AbstractOp
+            implements JavaOp {
         MonitorOp(MonitorOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -762,8 +763,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.12 Method Invocation Expressions
      */
     @OpDeclaration(InvokeOp.NAME)
-    public static final class InvokeOp extends AbstractJavaOp
-            implements ReflectiveOp, JavaExpression, JavaStatement {
+    public static final class InvokeOp extends AbstractOp
+            implements JavaOp, ReflectiveOp, JavaExpression, JavaStatement {
 
         /**
          * The kind of invocation.
@@ -962,8 +963,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 5.1.3 Narrowing Primitive Conversion
      */
     @OpDeclaration(ConvOp.NAME)
-    public static final class ConvOp extends AbstractJavaOp
-            implements Op.Pure, JavaExpression {
+    public static final class ConvOp extends AbstractOp
+            implements JavaOp, Op.Pure, JavaExpression {
         static final String NAME = "conv";
 
         final CodeType resultType;
@@ -1013,8 +1014,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.10.1 Array Creation Expressions
      */
     @OpDeclaration(NewOp.NAME)
-    public static final class NewOp extends AbstractJavaOp
-            implements ReflectiveOp, JavaExpression, JavaStatement {
+    public static final class NewOp extends AbstractOp
+            implements JavaOp, ReflectiveOp, JavaExpression, JavaStatement {
 
         static final String NAME = "new";
         /**
@@ -1115,8 +1116,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @see CoreOp.VarAccessOp
      * @jls 15.11 Field Access Expressions
      */
-    public sealed abstract static class FieldAccessOp extends AbstractJavaOp
-            implements AccessOp, ReflectiveOp {
+    public sealed abstract static class FieldAccessOp extends AbstractOp
+            implements JavaOp, AccessOp, ReflectiveOp {
         /**
          * The externalized attribute modeling the field reference.
          */
@@ -1264,8 +1265,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.11 Field Access Expressions
      */
     @OpDeclaration(ArrayLengthOp.NAME)
-    public static final class ArrayLengthOp extends AbstractJavaOp
-            implements ReflectiveOp, JavaExpression {
+    public static final class ArrayLengthOp extends AbstractOp
+            implements JavaOp, ReflectiveOp, JavaExpression {
         static final String NAME = "array.length";
 
         ArrayLengthOp(ExternalizedOp def) {
@@ -1306,8 +1307,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      *
      * @jls 15.10.3 Array Access Expressions
      */
-    public sealed abstract static class ArrayAccessOp extends AbstractJavaOp
-            implements AccessOp, ReflectiveOp {
+    public sealed abstract static class ArrayAccessOp extends AbstractOp
+            implements JavaOp, AccessOp, ReflectiveOp {
 
         ArrayAccessOp(ArrayAccessOp that, CodeContext cc) {
             super(that, cc);
@@ -1429,8 +1430,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.20.2 The instanceof Operator
      */
     @OpDeclaration(InstanceOfOp.NAME)
-    public static final class InstanceOfOp extends AbstractJavaOp
-            implements Op.Pure, ReflectiveOp, JavaExpression {
+    public static final class InstanceOfOp extends AbstractOp
+            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "instanceof";
         /** The externalized attribute key for the code type modeling the instanceof target type. */
         static final String ATTRIBUTE_INSTANCEOF_TYPE = NAME + ".type";
@@ -1492,8 +1493,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.16 Cast Expressions
      */
     @OpDeclaration(CastOp.NAME)
-    public static final class CastOp extends AbstractJavaOp
-            implements Op.Pure, ReflectiveOp, JavaExpression {
+    public static final class CastOp extends AbstractOp
+            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
         static final String NAME = "cast";
         /** The externalized attribute key for the code type modeling the target type of the cast. */
         static final String ATTRIBUTE_CAST_TYPE = NAME + ".type";
@@ -1556,7 +1557,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * block of the exception region, and whose remaining successors are the catch blocks for that region.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
-    public static final class ExceptionRegionEnter extends AbstractJavaTerminatingOp {
+    public static final class ExceptionRegionEnter extends AbstractTerminatingOp
+            implements JavaOp {
         static final String NAME = "exception.region.enter";
 
         // First successor is the non-exceptional successor whose target indicates
@@ -1612,7 +1614,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * follows the exception region.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
-    public static final class ExceptionRegionExit extends AbstractJavaTerminatingOp {
+    public static final class ExceptionRegionExit extends AbstractTerminatingOp
+            implements JavaOp {
         static final String NAME = "exception.region.exit";
 
         ExceptionRegionExit(ExternalizedOp def) {
@@ -1666,8 +1669,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.18.1 String Concatenation Operator +
      */
     @OpDeclaration(ConcatOp.NAME)
-    public static final class ConcatOp extends AbstractJavaOp
-            implements Op.Pure, JavaExpression {
+    public static final class ConcatOp extends AbstractOp
+            implements JavaOp, Op.Pure, JavaExpression {
         static final String NAME = "concat";
 
         ConcatOp(ConcatOp that, CodeContext cc) {
@@ -1711,8 +1714,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     /**
      * The arithmetic operation.
      */
-    public sealed static abstract class ArithmeticOperation extends AbstractJavaOp
-            implements Op.Pure, JavaExpression {
+    public sealed static abstract class ArithmeticOperation extends AbstractOp
+            implements JavaOp, Op.Pure, JavaExpression {
         ArithmeticOperation(ArithmeticOperation that, CodeContext cc) {
             super(that, cc);
         }
@@ -2084,7 +2087,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.19 Shift Operators
      */
     @OpDeclaration(AshrOp.NAME)
-    public static final class AshrOp extends AbstractJavaOp.BinaryOp {
+    public static final class AshrOp extends BinaryOp {
         static final String NAME = "ashr";
 
         AshrOp(ExternalizedOp def) {
@@ -2111,7 +2114,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.19 Shift Operators
      */
     @OpDeclaration(LshrOp.NAME)
-    public static final class LshrOp extends AbstractJavaOp.BinaryOp {
+    public static final class LshrOp extends BinaryOp {
         static final String NAME = "lshr";
 
         LshrOp(ExternalizedOp def) {
@@ -2391,8 +2394,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class StatementTargetOp extends AbstractJavaTerminatingOp
-            implements Op.Lowerable, JavaStatement {
+    public sealed static abstract class StatementTargetOp extends AbstractTerminatingOp
+            implements JavaOp, Op.Lowerable, JavaStatement {
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -2561,8 +2564,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.21 The yield Statement
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends AbstractJavaTerminatingOp
-            implements JavaStatement, Op.Lowerable {
+    public static final class YieldOp extends AbstractTerminatingOp
+            implements JavaOp, JavaStatement, Op.Lowerable {
         static final String NAME = "java.yield";
 
         YieldOp(ExternalizedOp def) {
@@ -2640,8 +2643,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.2 Blocks
      */
     @OpDeclaration(BlockOp.NAME)
-    public static final class BlockOp extends AbstractJavaOp
-            implements Op.Nested, Op.Lowerable, JavaStatement {
+    public static final class BlockOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "java.block";
 
         final Body body;
@@ -2715,8 +2718,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.19 The synchronized Statement
      */
     @OpDeclaration(SynchronizedOp.NAME)
-    public static final class SynchronizedOp extends AbstractJavaOp
-            implements Op.Nested, Op.Lowerable, JavaStatement {
+    public static final class SynchronizedOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "java.synchronized";
 
         final Body exprBody;
@@ -2867,8 +2870,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.7 Labeled Statements
      */
     @OpDeclaration(LabeledOp.NAME)
-    public static final class LabeledOp extends AbstractJavaOp
-            implements Op.Nested, Op.Lowerable, JavaStatement {
+    public static final class LabeledOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "java.labeled";
 
         final Body body;
@@ -2976,8 +2979,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.9 The if Statement
      */
     @OpDeclaration(IfOp.NAME)
-    public static final class IfOp extends AbstractJavaOp
-            implements Op.Nested, Op.Lowerable, JavaStatement {
+    public static final class IfOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
         static final FunctionType PREDICATE_SIGNATURE = CoreType.functionType(BOOLEAN);
 
@@ -3224,7 +3227,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.11 The switch Statement
      * @jls 15.28 {@code switch} Expressions
      */
-    public abstract static sealed class JavaSwitchOp extends AbstractJavaOp implements Op.Nested, Op.Lowerable
+    public abstract static sealed class JavaSwitchOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable
             permits SwitchStatementOp, SwitchExpressionOp {
 
         final List<Body> bodies;
@@ -3533,8 +3537,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * A switch fall-through operation is a body terminating operation.
      */
     @OpDeclaration(SwitchFallthroughOp.NAME)
-    public static final class SwitchFallthroughOp extends AbstractJavaTerminatingOp
-            implements Op.Lowerable {
+    public static final class SwitchFallthroughOp extends AbstractTerminatingOp
+            implements JavaOp, Op.Lowerable {
         static final String NAME = "java.switch.fallthrough";
 
         SwitchFallthroughOp(ExternalizedOp def) {
@@ -3595,8 +3599,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.14.1 The basic for Statement
      */
     @OpDeclaration(ForOp.NAME)
-    public static final class ForOp extends AbstractJavaOp
-            implements Op.Loop, Op.Lowerable, JavaStatement {
+    public static final class ForOp extends AbstractOp
+            implements JavaOp, Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
          * Builder for the initialization body of a for operation.
@@ -3890,8 +3894,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.14.2 The enhanced for statement
      */
     @OpDeclaration(EnhancedForOp.NAME)
-    public static final class EnhancedForOp extends AbstractJavaOp
-            implements Op.Loop, Op.Lowerable, JavaStatement {
+    public static final class EnhancedForOp extends AbstractOp
+            implements JavaOp, Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
          * Builder for the expression body of an enhanced-for operation.
@@ -4155,8 +4159,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.12 The while Statement
      */
     @OpDeclaration(WhileOp.NAME)
-    public static final class WhileOp extends AbstractJavaOp
-            implements Op.Loop, Op.Lowerable, JavaStatement {
+    public static final class WhileOp extends AbstractOp
+            implements JavaOp, Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
          * Builder for the predicate body of a while operation.
@@ -4298,8 +4302,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     // @@@ Unify JavaDoWhileOp and JavaWhileOp with common abstract superclass
     @OpDeclaration(DoWhileOp.NAME)
-    public static final class DoWhileOp extends AbstractJavaOp
-            implements Op.Loop, Op.Lowerable, JavaStatement {
+    public static final class DoWhileOp extends AbstractOp
+            implements JavaOp, Op.Loop, Op.Lowerable, JavaStatement {
 
         /**
          * Builder for the predicate body of a do-while operation.
@@ -4436,8 +4440,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.23 Conditional-And Operator {@code &&}
      * @jls 15.24 Conditional-Or Operator {@code ||}
      */
-    public sealed static abstract class JavaConditionalOp extends AbstractJavaOp
-            implements Op.Nested, Op.Lowerable, JavaExpression {
+    public sealed static abstract class JavaConditionalOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaExpression {
 
         static final FunctionType BODY_TYPE = CoreType.functionType(BOOLEAN);
 
@@ -4671,8 +4675,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.25 Conditional Operator {@code ? :}
      */
     @OpDeclaration(ConditionalExpressionOp.NAME)
-    public static final class ConditionalExpressionOp extends AbstractJavaOp
-            implements Op.Nested, Op.Lowerable, JavaExpression {
+    public static final class ConditionalExpressionOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaExpression {
 
         static final String NAME = "java.cexpression";
 
@@ -4796,8 +4800,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.20.3 try-with-resources
      */
     @OpDeclaration(TryOp.NAME)
-    public static final class TryOp extends AbstractJavaOp
-            implements Op.Nested, Op.Lowerable, JavaStatement {
+    public static final class TryOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
         /**
          * Builder for the resource bodies and the try body of a try operation.
@@ -5560,7 +5564,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * Pattern operations are used in pattern bodies of {@link MatchOp} and as nested pattern operands of
          * {@link RecordPatternOp}.
          */
-        public sealed static abstract class PatternOp extends AbstractJavaOp implements Op.Pure {
+        public sealed static abstract class PatternOp extends AbstractOp
+                implements JavaOp, Op.Pure {
             PatternOp(PatternOp that, CodeContext cc) {
                 super(that, cc);
             }
@@ -5767,7 +5772,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * @jls 15.20.2 The instanceof Operator
          */
         @OpDeclaration(MatchOp.NAME)
-        public static final class MatchOp extends AbstractJavaOp implements Op.Isolated, Op.Lowerable {
+        public static final class MatchOp extends AbstractOp
+                implements JavaOp, Op.Isolated, Op.Lowerable {
             static final String NAME = "pattern.match";
 
             final Body patternBody;

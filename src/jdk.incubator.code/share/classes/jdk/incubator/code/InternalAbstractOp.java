@@ -173,24 +173,6 @@ sealed abstract class InternalAbstractOp implements Op permits AbstractOp, Abstr
         return !isRoot() && result != null;
     }
 
-    /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
-     */
-    @Override
-    public String externalizeOpName() {
-        return this.getClass().getName();
-    }
-
-    /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns an unmodifiable empty map.
-     */
-    @Override
-    public Map<String, Object> externalize() {
-        return Map.of();
-    }
-
     @Override
     public final String toText() {
         return OpWriter.toText(this);
