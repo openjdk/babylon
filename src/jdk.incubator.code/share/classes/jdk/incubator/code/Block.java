@@ -570,6 +570,8 @@ public final class Block implements CodeElement<Block, Op> {
          * @return the block builder with the given code context and code transformer
          */
         public Block.Builder withContextAndTransformer(CodeContext cc, CodeTransformer ct) {
+            Objects.requireNonNull(cc);
+            Objects.requireNonNull(ct);
             check();
             return this.cc == cc && this.ct == ct
                     ? this
@@ -599,6 +601,10 @@ public final class Block implements CodeElement<Block, Op> {
          * @return the new block builder
          */
         public Block.Builder block(List<CodeType> params) {
+            Objects.requireNonNull(params);
+            if (params.stream().anyMatch(Objects::isNull)) {
+                throw new NullPointerException();
+            }
             check();
             return parentBody.block(params, cc, ct);
         }
@@ -620,6 +626,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @return the appended block parameter
          */
         public Parameter parameter(CodeType p) {
+            Objects.requireNonNull(p);
             check();
             return appendBlockParameter(p);
         }
@@ -649,6 +656,8 @@ public final class Block implements CodeElement<Block, Op> {
          * @throws IllegalArgumentException if any argument's declaring block is built.
          */
         public Reference reference(List<? extends Value> args) {
+            Objects.requireNonNull(args);
+            args.forEach(Objects::requireNonNull);
             check();
 
             if (isEntryBlock()) {
@@ -680,6 +689,10 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public void transformBody(Body body, List<? extends Value> entryValues,
                                   CodeTransformer ct) {
+            Objects.requireNonNull(body);
+            Objects.requireNonNull(entryValues);
+            entryValues.forEach(Objects::requireNonNull);
+            Objects.requireNonNull(ct);
             check();
 
             transformBody(body, entryValues, CodeContext.create(cc), ct);
@@ -715,6 +728,11 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public void transformBody(Body body, List<? extends Value> entryValues,
                                   CodeContext cc, CodeTransformer ct) {
+            Objects.requireNonNull(body);
+            Objects.requireNonNull(entryValues);
+            entryValues.forEach(Objects::requireNonNull);
+            Objects.requireNonNull(cc);
+            Objects.requireNonNull(ct);
             check();
 
             ct.acceptBody(withContextAndTransformer(cc, ct), body, entryValues);
@@ -762,6 +780,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @see Op#transform(CodeContext, CodeTransformer)
          */
         public Op.Result add(Op op) {
+            Objects.requireNonNull(op);
             check();
 
             // Perform transform-on-append for a placed operation

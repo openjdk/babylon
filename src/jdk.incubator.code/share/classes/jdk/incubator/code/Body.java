@@ -592,6 +592,10 @@ public final class Body implements CodeElement<Body, Block> {
 
         Builder(Builder connectedAncestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
+            Objects.requireNonNull(bodySignature);
+            Objects.requireNonNull(cc);
+            Objects.requireNonNull(ct);
+
             // Structural check
             // The connected ancestor body should not be built before this body is built
             if (connectedAncestorBody != null) {
