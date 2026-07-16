@@ -58,7 +58,7 @@ import java.util.*;
  * A concrete non-terminating operation class may additionally:
  * <ul>
  * <li>
- * override {@link #externalizeOpName()} and {@link #externalize()} to define an external form;
+ * implement {@link jdk.incubator.code.extern.ExternalizedOp.Externalizable} to define an external form;
  * <li>
  * implement {@link Op.Lowerable} to define a lowering; and
  * <li>

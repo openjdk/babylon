@@ -531,12 +531,16 @@ public class OpBuilder {
         return buildOp(
                 blockBuilder,
                 inputOp,
-                inputOp.externalizeOpName(),
+                (inputOp instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalizeOpName()
+                        : inputOp.getClass().getName(),
                 inputOp.location(),
                 operands,
                 successors,
                 inputOp.resultType(),
-                inputOp.externalize(),
+                (inputOp instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalize()
+                        : Map.of(),
                 bodies);
     }
 

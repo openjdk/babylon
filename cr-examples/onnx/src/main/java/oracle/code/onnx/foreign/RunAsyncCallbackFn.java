@@ -17,9 +17,9 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  * typedef void (*RunAsyncCallbackFn)(void *, OrtValue **, size_t, OrtStatusPtr)
  * }
  */
-public class RunAsyncCallbackFn {
+public final class RunAsyncCallbackFn {
 
-    RunAsyncCallbackFn() {
+    private RunAsyncCallbackFn() {
         // Should not be called directly
     }
 
@@ -59,9 +59,11 @@ public class RunAsyncCallbackFn {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static void invoke(MemorySegment funcPtr,MemorySegment user_data, MemorySegment outputs, long num_outputs, MemorySegment status) {
+    public static void invoke(MemorySegment funcPtr, MemorySegment user_data, MemorySegment outputs, long num_outputs, MemorySegment status) {
         try {
              DOWN$MH.invokeExact(funcPtr, user_data, outputs, num_outputs, status);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }

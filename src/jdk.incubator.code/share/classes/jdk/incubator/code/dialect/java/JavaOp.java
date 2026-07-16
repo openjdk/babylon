@@ -65,7 +65,14 @@ import static jdk.incubator.code.internal.StructuralPreconditions.*;
  * This transformation preserves programming meaning. The resulting lowered code model also represents the same Java
  * program.
  */
-public sealed interface JavaOp {
+public sealed interface JavaOp extends ExternalizedOp.Externalizable {
+
+    @Override
+    default String externalizeOpName() {
+        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
+        assert opDecl != null : this.getClass().getName();
+        return opDecl.value();
+    }
 
     /**
      * An operation that models a Java expression
@@ -7333,42 +7340,5 @@ public sealed interface JavaOp {
      */
     public static PatternOps.MatchAllPatternOp matchAllPattern() {
         return new PatternOps.MatchAllPatternOp();
-    }
-}
-// The following classes are required to override externalizeOpName
-abstract sealed class AbstractJavaOp extends AbstractOp implements JavaOp {
-    AbstractJavaOp(List<? extends Value> operands) {
-        super(operands);
-    }
-
-    AbstractJavaOp(AbstractOp that, CodeContext cc) {
-        super(that, cc);
-    }
-
-    @Override
-    public String externalizeOpName() {
-        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
-        assert opDecl != null : this.getClass().getName();
-        return opDecl.value();
-    }
-}
-sealed abstract class AbstractJavaTerminatingOp extends AbstractTerminatingOp implements JavaOp {
-    AbstractJavaTerminatingOp(List<? extends Value> operands, List<Block.Reference> successors) {
-        super(operands, successors);
-    }
-
-    AbstractJavaTerminatingOp(List<? extends Value> operands) {
-        super(operands);
-    }
-
-    AbstractJavaTerminatingOp(AbstractTerminatingOp that, CodeContext cc) {
-        super(that, cc);
-    }
-
-    @Override
-    public String externalizeOpName() {
-        OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
-        assert opDecl != null : this.getClass().getName();
-        return opDecl.value();
     }
 }

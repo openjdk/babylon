@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,7 +63,7 @@ public class OpGen {
 
         w.write("""
                 /*
-                 * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+                 * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
                  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
                  *
                  * This code is free software; you can redistribute it and/or modify it
@@ -191,7 +191,7 @@ public class OpGen {
 
             if (!a.required() && a.default_value() != null) {
                 switch (a.type()) {
-                    case FLOAT -> w.write(Float.toString((Float) a.default_value()) + "f");
+                    case FLOAT -> w.write(a.default_value() + "f");
                     case INT -> w.write(Integer.toString((Integer) a.default_value()));
                     case STRING -> w.write("\"" + a.default_value() + "\"");
                     default -> throw new IllegalStateException();

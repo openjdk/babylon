@@ -35,7 +35,7 @@ import java.util.Map;
 
 public class ArithMathOps {
 
-    static abstract class ArithMathOp extends AbstractOp {
+    static abstract class ArithMathOp extends AbstractOp implements ExternalizedOp.Externalizable {
         final String opName;
         final CodeType resultType;
 

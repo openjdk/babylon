@@ -29,6 +29,7 @@ import java.util.Map;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 /**
  * A block terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch}
@@ -41,7 +42,8 @@ import jdk.incubator.code.dialect.java.JavaType;
  * Default is a successor with corresponds null label value.
  * The selected successor refers to the next block to branch to.
  */
-public final class ConstantLabelSwitchOp extends AbstractTerminatingOp {
+public final class ConstantLabelSwitchOp extends AbstractTerminatingOp
+        implements ExternalizedOp.Externalizable {
 
     final List<Integer> labels;
 

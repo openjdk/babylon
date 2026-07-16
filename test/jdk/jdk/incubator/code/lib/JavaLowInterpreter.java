@@ -27,6 +27,7 @@ import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
@@ -239,7 +240,7 @@ public class JavaLowInterpreter extends Interpreter {
             }
             case JavaOp.ArithmeticOperation _ -> {
                 JavaEnv je = (JavaEnv) e;
-                MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
+                MethodHandle mh = opHandle(je.l, externalizeOpName(op), op.opSignature());
                 List<Object> operands = e.valuesOf(op.operands());
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
@@ -249,7 +250,7 @@ public class JavaLowInterpreter extends Interpreter {
             }
             case JavaOp.ConvOp _ -> {
                 JavaEnv je = (JavaEnv) e;
-                MethodHandle mh = opHandle(je.l, op.externalizeOpName() + "_" + op.opSignature().returnType(), op.opSignature());
+                MethodHandle mh = opHandle(je.l, externalizeOpName(op) + "_" + op.opSignature().returnType(), op.opSignature());
                 List<Object> operands = e.valuesOf(op.operands());
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
@@ -654,6 +655,12 @@ public class JavaLowInterpreter extends Interpreter {
 
     static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
         return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
+    }
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
     }
 
     static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
