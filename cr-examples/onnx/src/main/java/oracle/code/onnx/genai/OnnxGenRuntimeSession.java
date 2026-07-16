@@ -223,7 +223,7 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
         tokenizer = call(OgaCreateTokenizer(model, ret));
         tokenizerStream = call(OgaCreateTokenizerStream(tokenizer, ret));
         generatorParams = call(OgaCreateGeneratorParams(model, ret));
-        generator = MemorySegment.NULL;
+        generator = call(OgaCreateGenerator(model, generatorParams, ret));
         count = arena.allocate(C_LONG);
     }
 
@@ -247,22 +247,14 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
     /**
      * Runs generator with the provided prompt and feeds decoded response to the provided consumer.
      * @param prompt Text prompt to tokenize and append to the LLM model input.
-     * @param maxNewTokens Maximum number of output tokens generated.
      * @param outputConsumer Consumer receiving decoded model response from the model generator.
      */
-    public void prompt(String prompt, int maxNewTokens, Consumer<String> outputConsumer) {
-        if (maxNewTokens < 0) {
-            throw new IllegalArgumentException("maxNewTokens must be at least 0, found " + maxNewTokens);
-        }
+    public void prompt(String prompt, Consumer<String> outputConsumer) {
         LOG.log(System.Logger.Level.DEBUG, "Create sequences");
         var inputTokens = call(OgaCreateSequences(ret));
         try {
             call(OgaTokenizerEncode(tokenizer, arena.allocateFrom(prompt), inputTokens));
             LOG.log(System.Logger.Level.DEBUG, "Tokenizer encode");
-            long promptTokens = OgaSequencesGetSequenceCount(inputTokens, 0L);
-            long maxLength =  Math.addExact(promptTokens, maxNewTokens);
-            call(OgaGeneratorParamsSetSearchNumber(generatorParams, arena.allocateFrom("max_length"), maxLength));
-            generator = call(OgaCreateGenerator(model, generatorParams, ret));
             call(OgaGenerator_AppendTokenSequences(generator, inputTokens));
             LOG.log(System.Logger.Level.DEBUG, "Generator loop");
             while (!OgaGenerator_IsDone(generator)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,13 +35,12 @@ public class LlamaDemo {
 
         Path modelRoot = Path.of(LlamaDemo.class.getResource("LlamaDemo.class").toURI()).getParent();
         try (Arena arena = Arena.ofConfined()) {
-            int maxNewTokens = 128;
             var modelInstance = new LlamaModel(arena);
             try (OnnxGenRuntimeSession session = OnnxGenRuntimeSession.buildFromCodeReflection(MethodHandles.lookup(), modelInstance, "forward", modelRoot, "model.onnx", "model.data")) {
                 session.prompt("""
                         <|start_header_id|>user<|end_header_id|>Hello, tell me a joke.<|eot_id|>
                         <|start_header_id|>assistant<|end_header_id|>
-                        """, maxNewTokens, System.out::print);
+                        """, System.out::print);
             }
         }
     }
