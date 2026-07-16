@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,6 +61,9 @@ class DataType(enum.IntEnum):
     UINT4 = 21
     INT4 = 22
     FLOAT4E2M1 = 23
+    FLOAT8E8M0 = 24
+    UINT2 = 25
+    INT2 = 26
      */
 
 public class Tensor<T> extends OnnxNumber {
@@ -244,7 +247,11 @@ public class Tensor<T> extends OnnxNumber {
         FLOAT8E5M2FNUZ(20, Object.class),
         UINT4(21, Object.class),
         INT4(22, Object.class),
-        FLOAT4E2M1(23, Object.class);
+        FLOAT4E2M1(23, Object.class),
+        FLOAT8E8M0(24, Object.class),
+        UINT2(25, Object.class),
+        INT2(26, Object.class)
+        ;
 
         final int id;
         final Class<?> type;
@@ -264,8 +271,9 @@ public class Tensor<T> extends OnnxNumber {
 
         public int bitSize() {
             return switch (this) {
+                case INT2, UINT2 -> 2;
                 case INT4, UINT4, FLOAT4E2M1 -> 4;
-                case UINT8, INT8, BOOL, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ -> 8;
+                case UINT8, INT8, BOOL, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ, FLOAT8E8M0 -> 8;
                 case UINT16, INT16, FLOAT16, BFLOAT16 -> 16;
                 case UINT32, INT32, FLOAT -> 32;
                 case UINT64, INT64, DOUBLE, COMPLEX64 -> 64;

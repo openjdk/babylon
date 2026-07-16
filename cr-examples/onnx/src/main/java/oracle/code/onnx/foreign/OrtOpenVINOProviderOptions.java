@@ -64,7 +64,7 @@ public class OrtOpenVINOProviderOptions {
         return device_type$LAYOUT;
     }
 
-    private static final long device_type$OFFSET = 0;
+    private static final long device_type$OFFSET = $LAYOUT.byteOffset(groupElement("device_type"));
 
     /**
      * Offset for field:
@@ -108,7 +108,7 @@ public class OrtOpenVINOProviderOptions {
         return enable_npu_fast_compile$LAYOUT;
     }
 
-    private static final long enable_npu_fast_compile$OFFSET = 8;
+    private static final long enable_npu_fast_compile$OFFSET = $LAYOUT.byteOffset(groupElement("enable_npu_fast_compile"));
 
     /**
      * Offset for field:
@@ -152,7 +152,7 @@ public class OrtOpenVINOProviderOptions {
         return device_id$LAYOUT;
     }
 
-    private static final long device_id$OFFSET = 16;
+    private static final long device_id$OFFSET = $LAYOUT.byteOffset(groupElement("device_id"));
 
     /**
      * Offset for field:
@@ -196,7 +196,7 @@ public class OrtOpenVINOProviderOptions {
         return num_of_threads$LAYOUT;
     }
 
-    private static final long num_of_threads$OFFSET = 24;
+    private static final long num_of_threads$OFFSET = $LAYOUT.byteOffset(groupElement("num_of_threads"));
 
     /**
      * Offset for field:
@@ -240,7 +240,7 @@ public class OrtOpenVINOProviderOptions {
         return cache_dir$LAYOUT;
     }
 
-    private static final long cache_dir$OFFSET = 32;
+    private static final long cache_dir$OFFSET = $LAYOUT.byteOffset(groupElement("cache_dir"));
 
     /**
      * Offset for field:
@@ -284,7 +284,7 @@ public class OrtOpenVINOProviderOptions {
         return context$LAYOUT;
     }
 
-    private static final long context$OFFSET = 40;
+    private static final long context$OFFSET = $LAYOUT.byteOffset(groupElement("context"));
 
     /**
      * Offset for field:
@@ -328,7 +328,7 @@ public class OrtOpenVINOProviderOptions {
         return enable_opencl_throttling$LAYOUT;
     }
 
-    private static final long enable_opencl_throttling$OFFSET = 48;
+    private static final long enable_opencl_throttling$OFFSET = $LAYOUT.byteOffset(groupElement("enable_opencl_throttling"));
 
     /**
      * Offset for field:
@@ -372,7 +372,7 @@ public class OrtOpenVINOProviderOptions {
         return enable_dynamic_shapes$LAYOUT;
     }
 
-    private static final long enable_dynamic_shapes$OFFSET = 49;
+    private static final long enable_dynamic_shapes$OFFSET = $LAYOUT.byteOffset(groupElement("enable_dynamic_shapes"));
 
     /**
      * Offset for field:

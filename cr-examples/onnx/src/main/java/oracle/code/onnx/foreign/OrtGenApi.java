@@ -12,350 +12,17 @@ import java.util.stream.*;
 import static java.lang.foreign.ValueLayout.*;
 import static java.lang.foreign.MemoryLayout.PathElement.*;
 
-public class OrtGenApi {
+public class OrtGenApi extends OrtGenApi$shared {
 
     OrtGenApi() {
         // Should not be called directly
     }
 
     static final Arena LIBRARY_ARENA = Arena.ofAuto();
-    static final boolean TRACE_DOWNCALLS = Boolean.getBoolean("jextract.trace.downcalls");
-
-    static void traceDowncall(String name, Object... args) {
-         String traceArgs = Arrays.stream(args)
-                       .map(Object::toString)
-                       .collect(Collectors.joining(", "));
-         System.out.printf("%s(%s)\n", name, traceArgs);
-    }
-
-    static MemorySegment findOrThrow(String symbol) {
-        return SYMBOL_LOOKUP.find(symbol)
-            .orElseThrow(() -> new UnsatisfiedLinkError("unresolved symbol: " + symbol));
-    }
-
-    static MethodHandle upcallHandle(Class<?> fi, String name, FunctionDescriptor fdesc) {
-        try {
-            return MethodHandles.lookup().findVirtual(fi, name, fdesc.toMethodType());
-        } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
-        }
-    }
-
-    static MemoryLayout align(MemoryLayout layout, long align) {
-        return switch (layout) {
-            case PaddingLayout p -> p;
-            case ValueLayout v -> v.withByteAlignment(align);
-            case GroupLayout g -> {
-                MemoryLayout[] alignedMembers = g.memberLayouts().stream()
-                        .map(m -> align(m, align)).toArray(MemoryLayout[]::new);
-                yield g instanceof StructLayout ?
-                        MemoryLayout.structLayout(alignedMembers) : MemoryLayout.unionLayout(alignedMembers);
-            }
-            case SequenceLayout s -> MemoryLayout.sequenceLayout(s.elementCount(), align(s.elementLayout(), align));
-        };
-    }
 
     static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.loaderLookup()
             .or(Linker.nativeLinker().defaultLookup());
 
-    public static final ValueLayout.OfBoolean C_BOOL = ValueLayout.JAVA_BOOLEAN;
-    public static final ValueLayout.OfByte C_CHAR = ValueLayout.JAVA_BYTE;
-    public static final ValueLayout.OfShort C_SHORT = ValueLayout.JAVA_SHORT;
-    public static final ValueLayout.OfInt C_INT = ValueLayout.JAVA_INT;
-    public static final ValueLayout.OfLong C_LONG_LONG = ValueLayout.JAVA_LONG;
-    public static final ValueLayout.OfFloat C_FLOAT = ValueLayout.JAVA_FLOAT;
-    public static final ValueLayout.OfDouble C_DOUBLE = ValueLayout.JAVA_DOUBLE;
-    public static final AddressLayout C_POINTER = ValueLayout.ADDRESS
-            .withTargetLayout(MemoryLayout.sequenceLayout(java.lang.Long.MAX_VALUE, JAVA_BYTE));
-    public static final ValueLayout.OfLong C_LONG = ValueLayout.JAVA_LONG;
-    private static final int __WORDSIZE = (int)64L;
-    /**
-     * {@snippet lang=c :
-     * #define __WORDSIZE 64
-     * }
-     */
-    public static int __WORDSIZE() {
-        return __WORDSIZE;
-    }
-    private static final int __has_safe_buffers = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define __has_safe_buffers 0
-     * }
-     */
-    public static int __has_safe_buffers() {
-        return __has_safe_buffers;
-    }
-    private static final int __DARWIN_ONLY_64_BIT_INO_T = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_ONLY_64_BIT_INO_T 1
-     * }
-     */
-    public static int __DARWIN_ONLY_64_BIT_INO_T() {
-        return __DARWIN_ONLY_64_BIT_INO_T;
-    }
-    private static final int __DARWIN_ONLY_UNIX_CONFORMANCE = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_ONLY_UNIX_CONFORMANCE 1
-     * }
-     */
-    public static int __DARWIN_ONLY_UNIX_CONFORMANCE() {
-        return __DARWIN_ONLY_UNIX_CONFORMANCE;
-    }
-    private static final int __DARWIN_ONLY_VERS_1050 = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_ONLY_VERS_1050 1
-     * }
-     */
-    public static int __DARWIN_ONLY_VERS_1050() {
-        return __DARWIN_ONLY_VERS_1050;
-    }
-    private static final int __DARWIN_UNIX03 = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_UNIX03 1
-     * }
-     */
-    public static int __DARWIN_UNIX03() {
-        return __DARWIN_UNIX03;
-    }
-    private static final int __DARWIN_64_BIT_INO_T = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_64_BIT_INO_T 1
-     * }
-     */
-    public static int __DARWIN_64_BIT_INO_T() {
-        return __DARWIN_64_BIT_INO_T;
-    }
-    private static final int __DARWIN_VERS_1050 = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_VERS_1050 1
-     * }
-     */
-    public static int __DARWIN_VERS_1050() {
-        return __DARWIN_VERS_1050;
-    }
-    private static final int __DARWIN_NON_CANCELABLE = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_NON_CANCELABLE 0
-     * }
-     */
-    public static int __DARWIN_NON_CANCELABLE() {
-        return __DARWIN_NON_CANCELABLE;
-    }
-    private static final int __STDC_WANT_LIB_EXT1__ = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define __STDC_WANT_LIB_EXT1__ 1
-     * }
-     */
-    public static int __STDC_WANT_LIB_EXT1__() {
-        return __STDC_WANT_LIB_EXT1__;
-    }
-    private static final int __DARWIN_NO_LONG_LONG = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define __DARWIN_NO_LONG_LONG 0
-     * }
-     */
-    public static int __DARWIN_NO_LONG_LONG() {
-        return __DARWIN_NO_LONG_LONG;
-    }
-    private static final int _DARWIN_FEATURE_64_BIT_INODE = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define _DARWIN_FEATURE_64_BIT_INODE 1
-     * }
-     */
-    public static int _DARWIN_FEATURE_64_BIT_INODE() {
-        return _DARWIN_FEATURE_64_BIT_INODE;
-    }
-    private static final int _DARWIN_FEATURE_ONLY_64_BIT_INODE = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define _DARWIN_FEATURE_ONLY_64_BIT_INODE 1
-     * }
-     */
-    public static int _DARWIN_FEATURE_ONLY_64_BIT_INODE() {
-        return _DARWIN_FEATURE_ONLY_64_BIT_INODE;
-    }
-    private static final int _DARWIN_FEATURE_ONLY_VERS_1050 = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define _DARWIN_FEATURE_ONLY_VERS_1050 1
-     * }
-     */
-    public static int _DARWIN_FEATURE_ONLY_VERS_1050() {
-        return _DARWIN_FEATURE_ONLY_VERS_1050;
-    }
-    private static final int _DARWIN_FEATURE_ONLY_UNIX_CONFORMANCE = (int)1L;
-    /**
-     * {@snippet lang=c :
-     * #define _DARWIN_FEATURE_ONLY_UNIX_CONFORMANCE 1
-     * }
-     */
-    public static int _DARWIN_FEATURE_ONLY_UNIX_CONFORMANCE() {
-        return _DARWIN_FEATURE_ONLY_UNIX_CONFORMANCE;
-    }
-    private static final int _DARWIN_FEATURE_UNIX_CONFORMANCE = (int)3L;
-    /**
-     * {@snippet lang=c :
-     * #define _DARWIN_FEATURE_UNIX_CONFORMANCE 3
-     * }
-     */
-    public static int _DARWIN_FEATURE_UNIX_CONFORMANCE() {
-        return _DARWIN_FEATURE_UNIX_CONFORMANCE;
-    }
-    private static final int __has_ptrcheck = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define __has_ptrcheck 0
-     * }
-     */
-    public static int __has_ptrcheck() {
-        return __has_ptrcheck;
-    }
-    private static final int USE_CLANG_TYPES = (int)0L;
-    /**
-     * {@snippet lang=c :
-     * #define USE_CLANG_TYPES 0
-     * }
-     */
-    public static int USE_CLANG_TYPES() {
-        return USE_CLANG_TYPES;
-    }
-    private static final int __PTHREAD_SIZE__ = (int)8176L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_SIZE__ 8176
-     * }
-     */
-    public static int __PTHREAD_SIZE__() {
-        return __PTHREAD_SIZE__;
-    }
-    private static final int __PTHREAD_ATTR_SIZE__ = (int)56L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_ATTR_SIZE__ 56
-     * }
-     */
-    public static int __PTHREAD_ATTR_SIZE__() {
-        return __PTHREAD_ATTR_SIZE__;
-    }
-    private static final int __PTHREAD_MUTEXATTR_SIZE__ = (int)8L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_MUTEXATTR_SIZE__ 8
-     * }
-     */
-    public static int __PTHREAD_MUTEXATTR_SIZE__() {
-        return __PTHREAD_MUTEXATTR_SIZE__;
-    }
-    private static final int __PTHREAD_MUTEX_SIZE__ = (int)56L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_MUTEX_SIZE__ 56
-     * }
-     */
-    public static int __PTHREAD_MUTEX_SIZE__() {
-        return __PTHREAD_MUTEX_SIZE__;
-    }
-    private static final int __PTHREAD_CONDATTR_SIZE__ = (int)8L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_CONDATTR_SIZE__ 8
-     * }
-     */
-    public static int __PTHREAD_CONDATTR_SIZE__() {
-        return __PTHREAD_CONDATTR_SIZE__;
-    }
-    private static final int __PTHREAD_COND_SIZE__ = (int)40L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_COND_SIZE__ 40
-     * }
-     */
-    public static int __PTHREAD_COND_SIZE__() {
-        return __PTHREAD_COND_SIZE__;
-    }
-    private static final int __PTHREAD_ONCE_SIZE__ = (int)8L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_ONCE_SIZE__ 8
-     * }
-     */
-    public static int __PTHREAD_ONCE_SIZE__() {
-        return __PTHREAD_ONCE_SIZE__;
-    }
-    private static final int __PTHREAD_RWLOCK_SIZE__ = (int)192L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_RWLOCK_SIZE__ 192
-     * }
-     */
-    public static int __PTHREAD_RWLOCK_SIZE__() {
-        return __PTHREAD_RWLOCK_SIZE__;
-    }
-    private static final int __PTHREAD_RWLOCKATTR_SIZE__ = (int)16L;
-    /**
-     * {@snippet lang=c :
-     * #define __PTHREAD_RWLOCKATTR_SIZE__ 16
-     * }
-     */
-    public static int __PTHREAD_RWLOCKATTR_SIZE__() {
-        return __PTHREAD_RWLOCKATTR_SIZE__;
-    }
-    private static final int INT8_MAX = (int)127L;
-    /**
-     * {@snippet lang=c :
-     * #define INT8_MAX 127
-     * }
-     */
-    public static int INT8_MAX() {
-        return INT8_MAX;
-    }
-    private static final int INT16_MAX = (int)32767L;
-    /**
-     * {@snippet lang=c :
-     * #define INT16_MAX 32767
-     * }
-     */
-    public static int INT16_MAX() {
-        return INT16_MAX;
-    }
-    private static final int INT32_MAX = (int)2147483647L;
-    /**
-     * {@snippet lang=c :
-     * #define INT32_MAX 2147483647
-     * }
-     */
-    public static int INT32_MAX() {
-        return INT32_MAX;
-    }
-    private static final int UINT8_MAX = (int)255L;
-    /**
-     * {@snippet lang=c :
-     * #define UINT8_MAX 255
-     * }
-     */
-    public static int UINT8_MAX() {
-        return UINT8_MAX;
-    }
-    private static final int UINT16_MAX = (int)65535L;
-    /**
-     * {@snippet lang=c :
-     * #define UINT16_MAX 65535
-     * }
-     */
-    public static int UINT16_MAX() {
-        return UINT16_MAX;
-    }
     private static final int true_ = (int)1L;
     /**
      * {@snippet lang=c :
@@ -383,424 +50,6 @@ public class OrtGenApi {
     public static int __bool_true_false_are_defined() {
         return __bool_true_false_are_defined;
     }
-    /**
-     * {@snippet lang=c :
-     * typedef signed char int8_t
-     * }
-     */
-    public static final OfByte int8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef short int16_t
-     * }
-     */
-    public static final OfShort int16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef int int32_t
-     * }
-     */
-    public static final OfInt int32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef long long int64_t
-     * }
-     */
-    public static final OfLong int64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned char uint8_t
-     * }
-     */
-    public static final OfByte uint8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned short uint16_t
-     * }
-     */
-    public static final OfShort uint16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned int uint32_t
-     * }
-     */
-    public static final OfInt uint32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long long uint64_t
-     * }
-     */
-    public static final OfLong uint64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int8_t int_least8_t
-     * }
-     */
-    public static final OfByte int_least8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef int16_t int_least16_t
-     * }
-     */
-    public static final OfShort int_least16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef int32_t int_least32_t
-     * }
-     */
-    public static final OfInt int_least32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef int64_t int_least64_t
-     * }
-     */
-    public static final OfLong int_least64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef uint8_t uint_least8_t
-     * }
-     */
-    public static final OfByte uint_least8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef uint16_t uint_least16_t
-     * }
-     */
-    public static final OfShort uint_least16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef uint32_t uint_least32_t
-     * }
-     */
-    public static final OfInt uint_least32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef uint64_t uint_least64_t
-     * }
-     */
-    public static final OfLong uint_least64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef int8_t int_fast8_t
-     * }
-     */
-    public static final OfByte int_fast8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef int16_t int_fast16_t
-     * }
-     */
-    public static final OfShort int_fast16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef int32_t int_fast32_t
-     * }
-     */
-    public static final OfInt int_fast32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef int64_t int_fast64_t
-     * }
-     */
-    public static final OfLong int_fast64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef uint8_t uint_fast8_t
-     * }
-     */
-    public static final OfByte uint_fast8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef uint16_t uint_fast16_t
-     * }
-     */
-    public static final OfShort uint_fast16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef uint32_t uint_fast32_t
-     * }
-     */
-    public static final OfInt uint_fast32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef uint64_t uint_fast64_t
-     * }
-     */
-    public static final OfLong uint_fast64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef signed char __int8_t
-     * }
-     */
-    public static final OfByte __int8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned char __uint8_t
-     * }
-     */
-    public static final OfByte __uint8_t = OrtGenApi.C_CHAR;
-    /**
-     * {@snippet lang=c :
-     * typedef short __int16_t
-     * }
-     */
-    public static final OfShort __int16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned short __uint16_t
-     * }
-     */
-    public static final OfShort __uint16_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef int __int32_t
-     * }
-     */
-    public static final OfInt __int32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned int __uint32_t
-     * }
-     */
-    public static final OfInt __uint32_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef long long __int64_t
-     * }
-     */
-    public static final OfLong __int64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long long __uint64_t
-     * }
-     */
-    public static final OfLong __uint64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef long __darwin_intptr_t
-     * }
-     */
-    public static final OfLong __darwin_intptr_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned int __darwin_natural_t
-     * }
-     */
-    public static final OfInt __darwin_natural_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef int __darwin_ct_rune_t
-     * }
-     */
-    public static final OfInt __darwin_ct_rune_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef long __darwin_ptrdiff_t
-     * }
-     */
-    public static final OfLong __darwin_ptrdiff_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long __darwin_size_t
-     * }
-     */
-    public static final OfLong __darwin_size_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __builtin_va_list __darwin_va_list
-     * }
-     */
-    public static final AddressLayout __darwin_va_list = OrtGenApi.C_POINTER;
-    /**
-     * {@snippet lang=c :
-     * typedef int __darwin_wchar_t
-     * }
-     */
-    public static final OfInt __darwin_wchar_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __darwin_wchar_t __darwin_rune_t
-     * }
-     */
-    public static final OfInt __darwin_rune_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef int __darwin_wint_t
-     * }
-     */
-    public static final OfInt __darwin_wint_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long __darwin_clock_t
-     * }
-     */
-    public static final OfLong __darwin_clock_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint32_t __darwin_socklen_t
-     * }
-     */
-    public static final OfInt __darwin_socklen_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef long __darwin_ssize_t
-     * }
-     */
-    public static final OfLong __darwin_ssize_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef long __darwin_time_t
-     * }
-     */
-    public static final OfLong __darwin_time_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __int64_t __darwin_blkcnt_t
-     * }
-     */
-    public static final OfLong __darwin_blkcnt_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __int32_t __darwin_blksize_t
-     * }
-     */
-    public static final OfInt __darwin_blksize_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __int32_t __darwin_dev_t
-     * }
-     */
-    public static final OfInt __darwin_dev_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned int __darwin_fsblkcnt_t
-     * }
-     */
-    public static final OfInt __darwin_fsblkcnt_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned int __darwin_fsfilcnt_t
-     * }
-     */
-    public static final OfInt __darwin_fsfilcnt_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint32_t __darwin_gid_t
-     * }
-     */
-    public static final OfInt __darwin_gid_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint32_t __darwin_id_t
-     * }
-     */
-    public static final OfInt __darwin_id_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint64_t __darwin_ino64_t
-     * }
-     */
-    public static final OfLong __darwin_ino64_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __darwin_ino64_t __darwin_ino_t
-     * }
-     */
-    public static final OfLong __darwin_ino_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __darwin_natural_t __darwin_mach_port_name_t
-     * }
-     */
-    public static final OfInt __darwin_mach_port_name_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __darwin_mach_port_name_t __darwin_mach_port_t
-     * }
-     */
-    public static final OfInt __darwin_mach_port_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint16_t __darwin_mode_t
-     * }
-     */
-    public static final OfShort __darwin_mode_t = OrtGenApi.C_SHORT;
-    /**
-     * {@snippet lang=c :
-     * typedef __int64_t __darwin_off_t
-     * }
-     */
-    public static final OfLong __darwin_off_t = OrtGenApi.C_LONG_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef __int32_t __darwin_pid_t
-     * }
-     */
-    public static final OfInt __darwin_pid_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint32_t __darwin_sigset_t
-     * }
-     */
-    public static final OfInt __darwin_sigset_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __int32_t __darwin_suseconds_t
-     * }
-     */
-    public static final OfInt __darwin_suseconds_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint32_t __darwin_uid_t
-     * }
-     */
-    public static final OfInt __darwin_uid_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef __uint32_t __darwin_useconds_t
-     * }
-     */
-    public static final OfInt __darwin_useconds_t = OrtGenApi.C_INT;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long __darwin_pthread_key_t
-     * }
-     */
-    public static final OfLong __darwin_pthread_key_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef struct _opaque_pthread_t {
-     *     long __sig;
-     *     struct __darwin_pthread_handler_rec *__cleanup_stack;
-     *     char __opaque[8176];
-     * } *__darwin_pthread_t
-     * }
-     */
-    public static final AddressLayout __darwin_pthread_t = OrtGenApi.C_POINTER;
-    /**
-     * {@snippet lang=c :
-     * typedef __darwin_intptr_t intptr_t
-     * }
-     */
-    public static final OfLong intptr_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long uintptr_t
-     * }
-     */
-    public static final OfLong uintptr_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef long intmax_t
-     * }
-     */
-    public static final OfLong intmax_t = OrtGenApi.C_LONG;
-    /**
-     * {@snippet lang=c :
-     * typedef unsigned long uintmax_t
-     * }
-     */
-    public static final OfLong uintmax_t = OrtGenApi.C_LONG;
     /**
      * {@snippet lang=c :
      * typedef long ptrdiff_t
@@ -987,7 +236,7 @@ public class OrtGenApi {
      */
     public static class OgaShutdown {
         private static final FunctionDescriptor BASE_DESC = FunctionDescriptor.ofVoid(        );
-        private static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaShutdown");
+        private static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaShutdown");
 
         private final MethodHandle handle;
         private final FunctionDescriptor descriptor;
@@ -1054,7 +303,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaResultGetError");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaResultGetError");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1101,6 +350,8 @@ public class OrtGenApi {
                 traceDowncall("OgaResultGetError", result);
             }
             return (MemorySegment)mh$.invokeExact(result);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1113,7 +364,7 @@ public class OrtGenApi {
             OrtGenApi.C_BOOL
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaSetLogBool");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSetLogBool");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1160,6 +411,8 @@ public class OrtGenApi {
                 traceDowncall("OgaSetLogBool", name, value);
             }
             return (MemorySegment)mh$.invokeExact(name, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1172,7 +425,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaSetLogString");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSetLogString");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1219,6 +472,68 @@ public class OrtGenApi {
                 traceDowncall("OgaSetLogString", name, value);
             }
             return (MemorySegment)mh$.invokeExact(name, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaSetLogCallback {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSetLogCallback");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaSetLogCallback(void (*callback)(const char *, size_t))
+     * }
+     */
+    public static FunctionDescriptor OgaSetLogCallback$descriptor() {
+        return OgaSetLogCallback.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaSetLogCallback(void (*callback)(const char *, size_t))
+     * }
+     */
+    public static MethodHandle OgaSetLogCallback$handle() {
+        return OgaSetLogCallback.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaSetLogCallback(void (*callback)(const char *, size_t))
+     * }
+     */
+    public static MemorySegment OgaSetLogCallback$address() {
+        return OgaSetLogCallback.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaSetLogCallback(void (*callback)(const char *, size_t))
+     * }
+     */
+    public static MemorySegment OgaSetLogCallback(MemorySegment callback) {
+        var mh$ = OgaSetLogCallback.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaSetLogCallback", callback);
+            }
+            return (MemorySegment)mh$.invokeExact(callback);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1229,7 +544,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyResult");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyResult");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1276,6 +591,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyResult", result);
             }
             mh$.invokeExact(result);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1286,7 +603,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyString");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyString");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1333,6 +650,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyString", x0);
             }
             mh$.invokeExact(x0);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1343,7 +662,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyNamedTensors");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyNamedTensors");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1390,6 +709,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyNamedTensors", x0);
             }
             mh$.invokeExact(x0);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1401,7 +722,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateSequences");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateSequences");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1448,6 +769,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateSequences", out);
             }
             return (MemorySegment)mh$.invokeExact(out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1458,7 +781,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroySequences");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroySequences");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1505,6 +828,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroySequences", sequences);
             }
             mh$.invokeExact(sequences);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1516,7 +841,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaSequencesCount");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSequencesCount");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1563,6 +888,8 @@ public class OrtGenApi {
                 traceDowncall("OgaSequencesCount", sequences);
             }
             return (long)mh$.invokeExact(sequences);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1576,7 +903,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaAppendTokenSequence");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaAppendTokenSequence");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1623,6 +950,8 @@ public class OrtGenApi {
                 traceDowncall("OgaAppendTokenSequence", token_ptr, token_cnt, sequences);
             }
             return (MemorySegment)mh$.invokeExact(token_ptr, token_cnt, sequences);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1636,7 +965,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaAppendTokenToSequence");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaAppendTokenToSequence");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1683,6 +1012,8 @@ public class OrtGenApi {
                 traceDowncall("OgaAppendTokenToSequence", token, sequences, sequence_index);
             }
             return (MemorySegment)mh$.invokeExact(token, sequences, sequence_index);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1695,7 +1026,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaSequencesGetSequenceCount");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSequencesGetSequenceCount");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1742,6 +1073,8 @@ public class OrtGenApi {
                 traceDowncall("OgaSequencesGetSequenceCount", sequences, sequence_index);
             }
             return (long)mh$.invokeExact(sequences, sequence_index);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1754,7 +1087,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaSequencesGetSequenceData");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSequencesGetSequenceData");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1801,6 +1134,8 @@ public class OrtGenApi {
                 traceDowncall("OgaSequencesGetSequenceData", sequences, sequence_index);
             }
             return (MemorySegment)mh$.invokeExact(sequences, sequence_index);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1813,7 +1148,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaLoadImage");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaLoadImage");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1860,6 +1195,8 @@ public class OrtGenApi {
                 traceDowncall("OgaLoadImage", image_path, images);
             }
             return (MemorySegment)mh$.invokeExact(image_path, images);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1872,7 +1209,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaLoadImages");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaLoadImages");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1919,6 +1256,8 @@ public class OrtGenApi {
                 traceDowncall("OgaLoadImages", image_paths, images);
             }
             return (MemorySegment)mh$.invokeExact(image_paths, images);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1933,7 +1272,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaLoadImagesFromBuffers");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaLoadImagesFromBuffers");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1980,6 +1319,8 @@ public class OrtGenApi {
                 traceDowncall("OgaLoadImagesFromBuffers", image_data, image_data_sizes, count, images);
             }
             return (MemorySegment)mh$.invokeExact(image_data, image_data_sizes, count, images);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1990,7 +1331,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyImages");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyImages");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2037,6 +1378,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyImages", images);
             }
             mh$.invokeExact(images);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2049,7 +1392,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaLoadAudio");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaLoadAudio");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2096,6 +1439,8 @@ public class OrtGenApi {
                 traceDowncall("OgaLoadAudio", audio_path, audios);
             }
             return (MemorySegment)mh$.invokeExact(audio_path, audios);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2108,7 +1453,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaLoadAudios");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaLoadAudios");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2155,6 +1500,8 @@ public class OrtGenApi {
                 traceDowncall("OgaLoadAudios", audio_paths, audios);
             }
             return (MemorySegment)mh$.invokeExact(audio_paths, audios);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2169,7 +1516,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaLoadAudiosFromBuffers");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaLoadAudiosFromBuffers");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2216,6 +1563,8 @@ public class OrtGenApi {
                 traceDowncall("OgaLoadAudiosFromBuffers", audio_data, audio_data_sizes, count, audios);
             }
             return (MemorySegment)mh$.invokeExact(audio_data, audio_data_sizes, count, audios);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2226,7 +1575,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyAudios");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyAudios");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2273,6 +1622,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyAudios", audios);
             }
             mh$.invokeExact(audios);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2284,7 +1635,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateRuntimeSettings");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateRuntimeSettings");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2331,6 +1682,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateRuntimeSettings", out);
             }
             return (MemorySegment)mh$.invokeExact(out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2341,7 +1694,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyRuntimeSettings");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyRuntimeSettings");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2388,6 +1741,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyRuntimeSettings", settings);
             }
             mh$.invokeExact(settings);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2401,7 +1756,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaRuntimeSettingsSetHandle");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRuntimeSettingsSetHandle");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2448,6 +1803,8 @@ public class OrtGenApi {
                 traceDowncall("OgaRuntimeSettingsSetHandle", settings, handle_name, handle);
             }
             return (MemorySegment)mh$.invokeExact(settings, handle_name, handle);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2460,7 +1817,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateConfig");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateConfig");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2507,6 +1864,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateConfig", config_path, out);
             }
             return (MemorySegment)mh$.invokeExact(config_path, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2518,7 +1877,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaConfigClearProviders");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigClearProviders");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2565,6 +1924,8 @@ public class OrtGenApi {
                 traceDowncall("OgaConfigClearProviders", config);
             }
             return (MemorySegment)mh$.invokeExact(config);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2577,7 +1938,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaConfigAppendProvider");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigAppendProvider");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2624,6 +1985,8 @@ public class OrtGenApi {
                 traceDowncall("OgaConfigAppendProvider", config, provider);
             }
             return (MemorySegment)mh$.invokeExact(config, provider);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2638,7 +2001,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaConfigSetProviderOption");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigSetProviderOption");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2685,6 +2048,501 @@ public class OrtGenApi {
                 traceDowncall("OgaConfigSetProviderOption", config, provider, key, value);
             }
             return (MemorySegment)mh$.invokeExact(config, provider, key, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigAddModelData {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_LONG
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigAddModelData");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigAddModelData(OgaConfig *config, const char *model_filename, const void *model_data, size_t model_data_length)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigAddModelData$descriptor() {
+        return OgaConfigAddModelData.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigAddModelData(OgaConfig *config, const char *model_filename, const void *model_data, size_t model_data_length)
+     * }
+     */
+    public static MethodHandle OgaConfigAddModelData$handle() {
+        return OgaConfigAddModelData.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigAddModelData(OgaConfig *config, const char *model_filename, const void *model_data, size_t model_data_length)
+     * }
+     */
+    public static MemorySegment OgaConfigAddModelData$address() {
+        return OgaConfigAddModelData.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigAddModelData(OgaConfig *config, const char *model_filename, const void *model_data, size_t model_data_length)
+     * }
+     */
+    public static MemorySegment OgaConfigAddModelData(MemorySegment config, MemorySegment model_filename, MemorySegment model_data, long model_data_length) {
+        var mh$ = OgaConfigAddModelData.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigAddModelData", config, model_filename, model_data, model_data_length);
+            }
+            return (MemorySegment)mh$.invokeExact(config, model_filename, model_data, model_data_length);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigRemoveModelData {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigRemoveModelData");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigRemoveModelData(OgaConfig *config, const char *model_filename)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigRemoveModelData$descriptor() {
+        return OgaConfigRemoveModelData.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigRemoveModelData(OgaConfig *config, const char *model_filename)
+     * }
+     */
+    public static MethodHandle OgaConfigRemoveModelData$handle() {
+        return OgaConfigRemoveModelData.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigRemoveModelData(OgaConfig *config, const char *model_filename)
+     * }
+     */
+    public static MemorySegment OgaConfigRemoveModelData$address() {
+        return OgaConfigRemoveModelData.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigRemoveModelData(OgaConfig *config, const char *model_filename)
+     * }
+     */
+    public static MemorySegment OgaConfigRemoveModelData(MemorySegment config, MemorySegment model_filename) {
+        var mh$ = OgaConfigRemoveModelData.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigRemoveModelData", config, model_filename);
+            }
+            return (MemorySegment)mh$.invokeExact(config, model_filename);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigSetDecoderProviderOptionsHardwareDeviceType {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigSetDecoderProviderOptionsHardwareDeviceType");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider, const char *hardware_device_type)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigSetDecoderProviderOptionsHardwareDeviceType$descriptor() {
+        return OgaConfigSetDecoderProviderOptionsHardwareDeviceType.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider, const char *hardware_device_type)
+     * }
+     */
+    public static MethodHandle OgaConfigSetDecoderProviderOptionsHardwareDeviceType$handle() {
+        return OgaConfigSetDecoderProviderOptionsHardwareDeviceType.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider, const char *hardware_device_type)
+     * }
+     */
+    public static MemorySegment OgaConfigSetDecoderProviderOptionsHardwareDeviceType$address() {
+        return OgaConfigSetDecoderProviderOptionsHardwareDeviceType.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider, const char *hardware_device_type)
+     * }
+     */
+    public static MemorySegment OgaConfigSetDecoderProviderOptionsHardwareDeviceType(MemorySegment config, MemorySegment provider, MemorySegment hardware_device_type) {
+        var mh$ = OgaConfigSetDecoderProviderOptionsHardwareDeviceType.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigSetDecoderProviderOptionsHardwareDeviceType", config, provider, hardware_device_type);
+            }
+            return (MemorySegment)mh$.invokeExact(config, provider, hardware_device_type);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigSetDecoderProviderOptionsHardwareDeviceId {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigSetDecoderProviderOptionsHardwareDeviceId");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider, uint32_t hardware_device_id)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigSetDecoderProviderOptionsHardwareDeviceId$descriptor() {
+        return OgaConfigSetDecoderProviderOptionsHardwareDeviceId.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider, uint32_t hardware_device_id)
+     * }
+     */
+    public static MethodHandle OgaConfigSetDecoderProviderOptionsHardwareDeviceId$handle() {
+        return OgaConfigSetDecoderProviderOptionsHardwareDeviceId.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider, uint32_t hardware_device_id)
+     * }
+     */
+    public static MemorySegment OgaConfigSetDecoderProviderOptionsHardwareDeviceId$address() {
+        return OgaConfigSetDecoderProviderOptionsHardwareDeviceId.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider, uint32_t hardware_device_id)
+     * }
+     */
+    public static MemorySegment OgaConfigSetDecoderProviderOptionsHardwareDeviceId(MemorySegment config, MemorySegment provider, int hardware_device_id) {
+        var mh$ = OgaConfigSetDecoderProviderOptionsHardwareDeviceId.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigSetDecoderProviderOptionsHardwareDeviceId", config, provider, hardware_device_id);
+            }
+            return (MemorySegment)mh$.invokeExact(config, provider, hardware_device_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigSetDecoderProviderOptionsHardwareVendorId {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigSetDecoderProviderOptionsHardwareVendorId");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider, uint32_t hardware_vendor_id)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigSetDecoderProviderOptionsHardwareVendorId$descriptor() {
+        return OgaConfigSetDecoderProviderOptionsHardwareVendorId.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider, uint32_t hardware_vendor_id)
+     * }
+     */
+    public static MethodHandle OgaConfigSetDecoderProviderOptionsHardwareVendorId$handle() {
+        return OgaConfigSetDecoderProviderOptionsHardwareVendorId.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider, uint32_t hardware_vendor_id)
+     * }
+     */
+    public static MemorySegment OgaConfigSetDecoderProviderOptionsHardwareVendorId$address() {
+        return OgaConfigSetDecoderProviderOptionsHardwareVendorId.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigSetDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider, uint32_t hardware_vendor_id)
+     * }
+     */
+    public static MemorySegment OgaConfigSetDecoderProviderOptionsHardwareVendorId(MemorySegment config, MemorySegment provider, int hardware_vendor_id) {
+        var mh$ = OgaConfigSetDecoderProviderOptionsHardwareVendorId.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigSetDecoderProviderOptionsHardwareVendorId", config, provider, hardware_vendor_id);
+            }
+            return (MemorySegment)mh$.invokeExact(config, provider, hardware_vendor_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigClearDecoderProviderOptionsHardwareDeviceType {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigClearDecoderProviderOptionsHardwareDeviceType");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigClearDecoderProviderOptionsHardwareDeviceType$descriptor() {
+        return OgaConfigClearDecoderProviderOptionsHardwareDeviceType.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MethodHandle OgaConfigClearDecoderProviderOptionsHardwareDeviceType$handle() {
+        return OgaConfigClearDecoderProviderOptionsHardwareDeviceType.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MemorySegment OgaConfigClearDecoderProviderOptionsHardwareDeviceType$address() {
+        return OgaConfigClearDecoderProviderOptionsHardwareDeviceType.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceType(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MemorySegment OgaConfigClearDecoderProviderOptionsHardwareDeviceType(MemorySegment config, MemorySegment provider) {
+        var mh$ = OgaConfigClearDecoderProviderOptionsHardwareDeviceType.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigClearDecoderProviderOptionsHardwareDeviceType", config, provider);
+            }
+            return (MemorySegment)mh$.invokeExact(config, provider);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigClearDecoderProviderOptionsHardwareDeviceId {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigClearDecoderProviderOptionsHardwareDeviceId");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigClearDecoderProviderOptionsHardwareDeviceId$descriptor() {
+        return OgaConfigClearDecoderProviderOptionsHardwareDeviceId.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MethodHandle OgaConfigClearDecoderProviderOptionsHardwareDeviceId$handle() {
+        return OgaConfigClearDecoderProviderOptionsHardwareDeviceId.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MemorySegment OgaConfigClearDecoderProviderOptionsHardwareDeviceId$address() {
+        return OgaConfigClearDecoderProviderOptionsHardwareDeviceId.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareDeviceId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MemorySegment OgaConfigClearDecoderProviderOptionsHardwareDeviceId(MemorySegment config, MemorySegment provider) {
+        var mh$ = OgaConfigClearDecoderProviderOptionsHardwareDeviceId.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigClearDecoderProviderOptionsHardwareDeviceId", config, provider);
+            }
+            return (MemorySegment)mh$.invokeExact(config, provider);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaConfigClearDecoderProviderOptionsHardwareVendorId {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigClearDecoderProviderOptionsHardwareVendorId");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static FunctionDescriptor OgaConfigClearDecoderProviderOptionsHardwareVendorId$descriptor() {
+        return OgaConfigClearDecoderProviderOptionsHardwareVendorId.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MethodHandle OgaConfigClearDecoderProviderOptionsHardwareVendorId$handle() {
+        return OgaConfigClearDecoderProviderOptionsHardwareVendorId.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MemorySegment OgaConfigClearDecoderProviderOptionsHardwareVendorId$address() {
+        return OgaConfigClearDecoderProviderOptionsHardwareVendorId.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaConfigClearDecoderProviderOptionsHardwareVendorId(OgaConfig *config, const char *provider)
+     * }
+     */
+    public static MemorySegment OgaConfigClearDecoderProviderOptionsHardwareVendorId(MemorySegment config, MemorySegment provider) {
+        var mh$ = OgaConfigClearDecoderProviderOptionsHardwareVendorId.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaConfigClearDecoderProviderOptionsHardwareVendorId", config, provider);
+            }
+            return (MemorySegment)mh$.invokeExact(config, provider);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2697,7 +2555,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaConfigOverlay");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaConfigOverlay");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2744,6 +2602,8 @@ public class OrtGenApi {
                 traceDowncall("OgaConfigOverlay", config, json);
             }
             return (MemorySegment)mh$.invokeExact(config, json);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2756,7 +2616,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateModel");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateModel");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2803,6 +2663,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateModel", config_path, out);
             }
             return (MemorySegment)mh$.invokeExact(config_path, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2815,7 +2677,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateModelFromConfig");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateModelFromConfig");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2862,6 +2724,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateModelFromConfig", config, out);
             }
             return (MemorySegment)mh$.invokeExact(config, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2875,7 +2739,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateModelWithRuntimeSettings");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateModelWithRuntimeSettings");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2922,6 +2786,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateModelWithRuntimeSettings", config_path, settings, out);
             }
             return (MemorySegment)mh$.invokeExact(config_path, settings, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2934,7 +2800,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaModelGetType");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaModelGetType");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -2981,6 +2847,8 @@ public class OrtGenApi {
                 traceDowncall("OgaModelGetType", model, out);
             }
             return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -2993,7 +2861,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaModelGetDeviceType");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaModelGetDeviceType");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3040,6 +2908,8 @@ public class OrtGenApi {
                 traceDowncall("OgaModelGetDeviceType", model, out);
             }
             return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3050,7 +2920,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyConfig");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyConfig");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3097,6 +2967,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyConfig", config);
             }
             mh$.invokeExact(config);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3107,7 +2979,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyModel");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyModel");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3154,6 +3026,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyModel", model);
             }
             mh$.invokeExact(model);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3166,7 +3040,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateGeneratorParams");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateGeneratorParams");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3213,6 +3087,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateGeneratorParams", model, out);
             }
             return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3223,7 +3099,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyGeneratorParams");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyGeneratorParams");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3231,7 +3107,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * void OgaDestroyGeneratorParams(OgaGeneratorParams *generator_params)
+     * void OgaDestroyGeneratorParams(OgaGeneratorParams *params)
      * }
      */
     public static FunctionDescriptor OgaDestroyGeneratorParams$descriptor() {
@@ -3241,7 +3117,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * void OgaDestroyGeneratorParams(OgaGeneratorParams *generator_params)
+     * void OgaDestroyGeneratorParams(OgaGeneratorParams *params)
      * }
      */
     public static MethodHandle OgaDestroyGeneratorParams$handle() {
@@ -3251,7 +3127,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * void OgaDestroyGeneratorParams(OgaGeneratorParams *generator_params)
+     * void OgaDestroyGeneratorParams(OgaGeneratorParams *params)
      * }
      */
     public static MemorySegment OgaDestroyGeneratorParams$address() {
@@ -3260,16 +3136,18 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * void OgaDestroyGeneratorParams(OgaGeneratorParams *generator_params)
+     * void OgaDestroyGeneratorParams(OgaGeneratorParams *params)
      * }
      */
-    public static void OgaDestroyGeneratorParams(MemorySegment generator_params) {
+    public static void OgaDestroyGeneratorParams(MemorySegment params) {
         var mh$ = OgaDestroyGeneratorParams.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaDestroyGeneratorParams", generator_params);
+                traceDowncall("OgaDestroyGeneratorParams", params);
             }
-            mh$.invokeExact(generator_params);
+            mh$.invokeExact(params);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3283,7 +3161,7 @@ public class OrtGenApi {
             OrtGenApi.C_DOUBLE
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGeneratorParamsSetSearchNumber");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGeneratorParamsSetSearchNumber");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3291,7 +3169,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *generator_params, const char *name, double value)
+     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *params, const char *name, double value)
      * }
      */
     public static FunctionDescriptor OgaGeneratorParamsSetSearchNumber$descriptor() {
@@ -3301,7 +3179,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *generator_params, const char *name, double value)
+     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *params, const char *name, double value)
      * }
      */
     public static MethodHandle OgaGeneratorParamsSetSearchNumber$handle() {
@@ -3311,7 +3189,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *generator_params, const char *name, double value)
+     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *params, const char *name, double value)
      * }
      */
     public static MemorySegment OgaGeneratorParamsSetSearchNumber$address() {
@@ -3320,16 +3198,18 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *generator_params, const char *name, double value)
+     * OgaResult *OgaGeneratorParamsSetSearchNumber(OgaGeneratorParams *params, const char *name, double value)
      * }
      */
-    public static MemorySegment OgaGeneratorParamsSetSearchNumber(MemorySegment generator_params, MemorySegment name, double value) {
+    public static MemorySegment OgaGeneratorParamsSetSearchNumber(MemorySegment params, MemorySegment name, double value) {
         var mh$ = OgaGeneratorParamsSetSearchNumber.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGeneratorParamsSetSearchNumber", generator_params, name, value);
+                traceDowncall("OgaGeneratorParamsSetSearchNumber", params, name, value);
             }
-            return (MemorySegment)mh$.invokeExact(generator_params, name, value);
+            return (MemorySegment)mh$.invokeExact(params, name, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3343,7 +3223,7 @@ public class OrtGenApi {
             OrtGenApi.C_BOOL
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGeneratorParamsSetSearchBool");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGeneratorParamsSetSearchBool");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3351,7 +3231,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *generator_params, const char *name, bool value)
+     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *params, const char *name, bool value)
      * }
      */
     public static FunctionDescriptor OgaGeneratorParamsSetSearchBool$descriptor() {
@@ -3361,7 +3241,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *generator_params, const char *name, bool value)
+     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *params, const char *name, bool value)
      * }
      */
     public static MethodHandle OgaGeneratorParamsSetSearchBool$handle() {
@@ -3371,7 +3251,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *generator_params, const char *name, bool value)
+     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *params, const char *name, bool value)
      * }
      */
     public static MemorySegment OgaGeneratorParamsSetSearchBool$address() {
@@ -3380,253 +3260,18 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *generator_params, const char *name, bool value)
+     * OgaResult *OgaGeneratorParamsSetSearchBool(OgaGeneratorParams *params, const char *name, bool value)
      * }
      */
-    public static MemorySegment OgaGeneratorParamsSetSearchBool(MemorySegment generator_params, MemorySegment name, boolean value) {
+    public static MemorySegment OgaGeneratorParamsSetSearchBool(MemorySegment params, MemorySegment name, boolean value) {
         var mh$ = OgaGeneratorParamsSetSearchBool.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGeneratorParamsSetSearchBool", generator_params, name, value);
+                traceDowncall("OgaGeneratorParamsSetSearchBool", params, name, value);
             }
-            return (MemorySegment)mh$.invokeExact(generator_params, name, value);
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_INT
-        );
-
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize(OgaGeneratorParams *generator_params, int32_t max_batch_size)
-     * }
-     */
-    public static FunctionDescriptor OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize$descriptor() {
-        return OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize(OgaGeneratorParams *generator_params, int32_t max_batch_size)
-     * }
-     */
-    public static MethodHandle OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize$handle() {
-        return OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize(OgaGeneratorParams *generator_params, int32_t max_batch_size)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize$address() {
-        return OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize(OgaGeneratorParams *generator_params, int32_t max_batch_size)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize(MemorySegment generator_params, int max_batch_size) {
-        var mh$ = OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGeneratorParamsTryGraphCaptureWithMaxBatchSize", generator_params, max_batch_size);
-            }
-            return (MemorySegment)mh$.invokeExact(generator_params, max_batch_size);
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class OgaGeneratorParamsSetInputs {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGeneratorParamsSetInputs");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetInputs(OgaGeneratorParams *generator_params, const OgaNamedTensors *named_tensors)
-     * }
-     */
-    public static FunctionDescriptor OgaGeneratorParamsSetInputs$descriptor() {
-        return OgaGeneratorParamsSetInputs.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetInputs(OgaGeneratorParams *generator_params, const OgaNamedTensors *named_tensors)
-     * }
-     */
-    public static MethodHandle OgaGeneratorParamsSetInputs$handle() {
-        return OgaGeneratorParamsSetInputs.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetInputs(OgaGeneratorParams *generator_params, const OgaNamedTensors *named_tensors)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsSetInputs$address() {
-        return OgaGeneratorParamsSetInputs.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetInputs(OgaGeneratorParams *generator_params, const OgaNamedTensors *named_tensors)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsSetInputs(MemorySegment generator_params, MemorySegment named_tensors) {
-        var mh$ = OgaGeneratorParamsSetInputs.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGeneratorParamsSetInputs", generator_params, named_tensors);
-            }
-            return (MemorySegment)mh$.invokeExact(generator_params, named_tensors);
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class OgaGeneratorParamsSetModelInput {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGeneratorParamsSetModelInput");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetModelInput(OgaGeneratorParams *generator_params, const char *name, OgaTensor *tensor)
-     * }
-     */
-    public static FunctionDescriptor OgaGeneratorParamsSetModelInput$descriptor() {
-        return OgaGeneratorParamsSetModelInput.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetModelInput(OgaGeneratorParams *generator_params, const char *name, OgaTensor *tensor)
-     * }
-     */
-    public static MethodHandle OgaGeneratorParamsSetModelInput$handle() {
-        return OgaGeneratorParamsSetModelInput.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetModelInput(OgaGeneratorParams *generator_params, const char *name, OgaTensor *tensor)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsSetModelInput$address() {
-        return OgaGeneratorParamsSetModelInput.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetModelInput(OgaGeneratorParams *generator_params, const char *name, OgaTensor *tensor)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsSetModelInput(MemorySegment generator_params, MemorySegment name, MemorySegment tensor) {
-        var mh$ = OgaGeneratorParamsSetModelInput.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGeneratorParamsSetModelInput", generator_params, name, tensor);
-            }
-            return (MemorySegment)mh$.invokeExact(generator_params, name, tensor);
-        } catch (Throwable ex$) {
-           throw new AssertionError("should not reach here", ex$);
-        }
-    }
-
-    private static class OgaGeneratorParamsSetWhisperInputFeatures {
-        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER
-        );
-
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGeneratorParamsSetWhisperInputFeatures");
-
-        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
-    }
-
-    /**
-     * Function descriptor for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetWhisperInputFeatures(OgaGeneratorParams *generator_params, OgaTensor *tensor)
-     * }
-     */
-    public static FunctionDescriptor OgaGeneratorParamsSetWhisperInputFeatures$descriptor() {
-        return OgaGeneratorParamsSetWhisperInputFeatures.DESC;
-    }
-
-    /**
-     * Downcall method handle for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetWhisperInputFeatures(OgaGeneratorParams *generator_params, OgaTensor *tensor)
-     * }
-     */
-    public static MethodHandle OgaGeneratorParamsSetWhisperInputFeatures$handle() {
-        return OgaGeneratorParamsSetWhisperInputFeatures.HANDLE;
-    }
-
-    /**
-     * Address for:
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetWhisperInputFeatures(OgaGeneratorParams *generator_params, OgaTensor *tensor)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsSetWhisperInputFeatures$address() {
-        return OgaGeneratorParamsSetWhisperInputFeatures.ADDR;
-    }
-
-    /**
-     * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetWhisperInputFeatures(OgaGeneratorParams *generator_params, OgaTensor *tensor)
-     * }
-     */
-    public static MemorySegment OgaGeneratorParamsSetWhisperInputFeatures(MemorySegment generator_params, MemorySegment tensor) {
-        var mh$ = OgaGeneratorParamsSetWhisperInputFeatures.HANDLE;
-        try {
-            if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGeneratorParamsSetWhisperInputFeatures", generator_params, tensor);
-            }
-            return (MemorySegment)mh$.invokeExact(generator_params, tensor);
+            return (MemorySegment)mh$.invokeExact(params, name, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3637,10 +3282,11 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER,
             OrtGenApi.C_POINTER,
             OrtGenApi.C_POINTER,
-            OrtGenApi.C_POINTER
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_BOOL
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGeneratorParamsSetGuidance");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGeneratorParamsSetGuidance");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3648,7 +3294,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *generator_params, const char *type, const char *data)
+     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *params, const char *type, const char *data, bool enable_ff_tokens)
      * }
      */
     public static FunctionDescriptor OgaGeneratorParamsSetGuidance$descriptor() {
@@ -3658,7 +3304,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *generator_params, const char *type, const char *data)
+     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *params, const char *type, const char *data, bool enable_ff_tokens)
      * }
      */
     public static MethodHandle OgaGeneratorParamsSetGuidance$handle() {
@@ -3668,7 +3314,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *generator_params, const char *type, const char *data)
+     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *params, const char *type, const char *data, bool enable_ff_tokens)
      * }
      */
     public static MemorySegment OgaGeneratorParamsSetGuidance$address() {
@@ -3677,16 +3323,142 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *generator_params, const char *type, const char *data)
+     * OgaResult *OgaGeneratorParamsSetGuidance(OgaGeneratorParams *params, const char *type, const char *data, bool enable_ff_tokens)
      * }
      */
-    public static MemorySegment OgaGeneratorParamsSetGuidance(MemorySegment generator_params, MemorySegment type, MemorySegment data) {
+    public static MemorySegment OgaGeneratorParamsSetGuidance(MemorySegment params, MemorySegment type, MemorySegment data, boolean enable_ff_tokens) {
         var mh$ = OgaGeneratorParamsSetGuidance.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGeneratorParamsSetGuidance", generator_params, type, data);
+                traceDowncall("OgaGeneratorParamsSetGuidance", params, type, data, enable_ff_tokens);
             }
-            return (MemorySegment)mh$.invokeExact(generator_params, type, data);
+            return (MemorySegment)mh$.invokeExact(params, type, data, enable_ff_tokens);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaGeneratorParamsGetSearchNumber {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGeneratorParamsGetSearchNumber");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchNumber(const OgaGeneratorParams *params, const char *name, double *value)
+     * }
+     */
+    public static FunctionDescriptor OgaGeneratorParamsGetSearchNumber$descriptor() {
+        return OgaGeneratorParamsGetSearchNumber.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchNumber(const OgaGeneratorParams *params, const char *name, double *value)
+     * }
+     */
+    public static MethodHandle OgaGeneratorParamsGetSearchNumber$handle() {
+        return OgaGeneratorParamsGetSearchNumber.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchNumber(const OgaGeneratorParams *params, const char *name, double *value)
+     * }
+     */
+    public static MemorySegment OgaGeneratorParamsGetSearchNumber$address() {
+        return OgaGeneratorParamsGetSearchNumber.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchNumber(const OgaGeneratorParams *params, const char *name, double *value)
+     * }
+     */
+    public static MemorySegment OgaGeneratorParamsGetSearchNumber(MemorySegment params, MemorySegment name, MemorySegment value) {
+        var mh$ = OgaGeneratorParamsGetSearchNumber.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaGeneratorParamsGetSearchNumber", params, name, value);
+            }
+            return (MemorySegment)mh$.invokeExact(params, name, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaGeneratorParamsGetSearchBool {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGeneratorParamsGetSearchBool");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchBool(const OgaGeneratorParams *params, const char *name, bool *value)
+     * }
+     */
+    public static FunctionDescriptor OgaGeneratorParamsGetSearchBool$descriptor() {
+        return OgaGeneratorParamsGetSearchBool.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchBool(const OgaGeneratorParams *params, const char *name, bool *value)
+     * }
+     */
+    public static MethodHandle OgaGeneratorParamsGetSearchBool$handle() {
+        return OgaGeneratorParamsGetSearchBool.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchBool(const OgaGeneratorParams *params, const char *name, bool *value)
+     * }
+     */
+    public static MemorySegment OgaGeneratorParamsGetSearchBool$address() {
+        return OgaGeneratorParamsGetSearchBool.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaGeneratorParamsGetSearchBool(const OgaGeneratorParams *params, const char *name, bool *value)
+     * }
+     */
+    public static MemorySegment OgaGeneratorParamsGetSearchBool(MemorySegment params, MemorySegment name, MemorySegment value) {
+        var mh$ = OgaGeneratorParamsGetSearchBool.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaGeneratorParamsGetSearchBool", params, name, value);
+            }
+            return (MemorySegment)mh$.invokeExact(params, name, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3700,7 +3472,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateGenerator");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateGenerator");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3747,6 +3519,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateGenerator", model, params, out);
             }
             return (MemorySegment)mh$.invokeExact(model, params, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3757,7 +3531,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyGenerator");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyGenerator");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3804,6 +3578,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyGenerator", generator);
             }
             mh$.invokeExact(generator);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3815,7 +3591,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_IsDone");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_IsDone");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3823,7 +3599,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * bool OgaGenerator_IsDone(const OgaGenerator *generator)
+     * bool OgaGenerator_IsDone(OgaGenerator *generator)
      * }
      */
     public static FunctionDescriptor OgaGenerator_IsDone$descriptor() {
@@ -3833,7 +3609,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * bool OgaGenerator_IsDone(const OgaGenerator *generator)
+     * bool OgaGenerator_IsDone(OgaGenerator *generator)
      * }
      */
     public static MethodHandle OgaGenerator_IsDone$handle() {
@@ -3843,7 +3619,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * bool OgaGenerator_IsDone(const OgaGenerator *generator)
+     * bool OgaGenerator_IsDone(OgaGenerator *generator)
      * }
      */
     public static MemorySegment OgaGenerator_IsDone$address() {
@@ -3852,7 +3628,7 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * bool OgaGenerator_IsDone(const OgaGenerator *generator)
+     * bool OgaGenerator_IsDone(OgaGenerator *generator)
      * }
      */
     public static boolean OgaGenerator_IsDone(MemorySegment generator) {
@@ -3862,6 +3638,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_IsDone", generator);
             }
             return (boolean)mh$.invokeExact(generator);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3873,7 +3651,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_IsSessionTerminated");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_IsSessionTerminated");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3920,6 +3698,131 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_IsSessionTerminated", generator);
             }
             return (boolean)mh$.invokeExact(generator);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaGenerator_SetModelInput {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_SetModelInput");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetModelInput(OgaGenerator *generator, const char *name, OgaTensor *tensor)
+     * }
+     */
+    public static FunctionDescriptor OgaGenerator_SetModelInput$descriptor() {
+        return OgaGenerator_SetModelInput.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetModelInput(OgaGenerator *generator, const char *name, OgaTensor *tensor)
+     * }
+     */
+    public static MethodHandle OgaGenerator_SetModelInput$handle() {
+        return OgaGenerator_SetModelInput.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetModelInput(OgaGenerator *generator, const char *name, OgaTensor *tensor)
+     * }
+     */
+    public static MemorySegment OgaGenerator_SetModelInput$address() {
+        return OgaGenerator_SetModelInput.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetModelInput(OgaGenerator *generator, const char *name, OgaTensor *tensor)
+     * }
+     */
+    public static MemorySegment OgaGenerator_SetModelInput(MemorySegment generator, MemorySegment name, MemorySegment tensor) {
+        var mh$ = OgaGenerator_SetModelInput.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaGenerator_SetModelInput", generator, name, tensor);
+            }
+            return (MemorySegment)mh$.invokeExact(generator, name, tensor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaGenerator_SetInputs {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_SetInputs");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetInputs(OgaGenerator *generator, const OgaNamedTensors *named_tensors)
+     * }
+     */
+    public static FunctionDescriptor OgaGenerator_SetInputs$descriptor() {
+        return OgaGenerator_SetInputs.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetInputs(OgaGenerator *generator, const OgaNamedTensors *named_tensors)
+     * }
+     */
+    public static MethodHandle OgaGenerator_SetInputs$handle() {
+        return OgaGenerator_SetInputs.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetInputs(OgaGenerator *generator, const OgaNamedTensors *named_tensors)
+     * }
+     */
+    public static MemorySegment OgaGenerator_SetInputs$address() {
+        return OgaGenerator_SetInputs.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_SetInputs(OgaGenerator *generator, const OgaNamedTensors *named_tensors)
+     * }
+     */
+    public static MemorySegment OgaGenerator_SetInputs(MemorySegment generator, MemorySegment named_tensors) {
+        var mh$ = OgaGenerator_SetInputs.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaGenerator_SetInputs", generator, named_tensors);
+            }
+            return (MemorySegment)mh$.invokeExact(generator, named_tensors);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3932,7 +3835,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_AppendTokenSequences");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_AppendTokenSequences");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -3940,7 +3843,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *oga_generator, const OgaSequences *p_sequences)
+     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *generator, const OgaSequences *p_sequences)
      * }
      */
     public static FunctionDescriptor OgaGenerator_AppendTokenSequences$descriptor() {
@@ -3950,7 +3853,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *oga_generator, const OgaSequences *p_sequences)
+     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *generator, const OgaSequences *p_sequences)
      * }
      */
     public static MethodHandle OgaGenerator_AppendTokenSequences$handle() {
@@ -3960,7 +3863,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *oga_generator, const OgaSequences *p_sequences)
+     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *generator, const OgaSequences *p_sequences)
      * }
      */
     public static MemorySegment OgaGenerator_AppendTokenSequences$address() {
@@ -3969,16 +3872,18 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *oga_generator, const OgaSequences *p_sequences)
+     * OgaResult *OgaGenerator_AppendTokenSequences(OgaGenerator *generator, const OgaSequences *p_sequences)
      * }
      */
-    public static MemorySegment OgaGenerator_AppendTokenSequences(MemorySegment oga_generator, MemorySegment p_sequences) {
+    public static MemorySegment OgaGenerator_AppendTokenSequences(MemorySegment generator, MemorySegment p_sequences) {
         var mh$ = OgaGenerator_AppendTokenSequences.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGenerator_AppendTokenSequences", oga_generator, p_sequences);
+                traceDowncall("OgaGenerator_AppendTokenSequences", generator, p_sequences);
             }
-            return (MemorySegment)mh$.invokeExact(oga_generator, p_sequences);
+            return (MemorySegment)mh$.invokeExact(generator, p_sequences);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -3992,7 +3897,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_AppendTokens");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_AppendTokens");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4000,7 +3905,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *oga_generator, const int32_t *input_ids, size_t input_ids_count)
+     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *generator, const int32_t *input_ids, size_t input_ids_count)
      * }
      */
     public static FunctionDescriptor OgaGenerator_AppendTokens$descriptor() {
@@ -4010,7 +3915,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *oga_generator, const int32_t *input_ids, size_t input_ids_count)
+     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *generator, const int32_t *input_ids, size_t input_ids_count)
      * }
      */
     public static MethodHandle OgaGenerator_AppendTokens$handle() {
@@ -4020,7 +3925,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *oga_generator, const int32_t *input_ids, size_t input_ids_count)
+     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *generator, const int32_t *input_ids, size_t input_ids_count)
      * }
      */
     public static MemorySegment OgaGenerator_AppendTokens$address() {
@@ -4029,16 +3934,78 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *oga_generator, const int32_t *input_ids, size_t input_ids_count)
+     * OgaResult *OgaGenerator_AppendTokens(OgaGenerator *generator, const int32_t *input_ids, size_t input_ids_count)
      * }
      */
-    public static MemorySegment OgaGenerator_AppendTokens(MemorySegment oga_generator, MemorySegment input_ids, long input_ids_count) {
+    public static MemorySegment OgaGenerator_AppendTokens(MemorySegment generator, MemorySegment input_ids, long input_ids_count) {
         var mh$ = OgaGenerator_AppendTokens.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaGenerator_AppendTokens", oga_generator, input_ids, input_ids_count);
+                traceDowncall("OgaGenerator_AppendTokens", generator, input_ids, input_ids_count);
             }
-            return (MemorySegment)mh$.invokeExact(oga_generator, input_ids, input_ids_count);
+            return (MemorySegment)mh$.invokeExact(generator, input_ids, input_ids_count);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaGenerator_TokenCount {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_LONG,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_TokenCount");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * size_t OgaGenerator_TokenCount(const OgaGenerator *generator)
+     * }
+     */
+    public static FunctionDescriptor OgaGenerator_TokenCount$descriptor() {
+        return OgaGenerator_TokenCount.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * size_t OgaGenerator_TokenCount(const OgaGenerator *generator)
+     * }
+     */
+    public static MethodHandle OgaGenerator_TokenCount$handle() {
+        return OgaGenerator_TokenCount.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * size_t OgaGenerator_TokenCount(const OgaGenerator *generator)
+     * }
+     */
+    public static MemorySegment OgaGenerator_TokenCount$address() {
+        return OgaGenerator_TokenCount.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * size_t OgaGenerator_TokenCount(const OgaGenerator *generator)
+     * }
+     */
+    public static long OgaGenerator_TokenCount(MemorySegment generator) {
+        var mh$ = OgaGenerator_TokenCount.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaGenerator_TokenCount", generator);
+            }
+            return (long)mh$.invokeExact(generator);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4050,7 +4017,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_GenerateNextToken");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_GenerateNextToken");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4097,6 +4064,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_GenerateNextToken", generator);
             }
             return (MemorySegment)mh$.invokeExact(generator);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4110,7 +4079,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_GetNextTokens");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_GetNextTokens");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4157,6 +4126,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_GetNextTokens", generator, out, out_count);
             }
             return (MemorySegment)mh$.invokeExact(generator, out, out_count);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4170,7 +4141,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_SetRuntimeOption");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_SetRuntimeOption");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4217,6 +4188,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_SetRuntimeOption", generator, key, value);
             }
             return (MemorySegment)mh$.invokeExact(generator, key, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4229,7 +4202,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_RewindTo");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_RewindTo");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4276,6 +4249,70 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_RewindTo", generator, new_length);
             }
             return (MemorySegment)mh$.invokeExact(generator, new_length);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaGenerator_GetInput {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_GetInput");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_GetInput(const OgaGenerator *generator, const char *name, OgaTensor **out)
+     * }
+     */
+    public static FunctionDescriptor OgaGenerator_GetInput$descriptor() {
+        return OgaGenerator_GetInput.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_GetInput(const OgaGenerator *generator, const char *name, OgaTensor **out)
+     * }
+     */
+    public static MethodHandle OgaGenerator_GetInput$handle() {
+        return OgaGenerator_GetInput.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_GetInput(const OgaGenerator *generator, const char *name, OgaTensor **out)
+     * }
+     */
+    public static MemorySegment OgaGenerator_GetInput$address() {
+        return OgaGenerator_GetInput.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaGenerator_GetInput(const OgaGenerator *generator, const char *name, OgaTensor **out)
+     * }
+     */
+    public static MemorySegment OgaGenerator_GetInput(MemorySegment generator, MemorySegment name, MemorySegment out) {
+        var mh$ = OgaGenerator_GetInput.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaGenerator_GetInput", generator, name, out);
+            }
+            return (MemorySegment)mh$.invokeExact(generator, name, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4289,7 +4326,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_GetOutput");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_GetOutput");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4336,6 +4373,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_GetOutput", generator, name, out);
             }
             return (MemorySegment)mh$.invokeExact(generator, name, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4348,7 +4387,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_GetLogits");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_GetLogits");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4395,6 +4434,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_GetLogits", generator, out);
             }
             return (MemorySegment)mh$.invokeExact(generator, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4407,7 +4448,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_SetLogits");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_SetLogits");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4454,6 +4495,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_SetLogits", generator, tensor);
             }
             return (MemorySegment)mh$.invokeExact(generator, tensor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4466,7 +4509,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_GetSequenceCount");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_GetSequenceCount");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4513,6 +4556,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_GetSequenceCount", generator, index);
             }
             return (long)mh$.invokeExact(generator, index);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4525,7 +4570,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGenerator_GetSequenceData");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGenerator_GetSequenceData");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4572,6 +4617,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGenerator_GetSequenceData", generator, index);
             }
             return (MemorySegment)mh$.invokeExact(generator, index);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4584,7 +4631,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateTokenizer");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateTokenizer");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4631,6 +4678,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateTokenizer", model, out);
             }
             return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4641,7 +4690,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyTokenizer");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyTokenizer");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4688,6 +4737,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyTokenizer", x0);
             }
             mh$.invokeExact(x0);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4700,7 +4751,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateMultiModalProcessor");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateMultiModalProcessor");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4747,6 +4798,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateMultiModalProcessor", model, out);
             }
             return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4757,7 +4810,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyMultiModalProcessor");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyMultiModalProcessor");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4804,6 +4857,255 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyMultiModalProcessor", processor);
             }
             mh$.invokeExact(processor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaUpdateTokenizerOptions {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_LONG
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaUpdateTokenizerOptions");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaUpdateTokenizerOptions(OgaTokenizer *tokenizer, const char *const *keys, const char *const *values, size_t num_options)
+     * }
+     */
+    public static FunctionDescriptor OgaUpdateTokenizerOptions$descriptor() {
+        return OgaUpdateTokenizerOptions.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaUpdateTokenizerOptions(OgaTokenizer *tokenizer, const char *const *keys, const char *const *values, size_t num_options)
+     * }
+     */
+    public static MethodHandle OgaUpdateTokenizerOptions$handle() {
+        return OgaUpdateTokenizerOptions.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaUpdateTokenizerOptions(OgaTokenizer *tokenizer, const char *const *keys, const char *const *values, size_t num_options)
+     * }
+     */
+    public static MemorySegment OgaUpdateTokenizerOptions$address() {
+        return OgaUpdateTokenizerOptions.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaUpdateTokenizerOptions(OgaTokenizer *tokenizer, const char *const *keys, const char *const *values, size_t num_options)
+     * }
+     */
+    public static MemorySegment OgaUpdateTokenizerOptions(MemorySegment tokenizer, MemorySegment keys, MemorySegment values, long num_options) {
+        var mh$ = OgaUpdateTokenizerOptions.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaUpdateTokenizerOptions", tokenizer, keys, values, num_options);
+            }
+            return (MemorySegment)mh$.invokeExact(tokenizer, keys, values, num_options);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaTokenizerGetBosTokenId {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerGetBosTokenId");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetBosTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static FunctionDescriptor OgaTokenizerGetBosTokenId$descriptor() {
+        return OgaTokenizerGetBosTokenId.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetBosTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static MethodHandle OgaTokenizerGetBosTokenId$handle() {
+        return OgaTokenizerGetBosTokenId.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetBosTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static MemorySegment OgaTokenizerGetBosTokenId$address() {
+        return OgaTokenizerGetBosTokenId.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetBosTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static MemorySegment OgaTokenizerGetBosTokenId(MemorySegment tokenizer, MemorySegment token_id) {
+        var mh$ = OgaTokenizerGetBosTokenId.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaTokenizerGetBosTokenId", tokenizer, token_id);
+            }
+            return (MemorySegment)mh$.invokeExact(tokenizer, token_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaTokenizerGetEosTokenIds {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerGetEosTokenIds");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetEosTokenIds(const OgaTokenizer *tokenizer, const int32_t **eos_token_ids, size_t *token_count)
+     * }
+     */
+    public static FunctionDescriptor OgaTokenizerGetEosTokenIds$descriptor() {
+        return OgaTokenizerGetEosTokenIds.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetEosTokenIds(const OgaTokenizer *tokenizer, const int32_t **eos_token_ids, size_t *token_count)
+     * }
+     */
+    public static MethodHandle OgaTokenizerGetEosTokenIds$handle() {
+        return OgaTokenizerGetEosTokenIds.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetEosTokenIds(const OgaTokenizer *tokenizer, const int32_t **eos_token_ids, size_t *token_count)
+     * }
+     */
+    public static MemorySegment OgaTokenizerGetEosTokenIds$address() {
+        return OgaTokenizerGetEosTokenIds.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetEosTokenIds(const OgaTokenizer *tokenizer, const int32_t **eos_token_ids, size_t *token_count)
+     * }
+     */
+    public static MemorySegment OgaTokenizerGetEosTokenIds(MemorySegment tokenizer, MemorySegment eos_token_ids, MemorySegment token_count) {
+        var mh$ = OgaTokenizerGetEosTokenIds.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaTokenizerGetEosTokenIds", tokenizer, eos_token_ids, token_count);
+            }
+            return (MemorySegment)mh$.invokeExact(tokenizer, eos_token_ids, token_count);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaTokenizerGetPadTokenId {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerGetPadTokenId");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetPadTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static FunctionDescriptor OgaTokenizerGetPadTokenId$descriptor() {
+        return OgaTokenizerGetPadTokenId.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetPadTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static MethodHandle OgaTokenizerGetPadTokenId$handle() {
+        return OgaTokenizerGetPadTokenId.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetPadTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static MemorySegment OgaTokenizerGetPadTokenId$address() {
+        return OgaTokenizerGetPadTokenId.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaTokenizerGetPadTokenId(const OgaTokenizer *tokenizer, int32_t *token_id)
+     * }
+     */
+    public static MemorySegment OgaTokenizerGetPadTokenId(MemorySegment tokenizer, MemorySegment token_id) {
+        var mh$ = OgaTokenizerGetPadTokenId.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaTokenizerGetPadTokenId", tokenizer, token_id);
+            }
+            return (MemorySegment)mh$.invokeExact(tokenizer, token_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4817,7 +5119,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTokenizerEncode");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerEncode");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4864,6 +5166,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTokenizerEncode", x0, str, sequences);
             }
             return (MemorySegment)mh$.invokeExact(x0, str, sequences);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4878,7 +5182,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTokenizerEncodeBatch");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerEncodeBatch");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4925,6 +5229,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTokenizerEncodeBatch", x0, strings, count, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, strings, count, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4938,7 +5244,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTokenizerDecodeBatch");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerDecodeBatch");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -4985,6 +5291,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTokenizerDecodeBatch", x0, tensor, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, tensor, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -4998,7 +5306,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTokenizerToTokenId");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerToTokenId");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5045,6 +5353,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTokenizerToTokenId", tokenizer, str, token_id);
             }
             return (MemorySegment)mh$.invokeExact(tokenizer, str, token_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5059,7 +5369,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaProcessorProcessImages");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaProcessorProcessImages");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5106,6 +5416,71 @@ public class OrtGenApi {
                 traceDowncall("OgaProcessorProcessImages", x0, prompt, images, input_tensors);
             }
             return (MemorySegment)mh$.invokeExact(x0, prompt, images, input_tensors);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaProcessorProcessImagesAndPrompts {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaProcessorProcessImagesAndPrompts");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static FunctionDescriptor OgaProcessorProcessImagesAndPrompts$descriptor() {
+        return OgaProcessorProcessImagesAndPrompts.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MethodHandle OgaProcessorProcessImagesAndPrompts$handle() {
+        return OgaProcessorProcessImagesAndPrompts.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MemorySegment OgaProcessorProcessImagesAndPrompts$address() {
+        return OgaProcessorProcessImagesAndPrompts.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MemorySegment OgaProcessorProcessImagesAndPrompts(MemorySegment x0, MemorySegment prompts, MemorySegment images, MemorySegment input_tensors) {
+        var mh$ = OgaProcessorProcessImagesAndPrompts.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaProcessorProcessImagesAndPrompts", x0, prompts, images, input_tensors);
+            }
+            return (MemorySegment)mh$.invokeExact(x0, prompts, images, input_tensors);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5116,10 +5491,11 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER,
             OrtGenApi.C_POINTER,
             OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaProcessorProcessAudios");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaProcessorProcessAudios");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5127,7 +5503,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const char *prompt, const OgaAudios *audios, OgaNamedTensors **input_tensors)
      * }
      */
     public static FunctionDescriptor OgaProcessorProcessAudios$descriptor() {
@@ -5137,7 +5513,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const char *prompt, const OgaAudios *audios, OgaNamedTensors **input_tensors)
      * }
      */
     public static MethodHandle OgaProcessorProcessAudios$handle() {
@@ -5147,7 +5523,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const char *prompt, const OgaAudios *audios, OgaNamedTensors **input_tensors)
      * }
      */
     public static MemorySegment OgaProcessorProcessAudios$address() {
@@ -5156,16 +5532,81 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * OgaResult *OgaProcessorProcessAudios(const OgaMultiModalProcessor *, const char *prompt, const OgaAudios *audios, OgaNamedTensors **input_tensors)
      * }
      */
-    public static MemorySegment OgaProcessorProcessAudios(MemorySegment x0, MemorySegment audios, MemorySegment input_tensors) {
+    public static MemorySegment OgaProcessorProcessAudios(MemorySegment x0, MemorySegment prompt, MemorySegment audios, MemorySegment input_tensors) {
         var mh$ = OgaProcessorProcessAudios.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaProcessorProcessAudios", x0, audios, input_tensors);
+                traceDowncall("OgaProcessorProcessAudios", x0, prompt, audios, input_tensors);
             }
-            return (MemorySegment)mh$.invokeExact(x0, audios, input_tensors);
+            return (MemorySegment)mh$.invokeExact(x0, prompt, audios, input_tensors);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaProcessorProcessAudiosAndPrompts {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaProcessorProcessAudiosAndPrompts");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static FunctionDescriptor OgaProcessorProcessAudiosAndPrompts$descriptor() {
+        return OgaProcessorProcessAudiosAndPrompts.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MethodHandle OgaProcessorProcessAudiosAndPrompts$handle() {
+        return OgaProcessorProcessAudiosAndPrompts.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MemorySegment OgaProcessorProcessAudiosAndPrompts$address() {
+        return OgaProcessorProcessAudiosAndPrompts.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MemorySegment OgaProcessorProcessAudiosAndPrompts(MemorySegment x0, MemorySegment prompts, MemorySegment audios, MemorySegment input_tensors) {
+        var mh$ = OgaProcessorProcessAudiosAndPrompts.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaProcessorProcessAudiosAndPrompts", x0, prompts, audios, input_tensors);
+            }
+            return (MemorySegment)mh$.invokeExact(x0, prompts, audios, input_tensors);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5181,7 +5622,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaProcessorProcessImagesAndAudios");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaProcessorProcessImagesAndAudios");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5228,6 +5669,72 @@ public class OrtGenApi {
                 traceDowncall("OgaProcessorProcessImagesAndAudios", x0, prompt, images, audios, input_tensors);
             }
             return (MemorySegment)mh$.invokeExact(x0, prompt, images, audios, input_tensors);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class OgaProcessorProcessImagesAndAudiosAndPrompts {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaProcessorProcessImagesAndAudiosAndPrompts");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static FunctionDescriptor OgaProcessorProcessImagesAndAudiosAndPrompts$descriptor() {
+        return OgaProcessorProcessImagesAndAudiosAndPrompts.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MethodHandle OgaProcessorProcessImagesAndAudiosAndPrompts$handle() {
+        return OgaProcessorProcessImagesAndAudiosAndPrompts.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MemorySegment OgaProcessorProcessImagesAndAudiosAndPrompts$address() {
+        return OgaProcessorProcessImagesAndAudiosAndPrompts.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaProcessorProcessImagesAndAudiosAndPrompts(const OgaMultiModalProcessor *, const OgaStringArray *prompts, const OgaImages *images, const OgaAudios *audios, OgaNamedTensors **input_tensors)
+     * }
+     */
+    public static MemorySegment OgaProcessorProcessImagesAndAudiosAndPrompts(MemorySegment x0, MemorySegment prompts, MemorySegment images, MemorySegment audios, MemorySegment input_tensors) {
+        var mh$ = OgaProcessorProcessImagesAndAudiosAndPrompts.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaProcessorProcessImagesAndAudiosAndPrompts", x0, prompts, images, audios, input_tensors);
+            }
+            return (MemorySegment)mh$.invokeExact(x0, prompts, images, audios, input_tensors);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5242,7 +5749,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTokenizerDecode");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerDecode");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5289,6 +5796,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTokenizerDecode", x0, tokens, token_count, out_string);
             }
             return (MemorySegment)mh$.invokeExact(x0, tokens, token_count, out_string);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5303,7 +5812,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaProcessorDecode");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaProcessorDecode");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5350,6 +5859,8 @@ public class OrtGenApi {
                 traceDowncall("OgaProcessorDecode", x0, tokens, token_count, out_string);
             }
             return (MemorySegment)mh$.invokeExact(x0, tokens, token_count, out_string);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5361,11 +5872,12 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER,
             OrtGenApi.C_POINTER,
             OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
             OrtGenApi.C_BOOL,
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTokenizerApplyChatTemplate");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerApplyChatTemplate");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5373,7 +5885,7 @@ public class OrtGenApi {
     /**
      * Function descriptor for:
      * {@snippet lang=c :
-     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, bool add_generation_prompt, const char **out_string)
+     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, const char *tools, bool add_generation_prompt, const char **out_string)
      * }
      */
     public static FunctionDescriptor OgaTokenizerApplyChatTemplate$descriptor() {
@@ -5383,7 +5895,7 @@ public class OrtGenApi {
     /**
      * Downcall method handle for:
      * {@snippet lang=c :
-     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, bool add_generation_prompt, const char **out_string)
+     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, const char *tools, bool add_generation_prompt, const char **out_string)
      * }
      */
     public static MethodHandle OgaTokenizerApplyChatTemplate$handle() {
@@ -5393,7 +5905,7 @@ public class OrtGenApi {
     /**
      * Address for:
      * {@snippet lang=c :
-     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, bool add_generation_prompt, const char **out_string)
+     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, const char *tools, bool add_generation_prompt, const char **out_string)
      * }
      */
     public static MemorySegment OgaTokenizerApplyChatTemplate$address() {
@@ -5402,16 +5914,18 @@ public class OrtGenApi {
 
     /**
      * {@snippet lang=c :
-     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, bool add_generation_prompt, const char **out_string)
+     * OgaResult *OgaTokenizerApplyChatTemplate(const OgaTokenizer *, const char *template_str, const char *messages, const char *tools, bool add_generation_prompt, const char **out_string)
      * }
      */
-    public static MemorySegment OgaTokenizerApplyChatTemplate(MemorySegment x0, MemorySegment template_str, MemorySegment messages, boolean add_generation_prompt, MemorySegment out_string) {
+    public static MemorySegment OgaTokenizerApplyChatTemplate(MemorySegment x0, MemorySegment template_str, MemorySegment messages, MemorySegment tools, boolean add_generation_prompt, MemorySegment out_string) {
         var mh$ = OgaTokenizerApplyChatTemplate.HANDLE;
         try {
             if (TRACE_DOWNCALLS) {
-                traceDowncall("OgaTokenizerApplyChatTemplate", x0, template_str, messages, add_generation_prompt, out_string);
+                traceDowncall("OgaTokenizerApplyChatTemplate", x0, template_str, messages, tools, add_generation_prompt, out_string);
             }
-            return (MemorySegment)mh$.invokeExact(x0, template_str, messages, add_generation_prompt, out_string);
+            return (MemorySegment)mh$.invokeExact(x0, template_str, messages, tools, add_generation_prompt, out_string);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5424,7 +5938,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateTokenizerStream");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateTokenizerStream");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5471,6 +5985,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateTokenizerStream", x0, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5483,7 +5999,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateTokenizerStreamFromProcessor");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateTokenizerStreamFromProcessor");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5530,6 +6046,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateTokenizerStreamFromProcessor", x0, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5540,7 +6058,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyTokenizerStream");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyTokenizerStream");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5587,6 +6105,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyTokenizerStream", x0);
             }
             mh$.invokeExact(x0);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5600,7 +6120,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTokenizerStreamDecode");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTokenizerStreamDecode");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5647,6 +6167,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTokenizerStreamDecode", x0, token, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, token, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5662,7 +6184,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateTensorFromBuffer");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateTensorFromBuffer");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5709,6 +6231,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateTensorFromBuffer", data, shape_dims, shape_dims_count, element_type, out);
             }
             return (MemorySegment)mh$.invokeExact(data, shape_dims, shape_dims_count, element_type, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5719,7 +6243,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyTensor");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyTensor");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5766,6 +6290,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyTensor", tensor);
             }
             mh$.invokeExact(tensor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5778,7 +6304,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTensorGetType");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTensorGetType");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5825,6 +6351,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTensorGetType", x0, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5837,7 +6365,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTensorGetShapeRank");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTensorGetShapeRank");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5884,6 +6412,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTensorGetShapeRank", x0, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5897,7 +6427,7 @@ public class OrtGenApi {
             OrtGenApi.C_LONG
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTensorGetShape");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTensorGetShape");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -5944,6 +6474,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTensorGetShape", x0, shape_dims, shape_dims_count);
             }
             return (MemorySegment)mh$.invokeExact(x0, shape_dims, shape_dims_count);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -5956,7 +6488,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaTensorGetData");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaTensorGetData");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6003,6 +6535,8 @@ public class OrtGenApi {
                 traceDowncall("OgaTensorGetData", x0, out);
             }
             return (MemorySegment)mh$.invokeExact(x0, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6014,7 +6548,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateNamedTensors");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateNamedTensors");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6061,6 +6595,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateNamedTensors", out);
             }
             return (MemorySegment)mh$.invokeExact(out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6074,7 +6610,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaNamedTensorsGet");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaNamedTensorsGet");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6121,6 +6657,8 @@ public class OrtGenApi {
                 traceDowncall("OgaNamedTensorsGet", named_tensors, name, out);
             }
             return (MemorySegment)mh$.invokeExact(named_tensors, name, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6134,7 +6672,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaNamedTensorsSet");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaNamedTensorsSet");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6181,6 +6719,8 @@ public class OrtGenApi {
                 traceDowncall("OgaNamedTensorsSet", named_tensors, name, tensor);
             }
             return (MemorySegment)mh$.invokeExact(named_tensors, name, tensor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6193,7 +6733,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaNamedTensorsDelete");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaNamedTensorsDelete");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6240,6 +6780,8 @@ public class OrtGenApi {
                 traceDowncall("OgaNamedTensorsDelete", named_tensors, name);
             }
             return (MemorySegment)mh$.invokeExact(named_tensors, name);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6252,7 +6794,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaNamedTensorsCount");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaNamedTensorsCount");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6299,6 +6841,8 @@ public class OrtGenApi {
                 traceDowncall("OgaNamedTensorsCount", named_tensors, out);
             }
             return (MemorySegment)mh$.invokeExact(named_tensors, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6311,7 +6855,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaNamedTensorsGetNames");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaNamedTensorsGetNames");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6358,6 +6902,8 @@ public class OrtGenApi {
                 traceDowncall("OgaNamedTensorsGetNames", named_tensors, out);
             }
             return (MemorySegment)mh$.invokeExact(named_tensors, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6369,7 +6915,7 @@ public class OrtGenApi {
             OrtGenApi.C_INT
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaSetCurrentGpuDeviceId");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSetCurrentGpuDeviceId");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6416,6 +6962,8 @@ public class OrtGenApi {
                 traceDowncall("OgaSetCurrentGpuDeviceId", device_id);
             }
             return (MemorySegment)mh$.invokeExact(device_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6427,7 +6975,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaGetCurrentGpuDeviceId");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaGetCurrentGpuDeviceId");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6474,6 +7022,8 @@ public class OrtGenApi {
                 traceDowncall("OgaGetCurrentGpuDeviceId", device_id);
             }
             return (MemorySegment)mh$.invokeExact(device_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6485,7 +7035,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateStringArray");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateStringArray");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6532,6 +7082,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateStringArray", out);
             }
             return (MemorySegment)mh$.invokeExact(out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6545,7 +7097,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateStringArrayFromStrings");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateStringArrayFromStrings");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6592,6 +7144,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateStringArrayFromStrings", strs, count, out);
             }
             return (MemorySegment)mh$.invokeExact(strs, count, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6602,7 +7156,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyStringArray");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyStringArray");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6649,6 +7203,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyStringArray", string_array);
             }
             mh$.invokeExact(string_array);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6661,7 +7217,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaStringArrayAddString");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaStringArrayAddString");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6708,6 +7264,8 @@ public class OrtGenApi {
                 traceDowncall("OgaStringArrayAddString", string_array, str);
             }
             return (MemorySegment)mh$.invokeExact(string_array, str);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6720,7 +7278,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaStringArrayGetCount");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaStringArrayGetCount");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6767,6 +7325,8 @@ public class OrtGenApi {
                 traceDowncall("OgaStringArrayGetCount", string_array, out);
             }
             return (MemorySegment)mh$.invokeExact(string_array, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6780,7 +7340,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaStringArrayGetString");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaStringArrayGetString");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6827,6 +7387,8 @@ public class OrtGenApi {
                 traceDowncall("OgaStringArrayGetString", string_array, index, out);
             }
             return (MemorySegment)mh$.invokeExact(string_array, index, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6839,7 +7401,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaCreateAdapters");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateAdapters");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6886,6 +7448,8 @@ public class OrtGenApi {
                 traceDowncall("OgaCreateAdapters", model, out);
             }
             return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6896,7 +7460,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaDestroyAdapters");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyAdapters");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -6943,6 +7507,8 @@ public class OrtGenApi {
                 traceDowncall("OgaDestroyAdapters", adapters);
             }
             mh$.invokeExact(adapters);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -6956,7 +7522,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaLoadAdapter");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaLoadAdapter");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -7003,6 +7569,8 @@ public class OrtGenApi {
                 traceDowncall("OgaLoadAdapter", adapters, adapter_file_path, adapter_name);
             }
             return (MemorySegment)mh$.invokeExact(adapters, adapter_file_path, adapter_name);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -7015,7 +7583,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaUnloadAdapter");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaUnloadAdapter");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -7062,6 +7630,8 @@ public class OrtGenApi {
                 traceDowncall("OgaUnloadAdapter", adapters, adapter_name);
             }
             return (MemorySegment)mh$.invokeExact(adapters, adapter_name);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -7075,7 +7645,7 @@ public class OrtGenApi {
             OrtGenApi.C_POINTER
         );
 
-        public static final MemorySegment ADDR = OrtGenApi.findOrThrow("OgaSetActiveAdapter");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaSetActiveAdapter");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -7122,480 +7692,1348 @@ public class OrtGenApi {
                 traceDowncall("OgaSetActiveAdapter", generator, adapters, adapter_name);
             }
             return (MemorySegment)mh$.invokeExact(generator, adapters, adapter_name);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
     }
+
+    private static class OgaCreateEngine {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateEngine");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
     /**
+     * Function descriptor for:
      * {@snippet lang=c :
-     * #define __DARWIN_SUF_EXTSN "$DARWIN_EXTSN"
+     * OgaResult *OgaCreateEngine(OgaModel *model, OgaEngine **out)
      * }
      */
-    public static MemorySegment __DARWIN_SUF_EXTSN() {
-        class Holder {
-            static final MemorySegment __DARWIN_SUF_EXTSN
-                = OrtGenApi.LIBRARY_ARENA.allocateFrom("$DARWIN_EXTSN");
+    public static FunctionDescriptor OgaCreateEngine$descriptor() {
+        return OgaCreateEngine.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateEngine(OgaModel *model, OgaEngine **out)
+     * }
+     */
+    public static MethodHandle OgaCreateEngine$handle() {
+        return OgaCreateEngine.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateEngine(OgaModel *model, OgaEngine **out)
+     * }
+     */
+    public static MemorySegment OgaCreateEngine$address() {
+        return OgaCreateEngine.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateEngine(OgaModel *model, OgaEngine **out)
+     * }
+     */
+    public static MemorySegment OgaCreateEngine(MemorySegment model, MemorySegment out) {
+        var mh$ = OgaCreateEngine.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaCreateEngine", model, out);
+            }
+            return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
         }
-        return Holder.__DARWIN_SUF_EXTSN;
     }
-    private static final long __DARWIN_C_ANSI = 4096L;
+
+    private static class OgaDestroyEngine {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyEngine");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
     /**
+     * Function descriptor for:
      * {@snippet lang=c :
-     * #define __DARWIN_C_ANSI 4096
+     * void OgaDestroyEngine(OgaEngine *engine)
      * }
      */
-    public static long __DARWIN_C_ANSI() {
-        return __DARWIN_C_ANSI;
+    public static FunctionDescriptor OgaDestroyEngine$descriptor() {
+        return OgaDestroyEngine.DESC;
     }
-    private static final long __DARWIN_C_FULL = 900000L;
+
     /**
+     * Downcall method handle for:
      * {@snippet lang=c :
-     * #define __DARWIN_C_FULL 900000
+     * void OgaDestroyEngine(OgaEngine *engine)
      * }
      */
-    public static long __DARWIN_C_FULL() {
-        return __DARWIN_C_FULL;
+    public static MethodHandle OgaDestroyEngine$handle() {
+        return OgaDestroyEngine.HANDLE;
     }
-    private static final long __DARWIN_C_LEVEL = 900000L;
+
     /**
+     * Address for:
      * {@snippet lang=c :
-     * #define __DARWIN_C_LEVEL 900000
+     * void OgaDestroyEngine(OgaEngine *engine)
      * }
      */
-    public static long __DARWIN_C_LEVEL() {
-        return __DARWIN_C_LEVEL;
+    public static MemorySegment OgaDestroyEngine$address() {
+        return OgaDestroyEngine.ADDR;
     }
-    private static final MemorySegment __DARWIN_NULL = MemorySegment.ofAddress(0L);
+
     /**
      * {@snippet lang=c :
-     * #define __DARWIN_NULL (void*) 0
+     * void OgaDestroyEngine(OgaEngine *engine)
      * }
      */
-    public static MemorySegment __DARWIN_NULL() {
-        return __DARWIN_NULL;
+    public static void OgaDestroyEngine(MemorySegment engine) {
+        var mh$ = OgaDestroyEngine.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaDestroyEngine", engine);
+            }
+            mh$.invokeExact(engine);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final long INT64_MAX = 9223372036854775807L;
+
+    private static class OgaEngineStep {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaEngineStep");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineStep(OgaEngine *engine, OgaRequest **request)
+     * }
+     */
+    public static FunctionDescriptor OgaEngineStep$descriptor() {
+        return OgaEngineStep.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineStep(OgaEngine *engine, OgaRequest **request)
+     * }
+     */
+    public static MethodHandle OgaEngineStep$handle() {
+        return OgaEngineStep.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineStep(OgaEngine *engine, OgaRequest **request)
+     * }
+     */
+    public static MemorySegment OgaEngineStep$address() {
+        return OgaEngineStep.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT64_MAX 9223372036854775807
+     * OgaResult *OgaEngineStep(OgaEngine *engine, OgaRequest **request)
      * }
      */
-    public static long INT64_MAX() {
-        return INT64_MAX;
+    public static MemorySegment OgaEngineStep(MemorySegment engine, MemorySegment request) {
+        var mh$ = OgaEngineStep.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaEngineStep", engine, request);
+            }
+            return (MemorySegment)mh$.invokeExact(engine, request);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT8_MIN = (int)-128L;
+
+    private static class OgaEngineHasPendingRequests {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaEngineHasPendingRequests");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineHasPendingRequests(OgaEngine *engine, bool *out)
+     * }
+     */
+    public static FunctionDescriptor OgaEngineHasPendingRequests$descriptor() {
+        return OgaEngineHasPendingRequests.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineHasPendingRequests(OgaEngine *engine, bool *out)
+     * }
+     */
+    public static MethodHandle OgaEngineHasPendingRequests$handle() {
+        return OgaEngineHasPendingRequests.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineHasPendingRequests(OgaEngine *engine, bool *out)
+     * }
+     */
+    public static MemorySegment OgaEngineHasPendingRequests$address() {
+        return OgaEngineHasPendingRequests.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT8_MIN -128
+     * OgaResult *OgaEngineHasPendingRequests(OgaEngine *engine, bool *out)
      * }
      */
-    public static int INT8_MIN() {
-        return INT8_MIN;
+    public static MemorySegment OgaEngineHasPendingRequests(MemorySegment engine, MemorySegment out) {
+        var mh$ = OgaEngineHasPendingRequests.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaEngineHasPendingRequests", engine, out);
+            }
+            return (MemorySegment)mh$.invokeExact(engine, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT16_MIN = (int)-32768L;
+
+    private static class OgaEngineAddRequest {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaEngineAddRequest");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineAddRequest(OgaEngine *engine, OgaRequest *request)
+     * }
+     */
+    public static FunctionDescriptor OgaEngineAddRequest$descriptor() {
+        return OgaEngineAddRequest.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineAddRequest(OgaEngine *engine, OgaRequest *request)
+     * }
+     */
+    public static MethodHandle OgaEngineAddRequest$handle() {
+        return OgaEngineAddRequest.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineAddRequest(OgaEngine *engine, OgaRequest *request)
+     * }
+     */
+    public static MemorySegment OgaEngineAddRequest$address() {
+        return OgaEngineAddRequest.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT16_MIN -32768
+     * OgaResult *OgaEngineAddRequest(OgaEngine *engine, OgaRequest *request)
      * }
      */
-    public static int INT16_MIN() {
-        return INT16_MIN;
+    public static MemorySegment OgaEngineAddRequest(MemorySegment engine, MemorySegment request) {
+        var mh$ = OgaEngineAddRequest.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaEngineAddRequest", engine, request);
+            }
+            return (MemorySegment)mh$.invokeExact(engine, request);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT32_MIN = (int)-2147483648L;
+
+    private static class OgaEngineRemoveRequest {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaEngineRemoveRequest");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineRemoveRequest(OgaEngine *engine, OgaRequest *request)
+     * }
+     */
+    public static FunctionDescriptor OgaEngineRemoveRequest$descriptor() {
+        return OgaEngineRemoveRequest.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineRemoveRequest(OgaEngine *engine, OgaRequest *request)
+     * }
+     */
+    public static MethodHandle OgaEngineRemoveRequest$handle() {
+        return OgaEngineRemoveRequest.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaEngineRemoveRequest(OgaEngine *engine, OgaRequest *request)
+     * }
+     */
+    public static MemorySegment OgaEngineRemoveRequest$address() {
+        return OgaEngineRemoveRequest.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT32_MIN -2147483648
+     * OgaResult *OgaEngineRemoveRequest(OgaEngine *engine, OgaRequest *request)
      * }
      */
-    public static int INT32_MIN() {
-        return INT32_MIN;
+    public static MemorySegment OgaEngineRemoveRequest(MemorySegment engine, MemorySegment request) {
+        var mh$ = OgaEngineRemoveRequest.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaEngineRemoveRequest", engine, request);
+            }
+            return (MemorySegment)mh$.invokeExact(engine, request);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final long INT64_MIN = -9223372036854775808L;
+
+    private static class OgaCreateRequest {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateRequest");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateRequest(OgaGeneratorParams *params, OgaRequest **out)
+     * }
+     */
+    public static FunctionDescriptor OgaCreateRequest$descriptor() {
+        return OgaCreateRequest.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateRequest(OgaGeneratorParams *params, OgaRequest **out)
+     * }
+     */
+    public static MethodHandle OgaCreateRequest$handle() {
+        return OgaCreateRequest.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateRequest(OgaGeneratorParams *params, OgaRequest **out)
+     * }
+     */
+    public static MemorySegment OgaCreateRequest$address() {
+        return OgaCreateRequest.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT64_MIN -9223372036854775808
+     * OgaResult *OgaCreateRequest(OgaGeneratorParams *params, OgaRequest **out)
      * }
      */
-    public static long INT64_MIN() {
-        return INT64_MIN;
+    public static MemorySegment OgaCreateRequest(MemorySegment params, MemorySegment out) {
+        var mh$ = OgaCreateRequest.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaCreateRequest", params, out);
+            }
+            return (MemorySegment)mh$.invokeExact(params, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int UINT32_MAX = (int)4294967295L;
+
+    private static class OgaRequestAddTokens {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRequestAddTokens");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestAddTokens(OgaRequest *request, const OgaSequences *tokens)
+     * }
+     */
+    public static FunctionDescriptor OgaRequestAddTokens$descriptor() {
+        return OgaRequestAddTokens.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestAddTokens(OgaRequest *request, const OgaSequences *tokens)
+     * }
+     */
+    public static MethodHandle OgaRequestAddTokens$handle() {
+        return OgaRequestAddTokens.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestAddTokens(OgaRequest *request, const OgaSequences *tokens)
+     * }
+     */
+    public static MemorySegment OgaRequestAddTokens$address() {
+        return OgaRequestAddTokens.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define UINT32_MAX 4294967295
+     * OgaResult *OgaRequestAddTokens(OgaRequest *request, const OgaSequences *tokens)
      * }
      */
-    public static int UINT32_MAX() {
-        return UINT32_MAX;
+    public static MemorySegment OgaRequestAddTokens(MemorySegment request, MemorySegment tokens) {
+        var mh$ = OgaRequestAddTokens.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaRequestAddTokens", request, tokens);
+            }
+            return (MemorySegment)mh$.invokeExact(request, tokens);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final long UINT64_MAX = -1L;
+
+    private static class OgaDestroyRequest {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyRequest");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * void OgaDestroyRequest(OgaRequest *request)
+     * }
+     */
+    public static FunctionDescriptor OgaDestroyRequest$descriptor() {
+        return OgaDestroyRequest.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * void OgaDestroyRequest(OgaRequest *request)
+     * }
+     */
+    public static MethodHandle OgaDestroyRequest$handle() {
+        return OgaDestroyRequest.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * void OgaDestroyRequest(OgaRequest *request)
+     * }
+     */
+    public static MemorySegment OgaDestroyRequest$address() {
+        return OgaDestroyRequest.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define UINT64_MAX -1
+     * void OgaDestroyRequest(OgaRequest *request)
      * }
      */
-    public static long UINT64_MAX() {
-        return UINT64_MAX;
+    public static void OgaDestroyRequest(MemorySegment request) {
+        var mh$ = OgaDestroyRequest.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaDestroyRequest", request);
+            }
+            mh$.invokeExact(request);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT_LEAST8_MIN = (int)-128L;
+
+    private static class OgaRequestSetOpaqueData {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRequestSetOpaqueData");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestSetOpaqueData(OgaRequest *request, void *opaque_data)
+     * }
+     */
+    public static FunctionDescriptor OgaRequestSetOpaqueData$descriptor() {
+        return OgaRequestSetOpaqueData.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestSetOpaqueData(OgaRequest *request, void *opaque_data)
+     * }
+     */
+    public static MethodHandle OgaRequestSetOpaqueData$handle() {
+        return OgaRequestSetOpaqueData.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestSetOpaqueData(OgaRequest *request, void *opaque_data)
+     * }
+     */
+    public static MemorySegment OgaRequestSetOpaqueData$address() {
+        return OgaRequestSetOpaqueData.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST8_MIN -128
+     * OgaResult *OgaRequestSetOpaqueData(OgaRequest *request, void *opaque_data)
      * }
      */
-    public static int INT_LEAST8_MIN() {
-        return INT_LEAST8_MIN;
+    public static MemorySegment OgaRequestSetOpaqueData(MemorySegment request, MemorySegment opaque_data) {
+        var mh$ = OgaRequestSetOpaqueData.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaRequestSetOpaqueData", request, opaque_data);
+            }
+            return (MemorySegment)mh$.invokeExact(request, opaque_data);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT_LEAST16_MIN = (int)-32768L;
+
+    private static class OgaRequestGetOpaqueData {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRequestGetOpaqueData");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestGetOpaqueData(OgaRequest *request, void **opaque_data)
+     * }
+     */
+    public static FunctionDescriptor OgaRequestGetOpaqueData$descriptor() {
+        return OgaRequestGetOpaqueData.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestGetOpaqueData(OgaRequest *request, void **opaque_data)
+     * }
+     */
+    public static MethodHandle OgaRequestGetOpaqueData$handle() {
+        return OgaRequestGetOpaqueData.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestGetOpaqueData(OgaRequest *request, void **opaque_data)
+     * }
+     */
+    public static MemorySegment OgaRequestGetOpaqueData$address() {
+        return OgaRequestGetOpaqueData.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST16_MIN -32768
+     * OgaResult *OgaRequestGetOpaqueData(OgaRequest *request, void **opaque_data)
      * }
      */
-    public static int INT_LEAST16_MIN() {
-        return INT_LEAST16_MIN;
+    public static MemorySegment OgaRequestGetOpaqueData(MemorySegment request, MemorySegment opaque_data) {
+        var mh$ = OgaRequestGetOpaqueData.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaRequestGetOpaqueData", request, opaque_data);
+            }
+            return (MemorySegment)mh$.invokeExact(request, opaque_data);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT_LEAST32_MIN = (int)-2147483648L;
+
+    private static class OgaRequestHasUnseenTokens {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRequestHasUnseenTokens");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestHasUnseenTokens(const OgaRequest *request, bool *out)
+     * }
+     */
+    public static FunctionDescriptor OgaRequestHasUnseenTokens$descriptor() {
+        return OgaRequestHasUnseenTokens.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestHasUnseenTokens(const OgaRequest *request, bool *out)
+     * }
+     */
+    public static MethodHandle OgaRequestHasUnseenTokens$handle() {
+        return OgaRequestHasUnseenTokens.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestHasUnseenTokens(const OgaRequest *request, bool *out)
+     * }
+     */
+    public static MemorySegment OgaRequestHasUnseenTokens$address() {
+        return OgaRequestHasUnseenTokens.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST32_MIN -2147483648
+     * OgaResult *OgaRequestHasUnseenTokens(const OgaRequest *request, bool *out)
      * }
      */
-    public static int INT_LEAST32_MIN() {
-        return INT_LEAST32_MIN;
+    public static MemorySegment OgaRequestHasUnseenTokens(MemorySegment request, MemorySegment out) {
+        var mh$ = OgaRequestHasUnseenTokens.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaRequestHasUnseenTokens", request, out);
+            }
+            return (MemorySegment)mh$.invokeExact(request, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final long INT_LEAST64_MIN = -9223372036854775808L;
+
+    private static class OgaRequestGetUnseenToken {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRequestGetUnseenToken");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestGetUnseenToken(OgaRequest *request, int32_t *out)
+     * }
+     */
+    public static FunctionDescriptor OgaRequestGetUnseenToken$descriptor() {
+        return OgaRequestGetUnseenToken.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestGetUnseenToken(OgaRequest *request, int32_t *out)
+     * }
+     */
+    public static MethodHandle OgaRequestGetUnseenToken$handle() {
+        return OgaRequestGetUnseenToken.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestGetUnseenToken(OgaRequest *request, int32_t *out)
+     * }
+     */
+    public static MemorySegment OgaRequestGetUnseenToken$address() {
+        return OgaRequestGetUnseenToken.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST64_MIN -9223372036854775808
+     * OgaResult *OgaRequestGetUnseenToken(OgaRequest *request, int32_t *out)
      * }
      */
-    public static long INT_LEAST64_MIN() {
-        return INT_LEAST64_MIN;
+    public static MemorySegment OgaRequestGetUnseenToken(MemorySegment request, MemorySegment out) {
+        var mh$ = OgaRequestGetUnseenToken.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaRequestGetUnseenToken", request, out);
+            }
+            return (MemorySegment)mh$.invokeExact(request, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT_LEAST8_MAX = (int)127L;
+
+    private static class OgaRequestIsDone {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRequestIsDone");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestIsDone(const OgaRequest *request, bool *out)
+     * }
+     */
+    public static FunctionDescriptor OgaRequestIsDone$descriptor() {
+        return OgaRequestIsDone.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestIsDone(const OgaRequest *request, bool *out)
+     * }
+     */
+    public static MethodHandle OgaRequestIsDone$handle() {
+        return OgaRequestIsDone.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaRequestIsDone(const OgaRequest *request, bool *out)
+     * }
+     */
+    public static MemorySegment OgaRequestIsDone$address() {
+        return OgaRequestIsDone.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST8_MAX 127
+     * OgaResult *OgaRequestIsDone(const OgaRequest *request, bool *out)
      * }
      */
-    public static int INT_LEAST8_MAX() {
-        return INT_LEAST8_MAX;
+    public static MemorySegment OgaRequestIsDone(MemorySegment request, MemorySegment out) {
+        var mh$ = OgaRequestIsDone.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaRequestIsDone", request, out);
+            }
+            return (MemorySegment)mh$.invokeExact(request, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT_LEAST16_MAX = (int)32767L;
+
+    private static class OgaRegisterExecutionProviderLibrary {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaRegisterExecutionProviderLibrary");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * void OgaRegisterExecutionProviderLibrary(const char *registration_name, const char *library_path)
+     * }
+     */
+    public static FunctionDescriptor OgaRegisterExecutionProviderLibrary$descriptor() {
+        return OgaRegisterExecutionProviderLibrary.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * void OgaRegisterExecutionProviderLibrary(const char *registration_name, const char *library_path)
+     * }
+     */
+    public static MethodHandle OgaRegisterExecutionProviderLibrary$handle() {
+        return OgaRegisterExecutionProviderLibrary.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * void OgaRegisterExecutionProviderLibrary(const char *registration_name, const char *library_path)
+     * }
+     */
+    public static MemorySegment OgaRegisterExecutionProviderLibrary$address() {
+        return OgaRegisterExecutionProviderLibrary.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST16_MAX 32767
+     * void OgaRegisterExecutionProviderLibrary(const char *registration_name, const char *library_path)
      * }
      */
-    public static int INT_LEAST16_MAX() {
-        return INT_LEAST16_MAX;
+    public static void OgaRegisterExecutionProviderLibrary(MemorySegment registration_name, MemorySegment library_path) {
+        var mh$ = OgaRegisterExecutionProviderLibrary.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaRegisterExecutionProviderLibrary", registration_name, library_path);
+            }
+            mh$.invokeExact(registration_name, library_path);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT_LEAST32_MAX = (int)2147483647L;
+
+    private static class OgaUnregisterExecutionProviderLibrary {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaUnregisterExecutionProviderLibrary");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * void OgaUnregisterExecutionProviderLibrary(const char *registration_name)
+     * }
+     */
+    public static FunctionDescriptor OgaUnregisterExecutionProviderLibrary$descriptor() {
+        return OgaUnregisterExecutionProviderLibrary.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * void OgaUnregisterExecutionProviderLibrary(const char *registration_name)
+     * }
+     */
+    public static MethodHandle OgaUnregisterExecutionProviderLibrary$handle() {
+        return OgaUnregisterExecutionProviderLibrary.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * void OgaUnregisterExecutionProviderLibrary(const char *registration_name)
+     * }
+     */
+    public static MemorySegment OgaUnregisterExecutionProviderLibrary$address() {
+        return OgaUnregisterExecutionProviderLibrary.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST32_MAX 2147483647
+     * void OgaUnregisterExecutionProviderLibrary(const char *registration_name)
      * }
      */
-    public static int INT_LEAST32_MAX() {
-        return INT_LEAST32_MAX;
+    public static void OgaUnregisterExecutionProviderLibrary(MemorySegment registration_name) {
+        var mh$ = OgaUnregisterExecutionProviderLibrary.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaUnregisterExecutionProviderLibrary", registration_name);
+            }
+            mh$.invokeExact(registration_name);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final long INT_LEAST64_MAX = 9223372036854775807L;
+
+    private static class OgaCreateStreamingProcessor {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaCreateStreamingProcessor");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateStreamingProcessor(OgaModel *model, OgaStreamingProcessor **out)
+     * }
+     */
+    public static FunctionDescriptor OgaCreateStreamingProcessor$descriptor() {
+        return OgaCreateStreamingProcessor.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateStreamingProcessor(OgaModel *model, OgaStreamingProcessor **out)
+     * }
+     */
+    public static MethodHandle OgaCreateStreamingProcessor$handle() {
+        return OgaCreateStreamingProcessor.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaCreateStreamingProcessor(OgaModel *model, OgaStreamingProcessor **out)
+     * }
+     */
+    public static MemorySegment OgaCreateStreamingProcessor$address() {
+        return OgaCreateStreamingProcessor.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_LEAST64_MAX 9223372036854775807
+     * OgaResult *OgaCreateStreamingProcessor(OgaModel *model, OgaStreamingProcessor **out)
      * }
      */
-    public static long INT_LEAST64_MAX() {
-        return INT_LEAST64_MAX;
+    public static MemorySegment OgaCreateStreamingProcessor(MemorySegment model, MemorySegment out) {
+        var mh$ = OgaCreateStreamingProcessor.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaCreateStreamingProcessor", model, out);
+            }
+            return (MemorySegment)mh$.invokeExact(model, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int UINT_LEAST8_MAX = (int)255L;
+
+    private static class OgaStreamingProcessorProcess {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_LONG,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaStreamingProcessorProcess");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorProcess(OgaStreamingProcessor *processor, const float *audio_data, size_t num_samples, OgaNamedTensors **out)
+     * }
+     */
+    public static FunctionDescriptor OgaStreamingProcessorProcess$descriptor() {
+        return OgaStreamingProcessorProcess.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorProcess(OgaStreamingProcessor *processor, const float *audio_data, size_t num_samples, OgaNamedTensors **out)
+     * }
+     */
+    public static MethodHandle OgaStreamingProcessorProcess$handle() {
+        return OgaStreamingProcessorProcess.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorProcess(OgaStreamingProcessor *processor, const float *audio_data, size_t num_samples, OgaNamedTensors **out)
+     * }
+     */
+    public static MemorySegment OgaStreamingProcessorProcess$address() {
+        return OgaStreamingProcessorProcess.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define UINT_LEAST8_MAX 255
+     * OgaResult *OgaStreamingProcessorProcess(OgaStreamingProcessor *processor, const float *audio_data, size_t num_samples, OgaNamedTensors **out)
      * }
      */
-    public static int UINT_LEAST8_MAX() {
-        return UINT_LEAST8_MAX;
+    public static MemorySegment OgaStreamingProcessorProcess(MemorySegment processor, MemorySegment audio_data, long num_samples, MemorySegment out) {
+        var mh$ = OgaStreamingProcessorProcess.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaStreamingProcessorProcess", processor, audio_data, num_samples, out);
+            }
+            return (MemorySegment)mh$.invokeExact(processor, audio_data, num_samples, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int UINT_LEAST16_MAX = (int)65535L;
+
+    private static class OgaStreamingProcessorFlush {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaStreamingProcessorFlush");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorFlush(OgaStreamingProcessor *processor, OgaNamedTensors **out)
+     * }
+     */
+    public static FunctionDescriptor OgaStreamingProcessorFlush$descriptor() {
+        return OgaStreamingProcessorFlush.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorFlush(OgaStreamingProcessor *processor, OgaNamedTensors **out)
+     * }
+     */
+    public static MethodHandle OgaStreamingProcessorFlush$handle() {
+        return OgaStreamingProcessorFlush.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorFlush(OgaStreamingProcessor *processor, OgaNamedTensors **out)
+     * }
+     */
+    public static MemorySegment OgaStreamingProcessorFlush$address() {
+        return OgaStreamingProcessorFlush.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define UINT_LEAST16_MAX 65535
+     * OgaResult *OgaStreamingProcessorFlush(OgaStreamingProcessor *processor, OgaNamedTensors **out)
      * }
      */
-    public static int UINT_LEAST16_MAX() {
-        return UINT_LEAST16_MAX;
+    public static MemorySegment OgaStreamingProcessorFlush(MemorySegment processor, MemorySegment out) {
+        var mh$ = OgaStreamingProcessorFlush.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaStreamingProcessorFlush", processor, out);
+            }
+            return (MemorySegment)mh$.invokeExact(processor, out);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int UINT_LEAST32_MAX = (int)4294967295L;
+
+    private static class OgaDestroyStreamingProcessor {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.ofVoid(
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaDestroyStreamingProcessor");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * void OgaDestroyStreamingProcessor(OgaStreamingProcessor *processor)
+     * }
+     */
+    public static FunctionDescriptor OgaDestroyStreamingProcessor$descriptor() {
+        return OgaDestroyStreamingProcessor.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * void OgaDestroyStreamingProcessor(OgaStreamingProcessor *processor)
+     * }
+     */
+    public static MethodHandle OgaDestroyStreamingProcessor$handle() {
+        return OgaDestroyStreamingProcessor.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * void OgaDestroyStreamingProcessor(OgaStreamingProcessor *processor)
+     * }
+     */
+    public static MemorySegment OgaDestroyStreamingProcessor$address() {
+        return OgaDestroyStreamingProcessor.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define UINT_LEAST32_MAX 4294967295
+     * void OgaDestroyStreamingProcessor(OgaStreamingProcessor *processor)
      * }
      */
-    public static int UINT_LEAST32_MAX() {
-        return UINT_LEAST32_MAX;
+    public static void OgaDestroyStreamingProcessor(MemorySegment processor) {
+        var mh$ = OgaDestroyStreamingProcessor.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaDestroyStreamingProcessor", processor);
+            }
+            mh$.invokeExact(processor);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final long UINT_LEAST64_MAX = -1L;
+
+    private static class OgaStreamingProcessorSetOption {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaStreamingProcessorSetOption");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorSetOption(OgaStreamingProcessor *processor, const char *key, const char *value)
+     * }
+     */
+    public static FunctionDescriptor OgaStreamingProcessorSetOption$descriptor() {
+        return OgaStreamingProcessorSetOption.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorSetOption(OgaStreamingProcessor *processor, const char *key, const char *value)
+     * }
+     */
+    public static MethodHandle OgaStreamingProcessorSetOption$handle() {
+        return OgaStreamingProcessorSetOption.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorSetOption(OgaStreamingProcessor *processor, const char *key, const char *value)
+     * }
+     */
+    public static MemorySegment OgaStreamingProcessorSetOption$address() {
+        return OgaStreamingProcessorSetOption.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define UINT_LEAST64_MAX -1
+     * OgaResult *OgaStreamingProcessorSetOption(OgaStreamingProcessor *processor, const char *key, const char *value)
      * }
      */
-    public static long UINT_LEAST64_MAX() {
-        return UINT_LEAST64_MAX;
+    public static MemorySegment OgaStreamingProcessorSetOption(MemorySegment processor, MemorySegment key, MemorySegment value) {
+        var mh$ = OgaStreamingProcessorSetOption.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaStreamingProcessorSetOption", processor, key, value);
+            }
+            return (MemorySegment)mh$.invokeExact(processor, key, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
-    private static final int INT_FAST8_MIN = (int)-128L;
+
+    private static class OgaStreamingProcessorGetOption {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER,
+            OrtGenApi.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OgaStreamingProcessorGetOption");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorGetOption(const OgaStreamingProcessor *processor, const char *key, const char **value)
+     * }
+     */
+    public static FunctionDescriptor OgaStreamingProcessorGetOption$descriptor() {
+        return OgaStreamingProcessorGetOption.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorGetOption(const OgaStreamingProcessor *processor, const char *key, const char **value)
+     * }
+     */
+    public static MethodHandle OgaStreamingProcessorGetOption$handle() {
+        return OgaStreamingProcessorGetOption.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OgaResult *OgaStreamingProcessorGetOption(const OgaStreamingProcessor *processor, const char *key, const char **value)
+     * }
+     */
+    public static MemorySegment OgaStreamingProcessorGetOption$address() {
+        return OgaStreamingProcessorGetOption.ADDR;
+    }
+
     /**
      * {@snippet lang=c :
-     * #define INT_FAST8_MIN -128
+     * OgaResult *OgaStreamingProcessorGetOption(const OgaStreamingProcessor *processor, const char *key, const char **value)
      * }
      */
-    public static int INT_FAST8_MIN() {
-        return INT_FAST8_MIN;
-    }
-    private static final int INT_FAST16_MIN = (int)-32768L;
-    /**
-     * {@snippet lang=c :
-     * #define INT_FAST16_MIN -32768
-     * }
-     */
-    public static int INT_FAST16_MIN() {
-        return INT_FAST16_MIN;
-    }
-    private static final int INT_FAST32_MIN = (int)-2147483648L;
-    /**
-     * {@snippet lang=c :
-     * #define INT_FAST32_MIN -2147483648
-     * }
-     */
-    public static int INT_FAST32_MIN() {
-        return INT_FAST32_MIN;
-    }
-    private static final long INT_FAST64_MIN = -9223372036854775808L;
-    /**
-     * {@snippet lang=c :
-     * #define INT_FAST64_MIN -9223372036854775808
-     * }
-     */
-    public static long INT_FAST64_MIN() {
-        return INT_FAST64_MIN;
-    }
-    private static final int INT_FAST8_MAX = (int)127L;
-    /**
-     * {@snippet lang=c :
-     * #define INT_FAST8_MAX 127
-     * }
-     */
-    public static int INT_FAST8_MAX() {
-        return INT_FAST8_MAX;
-    }
-    private static final int INT_FAST16_MAX = (int)32767L;
-    /**
-     * {@snippet lang=c :
-     * #define INT_FAST16_MAX 32767
-     * }
-     */
-    public static int INT_FAST16_MAX() {
-        return INT_FAST16_MAX;
-    }
-    private static final int INT_FAST32_MAX = (int)2147483647L;
-    /**
-     * {@snippet lang=c :
-     * #define INT_FAST32_MAX 2147483647
-     * }
-     */
-    public static int INT_FAST32_MAX() {
-        return INT_FAST32_MAX;
-    }
-    private static final long INT_FAST64_MAX = 9223372036854775807L;
-    /**
-     * {@snippet lang=c :
-     * #define INT_FAST64_MAX 9223372036854775807
-     * }
-     */
-    public static long INT_FAST64_MAX() {
-        return INT_FAST64_MAX;
-    }
-    private static final int UINT_FAST8_MAX = (int)255L;
-    /**
-     * {@snippet lang=c :
-     * #define UINT_FAST8_MAX 255
-     * }
-     */
-    public static int UINT_FAST8_MAX() {
-        return UINT_FAST8_MAX;
-    }
-    private static final int UINT_FAST16_MAX = (int)65535L;
-    /**
-     * {@snippet lang=c :
-     * #define UINT_FAST16_MAX 65535
-     * }
-     */
-    public static int UINT_FAST16_MAX() {
-        return UINT_FAST16_MAX;
-    }
-    private static final int UINT_FAST32_MAX = (int)4294967295L;
-    /**
-     * {@snippet lang=c :
-     * #define UINT_FAST32_MAX 4294967295
-     * }
-     */
-    public static int UINT_FAST32_MAX() {
-        return UINT_FAST32_MAX;
-    }
-    private static final long UINT_FAST64_MAX = -1L;
-    /**
-     * {@snippet lang=c :
-     * #define UINT_FAST64_MAX -1
-     * }
-     */
-    public static long UINT_FAST64_MAX() {
-        return UINT_FAST64_MAX;
-    }
-    private static final long INTPTR_MAX = 9223372036854775807L;
-    /**
-     * {@snippet lang=c :
-     * #define INTPTR_MAX 9223372036854775807
-     * }
-     */
-    public static long INTPTR_MAX() {
-        return INTPTR_MAX;
-    }
-    private static final long INTPTR_MIN = -9223372036854775808L;
-    /**
-     * {@snippet lang=c :
-     * #define INTPTR_MIN -9223372036854775808
-     * }
-     */
-    public static long INTPTR_MIN() {
-        return INTPTR_MIN;
-    }
-    private static final long UINTPTR_MAX = -1L;
-    /**
-     * {@snippet lang=c :
-     * #define UINTPTR_MAX -1
-     * }
-     */
-    public static long UINTPTR_MAX() {
-        return UINTPTR_MAX;
-    }
-    private static final long INTMAX_MAX = 9223372036854775807L;
-    /**
-     * {@snippet lang=c :
-     * #define INTMAX_MAX 9223372036854775807
-     * }
-     */
-    public static long INTMAX_MAX() {
-        return INTMAX_MAX;
-    }
-    private static final long UINTMAX_MAX = -1L;
-    /**
-     * {@snippet lang=c :
-     * #define UINTMAX_MAX -1
-     * }
-     */
-    public static long UINTMAX_MAX() {
-        return UINTMAX_MAX;
-    }
-    private static final long INTMAX_MIN = -9223372036854775808L;
-    /**
-     * {@snippet lang=c :
-     * #define INTMAX_MIN -9223372036854775808
-     * }
-     */
-    public static long INTMAX_MIN() {
-        return INTMAX_MIN;
-    }
-    private static final long PTRDIFF_MIN = -9223372036854775808L;
-    /**
-     * {@snippet lang=c :
-     * #define PTRDIFF_MIN -9223372036854775808
-     * }
-     */
-    public static long PTRDIFF_MIN() {
-        return PTRDIFF_MIN;
-    }
-    private static final long PTRDIFF_MAX = 9223372036854775807L;
-    /**
-     * {@snippet lang=c :
-     * #define PTRDIFF_MAX 9223372036854775807
-     * }
-     */
-    public static long PTRDIFF_MAX() {
-        return PTRDIFF_MAX;
-    }
-    private static final long SIZE_MAX = -1L;
-    /**
-     * {@snippet lang=c :
-     * #define SIZE_MAX -1
-     * }
-     */
-    public static long SIZE_MAX() {
-        return SIZE_MAX;
-    }
-    private static final long RSIZE_MAX = 9223372036854775807L;
-    /**
-     * {@snippet lang=c :
-     * #define RSIZE_MAX 9223372036854775807
-     * }
-     */
-    public static long RSIZE_MAX() {
-        return RSIZE_MAX;
-    }
-    private static final int WCHAR_MAX = (int)2147483647L;
-    /**
-     * {@snippet lang=c :
-     * #define WCHAR_MAX 2147483647
-     * }
-     */
-    public static int WCHAR_MAX() {
-        return WCHAR_MAX;
-    }
-    private static final int WCHAR_MIN = (int)-2147483648L;
-    /**
-     * {@snippet lang=c :
-     * #define WCHAR_MIN -2147483648
-     * }
-     */
-    public static int WCHAR_MIN() {
-        return WCHAR_MIN;
-    }
-    private static final int WINT_MIN = (int)-2147483648L;
-    /**
-     * {@snippet lang=c :
-     * #define WINT_MIN -2147483648
-     * }
-     */
-    public static int WINT_MIN() {
-        return WINT_MIN;
-    }
-    private static final int WINT_MAX = (int)2147483647L;
-    /**
-     * {@snippet lang=c :
-     * #define WINT_MAX 2147483647
-     * }
-     */
-    public static int WINT_MAX() {
-        return WINT_MAX;
-    }
-    private static final int SIG_ATOMIC_MIN = (int)-2147483648L;
-    /**
-     * {@snippet lang=c :
-     * #define SIG_ATOMIC_MIN -2147483648
-     * }
-     */
-    public static int SIG_ATOMIC_MIN() {
-        return SIG_ATOMIC_MIN;
-    }
-    private static final int SIG_ATOMIC_MAX = (int)2147483647L;
-    /**
-     * {@snippet lang=c :
-     * #define SIG_ATOMIC_MAX 2147483647
-     * }
-     */
-    public static int SIG_ATOMIC_MAX() {
-        return SIG_ATOMIC_MAX;
+    public static MemorySegment OgaStreamingProcessorGetOption(MemorySegment processor, MemorySegment key, MemorySegment value) {
+        var mh$ = OgaStreamingProcessorGetOption.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OgaStreamingProcessorGetOption", processor, key, value);
+            }
+            return (MemorySegment)mh$.invokeExact(processor, key, value);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
     }
     private static final MemorySegment NULL = MemorySegment.ofAddress(0L);
     /**
