@@ -43,7 +43,7 @@ public final class LlamaModel {
                              VOCAB_SIZE = 128256,
                              HEAD_SIZE = 64,
                              HIDDEN_SIZE = 2048,
-                             KV_KV_HIDDEN_SIZE = 512,
+                             KV_HIDDEN_SIZE = 512,
                              CONTEXT_SIZE = 131072,
                              INTERMEDIATE_SIZE = 8192;
     public static final float EPSILON = 1.0E-5f,
@@ -87,10 +87,10 @@ public final class LlamaModel {
         for (int i = 0; i < LAYERS; i++) {
             attnQWeight[i] = modelData.nextTensor(UINT8, HIDDEN_SIZE, HEAD_SIZE, 16);
             attnQScales[i] = modelData.nextTensor(FLOAT, HIDDEN_SIZE, HEAD_SIZE);
-            attnKWeight[i] = modelData.nextTensor(UINT8, KV_KV_HIDDEN_SIZE, HEAD_SIZE, 16);
-            attnKScales[i] = modelData.nextTensor(FLOAT, KV_KV_HIDDEN_SIZE, HEAD_SIZE);
-            attnVWeight[i] = modelData.nextTensor(UINT8, KV_KV_HIDDEN_SIZE, HEAD_SIZE, 16);
-            attnVScales[i] = modelData.nextTensor(FLOAT, KV_KV_HIDDEN_SIZE, HEAD_SIZE);
+            attnKWeight[i] = modelData.nextTensor(UINT8, KV_HIDDEN_SIZE, HEAD_SIZE, 16);
+            attnKScales[i] = modelData.nextTensor(FLOAT, KV_HIDDEN_SIZE, HEAD_SIZE);
+            attnVWeight[i] = modelData.nextTensor(UINT8, KV_HIDDEN_SIZE, HEAD_SIZE, 16);
+            attnVScales[i] = modelData.nextTensor(FLOAT, KV_HIDDEN_SIZE, HEAD_SIZE);
             attnOWeight[i] = modelData.nextTensor(UINT8, HIDDEN_SIZE, HEAD_SIZE, 16);
             attnOScales[i] = modelData.nextTensor(FLOAT, HIDDEN_SIZE, HEAD_SIZE);
             mlpGateWeight[i] = modelData.nextTensor(UINT8, INTERMEDIATE_SIZE, HEAD_SIZE, 16);
@@ -124,10 +124,10 @@ public final class LlamaModel {
                                 attnQScales[i], empty(), empty(), empty(), HIDDEN_SIZE, HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE),
                     of(MatMulNBits(input,
                                 attnKWeight[i],
-                                attnKScales[i], empty(), empty(), empty(), HIDDEN_SIZE, KV_KV_HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                                attnKScales[i], empty(), empty(), empty(), HIDDEN_SIZE, KV_HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                     of(MatMulNBits(input,
                                 attnVWeight[i],
-                                attnVScales[i], empty(), empty(), empty(), HIDDEN_SIZE, KV_KV_HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
+                                attnVScales[i], empty(), empty(), empty(), HIDDEN_SIZE, KV_HIDDEN_SIZE, of(ACCURACY_LEVEL), BITS, BLOCK_SIZE)),
                     of(pastKey[i]),
                     of(pastValue[i]),
                     amSL,
