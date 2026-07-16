@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
 DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 
 This code is free software; you can redistribute it and/or modify it
@@ -29,20 +29,20 @@ questions.
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>oracle.code</groupId>
-    <artifactId>onnx-opgen</artifactId>
+    <artifactId>opgen</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>26</maven.compiler.source>
-        <maven.compiler.target>26</maven.compiler.target>
+        <maven.compiler.source>28</maven.compiler.source>
+        <maven.compiler.target>28</maven.compiler.target>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.10.0</version>
+            <version>6.1.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

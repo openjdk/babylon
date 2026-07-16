@@ -71,7 +71,7 @@ public class OrtROCMProviderOptions {
         return device_id$LAYOUT;
     }
 
-    private static final long device_id$OFFSET = 0;
+    private static final long device_id$OFFSET = $LAYOUT.byteOffset(groupElement("device_id"));
 
     /**
      * Offset for field:
@@ -115,7 +115,7 @@ public class OrtROCMProviderOptions {
         return miopen_conv_exhaustive_search$LAYOUT;
     }
 
-    private static final long miopen_conv_exhaustive_search$OFFSET = 4;
+    private static final long miopen_conv_exhaustive_search$OFFSET = $LAYOUT.byteOffset(groupElement("miopen_conv_exhaustive_search"));
 
     /**
      * Offset for field:
@@ -159,7 +159,7 @@ public class OrtROCMProviderOptions {
         return gpu_mem_limit$LAYOUT;
     }
 
-    private static final long gpu_mem_limit$OFFSET = 8;
+    private static final long gpu_mem_limit$OFFSET = $LAYOUT.byteOffset(groupElement("gpu_mem_limit"));
 
     /**
      * Offset for field:
@@ -203,7 +203,7 @@ public class OrtROCMProviderOptions {
         return arena_extend_strategy$LAYOUT;
     }
 
-    private static final long arena_extend_strategy$OFFSET = 16;
+    private static final long arena_extend_strategy$OFFSET = $LAYOUT.byteOffset(groupElement("arena_extend_strategy"));
 
     /**
      * Offset for field:
@@ -247,7 +247,7 @@ public class OrtROCMProviderOptions {
         return do_copy_in_default_stream$LAYOUT;
     }
 
-    private static final long do_copy_in_default_stream$OFFSET = 20;
+    private static final long do_copy_in_default_stream$OFFSET = $LAYOUT.byteOffset(groupElement("do_copy_in_default_stream"));
 
     /**
      * Offset for field:
@@ -291,7 +291,7 @@ public class OrtROCMProviderOptions {
         return has_user_compute_stream$LAYOUT;
     }
 
-    private static final long has_user_compute_stream$OFFSET = 24;
+    private static final long has_user_compute_stream$OFFSET = $LAYOUT.byteOffset(groupElement("has_user_compute_stream"));
 
     /**
      * Offset for field:
@@ -335,7 +335,7 @@ public class OrtROCMProviderOptions {
         return user_compute_stream$LAYOUT;
     }
 
-    private static final long user_compute_stream$OFFSET = 32;
+    private static final long user_compute_stream$OFFSET = $LAYOUT.byteOffset(groupElement("user_compute_stream"));
 
     /**
      * Offset for field:
@@ -379,7 +379,7 @@ public class OrtROCMProviderOptions {
         return default_memory_arena_cfg$LAYOUT;
     }
 
-    private static final long default_memory_arena_cfg$OFFSET = 40;
+    private static final long default_memory_arena_cfg$OFFSET = $LAYOUT.byteOffset(groupElement("default_memory_arena_cfg"));
 
     /**
      * Offset for field:
@@ -423,7 +423,7 @@ public class OrtROCMProviderOptions {
         return enable_hip_graph$LAYOUT;
     }
 
-    private static final long enable_hip_graph$OFFSET = 48;
+    private static final long enable_hip_graph$OFFSET = $LAYOUT.byteOffset(groupElement("enable_hip_graph"));
 
     /**
      * Offset for field:
@@ -467,7 +467,7 @@ public class OrtROCMProviderOptions {
         return tunable_op_enable$LAYOUT;
     }
 
-    private static final long tunable_op_enable$OFFSET = 52;
+    private static final long tunable_op_enable$OFFSET = $LAYOUT.byteOffset(groupElement("tunable_op_enable"));
 
     /**
      * Offset for field:
@@ -511,7 +511,7 @@ public class OrtROCMProviderOptions {
         return tunable_op_tuning_enable$LAYOUT;
     }
 
-    private static final long tunable_op_tuning_enable$OFFSET = 56;
+    private static final long tunable_op_tuning_enable$OFFSET = $LAYOUT.byteOffset(groupElement("tunable_op_tuning_enable"));
 
     /**
      * Offset for field:
@@ -555,7 +555,7 @@ public class OrtROCMProviderOptions {
         return tunable_op_max_tuning_duration_ms$LAYOUT;
     }
 
-    private static final long tunable_op_max_tuning_duration_ms$OFFSET = 60;
+    private static final long tunable_op_max_tuning_duration_ms$OFFSET = $LAYOUT.byteOffset(groupElement("tunable_op_max_tuning_duration_ms"));
 
     /**
      * Offset for field:

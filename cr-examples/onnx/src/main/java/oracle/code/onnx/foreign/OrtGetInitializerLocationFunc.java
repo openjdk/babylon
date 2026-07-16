@@ -17,9 +17,9 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  * typedef OrtStatus *(*OrtGetInitializerLocationFunc)(void *, const char *, const OrtValue *, const OrtExternalInitializerInfo *, OrtExternalInitializerInfo **)
  * }
  */
-public class OrtGetInitializerLocationFunc {
+public final class OrtGetInitializerLocationFunc {
 
-    OrtGetInitializerLocationFunc() {
+    private OrtGetInitializerLocationFunc() {
         // Should not be called directly
     }
 
@@ -61,9 +61,11 @@ public class OrtGetInitializerLocationFunc {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment state, MemorySegment initializer_name, MemorySegment initializer_value, MemorySegment external_info, MemorySegment new_external_info) {
+    public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment state, MemorySegment initializer_name, MemorySegment initializer_value, MemorySegment external_info, MemorySegment new_external_info) {
         try {
             return (MemorySegment) DOWN$MH.invokeExact(funcPtr, state, initializer_name, initializer_value, external_info, new_external_info);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }
