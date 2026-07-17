@@ -1403,7 +1403,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     outerInstance = toValue(tree.encl);
                 }
                 args.add(outerInstance);
-                argtypes.add(outerInstance.type());
+                JavaType outerType = typeToCodeType(tree.constructor.innermostAccessibleEnclosingClass().erasure(types));
+                argtypes.add(outerType);
             }
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
