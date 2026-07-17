@@ -36,8 +36,8 @@ public final class AnfDialect {
     private AnfDialect() {
     }
 
-    public static final class AnfLetOp extends AbstractOp
-            implements Op.Terminating, Op.Nested, ExternalizedOp.Externalizable {
+    public static final class AnfLetOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.let";
 
         public static class Builder {
@@ -94,8 +94,8 @@ public final class AnfDialect {
     }
 
 
-    public static final class AnfLetRecOp extends AbstractOp
-            implements Op.Terminating, Op.Nested, ExternalizedOp.Externalizable {
+    public static final class AnfLetRecOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.letrec";
 
         public static class Builder {
@@ -161,8 +161,8 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfIfOp extends AbstractOp
-            implements Op.Terminating, Op.Nested, ExternalizedOp.Externalizable {
+    public static final class AnfIfOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.if";
 
         public static class ThenBuilder {
@@ -344,8 +344,8 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfApply extends AbstractOp
-            implements Op.Terminating, ExternalizedOp.Externalizable {
+    public static final class AnfApply extends AbstractOp.Terminating
+            implements ExternalizedOp.Externalizable {
         public static final String NAME = "anf.apply";
 
         public AnfApply(ExternalizedOp def) {
@@ -380,8 +380,8 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfApplyStub extends AbstractOp
-            implements Op.Terminating, ExternalizedOp.Externalizable {
+    public static final class AnfApplyStub extends AbstractOp.Terminating
+            implements ExternalizedOp.Externalizable {
         public static final String NAME = "anf.apply.stub";
         public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
         public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";

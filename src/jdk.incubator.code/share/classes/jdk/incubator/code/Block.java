@@ -264,10 +264,10 @@ public final class Block implements CodeElement<Block, Op> {
      *
      * @return the last, terminating, operation in this block.
      */
-    public Op terminatingOp() {
+    public Op.Terminating terminatingOp() {
         Op lop = ops.getLast();
         assert lop instanceof Op.Terminating;
-        return lop;
+        return (Op.Terminating) lop;
     }
 
     /**
@@ -768,7 +768,7 @@ public final class Block implements CodeElement<Block, Op> {
             Op outputOp = op.isPlacedInBlock() || op.isRoot()
                     ? op.transform(cc, ct)
                     : op;
-            assert ((AbstractOp) outputOp).result == null;
+            assert ((InternalAbstractOp) outputOp).result == null;
 
             Op.Result outputResult = insertOp(outputOp);
 
@@ -874,7 +874,7 @@ public final class Block implements CodeElement<Block, Op> {
             }
         }
 
-        ((AbstractOp) op).result = opr;
+        ((InternalAbstractOp) op).result = opr;
     }
 
     // Determine if the parent body of value's block is the same as or an ancestor of this block

@@ -114,7 +114,7 @@ public class SCFOps {
     }
 
     @OpFactoryHelper.OpDeclaration(YieldOp.NAME)
-    public static class YieldOp extends AbstractOp implements Op.Terminating, ExternalizedOp.Externalizable {
+    public static class YieldOp extends AbstractOp.Terminating implements ExternalizedOp.Externalizable {
         public static final String NAME = "scf.yield";
 
         public YieldOp(ExternalizedOp def) {

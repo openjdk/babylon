@@ -707,7 +707,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             return flow.aliveAfter(typeEnvs.get(currentClassSym), node, make);
         }
 
-        private <O extends Op & Op.Terminating> void appendTerminating(Supplier<O> sop) {
+        private void appendTerminating(Supplier<Op.Terminating> sop) {
             // Append only if an existing terminating operation is not present
             if (lastOp == null || !(lastOp instanceof Op.Terminating)) {
                 append(sop.get());

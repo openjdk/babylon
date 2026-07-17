@@ -209,7 +209,7 @@ public record HATArrayViewPhase() implements HATPhase {
                                 resultFromFirstOperandOrNull(opFromFirstOperandOrThrow(r.op())) :
                                 bufferVarLoads.get(replaced.get(r).op()).result();
                     } else { // if this is a VarLoadOp loading the buffer
-                        CoreOp.VarAccessOp.VarLoadOp newVarLoad = CoreOp.VarAccessOp.varLoad(blockBuilder.context().getValue(replaced.get(r)));
+                        CoreOp.VarAccessOp.VarLoadOp newVarLoad = CoreOp.varLoad(blockBuilder.context().getValue(replaced.get(r)));
                         replacement = blockBuilder.add(copyLocation(varLoadOp, newVarLoad));
                         context.mapValue(varLoadOp.result(), replacement);
                     }

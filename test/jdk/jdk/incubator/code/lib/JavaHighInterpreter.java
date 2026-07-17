@@ -102,7 +102,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
     }
 
     @Override
-    public <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e) {
+    public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
         return switch (op) {
             case JavaOp.StatementTargetOp _ -> {
                 List<Object> operands = e.valuesOf(op.operands());

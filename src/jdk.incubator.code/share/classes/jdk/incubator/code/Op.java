@@ -34,7 +34,6 @@ import com.sun.tools.javac.processing.JavacProcessingEnvironment;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
@@ -101,7 +100,20 @@ import java.util.function.BiFunction;
  * expressions, or {@link JavaOp.TryOp try} statements. In such cases an operation will contain one or more bodies
  * modeling the nested structure.
  */
-public sealed interface Op extends CodeElement<Op, Body> permits AbstractOp {
+public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating, InternalAbstractOp {
+
+    /**
+     * A terminating operation that occurs as the last operation in a block.
+     * <p>
+     * A terminating operation passes control to either another block within the same parent body
+     * or to that parent body.
+     * <p>
+     * A terminating operation is a body terminating operation if it is guaranteed to always have zero successors.
+     * A terminating operation is a block terminating operation if it is guaranteed to always have one or more
+     * successors.
+     */
+    public sealed interface Terminating extends Op permits AbstractOp.Terminating {
+    }
 
     /**
      * An operation characteristic indicating the operation is pure and has no side effects.
@@ -253,39 +265,6 @@ public sealed interface Op extends CodeElement<Op, Body> permits AbstractOp {
     }
 
     /**
-     * An operation characteristic indicating the operation is a terminating operation
-     * that occurs as the last operation in a block.
-     * <p>
-     * A terminating operation passes control to either another block within the same parent body
-     * or to that parent body.
-     */
-    public interface Terminating {
-    }
-
-    /**
-     * An operation characteristic indicating the operation is a body-terminating operation
-     * occurring as the last operation in a block.
-     * <p>
-     * A body-terminating operation passes control back to its nearest ancestor body.
-     */
-    public interface BodyTerminating extends Terminating {
-    }
-
-    /**
-     * An operation characteristic indicating the operation is a block-terminating operation
-     * occurring as the last operation in a block.
-     * <p>
-     * The operation has one or more successors to other blocks within the same parent body, and passes
-     * control to one of those blocks.
-     */
-    public interface BlockTerminating extends Terminating {
-        /**
-         * {@return a non-empty list of this operation's successors.}
-         */
-        List<Block.Reference> successors();
-    }
-
-    /**
      * A value that is the result of an operation.
      */
     public static final class Result extends Value {
@@ -432,7 +411,14 @@ public sealed interface Op extends CodeElement<Op, Body> permits AbstractOp {
 
     /**
      * {@return the operation's successors, as an unmodifiable list}
+     * <p>
+     * If this operation is not an instance of {@link Op.Terminating} then the operation has zero successors
+     * and this method returns an empty unmodifiable list. Otherwise, if this operation is an instance of
+     * {@code Op.Terminating}, this method may return zero or more successors.
+     *
+     * @see Op.Terminating
      */
+    // @@@ Move to Op.Terminating?
     public List<Block.Reference> successors();
 
     /**

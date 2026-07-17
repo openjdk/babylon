@@ -287,7 +287,7 @@ public class MathOptimizerWithInlining {
             return inspectParameterRecursive(convOp, valToMatch);
         } else {
             // Leaf of tree - we want to obtain the actual value of the parameter and check
-            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.ConstantOp constant) {
+            if (v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constant) {
                 return constant.value().equals(valToMatch);
             }
             return false;

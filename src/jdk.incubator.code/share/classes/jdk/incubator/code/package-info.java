@@ -682,9 +682,8 @@
 /// produces a terminating operation effect.
 ///
 /// Execution of a terminating operation may produce a successor effect or a terminating operation effect, according to
-/// its specification, An operation that is an of instance of [jdk.incubator.code.Op.BlockTerminating] can produce a
-/// successor effect. An operation that is an of instance of [jdk.incubator.code.Op.BodyTerminating] can produce a
-/// terminating operation effect.
+/// its specification. A block terminating operation can only produce a successor effect. A body termination operation
+/// can only produce a terminating operation effect.
 ///
 /// If an operation has one or more bodies it may execute them according to its specification. The effect produced by
 /// executing a body may be used to determine whether to select and execute another body and so on until execution of
@@ -767,7 +766,7 @@
 ///
 /// {@snippet lang = "java":
 /// public abstract OpEffect executeOp(Op op, Env e);
-/// public abstract <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e);
+/// public abstract BlockEffect executeTerminatingOp(Op.Terminating op, Env e);
 /// }
 ///
 /// The execution of a body can be implemented as follows.
@@ -794,8 +793,7 @@
 ///
 /// {@snippet lang = "java":
 /// public BlockEffect executeBlock(Block block, Env e) {
-///     var op = block.firstOp();
-///     for (; !(op instanceof Op.Terminating); op = block.nextOp(op)) {
+///     for (var op = block.firstOp(); !(op instanceof Op.Terminating top); op = block.nextOp(op)) {
 ///         switch (executeOp(op, e)) {
 ///             // operation completed normally, pass control to next operation
 ///             case OpResultEffect eff -> e = e.bind(op.result(), eff.result);
@@ -805,7 +803,7 @@
 ///     }
 ///
 ///     // pass control to parent body or a sibling block
-///     return executeTerminatingOp((Op & Op.Terminating) op, e);
+///     return executeTerminatingOp(top, e);
 /// }
 /// }
 ///

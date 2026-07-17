@@ -25,37 +25,28 @@
 
 package jdk.incubator.code.bytecode;
 
-import java.lang.classfile.ClassBuilder;
-import java.lang.classfile.ClassFile;
-import java.lang.classfile.CodeBuilder;
-import java.lang.classfile.Label;
-import java.lang.classfile.Opcode;
-import java.lang.classfile.TypeKind;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.impl.BytecodeCompactor;
+import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
+import jdk.incubator.code.bytecode.impl.DynamicFuncCallOp;
+import jdk.incubator.code.bytecode.impl.LoweringTransformer;
+import jdk.incubator.code.dialect.core.CoreOp.*;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.*;
+
+import java.lang.classfile.*;
 import java.lang.classfile.instruction.SwitchCase;
-import java.lang.constant.ClassDesc;
-import java.lang.constant.Constable;
-import java.lang.constant.ConstantDescs;
-import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.constant.DynamicCallSiteDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodHandleDesc;
-import java.lang.constant.MethodTypeDesc;
+import java.lang.constant.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.StringConcatFactory;
 import java.util.*;
 import java.util.stream.Stream;
-
-import jdk.incubator.code.*;
-import jdk.incubator.code.bytecode.impl.BytecodeCompactor;
-import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
-import jdk.incubator.code.bytecode.impl.DynamicFuncCallOp;
-import jdk.incubator.code.bytecode.impl.LoweringTransformer;
-import jdk.incubator.code.dialect.core.CoreOp.*;
-import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.VarType;
 
 import static java.lang.constant.ConstantDescs.*;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
@@ -185,7 +176,7 @@ public final class BytecodeGenerator {
     private final Label[] tryStartLabels;
     private final Map<Value, Slot> slots;
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
-    private final Map<String, ? extends Invokable> functionMap;
+    private final Map<String, ? extends Op.Invokable> functionMap;
     private final Map<Op, Boolean> deferCache;
     private Value oprOnStack;
     private Block[] recentCatchBlocks;
@@ -196,7 +187,7 @@ public final class BytecodeGenerator {
                               TypeKind returnType,
                               List<Block> blocks,
                               CodeBuilder cob,
-                              Map<String, ? extends Invokable> functionMap) {
+                              Map<String, ? extends Op.Invokable> functionMap) {
         this.lookup = lookup;
         this.className = className;
         this.capturedValues = capturedValues;
@@ -815,7 +806,7 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case FuncCallOp op -> {
-                        Invokable fop = functionMap.get(op.funcName());
+                        Op.Invokable fop = functionMap.get(op.funcName());
                         if (fop == null) {
                             throw new IllegalArgumentException("Could not resolve function: " + op.funcName());
                         }
@@ -876,7 +867,7 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case DynamicFuncCallOp op -> {
-                        Invokable fop = functionMap.get(op.funcName());
+                        Op.Invokable fop = functionMap.get(op.funcName());
                         if (fop == null) {
                             throw new IllegalArgumentException("Could not resolve function: " + op.funcName());
                         }

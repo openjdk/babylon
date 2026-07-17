@@ -95,7 +95,7 @@ public final class OnnxTransformer {
                 .toList();
         FunctionType ft = CoreType.functionType(lambda.invokableSignature().returnType(), normalizedCaptureTypes);
 
-        CoreOp.FuncOp f = CoreOp.FuncOp.func("", ft).body(b -> {
+        CoreOp.FuncOp f = CoreOp.func("", ft).body(b -> {
             // Map input captured values
             for (int i = 0; i < captures.size(); i++) {
                 Value inputCapture = captures.get(i);

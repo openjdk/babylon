@@ -992,7 +992,7 @@ public final class TritonTransformer {
         }
 
 
-        public Value add(CodeType rType, Result r,
+        public Value add(CodeType rType, Op.Result r,
                          CodeType aType, Value a,
                          CodeType bType, Value b) {
             broadcastConversion(rType, aType, a, bType, b);
