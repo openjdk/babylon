@@ -73,6 +73,40 @@ public class TritonOps {
         }
     }
 
+    static abstract class TritonTerminatingOp extends AbstractOp.Terminating implements ExternalizedOp.Externalizable {
+        final CodeType resultType;
+
+        public TritonTerminatingOp(ExternalizedOp def) {
+            super(def.operands(), def.successors());
+
+            this.resultType = def.resultType();
+        }
+
+        TritonTerminatingOp(TritonTerminatingOp that, CodeContext cc) {
+            super(that, cc);
+
+            this.resultType = that.resultType;
+        }
+
+        TritonTerminatingOp(CodeType resultType, List<? extends Value> operands, List<Block.Reference> successors) {
+            super(operands, successors);
+
+            this.resultType = resultType;
+        }
+
+        @Override
+        public CodeType resultType() {
+            return resultType;
+        }
+
+        @Override
+        public String externalizeOpName() {
+            OpFactoryHelper.OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpFactoryHelper.OpDeclaration.class);
+            assert opDecl != null : this.getClass().getName();
+            return opDecl.value();
+        }
+    }
+
     @OpFactoryHelper.OpDeclaration(ModuleOp.NAME)
     public static final class ModuleOp extends TritonOp implements Op.Isolated {
         public static final String NAME = "module";
@@ -391,7 +425,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ReduceReturnOp.NAME)
-    public static class ReduceReturnOp extends TritonOp implements Op.Terminating {
+    public static class ReduceReturnOp extends TritonTerminatingOp {
         public static final String NAME = "tt.reduce.return";
 
         public ReduceReturnOp(ExternalizedOp def) {
@@ -408,7 +442,7 @@ public class TritonOps {
         }
 
         ReduceReturnOp(Value r) {
-            super(JavaType.VOID, List.of(r));
+            super(JavaType.VOID, List.of(r), List.of());
         }
     }
 
@@ -686,7 +720,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ReturnOp.NAME)
-    public static class ReturnOp extends TritonOp implements Op.Terminating {
+    public static class ReturnOp extends TritonTerminatingOp {
         public static final String NAME = "tt.return";
 
         public ReturnOp(ExternalizedOp def) {
@@ -703,11 +737,11 @@ public class TritonOps {
         }
 
         ReturnOp() {
-            super(JavaType.VOID, List.of());
+            super(JavaType.VOID, List.of(), List.of());
         }
 
         ReturnOp(Value v) {
-            super(JavaType.VOID, List.of(v));
+            super(JavaType.VOID, List.of(v), List.of());
         }
     }
 

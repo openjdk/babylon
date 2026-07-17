@@ -108,10 +108,11 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
      * A terminating operation passes control to either another block within the same parent body
      * or to that parent body.
      * <p>
-     * A terminating operation is a body terminating operation if it guaranteed to always have zero successors.
-     * A terminating operation is a block terminating operation if it guaranteed to always have one or more successors.
+     * A terminating operation is a body terminating operation if it is guaranteed to always have zero successors.
+     * A terminating operation is a block terminating operation if it is guaranteed to always have one or more
+     * successors.
      */
-    public sealed interface Terminating extends Op permits AbstractTerminatingOp {
+    public sealed interface Terminating extends Op permits AbstractOp.Terminating {
     }
 
     /**

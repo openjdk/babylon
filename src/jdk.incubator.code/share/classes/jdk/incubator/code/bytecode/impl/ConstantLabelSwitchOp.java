@@ -42,7 +42,7 @@ import jdk.incubator.code.extern.ExternalizedOp;
  * Default is a successor with corresponds null label value.
  * The selected successor refers to the next block to branch to.
  */
-public final class ConstantLabelSwitchOp extends AbstractTerminatingOp
+public final class ConstantLabelSwitchOp extends AbstractOp.Terminating
         implements ExternalizedOp.Externalizable {
 
     final List<Integer> labels;

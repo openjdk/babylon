@@ -31,7 +31,7 @@ import jdk.incubator.code.extern.OpWriter;
 
 import java.util.*;
 
-sealed abstract class InternalAbstractOp implements Op permits AbstractOp, AbstractTerminatingOp {
+sealed abstract class InternalAbstractOp implements Op permits AbstractOp, AbstractOp.Terminating {
 
     // Set when op is placed in a block or as a root operation, otherwise null when unplaced
     // @@@ stable value?

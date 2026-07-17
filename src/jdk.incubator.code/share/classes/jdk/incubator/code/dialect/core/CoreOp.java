@@ -575,7 +575,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * The result type of a return operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ReturnOp.NAME)
-    public static final class ReturnOp extends AbstractTerminatingOp
+    public static final class ReturnOp extends AbstractOp.Terminating
             implements CoreOp, JavaOp.JavaStatement {
         static final String NAME = "return";
 
@@ -625,7 +625,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * @jls 14.22 Unreachable Statements
      */
     @OpDeclaration(UnreachableOp.NAME)
-    public static final class UnreachableOp extends AbstractTerminatingOp
+    public static final class UnreachableOp extends AbstractOp.Terminating
             implements CoreOp {
         static final String NAME = "unreachable";
 
@@ -662,7 +662,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * The result type of a yield operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends AbstractTerminatingOp
+    public static final class YieldOp extends AbstractOp.Terminating
             implements CoreOp {
         static final String NAME = "yield";
 
@@ -714,7 +714,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * The result type of a branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(BranchOp.NAME)
-    public static final class BranchOp extends AbstractTerminatingOp
+    public static final class BranchOp extends AbstractOp.Terminating
             implements CoreOp {
         static final String NAME = "branch";
 
@@ -761,7 +761,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      * The result type of a conditional branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ConditionalBranchOp.NAME)
-    public static final class ConditionalBranchOp extends AbstractTerminatingOp
+    public static final class ConditionalBranchOp extends AbstractOp.Terminating
             implements CoreOp {
         static final String NAME = "cbranch";
 

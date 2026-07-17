@@ -566,7 +566,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.18 The throw Statement
      */
     @OpDeclaration(ThrowOp.NAME)
-    public static final class ThrowOp extends AbstractTerminatingOp
+    public static final class ThrowOp extends AbstractOp.Terminating
             implements JavaOp, JavaStatement {
         static final String NAME = "throw";
 
@@ -1557,7 +1557,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * block of the exception region, and whose remaining successors are the catch blocks for that region.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
-    public static final class ExceptionRegionEnter extends AbstractTerminatingOp
+    public static final class ExceptionRegionEnter extends AbstractOp.Terminating
             implements JavaOp {
         static final String NAME = "exception.region.enter";
 
@@ -1614,7 +1614,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * follows the exception region.
      */
     @OpDeclaration(ExceptionRegionExit.NAME)
-    public static final class ExceptionRegionExit extends AbstractTerminatingOp
+    public static final class ExceptionRegionExit extends AbstractOp.Terminating
             implements JavaOp {
         static final String NAME = "exception.region.exit";
 
@@ -2394,7 +2394,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class StatementTargetOp extends AbstractTerminatingOp
+    public sealed static abstract class StatementTargetOp extends AbstractOp.Terminating
             implements JavaOp, Op.Lowerable, JavaStatement {
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
@@ -2564,7 +2564,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.21 The yield Statement
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends AbstractTerminatingOp
+    public static final class YieldOp extends AbstractOp.Terminating
             implements JavaOp, JavaStatement, Op.Lowerable {
         static final String NAME = "java.yield";
 
@@ -3537,7 +3537,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * A switch fall-through operation is a body terminating operation.
      */
     @OpDeclaration(SwitchFallthroughOp.NAME)
-    public static final class SwitchFallthroughOp extends AbstractTerminatingOp
+    public static final class SwitchFallthroughOp extends AbstractOp.Terminating
             implements JavaOp, Op.Lowerable {
         static final String NAME = "java.switch.fallthrough";
 
