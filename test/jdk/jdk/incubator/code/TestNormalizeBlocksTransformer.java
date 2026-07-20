@@ -72,7 +72,7 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_INPUT = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %10 : java.type:"java.lang.Throwable" = constant @null;
+                %10 : java.type:"java.lang.RuntimeException" = constant @null;
                 %2 : java.type:"void" = exception.region.enter ^block_1 ^block_8(%10) ^block_3(%10);
 
               ^block_1:
@@ -108,7 +108,7 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_EXPECTED = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %10 : java.type:"java.lang.Throwable" = constant @null;
+                %10 : java.type:"java.lang.RuntimeException" = constant @null;
                 %2 : java.type:"void" = exception.region.enter ^block_1 ^block_5(%10) ^block_2(%10);
 
               ^block_1:

@@ -5291,10 +5291,17 @@ public sealed abstract class JavaOp extends Op {
             }
 
             // Enter the try exception region
-            Result nullThrowable = b.add(constant(type(Throwable.class), null));
-            List<Block.Reference> exitHandlers = catchers.stream()
-                    .map(builder -> builder.reference(nullThrowable))
-                    .toList();
+            Op.Result nullThrowable = b.add(constant(type(Throwable.class), null));
+            List<Block.Reference> exitHandlers = new ArrayList<>();
+            for (int i = 0; i < catchers.size(); i++) {
+                Value arg;
+                if (i > catchBodies.size() - 1 || catchBodies.get(i).bodySignature().parameterTypes().isEmpty()) {
+                    arg = nullThrowable;
+                } else {
+                    arg = b.add(constant(catchBodies.get(i).bodySignature().parameterTypes().getFirst(), null));
+                }
+                exitHandlers.add(catchers.get(i).reference(arg));
+            }
             Op.Result enter = b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
@@ -5357,7 +5364,7 @@ public sealed abstract class JavaOp extends Op {
                     // Enter the catch exception region
                     Result catchExceptionRegion = catcher.add(
                             exceptionRegionEnter(catchRegionEnter.reference(),
-                                    catcherFinally.reference(catcher.add(constant(type(Throwable.class), null)))));
+                                    catcherFinally.reference(nullThrowable)));
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
