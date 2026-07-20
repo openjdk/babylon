@@ -83,13 +83,18 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
          */
         public static class Builder {
             final Body.Builder connectedAncestorBody;
-            final String funcName;
-            final FunctionType signature;
+            final MethodRef source;
 
             Builder(Body.Builder connectedAncestorBody, String funcName, FunctionType signature) {
                 this.connectedAncestorBody = connectedAncestorBody;
-                this.funcName = funcName;
-                this.signature = signature;
+                this.source = fakeSource(funcName, signature);
+            }
+
+            Builder(Body.Builder connectedAncestorBody, MethodRef source) {
+                Objects.requireNonNull(source, "func source can't be null");
+
+                this.connectedAncestorBody = connectedAncestorBody;
+                this.source = source;
             }
 
             /**
@@ -99,9 +104,13 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
              * @return the completed function operation
              */
             public FuncOp body(Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(connectedAncestorBody, signature);
+                Body.Builder body = Body.Builder.of(connectedAncestorBody, source.signature());
                 c.accept(body.entryBlock());
-                return new FuncOp(funcName, body);
+                if (source.refType().equals(JavaType.VOID)) {
+                    return new FuncOp(source.name(), body);
+                } else {
+                    return new FuncOp(source, body);
+                }
             }
         }
 
@@ -111,26 +120,37 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
          * The externalized attribute modeling the function name
          */
         static final String ATTRIBUTE_FUNC_NAME = NAME + ".name";
+        static final String ATTRIBUTE_FUNC_SOURCE = NAME + ".source";
 
-        final String funcName;
         final Body body;
+        final MethodRef source;
 
         FuncOp(ExternalizedOp def) {
             requireNoOperands(def);
-            this(requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class), requireSingleBody(def));
+            Body.Builder body = requireSingleBody(def);
+            Optional<MethodRef> optSource = optionalAttribute(def, ATTRIBUTE_FUNC_SOURCE, false, MethodRef.class);
+            MethodRef source;
+            if (optSource.isEmpty()) {
+                String fn = requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class);
+                source = fakeSource(fn, body.bodySignature());
+            } else {
+                source = optSource.get();
+            }
+
+            this(source, body);
         }
 
         FuncOp(FuncOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.funcName = that.funcName;
+            this.source = that.source;
             this.body = that.body.transform(cc, ct).build(this);
         }
 
         FuncOp(FuncOp that, String funcName, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            this.funcName = funcName;
+            this.source = MethodRef.method(that.source.refType(), funcName, that.source.signature());
             this.body = that.body.transform(cc, ct).build(this);
         }
 
@@ -163,7 +183,38 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
         FuncOp(String funcName, Body.Builder bodyBuilder) {
             super(List.of());
 
-            this.funcName = funcName;
+            this.source = fakeSource(funcName, bodyBuilder.bodySignature());
+            this.body = bodyBuilder.build(this);
+        }
+
+        private static void validateSourceRef(MethodRef source, Body.Builder bodyBuilder) {
+            List<CodeType> sourceParamTypes = source.signature().parameterTypes();
+            List<CodeType> bodyParamTypes = bodyBuilder.bodySignature().parameterTypes();
+            int d = bodyParamTypes.size() - sourceParamTypes.size();
+            if (d != 0 && d != 1) {
+                throw new UnsupportedOperationException("func source and func body have incompatible arity");
+            }
+
+            if (d == 1 && !source.refType().equals(bodyParamTypes.getFirst())) {
+                throw new UnsupportedOperationException("func source ref type not equal to func body first parameter type");
+            }
+
+            if (!sourceParamTypes.equals(bodyParamTypes.subList(d, bodyParamTypes.size()))) {
+                throw new UnsupportedOperationException("The parameters types of func source and func body are not equal");
+            }
+
+            if (!source.signature().returnType().equals(bodyBuilder.bodySignature().returnType())) {
+                throw new UnsupportedOperationException("The return type of func source and func body are not equal");
+            }
+        }
+
+        FuncOp(MethodRef source, Body.Builder bodyBuilder) {
+            Objects.requireNonNull(source, "func source can't be null");
+            validateSourceRef(source, bodyBuilder);
+
+            super(List.of());
+
+            this.source = source;
             this.body = bodyBuilder.build(this);
         }
 
@@ -174,14 +225,20 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("", funcName);
+            Map<String, Object> m = new HashMap<>();
+            if (isFakeSource()) {
+                m.put(ATTRIBUTE_FUNC_SOURCE, source);
+            } else {
+                m.put("", source.name());
+            }
+            return m;
         }
 
         /**
          * {@return the function name}
          */
         public String funcName() {
-            return funcName;
+            return source.name();
         }
 
         @Override
@@ -199,6 +256,22 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
         @Override
         public CodeType resultType() {
             return JavaType.VOID;
+        }
+
+        /**
+         * Return the reference to the method this function operation models.
+         * @return the reference to the method this function operation models.
+         */
+        public Optional<MethodRef> sourceRef() {
+            return isFakeSource() ? Optional.of(source) : Optional.empty();
+        }
+
+        private boolean isFakeSource() {
+            return !source.refType().equals(JavaType.VOID);
+        }
+
+        static MethodRef fakeSource(String fn, FunctionType ft) {
+            return MethodRef.method(JavaType.VOID, fn, ft);
         }
     }
 
@@ -1432,6 +1505,16 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
     }
 
     /**
+     * Creates a function operation builder.
+     *
+     * @param source reference to the method the function operation models
+     * @return the function operation builder
+     */
+    public static FuncOp.Builder func(MethodRef source) {
+        return new FuncOp.Builder(null, source);
+    }
+
+    /**
      * Creates a function operation.
      *
      * @param funcName the function name
@@ -1440,6 +1523,17 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     public static FuncOp func(String funcName, Body.Builder body) {
         return new FuncOp(funcName, body);
+    }
+
+    /**
+     * Creates a function operation.
+     *
+     * @param source reference to the method the function operation models
+     * @param body   the body builder defining the function body
+     * @return the function operation
+     */
+    public static FuncOp func(MethodRef source, Body.Builder body) {
+        return new FuncOp(source, body);
     }
 
     /**
