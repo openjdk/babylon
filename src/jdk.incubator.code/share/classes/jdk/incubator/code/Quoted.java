@@ -70,8 +70,8 @@ public final class Quoted<T extends Op> {
 
     static Object runtimeValue(Map<Value, Object> operandsAndCapturedValues, Value value, String role) {
         if (!operandsAndCapturedValues.containsKey(value)) {
-            throw new IllegalArgumentException("Cannot create a quoted value because no runtime value was provided for this " + role + "\n"
-                    + value.block.diagnosticText(value, role + " without runtime value"));
+            throw new IllegalArgumentException("Cannot create a quoted value because no runtime value was provided for this "
+                    + role + "\n" + value.block.diagnosticText(value, role + " without runtime value"));
         }
         return operandsAndCapturedValues.get(value);
     }

@@ -935,17 +935,21 @@ public final class Block implements CodeElement<Block, Op> {
         });
         StringBuilder header = new StringBuilder("^").append(blockNames.computeIfAbsent(this, _ -> "block_" + blockNames.size()));
         if (!parameters().isEmpty()) {
-            header.append(parameters().stream().map(value -> ("%" + namer.apply(value)) + " : " + JavaTypeUtils.flatten(value.type().externalize())).collect(Collectors.joining(", ", "(", ")")));
+            header.append(parameters().stream().map(value -> ("%" + namer.apply(value)) + " : "
+                    + JavaTypeUtils.flatten(value.type().externalize())).collect(Collectors.joining(", ", "(", ")")));
         }
         StringBuilder out = new StringBuilder(header).append(":\n");
         if (pos instanceof Block.Parameter parameter) {
             String value = "%" + namer.apply(parameter);
-            out.append(" ".repeat(header.indexOf(value))).append('^').append("~".repeat(Math.max(0, value.length() - 1))).append(' ').append(label).append('\n');
+            out.append(" ".repeat(header.indexOf(value)))
+               .append('^').append("~".repeat(Math.max(0, value.length() - 1))).append(' ')
+               .append(label).append('\n');
         } else if (pos == null && label != null) {
             out.append('^').append("~".repeat(Math.max(0, header.length() - 1))).append(' ').append(label).append('\n');
         }
         for (Op op : ops) {
-            String line = "  " + OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(namer), OpWriter.OpDescendantsOption.DROP_DESCENDANTS);
+            String line = "  " + OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(namer),
+                                                     OpWriter.OpDescendantsOption.DROP_DESCENDANTS);
             out.append(line).append('\n');
             if (pos == op || pos instanceof Op.Result result && result.op() == op) {
                 out.append("  ^").append("~".repeat(Math.max(0, line.length() - 3))).append(' ').append(label).append('\n');
