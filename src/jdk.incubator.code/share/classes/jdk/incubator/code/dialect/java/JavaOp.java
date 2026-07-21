@@ -1745,8 +1745,8 @@ public sealed abstract class JavaOp extends Op {
      * <p>
      * An exception region start operation is a block-terminating operation whose first successor is the starting
      * block of the exception region, and whose remaining successors are the catch blocks for that region.
-     * For each catch block the argument is an operation result of {@link ConstantOp},
-     * the constant type is the catch block parameter type and the constant value is null
+     * Each catch block is referred to using an operation result of {@link ConstantOp},
+     * the constant type is the catch block parameter type and the constant value is null.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
     public static final class ExceptionRegionEnter extends JavaOp
