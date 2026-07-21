@@ -168,7 +168,7 @@ public class OnnxModelTest {
 
     static OpWithNames<CoreOp.FuncOp> toFuncOp(OnnxModel.GraphProto g) {
         var valueMap = new LinkedHashMap<String, Value>();
-        var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
+        var func = CoreOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
             { // fill value map for parameters and initializers
                 Iterator<Block.Parameter> params = fb.entryBlock().parameters().iterator();

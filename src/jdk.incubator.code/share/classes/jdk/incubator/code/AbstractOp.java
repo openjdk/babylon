@@ -25,18 +25,15 @@
 
 package jdk.incubator.code;
 
-import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.extern.OpWriter;
-
 import java.util.*;
 
 /**
- * The abstract implementation of an operation. All concrete operations extend this class.
+ * The abstract implementation of a non-terminating operation. All concrete non-terminating operations extend this
+ * class and implement {@link Op}.
  *
  * <h2>Operation implementation requirements</h2>
  * <p>
- * A concrete operation class must satisfy the following requirements:
+ * A concrete non-terminating operation class must satisfy the following requirements:
  * <ul>
  * <li>
  * implement {@link #resultType()} to return the result type of operation instances;
@@ -51,9 +48,6 @@ import java.util.*;
  * override {@link #bodies()} if instances may have bodies. If the operation class implements {@link Op.Nested}, then
  * {@code bodies()} must return one or more bodies;
  * <li>
- * override {@link #successors()} if instances may have successors. If the operation class implements
- * {@link Op.BlockTerminating}, then {@code successors()} must return one or more successors;
- * <li>
  * copy mutable constructor arguments that define successors, bodies, and operation-specific state, ensuring they are
  * all fixed when construction completes; and
  * <li>
@@ -61,7 +55,7 @@ import java.util.*;
  * state.
  * </ul>
  * <p>
- * A concrete operation class may additionally:
+ * A concrete non-terminating operation class may additionally:
  * <ul>
  * <li>
  * implement {@link jdk.incubator.code.extern.ExternalizedOp.Externalizable} to define an external form;
@@ -71,39 +65,22 @@ import java.util.*;
  * provide operation-specific accessors for operation-specific state.
  * </ul>
  */
-public non-sealed abstract class AbstractOp implements Op {
-
-    // Set when op is placed in a block or as a root operation, otherwise null when unplaced
-    // @@@ stable value?
-    Result result;
-
-    // null if not specified
-    // @@@ stable value?
-    Location location;
-
-    final List<Value> operands;
-
+public non-sealed abstract class AbstractOp extends InternalAbstractOp {
     /**
-     * Constructs an operation with a list of operands.
+     * Constructs a non-terminating operation with a list of operands.
      *
      * @param operands the list of operands, a copy of the list is performed if required.
      * @throws IllegalArgumentException if an operand's declaring block is built.
      */
     protected AbstractOp(List<? extends Value> operands) {
-        for (Value operand : operands) {
-            if (operand.isBuilt()) {
-                throw new IllegalArgumentException("A new operation cannot directly use a value from a completed code model\n"
-                        + operand.block.diagnosticText(operand, "value from completed model"));
-            }
-        }
-        this.operands = List.copyOf(operands);
+        super(operands);
     }
 
     /**
-     * Constructs an operation with operands mapped from, and location copied from, the given operation.
+     * Constructs a non-terminating with operands mapped from, and location copied from, the given operation.
      * <p>
      * The constructed operation's operands are the values mapped, in order, from the given operation's operands using
-     * the given code context. The new operation's location is the given operation's location, if any.
+     * the given code context. The constructed operation's location is the given operation's location, if any.
      *
      * @param that the operation
      * @param cc   the code context
@@ -111,42 +88,7 @@ public non-sealed abstract class AbstractOp implements Op {
      * @throws IllegalArgumentException if a mapped value's declaring block is built.
      */
     protected AbstractOp(AbstractOp that, CodeContext cc) {
-        this(cc.getValues(that.operands));
-        this.location = that.location;
-    }
-
-    @Override
-    public final void setLocation(Location l) {
-        // @@@ Fail if location != null?
-        if (isRoot() || (result != null && result.block.isBuilt())) {
-            throw new IllegalStateException("Built operation");
-        }
-
-        location = l;
-    }
-
-    @Override
-    public final Location location() {
-        return location;
-    }
-
-    @Override
-    public final Block parent() {
-        if (isRoot() || result == null) {
-            return null;
-        }
-
-        if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Cannot access the operation's parent block while it is still being built\n"
-                    + result.block.diagnosticText(this, "operation in block being built"));
-        }
-
-        return result.block;
-    }
-
-    @Override
-    public final List<Body> children() {
-        return bodies();
+        super(that, cc);
     }
 
     /**
@@ -154,78 +96,89 @@ public non-sealed abstract class AbstractOp implements Op {
      * @implSpec this implementation returns an unmodifiable empty list.
      */
     @Override
-    public List<Body> bodies() {
+    public final List<Block.Reference> successors() {
         return List.of();
-    }
-
-    @Override
-    public final Result result() {
-        return result == Result.ROOT_RESULT ? null : result;
-    }
-
-    @Override
-    public final List<Value> operands() {
-        return operands;
     }
 
     /**
-     * {@inheritDoc}
-     * @implSpec this implementation returns an unmodifiable empty list.
+     * The abstract implementation of a terminating operation. All concrete terminating operations extend this
+     * class and implement {@link Terminating}.
+     *
+     * <h2>Operation implementation requirements</h2>
+     * <p>
+     * A concrete terminating operation class must satisfy the implementation requirements of a concrete non-terminating
+     * operation specified by {@link AbstractOp} in addition to the following requirements:
+     * <ul>
+     * <li>
+     * override {@link #successors()} if instances may have successors;
+     * </ul>
+     * <p>
+     * A concrete terminating operation class may additionally:
+     * <ul>
+     * <li>
+     * implement {@link jdk.incubator.code.extern.ExternalizedOp.Externalizable} to define an external form;
+     * <li>
+     * implement {@link Lowerable} to define a lowering; and
+     * <li>
+     * provide operation-specific accessors for operation-specific state.
+     * </ul>
      */
-    @Override
-    public List<Block.Reference> successors() {
-        return List.of();
-    }
+    public non-sealed abstract static class Terminating extends InternalAbstractOp
+            implements Op.Terminating {
 
-    @Override
-    public final FunctionType opSignature() {
-        List<CodeType> operandTypes = operands.stream().map(Value::type).toList();
-        return CoreType.functionType(resultType(), operandTypes);
-    }
+        final List<Block.Reference> successors;
 
-    @Override
-    public final List<Value> capturedValues() {
-        Set<Value> cvs = new LinkedHashSet<>();
+        /**
+         * Constructs a terminating operation with a list of operands and list of successors
+         *
+         * @param operands the list of operands, a copy of the list is performed if required.
+         * @param successors the list of successors, a copy of the list is performed if required.
+         * @throws IllegalArgumentException if an operand's declaring block is built.
+         * @throws IllegalArgumentException if a successor's referencing block is built or successor's block argument's
+         * declaring block is built.
+         */
+        protected Terminating(List<? extends Value> operands, List<Block.Reference> successors) {
+            super(operands);
 
-        Deque<Body> bodyStack = new ArrayDeque<>();
-        for (Body childBody : bodies()) {
-            Body.capturedValues(cvs, bodyStack, childBody);
+            // @@@ Check unbuilt blocks/arguments
+            this.successors = List.copyOf(successors);
         }
-        return new ArrayList<>(cvs);
-    }
 
-    @Override
-    public final void buildAsRoot() {
-        if (result == Result.ROOT_RESULT) {
-            return;
+        /**
+         * Constructs a terminating operation with a list of operands and an empty list of successors
+         *
+         * @param operands the list of operands, a copy of the list is performed if required.
+         * @throws IllegalArgumentException if an operand's declaring block is built.
+         */
+        protected Terminating(List<? extends Value> operands) {
+            this(operands, List.of());
         }
-        if (!bodies().stream().allMatch(Body::isIsolated)) {
-            throw new IllegalStateException("One of the operation bodies is not isolated");
-        }
-        if (!operands().isEmpty()) {
-            throw new IllegalStateException("Operation has operands");
-        }
-        if (!successors().isEmpty()) {
-            throw new IllegalStateException("Operation has successors");
-        }
-        if (result != null) {
-            throw new IllegalStateException("Operation is placed in a block");
-        }
-        result = Result.ROOT_RESULT;
-    }
 
-    @Override
-    public final boolean isRoot() {
-        return result == Result.ROOT_RESULT;
-    }
+        /**
+         * Constructs a terminating operation with operands and successors mapped from, and location copied from, the given operation.
+         * <p>
+         * The constructed operation's operands are the values mapped, in order, from the given operation's operands using
+         * the given code context. The constructed operation's successors are the successors mapped, in order, from the
+         * given operation's successors using the given code context and applying
+         * {@link CodeContext#getReferenceOrCreate(Block.Reference)} to each successor. The constructed operation's location
+         * is the given operation's location, if any.
+         *
+         * @param that the operation
+         * @param cc   the code context
+         * @throws IllegalArgumentException if an operation's operand has no context mapping
+         * @throws IllegalArgumentException if a mapped value's declaring block is built.
+         * @throws IllegalArgumentException if a mapped successor's referencing block is built or mapped successor's block
+         * argument's declaring block is built.
+         */
+        protected Terminating(AbstractOp.Terminating that, CodeContext cc) {
+            super(that, cc);
 
-    @Override
-    public final boolean isPlacedInBlock() {
-        return !isRoot() && result != null;
-    }
+            this.successors = that.successors().stream().map(s -> cc.getReferenceOrCreate(s)).toList();
+        }
 
-    @Override
-    public final String toText() {
-        return OpWriter.toText(this);
+        @Override
+        public final List<Block.Reference> successors() {
+            return successors;
+        }
     }
 }

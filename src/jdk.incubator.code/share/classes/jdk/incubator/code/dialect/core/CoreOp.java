@@ -43,24 +43,16 @@ import java.util.function.Function;
 import static jdk.incubator.code.internal.StructuralPreconditions.*;
 
 /**
- * The top-level operation class for core operations.
+ * The interface marking all core operations and declaring factory methods for constructing core operations.
  * <p>
  * Core operations model the foundational, language-agnostic structure of code, such as functions, modules,
  * variables, tuples, constants, and control flow. Core operations may appear on their own or together with
  * operations expressed in other dialects.
  */
-public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp.Externalizable {
-
-    CoreOp(AbstractOp that, CodeContext cc) {
-        super(that, cc);
-    }
-
-    CoreOp(List<? extends Value> operands) {
-        super(operands);
-    }
+public sealed interface CoreOp extends ExternalizedOp.Externalizable {
 
     @Override
-    public String externalizeOpName() {
+    default String externalizeOpName() {
         OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpDeclaration.class);
         assert opDecl != null : this.getClass().getName();
         return opDecl.value();
@@ -83,8 +75,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * @jls 8.4 Method Declarations
      */
     @OpDeclaration(FuncOp.NAME)
-    public static final class FuncOp extends CoreOp
-            implements Op.Invokable, Op.Isolated, Op.Lowerable {
+    public static final class FuncOp extends AbstractOp
+            implements CoreOp, Op.Invokable, Op.Isolated, Op.Lowerable {
 
         /**
          * A builder for constructing a function operation.
@@ -222,7 +214,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      */
     // @@@ stack effects equivalent to the call operation as if the function were a Java method?
     @OpDeclaration(FuncCallOp.NAME)
-    public static final class FuncCallOp extends CoreOp {
+    public static final class FuncCallOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "func.call";
 
         /**
@@ -286,8 +279,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * The result type of a module operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ModuleOp.NAME)
-    public static final class ModuleOp extends CoreOp
-            implements Op.Isolated, Op.Lowerable {
+    public static final class ModuleOp extends AbstractOp
+            implements CoreOp, Op.Isolated, Op.Lowerable {
 
         static final String NAME = "module";
 
@@ -495,8 +488,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * {@link #QUOTED_OP_TYPE}.
      */
     @OpDeclaration(QuotedOp.NAME)
-    public static final class QuotedOp extends CoreOp
-            implements Op.Nested, Op.Lowerable, Op.Pure {
+    public static final class QuotedOp extends AbstractOp
+            implements CoreOp, Op.Nested, Op.Lowerable, Op.Pure {
         static final String NAME = "quoted";
 
         /**
@@ -576,14 +569,14 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
     /**
      * The return operation, that can model exit from the body of a function operation or a lambda operation.
      * <p>
-     * A return operation is a body-terminating operation that accepts zero or one operand, corresponding to the
+     * A return operation is a body terminating operation that accepts zero or one operand, corresponding to the
      * value returned from the function operation or lambda operation.
      * <p>
      * The result type of a return operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ReturnOp.NAME)
-    public static final class ReturnOp extends CoreOp
-            implements Op.BodyTerminating, JavaOp.JavaStatement {
+    public static final class ReturnOp extends AbstractOp.Terminating
+            implements CoreOp, JavaOp.JavaStatement {
         static final String NAME = "return";
 
         ReturnOp(ExternalizedOp def) {
@@ -625,15 +618,15 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
     /**
      * The unreachable operation, that can model exit from a body that cannot complete normally.
      * <p>
-     * An unreachable operation is a body-terminating operation.
+     * An unreachable operation is a body terminating operation.
      * <p>
      * The result type of an unreachable operation is {@link JavaType#VOID}.
      *
      * @jls 14.22 Unreachable Statements
      */
     @OpDeclaration(UnreachableOp.NAME)
-    public static final class UnreachableOp extends CoreOp
-            implements Op.BodyTerminating {
+    public static final class UnreachableOp extends AbstractOp.Terminating
+            implements CoreOp {
         static final String NAME = "unreachable";
 
         UnreachableOp(ExternalizedOp def) {
@@ -663,14 +656,14 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
     /**
      * The yield operation, that can model exit from a body.
      * <p>
-     * A yield operation is a body-terminating operation that accepts zero or one operand, corresponding to the value
+     * A yield operation is a body terminating operation that accepts zero or one operand, corresponding to the value
      * yielded from the body to its parent operation.
      * <p>
      * The result type of a yield operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(YieldOp.NAME)
-    public static final class YieldOp extends CoreOp
-            implements Op.BodyTerminating {
+    public static final class YieldOp extends AbstractOp.Terminating
+            implements CoreOp {
         static final String NAME = "yield";
 
         YieldOp(ExternalizedOp def) {
@@ -715,17 +708,15 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
     /**
      * The unconditional branch operation, that can model transfer of control from one block to a successor block.
      * <p>
-     * A branch operation is a block-terminating operation that accepts no operands and one successor, the next block
+     * A branch operation is a block terminating operation that accepts no operands and one successor, the next block
      * to branch to. The arguments of the successor are assigned to the parameters to the target block.
      * <p>
      * The result type of a branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(BranchOp.NAME)
-    public static final class BranchOp extends CoreOp
-            implements Op.BlockTerminating {
+    public static final class BranchOp extends AbstractOp.Terminating
+            implements CoreOp {
         static final String NAME = "branch";
-
-        final Block.Reference branch;
 
         BranchOp(ExternalizedOp def) {
             requireNoOperands(def);
@@ -734,8 +725,6 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
 
         BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
-
-            this.branch = cc.getReferenceOrCreate(that.branch);
         }
 
         @Override
@@ -744,21 +733,14 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
         }
 
         BranchOp(Block.Reference successor) {
-            super(List.of());
-
-            this.branch = successor;
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return List.of(branch);
+            super(List.of(), List.of(successor));
         }
 
         /**
          * {@return The block reference to branch to}
          */
         public Block.Reference branch() {
-            return branch;
+            return successors().get(0);
         }
 
         @Override
@@ -771,7 +753,7 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * The conditional branch operation, that can model transfer of control from one block to one of two successor
      * blocks.
      * <p>
-     * A conditional branch operation is a block-terminating operation that accepts one boolean operand and two
+     * A conditional branch operation is a block terminating operation that accepts one boolean operand and two
      * successors, the true successor and the false successor. When the operand is true the true successor is
      * selected, otherwise the false successor is selected. The arguments of the selected successor are assigned
      * to the parameters to the target block.
@@ -779,12 +761,9 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * The result type of a conditional branch operation is {@link JavaType#VOID}.
      */
     @OpDeclaration(ConditionalBranchOp.NAME)
-    public static final class ConditionalBranchOp extends CoreOp
-            implements Op.BlockTerminating {
+    public static final class ConditionalBranchOp extends AbstractOp.Terminating
+            implements CoreOp {
         static final String NAME = "cbranch";
-
-        final Block.Reference trueBranch;
-        final Block.Reference falseBranch;
 
         ConditionalBranchOp(ExternalizedOp def) {
             List<Block.Reference> succ = requireSuccessors(def, 2);
@@ -793,9 +772,6 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
 
         ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
-
-            this.trueBranch = cc.getReferenceOrCreate(that.trueBranch);
-            this.falseBranch = cc.getReferenceOrCreate(that.falseBranch);
         }
 
         @Override
@@ -804,15 +780,7 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
         }
 
         ConditionalBranchOp(Value p, Block.Reference trueBranch, Block.Reference falseBranch) {
-            super(List.of(p));
-
-            this.trueBranch = trueBranch;
-            this.falseBranch = falseBranch;
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return List.of(trueBranch, falseBranch);
+            super(List.of(p), List.of(trueBranch, falseBranch));
         }
 
         /**
@@ -826,14 +794,14 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
          * {@return the block reference to branch to when the condition is true}
          */
         public Block.Reference trueBranch() {
-            return trueBranch;
+            return successors().get(0);
         }
 
         /**
          * {@return the block reference to branch to when the condition is false}
          */
         public Block.Reference falseBranch() {
-            return falseBranch;
+            return successors().get(1);
         }
 
         @Override
@@ -852,8 +820,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * @jls 15.29 Constant Expressions
      */
     @OpDeclaration(ConstantOp.NAME)
-    public static final class ConstantOp extends CoreOp
-            implements Op.Pure, JavaOp.JavaExpression {
+    public static final class ConstantOp extends AbstractOp
+            implements CoreOp, Op.Pure, JavaOp.JavaExpression {
         static final String NAME = "constant";
 
         /**
@@ -978,8 +946,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * @jls 15.27.1 Lambda Parameters
      */
     @OpDeclaration(VarOp.NAME)
-    public static final class VarOp extends CoreOp
-            implements JavaOp.JavaStatement {
+    public static final class VarOp extends AbstractOp
+            implements CoreOp, JavaOp.JavaStatement {
         static final String NAME = "var";
 
         /**
@@ -1085,8 +1053,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      *
      * @see JavaOp.FieldAccessOp
      */
-    public sealed abstract static class VarAccessOp extends CoreOp
-            implements JavaOp.AccessOp {
+    public sealed abstract static class VarAccessOp extends AbstractOp
+            implements CoreOp, JavaOp.AccessOp {
         VarAccessOp(VarAccessOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -1235,7 +1203,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * @see TupleWithOp
      */
     @OpDeclaration(TupleOp.NAME)
-    public static final class TupleOp extends CoreOp {
+    public static final class TupleOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "tuple";
 
         TupleOp(ExternalizedOp def) {
@@ -1272,7 +1241,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * @see TupleOp
      */
     @OpDeclaration(TupleLoadOp.NAME)
-    public static final class TupleLoadOp extends CoreOp {
+    public static final class TupleLoadOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "tuple.load";
 
         /**
@@ -1345,7 +1315,8 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
      * @see TupleOp
      */
     @OpDeclaration(TupleWithOp.NAME)
-    public static final class TupleWithOp extends CoreOp {
+    public static final class TupleWithOp extends AbstractOp
+            implements CoreOp {
         static final String NAME = "tuple.with";
 
         /**
@@ -1418,7 +1389,7 @@ public sealed abstract class CoreOp extends AbstractOp implements ExternalizedOp
         }
     }
 
-    static Op createOp(ExternalizedOp def) {
+    private static Op createOp(ExternalizedOp def) {
         Op op = switch (def.name()) {
             case "branch" -> new BranchOp(def);
             case "cbranch" -> new ConditionalBranchOp(def);

@@ -25,32 +25,30 @@
 
 package intel.code.spirv;
 
-import java.util.List;
-import java.util.Map;
-import jdk.incubator.code.AbstractOp;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeType;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 
-public abstract class SpirvOp extends AbstractOp implements ExternalizedOp.Externalizable {
+import java.util.List;
+import java.util.Map;
+
+public abstract class SpirvTerminatingOp extends AbstractOp.Terminating implements ExternalizedOp.Externalizable {
     private final String opName;
     private final CodeType type;
 
-    SpirvOp(String opName) {
+    SpirvTerminatingOp(String opName) {
         super(List.of());
         this.opName = opName;
         this.type = JavaType.VOID;
     }
 
-    SpirvOp(String opName, CodeType type, List<Value> operands) {
-        super(operands);
+    SpirvTerminatingOp(String opName, CodeType type, List<Value> operands, List<Block.Reference> successors) {
+        super(operands, successors);
         this.opName = opName;
         this.type = type;
     }
 
-    SpirvOp(SpirvOp that, CodeContext cc) {
+    SpirvTerminatingOp(SpirvTerminatingOp that, CodeContext cc) {
         super(that, cc);
         this.opName = that.opName;
         this.type = that.type;

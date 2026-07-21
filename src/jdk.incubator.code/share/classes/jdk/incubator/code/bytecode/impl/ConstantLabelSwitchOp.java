@@ -32,7 +32,8 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 /**
- * The terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch} instructions.
+ * A block terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch}
+ * instructions.
  * <p>
  * This operation accepts an int computational type operand (JVMS 2.11.1-B),
  * variable number of distinct constant labels and the same number of successors.
@@ -41,23 +42,20 @@ import jdk.incubator.code.extern.ExternalizedOp;
  * Default is a successor with corresponds null label value.
  * The selected successor refers to the next block to branch to.
  */
-public final class ConstantLabelSwitchOp extends AbstractOp
-        implements Op.BlockTerminating, ExternalizedOp.Externalizable {
+public final class ConstantLabelSwitchOp extends AbstractOp.Terminating
+        implements ExternalizedOp.Externalizable {
 
     final List<Integer> labels;
-    final List<Block.Reference> targets;
 
     public ConstantLabelSwitchOp(Value intSelector, List<Integer> labels, List<Block.Reference> targets) {
-        super(List.of(intSelector));
         assert targets.size() == labels.size();
+        super(List.of(intSelector), targets);
         this.labels = labels;
-        this.targets = targets;
     }
 
     ConstantLabelSwitchOp(ConstantLabelSwitchOp that, CodeContext cc) {
         super(that, cc);
         this.labels = that.labels;
-        this.targets = that.targets.stream().map(cc::getReferenceOrCreate).toList();
     }
 
     @Override
@@ -75,13 +73,7 @@ public final class ConstantLabelSwitchOp extends AbstractOp
     }
 
     @Override
-    public List<Block.Reference> successors() {
-        return targets;
-    }
-
-    @Override
     public Map<String, Object> externalize() {
         return Map.of("", labels);
     }
-
 }

@@ -33,7 +33,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Optional;
 
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
-import static jdk.incubator.code.dialect.java.JavaOp.ConstantExpressionEvaluator;
 
 /**
  * A transformer that replaces every operation that models a constant expression with a constant operation
