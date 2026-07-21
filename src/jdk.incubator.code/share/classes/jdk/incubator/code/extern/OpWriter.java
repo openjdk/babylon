@@ -433,9 +433,9 @@ public final class OpWriter {
      * @param op the operation
      */
     public void writeOp(Op op) {
-        if (op.parent() != null) {
-            Op.Result opr = op.result();
-            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID) || !opr.uses().isEmpty()) {
+        Op.Result opr = op.result();
+        if (opr != null) {
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID) || hasUses(opr)) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }
@@ -505,11 +505,26 @@ public final class OpWriter {
     }
 
     void writeSuccessor(Block.Reference successor) {
-        writeBlockName(successor.targetBlock());
+        CodeItem target;
+        try {
+            target = successor.targetBlock();
+        } catch (IllegalStateException _) {
+            target = successor;
+        }
+        write("^");
+        write(namer.apply(target));
         if (!successor.arguments().isEmpty()) {
             write("(");
             writeCommaSeparatedList(successor.arguments(), this::writeValueUse);
             write(")");
+        }
+    }
+
+    private static boolean hasUses(Op.Result result) {
+        try {
+            return !result.uses().isEmpty();
+        } catch (IllegalStateException _) {
+            return false;
         }
     }
 
