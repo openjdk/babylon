@@ -125,7 +125,8 @@ public final class CodeContext {
         if (output != null) {
             return output;
         }
-        throw new IllegalArgumentException("No mapping for input value: " + input);
+        throw new IllegalArgumentException("No output value is mapped to this input value in the code context\n"
+                + input.block.diagnosticText(input, "unmapped input value"));
     }
 
     /**
@@ -193,7 +194,8 @@ public final class CodeContext {
         Objects.requireNonNull(output);
 
         if (output.isBuilt()) {
-            throw new IllegalArgumentException("Output value's declaring block is built: " + output);
+            throw new IllegalArgumentException("Output value's declaring block is built\n"
+                    + output.block.diagnosticText(output, "output value"));
         }
 
         if (valueMap == EMPTY_MAP) {
@@ -262,7 +264,8 @@ public final class CodeContext {
 
         Block.Builder output = blockMap.get(input);
         if (output == null) {
-            throw new IllegalArgumentException("No mapping for input block: " + input);
+            throw new IllegalArgumentException("No mapping for input block\n"
+                    + input.diagnosticText("input block"));
         }
 
         return output;
@@ -299,7 +302,8 @@ public final class CodeContext {
         Objects.requireNonNull(output);
 
         if (output.target().isBuilt()) {
-            throw new IllegalArgumentException("Output block builder is built: " + output);
+            throw new IllegalArgumentException("Output block builder is built\n"
+                    + output.target().diagnosticText("output block"));
         }
 
         if (blockMap == EMPTY_MAP) {
@@ -347,7 +351,8 @@ public final class CodeContext {
 
         Block.Reference output = referenceMap.get(input);
         if (output == null) {
-            throw new IllegalArgumentException("No mapping for input block reference: " + input);
+            throw new IllegalArgumentException("No mapping for input block reference\n"
+                    + input.target.diagnosticText("reference target"));
         }
 
         return output;
@@ -385,12 +390,14 @@ public final class CodeContext {
         Objects.requireNonNull(output);
 
         if (output.target.isBuilt()) {
-            throw new IllegalArgumentException("Output block reference's target block is built: " + output);
+            throw new IllegalArgumentException("Output block reference's target block is built\n"
+                    + output.target.diagnosticText("reference target"));
         }
 
         for (Value outputArgument : output.arguments()) {
             if (outputArgument.isBuilt()) {
-                throw new IllegalArgumentException("Output block reference argument's declaring block is built: " + outputArgument);
+                throw new IllegalArgumentException("Output block reference argument's declaring block is built\n"
+                        + outputArgument.block.diagnosticText(outputArgument, "reference argument"));
             }
         }
 
@@ -428,7 +435,8 @@ public final class CodeContext {
         // Create reference
         Block.Builder outputBlock = blockMap.get(input.targetBlock());
         if (outputBlock == null) {
-            throw new IllegalArgumentException("No mapping for input reference target block" + input.targetBlock());
+            throw new IllegalArgumentException("No mapping for input reference target block\n"
+                    + input.target.diagnosticText("reference target"));
         }
         return outputBlock.reference(getValues(input.arguments()));
     }
