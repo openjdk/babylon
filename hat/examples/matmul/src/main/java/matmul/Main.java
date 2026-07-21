@@ -30,7 +30,6 @@ import hat.ComputeContext;
 import hat.KernelContext;
 import hat.NDRange.Global2D;
 import hat.NDRange.Local2D;
-import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -42,7 +41,6 @@ import hat.examples.common.ParseArgs;
 import hat.types.F16;
 import hat.types.Float4;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -54,7 +52,6 @@ import static hat.NDRange.NDRange2D;
 import static hat.NDRange.of1D;
 import static hat.NDRange.of2D;
 import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
-import static optkl.ifacemapper.MappableIface.RO;
 
 /**
  * Canonical example for Matrix Multiply.
@@ -120,7 +117,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DLIF16(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DLIF16(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx) {
             if (kc.giy < kc.gsy) {
                 float acc = 0.0f;
@@ -644,7 +641,7 @@ public class Main {
     }
 
     @Reflect
-    public static float compute(@RO KernelContext kc, @RO F32Array matrixA, @RO F32Array matrixB, int size, int j) {
+    public static float compute(KernelContext kc, F32Array matrixA, F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
             acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
@@ -688,7 +685,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiply1D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void matrixMultiply1D(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of1D(globalSize, 16),
                 kc -> matrixMultiplyKernel1D(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -698,35 +695,35 @@ public class Main {
     static final int BM = 64;
 
     @Reflect
-    public static void matrixMultiply1DWithFunctionCalls(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int size) {
+    public static void matrixMultiply1DWithFunctionCalls(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         cc.dispatchKernel(of1D(size, 16),
                 kc -> matrixMultiplyKernel1DWithFunctionCalls(kc, matrixA, matrixB, matrixC, size)
         );
     }
 
     @Reflect
-    public static void matrixMultiply2D(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2D(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2D(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
-    public static void matrixMultiply2DLI(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2DLI(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DLI(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
-    public static void matrixMultiply2DLIF16(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2DLIF16(ComputeContext cc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(2048, 64, 128, 4),
                 kc -> matrixMultiplyKernel2DLIF16(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
-    public static void matrixMultiply2DTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2DTiling(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, BLOCK_SIZE, BLOCK_SIZE),
                 kc -> matrixMultiplyKernel2DTiling(kc, matrixA, matrixB, matrixC, globalSize)
         );
@@ -737,7 +734,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiply2DRegisterTiling(@RO ComputeContext cc, @RO F32Array matrixA, @RO F32Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void matrixMultiply2DRegisterTiling(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int globalSize) {
         // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
         int size = ceil(globalSize, BM) * BLOCK_SIZE;
         cc.dispatchKernel(of2D(size, size, BLOCK_SIZE, BLOCK_SIZE),
@@ -746,7 +743,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiply2DRegisterTilingVectorizedAccesses(@RO ComputeContext cc, @RO F32ArrayPadded matrixA, @RO F32ArrayPadded matrixB, @WO F32ArrayPadded matrixC, int globalSize) {
+    public static void matrixMultiply2DRegisterTilingVectorizedAccesses(ComputeContext cc, F32ArrayPadded matrixA, F32ArrayPadded matrixB, F32ArrayPadded matrixC, int globalSize) {
         // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
         int size = ceil(globalSize, BM) * BLOCK_SIZE;
         cc.dispatchKernel(of2D(size, size, BLOCK_SIZE, BLOCK_SIZE),
@@ -755,7 +752,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiply2DRegisterTilingHalf(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F16Array matrixC, int globalSize) {
+    public static void matrixMultiply2DRegisterTilingHalf(ComputeContext cc, F16Array matrixA, F16Array matrixB, F16Array matrixC, int globalSize) {
         // Note: if we change the static constant BM, we also need to adapt the BM and BN within the kernel to match the same value
         int size = ceil(globalSize, BM) * BLOCK_SIZE;
         var range = NDRange2D.of(Global2D.of(size, size), Local2D.of(BLOCK_SIZE, BLOCK_SIZE));
@@ -964,8 +961,10 @@ public class Main {
         if (checkResult) {
             // Run the sequential version for reference
             switch (configuration) {
-                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED -> runSequential(matrixAPad, matrixBPad, resultSeq, size);
-                case Configuration.ALG_2DREGISTER_TILING_FP16 -> runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
+                case Configuration.ALG_2DREGISTER_TILING_VECTORIZED ->
+                        runSequential(matrixAPad, matrixBPad, resultSeq, size);
+                case Configuration.ALG_2DREGISTER_TILING_FP16 ->
+                        runSequential(matrixAHalf, matrixBHalf, resultSeqHalf, size);
                 case Configuration.ALG_2DLIF16 -> runSequential(matrixAHalf, matrixBHalf, resultSeq, size);
                 default -> runSequential(matrixA, matrixB, resultSeq, size);
             }
@@ -1041,7 +1040,7 @@ public class Main {
         }
 
         // Write CSV table with all results
-        List<String> header = List.of(configuration.toName() + "-" + + size);
+        List<String> header = List.of(configuration.toName() + "-" + +size);
         String fileName = "table-results-mxm-" + configuration.toName() + "-" + size + ".csv";
         dumpStatsToCSVFile(List.of(timers), header, fileName);
     }

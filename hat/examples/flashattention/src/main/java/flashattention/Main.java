@@ -33,10 +33,10 @@ import hat.buffer.F16Array;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
 import hat.examples.common.ParseArgs;
+import hat.examples.common.StatUtils;
 import hat.types.F16;
 import hat.device.NonMappableIface;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RW;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -48,11 +48,8 @@ import static hat.Accelerator.Compute;
 import static hat.NDRange.Global1D;
 import static hat.NDRange.Local1D;
 import static hat.NDRange.NDRange1D;
-import static hat.examples.common.StatUtils.computeAverage;
 import static hat.examples.common.StatUtils.computeSpeedup;
 import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
-import static optkl.ifacemapper.MappableIface.RO;
-import static optkl.ifacemapper.MappableIface.WO;
 
 /**
  * How to run?
@@ -315,8 +312,8 @@ public class Main {
     }
 
     @Reflect
-    public static void selfAttentionCompute(@RO ComputeContext computeContext, @RO F32Array Q, @RO F32Array K, @RO F32Array V,
-                                            @WO F32Array attentionMatrix, @WO F32Array O,
+    public static void selfAttentionCompute( ComputeContext computeContext,  F32Array Q,  F32Array K,  F32Array V,
+                                             F32Array attentionMatrix,  F32Array O,
                                             final int N, final int d, final float softmaxScale) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(256));
         computeContext.dispatchKernel(ndRange, kernelContext -> selfAttentionV2HAT(kernelContext, Q, K, V, attentionMatrix, O, N, d, softmaxScale));
@@ -486,9 +483,9 @@ public class Main {
     }
 
     @Reflect
-    public static void computeFlashAttention(@RO ComputeContext computeContext,
-                                             @RO F32Array Q, @RO F32Array K, @RO F32Array V,
-                                             @WO F32Array O, @RW F32Array m, @RW F32Array l,
+    public static void computeFlashAttention( ComputeContext computeContext,
+                                              F32Array Q,  F32Array K,  F32Array V,
+                                              F32Array O,  F32Array m,  F32Array l,
                                              final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
         computeContext.dispatchKernel(ndRange, kernelContext -> flashAttention(kernelContext, Q, K, V, O, m, l, N, d, scale));
@@ -652,9 +649,9 @@ public class Main {
     }
 
     @Reflect
-    public static void computeFlashAttentionF16(@RO ComputeContext computeContext,
-                                                @RO F16Array Q, @RO F16Array K, @RO F16Array V,
-                                                @WO F16Array O, @RW F16Array m, @RW F16Array l,
+    public static void computeFlashAttentionF16( ComputeContext computeContext,
+                                                 F16Array Q,  F16Array K,  F16Array V,
+                                                 F16Array O,  F16Array m,  F16Array l,
                                                 final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
         computeContext.dispatchKernel(ndRange, kernelContext -> flashAttentionF16(kernelContext, Q, K, V, O, m, l, N, d, scale));
@@ -868,11 +865,11 @@ public class Main {
         // skip 50% of first timers -> we evaluate in peak,
         // or closed to peak, performance.
         final int skip = options.iterations() / 2;
-        double averageJavaTimer = computeAverage(timersSelfAttentionJava, skip);
-        double averageStreamTimer = computeAverage(timersSelfAttentionStream, skip);
-        double averageSelfAttentionHAT = computeAverage(timersSelfAttentionHAT, skip);
-        double averageFlashAttentionHAT = computeAverage(timersFlashAttentionHAT, skip);
-        double averageFlashAttentionHAT16 = computeAverage(timersFlashAttentionHAT16, skip);
+        double averageJavaTimer = StatUtils.computeAverage(timersSelfAttentionJava, skip);
+        double averageStreamTimer = StatUtils.computeAverage(timersSelfAttentionStream, skip);
+        double averageSelfAttentionHAT = StatUtils.computeAverage(timersSelfAttentionHAT, skip);
+        double averageFlashAttentionHAT = StatUtils.computeAverage(timersFlashAttentionHAT, skip);
+        double averageFlashAttentionHAT16 = StatUtils.computeAverage(timersFlashAttentionHAT16, skip);
 
         IO.println("\nAverage elapsed time:");
         IO.println("Average Java Self-Attention       : " + averageJavaTimer);

@@ -33,7 +33,6 @@ import hat.buffer.S32Array;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
-import optkl.ifacemapper.MappableIface.*;
 
 import java.lang.invoke.MethodHandles;
 
@@ -52,7 +51,7 @@ public class TestConstants {
     }
 
     @Reflect
-    public static void vectorWithConstants(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
+    public static void vectorWithConstants(ComputeContext cc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         cc.dispatchKernel(NDRange.of1D(arrayA.length()), kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
     }
 
@@ -102,7 +101,7 @@ public class TestConstants {
     }
 
     @Reflect
-    public static void vectorWithConstants2(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
+    public static void vectorWithConstants2(ComputeContext cc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         cc.dispatchKernel(NDRange.of1D(arrayA.length()), kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));
     }
 
