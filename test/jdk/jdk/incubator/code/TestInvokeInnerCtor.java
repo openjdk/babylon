@@ -67,6 +67,15 @@ public class TestInvokeInnerCtor {
         Inner make(String s) {
             return new Inner(s);
         }
+
+        @Reflect
+        String localCaptureParam(String s) {
+            class Foo {
+                Foo(int i) {}
+                String m() { return s; }
+            }
+            return new Foo(10).m();
+        }
     }
 
     @Test
@@ -74,6 +83,13 @@ public class TestInvokeInnerCtor {
         CoreOp.FuncOp f = getFuncOp(Sub.class, "make");
         System.out.println(f.toText());
         Assertions.assertEquals(new Sub().make("Test"), Interpreter.invoke(MethodHandles.lookup(), f, new Sub(), "Test"));
+    }
+
+    @Test
+    public void testLocalCaptureParam() {
+        CoreOp.FuncOp f = getFuncOp(Sub.class, "localCaptureParam");
+        System.out.println(f.toText());
+        Assertions.assertEquals(new Sub().localCaptureParam("Test"), Interpreter.invoke(MethodHandles.lookup(), f, new Sub(), "Test"));
     }
 
     static CoreOp.FuncOp getFuncOp(Class<?> c, String name) {
