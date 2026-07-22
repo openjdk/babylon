@@ -29,15 +29,11 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.buffer.F32Array2D;
 import hat.buffer.S08x3RGBImage;
-import optkl.ifacemapper.MappableIface;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 
 public class ViolaJonesCoreCompute {
 
@@ -310,7 +306,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    static public void compute(@MappableIface.RO final ComputeContext cc, @MappableIface.RO Cascade cascade, @MappableIface.RO S08x3RGBImage s08X3RGBImage, @RW ResultTable resultTable, @MappableIface.RO ScaleTable scaleTable) {
+    public static void compute(final ComputeContext cc, Cascade cascade, S08x3RGBImage s08X3RGBImage, ResultTable resultTable, ScaleTable scaleTable) {
 
         int width = s08X3RGBImage.width();
         int height = s08X3RGBImage.height();

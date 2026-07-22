@@ -57,14 +57,14 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
  * <p>
  * <code>
  * # Using the OpenCL Backend:
- * java -cp hat/job.jar hat.java run ffi-opencl flashattention <--verbose> <--size=SEQ_SIZE>
+ *    java @.ffi-opencl-example flashattention.Main <--verbose> <--size=SEQ_SIZE>
  * </code>
  * </p>
  *
  * <p>
  * <code>
  * # Using the CUDA Backend:
- * java -cp hat/job.jar hat.java run ffi-cuda flashattention <--verbose> <--size=SEQ_SIZE>
+ *  java @.ffi-cuda-example flashattention.Main <--verbose> <--size=SEQ_SIZE>
  * </code>
  * </p>
  *

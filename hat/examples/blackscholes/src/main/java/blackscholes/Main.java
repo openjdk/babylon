@@ -36,9 +36,6 @@ import hat.buffer.F32Array;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.WO;
-
 import jdk.incubator.code.Reflect;
 
 public class Main {
@@ -96,7 +93,7 @@ public class Main {
     }
 
     @Reflect
-    public static void blackScholes(@RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
+    public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
@@ -110,10 +107,10 @@ public class Main {
         return array;
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         int size = 1024;
         rand = new Random();
-        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var call = F32Array.create(accelerator, size);
         for (int i = 0; i < call.length(); i++) {
             call.array(i, i);

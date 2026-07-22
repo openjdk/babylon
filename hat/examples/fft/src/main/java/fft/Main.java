@@ -47,14 +47,14 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
  * <p>
  * With the OpenCL Backend:
  * <code>
- *     java -cp hat/job.jar hat.java run ffi-opencl fft --size=<size> --iterations=<iterations> -verbose
+ *     java @.ffi-opencl-example fft.Main --size=<size> --iterations=<iterations> -verbose
  * </code>
  * </p>
  *
  * <p>
  * With the CUDA Backend:
  * <code>
- *      java -cp hat/job.jar hat.java run ffi-cuda fft --size=<size> --iterations=<iterations> --verbose
+ *      java @.ffi-opencl-example fft.Main --size=<size> --iterations=<iterations> --verbose
  * </code>
  *
  * <p>
