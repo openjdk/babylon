@@ -12,7 +12,6 @@ import hat.buffer.F32Array;
 
 import hat.test.annotation.HatTest;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 
@@ -21,19 +20,19 @@ import static optkl.ifacemapper.MappableIface.*;
 /**
  * How to run?
  * <code>
- *  java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTileAPI#test_hat_tile_01
+ *  java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_01
  * </code>
  *
  * <code>
- *  java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTileAPI#test_hat_tile_02
+ * java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_02
  * </code>
  *
  * <code>
- *   java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTileAPI#test_hat_tile_03
+ *   java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_03
  * </code>
  *
  * <code>
- *   java -cp hat/job.jar hat.java test ffi-opencl hat.test.TestTileAPI#test_hat_tile_04
+ *  java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_04
  * </code>
  */
 public class TestTileAPI {

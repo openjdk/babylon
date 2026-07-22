@@ -24,7 +24,7 @@
  */
 package hat;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
@@ -207,8 +207,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
                     boolean isStaticField = fieldLoadOp.operands().isEmpty();
                     if (isStaticField) {
-                        blockBuilder.op(fieldLoadOp);
-                        TypeElement typeElement = fieldLoadOp.resultType();
+                        blockBuilder.add(fieldLoadOp);
+                        CodeType typeElement = fieldLoadOp.resultType();
                         if (typeElement instanceof PrimitiveType primitiveType) {
                             JavaType basicType = primitiveType.toBasicType();
                             if (basicType == JavaType.INT) {
@@ -219,7 +219,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                                     // We can pass null because, at this point, we know it is a static field
                                     int anInt = field.getInt(null);
                                     CoreOp.ConstantOp c = CoreOp.constant(basicType, anInt);
-                                    Op.Result op1 = blockBuilder.op(c);
+                                    Op.Result op1 = blockBuilder.add(c);
                                     c.setLocation(fieldLoadOp.location());
                                     blockBuilder.context().mapValue(fieldLoadOp.result(), op1);
                                 } catch (ReflectiveOperationException e) {
@@ -227,13 +227,13 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                                 }
                             }
                         } else {
-                            blockBuilder.op(fieldLoadOp);
+                            blockBuilder.add(fieldLoadOp);
                         }
                     } else {
-                        blockBuilder.op(fieldLoadOp);
+                        blockBuilder.add(fieldLoadOp);
                     }
                 } else {
-                    blockBuilder.op(op);
+                    blockBuilder.add(op);
                 }
                 return blockBuilder;
             });
