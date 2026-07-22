@@ -58,15 +58,15 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
  * <p>
  * How to run? We recommend running this example with the CUDA backend to be
  * able to generate tensor operations.
- * <code>java @hat/run ffi-cuda tensors --iterations=100 --verbose --size=2048</code>
+ * <code>java @.ffi-cuda-example tensors.Main --iterations=100 --verbose --size=2048</code>
  * OpenCL:
- * <code>java @hat/run ffi-opencl tensors --iterations=100 --verbose --size=2048</code>
+ * <code>java @.ffi-opencl-example tensors.Main --iterations=100 --verbose --size=2048</code>
  * </p>
  */
 public class Main {
 
     @Reflect
-    public static void mxmTensorsCM(@MappableIface.RO KernelContext kc, @MappableIface.RO F16Array matrixA, @MappableIface.RO F16Array matrixB, @MappableIface.WO F32Array matrixC, int size) {
+    public static void mxmTensorsCM(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         final int shapeSize = 16;
         final int WMMA_M = shapeSize;
         final int WMMA_N = shapeSize;
@@ -97,7 +97,7 @@ public class Main {
     }
 
     @Reflect
-    public static void mxmTensorsCM(@MappableIface.RO ComputeContext cc, @MappableIface.RO F16Array matrixA, @MappableIface.RO F16Array matrixB, @MappableIface.WO F32Array matrixC, int globalSize) {
+    public static void mxmTensorsCM(ComputeContext cc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int globalSize) {
         var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize),
                 Local2D.of(128, 4),
                 NDRange.Tile2D.of(16, 16),
@@ -117,14 +117,14 @@ public class Main {
     }
 
     @Reflect
-    public static void mxmNaiveF32(@MappableIface.RO ComputeContext cc, @MappableIface.RO F32Array matrixA, @MappableIface.RO F32Array matrixB, @MappableIface.WO F32Array matrixC, int globalSize) {
+    public static void mxmNaiveF32(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, 16, 16),
                 kc -> mxmNaiveF32(kc, matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
-    public static void mxmNaiveF16(@MappableIface.RO KernelContext kc, @MappableIface.RO F16Array matrixA, @MappableIface.RO F16Array matrixB, @MappableIface.WO F32Array matrixC, int size) {
+    public static void mxmNaiveF16(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         if (kc.gix < kc.gsx && kc.giy < kc.gsy) {
             float acc = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -140,7 +140,7 @@ public class Main {
     }
 
     @Reflect
-    public static void mxmNaiveF16(@MappableIface.RO ComputeContext cc, @MappableIface.RO F16Array matrixA, @MappableIface.RO F16Array matrixB, @MappableIface.WO F32Array matrixC, int globalSize) {
+    public static void mxmNaiveF16(ComputeContext cc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, 16, 16),
                 kc -> mxmNaiveF16(kc, matrixA, matrixB, matrixC, globalSize)
         );

@@ -30,7 +30,7 @@ import wrap.opengl.GLTexture;
 import java.lang.foreign.Arena;
 
 public class Main {
-    public static void main(String[] args)  {
+    static void main(String[] args)  {
         for (var arg : args) {
             System.out.println("arg = "+arg);
         }

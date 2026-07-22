@@ -26,23 +26,15 @@ package heal;
 
 import hat.Accelerator;
 import hat.backend.Backend;
-import hat.buffer.S32Array2D;
 
 import javax.imageio.ImageIO;
-import javax.swing.Box;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenuBar;
-import javax.swing.JTextField;
-import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    static void main(String[] args) throws IOException {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         var image= ImageIO.read(Main.class.getResourceAsStream(

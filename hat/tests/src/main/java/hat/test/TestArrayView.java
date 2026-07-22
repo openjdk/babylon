@@ -38,7 +38,6 @@ import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
-import optkl.ifacemapper.MappableIface.*;
 
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -52,7 +51,7 @@ public class TestArrayView {
      * simple square kernel example using S32Array's ArrayView
      */
     @Reflect
-    public static void squareKernel( KernelContext kc, S32Array s32Array) {
+    public static void squareKernel(KernelContext kc, S32Array s32Array) {
         if (kc.gix < kc.gsx){
             int[] arr = s32Array.arrayView();
             arr[kc.gix] *= arr[kc.gix];
@@ -60,7 +59,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void square(@RO ComputeContext cc, S32Array s32Array) {
+    public static void square(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernel(kc, s32Array)
         );
@@ -94,7 +93,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void squareNoVarOp(@RO ComputeContext cc, @RW S32Array s32Array) {
+    public static void squareNoVarOp(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernelNoVarOp(kc, s32Array)
         );
@@ -125,7 +124,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void square2D(@RO ComputeContext cc, @RW S32Array2D s32Array2D) {
+    public static void square2D(ComputeContext cc, S32Array2D s32Array2D) {
         cc.dispatchKernel(NDRange.of1D(s32Array2D.width() * s32Array2D.height()),
                 kc -> square2DKernel(kc, s32Array2D)
         );
@@ -155,8 +154,8 @@ public class TestArrayView {
     /*
      * simplified version of Game of Life using ArrayView
      */
-    public final static byte ALIVE = (byte) 0xff;
-    public final static byte DEAD = 0x00;
+    public static final byte ALIVE = (byte) 0xff;
+    public static final byte DEAD = 0x00;
 
     public interface CellGrid extends Buffer {
         /*
@@ -297,7 +296,7 @@ public class TestArrayView {
         }
 
         @Reflect
-        static public void compute(final @RO ComputeContext cc, @RO CellGrid grid, @RW CellGrid gridRes) {
+        public static void compute(final ComputeContext cc, CellGrid grid, CellGrid gridRes) {
             int range = grid.width() * grid.height();
             cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, grid, gridRes));
         }
@@ -514,7 +513,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void blackScholes(@RO ComputeContext cc, @RW F32Array call, @RW F32Array put, @RO F32Array S, @RO F32Array X, @RO F32Array T, float r, float v) {
+    public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );
@@ -637,7 +636,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void privateAndLocal(@RO ComputeContext cc, @RW S32Array s32Array) {
+    public static void privateAndLocal(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernelWithPrivateAndLocal(kc, s32Array)
         );
@@ -716,7 +715,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void basicDeviceType(@RO ComputeContext cc, @RW S32Array s32Array) {
+    public static void basicDeviceType(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> kernelBasicDeviceType(kc, s32Array)
         );
@@ -754,7 +753,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void deviceType(@RO ComputeContext cc, @RW S32Array s32Array) {
+    public static void deviceType(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
                 kc -> squareKernelDeviceType(kc, s32Array)
         );
@@ -763,7 +762,7 @@ public class TestArrayView {
     @HatTest
     @Reflect
     public static void testDeviceType() {
-        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);//new JavaMultiThreadedBackend());
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST); //new JavaMultiThreadedBackend());
         var arr = S32Array.create(accelerator, 32);
         for (int i = 0; i < arr.length(); i++) {
             arr.array(i, i);

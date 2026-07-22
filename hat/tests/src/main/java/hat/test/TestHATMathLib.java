@@ -36,8 +36,6 @@ import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import hat.types.F16;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -57,7 +55,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib01(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
+    private static void computeMathLib01( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib01(kernelContext, a, b, c));
     }
@@ -73,7 +71,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib02(@RO ComputeContext computeContext, @RO F32Array a, @RO F32Array b, @WO F32Array c) {
+    private static void computeMathLib02( ComputeContext computeContext,  F32Array a,  F32Array b,  F32Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib02(kernelContext, a, b, c));
     }
@@ -94,7 +92,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib03(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void computeMathLib03( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c,  F16Array d) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib03(kernelContext, a, b, c, d));
     }
@@ -115,7 +113,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib04(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void computeMathLib04( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c,  F16Array d) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib04(kernelContext, a, b, c, d));
     }
@@ -136,7 +134,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib05(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void computeMathLib05( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c,  F16Array d) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib05(kernelContext, a, b, c, d));
     }
@@ -152,7 +150,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib06(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
+    private static void computeMathLib06( ComputeContext computeContext,  F16Array a,  F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib06(kernelContext, a, b));
     }
@@ -167,7 +165,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib07(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib07( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib07(kernelContext, a, b));
     }
@@ -182,7 +180,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib08(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib08( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib08(kernelContext, a, b));
     }
@@ -197,7 +195,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib09(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib09( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib09(kernelContext, a, b));
     }
@@ -212,7 +210,7 @@ public class TestHATMathLib {
     }
 
     @Reflect
-    private static void computeMathLib10(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib10( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestHATMathLib.testMathLib10(kernelContext, a, b));
     }
