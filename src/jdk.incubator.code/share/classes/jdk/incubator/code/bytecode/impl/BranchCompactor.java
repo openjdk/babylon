@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,12 +27,16 @@ package jdk.incubator.code.bytecode.impl;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.CodeElement;
 import java.lang.classfile.CodeTransform;
+import java.lang.classfile.Label;
 import java.lang.classfile.Opcode;
 import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.instruction.BranchInstruction;
+import java.lang.classfile.instruction.ExceptionCatch;
 import java.lang.classfile.instruction.LabelTarget;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * BranchCompactor is a CodeTransform skipping redundant branches to immediate targets.
@@ -41,12 +45,19 @@ public final class BranchCompactor implements CodeTransform {
 
     private BranchInstruction branch;
     private final List<PseudoInstruction> buffer = new ArrayList<>();
+    private final Set<Label> barriers = new HashSet<>();
 
     public BranchCompactor() {
     }
 
     @Override
     public void accept(CodeBuilder cob, CodeElement coe) {
+        if (coe instanceof ExceptionCatch ec) {
+            //exception labels are barriers
+            barriers.add(ec.tryStart());
+            barriers.add(ec.tryEnd());
+            barriers.add(ec.handler());
+        }
         if (branch == null) {
             if (coe instanceof BranchInstruction bi && isUnconditionalBranch(bi.opcode())) {
                 //unconditional branch is stored
@@ -57,6 +68,12 @@ public final class BranchCompactor implements CodeTransform {
             }
         } else {
             switch (coe) {
+                case LabelTarget lt when barriers.contains(lt.label()) -> {
+                    //flush the buffer
+                    atEnd(cob);
+                    //pass the target
+                    cob.with(lt);
+                }
                 case LabelTarget lt when branch.target() == lt.label() -> {
                     //skip branch to immediate target
                     branch = null;

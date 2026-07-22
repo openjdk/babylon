@@ -77,7 +77,7 @@ public final class ExpressionElimination {
 
                     as.put(ms.op().result(), (block, op) -> {
                         CodeContext cc = block.context();
-                        Op.Result r = block.op(sub(cc.getValue(y), cc.getValue(x)));
+                        Op.Result r = block.add(sub(cc.getValue(y), cc.getValue(x)));
                         cc.mapValue(ms.op().result(), r);
                     });
                     return as;
@@ -90,7 +90,7 @@ public final class ExpressionElimination {
             if (a != null) {
                 a.accept(block, op);
             } else {
-                block.op(op);
+                block.add(op);
             }
             return block;
         });
@@ -111,7 +111,7 @@ public final class ExpressionElimination {
             // Remove unused ops
             ef = ef.transform(CodeContext.create(), (block, op) -> {
                 if (!unused.contains(op)) {
-                    block.op(op);
+                    block.add(op);
                 }
                 return block;
             });

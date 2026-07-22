@@ -25,8 +25,8 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -34,11 +34,11 @@ import java.util.Objects;
 public final class TensorType extends TritonType {
     static final String NAME = "tensor";
 
-    final TypeElement eType;
+    final CodeType eType;
     final List<Integer> shape;
     final int size;
 
-    public TensorType(TypeElement eType, List<Integer> shape) {
+    public TensorType(CodeType eType, List<Integer> shape) {
         this.eType = eType;
         this.shape = List.copyOf(shape);
         int s = 1;
@@ -48,7 +48,7 @@ public final class TensorType extends TritonType {
         this.size = s;
     }
 
-    public TypeElement eType() {
+    public CodeType eType() {
         return eType;
     }
 
@@ -74,13 +74,13 @@ public final class TensorType extends TritonType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        List<ExternalizedTypeElement> args = new ArrayList<>();
+    public ExternalizedCodeType externalize() {
+        List<ExternalizedCodeType> args = new ArrayList<>();
         for (int i : shape) {
-            args.add(new ExternalizedTypeElement("x" + i, List.of()));
+            args.add(new ExternalizedCodeType("x" + i, List.of()));
         }
         args.add(eType.externalize());
-        return ExternalizedTypeElement.of(NAME, args);
+        return ExternalizedCodeType.of(NAME, args);
     }
 
     @Override

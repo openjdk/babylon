@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,16 +26,14 @@ package jdk.incubator.code.bytecode.impl;
 
 import java.util.List;
 import java.util.Map;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 /**
- * The terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch} instructions.
+ * A block terminating conditional multi-branch operation modeling {@code tableswitch} and {@code lookupswitch}
+ * instructions.
  * <p>
  * This operation accepts an int computational type operand (JVMS 2.11.1-B),
  * variable number of distinct constant labels and the same number of successors.
@@ -44,31 +42,29 @@ import jdk.incubator.code.dialect.java.JavaType;
  * Default is a successor with corresponds null label value.
  * The selected successor refers to the next block to branch to.
  */
-public final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminating {
+public final class ConstantLabelSwitchOp extends AbstractOp.Terminating
+        implements ExternalizedOp.Externalizable {
 
     final List<Integer> labels;
-    final List<Block.Reference> targets;
 
     public ConstantLabelSwitchOp(Value intSelector, List<Integer> labels, List<Block.Reference> targets) {
-        super(List.of(intSelector));
         assert targets.size() == labels.size();
+        super(List.of(intSelector), targets);
         this.labels = labels;
-        this.targets = targets;
     }
 
     ConstantLabelSwitchOp(ConstantLabelSwitchOp that, CodeContext cc) {
         super(that, cc);
         this.labels = that.labels;
-        this.targets = that.targets.stream().map(cc::getSuccessorOrCreate).toList();
     }
 
     @Override
-    public ConstantLabelSwitchOp transform(CodeContext cc, CodeTransformer ot) {
+    public ConstantLabelSwitchOp transform(CodeContext cc, CodeTransformer ct) {
         return new ConstantLabelSwitchOp(this, cc);
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return JavaType.VOID;
     }
 
@@ -77,13 +73,7 @@ public final class ConstantLabelSwitchOp extends Op implements Op.BlockTerminati
     }
 
     @Override
-    public List<Block.Reference> successors() {
-        return targets;
-    }
-
-    @Override
     public Map<String, Object> externalize() {
         return Map.of("", labels);
     }
-
 }

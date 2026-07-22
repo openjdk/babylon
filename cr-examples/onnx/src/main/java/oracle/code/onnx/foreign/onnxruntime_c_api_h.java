@@ -4,65 +4,24 @@ package oracle.code.onnx.foreign;
 
 import java.lang.invoke.*;
 import java.lang.foreign.*;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
 
 import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
-public class onnxruntime_c_api_h {
+public class onnxruntime_c_api_h extends onnxruntime_c_api_h$shared {
+
+    onnxruntime_c_api_h() {
+        // Should not be called directly
+    }
 
     static final Arena LIBRARY_ARENA = Arena.ofAuto();
-    static final boolean TRACE_DOWNCALLS = Boolean.getBoolean("jextract.trace.downcalls");
 
-    static void traceDowncall(String name, Object... args) {
-         String traceArgs = Arrays.stream(args)
-                       .map(Object::toString)
-                       .collect(Collectors.joining(", "));
-         System.out.printf("%s(%s)\n", name, traceArgs);
-    }
-
-    static MemorySegment findOrThrow(String symbol) {
-        return SYMBOL_LOOKUP.find(symbol)
-            .orElseThrow(() -> new UnsatisfiedLinkError("unresolved symbol: " + symbol));
-    }
-
-    static MethodHandle upcallHandle(Class<?> fi, String name, FunctionDescriptor fdesc) {
-        try {
-            return MethodHandles.lookup().findVirtual(fi, name, fdesc.toMethodType());
-        } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
-        }
-    }
-
-    static MemoryLayout align(MemoryLayout layout, long align) {
-        return switch (layout) {
-            case PaddingLayout p -> p;
-            case ValueLayout v -> v.withByteAlignment(align);
-            case GroupLayout g -> {
-                MemoryLayout[] alignedMembers = g.memberLayouts().stream()
-                        .map(m -> align(m, align)).toArray(MemoryLayout[]::new);
-                yield g instanceof StructLayout ?
-                        MemoryLayout.structLayout(alignedMembers) : MemoryLayout.unionLayout(alignedMembers);
-            }
-            case SequenceLayout s -> MemoryLayout.sequenceLayout(s.elementCount(), align(s.elementLayout(), align));
-        };
-    }
-
-
-
-    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.loaderLookup();
-
-    public static final ValueLayout.OfBoolean C_BOOL = (ValueLayout.OfBoolean) Linker.nativeLinker().canonicalLayouts().get("bool");
-    public static final ValueLayout.OfByte C_CHAR =(ValueLayout.OfByte)Linker.nativeLinker().canonicalLayouts().get("char");
-    public static final ValueLayout.OfShort C_SHORT = (ValueLayout.OfShort) Linker.nativeLinker().canonicalLayouts().get("short");
-    public static final ValueLayout.OfInt C_INT = (ValueLayout.OfInt) Linker.nativeLinker().canonicalLayouts().get("int");
-    public static final ValueLayout.OfLong C_LONG_LONG = (ValueLayout.OfLong) Linker.nativeLinker().canonicalLayouts().get("long long");
-    public static final ValueLayout.OfFloat C_FLOAT = (ValueLayout.OfFloat) Linker.nativeLinker().canonicalLayouts().get("float");
-    public static final ValueLayout.OfDouble C_DOUBLE = (ValueLayout.OfDouble) Linker.nativeLinker().canonicalLayouts().get("double");
-    public static final AddressLayout C_POINTER = ((AddressLayout) Linker.nativeLinker().canonicalLayouts().get("void*"))
-            .withTargetLayout(MemoryLayout.sequenceLayout(java.lang.Long.MAX_VALUE, C_CHAR));
-    public static final ValueLayout.OfLong C_LONG = (ValueLayout.OfLong) Linker.nativeLinker().canonicalLayouts().get("long");
+    static final SymbolLookup SYMBOL_LOOKUP = SymbolLookup.loaderLookup()
+            .or(Linker.nativeLinker().defaultLookup());
 
     private static final int true_ = (int)1L;
     /**
@@ -91,10 +50,10 @@ public class onnxruntime_c_api_h {
     public static int __bool_true_false_are_defined() {
         return __bool_true_false_are_defined;
     }
-    private static final int ORT_API_VERSION = (int)23L;
+    private static final int ORT_API_VERSION = (int)26L;
     /**
      * {@snippet lang=c :
-     * #define ORT_API_VERSION 23
+     * #define ORT_API_VERSION 26
      * }
      */
     public static int ORT_API_VERSION() {
@@ -315,6 +274,24 @@ public class onnxruntime_c_api_h {
      */
     public static int ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT4E2M1() {
         return ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT4E2M1;
+    }
+    private static final int ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2 = (int)24L;
+    /**
+     * {@snippet lang=c :
+     * enum ONNXTensorElementDataType.ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2 = 24
+     * }
+     */
+    public static int ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2() {
+        return ONNX_TENSOR_ELEMENT_DATA_TYPE_UINT2;
+    }
+    private static final int ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2 = (int)25L;
+    /**
+     * {@snippet lang=c :
+     * enum ONNXTensorElementDataType.ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2 = 25
+     * }
+     */
+    public static int ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2() {
+        return ONNX_TENSOR_ELEMENT_DATA_TYPE_INT2;
     }
     private static final int ONNX_TYPE_UNKNOWN = (int)0L;
     /**
@@ -1060,6 +1037,51 @@ public class onnxruntime_c_api_h {
     public static int OrtExecutionProviderDevicePolicy_MIN_OVERALL_POWER() {
         return OrtExecutionProviderDevicePolicy_MIN_OVERALL_POWER;
     }
+    private static final int OrtDeviceEpIncompatibility_NONE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtDeviceEpIncompatibilityReason.OrtDeviceEpIncompatibility_NONE = 0
+     * }
+     */
+    public static int OrtDeviceEpIncompatibility_NONE() {
+        return OrtDeviceEpIncompatibility_NONE;
+    }
+    private static final int OrtDeviceEpIncompatibility_DRIVER_INCOMPATIBLE = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtDeviceEpIncompatibilityReason.OrtDeviceEpIncompatibility_DRIVER_INCOMPATIBLE = 1
+     * }
+     */
+    public static int OrtDeviceEpIncompatibility_DRIVER_INCOMPATIBLE() {
+        return OrtDeviceEpIncompatibility_DRIVER_INCOMPATIBLE;
+    }
+    private static final int OrtDeviceEpIncompatibility_DEVICE_INCOMPATIBLE = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtDeviceEpIncompatibilityReason.OrtDeviceEpIncompatibility_DEVICE_INCOMPATIBLE = 2
+     * }
+     */
+    public static int OrtDeviceEpIncompatibility_DEVICE_INCOMPATIBLE() {
+        return OrtDeviceEpIncompatibility_DEVICE_INCOMPATIBLE;
+    }
+    private static final int OrtDeviceEpIncompatibility_MISSING_DEPENDENCY = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtDeviceEpIncompatibilityReason.OrtDeviceEpIncompatibility_MISSING_DEPENDENCY = 4
+     * }
+     */
+    public static int OrtDeviceEpIncompatibility_MISSING_DEPENDENCY() {
+        return OrtDeviceEpIncompatibility_MISSING_DEPENDENCY;
+    }
+    private static final int OrtDeviceEpIncompatibility_UNKNOWN = (int)-2147483648L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtDeviceEpIncompatibilityReason.OrtDeviceEpIncompatibility_UNKNOWN = -2147483648
+     * }
+     */
+    public static int OrtDeviceEpIncompatibility_UNKNOWN() {
+        return OrtDeviceEpIncompatibility_UNKNOWN;
+    }
     private static final int OrtCudnnConvAlgoSearchExhaustive = (int)0L;
     /**
      * {@snippet lang=c :
@@ -1092,7 +1114,7 @@ public class onnxruntime_c_api_h {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
             onnxruntime_c_api_h.C_POINTER    );
 
-        public static final MemorySegment ADDR = onnxruntime_c_api_h.findOrThrow("OrtGetApiBase");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OrtGetApiBase");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1139,6 +1161,8 @@ public class onnxruntime_c_api_h {
                 traceDowncall("OrtGetApiBase");
             }
             return (MemorySegment)mh$.invokeExact();
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1151,6 +1175,96 @@ public class onnxruntime_c_api_h {
      * }
      */
     public static final AddressLayout OrtCustomThreadHandle = onnxruntime_c_api_h.C_POINTER;
+    private static final int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtExternalMemoryHandleType.ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE = 0
+     * }
+     */
+    public static int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE() {
+        return ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE;
+    }
+    private static final int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtExternalMemoryHandleType.ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP = 1
+     * }
+     */
+    public static int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP() {
+        return ORT_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP;
+    }
+    private static final int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_WIN32 = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtExternalMemoryHandleType.ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_WIN32 = 2
+     * }
+     */
+    public static int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_WIN32() {
+        return ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_WIN32;
+    }
+    private static final int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_OPAQUE_FD = (int)3L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtExternalMemoryHandleType.ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_OPAQUE_FD = 3
+     * }
+     */
+    public static int ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_OPAQUE_FD() {
+        return ORT_EXTERNAL_MEMORY_HANDLE_TYPE_VK_MEMORY_OPAQUE_FD;
+    }
+    private static final int ORT_EXTERNAL_SEMAPHORE_D3D12_FENCE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtExternalSemaphoreType.ORT_EXTERNAL_SEMAPHORE_D3D12_FENCE = 0
+     * }
+     */
+    public static int ORT_EXTERNAL_SEMAPHORE_D3D12_FENCE() {
+        return ORT_EXTERNAL_SEMAPHORE_D3D12_FENCE;
+    }
+    private static final int ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_WIN32 = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtExternalSemaphoreType.ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_WIN32 = 1
+     * }
+     */
+    public static int ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_WIN32() {
+        return ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_WIN32;
+    }
+    private static final int ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_OPAQUE_FD = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtExternalSemaphoreType.ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_OPAQUE_FD = 2
+     * }
+     */
+    public static int ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_OPAQUE_FD() {
+        return ORT_EXTERNAL_SEMAPHORE_VK_TIMELINE_SEMAPHORE_OPAQUE_FD;
+    }
+    private static final int ORT_GRAPHICS_API_NONE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtGraphicsApi.ORT_GRAPHICS_API_NONE = 0
+     * }
+     */
+    public static int ORT_GRAPHICS_API_NONE() {
+        return ORT_GRAPHICS_API_NONE;
+    }
+    private static final int ORT_GRAPHICS_API_D3D12 = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtGraphicsApi.ORT_GRAPHICS_API_D3D12 = 1
+     * }
+     */
+    public static int ORT_GRAPHICS_API_D3D12() {
+        return ORT_GRAPHICS_API_D3D12;
+    }
+    private static final int ORT_GRAPHICS_API_VULKAN = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtGraphicsApi.ORT_GRAPHICS_API_VULKAN = 2
+     * }
+     */
+    public static int ORT_GRAPHICS_API_VULKAN() {
+        return ORT_GRAPHICS_API_VULKAN;
+    }
     private static final int OrtCompiledModelCompatibility_EP_NOT_APPLICABLE = (int)0L;
     /**
      * {@snippet lang=c :
@@ -1249,7 +1363,7 @@ public class onnxruntime_c_api_h {
             onnxruntime_c_api_h.C_INT
         );
 
-        public static final MemorySegment ADDR = onnxruntime_c_api_h.findOrThrow("OrtSessionOptionsAppendExecutionProvider_CUDA");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OrtSessionOptionsAppendExecutionProvider_CUDA");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1296,6 +1410,8 @@ public class onnxruntime_c_api_h {
                 traceDowncall("OrtSessionOptionsAppendExecutionProvider_CUDA", options, device_id);
             }
             return (MemorySegment)mh$.invokeExact(options, device_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1308,7 +1424,7 @@ public class onnxruntime_c_api_h {
             onnxruntime_c_api_h.C_INT
         );
 
-        public static final MemorySegment ADDR = onnxruntime_c_api_h.findOrThrow("OrtSessionOptionsAppendExecutionProvider_ROCM");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OrtSessionOptionsAppendExecutionProvider_ROCM");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1355,6 +1471,8 @@ public class onnxruntime_c_api_h {
                 traceDowncall("OrtSessionOptionsAppendExecutionProvider_ROCM", options, device_id);
             }
             return (MemorySegment)mh$.invokeExact(options, device_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1367,7 +1485,7 @@ public class onnxruntime_c_api_h {
             onnxruntime_c_api_h.C_INT
         );
 
-        public static final MemorySegment ADDR = onnxruntime_c_api_h.findOrThrow("OrtSessionOptionsAppendExecutionProvider_MIGraphX");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OrtSessionOptionsAppendExecutionProvider_MIGraphX");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1414,6 +1532,8 @@ public class onnxruntime_c_api_h {
                 traceDowncall("OrtSessionOptionsAppendExecutionProvider_MIGraphX", options, device_id);
             }
             return (MemorySegment)mh$.invokeExact(options, device_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1426,7 +1546,7 @@ public class onnxruntime_c_api_h {
             onnxruntime_c_api_h.C_INT
         );
 
-        public static final MemorySegment ADDR = onnxruntime_c_api_h.findOrThrow("OrtSessionOptionsAppendExecutionProvider_Dnnl");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OrtSessionOptionsAppendExecutionProvider_Dnnl");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1473,6 +1593,8 @@ public class onnxruntime_c_api_h {
                 traceDowncall("OrtSessionOptionsAppendExecutionProvider_Dnnl", options, use_arena);
             }
             return (MemorySegment)mh$.invokeExact(options, use_arena);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -1485,7 +1607,7 @@ public class onnxruntime_c_api_h {
             onnxruntime_c_api_h.C_INT
         );
 
-        public static final MemorySegment ADDR = onnxruntime_c_api_h.findOrThrow("OrtSessionOptionsAppendExecutionProvider_Tensorrt");
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OrtSessionOptionsAppendExecutionProvider_Tensorrt");
 
         public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
     }
@@ -1532,19 +1654,253 @@ public class onnxruntime_c_api_h {
                 traceDowncall("OrtSessionOptionsAppendExecutionProvider_Tensorrt", options, device_id);
             }
             return (MemorySegment)mh$.invokeExact(options, device_id);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+    private static final int OrtProfilingEventCategory_SESSION = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtProfilingEventCategory.OrtProfilingEventCategory_SESSION = 0
+     * }
+     */
+    public static int OrtProfilingEventCategory_SESSION() {
+        return OrtProfilingEventCategory_SESSION;
+    }
+    private static final int OrtProfilingEventCategory_NODE = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtProfilingEventCategory.OrtProfilingEventCategory_NODE = 1
+     * }
+     */
+    public static int OrtProfilingEventCategory_NODE() {
+        return OrtProfilingEventCategory_NODE;
+    }
+    private static final int OrtProfilingEventCategory_KERNEL = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtProfilingEventCategory.OrtProfilingEventCategory_KERNEL = 2
+     * }
+     */
+    public static int OrtProfilingEventCategory_KERNEL() {
+        return OrtProfilingEventCategory_KERNEL;
+    }
+    private static final int OrtProfilingEventCategory_API = (int)3L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtProfilingEventCategory.OrtProfilingEventCategory_API = 3
+     * }
+     */
+    public static int OrtProfilingEventCategory_API() {
+        return OrtProfilingEventCategory_API;
+    }
+    private static final int OrtResourceCountKind_None = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtResourceCountKind.OrtResourceCountKind_None = 0
+     * }
+     */
+    public static int OrtResourceCountKind_None() {
+        return OrtResourceCountKind_None;
+    }
+    private static final int OrtResourceCountKind_TotalBytes = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtResourceCountKind.OrtResourceCountKind_TotalBytes = 1
+     * }
+     */
+    public static int OrtResourceCountKind_TotalBytes() {
+        return OrtResourceCountKind_TotalBytes;
+    }
+    private static final int OrtEpDataLayout_NCHW = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtEpDataLayout.OrtEpDataLayout_NCHW = 0
+     * }
+     */
+    public static int OrtEpDataLayout_NCHW() {
+        return OrtEpDataLayout_NCHW;
+    }
+    private static final int OrtEpDataLayout_NHWC = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtEpDataLayout.OrtEpDataLayout_NHWC = 1
+     * }
+     */
+    public static int OrtEpDataLayout_NHWC() {
+        return OrtEpDataLayout_NHWC;
+    }
+    private static final int OrtEpDataLayout_Default = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtEpDataLayout.OrtEpDataLayout_Default = 0
+     * }
+     */
+    public static int OrtEpDataLayout_Default() {
+        return OrtEpDataLayout_Default;
+    }
+    private static final int OrtGraphCaptureNodeAssignmentPolicy_ALL_NODES_ON_EP = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtGraphCaptureNodeAssignmentPolicy.OrtGraphCaptureNodeAssignmentPolicy_ALL_NODES_ON_EP = 0
+     * }
+     */
+    public static int OrtGraphCaptureNodeAssignmentPolicy_ALL_NODES_ON_EP() {
+        return OrtGraphCaptureNodeAssignmentPolicy_ALL_NODES_ON_EP;
+    }
+    private static final int OrtGraphCaptureNodeAssignmentPolicy_ALLOW_CPU_FOR_SHAPES = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum OrtGraphCaptureNodeAssignmentPolicy.OrtGraphCaptureNodeAssignmentPolicy_ALLOW_CPU_FOR_SHAPES = 1
+     * }
+     */
+    public static int OrtGraphCaptureNodeAssignmentPolicy_ALLOW_CPU_FOR_SHAPES() {
+        return OrtGraphCaptureNodeAssignmentPolicy_ALLOW_CPU_FOR_SHAPES;
+    }
+    private static final int COREML_FLAG_USE_NONE = (int)0L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_USE_NONE = 0
+     * }
+     */
+    public static int COREML_FLAG_USE_NONE() {
+        return COREML_FLAG_USE_NONE;
+    }
+    private static final int COREML_FLAG_USE_CPU_ONLY = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_USE_CPU_ONLY = 1
+     * }
+     */
+    public static int COREML_FLAG_USE_CPU_ONLY() {
+        return COREML_FLAG_USE_CPU_ONLY;
+    }
+    private static final int COREML_FLAG_ENABLE_ON_SUBGRAPH = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_ENABLE_ON_SUBGRAPH = 2
+     * }
+     */
+    public static int COREML_FLAG_ENABLE_ON_SUBGRAPH() {
+        return COREML_FLAG_ENABLE_ON_SUBGRAPH;
+    }
+    private static final int COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE = 4
+     * }
+     */
+    public static int COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE() {
+        return COREML_FLAG_ONLY_ENABLE_DEVICE_WITH_ANE;
+    }
+    private static final int COREML_FLAG_ONLY_ALLOW_STATIC_INPUT_SHAPES = (int)8L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_ONLY_ALLOW_STATIC_INPUT_SHAPES = 8
+     * }
+     */
+    public static int COREML_FLAG_ONLY_ALLOW_STATIC_INPUT_SHAPES() {
+        return COREML_FLAG_ONLY_ALLOW_STATIC_INPUT_SHAPES;
+    }
+    private static final int COREML_FLAG_CREATE_MLPROGRAM = (int)16L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_CREATE_MLPROGRAM = 16
+     * }
+     */
+    public static int COREML_FLAG_CREATE_MLPROGRAM() {
+        return COREML_FLAG_CREATE_MLPROGRAM;
+    }
+    private static final int COREML_FLAG_USE_CPU_AND_GPU = (int)32L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_USE_CPU_AND_GPU = 32
+     * }
+     */
+    public static int COREML_FLAG_USE_CPU_AND_GPU() {
+        return COREML_FLAG_USE_CPU_AND_GPU;
+    }
+    private static final int COREML_FLAG_LAST = (int)32L;
+    /**
+     * {@snippet lang=c :
+     * enum COREMLFlags.COREML_FLAG_LAST = 32
+     * }
+     */
+    public static int COREML_FLAG_LAST() {
+        return COREML_FLAG_LAST;
+    }
+
+    private static class OrtSessionOptionsAppendExecutionProvider_CoreML {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_INT
+        );
+
+        public static final MemorySegment ADDR = SYMBOL_LOOKUP.findOrThrow("OrtSessionOptionsAppendExecutionProvider_CoreML");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * OrtStatusPtr OrtSessionOptionsAppendExecutionProvider_CoreML(OrtSessionOptions *options, uint32_t coreml_flags)
+     * }
+     */
+    public static FunctionDescriptor OrtSessionOptionsAppendExecutionProvider_CoreML$descriptor() {
+        return OrtSessionOptionsAppendExecutionProvider_CoreML.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * OrtStatusPtr OrtSessionOptionsAppendExecutionProvider_CoreML(OrtSessionOptions *options, uint32_t coreml_flags)
+     * }
+     */
+    public static MethodHandle OrtSessionOptionsAppendExecutionProvider_CoreML$handle() {
+        return OrtSessionOptionsAppendExecutionProvider_CoreML.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * OrtStatusPtr OrtSessionOptionsAppendExecutionProvider_CoreML(OrtSessionOptions *options, uint32_t coreml_flags)
+     * }
+     */
+    public static MemorySegment OrtSessionOptionsAppendExecutionProvider_CoreML$address() {
+        return OrtSessionOptionsAppendExecutionProvider_CoreML.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OrtStatusPtr OrtSessionOptionsAppendExecutionProvider_CoreML(OrtSessionOptions *options, uint32_t coreml_flags)
+     * }
+     */
+    public static MemorySegment OrtSessionOptionsAppendExecutionProvider_CoreML(MemorySegment options, int coreml_flags) {
+        var mh$ = OrtSessionOptionsAppendExecutionProvider_CoreML.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("OrtSessionOptionsAppendExecutionProvider_CoreML", options, coreml_flags);
+            }
+            return (MemorySegment)mh$.invokeExact(options, coreml_flags);
+        } catch (Error | RuntimeException ex) {
+           throw ex;
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
     }
     /**
      * {@snippet lang=c :
-     * #define ORT_FILE "/var/folders/20/84x77j_x7p7fb3fmm0n_b0n40000gn/T/jextract$17571614317986694339.h"
+     * #define ORT_FILE "jextract$macro.h"
      * }
      */
     public static MemorySegment ORT_FILE() {
         class Holder {
             static final MemorySegment ORT_FILE
-                = onnxruntime_c_api_h.LIBRARY_ARENA.allocateFrom("/var/folders/20/84x77j_x7p7fb3fmm0n_b0n40000gn/T/jextract$17571614317986694339.h");
+                = onnxruntime_c_api_h.LIBRARY_ARENA.allocateFrom("jextract$macro.h");
         }
         return Holder.ORT_FILE;
     }

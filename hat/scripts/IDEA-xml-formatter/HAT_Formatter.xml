@@ -1,4 +1,7 @@
 <code_scheme name="HAT-Formatter" version="173">
+   <!--
+     ~/Applications/IntelliJ\ IDEA\ Ultimate.app/Contents/bin/format.sh -sscripts/IDEA-xml-formatter/HAT_Formatter.xml myfile.Java
+   -->
   <JavaCodeStyleSettings>
     <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="1000" />
     <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="1000" />

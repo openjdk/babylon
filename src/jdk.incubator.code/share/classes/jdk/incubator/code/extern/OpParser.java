@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,23 +53,23 @@ import java.util.Map;
  */
 public final class OpParser {
 
-    static final ExternalizedTypeElement VOID = JavaType.VOID.externalize();
+    static final ExternalizedCodeType VOID = JavaType.VOID.externalize();
 
-    // @@@ check failure from operation and type element factories
+    // @@@ check failure from operation and code type factories
 
     /**
      * Parses code model text.
      *
-     * @param factory the dialect factory used to construct operations and type elements.
+     * @param factory the dialect factory used to construct operations and code types.
      * @param in code model text
      * @return the list of operations
      * @throws IllegalArgumentException if parsing fails
      */
     public static List<Op> fromText(DialectFactory factory, String in) {
-        return parse(factory.opFactory(), factory.typeElementFactory(), in);
+        return parse(factory.opFactory(), factory.codeTypeFactory(), in);
     }
 
-    static List<Op> parse(OpFactory opFactory, TypeElementFactory typeFactory, String in) {
+    static List<Op> parse(OpFactory opFactory, CodeTypeFactory typeFactory, String in) {
         Lexer lexer = Scanner.factory().newScanner(in);
         lexer.nextToken();
 
@@ -83,7 +83,7 @@ public final class OpParser {
     static final class Context {
         final Context parent;
         final OpFactory opFactory;
-        final TypeElementFactory typeFactory;
+        final CodeTypeFactory typeFactory;
         final Map<String, Value> valueMap;
         final Map<String, Block.Builder> blockMap;
 
@@ -95,7 +95,7 @@ public final class OpParser {
             this.blockMap = new HashMap<>();
         }
 
-        Context(OpFactory opFactory, TypeElementFactory typeFactory) {
+        Context(OpFactory opFactory, CodeTypeFactory typeFactory) {
             this.parent = null;
             this.opFactory = opFactory;
             this.typeFactory = typeFactory;
@@ -136,12 +136,12 @@ public final class OpParser {
         }
     }
 
-    static Op nodeToOp(OpNode opNode, ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
+    static Op nodeToOp(OpNode opNode, ExternalizedCodeType rtype, Context c, Body.Builder ancestorBody) {
         ExternalizedOp opdef = nodeToOpDef(opNode, rtype, c, ancestorBody);
         return c.opFactory.constructOpOrFail(opdef);
     }
 
-    static ExternalizedOp nodeToOpDef(OpNode opNode, ExternalizedTypeElement rtype, Context c, Body.Builder ancestorBody) {
+    static ExternalizedOp nodeToOpDef(OpNode opNode, ExternalizedCodeType rtype, Context c, Body.Builder ancestorBody) {
         String operationName = opNode.name;
         List<Value> operands = opNode.operands.stream().map(c::getValue).toList();
         List<Block.Reference> successors = opNode.successors.stream()
@@ -184,12 +184,12 @@ public final class OpParser {
         return new Op.Location(sourceRef, line, column);
     }
 
-    static Map<String, Object> inflateAttributes(Map<String, Object> attributes, TypeElementFactory typeFactory) {
+    static Map<String, Object> inflateAttributes(Map<String, Object> attributes, CodeTypeFactory typeFactory) {
         Map<String, Object> newAttributes = new HashMap<>();
         for (Map.Entry<String, Object> e : attributes.entrySet()) {
             String name = e.getKey();
             Object value = e.getValue();
-            if (value instanceof ExternalizedTypeElement ete) {
+            if (value instanceof ExternalizedCodeType ete) {
                 value = typeFactory.constructType(JavaTypeUtils.inflate(ete));
             }
             newAttributes.put(name, value);
@@ -233,10 +233,10 @@ public final class OpParser {
             for (OpNode on : bn.ops) {
                 ValueNode r = on.result;
                 if (r != null) {
-                    Op.Result v = b.op(nodeToOp(on, r.type, c, body));
+                    Op.Result v = b.add(nodeToOp(on, r.type, c, body));
                     c.putValue(r.name, v);
                 } else {
-                    b.op(nodeToOp(on, VOID, c, body));
+                    b.add(nodeToOp(on, VOID, c, body));
                 }
             }
         }
@@ -262,7 +262,7 @@ public final class OpParser {
                          List<String> arguments) {
     }
 
-    record BodyNode(ExternalizedTypeElement rtype,
+    record BodyNode(ExternalizedCodeType rtype,
                     List<BlockNode> blocks) {
     }
 
@@ -272,7 +272,7 @@ public final class OpParser {
     }
 
     record ValueNode(String name,
-                     ExternalizedTypeElement type) {
+                     ExternalizedCodeType type) {
     }
 
     final Lexer lexer;
@@ -373,7 +373,7 @@ public final class OpParser {
 
     Object parseAttributeValue() {
         if (lexer.is(Tokens.TokenKind.IDENTIFIER)) {
-            return DescParser.parseExTypeElem(lexer);
+            return DescParser.parseExCodeType(lexer);
         }
 
         Object value = parseLiteral(lexer.token());
@@ -490,7 +490,7 @@ public final class OpParser {
         // Entry block header
         List<ValueNode> arguments = parseBlockHeaderArguments(true);
         // Body return type
-        ExternalizedTypeElement rtype = parseExTypeElem();
+        ExternalizedCodeType rtype = parseExTypeElem();
 
         lexer.accept(Tokens.TokenKind.ARROW);
         lexer.accept(Tokens.TokenKind.LBRACE);
@@ -528,7 +528,7 @@ public final class OpParser {
 
         lexer.accept(Tokens.TokenKind.COLON);
 
-        ExternalizedTypeElement type = parseExTypeElem();
+        ExternalizedCodeType type = parseExTypeElem();
 
         return new ValueNode(valueName, type);
     }
@@ -575,8 +575,8 @@ public final class OpParser {
         return name.toString();
     }
 
-    ExternalizedTypeElement parseExTypeElem() {
-        return JavaTypeUtils.inflate(DescParser.parseExTypeElem(lexer));
+    ExternalizedCodeType parseExTypeElem() {
+        return JavaTypeUtils.inflate(DescParser.parseExCodeType(lexer));
     }
 }
 

@@ -8,10 +8,10 @@
     <artifactId>crsamples</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <!-- Requires JDK 26 build to work -->
+    <!-- Requires JDK 28 build to work -->
     <properties>
-        <maven.compiler.source>26</maven.compiler.source>
-        <maven.compiler.target>26</maven.compiler.target>
+        <maven.compiler.source>28</maven.compiler.source>
+        <maven.compiler.target>28</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -71,8 +71,6 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.11.0</version>
                     <configuration>
-                        <release>26</release>
-                        <target>26</target>
                         <compilerArgs>
                             <arg>--enable-preview</arg>
                             <arg>--add-modules=jdk.incubator.code</arg>

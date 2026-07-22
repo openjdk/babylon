@@ -25,28 +25,28 @@
 
 package intel.code.spirv;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import java.util.Objects;
 import java.util.List;
 
 public final class PointerType extends SpirvType {
     static final String NAME = "spirv.pointer";
-    private final TypeElement referentType;
-    private final TypeElement storageType;
+    private final CodeType referentType;
+    private final CodeType storageType;
 
-    public PointerType(TypeElement referentType, TypeElement storageType)
+    public PointerType(CodeType referentType, CodeType storageType)
     {
         this.referentType = referentType;
         this.storageType = storageType;
     }
 
-    public TypeElement referentType()
+    public CodeType referentType()
     {
         return referentType;
     }
 
-    public TypeElement storageType()
+    public CodeType storageType()
     {
         return storageType;
     }
@@ -65,8 +65,8 @@ public final class PointerType extends SpirvType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of(referentType.externalize(), storageType.externalize()));
+    public ExternalizedCodeType externalize() {
+        return new ExternalizedCodeType(NAME, List.of(referentType.externalize(), storageType.externalize()));
     }
 
     @Override

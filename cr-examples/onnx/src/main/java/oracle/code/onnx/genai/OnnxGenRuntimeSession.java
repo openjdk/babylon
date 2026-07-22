@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -135,6 +135,7 @@ import static oracle.code.onnx.foreign.OrtGenApi.*;
 public class OnnxGenRuntimeSession implements AutoCloseable {
 
     static final System.Logger LOG = System.getLogger("oracle.code.onnx");
+    public static final int PAYLOAD_LIMIT = 4 * 1024;
 
     /**
      * Loads {@code onnxruntime-genai} native library from the given folder.
@@ -187,6 +188,9 @@ public class OnnxGenRuntimeSession implements AutoCloseable {
             AtomicLong offset = new AtomicLong();
             byte[] protobufModel = OnnxProtoBuilder.buildModel("llm", onnxModel.module(), initializers, onnxModel.namesMap(), t -> {
                 byte[] data = t.data().toArray(ValueLayout.JAVA_BYTE);
+                if (data.length <= PAYLOAD_LIMIT) {
+                    return null;
+                }
                 try {
                     dataOutput.write(data);
                 } catch (IOException e) {

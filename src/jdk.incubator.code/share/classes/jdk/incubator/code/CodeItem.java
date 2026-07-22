@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,17 +27,17 @@ package jdk.incubator.code;
 
 /**
  * A code item, one of {@link CodeElement}, {@link Value value},
- * {@link Block.Reference block reference}, or {@link TypeElement type element},
+ * {@link Block.Reference block reference}, or {@link CodeType code type},
  * is an item in a code model.
  * <p>
  * Code elements form a tree.
  * Values and block references form graph-like relationships
  * (dependency/use graphs and control flow graphs, respectively).
- * Type elements classify values.
+ * Code types classify values.
  *
  * @sealedGraph
  */
 public sealed interface CodeItem
-        permits CodeElement, Value, Block.Reference, TypeElement  {
+        permits CodeElement, Value, Block.Reference, CodeType {
     // @@@ Common functionality between elements and values?
 }

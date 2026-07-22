@@ -30,9 +30,11 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.ParamVar;
+import optkl.exceptions.CodeGenException;
 
 /* this should not be too C99 specific also cannot reference HAT Ops. */
 public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>, SCBC extends ScopedCodeBuilderContext> {
+
     T type( JavaType javaType);
 
     T varLoadOp( CoreOp.VarAccessOp.VarLoadOp varLoadOp);
@@ -97,9 +99,13 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
     default T recurseResultOrThrow(Value v) {
         if (v instanceof Op.Result r){
             return recurse(r.op());
-        }else{
-            throw new RuntimeException("can't recurse on value v, it is not a result");
+        } else {
+            throw launchBackendException("can't recurse on value v, it is not a result");
         }
+    }
+
+    default CodeGenException launchBackendException(String message) {
+        return new CodeGenException(message);
     }
 
     default T recurse( Op op) {
@@ -135,9 +141,7 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
             case JavaOp.EnhancedForOp $ -> enhancedForOp($);
             case JavaOp.BlockOp   $ -> blockOp($);
             case JavaOp.ConcatOp $ -> concatOp($);
-            case CoreOp.UnreachableOp $ -> {;}
-                //throw new IllegalStateException("Found CoreOp.Unreachable"+op);
-           // }
+            case CoreOp.UnreachableOp _ -> { }
             default -> throw new IllegalStateException("handle nesting of op " + op);
         }
         return (T) this;

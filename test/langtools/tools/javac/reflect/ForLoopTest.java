@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -598,4 +598,29 @@ public class ForLoopTest {
         }
     }
 
+    @Reflect
+    @IR("""
+        func @"test13" (%0 : java.type:"ForLoopTest", %1 : java.type:"java.lang.Boolean")java.type:"void" -> {
+            %2 : Var<java.type:"java.lang.Boolean"> = var %1 @"b";
+            java.for
+                ()java.type:"void" -> {
+                    yield;
+                }
+                ()java.type:"boolean" -> {
+                    %3 : java.type:"java.lang.Boolean" = var.load %2;
+                    %4 : java.type:"boolean" = invoke %3 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                    yield %4;
+                }
+                ()java.type:"void" -> {
+                    yield;
+                }
+                ()java.type:"void" -> {
+                    java.continue;
+                };
+            return;
+        };
+        """)
+    void test13(Boolean b) {
+        for (; b ;) { }
+    }
 }

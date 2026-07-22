@@ -33,10 +33,12 @@ import hat.buffer.F32ArrayPadded;
 import hat.types.Float4;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
+import optkl.ifacemapper.MappableIface.RO;
+import optkl.ifacemapper.MappableIface.RW;
+import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;

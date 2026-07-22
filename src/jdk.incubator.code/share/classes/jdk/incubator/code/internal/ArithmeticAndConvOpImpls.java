@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -806,7 +807,9 @@ public final class ArithmeticAndConvOpImpls {
     }
 
     public static Object evaluate(Op op, List<Object> evaluatedOperands) throws NonConstantExpression {
-        String mn = op.externalizeOpName();
+        String mn = (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
         if (op instanceof JavaOp.ConvOp) {
             mn = mn + "_" + op.resultType();
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,7 +48,7 @@ import java.lang.reflect.Method;
  * The code model of a reflectable lambda expression (or method reference) is accessed by invoking
  * {@link Op#ofLambda(Object)} with an argument that is an instance of a functional interface associated with the
  * reflectable lambda expression. The result is an optional value that contains a {@link Quoted quoted} instance, from
- * which may be retrieved the operation modelling the lambda expression. In addition, it is possible to retrieve
+ * which may be retrieved the operation modeling the lambda expression. In addition, it is possible to retrieve
  * a mapping from {@link Value values} in the code model that model final, or effectively final, variables used but not
  * declared in the lambda expression to their corresponding run time values. Such run time values are commonly referred
  * to as captured values. For example:
@@ -98,8 +98,8 @@ import java.lang.reflect.Method;
  * }
  * </li>
  * </ol>
- * If a method or lambda expression (or method reference) is declared reflectable then the compiler generates an error
- * message if it contains program elements that cannot be modeled (and therefore a code model cannot be produced).
+ * If a method or lambda expression (or method reference) is declared reflectable but cannot be modeled, then the
+ * compiler generates a warning message, and access returns an empty optional value.
  * <p>
  * The annotation is ignored if it appears in any other valid syntactic location.
  * <p>

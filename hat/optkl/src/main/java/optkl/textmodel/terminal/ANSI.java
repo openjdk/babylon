@@ -66,6 +66,25 @@ public interface ANSI<T extends ANSI<T>> extends  Function<String, T> {
         return reset();
     }
 
+    default T pass(Consumer<T> cc) {
+        return color(ANSI.GREEN, cc);
+    }
+    default T pass(String string) {
+        return pass(_->apply(string));
+    }
+    default T warn(Consumer<T> cc) {
+        return color(ANSI.YELLOW, cc);
+    }
+    default T warn(String string) {
+        return warn( _->apply(string));
+    }
+    default T fail(Consumer<T> cc) {
+        return color(ANSI.RED, cc);
+    }
+    default T fail(String string) {
+        return fail(_->apply(string));
+    }
+
     default T color(int c1, int c2, Consumer<T> cc) {
         csi().ints(c1, c2).apply("m");
         cc.accept(self());

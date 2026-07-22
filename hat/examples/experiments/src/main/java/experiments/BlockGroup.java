@@ -30,6 +30,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Trxfmr;
+import optkl.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 
 
@@ -76,6 +77,7 @@ public class BlockGroup {
                         )
                 );
 
+        VarTable varTable = new VarTable(mModel.funcName());
          var mGroupModel=  Trxfmr.of(lookup,mModel).transform(opsToGroup::contains, c->{ // Here we use a HAT style transformer
             if (opsToGroup.getLast() == c.op()) {
                 // Create a new body builder connected as a child
@@ -86,8 +88,8 @@ public class BlockGroup {
 
                 // Add ops to the entry block
                 Block.Builder groupBlockBuilder = groupBodyBuilder.entryBlock();
-                opsToGroup.forEach(groupBlockBuilder::op); // transfers all to this builder?
-                groupBlockBuilder.op(CoreOp.core_yield());
+                opsToGroup.forEach(groupBlockBuilder::add); // transfers all to this builder?
+                groupBlockBuilder.add(CoreOp.core_yield());
 
                 c.replace(JavaOp.block(groupBodyBuilder)); // Replace all those added ops with the block op
             }else{
@@ -95,7 +97,7 @@ public class BlockGroup {
             }
             // But we don't' have to deal with anything we don't care about
             // no do we return the builder
-        }).funcOp();
+        }, varTable).funcOp();
 
       //  System.out.println("To Code Model               -\n"+ OpCodeBuilder.toText(mGroupModel));
         System.out.println("To Approx Java Source    ------\n"+JavaCodeBuilder.toText(lookup,mGroupModel));

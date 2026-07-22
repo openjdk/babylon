@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,10 +25,14 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -45,7 +49,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -397,6 +403,27 @@ public class TestBytecode {
         return consumeLambda(i, a -> consumeLambda(a, b -> a + b + j - s.length()) + s.length());
     }
 
+    static String lambdaModelText(Object f) {
+        return OpWriter.toText(Op.ofLambda(f).orElseThrow().op(), OpWriter.LocationOption.DROP_LOCATION);
+    }
+
+    @Reflect
+    static String nestedLambdaModels(boolean b) {
+        Supplier<IntSupplier> outer = () -> () -> {
+            if (b) {
+                return 1;
+            }
+            return 2;
+        };
+        return """
+               outer lambda model:
+               %s
+               inner lambda model:
+               %s
+               """.formatted(lambdaModelText(outer),
+                             lambdaModelText(outer.get()));
+    }
+
     @Reflect
     static int methodHandle(int i) {
         return consumeLambda(i, Math::negateExact);
@@ -541,6 +568,14 @@ public class TestBytecode {
         return Arrays.asList(a, s).toString();
     }
 
+    @Reflect
+    static int patternMatchSameType(String s) {
+        if (s instanceof String ss) {
+            return ss.length();
+        }
+        return -1;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
@@ -659,6 +694,59 @@ public class TestBytecode {
             });
             throw e;
         }
+    }
+
+    //func @"f" (%0 : java.type:"int")java.type:"int" -> {
+    //    %1 : java.type:"boolean" = constant @true;
+    //    cbranch %1 ^block_1 ^block_5;
+    //
+    //  ^block_1:
+    //    %2 : java.type:"boolean" = constant @true;
+    //    cbranch %2 ^block_2 ^block_3;
+    //
+    //  ^block_2:
+    //    %3 : java.type:"int" = constant @1;
+    //    %4 : java.type:"int" = add %0 %3;
+    //    branch ^block_4(%4);
+    //
+    //  ^block_3:
+    //    %5 : java.type:"int" = constant @0;
+    //    branch ^block_4(%5);
+    //
+    //  ^block_4(%6 : java.type:"int"):
+    //    branch ^block_6(%6);
+    //
+    //  ^block_5:
+    //    %7 : java.type:"int" = constant @0;
+    //    branch ^block_6(%7);
+    //
+    //  ^block_6(%8 : java.type:"int"):
+    //    %9 : java.type:"int" = constant @0;
+    //    return %9;
+    //};
+    //
+    //block_6 is a join with unused parameter, skipping assignment of %8 left %4 on stack
+    @Test
+    public void testUnusedJoinParameter() throws Throwable {
+        Assertions.assertEquals(0, (int)BytecodeGenerator.generate(MethodHandles.lookup(),
+                CoreOp.func("f", CoreType.functionType(JavaType.INT, JavaType.INT)).body(b -> {
+                    Block.Builder b1 = b.block(), b2 = b.block(), b3 = b.block(), b4 = b.block(JavaType.INT),
+                                  b5 = b.block(), b6 = b.block(JavaType.INT);
+                    b.add(CoreOp.conditionalBranch(
+                            b.add(CoreOp.constant(JavaType.BOOLEAN, true)), b1.reference(), b5.reference()));
+                    b1.add(CoreOp.conditionalBranch(
+                            b1.add(CoreOp.constant(JavaType.BOOLEAN, true)), b2.reference(), b3.reference()));
+                    b2.add(CoreOp.branch(b4.reference(
+                            b2.add(JavaOp.add(b.parameters().getFirst(),
+                                    b2.add(CoreOp.constant(JavaType.INT, 1)))))));
+                    b3.add(CoreOp.branch(b4.reference(
+                            b3.add(CoreOp.constant(JavaType.INT, 0)))));
+                    b4.add(CoreOp.branch(b6.reference(b4.parameters().getFirst())));
+                    b5.add(CoreOp.branch(b6.reference(
+                            b5.add(CoreOp.constant(JavaType.INT, 0)))));
+                    b6.add(CoreOp.return_(
+                            b6.add(CoreOp.constant(JavaType.INT, 0))));
+                })).invokeExact(1));
     }
 
     private static void assertEquals(Object expected, Object actual) {

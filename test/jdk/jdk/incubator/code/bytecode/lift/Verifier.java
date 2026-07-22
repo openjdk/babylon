@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpWriter;
 
 import java.util.ArrayList;
@@ -136,14 +137,20 @@ public final class Verifier {
                 case CoreOp.ConditionalBranchOp cbr ->
                         verifyBlockReferences(op, cbr.successors());
                 case JavaOp.ArithmeticOperation _ ->
-                        verifyOpHandleExists(op, op.externalizeOpName());
+                        verifyOpHandleExists(op, externalizeOpName(op));
                 case JavaOp.ConvOp _ -> {
-                    verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opSignature().returnType());
+                    verifyOpHandleExists(op, externalizeOpName(op) + "_" + op.opSignature().returnType());
                 }
                 default -> {}
 
             }
         });
+    }
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
     }
 
     private void verifyBlockReferences(Op op, List<Block.Reference> references) {
@@ -164,7 +171,7 @@ public final class Verifier {
         }
     }
 
-    private boolean isAssignable(TypeElement toType, Value fromValue,  Object toContext, Object fromContext) {
+    private boolean isAssignable(CodeType toType, Value fromValue, Object toContext, Object fromContext) {
         if (toType.equals(fromValue.type())) return true;
         var to = resolveToClass(toType, toContext);
         var from = resolveToClass(fromValue.type(), fromContext);
@@ -177,7 +184,7 @@ public final class Verifier {
         }
     }
 
-    public Class<?> resolveToClass(TypeElement d, Object context) {
+    public Class<?> resolveToClass(CodeType d, Object context) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>)jt.erasure().resolve(lookup);
@@ -190,19 +197,10 @@ public final class Verifier {
         return Object.class;
     }
 
-    static final Class<?> CLASS_ARITHMETIC_AND_CONV_OP_IMPLS;
-    static {
-        try {
-            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS = Class.forName("ArithmeticAndConvOpImpls");
-        } catch (ReflectiveOperationException roe) {
-            throw new InternalError(roe);
-        }
-    }
-
     private void verifyOpHandleExists(Op op, String opName) {
         try {
             var mt = MethodRef.toNominalDescriptor(op.opSignature()).resolveConstantDesc(lookup).erase();
-            CLASS_ARITHMETIC_AND_CONV_OP_IMPLS.getDeclaredMethod(opName, mt.parameterArray());
+            ArithmeticAndConvOpImpls.class.getDeclaredMethod(opName, mt.parameterArray());
         } catch (NoSuchMethodException nsme) {
             error("%s %s of type %s is not supported", op.ancestorBlock(), op, op.opSignature());
         } catch (ReflectiveOperationException roe) {
@@ -234,7 +232,7 @@ public final class Verifier {
                     verifyCatchStack(b, ere, ere.startReference(), newCatchBlocks, map);
                 }
                 case JavaOp.ExceptionRegionExit ere -> {
-                    List<Block> exitedCatchBlocks = ere.catchReferences().stream().map(Block.Reference::targetBlock).toList();
+                    List<Block> exitedCatchBlocks = ere.enterOp().catchReferences().reversed().stream().map(Block.Reference::targetBlock).toList();
                     if (exitedCatchBlocks.size() > catchBlocks.size() || !catchBlocks.reversed().subList(0, exitedCatchBlocks.size()).equals(exitedCatchBlocks)) {
                         error("%s %s exited catch blocks %s does not match actual stack %s", b, ere, exitedCatchBlocks, catchBlocks);
                     } else {

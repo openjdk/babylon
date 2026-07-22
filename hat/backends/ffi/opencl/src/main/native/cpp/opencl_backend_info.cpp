@@ -104,8 +104,7 @@ PlatformInfo::PlatformInfo(OpenCLBackend *openclBackend):
     versionName(strInfo(openclBackend->platform_id, CL_PLATFORM_VERSION)),
     vendorName(strInfo(openclBackend->platform_id, CL_PLATFORM_VENDOR)),
     name(strInfo(openclBackend->platform_id, CL_PLATFORM_NAME)),
-    deviceInfo(openclBackend){
-}
+    deviceInfo(openclBackend){}
 
 PlatformInfo::~PlatformInfo(){
     delete [] versionName;

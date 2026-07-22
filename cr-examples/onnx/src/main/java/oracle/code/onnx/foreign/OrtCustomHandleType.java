@@ -48,7 +48,7 @@ public class OrtCustomHandleType {
         return __place_holder$LAYOUT;
     }
 
-    private static final long __place_holder$OFFSET = 0;
+    private static final long __place_holder$OFFSET = $LAYOUT.byteOffset(groupElement("__place_holder"));
 
     /**
      * Offset for field:

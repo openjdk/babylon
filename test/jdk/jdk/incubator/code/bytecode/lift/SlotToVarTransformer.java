@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -28,7 +26,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -82,7 +80,7 @@ final class SlotToVarTransformer {
                 }
                 case JavaOp.ExceptionRegionExit ere -> {
                     excStack = (BitSet) excStack.clone();
-                    for (Block.Reference cbr : ere.catchReferences()) {
+                    for (Block.Reference cbr : ere.enterOp().catchReferences()) {
                         excStack.clear(catchBlocks.indexOf(cbr.targetBlock()));
                     }
                     map.put(ere.endReference().targetBlock(), excStack);
@@ -194,7 +192,7 @@ final class SlotToVarTransformer {
                 for (var it = toInitialize.iterator(); it.hasNext();) {
                     Var var = it.next();
                     if (var.parentBody == op.ancestorBody()) {
-                        var.value = block.op(CoreOp.var(toTypeElement(var.typeKind)));
+                        var.value = block.add(CoreOp.var(toCodeType(var.typeKind)));
                         it.remove();
                     }
                 }
@@ -207,33 +205,33 @@ final class SlotToVarTransformer {
                         System.out.println(slo);
                         throw new AssertionError();
                     }
-                    cc.mapValue(op.result(), var.single ? var.value : block.op(CoreOp.varLoad(var.value)));
+                    cc.mapValue(op.result(), var.single ? var.value : block.add(CoreOp.varLoad(var.value)));
                 }
                 case SlotOp.SlotStoreOp sso -> {
                     Var var = varMap.get(sso);
                     Value val = sso.operands().getFirst();
-                    val = cc.getValueOrDefault(val, val);
+                    val = cc.queryValue(val).orElse(val);
                     if (var.single) {
                         var.value = val;
                     } else if (var.value == null) {
-                        TypeElement varType = switch (val.type()) {
+                        CodeType varType = switch (val.type()) {
                             case UnresolvedType.Ref _ -> UnresolvedType.unresolvedRef();
                             case UnresolvedType.Int _ -> UnresolvedType.unresolvedInt();
                             default -> val.type();
                         };
-                        var.value = block.op(CoreOp.var(null, varType, val));
+                        var.value = block.add(CoreOp.var(null, varType, val));
                     } else {
-                        block.op(CoreOp.varStore(var.value, val));
+                        block.add(CoreOp.varStore(var.value, val));
                     }
                 }
                 default ->
-                    block.op(op);
+                    block.add(op);
             }
             return block;
         });
     }
 
-    private static TypeElement toTypeElement(TypeKind tk) {
+    private static CodeType toCodeType(TypeKind tk) {
         return switch (tk) {
             case INT -> UnresolvedType.unresolvedInt();
             case REFERENCE -> UnresolvedType.unresolvedRef();

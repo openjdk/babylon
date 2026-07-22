@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -126,7 +126,7 @@ public class TestCodeBuilder {
 
     static void test(CoreOp.FuncOp fExpected) {
         CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(new LinkedHashMap<>(Map.of(fExpected.funcName(), fExpected)),
-                b -> b.op(JavaOp.fieldLoad(
+                b -> b.add(JavaOp.fieldLoad(
                         FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
         CoreOp.FuncOp fActual = (CoreOp.FuncOp) Interpreter.invoke(MethodHandles.lookup(),
                 module.transform(CodeTransformer.LOWERING_TRANSFORMER).functionTable().get(fExpected.funcName()));

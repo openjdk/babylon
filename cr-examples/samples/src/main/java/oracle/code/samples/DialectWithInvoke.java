@@ -24,15 +24,17 @@
  */
 package oracle.code.samples;
 
+import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -66,16 +68,16 @@ public class DialectWithInvoke {
     }
 
     // Custom/Dialect Nodes extends from Op
-    public static class FMAIntrinsicOp extends Op { // externalized
+    public static class FMAIntrinsicOp extends AbstractOp implements ExternalizedOp.Externalizable { // externalized
 
-        private final TypeElement typeDescriptor;
+        private final CodeType typeDescriptor;
 
-        FMAIntrinsicOp(TypeElement typeDescriptor, List<Value> operands) {
+        FMAIntrinsicOp(CodeType typeDescriptor, List<Value> operands) {
             super(operands);
             this.typeDescriptor = typeDescriptor;
         }
 
-        FMAIntrinsicOp(Op that, CodeContext cc) {
+        FMAIntrinsicOp(FMAIntrinsicOp that, CodeContext cc) {
             super(that, cc);
             this.typeDescriptor = that.resultType();
         }
@@ -86,7 +88,7 @@ public class DialectWithInvoke {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return typeDescriptor;
         }
 
@@ -122,7 +124,7 @@ public class DialectWithInvoke {
                 FMAIntrinsicOp myCustomFunction = new FMAIntrinsicOp(invokeOp.resultType(), outputOperands);
 
                 // Add the new node to the code builder
-                Op.Result outputResult = blockBuilder.op(myCustomFunction);
+                Op.Result outputResult = blockBuilder.add(myCustomFunction);
 
                 // Preserve the location from the original invoke
                 myCustomFunction.setLocation(invokeOp.location());
@@ -130,7 +132,7 @@ public class DialectWithInvoke {
                 // Map input-> new output
                 context.mapValue(invokeOp.result(), outputResult);
             } else {
-                blockBuilder.op(op);
+                blockBuilder.add(op);
             }
             return blockBuilder;
         });

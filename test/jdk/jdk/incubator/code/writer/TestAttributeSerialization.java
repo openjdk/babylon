@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,10 +27,7 @@
  * @run junit TestAttributeSerialization
  */
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 import org.junit.jupiter.api.Assertions;
@@ -42,7 +39,7 @@ import java.util.Map;
 
 public class TestAttributeSerialization {
 
-    static class TestOp extends Op {
+    static class TestOp extends AbstractOp implements ExternalizedOp.Externalizable {
         final Object attributeValue;
 
         TestOp(ExternalizedOp opdef) {
@@ -55,7 +52,7 @@ public class TestAttributeSerialization {
         }
 
         @Override
-        public TestOp transform(CodeContext cc, CodeTransformer ot) {
+        public TestOp transform(CodeContext cc, CodeTransformer ct) {
             return new TestOp(this, cc);
         }
 
@@ -65,7 +62,7 @@ public class TestAttributeSerialization {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 

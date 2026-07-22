@@ -1,5 +1,28 @@
+/*
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
 import jdk.incubator.code.*;
-import jdk.incubator.code.bytecode.impl.LoweringTransform;
+import jdk.incubator.code.bytecode.impl.LoweringTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -165,7 +188,7 @@ public class TestIsCaseConstantSwitch {
                 .filter(o -> o instanceof SwitchExpressionOp)
                 .map(o -> ((SwitchExpressionOp) o)).toList();
         for (SwitchExpressionOp swExprOp : swExprOps) {
-            boolean actual = LoweringTransform.isCaseConstantSwitchWithIntegralSelector(swExprOp, MethodHandles.lookup()).isPresent();
+            boolean actual = LoweringTransformer.isCaseConstantSwitchWithIntegralSelector(swExprOp, MethodHandles.lookup()).isPresent();
             Assertions.assertEquals(
                     expected,
                     actual,
@@ -183,7 +206,7 @@ public class TestIsCaseConstantSwitch {
         var funcOp = Op.ofMethod(this.getClass().getDeclaredMethod("caseConstantSwitchExpressions")).get();
         System.out.println(funcOp.toText());
         var swOp = (JavaSwitchOp) funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaSwitchOp).findFirst().get();
-        Optional<LoweringTransform.LabelsAndTargets> opt = LoweringTransform.isCaseConstantSwitchWithIntegralSelector(swOp, MethodHandles.lookup());
+        Optional<LoweringTransformer.LabelsAndTargets> opt = LoweringTransformer.isCaseConstantSwitchWithIntegralSelector(swOp, MethodHandles.lookup());
         Assertions.assertTrue(opt.isPresent());
         List<Integer> actualLabels = opt.get().labels();
         System.out.println(actualLabels);

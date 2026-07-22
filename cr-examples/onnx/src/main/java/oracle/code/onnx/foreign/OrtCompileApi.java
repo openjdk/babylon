@@ -29,6 +29,7 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  *     OrtStatusPtr (*ModelCompilationOptions_SetGraphOptimizationLevel)(OrtModelCompilationOptions *, GraphOptimizationLevel);
  *     OrtStatusPtr (*ModelCompilationOptions_SetOutputModelWriteFunc)(OrtModelCompilationOptions *, OrtWriteBufferFunc, void *);
  *     OrtStatusPtr (*ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc)(OrtModelCompilationOptions *, OrtGetInitializerLocationFunc, void *);
+ *     OrtStatusPtr (*ModelCompilationOptions_SetInputModel)(OrtModelCompilationOptions *, const OrtModel *);
  * }
  * }
  */
@@ -52,7 +53,8 @@ public class OrtCompileApi {
         onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetEpContextBinaryInformation"),
         onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetGraphOptimizationLevel"),
         onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetOutputModelWriteFunc"),
-        onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc")
+        onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc"),
+        onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetInputModel")
     ).withName("OrtCompileApi");
 
     /**
@@ -67,9 +69,9 @@ public class OrtCompileApi {
      * void (*ReleaseModelCompilationOptions)(OrtModelCompilationOptions *)
      * }
      */
-    public static class ReleaseModelCompilationOptions {
+    public final static class ReleaseModelCompilationOptions {
 
-        ReleaseModelCompilationOptions() {
+        private ReleaseModelCompilationOptions() {
             // Should not be called directly
         }
 
@@ -106,9 +108,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static void invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static void invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                  DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -127,7 +131,7 @@ public class OrtCompileApi {
         return ReleaseModelCompilationOptions$LAYOUT;
     }
 
-    private static final long ReleaseModelCompilationOptions$OFFSET = 0;
+    private static final long ReleaseModelCompilationOptions$OFFSET = $LAYOUT.byteOffset(groupElement("ReleaseModelCompilationOptions"));
 
     /**
      * Offset for field:
@@ -164,9 +168,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*CreateModelCompilationOptionsFromSessionOptions)(const OrtEnv *, const OrtSessionOptions *, OrtModelCompilationOptions **)
      * }
      */
-    public static class CreateModelCompilationOptionsFromSessionOptions {
+    public final static class CreateModelCompilationOptionsFromSessionOptions {
 
-        CreateModelCompilationOptionsFromSessionOptions() {
+        private CreateModelCompilationOptionsFromSessionOptions() {
             // Should not be called directly
         }
 
@@ -206,9 +210,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -227,7 +233,7 @@ public class OrtCompileApi {
         return CreateModelCompilationOptionsFromSessionOptions$LAYOUT;
     }
 
-    private static final long CreateModelCompilationOptionsFromSessionOptions$OFFSET = 8;
+    private static final long CreateModelCompilationOptionsFromSessionOptions$OFFSET = $LAYOUT.byteOffset(groupElement("CreateModelCompilationOptionsFromSessionOptions"));
 
     /**
      * Offset for field:
@@ -264,9 +270,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetInputModelPath)(OrtModelCompilationOptions *, const char *)
      * }
      */
-    public static class ModelCompilationOptions_SetInputModelPath {
+    public final static class ModelCompilationOptions_SetInputModelPath {
 
-        ModelCompilationOptions_SetInputModelPath() {
+        private ModelCompilationOptions_SetInputModelPath() {
             // Should not be called directly
         }
 
@@ -305,9 +311,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -326,7 +334,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetInputModelPath$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetInputModelPath$OFFSET = 16;
+    private static final long ModelCompilationOptions_SetInputModelPath$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetInputModelPath"));
 
     /**
      * Offset for field:
@@ -363,9 +371,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetInputModelFromBuffer)(OrtModelCompilationOptions *, const void *, size_t)
      * }
      */
-    public static class ModelCompilationOptions_SetInputModelFromBuffer {
+    public final static class ModelCompilationOptions_SetInputModelFromBuffer {
 
-        ModelCompilationOptions_SetInputModelFromBuffer() {
+        private ModelCompilationOptions_SetInputModelFromBuffer() {
             // Should not be called directly
         }
 
@@ -405,9 +413,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, long _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, long _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -426,7 +436,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetInputModelFromBuffer$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetInputModelFromBuffer$OFFSET = 24;
+    private static final long ModelCompilationOptions_SetInputModelFromBuffer$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetInputModelFromBuffer"));
 
     /**
      * Offset for field:
@@ -463,9 +473,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetOutputModelPath)(OrtModelCompilationOptions *, const char *)
      * }
      */
-    public static class ModelCompilationOptions_SetOutputModelPath {
+    public final static class ModelCompilationOptions_SetOutputModelPath {
 
-        ModelCompilationOptions_SetOutputModelPath() {
+        private ModelCompilationOptions_SetOutputModelPath() {
             // Should not be called directly
         }
 
@@ -504,9 +514,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -525,7 +537,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetOutputModelPath$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetOutputModelPath$OFFSET = 32;
+    private static final long ModelCompilationOptions_SetOutputModelPath$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetOutputModelPath"));
 
     /**
      * Offset for field:
@@ -562,9 +574,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetOutputModelExternalInitializersFile)(OrtModelCompilationOptions *, const char *, size_t)
      * }
      */
-    public static class ModelCompilationOptions_SetOutputModelExternalInitializersFile {
+    public final static class ModelCompilationOptions_SetOutputModelExternalInitializersFile {
 
-        ModelCompilationOptions_SetOutputModelExternalInitializersFile() {
+        private ModelCompilationOptions_SetOutputModelExternalInitializersFile() {
             // Should not be called directly
         }
 
@@ -604,9 +616,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, long _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, long _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -625,7 +639,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetOutputModelExternalInitializersFile$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetOutputModelExternalInitializersFile$OFFSET = 40;
+    private static final long ModelCompilationOptions_SetOutputModelExternalInitializersFile$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetOutputModelExternalInitializersFile"));
 
     /**
      * Offset for field:
@@ -662,9 +676,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetOutputModelBuffer)(OrtModelCompilationOptions *, OrtAllocator *, void **, size_t *)
      * }
      */
-    public static class ModelCompilationOptions_SetOutputModelBuffer {
+    public final static class ModelCompilationOptions_SetOutputModelBuffer {
 
-        ModelCompilationOptions_SetOutputModelBuffer() {
+        private ModelCompilationOptions_SetOutputModelBuffer() {
             // Should not be called directly
         }
 
@@ -705,9 +719,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, MemorySegment _x2, MemorySegment _x3) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2, MemorySegment _x3) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2, _x3);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -726,7 +742,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetOutputModelBuffer$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetOutputModelBuffer$OFFSET = 48;
+    private static final long ModelCompilationOptions_SetOutputModelBuffer$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetOutputModelBuffer"));
 
     /**
      * Offset for field:
@@ -763,9 +779,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetEpContextEmbedMode)(OrtModelCompilationOptions *, bool)
      * }
      */
-    public static class ModelCompilationOptions_SetEpContextEmbedMode {
+    public final static class ModelCompilationOptions_SetEpContextEmbedMode {
 
-        ModelCompilationOptions_SetEpContextEmbedMode() {
+        private ModelCompilationOptions_SetEpContextEmbedMode() {
             // Should not be called directly
         }
 
@@ -804,9 +820,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, boolean _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, boolean _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -825,7 +843,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetEpContextEmbedMode$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetEpContextEmbedMode$OFFSET = 56;
+    private static final long ModelCompilationOptions_SetEpContextEmbedMode$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetEpContextEmbedMode"));
 
     /**
      * Offset for field:
@@ -862,9 +880,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*CompileModel)(const OrtEnv *, const OrtModelCompilationOptions *)
      * }
      */
-    public static class CompileModel {
+    public final static class CompileModel {
 
-        CompileModel() {
+        private CompileModel() {
             // Should not be called directly
         }
 
@@ -903,9 +921,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -924,7 +944,7 @@ public class OrtCompileApi {
         return CompileModel$LAYOUT;
     }
 
-    private static final long CompileModel$OFFSET = 64;
+    private static final long CompileModel$OFFSET = $LAYOUT.byteOffset(groupElement("CompileModel"));
 
     /**
      * Offset for field:
@@ -961,9 +981,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetFlags)(OrtModelCompilationOptions *, uint32_t)
      * }
      */
-    public static class ModelCompilationOptions_SetFlags {
+    public final static class ModelCompilationOptions_SetFlags {
 
-        ModelCompilationOptions_SetFlags() {
+        private ModelCompilationOptions_SetFlags() {
             // Should not be called directly
         }
 
@@ -1002,9 +1022,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, int _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, int _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1023,7 +1045,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetFlags$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetFlags$OFFSET = 72;
+    private static final long ModelCompilationOptions_SetFlags$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetFlags"));
 
     /**
      * Offset for field:
@@ -1060,9 +1082,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetEpContextBinaryInformation)(OrtModelCompilationOptions *, const char *, const char *)
      * }
      */
-    public static class ModelCompilationOptions_SetEpContextBinaryInformation {
+    public final static class ModelCompilationOptions_SetEpContextBinaryInformation {
 
-        ModelCompilationOptions_SetEpContextBinaryInformation() {
+        private ModelCompilationOptions_SetEpContextBinaryInformation() {
             // Should not be called directly
         }
 
@@ -1102,9 +1124,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1123,7 +1147,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetEpContextBinaryInformation$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetEpContextBinaryInformation$OFFSET = 80;
+    private static final long ModelCompilationOptions_SetEpContextBinaryInformation$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetEpContextBinaryInformation"));
 
     /**
      * Offset for field:
@@ -1160,9 +1184,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetGraphOptimizationLevel)(OrtModelCompilationOptions *, GraphOptimizationLevel)
      * }
      */
-    public static class ModelCompilationOptions_SetGraphOptimizationLevel {
+    public final static class ModelCompilationOptions_SetGraphOptimizationLevel {
 
-        ModelCompilationOptions_SetGraphOptimizationLevel() {
+        private ModelCompilationOptions_SetGraphOptimizationLevel() {
             // Should not be called directly
         }
 
@@ -1201,9 +1225,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, int _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, int _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1222,7 +1248,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetGraphOptimizationLevel$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetGraphOptimizationLevel$OFFSET = 88;
+    private static final long ModelCompilationOptions_SetGraphOptimizationLevel$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetGraphOptimizationLevel"));
 
     /**
      * Offset for field:
@@ -1259,9 +1285,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetOutputModelWriteFunc)(OrtModelCompilationOptions *, OrtWriteBufferFunc, void *)
      * }
      */
-    public static class ModelCompilationOptions_SetOutputModelWriteFunc {
+    public final static class ModelCompilationOptions_SetOutputModelWriteFunc {
 
-        ModelCompilationOptions_SetOutputModelWriteFunc() {
+        private ModelCompilationOptions_SetOutputModelWriteFunc() {
             // Should not be called directly
         }
 
@@ -1301,9 +1327,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1322,7 +1350,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetOutputModelWriteFunc$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetOutputModelWriteFunc$OFFSET = 96;
+    private static final long ModelCompilationOptions_SetOutputModelWriteFunc$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetOutputModelWriteFunc"));
 
     /**
      * Offset for field:
@@ -1359,9 +1387,9 @@ public class OrtCompileApi {
      * OrtStatusPtr (*ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc)(OrtModelCompilationOptions *, OrtGetInitializerLocationFunc, void *)
      * }
      */
-    public static class ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc {
+    public final static class ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc {
 
-        ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc() {
+        private ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc() {
             // Should not be called directly
         }
 
@@ -1401,9 +1429,11 @@ public class OrtCompileApi {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1422,7 +1452,7 @@ public class OrtCompileApi {
         return ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc$LAYOUT;
     }
 
-    private static final long ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc$OFFSET = 104;
+    private static final long ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc"));
 
     /**
      * Offset for field:
@@ -1452,6 +1482,107 @@ public class OrtCompileApi {
      */
     public static void ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc(MemorySegment struct, MemorySegment fieldValue) {
         struct.set(ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc$LAYOUT, ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc$OFFSET, fieldValue);
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetInputModel)(OrtModelCompilationOptions *, const OrtModel *)
+     * }
+     */
+    public final static class ModelCompilationOptions_SetInputModel {
+
+        private ModelCompilationOptions_SetInputModel() {
+            // Should not be called directly
+        }
+
+        /**
+         * The function pointer signature, expressed as a functional interface
+         */
+        public interface Function {
+            MemorySegment apply(MemorySegment _x0, MemorySegment _x1);
+        }
+
+        private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER
+        );
+
+        /**
+         * The descriptor of this function pointer
+         */
+        public static FunctionDescriptor descriptor() {
+            return $DESC;
+        }
+
+        private static final MethodHandle UP$MH = onnxruntime_c_api_h.upcallHandle(ModelCompilationOptions_SetInputModel.Function.class, "apply", $DESC);
+
+        /**
+         * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
+         * The lifetime of the returned segment is managed by {@code arena}
+         */
+        public static MemorySegment allocate(ModelCompilationOptions_SetInputModel.Function fi, Arena arena) {
+            return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
+        }
+
+        private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
+
+        /**
+         * Invoke the upcall stub {@code funcPtr}, with given parameters
+         */
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
+            try {
+                return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
+            } catch (Throwable ex$) {
+                throw new AssertionError("should not reach here", ex$);
+            }
+        }
+    }
+
+    private static final AddressLayout ModelCompilationOptions_SetInputModel$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("ModelCompilationOptions_SetInputModel"));
+
+    /**
+     * Layout for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetInputModel)(OrtModelCompilationOptions *, const OrtModel *)
+     * }
+     */
+    public static final AddressLayout ModelCompilationOptions_SetInputModel$layout() {
+        return ModelCompilationOptions_SetInputModel$LAYOUT;
+    }
+
+    private static final long ModelCompilationOptions_SetInputModel$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetInputModel"));
+
+    /**
+     * Offset for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetInputModel)(OrtModelCompilationOptions *, const OrtModel *)
+     * }
+     */
+    public static final long ModelCompilationOptions_SetInputModel$offset() {
+        return ModelCompilationOptions_SetInputModel$OFFSET;
+    }
+
+    /**
+     * Getter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetInputModel)(OrtModelCompilationOptions *, const OrtModel *)
+     * }
+     */
+    public static MemorySegment ModelCompilationOptions_SetInputModel(MemorySegment struct) {
+        return struct.get(ModelCompilationOptions_SetInputModel$LAYOUT, ModelCompilationOptions_SetInputModel$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetInputModel)(OrtModelCompilationOptions *, const OrtModel *)
+     * }
+     */
+    public static void ModelCompilationOptions_SetInputModel(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(ModelCompilationOptions_SetInputModel$LAYOUT, ModelCompilationOptions_SetInputModel$OFFSET, fieldValue);
     }
 
     /**

@@ -26,6 +26,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -234,15 +235,15 @@ public final class PartialEvaluator {
                     if (op instanceof CoreOp.VarOp) {
                         // @@@ Do not turn into constant to avoid conflicts with the interpreter
                         // and its runtime representation of vars
-                        outBlock.op(op);
+                        outBlock.add(op);
                     } else {
                         // Result was evaluated, replace with constant operation
-                        Op.Result constantResult = outBlock.op(CoreOp.constant(op.resultType(), result));
+                        Op.Result constantResult = outBlock.add(CoreOp.constant(op.resultType(), result));
                         outBlock.context().mapValue(op.result(), constantResult);
                     }
                 } else {
                     // Copy unevaluated operation
-                    Op.Result r = outBlock.op(op);
+                    Op.Result r = outBlock.add(op);
                     // Explicitly remap result, since the op can be copied more than once in pealed loops
                     // @@@ See comment Block.op code which implicitly limits this
                     outBlock.context().mapValue(op.result(), r);
@@ -273,13 +274,13 @@ public final class PartialEvaluator {
 
                         processBlock(bc, inBlock, nextInBlock, outBlock);
 
-                        outBlock.op(CoreOp.branch(outBlock.context().getSuccessorOrCreate(nextInBlockRef)));
+                        outBlock.add(CoreOp.branch(outBlock.context().getReferenceOrCreate(nextInBlockRef)));
                     } else {
                         // @@@ might be non-constant latch to loop
                         processBlock(bc, inBlock, cb.falseBranch().targetBlock(), outBlock);
                         processBlock(bc, inBlock, cb.trueBranch().targetBlock(), outBlock);
 
-                        outBlock.op(to);
+                        outBlock.add(to);
                     }
                 }
                 case CoreOp.BranchOp b -> {
@@ -298,9 +299,9 @@ public final class PartialEvaluator {
 
                     processBlock(bc, inBlock, nextInBlock, outBlock);
 
-                    outBlock.op(b);
+                    outBlock.add(b);
                 }
-                case CoreOp.ReturnOp _ -> outBlock.op(to);
+                case CoreOp.ReturnOp _ -> outBlock.add(to);
                 default -> throw evaluationException(
                         new UnsupportedOperationException("Unsupported terminating operation: " + to));
             }
@@ -369,7 +370,7 @@ public final class PartialEvaluator {
                     }
                     return Array.newInstance(resolveToClass(l, nType), lengths);
                 } else {
-                    MethodHandle mh = constructorHandle(l, no.constructorReference().type());
+                    MethodHandle mh = constructorHandle(l, no.constructorReference().signature());
                     return invoke(mh, values);
                 }
             }
@@ -459,12 +460,12 @@ public final class PartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o) + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(bc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -490,6 +491,12 @@ public final class PartialEvaluator {
         }
     }
 
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
+    }
 
     static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
         MethodType mt = resolveToMethodType(l, ft).erase();
@@ -525,12 +532,12 @@ public final class PartialEvaluator {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -559,7 +566,7 @@ public final class PartialEvaluator {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    public static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>) jt.erasure().resolve(l);

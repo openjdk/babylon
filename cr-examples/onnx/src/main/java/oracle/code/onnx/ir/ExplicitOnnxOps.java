@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import java.util.*;
 import jdk.incubator.code.*;
 import jdk.incubator.code.Op.Nested;
 import jdk.incubator.code.extern.ExternalizedOp;
-import jdk.incubator.code.extern.OpFactory;
 
 public sealed class ExplicitOnnxOps permits OnnxOps {
 
@@ -166,7 +165,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new GroupQueryAttention(this, cc);
         }
 
-        GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
+        GroupQueryAttention(CodeType resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
             super(SCHEMA, resultType, Collections.emptySet(), List.of(query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache), List.of(do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale));
         }
 
@@ -231,7 +230,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static GroupQueryAttention GroupQueryAttention(TypeElement resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
+    public static GroupQueryAttention GroupQueryAttention(CodeType resultType, Value query, java.util.Optional<Value> key, java.util.Optional<Value> value, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, Value seqlens_k, Value total_sequence_length, java.util.Optional<Value> cos_cache, java.util.Optional<Value> sin_cache, java.util.Optional<Long> do_rotary, long kv_num_heads, java.util.Optional<Long> local_window_size, long num_heads, java.util.Optional<Long> rotary_interleaved, java.util.Optional<Float> scale) {
         return new GroupQueryAttention(resultType, query, key, value, past_key, past_value, seqlens_k, total_sequence_length, cos_cache, sin_cache, do_rotary, kv_num_heads, local_window_size, num_heads, rotary_interleaved, scale);
     }
 
@@ -364,7 +363,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new MatMulNBits(this, cc);
         }
 
-        MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
+        MatMulNBits(CodeType resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
             super(SCHEMA, resultType, Collections.emptySet(), List.of(a, b, scales, zero_points, g_idx, bias), List.of(K, N, accuracy_level, bits, block_size));
         }
 
@@ -406,7 +405,317 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static MatMulNBits MatMulNBits(TypeElement resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
+    // @@@ this should be generated from contrib operators
+    @OpFactoryHelper.OpDeclaration(MultiHeadAttention.NAME)
+    public static final class MultiHeadAttention extends OnnxOp {
+        public static final String NAME = "com.microsoft.MultiHeadAttention";
+
+        public enum Attribute implements OnnxAttribute {
+            mask_filter_value(Float.class, true, null),
+            num_heads(Long.class, false, null),
+            scale(Float.class, true, null),
+            unidirectional(Long.class, true, 0),
+            ;
+
+            final Class<?> t;
+            final boolean optional;
+            final Object defaultValue;
+
+            Attribute(Class<?> type, boolean optional, Object defaultValue) {
+                this.t = type;
+                this.optional = optional;
+                this.defaultValue = defaultValue;
+                assert optional || defaultValue == null;
+            }
+
+            public Class<?> type() {
+                return t;
+            }
+
+            public boolean isOptional() {
+                return optional;
+            }
+
+            public Object defaultValue() {
+                return defaultValue;
+            }
+        }
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32())))),
+            M(new OnnxType.TypeVariable("M", List.of(OnnxType.tensor(OnnxType.int32())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            query(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            key(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            value(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            bias(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            key_padding_mask(TypeConstraint.M.typeVariable(), Quantifier.OPTIONAL),
+            relative_position_bias(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            past_key(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            past_value(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            attention_bias(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+            }
+
+        public enum OutputParameter implements OnnxParameter {
+            output(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            present_key(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            present_value(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(Attribute.values()),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public MultiHeadAttention(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        MultiHeadAttention(MultiHeadAttention that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public MultiHeadAttention transform(CodeContext cc, CodeTransformer ot) {
+            return new MultiHeadAttention(this, cc);
+        }
+
+        MultiHeadAttention(CodeType resultType, Set<OutputParameter> optionalOutputs, Value query, Value key, Value value, java.util.Optional<Value> bias, java.util.Optional<Value> key_padding_mask, java.util.Optional<Value> relative_position_bias, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> attention_bias, long num_heads, java.util.Optional<Float> mask_filter_value, java.util.Optional<Float> scale, java.util.Optional<Long> unidirectional) {
+            super(SCHEMA, resultType, optionalOutputs, List.of(query, key, value, bias, key_padding_mask, relative_position_bias, past_key, past_value, attention_bias), List.of(mask_filter_value, num_heads, scale, unidirectional));
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(query(), key(), value(), bias(), key_padding_mask(), relative_position_bias(), past_key(), past_value(), attention_bias()));
+        }
+
+        public Value query() {
+            return operands().get(0);
+        }
+
+        public Value key() {
+            return operands().get(1);
+        }
+
+        public Value value() {
+            return operands().get(2);
+        }
+
+        public java.util.Optional<Value> bias() {
+            int i = optionalInputArguments.indexOf(InputParameter.bias);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> key_padding_mask() {
+            int i = optionalInputArguments.indexOf(InputParameter.key_padding_mask);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> relative_position_bias() {
+            int i = optionalInputArguments.indexOf(InputParameter.relative_position_bias);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> past_key() {
+            int i = optionalInputArguments.indexOf(InputParameter.past_key);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> past_value() {
+            int i = optionalInputArguments.indexOf(InputParameter.past_value);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+
+        public java.util.Optional<Value> attention_bias() {
+            int i = optionalInputArguments.indexOf(InputParameter.attention_bias);
+            return i != -1 ? java.util.Optional.of(operands().get(3 + i)) : java.util.Optional.empty();
+        }
+    }
+
+    public static MultiHeadAttention MultiHeadAttention(CodeType resultType, Set<MultiHeadAttention.OutputParameter> optionalOutputs, Value query, Value key, Value value, java.util.Optional<Value> bias, java.util.Optional<Value> key_padding_mask, java.util.Optional<Value> relative_position_bias, java.util.Optional<Value> past_key, java.util.Optional<Value> past_value, java.util.Optional<Value> attention_bias, long num_heads, java.util.Optional<Float> mask_filter_value, java.util.Optional<Float> scale, java.util.Optional<Long> unidirectional) {
+        return new MultiHeadAttention(resultType, optionalOutputs, query, key, value, bias, key_padding_mask, relative_position_bias, past_key, past_value, attention_bias, num_heads, mask_filter_value, scale, unidirectional);
+    }
+
+    // @@@ this should be generated from contrib operators
+    @OpFactoryHelper.OpDeclaration(FastGelu.NAME)
+    public static final class FastGelu extends OnnxOp {
+        public static final String NAME = "com.microsoft.FastGelu";
+
+        public enum TypeConstraint implements OnnxTypeConstraint {
+            T(new OnnxType.TypeVariable("T", List.of(OnnxType.tensor(OnnxType.float16()), OnnxType.tensor(OnnxType.float32())))),
+            ;
+
+            final OnnxType.TypeVariable typeVariable;
+
+            TypeConstraint(OnnxType.TypeVariable typeVariable) {
+                assert typeVariable.name().equals(name());
+                this.typeVariable = typeVariable;
+            }
+
+            @Override
+            public OnnxType.TypeVariable typeVariable() {
+                return typeVariable;
+            }
+        }
+
+        public enum InputParameter implements OnnxParameter {
+            X(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            bias(TypeConstraint.T.typeVariable(), Quantifier.OPTIONAL),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            InputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public enum OutputParameter implements OnnxParameter {
+            Y(TypeConstraint.T.typeVariable(), Quantifier.REQUIRED),
+            ;
+
+            final OnnxType type;
+            final Quantifier quantifier;
+
+            OutputParameter(OnnxType type, Quantifier quantifier) {
+                this.type = type;
+                this.quantifier = quantifier;
+            }
+
+            @Override
+            public OnnxType type() {
+                return type;
+            }
+
+            @Override
+            public Quantifier quantifier() {
+                return quantifier;
+            }
+        }
+
+        public static final OnnxSchema SCHEMA = new OnnxSchemaRecord(
+                NAME,
+                List.of(),
+                List.of(TypeConstraint.values()),
+                List.of(InputParameter.values()),
+                List.of(OutputParameter.values())
+        );
+
+        public FastGelu(ExternalizedOp def) {
+            super(SCHEMA, def);
+        }
+
+        FastGelu(FastGelu that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public FastGelu transform(CodeContext cc, CodeTransformer ot) {
+            return new FastGelu(this, cc);
+        }
+
+        FastGelu(CodeType resultType, Value X, java.util.Optional<Value> bias) {
+            super(SCHEMA, resultType, Collections.emptySet(), List.of(X, bias), List.of());
+        }
+
+        @Override
+        public SequencedSet<OnnxParameter> onnxOutputs() {
+            return onnxOutputs(SCHEMA);
+        }
+
+        @Override
+        public SequencedMap<OnnxParameter, Object> onnxInputs() {
+            return onnxInputs(SCHEMA, List.of(X(), bias()));
+        }
+
+        public Value X() {
+            return operands().get(0);
+        }
+
+        public java.util.Optional<Value> bias() {
+            int i = optionalInputArguments.indexOf(InputParameter.bias);
+            return i != -1 ? java.util.Optional.of(operands().get(1 + i)) : java.util.Optional.empty();
+        }
+    }
+
+    public static FastGelu FastGelu(CodeType resultType, Value X, java.util.Optional<Value> bias) {
+        return new FastGelu(resultType, X, bias);
+    }
+
+    public static MatMulNBits MatMulNBits(CodeType resultType, Value a, Value b, Value scales, java.util.Optional<Value> zero_points, java.util.Optional<Value> g_idx, java.util.Optional<Value> bias, long K, long N, java.util.Optional<Long> accuracy_level, long bits, long block_size) {
         return new MatMulNBits(resultType, a, b, scales, zero_points, g_idx, bias, K, N, accuracy_level, bits, block_size);
     }
 
@@ -533,7 +842,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new SkipSimplifiedLayerNormalization(this, cc);
         }
 
-        SkipSimplifiedLayerNormalization(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
+        SkipSimplifiedLayerNormalization(CodeType resultType, Set<OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
             super(SCHEMA, resultType, optionalOutputs, List.of(input, skip, gamma, bias), List.of(epsilon));
         }
 
@@ -565,7 +874,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(TypeElement resultType, Set<SkipSimplifiedLayerNormalization.OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
+    public static SkipSimplifiedLayerNormalization SkipSimplifiedLayerNormalization(CodeType resultType, Set<SkipSimplifiedLayerNormalization.OutputParameter> optionalOutputs, Value input, Value skip, Value gamma, java.util.Optional<Value> bias, java.util.Optional<Float> epsilon) {
         return new SkipSimplifiedLayerNormalization(resultType, optionalOutputs, input, skip, gamma, bias, epsilon);
     }
 
@@ -675,7 +984,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new CLIPTokenizer(this, cc);
         }
 
-        CLIPTokenizer(TypeElement resultType, Set<OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
+        CLIPTokenizer(CodeType resultType, Set<OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
             super(SCHEMA, resultType, optionalOutputs, List.of(input_text), List.of(vocab, merges, padding_length));
         }
 
@@ -694,7 +1003,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static CLIPTokenizer CLIPTokenizer(TypeElement resultType, Set<CLIPTokenizer.OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
+    public static CLIPTokenizer CLIPTokenizer(CodeType resultType, Set<CLIPTokenizer.OutputParameter> optionalOutputs, Value input_text, String vocab, String merges, java.util.Optional<Long> padding_length) {
         return new CLIPTokenizer(resultType, optionalOutputs, input_text, vocab, merges, padding_length);
     }
 
@@ -799,7 +1108,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new If(this, cc, ot);
         }
 
-        If(TypeElement resultType, Value cond, Body.Builder thenBranch, Body.Builder elseBranch) {
+        If(CodeType resultType, Value cond, Body.Builder thenBranch, Body.Builder elseBranch) {
             super(SCHEMA, resultType, Set.of(), List.of(cond), List.of());
 
             this.thenBody = thenBranch.build(this);
@@ -834,7 +1143,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static If If(TypeElement resultType, Value cond, Body.Builder thenBody, Body.Builder elseBody) {
+    public static If If(CodeType resultType, Value cond, Body.Builder thenBody, Body.Builder elseBody) {
         return new If(resultType, cond, thenBody, elseBody);
     }
 
@@ -940,7 +1249,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
             return new ExplicitOnnxOps.Loop(this, cc, ot);
         }
 
-        Loop(TypeElement resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
+        Loop(CodeType resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
             super(SCHEMA, resultType, Set.of(), List.of(m, cond, v_initial), List.of());
 
             this.body = body.build(this);
@@ -979,7 +1288,7 @@ public sealed class ExplicitOnnxOps permits OnnxOps {
         }
     }
 
-    public static Loop Loop(TypeElement resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
+    public static Loop Loop(CodeType resultType, Value m, Value cond, Object v_initial, Body.Builder body) {
         return new Loop(resultType, m, cond, v_initial, body);
     }
 }

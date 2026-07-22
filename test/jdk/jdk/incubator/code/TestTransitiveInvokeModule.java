@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -125,7 +125,7 @@ public class TestTransitiveInvokeModule {
                             work.push(call);
 
                             // Replace invocation with function call
-                            Op.Result result = block.op(CoreOp.funcCall(
+                            Op.Result result = block.add(CoreOp.funcCall(
                                     call.r.toString(),
                                     call.f.invokableSignature(),
                                     block.context().getValues(iop.operands())));
@@ -135,7 +135,7 @@ public class TestTransitiveInvokeModule {
                         }
                     }
                 }
-                block.op(op);
+                block.add(op);
                 return block;
             });
             funcs.add(tf);

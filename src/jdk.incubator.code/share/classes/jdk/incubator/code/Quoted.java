@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -136,7 +136,7 @@ public final class Quoted<T extends Op> {
     }
 
     /**
-     * Embeds the given operation into a quoting code model whose behaviour quotes the operation.
+     * Embeds the given operation into a quoting code model whose behavior quotes the operation.
      * <p>
      * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp func operation}
      * that has one body with one block (<i>fblock</i>).
@@ -144,9 +144,9 @@ public final class Quoted<T extends Op> {
      * <i>fblock</i> will have a block parameter, in order, for every value in the key set of the map of operands and
      * captured values.
      * If the value is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp var operation} then the
-     * parameter's type element is the var operation's value type, and <i>fblock</i> will have a var operation whose
+     * parameter's code type is the var operation's value type, and <i>fblock</i> will have a var operation whose
      * operand is the block parameter.
-     * Otherwise, the parameter's type element is the value's type element.
+     * Otherwise, the parameter's code type is the value's code type.
      * <br>
      * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp quoted operation}
      * that has one body with one block (<i>qblock</i>). Inside <i>qblock</i> there is a copy of {@code op}
@@ -158,11 +158,12 @@ public final class Quoted<T extends Op> {
      *
      * @param op the operation
      * @return the quoting code model.
-     * @throws IllegalArgumentException if {@code op} is unbuilt.
+     * @throws IllegalArgumentException if {@code op} is not placed in a block.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     public static CoreOp.FuncOp embedOp(Op op) {
         if (op.result() == null) {
-            throw new IllegalArgumentException("Op is unbuilt");
+            throw new IllegalArgumentException("Operation is not placed in a block");
         }
 
         // if we don't remove duplicate operands we will have unused params in the new model
@@ -172,7 +173,7 @@ public final class Quoted<T extends Op> {
         List<Value> inputOperandsAndCaptures = s.stream().toList();
 
         // Build the function type
-        List<TypeElement> params = inputOperandsAndCaptures.stream()
+        List<CodeType> params = inputOperandsAndCaptures.stream()
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
         FunctionType ft = CoreType.functionType(CoreOp.QuotedOp.QUOTED_OP_TYPE, params);
@@ -185,13 +186,13 @@ public final class Quoted<T extends Op> {
                 Value inputValue = inputOperandsAndCaptures.get(i);
                 Value outputValue = b.parameters().get(i);
                 if (inputValue.type() instanceof VarType) {
-                    outputValue = b.op(CoreOp.var(String.valueOf(i), outputValue));
+                    outputValue = b.add(CoreOp.var(String.valueOf(i), outputValue));
                 }
                 outputOperandsAndCaptures.add(outputValue);
             }
 
             // Quoted the lambda expression
-            Value q = b.op(CoreOp.quoted(b.parentBody(), qb -> {
+            Value q = b.add(CoreOp.quoted(b.parentBody(), qb -> {
                 // Map the entry block of the op's ancestor body to the quoted block
                 // We are copying op in the context of the quoted block, the block mapping
                 // ensures the use of operands and captured values are reachable when building
@@ -201,7 +202,7 @@ public final class Quoted<T extends Op> {
                 // Return the op to be copied in the quoted operation
                 return op;
             }));
-            b.op(CoreOp.return_(q));
+            b.add(CoreOp.return_(q));
         });
     }
 
@@ -213,7 +214,7 @@ public final class Quoted<T extends Op> {
      * Extracts the quoted operation from a quoting code model with the given runtime arguments.
      * <p>
      * This method behaves as if the quoting code model is executed with the runtime arguments by interpreting the
-     * behaviour of the code elements, as specified, in the code model, but it may be implemented more efficiently.
+     * behavior of the code elements, as specified, in the code model, but it may be implemented more efficiently.
      *
      * @param funcOp the quoting code model
      * @param args   the runtime arguments

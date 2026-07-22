@@ -25,20 +25,20 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import java.util.List;
 import java.util.Objects;
 
 public final class PtrType extends TritonType {
     static final String NAME = "ptr";
-    final TypeElement rType;
+    final CodeType rType;
 
-    public PtrType(TypeElement rType) {
+    public PtrType(CodeType rType) {
         this.rType = rType;
     }
 
-    public TypeElement rType() {
+    public CodeType rType() {
         return rType;
     }
 
@@ -56,8 +56,8 @@ public final class PtrType extends TritonType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return ExternalizedTypeElement.of(NAME, List.of(rType.externalize()));
+    public ExternalizedCodeType externalize() {
+        return ExternalizedCodeType.of(NAME, List.of(rType.externalize()));
     }
 
     @Override

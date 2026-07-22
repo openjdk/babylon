@@ -28,7 +28,7 @@ import oracle.code.triton.TritonTestExtension.TritonTestData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.Reflect;
 import java.util.List;
@@ -121,7 +121,7 @@ public class TestSoftMax {
     @Kernel("softmax_kernel")
     @Test
     public void test(TritonTestData t) {
-        List<TypeElement> argTypes = List.of(
+        List<CodeType> argTypes = List.of(
                 new PtrType(JavaType.FLOAT),
                 new PtrType(JavaType.FLOAT),
                 JavaType.INT,
@@ -218,7 +218,7 @@ public class TestSoftMax {
     @Kernel("softmax_kernel2")
     @Test
     public void test2(TritonTestData t) {
-        List<TypeElement> argTypes = List.of(
+        List<CodeType> argTypes = List.of(
                 new PtrType(JavaType.FLOAT),
                 new PtrType(JavaType.FLOAT),
                 new ConstantType(JavaType.INT, 1),

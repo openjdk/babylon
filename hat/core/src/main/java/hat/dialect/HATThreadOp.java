@@ -27,7 +27,7 @@ package hat.dialect;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.util.ops.Precedence.LoadOrConv;
@@ -45,7 +45,7 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
     }
 
     @Override
-    public final TypeElement resultType() {
+    public final CodeType resultType() {
         return JavaType.INT;
     }
 
@@ -69,7 +69,8 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
             case "bsx" -> new HATThreadOp.HAT_BS.HAT_BSX();
             case "bsy" -> new HATThreadOp.HAT_BS.HAT_BSY();
             case "bsz" -> new HATThreadOp.HAT_BS.HAT_BSZ();
-            default -> throw new RuntimeException("[ERROR] Illegal/unsupported parallel construct: " + name);
+            case "wrs" -> new HATThreadOp.HAT_WARP_SIZE();
+            default -> throw new IllegalStateException("[ERROR] Illegal/unsupported parallel construct: " + name);
         };
     }
 
@@ -409,6 +410,22 @@ public abstract sealed class HATThreadOp extends HATOp implements Dim, LoadOrCon
             public Op transform(CodeContext copyContext, CodeTransformer opTransformer) {
                 return new HAT_GSZ(this, copyContext);
             }
+        }
+    }
+
+    public static final class HAT_WARP_SIZE extends HATThreadOp {
+
+        public HAT_WARP_SIZE() {
+            super(List.of());
+        }
+
+        public HAT_WARP_SIZE(HAT_WARP_SIZE op, CodeContext codeContext) {
+            super(op, codeContext);
+        }
+
+        @Override
+        public Op transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new HAT_WARP_SIZE(this, codeContext);
         }
     }
 }

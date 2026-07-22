@@ -1,6 +1,30 @@
+/*
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package jdk.incubator.code.dialect.java.impl;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
@@ -14,7 +38,6 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.TypeDescriptor;
 import java.lang.invoke.VarHandle;
-import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 public class ResolutionHelper {
@@ -58,7 +81,7 @@ public class ResolutionHelper {
 
     // public API
 
-    public static Class<?> resolveClass(MethodHandles.Lookup l, TypeElement t) throws ReflectiveOperationException {
+    public static Class<?> resolveClass(MethodHandles.Lookup l, CodeType t) throws ReflectiveOperationException {
         if (t instanceof JavaType jt) {
             return (Class<?>)jt.erasure().resolve(l);
         } else {
@@ -73,7 +96,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef, InvokeKind kind) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.type());
+        MethodType mt = resolveMethodType(l, methodRef.signature());
         HandleResolver<MethodHandle, MethodType> resolver = switch (kind) {
             case INSTANCE -> HandleResolver.FIND_VIRTUAL;
             case STATIC -> HandleResolver.FIND_STATIC;
@@ -84,7 +107,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.type());
+        MethodType mt = resolveMethodType(l, methodRef.signature());
         return resolveHandle(HandleResolver.FIND_STATIC, l, refC, methodRef.name(), mt)
                 .orElse(() -> resolveHandle(HandleResolver.FIND_VIRTUAL, l, refC, methodRef.name(), mt))
                 .handle();

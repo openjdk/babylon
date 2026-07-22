@@ -25,23 +25,23 @@
 
 package oracle.code.triton;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 import java.util.List;
 import java.util.Objects;
 
 public final class ConstantType extends TritonType {
     static final String NAME = "constant";
 
-    final TypeElement cType;
+    final CodeType cType;
     final Object value;
 
-    public ConstantType(TypeElement cType, Object value) {
+    public ConstantType(CodeType cType, Object value) {
         this.cType = cType;
         this.value = value;
     }
 
-    public TypeElement cType() {
+    public CodeType cType() {
         return cType;
     }
 
@@ -63,10 +63,10 @@ public final class ConstantType extends TritonType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return ExternalizedTypeElement.of(NAME,
+    public ExternalizedCodeType externalize() {
+        return ExternalizedCodeType.of(NAME,
                 List.of(cType.externalize(),
-                        ExternalizedTypeElement.of("c" + value)));
+                        ExternalizedCodeType.of("c" + value)));
     }
 
     @Override

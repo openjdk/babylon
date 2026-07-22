@@ -87,8 +87,8 @@ public sealed abstract class StorageType extends SpirvType
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        return new ExternalizedTypeElement(NAME, List.of());
+    public ExternalizedCodeType externalize() {
+        return new ExternalizedCodeType(NAME, List.of());
     }
 
     @Override

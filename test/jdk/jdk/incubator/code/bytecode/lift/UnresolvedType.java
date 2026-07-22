@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -23,12 +21,12 @@
  * questions.
  */
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.util.List;
 
-sealed interface UnresolvedType extends TypeElement {
+sealed interface UnresolvedType extends CodeType {
 
     static Ref unresolvedRef() {
         return new Ref();
@@ -39,19 +37,19 @@ sealed interface UnresolvedType extends TypeElement {
     }
 
     static final class Ref implements UnresolvedType {
-        private static final ExternalizedTypeElement UNRESOLVED_REF = new ExternalizedTypeElement("?REF", List.of());
+        private static final ExternalizedCodeType UNRESOLVED_REF = new ExternalizedCodeType("?REF", List.of());
 
         @Override
-        public ExternalizedTypeElement externalize() {
+        public ExternalizedCodeType externalize() {
             return UNRESOLVED_REF;
         }
     }
 
     static final class Int implements  UnresolvedType {
-        private static final ExternalizedTypeElement UNRESOLVED_INT = new ExternalizedTypeElement("?INT", List.of());
+        private static final ExternalizedCodeType UNRESOLVED_INT = new ExternalizedCodeType("?INT", List.of());
 
         @Override
-        public ExternalizedTypeElement externalize() {
+        public ExternalizedCodeType externalize() {
             return UNRESOLVED_INT;
         }
     }

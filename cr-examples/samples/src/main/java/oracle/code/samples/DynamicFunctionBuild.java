@@ -92,7 +92,7 @@ public class DynamicFunctionBuild {
                     // Create an op to represent the constant 1
                     CoreOp.ConstantOp constant1 = CoreOp.constant(JavaType.DOUBLE, 1.0);
                     // Add the Op into the builder
-                    Op.Result constantResult = builder.op(constant1);
+                    Op.Result constantResult = builder.add(constant1);
 
                     // Create a MethodRef to point to Math.sqrt
                     MethodRef sqrtMethodRef = MethodRef.method(Math.class, "sqrt", double.class, double.class);
@@ -105,15 +105,15 @@ public class DynamicFunctionBuild {
                     JavaOp.InvokeOp invokeMathOp = JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, sqrtMethodRef, arguments);
 
                     // Add the invoke op into the builder
-                    Op.Result invokeResult = builder.op(invokeMathOp);
+                    Op.Result invokeResult = builder.add(invokeMathOp);
 
                     // Create a division node and add it to the code builder
                     JavaOp.BinaryOp divOp = JavaOp.div(constantResult, invokeResult);
-                    Op.Result divResult = builder.op(divOp);
+                    Op.Result divResult = builder.add(divOp);
 
                     // Finally, add a return and add it to the code builder
                     CoreOp.ReturnOp retOp = CoreOp.return_(divResult);
-                    builder.op(retOp);
+                    builder.add(retOp);
                 });
 
         // Print the code model for the function we have just created

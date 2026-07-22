@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeItem;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
@@ -93,7 +93,7 @@ public final class OnnxLift {
     }
 
     private static FunctionType toFunctionType(OnnxModel.GraphProto g) {
-        var paramTypes = new ArrayList<TypeElement>();
+        var paramTypes = new ArrayList<CodeType>();
         Set<String> dedup = new HashSet();
         for (OnnxModel.ValueInfoProto input : g.input()) {
             if (dedup.add(input.name())) {
@@ -272,7 +272,7 @@ public final class OnnxLift {
 
     private static LiftedModelWrapper lift(OnnxModel.GraphProto g) {
         var valueMap = new LinkedHashMap<String, Value>();
-        var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
+        var func = CoreOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
             { // fill value map for parameters and initializers
                 Iterator<Block.Parameter> params = fb.entryBlock().parameters().iterator();
@@ -387,7 +387,7 @@ public final class OnnxLift {
                 OnnxOp rawOp = (OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp);
 
                 // patch the op return type
-                TypeElement returnType = schema.outputs().size() == 1
+                CodeType returnType = schema.outputs().size() == 1
                         ? inferTypeVariableType(rawOp.onnxOutputs().getFirst().type(), rawOp, n)
                         : CoreType.tupleType(rawOp.onnxOutputs().stream().map(o -> inferTypeVariableType(o.type(), rawOp, n)).toList());
                 extOp = new ExternalizedOp(
@@ -398,7 +398,7 @@ public final class OnnxLift {
                         returnType,
                         extOp.attributes(),
                         extOp.bodyDefinitions());
-                Op.Result res = fb.op((OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp));
+                Op.Result res = fb.add((OnnxOp)ONNX_OP_FACTORY.constructOpOrFail(extOp));
 
                 // map outputs
                 if (schema.outputs().size() == 1) {
@@ -406,17 +406,17 @@ public final class OnnxLift {
                 } else {
                     valueMap.put(n.name(), res);
                     for (int i = 0; i < outputNames.size(); i++) {
-                        valueMap.put(outputNames.get(i), fb.op(CoreOp.tupleLoad(res, i)));
+                        valueMap.put(outputNames.get(i), fb.add(CoreOp.tupleLoad(res, i)));
                     }
                 }
             }
 
             if (g.output().size() == 1) {
-                fb.op(CoreOp.return_(valueMap.get(g.output().getFirst().name())));
+                fb.add(CoreOp.return_(valueMap.get(g.output().getFirst().name())));
             } else {
-                Op.Result ret = fb.op(CoreOp.tuple(g.output().stream().map(OnnxModel.ValueInfoProto::name).map(valueMap::get).toList()));
+                Op.Result ret = fb.add(CoreOp.tuple(g.output().stream().map(OnnxModel.ValueInfoProto::name).map(valueMap::get).toList()));
                 valueMap.put(g.name() + "_return", ret);
-                fb.op(CoreOp.return_(ret));
+                fb.add(CoreOp.return_(ret));
             }
         });
         return new LiftedModelWrapper(func, List.of(valueMap.sequencedKeySet().toArray(String[]::new)),

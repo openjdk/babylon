@@ -37,6 +37,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.Trxfmr;
+import optkl.VarTable;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
@@ -150,6 +151,7 @@ public class InjectBufferTracking {
         MethodRef Println = MethodRef.method(IO.class, "println", void.class, Object.class);
         // We finally have have enough information  to transform.
         // We are looking at the edges of statements ,
+        VarTable varTable = new VarTable(func.name());
         Trxfmr.of(lookup, func.op())
                 // .toText("COMPUTE before injecting buffer tracking...")
                 .toJava("COMPUTE (Java) before injecting buffer tracking...")
@@ -195,7 +197,7 @@ public class InjectBufferTracking {
                     if (statementSpan.isLast(c.op())){
                         c.retain();
                     }
-                })
+                }, varTable)
                 //   .toText("COMPUTE after injecting buffer tracking...")
                 .toJava("COMPUTE (java) after injecting buffer tracking...");
     }

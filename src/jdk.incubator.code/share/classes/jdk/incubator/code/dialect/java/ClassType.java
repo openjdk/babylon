@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,7 @@
 package jdk.incubator.code.dialect.java;
 
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
 import java.lang.constant.ClassDesc;
 import java.lang.invoke.MethodHandles.Lookup;
@@ -88,8 +88,8 @@ public final class ClassType implements TypeVariableType.Owner, JavaType {
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
-        ExternalizedTypeElement exEnclosing = enclosing == null ?
+    public ExternalizedCodeType externalize() {
+        ExternalizedCodeType exEnclosing = enclosing == null ?
                 VOID.externalize() : enclosing.externalize();
         String name = enclosing == null ?
                 toClassName() :

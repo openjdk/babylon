@@ -34,12 +34,13 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public class TritonOps {
 
-    static abstract class TritonOp extends Op {
-        final TypeElement resultType;
+    static abstract class TritonOp extends AbstractOp implements ExternalizedOp.Externalizable {
+        final CodeType resultType;
 
         public TritonOp(ExternalizedOp def) {
             super(def.operands());
@@ -53,14 +54,48 @@ public class TritonOps {
             this.resultType = that.resultType;
         }
 
-        TritonOp(TypeElement resultType, List<? extends Value> operands) {
+        TritonOp(CodeType resultType, List<? extends Value> operands) {
             super(operands);
 
             this.resultType = resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
+            return resultType;
+        }
+
+        @Override
+        public String externalizeOpName() {
+            OpFactoryHelper.OpDeclaration opDecl = this.getClass().getDeclaredAnnotation(OpFactoryHelper.OpDeclaration.class);
+            assert opDecl != null : this.getClass().getName();
+            return opDecl.value();
+        }
+    }
+
+    static abstract class TritonTerminatingOp extends AbstractOp.Terminating implements ExternalizedOp.Externalizable {
+        final CodeType resultType;
+
+        public TritonTerminatingOp(ExternalizedOp def) {
+            super(def.operands(), def.successors());
+
+            this.resultType = def.resultType();
+        }
+
+        TritonTerminatingOp(TritonTerminatingOp that, CodeContext cc) {
+            super(that, cc);
+
+            this.resultType = that.resultType;
+        }
+
+        TritonTerminatingOp(CodeType resultType, List<? extends Value> operands, List<Block.Reference> successors) {
+            super(operands, successors);
+
+            this.resultType = resultType;
+        }
+
+        @Override
+        public CodeType resultType() {
             return resultType;
         }
 
@@ -124,10 +159,10 @@ public class TritonOps {
             Block.Builder entryBlock = bodyC.entryBlock();
             Map<String, FuncOp> table = new HashMap<>();
             for (FuncOp f : functions) {
-                entryBlock.op(f);
+                entryBlock.add(f);
                 table.put(f.funcName(), f);
             }
-            entryBlock.op(CoreOp.unreachable());
+            entryBlock.add(CoreOp.unreachable());
             this.table = Collections.unmodifiableMap(table);
             this.body = bodyC.build(this);
         }
@@ -174,11 +209,11 @@ public class TritonOps {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_FUNC_NAME);
+            String funcName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
             return new FuncOp(def, funcName);
         }
 
@@ -246,10 +281,10 @@ public class TritonOps {
         }
 
         @Override
-        public Block.Builder lower(Block.Builder b, CodeTransformer _ignore) {
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> _ignore) {
             // Isolate body with respect to ancestor transformations
             // and copy directly without lowering descendant operations
-            b.rebind(b.context(), CodeTransformer.COPYING_TRANSFORMER).op(this);
+            b.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER).add(this);
             return b;
         }
     }
@@ -262,11 +297,11 @@ public class TritonOps {
         final String funcName;
 
         public static CallOp create(ExternalizedOp def) {
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_FUNC_NAME);
+            String funcName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
 
             return new CallOp(def, funcName);
         }
@@ -288,7 +323,7 @@ public class TritonOps {
             return new CallOp(this, cc);
         }
 
-        CallOp(String funcName, TypeElement resultType, List<Value> args) {
+        CallOp(String funcName, CodeType resultType, List<Value> args) {
             super(resultType, args);
 
             this.funcName = funcName;
@@ -336,11 +371,11 @@ public class TritonOps {
         final Body reducer;
 
         public static ReduceOp create(ExternalizedOp def) {
-            int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
-                    v -> switch (v) {
-                        case Integer i -> i;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_AXIS);
+            int axis = switch (v) {
+                case Integer i -> i;
+                case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
+            };
             return new ReduceOp(def, axis);
         }
 
@@ -390,7 +425,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ReduceReturnOp.NAME)
-    public static class ReduceReturnOp extends TritonOp implements Op.Terminating {
+    public static class ReduceReturnOp extends TritonTerminatingOp {
         public static final String NAME = "tt.reduce.return";
 
         public ReduceReturnOp(ExternalizedOp def) {
@@ -407,7 +442,7 @@ public class TritonOps {
         }
 
         ReduceReturnOp(Value r) {
-            super(JavaType.VOID, List.of(r));
+            super(JavaType.VOID, List.of(r), List.of());
         }
     }
 
@@ -419,11 +454,11 @@ public class TritonOps {
         final int axis;
 
         public static GetProgramIdOp create(ExternalizedOp def) {
-            int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
-                    v -> switch (v) {
-                        case Integer i -> i;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_AXIS);
+            int axis = switch (v) {
+                case Integer i -> i;
+                case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
+            };
             return new GetProgramIdOp(def, axis);
         }
 
@@ -470,16 +505,16 @@ public class TritonOps {
         final int end;
 
         public static MakeRangeOp create(ExternalizedOp def) {
-            int start = def.extractAttributeValue(ATTRIBUTE_START, false,
-                    v -> switch (v) {
+            Object sv = def.attributes().get(ATTRIBUTE_START);
+            int start = switch (sv) {
                         case Integer i -> i;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
-                    });
-            int end = def.extractAttributeValue(ATTRIBUTE_END, false,
-                    v -> switch (v) {
+                        case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + sv);
+                    };
+            Object ev = def.attributes().get(ATTRIBUTE_END);
+            int end = switch (ev) {
                         case Integer i -> i;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported end value:" + v);
-                    });
+                        case null, default -> throw new UnsupportedOperationException("Unsupported end value:" + ev);
+                    };
             return new MakeRangeOp(def, start, end);
         }
 
@@ -529,11 +564,11 @@ public class TritonOps {
         final int axis;
 
         public static ExpandOp create(ExternalizedOp def) {
-            int axis = def.extractAttributeValue(ATTRIBUTE_AXIS, true,
-                    v -> switch (v) {
-                        case Integer i -> i;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_AXIS);
+            int axis = switch (v) {
+                case Integer i -> i;
+                case null, default -> throw new UnsupportedOperationException("Unsupported axis value:" + v);
+            };
             return new ExpandOp(def, axis);
         }
 
@@ -554,7 +589,7 @@ public class TritonOps {
             return new ExpandOp(this, cc);
         }
 
-        ExpandOp(int axis, TypeElement tensorType, Value v) {
+        ExpandOp(int axis, CodeType tensorType, Value v) {
             super(tensorType, List.of(v));
 
             this.axis = axis;
@@ -587,7 +622,7 @@ public class TritonOps {
             return new SplatOp(this, cc);
         }
 
-        SplatOp(TypeElement tensorType, Value v) {
+        SplatOp(CodeType tensorType, Value v) {
             super(tensorType, List.of(v));
         }
     }
@@ -609,7 +644,7 @@ public class TritonOps {
             return new BroadcastOp(this, cc);
         }
 
-        BroadcastOp(TypeElement tensorType, Value v) {
+        BroadcastOp(CodeType tensorType, Value v) {
             super(tensorType, List.of(v));
         }
     }
@@ -653,11 +688,11 @@ public class TritonOps {
             return new LoadOp(this, cc);
         }
 
-        LoadOp(TypeElement tensorType, Value ptr, Value mask) {
+        LoadOp(CodeType tensorType, Value ptr, Value mask) {
             super(tensorType, List.of(ptr, mask));
         }
 
-        LoadOp(TypeElement tensorType, Value ptr, Value mask, Value other) {
+        LoadOp(CodeType tensorType, Value ptr, Value mask, Value other) {
             super(tensorType, List.of(ptr, mask, other));
         }
     }
@@ -685,7 +720,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ReturnOp.NAME)
-    public static class ReturnOp extends TritonOp implements Op.Terminating {
+    public static class ReturnOp extends TritonTerminatingOp {
         public static final String NAME = "tt.return";
 
         public ReturnOp(ExternalizedOp def) {
@@ -702,11 +737,11 @@ public class TritonOps {
         }
 
         ReturnOp() {
-            super(JavaType.VOID, List.of());
+            super(JavaType.VOID, List.of(), List.of());
         }
 
         ReturnOp(Value v) {
-            super(JavaType.VOID, List.of(v));
+            super(JavaType.VOID, List.of(v), List.of());
         }
     }
 
@@ -727,11 +762,15 @@ public class TritonOps {
             return new DotOp(this, cc);
         }
 
-        DotOp(TypeElement tensorType, Value a, Value b, Value c) {
+        DotOp(CodeType tensorType, Value a, Value b, Value c) {
             super(tensorType, List.of(a, b, c));
         }
     }
 
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
+    }
 
     public static ModuleOp module(FuncOp... functions) {
         return module(List.of(functions));
@@ -780,17 +819,17 @@ public class TritonOps {
         return new MakeRangeOp(start, end);
     }
 
-    public static ExpandOp expand(int axis, TypeElement tensorType, Value v) {
+    public static ExpandOp expand(int axis, CodeType tensorType, Value v) {
         return new ExpandOp(axis, tensorType, v);
     }
 
     // v is scalar
-    public static SplatOp splat(TypeElement tensorType, Value v) {
+    public static SplatOp splat(CodeType tensorType, Value v) {
         return new SplatOp(tensorType, v);
     }
 
     // v is tensor
-    public static BroadcastOp broadcast(TypeElement tensorType, Value v) {
+    public static BroadcastOp broadcast(CodeType tensorType, Value v) {
         return new BroadcastOp(tensorType, v);
     }
 
@@ -798,11 +837,11 @@ public class TritonOps {
         return new AddPtrOp(ptr, offset);
     }
 
-    public static LoadOp load(TypeElement tensorType, Value ptr, Value mask) {
+    public static LoadOp load(CodeType tensorType, Value ptr, Value mask) {
         return new LoadOp(tensorType, ptr, mask);
     }
 
-    public static LoadOp load(TypeElement tensorType, Value ptr, Value mask, Value other) {
+    public static LoadOp load(CodeType tensorType, Value ptr, Value mask, Value other) {
         return new LoadOp(tensorType, ptr, mask, other);
     }
 
@@ -818,7 +857,7 @@ public class TritonOps {
         return new ReturnOp(v);
     }
 
-    public static DotOp dot(TypeElement tensorType, Value a, Value b, Value c) {
+    public static DotOp dot(CodeType tensorType, Value a, Value b, Value c) {
         return new DotOp(tensorType, a, b, c);
     }
 
@@ -827,16 +866,16 @@ public class TritonOps {
 
     static final OpFactory OP_FACTORY = OpFactoryHelper.OP_FACTORY.get(TritonOps.class);
 
-    static final TypeElementFactory TRITON_TYPE_FACTORY = new TypeElementFactory() {
+    static final CodeTypeFactory TRITON_TYPE_FACTORY = new CodeTypeFactory() {
         @Override
-        public TypeElement constructType(ExternalizedTypeElement tree) {
+        public CodeType constructType(ExternalizedCodeType tree) {
             return switch (tree.identifier()) {
                 case PtrType.NAME -> {
                     if (tree.arguments().size() != 1) {
                         throw new IllegalArgumentException();
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getFirst());
+                    CodeType v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getFirst());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -853,7 +892,7 @@ public class TritonOps {
 
                     List<Integer> shape = new ArrayList<>();
                     for (int i = 0; i < tree.arguments().size() - 1; i++) {
-                        ExternalizedTypeElement a = tree.arguments().get(i);
+                        ExternalizedCodeType a = tree.arguments().get(i);
                         if (!a.identifier().startsWith("x")) {
                             throw new IllegalArgumentException("Bad type: " + tree);
                         }
@@ -866,7 +905,7 @@ public class TritonOps {
                         shape.add(d);
                     }
 
-                    TypeElement v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getLast());
+                    CodeType v = TRITON_JAVA_TYPE_FACTORY.constructType(tree.arguments().getLast());
                     if (v == null) {
                         throw new IllegalArgumentException("Bad type: " + tree);
                     }
@@ -882,11 +921,11 @@ public class TritonOps {
     };
 
     // Triton types then Java types
-    static final TypeElementFactory TRITON_JAVA_TYPE_FACTORY =
+    static final CodeTypeFactory TRITON_JAVA_TYPE_FACTORY =
             TRITON_TYPE_FACTORY.andThen(JavaType.JAVA_ONLY_TYPE_FACTORY);
 
     // Triton types then Java types, combined with core types
-    static final TypeElementFactory TYPE_FACTORY =
+    static final CodeTypeFactory TYPE_FACTORY =
             CoreType.coreTypeFactory(TRITON_JAVA_TYPE_FACTORY);
 
     public static final DialectFactory DIALECT_FACTORY = new DialectFactory(

@@ -22,6 +22,7 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  *     void *(*Reserve)(struct OrtAllocator *, size_t);
  *     OrtStatusPtr (*GetStats)(const struct OrtAllocator *, OrtKeyValuePairs **);
  *     void *(*AllocOnStream)(struct OrtAllocator *, size_t, OrtSyncStream *);
+ *     OrtStatusPtr (*Shrink)(struct OrtAllocator *);
  * }
  * }
  */
@@ -39,7 +40,8 @@ public class OrtAllocator {
         onnxruntime_c_api_h.C_POINTER.withName("Info"),
         onnxruntime_c_api_h.C_POINTER.withName("Reserve"),
         onnxruntime_c_api_h.C_POINTER.withName("GetStats"),
-        onnxruntime_c_api_h.C_POINTER.withName("AllocOnStream")
+        onnxruntime_c_api_h.C_POINTER.withName("AllocOnStream"),
+        onnxruntime_c_api_h.C_POINTER.withName("Shrink")
     ).withName("OrtAllocator");
 
     /**
@@ -61,7 +63,7 @@ public class OrtAllocator {
         return version$LAYOUT;
     }
 
-    private static final long version$OFFSET = 0;
+    private static final long version$OFFSET = $LAYOUT.byteOffset(groupElement("version"));
 
     /**
      * Offset for field:
@@ -98,9 +100,9 @@ public class OrtAllocator {
      * void *(*Alloc)(struct OrtAllocator *, size_t)
      * }
      */
-    public static class Alloc {
+    public final static class Alloc {
 
-        Alloc() {
+        private Alloc() {
             // Should not be called directly
         }
 
@@ -139,9 +141,11 @@ public class OrtAllocator {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -160,7 +164,7 @@ public class OrtAllocator {
         return Alloc$LAYOUT;
     }
 
-    private static final long Alloc$OFFSET = 8;
+    private static final long Alloc$OFFSET = $LAYOUT.byteOffset(groupElement("Alloc"));
 
     /**
      * Offset for field:
@@ -197,9 +201,9 @@ public class OrtAllocator {
      * void (*Free)(struct OrtAllocator *, void *)
      * }
      */
-    public static class Free {
+    public final static class Free {
 
-        Free() {
+        private Free() {
             // Should not be called directly
         }
 
@@ -237,9 +241,11 @@ public class OrtAllocator {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static void invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static void invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                  DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -258,7 +264,7 @@ public class OrtAllocator {
         return Free$LAYOUT;
     }
 
-    private static final long Free$OFFSET = 16;
+    private static final long Free$OFFSET = $LAYOUT.byteOffset(groupElement("Free"));
 
     /**
      * Offset for field:
@@ -295,9 +301,9 @@ public class OrtAllocator {
      * const struct OrtMemoryInfo *(*Info)(const struct OrtAllocator *)
      * }
      */
-    public static class Info {
+    public final static class Info {
 
-        Info() {
+        private Info() {
             // Should not be called directly
         }
 
@@ -335,9 +341,11 @@ public class OrtAllocator {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -356,7 +364,7 @@ public class OrtAllocator {
         return Info$LAYOUT;
     }
 
-    private static final long Info$OFFSET = 24;
+    private static final long Info$OFFSET = $LAYOUT.byteOffset(groupElement("Info"));
 
     /**
      * Offset for field:
@@ -393,9 +401,9 @@ public class OrtAllocator {
      * void *(*Reserve)(struct OrtAllocator *, size_t)
      * }
      */
-    public static class Reserve {
+    public final static class Reserve {
 
-        Reserve() {
+        private Reserve() {
             // Should not be called directly
         }
 
@@ -434,9 +442,11 @@ public class OrtAllocator {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -455,7 +465,7 @@ public class OrtAllocator {
         return Reserve$LAYOUT;
     }
 
-    private static final long Reserve$OFFSET = 32;
+    private static final long Reserve$OFFSET = $LAYOUT.byteOffset(groupElement("Reserve"));
 
     /**
      * Offset for field:
@@ -492,9 +502,9 @@ public class OrtAllocator {
      * OrtStatusPtr (*GetStats)(const struct OrtAllocator *, OrtKeyValuePairs **)
      * }
      */
-    public static class GetStats {
+    public final static class GetStats {
 
-        GetStats() {
+        private GetStats() {
             // Should not be called directly
         }
 
@@ -533,9 +543,11 @@ public class OrtAllocator {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -554,7 +566,7 @@ public class OrtAllocator {
         return GetStats$LAYOUT;
     }
 
-    private static final long GetStats$OFFSET = 40;
+    private static final long GetStats$OFFSET = $LAYOUT.byteOffset(groupElement("GetStats"));
 
     /**
      * Offset for field:
@@ -591,9 +603,9 @@ public class OrtAllocator {
      * void *(*AllocOnStream)(struct OrtAllocator *, size_t, OrtSyncStream *)
      * }
      */
-    public static class AllocOnStream {
+    public final static class AllocOnStream {
 
-        AllocOnStream() {
+        private AllocOnStream() {
             // Should not be called directly
         }
 
@@ -633,9 +645,11 @@ public class OrtAllocator {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1, MemorySegment _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1, MemorySegment _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -654,7 +668,7 @@ public class OrtAllocator {
         return AllocOnStream$LAYOUT;
     }
 
-    private static final long AllocOnStream$OFFSET = 48;
+    private static final long AllocOnStream$OFFSET = $LAYOUT.byteOffset(groupElement("AllocOnStream"));
 
     /**
      * Offset for field:
@@ -684,6 +698,106 @@ public class OrtAllocator {
      */
     public static void AllocOnStream(MemorySegment struct, MemorySegment fieldValue) {
         struct.set(AllocOnStream$LAYOUT, AllocOnStream$OFFSET, fieldValue);
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OrtStatusPtr (*Shrink)(struct OrtAllocator *)
+     * }
+     */
+    public final static class Shrink {
+
+        private Shrink() {
+            // Should not be called directly
+        }
+
+        /**
+         * The function pointer signature, expressed as a functional interface
+         */
+        public interface Function {
+            MemorySegment apply(MemorySegment _x0);
+        }
+
+        private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER
+        );
+
+        /**
+         * The descriptor of this function pointer
+         */
+        public static FunctionDescriptor descriptor() {
+            return $DESC;
+        }
+
+        private static final MethodHandle UP$MH = onnxruntime_c_api_h.upcallHandle(Shrink.Function.class, "apply", $DESC);
+
+        /**
+         * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
+         * The lifetime of the returned segment is managed by {@code arena}
+         */
+        public static MemorySegment allocate(Shrink.Function fi, Arena arena) {
+            return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
+        }
+
+        private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
+
+        /**
+         * Invoke the upcall stub {@code funcPtr}, with given parameters
+         */
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0) {
+            try {
+                return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
+            } catch (Throwable ex$) {
+                throw new AssertionError("should not reach here", ex$);
+            }
+        }
+    }
+
+    private static final AddressLayout Shrink$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("Shrink"));
+
+    /**
+     * Layout for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*Shrink)(struct OrtAllocator *)
+     * }
+     */
+    public static final AddressLayout Shrink$layout() {
+        return Shrink$LAYOUT;
+    }
+
+    private static final long Shrink$OFFSET = $LAYOUT.byteOffset(groupElement("Shrink"));
+
+    /**
+     * Offset for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*Shrink)(struct OrtAllocator *)
+     * }
+     */
+    public static final long Shrink$offset() {
+        return Shrink$OFFSET;
+    }
+
+    /**
+     * Getter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*Shrink)(struct OrtAllocator *)
+     * }
+     */
+    public static MemorySegment Shrink(MemorySegment struct) {
+        return struct.get(Shrink$LAYOUT, Shrink$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*Shrink)(struct OrtAllocator *)
+     * }
+     */
+    public static void Shrink(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(Shrink$LAYOUT, Shrink$OFFSET, fieldValue);
     }
 
     /**

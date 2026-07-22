@@ -1,5 +1,29 @@
-import jdk.incubator.code.Reflect;
+/*
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
@@ -100,7 +124,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    // @Test
+    @Test
     void testCasePatternMultiLabel() {
         CoreOp.FuncOp lmodel = lower("casePatternMultiLabel");
         Object[] args = {(byte) 1, (short) 2, 'A', 3, 4L, 5f, 6d, true, "str"};
@@ -108,9 +132,8 @@ public class TestSwitchExpressionOp {
             Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
-    // @Reflect
-    // code model for such as code is not supported
-    // @@@ support this case and uncomment its test
+
+    @Reflect
     private static String casePatternMultiLabel(Object o) {
         return switch (o) {
             case Integer _, Long _, Character _, Byte _, Short _-> "integral type";
@@ -264,9 +287,16 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    // @Reflect
-    // compiler code doesn't support case null, default
-    // @@@ support such as case and test the switch expression lowering for this case
+    @Test
+    void testCaseConstantNullAndDefault() {
+        CoreOp.FuncOp lmodel = lower("caseConstantNullAndDefault");
+        String[] args = { "abc", "hello", null };
+        for (String arg : args) {
+            Assertions.assertEquals(caseConstantNullAndDefault(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
     private static String caseConstantNullAndDefault(String s) {
         return switch (s) {
             case "abc" -> "alphabet";
@@ -560,6 +590,6 @@ public class TestSwitchExpressionOp {
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst();
 
-        return CoreOp.ofMethod(om.get()).get();
+        return Op.ofMethod(om.get()).get();
     }
 }

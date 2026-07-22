@@ -27,7 +27,7 @@ package oracle.code.samples;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -157,7 +157,7 @@ public class MathOptimizerWithInlining {
 
                 if (canApplyBitShift) {
                     // Narrow type from DOUBLE to INT for the input parameter of the new function.
-                    Op.Result op2 = blockBuilder.op(JavaOp.conv(JavaType.INT, operands.get(1)));
+                    Op.Result op2 = blockBuilder.add(JavaOp.conv(JavaType.INT, operands.get(1)));
                     List<Value> newOperandList = new ArrayList<>();
                     newOperandList.add(op2);
 
@@ -167,9 +167,9 @@ public class MathOptimizerWithInlining {
                     newInvoke.setLocation(invokeOp.location());
 
                     // Replace the invoke node with the new optimized invoke
-                    Op.Result newResult = blockBuilder.op(newInvoke);
+                    Op.Result newResult = blockBuilder.add(newInvoke);
                     // Type conversion to double
-                    newResult = blockBuilder.op(JavaOp.conv(JavaType.DOUBLE, newResult));
+                    newResult = blockBuilder.add(JavaOp.conv(JavaType.DOUBLE, newResult));
                     blockBuilder.context().mapValue(invokeOp.result(), newResult);
 
                     replace.set(FunctionToUse.SHIFT);
@@ -183,16 +183,16 @@ public class MathOptimizerWithInlining {
                     newInvoke.setLocation(invokeOp.location());
 
                     // Replace the invoke node with the new optimized invoke
-                    Op.Result newResult = blockBuilder.op(newInvoke);
+                    Op.Result newResult = blockBuilder.add(newInvoke);
                     blockBuilder.context().mapValue(invokeOp.result(), newResult);
                     replace.set(FunctionToUse.MULT);
 
                 } else {
                     // ignore the transformation
-                    blockBuilder.op(op);
+                    blockBuilder.add(op);
                 }
             } else {
-                blockBuilder.op(op);
+                blockBuilder.add(op);
             }
             return blockBuilder;
         });
@@ -233,7 +233,7 @@ public class MathOptimizerWithInlining {
                             (builder, val) -> blockBuilder.context().mapValue(invokeOp.result(), val)); // Propagate the new result
                 } else {
                     // copy the op into the builder if it is not the invoke node we are looking for
-                    blockBuilder.op(op);
+                    blockBuilder.add(op);
                 }
 
                 // return new transformed block builder
@@ -272,7 +272,7 @@ public class MathOptimizerWithInlining {
             return analyseType(convOp, typeToMatch);
         } else {
             // Leaf of tree: analyze type
-            TypeElement type = v.type();
+            CodeType type = v.type();
             return type.equals(typeToMatch);
         }
     }
@@ -287,7 +287,7 @@ public class MathOptimizerWithInlining {
             return inspectParameterRecursive(convOp, valToMatch);
         } else {
             // Leaf of tree - we want to obtain the actual value of the parameter and check
-            if (v instanceof CoreOp.Result r && r.op() instanceof CoreOp.ConstantOp constant) {
+            if (v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp constant) {
                 return constant.value().equals(valToMatch);
             }
             return false;

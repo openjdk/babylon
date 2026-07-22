@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -34,7 +32,7 @@ import jdk.incubator.code.internal.OpDeclaration;
 import java.util.List;
 import java.util.Map;
 
-sealed abstract class SlotOp extends Op {
+sealed abstract class SlotOp extends AbstractOp implements ExternalizedOp.Externalizable {
     public static final String ATTRIBUTE_SLOT = "slot";
 
     public static SlotLoadOp load(int slot, TypeKind tk) {
@@ -84,15 +82,15 @@ sealed abstract class SlotOp extends Op {
             return NAME;
         }
 
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public SlotLoadOp(ExternalizedOp def) {
-            int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
-                    v -> switch (v) {
-                        case String s -> Integer.parseInt(s);
-                        case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_SLOT);
+            int slot = switch (v) {
+                case String s -> Integer.parseInt(s);
+                case Integer i -> i;
+                default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
+            };
             this(slot, def.resultType());
         }
 
@@ -102,17 +100,17 @@ sealed abstract class SlotOp extends Op {
         }
 
         @Override
-        public SlotLoadOp transform(CodeContext cc, CodeTransformer ot) {
+        public SlotLoadOp transform(CodeContext cc, CodeTransformer ct) {
             return new SlotLoadOp(this, cc);
         }
 
-        SlotLoadOp(int slot, TypeElement resultType) {
+        SlotLoadOp(int slot, CodeType resultType) {
             super(List.of(), slot);
             this.resultType = resultType;
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
 
@@ -137,12 +135,12 @@ sealed abstract class SlotOp extends Op {
         }
 
         public SlotStoreOp(ExternalizedOp def) {
-            int slot = def.extractAttributeValue(ATTRIBUTE_SLOT, true,
-                    v -> switch (v) {
-                        case String s -> Integer.parseInt(s);
-                        case Integer i -> i;
-                        default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_SLOT);
+            int slot = switch (v) {
+                case String s -> Integer.parseInt(s);
+                case Integer i -> i;
+                default -> throw new UnsupportedOperationException("Unsupported slot value:" + v);
+            };
             this(slot, def.operands().getFirst());
         }
 
@@ -151,7 +149,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         @Override
-        public SlotStoreOp transform(CodeContext cc, CodeTransformer ot) {
+        public SlotStoreOp transform(CodeContext cc, CodeTransformer ct) {
             return new SlotStoreOp(this, cc);
         }
 
@@ -160,7 +158,7 @@ sealed abstract class SlotOp extends Op {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return JavaType.VOID;
         }
 
@@ -175,7 +173,7 @@ sealed abstract class SlotOp extends Op {
         }
     }
 
-    private static TypeKind toTypeKind(TypeElement type) {
+    private static TypeKind toTypeKind(CodeType type) {
         return switch (type) {
             case UnresolvedType.Int _ ->
                 TypeKind.INT;
@@ -184,5 +182,11 @@ sealed abstract class SlotOp extends Op {
             default ->
                 TypeKind.REFERENCE;
         };
+    }
+
+
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
     }
 }

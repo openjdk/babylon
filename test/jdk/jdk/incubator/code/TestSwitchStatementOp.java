@@ -1,5 +1,29 @@
-import jdk.incubator.code.Reflect;
+/*
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
@@ -112,6 +136,44 @@ public class TestSwitchStatementOp {
     }
 
     @Test
+    void testCasePatternMultiLabel() {
+        CoreOp.FuncOp lmodel = lower("casePatternMultiLabel");
+        Object[] args = {(byte) 1, (short) 2, 'A', 3, 4L, 5f, 6d, true, "str"};
+        for (Object arg : args) {
+            Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String casePatternMultiLabel(Object o) {
+        String s = null;
+        switch (o) {
+            case Integer _, Long _, Character _, Byte _, Short _-> s = "integral type";
+            default -> s = "non integral type";
+        };
+        return s;
+    }
+
+    @Test
+    void testCasePatternGuardedMultiLabel() {
+        CoreOp.FuncOp lmodel = lower("casePatternGuardedMultiLabel");
+        Object[] args = {(byte) -1, (short) 2, 'A', -3, 4L, -5f, 6d, true, "str"};
+        for (Object arg : args) {
+            Assertions.assertEquals(casePatternGuardedMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String casePatternGuardedMultiLabel(Object o) {
+        String s = null;
+        switch (o) {
+            case Integer _, Long _, Byte _, Short _ when ((Number)o).intValue() > 0 -> s = "integral type";
+            default -> s = "non integral type";
+        };
+        return s;
+    }
+
+    @Test
     void testCaseConstantThrow() {
         CoreOp.FuncOp lmodel = lower("caseConstantThrow");
 
@@ -174,6 +236,25 @@ public class TestSwitchStatementOp {
                 r += "Neither A nor B";
         }
         return r;
+    }
+
+    @Test
+    void testCaseConstantNullAndDefault() {
+        CoreOp.FuncOp lmodel = lower("caseConstantNullAndDefault");
+        String[] args = { "abc", "hello", null };
+        for (String arg : args) {
+            Assertions.assertEquals(caseConstantNullAndDefault(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String caseConstantNullAndDefault(String s) {
+        String res = null;
+        switch (s) {
+            case "abc" -> res = "alphabet";
+            case null, default -> res = "null or default";
+        };
+        return res;
     }
 
     @Test
@@ -624,6 +705,6 @@ public class TestSwitchStatementOp {
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst();
 
-        return CoreOp.ofMethod(om.get()).get();
+        return Op.ofMethod(om.get()).get();
     }
 }

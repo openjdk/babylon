@@ -42,7 +42,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.Reflect;
@@ -82,7 +82,7 @@ public class TritonTestExtension implements ParameterResolver {
             this.javaKernelName = javaKernelName;
         }
 
-        public void test(List<? extends TypeElement> argTypes) {
+        public void test(List<? extends CodeType> argTypes) {
             Optional<Method> om = Stream.of(testClass.getDeclaredMethods())
                     .filter(m -> m.getName().equals(javaKernelName))
                     .filter(m -> m.getAnnotation(Reflect.class) != null)
@@ -102,12 +102,12 @@ public class TritonTestExtension implements ParameterResolver {
             return (TritonOps.ModuleOp) OpParser.fromText(
                     new DialectFactory(
                             TritonOps.DIALECT_FACTORY.opFactory().andThen(TritonTestOps.FACTORY),
-                            TritonOps.DIALECT_FACTORY.typeElementFactory()),
+                            TritonOps.DIALECT_FACTORY.codeTypeFactory()),
                     tcm.value()).get(0);
         }
 
         void test(CoreOp.FuncOp javaKernel,
-                  List<? extends TypeElement> argTypes,
+                  List<? extends CodeType> argTypes,
                   TritonOps.ModuleOp expectedTritonKernel,
                   boolean doSSA) {
             TritonOps.ModuleOp actualTritonKernel = ScopedValue.where(TritonTransformer.SV_SSA, doSSA).call(() -> {

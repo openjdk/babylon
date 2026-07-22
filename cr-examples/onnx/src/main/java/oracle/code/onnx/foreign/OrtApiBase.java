@@ -4,10 +4,12 @@ package oracle.code.onnx.foreign;
 
 import java.lang.invoke.*;
 import java.lang.foreign.*;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
 
+import static java.lang.foreign.ValueLayout.*;
 import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
@@ -41,9 +43,9 @@ public class OrtApiBase {
      * const OrtApi *(*GetApi)(uint32_t)
      * }
      */
-    public static class GetApi {
+    public final static class GetApi {
 
-        GetApi() {
+        private GetApi() {
             // Should not be called directly
         }
 
@@ -81,9 +83,11 @@ public class OrtApiBase {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,int _x0) {
+        public static MemorySegment invoke(MemorySegment funcPtr, int _x0) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -102,7 +106,7 @@ public class OrtApiBase {
         return GetApi$LAYOUT;
     }
 
-    private static final long GetApi$OFFSET = 0;
+    private static final long GetApi$OFFSET = $LAYOUT.byteOffset(groupElement("GetApi"));
 
     /**
      * Offset for field:
@@ -139,9 +143,9 @@ public class OrtApiBase {
      * const char *(*GetVersionString)(void)
      * }
      */
-    public static class GetVersionString {
+    public final static class GetVersionString {
 
-        GetVersionString() {
+        private GetVersionString() {
             // Should not be called directly
         }
 
@@ -180,6 +184,8 @@ public class OrtApiBase {
         public static MemorySegment invoke(MemorySegment funcPtr) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -198,7 +204,7 @@ public class OrtApiBase {
         return GetVersionString$LAYOUT;
     }
 
-    private static final long GetVersionString$OFFSET = 8;
+    private static final long GetVersionString$OFFSET = $LAYOUT.byteOffset(groupElement("GetVersionString"));
 
     /**
      * Offset for field:

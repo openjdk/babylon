@@ -1,10 +1,33 @@
+/*
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
 package jdk.incubator.code.extern;
 
 import jdk.incubator.code.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * An operation's externalized state (a record) that can be utilized to construct an instance
@@ -24,9 +47,39 @@ public record ExternalizedOp(String name,
                              Op.Location location,
                              List<Value> operands,
                              List<Block.Reference> successors,
-                             TypeElement resultType,
+                             CodeType resultType,
                              Map<String, Object> attributes,
                              List<Body.Builder> bodyDefinitions) {
+
+    /**
+     * An operation characteristic indicating the operation's name and operation specific state is externalizable.
+     */
+    public interface Externalizable {
+        /**
+         * Externalizes this operation's name as a string.
+         *
+         * @implSpec this implementation returns the result of the expression {@code this.getClass().getName()}.
+         *
+         * @return the operation name
+         */
+        default String externalizeOpName() {
+            return this.getClass().getName();
+        }
+
+        /**
+         * Externalizes this operation's specific state as a map of attributes.
+         *
+         * <p>A null attribute value is represented by the constant
+         * value {@link jdk.incubator.code.extern.ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
+         *
+         * @implSpec this implementation returns an unmodifiable empty map.
+         *
+         * @return the operation's externalized state, as an unmodifiable map
+         */
+        default Map<String, Object> externalize() {
+            return Map.of();
+        }
+    }
 
     /**
      * The attribute value that represents the external null value.
@@ -48,47 +101,11 @@ public record ExternalizedOp(String name,
     }
 
     /**
-     * Gets an attribute value from the attributes map, converts the value by applying it
-     * to mapping function, and returns the result.
-     *
-     * <p>If the attribute is a default attribute then this method first attempts to
-     * get the attribute whose name is the empty string, otherwise if there is no such
-     * attribute present or the attribute is not a default attribute then this method
-     * attempts to get the attribute with the given name.
-     *
-     * <p>On successfully obtaining the attribute its value is converted by applying the value
-     * to the mapping function. A {@code null} value is represented by the value
-     * {@link ExternalizedOp#NULL_ATTRIBUTE_VALUE}.
-     *
-     * <p>If no attribute is present the {@code null} value is applied to the mapping function.
-     *
-     * @param name      the attribute name.
-     * @param isDefault true if the attribute is a default attribute
-     * @param mapper    the function used to convert the attribute value
-     * @param <T>       the converted attribute value type
-     * @return the converted attribute value
-     */
-    public <T> T extractAttributeValue(String name, boolean isDefault, Function<Object, T> mapper) {
-        Object value = null;
-        if (isDefault && attributes.containsKey("")) {
-            value = attributes.get("");
-            assert value != null;
-        }
-
-        if (value == null && attributes.containsKey(name)) {
-            value = attributes.get(name);
-            assert value != null;
-        }
-
-        return mapper.apply(value);
-    }
-
-    /**
      * Externalizes an operation's content.
      * <p>
-     * If the operation is an instanceof {@code ExternalizableOp} then the operation's
-     * specific content is externalized to an attribute map, otherwise the attribute map
-     * is empty.
+     * If the operation is an instanceof {@link Externalizable} then that instance is used to externalize the
+     * operation's name and the operation's specific state. Otherwise, the operation's name is externalized to the
+     * operation's class name and the operation's specific state is externalized as an empty unmodifiable map.
      *
      * @param cc the code context
      * @param op the operation
@@ -96,13 +113,17 @@ public record ExternalizedOp(String name,
      */
     public static ExternalizedOp externalizeOp(CodeContext cc, Op op) {
         return new ExternalizedOp(
-                op.externalizeOpName(),
+                (op instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalizeOpName()
+                        : op.getClass().getName(),
                 op.location(),
                 cc.getValues(op.operands()),
-                op.successors().stream().map(cc::getSuccessorOrCreate).toList(),
+                op.successors().stream().map(cc::getReferenceOrCreate).toList(),
                 op.resultType(),
-                op.externalize(),
-                op.bodies().stream().map(b -> b.copy(cc)).toList()
+                (op instanceof ExternalizedOp.Externalizable eop)
+                        ? eop.externalize()
+                        : Map.of(),
+                op.bodies().stream().map(b -> b.transform(cc, CodeTransformer.COPYING_TRANSFORMER)).toList()
         );
     }
 }

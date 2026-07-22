@@ -29,6 +29,7 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 import oracle.code.onnx.OnnxOperators;
 import oracle.code.onnx.ir.OnnxOp;
 import oracle.code.onnx.ir.OnnxOps;
@@ -375,7 +376,7 @@ final class OnnxPartialEvaluator {
                     }
                     return Array.newInstance(resolveToClass(l, nType), lengths);
                 } else {
-                    MethodHandle mh = constructorHandle(l, no.constructorReference().type());
+                    MethodHandle mh = constructorHandle(l, no.constructorReference().signature());
                     return invoke(mh, values);
                 }
             }
@@ -460,12 +461,12 @@ final class OnnxPartialEvaluator {
                 return null;
             }
             case JavaOp.ArithmeticOperation arithmeticOperation -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName(), o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o), o.opSignature());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
             case JavaOp.ConvOp convOp -> {
-                MethodHandle mh = opHandle(l, o.externalizeOpName() + "_" + o.opSignature().returnType(), o.opSignature());
+                MethodHandle mh = opHandle(l, externalizeOpName(o) + "_" + o.opSignature().returnType(), o.opSignature());
                 Object[] values = o.operands().stream().map(oc::getValue).toArray();
                 return invoke(mh, values);
             }
@@ -488,6 +489,12 @@ final class OnnxPartialEvaluator {
             case null, default -> throw interpreterException(
                     new UnsupportedOperationException("Unsupported operation: " + o));
         }
+    }
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
     }
 
     static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
@@ -524,12 +531,12 @@ final class OnnxPartialEvaluator {
         return resolveToVarHandle(l, d);
     }
 
-    static Object isInstance(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object isInstance(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.isInstance(v);
     }
 
-    static Object cast(MethodHandles.Lookup l, TypeElement d, Object v) {
+    static Object cast(MethodHandles.Lookup l, CodeType d, Object v) {
         Class<?> c = resolveToClass(l, d);
         return c.cast(v);
     }
@@ -558,7 +565,7 @@ final class OnnxPartialEvaluator {
         }
     }
 
-    public static Class<?> resolveToClass(MethodHandles.Lookup l, TypeElement d) {
+    public static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) {
         try {
             if (d instanceof JavaType jt) {
                 return (Class<?>) jt.erasure().resolve(l);

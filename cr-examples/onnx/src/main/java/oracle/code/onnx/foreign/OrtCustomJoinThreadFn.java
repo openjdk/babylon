@@ -17,9 +17,9 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  * typedef void (*OrtCustomJoinThreadFn)(OrtCustomThreadHandle)
  * }
  */
-public class OrtCustomJoinThreadFn {
+public final class OrtCustomJoinThreadFn {
 
-    OrtCustomJoinThreadFn() {
+    private OrtCustomJoinThreadFn() {
         // Should not be called directly
     }
 
@@ -56,9 +56,11 @@ public class OrtCustomJoinThreadFn {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static void invoke(MemorySegment funcPtr,MemorySegment ort_custom_thread_handle) {
+    public static void invoke(MemorySegment funcPtr, MemorySegment ort_custom_thread_handle) {
         try {
              DOWN$MH.invokeExact(funcPtr, ort_custom_thread_handle);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }

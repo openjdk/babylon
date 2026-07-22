@@ -24,7 +24,7 @@
  */
 package hat.codebuilders;
 
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import optkl.OpHelper;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -35,8 +35,8 @@ public abstract class C99HATComputeBuilder<T extends C99HATComputeBuilder<T>> ex
         super(scopedCodeBuilderContext);
     }
 
-    public final T computeDeclaration(TypeElement typeElement, String name) {
-        return type(typeElement.toString()).sp().id(name);
+    public final T computeDeclaration(CodeType codeType, String name) {
+        return type(codeType.toString()).sp().id(name);
     }
 
     public final  T compute() {

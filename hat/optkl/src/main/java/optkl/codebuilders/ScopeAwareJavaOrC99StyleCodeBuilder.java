@@ -28,7 +28,7 @@ package optkl.codebuilders;
 public abstract class ScopeAwareJavaOrC99StyleCodeBuilder<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>>
         extends JavaOrC99StyleCodeBuilder<T,ScopedCodeBuilderContext>
         implements BabylonOpDispatcher<T,ScopedCodeBuilderContext>{
-    private final ScopedCodeBuilderContext scopedCodeBuilderContext;
+    protected final ScopedCodeBuilderContext scopedCodeBuilderContext;
     protected ScopeAwareJavaOrC99StyleCodeBuilder(ScopedCodeBuilderContext scopedCodeBuilderContext){
       //  if (scopedCodeBuilderContext == null){
         //    throw new RuntimeException("Where did this come from ");

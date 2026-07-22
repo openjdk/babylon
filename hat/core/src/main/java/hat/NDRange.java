@@ -36,11 +36,20 @@ package hat;
  * </ul>
  */
 public interface NDRange {
+
     Local local();
 
     Global global();
 
+    Tile tile();
+
+    Warp warp();
+
     boolean hasLocal();
+
+    boolean hasTile();
+
+    boolean hasWarp();
 
     sealed interface Dim permits Marker1D, Marker2D, Marker3D {
         default int dimension() {
@@ -79,18 +88,38 @@ public interface NDRange {
         int z();
     }
 
-    sealed interface Range permits Local, Global, Block {
+    sealed interface B1D extends Marker1D {
+        boolean x();
+    }
+
+    sealed interface B2D extends Marker2D {
+        boolean x();
+        boolean y();
+    }
+
+    sealed interface B3D extends Marker3D {
+        boolean x();
+        boolean y();
+        boolean z();
+    }
+
+    sealed interface Range permits Global, Local, Tile, Warp {
+    }
+
+
+    sealed interface Global extends Range {
+
     }
 
     sealed interface Local extends Range {
 
     }
 
-    non-sealed interface Block extends Range {
+    sealed interface Tile extends Range {
 
     }
 
-    sealed interface Global extends Range {
+    sealed interface Warp extends Range {
 
     }
 
@@ -159,21 +188,103 @@ public interface NDRange {
         Local3D EMPTY = Local3D.of(0, 0, 0);
     }
 
+    sealed interface Tile1D extends M1D, Tile {
+        record Impl(int x) implements Tile1D {
+        }
+
+        static Tile1D of(int x) {
+            return new Impl(x);
+        }
+
+        Tile1D EMPTY = Tile1D.of(0);
+    }
+
+    sealed interface Tile2D extends M2D, Tile {
+        record Impl(int x, int y) implements Tile2D {
+        }
+
+        static Tile2D of(int x, int y) {
+            return new Impl(x, y);
+        }
+
+        Tile2D EMPTY = Tile2D.of(0, 0);
+
+    }
+
+    sealed interface Tile3D extends M3D, Tile {
+        record Impl(int x, int y, int z) implements Tile3D {
+        }
+
+        static Tile3D of(int x, int y, int z) {
+            return new Impl(x, y, z);
+        }
+
+        Tile3D EMPTY = Tile3D.of(0, 0, 0);
+    }
+
+    sealed interface Warp1D extends B1D, Warp {
+        record Impl(boolean x) implements Warp1D {
+        }
+
+        static Warp1D of(boolean x) {
+            return new Impl(x);
+        }
+
+        Warp1D EMPTY = Warp1D.of(false);
+    }
+
+    sealed interface Warp2D extends B2D, Warp {
+        record Impl(boolean x, boolean y) implements Warp2D {
+        }
+
+        static Warp2D of(boolean x, boolean y) {
+            return new Impl(x, y);
+        }
+
+        Warp2D EMPTY = Warp2D.of(false, false);
+    }
+
+    sealed interface Warp3D extends B3D, Warp {
+        record Impl(boolean x, boolean y, boolean z) implements Warp3D {
+        }
+
+        static Warp3D of(boolean x, boolean y, boolean z) {
+            return new Impl(x, y, z);
+        }
+
+        Warp3D EMPTY = Warp3D.of(false, false, false);
+    }
+
+
     sealed interface NDRange1D extends NDRange, Marker1D {
         @Override
         default boolean hasLocal() {
             return local() != Local1D.EMPTY;
         }
 
-        record Impl(int dimension, Global1D global, Local1D local) implements NDRange1D {
+        @Override
+        default boolean hasTile() {
+            return tile() != Tile1D.EMPTY;
+        }
+
+        @Override
+        default boolean hasWarp() {
+            return warp() != Warp1D.EMPTY;
+        }
+
+        record Impl(Global1D global, Local1D local, Tile1D tile, Warp1D warp) implements NDRange1D {
+        }
+
+        static NDRange1D of(Global1D global, Local1D local, Tile1D tile, Warp1D warp) {
+            return new Impl( global, local, tile, warp);
         }
 
         static NDRange1D of(Global1D global, Local1D local) {
-            return new Impl(1, global, local);
+            return new Impl(global, local, Tile1D.EMPTY, Warp1D.EMPTY);
         }
 
         static NDRange1D of(Global1D global) {
-            return new Impl(1, global, Local1D.EMPTY);
+            return new Impl(global, Local1D.EMPTY, Tile1D.EMPTY, Warp1D.EMPTY);
         }
     }
 
@@ -191,15 +302,29 @@ public interface NDRange {
             return local() != Local2D.EMPTY;
         }
 
-        record Impl(Global2D global, Local2D local) implements NDRange2D {
+        @Override
+        default boolean hasTile() {
+            return tile() != Tile2D.EMPTY;
+        }
+
+        @Override
+        default boolean hasWarp() {
+            return warp() != Warp2D.EMPTY;
+        }
+
+        record Impl(Global2D global, Local2D local, Tile2D tile, Warp2D warp) implements NDRange2D {
+        }
+
+        static NDRange2D of(Global2D global, Local2D local, Tile2D tile, Warp2D warp) {
+            return new Impl(global, local, tile, warp);
         }
 
         static NDRange2D of(Global2D global, Local2D local) {
-            return new Impl(global, local);
+            return new Impl(global, local, Tile2D.EMPTY, Warp2D.EMPTY);
         }
 
         static NDRange2D of(Global2D global) {
-            return new Impl(global, Local2D.EMPTY);
+            return new Impl(global, Local2D.EMPTY, Tile2D.EMPTY, Warp2D.EMPTY);
         }
     }
 
@@ -217,15 +342,29 @@ public interface NDRange {
             return local() != Local3D.EMPTY;
         }
 
-        record Impl(Global3D global, Local3D local) implements NDRange3D {
+        @Override
+        default boolean hasTile() {
+            return tile() != Tile3D.EMPTY;
+        }
+
+        @Override
+        default boolean hasWarp() {
+            return warp() != Warp3D.EMPTY;
+        }
+
+        record Impl(Global3D global, Local3D local, Tile3D tile, Warp3D warp) implements NDRange3D {
+        }
+
+        static NDRange3D of(Global3D global, Local3D local, Tile3D tile, Warp3D warp) {
+            return new Impl(global, local, tile, warp);
         }
 
         static NDRange3D of(Global3D global, Local3D local) {
-            return new Impl(global, local);
+            return new Impl(global, local, Tile3D.EMPTY, Warp3D.EMPTY);
         }
 
         static NDRange3D of(Global3D global) {
-            return new Impl(global, Local3D.EMPTY);
+            return new Impl(global, Local3D.EMPTY, Tile3D.EMPTY, Warp3D.EMPTY);
         }
     }
 

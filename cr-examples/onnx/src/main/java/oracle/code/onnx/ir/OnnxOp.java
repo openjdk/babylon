@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,15 +25,12 @@
 
 package oracle.code.onnx.ir;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.*;
 
-public abstract class OnnxOp extends Op {
+public abstract class OnnxOp extends AbstractOp implements ExternalizedOp.Externalizable {
 
     public interface OnnxAttribute {
         String name();
@@ -205,9 +202,7 @@ public abstract class OnnxOp extends Op {
             switch (operand) {
                 case Value v -> l.add(v);
                 case Optional<?> ov -> {
-                    if (ov.isPresent()) {
-                        l.add((Value) ov.get());
-                    }
+                    ov.ifPresent(o -> l.add((Value) o));
                 }
                 case List<?> vs -> {
                     for (Object v : vs) {
@@ -225,7 +220,7 @@ public abstract class OnnxOp extends Op {
 
     final OnnxSchema schema;
     final Map<String, Object> onnxAttributes;
-    final TypeElement resultType;
+    final CodeType resultType;
     final List<OnnxParameter> optionalInputArguments;
     final List<OnnxParameter> optionalOutputParameters;
 
@@ -240,20 +235,18 @@ public abstract class OnnxOp extends Op {
         this.resultType = def.resultType();
 
         // @@@ Filter optional
-        this.optionalInputArguments = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_INPUTS,
-                false, v -> switch (v) {
+        this.optionalInputArguments = switch (def.attributes().get(ATTRIBUTE_OPTIONAL_INPUTS)) {
                     case List<?> s -> (List<OnnxParameter>) s;
                     case null -> List.of();
                     default -> throw new UnsupportedOperationException();
-                });
+                };
 
         // @@@ Filter optional
-        this.optionalOutputParameters = def.extractAttributeValue(ATTRIBUTE_OPTIONAL_OUTPUTS,
-                false, v -> switch (v) {
+        this.optionalOutputParameters = switch (def.attributes().get(ATTRIBUTE_OPTIONAL_OUTPUTS)) {
                     case List<?> s -> (List<OnnxParameter>) s;
                     case null -> List.of();
                     default -> throw new UnsupportedOperationException();
-                });
+                };
     }
 
     OnnxOp(OnnxOp that, CodeContext cc) {
@@ -266,7 +259,7 @@ public abstract class OnnxOp extends Op {
         this.optionalOutputParameters = List.copyOf(that.optionalOutputParameters);
     }
 
-    OnnxOp(OnnxSchema schema, TypeElement resultType,
+    OnnxOp(OnnxSchema schema, CodeType resultType,
            Set<? extends OnnxParameter> optionalOutputParameters,
            List<Object> inputArguments,
            List<Object> attributeValues) {
@@ -331,7 +324,7 @@ public abstract class OnnxOp extends Op {
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return resultType;
     }
 

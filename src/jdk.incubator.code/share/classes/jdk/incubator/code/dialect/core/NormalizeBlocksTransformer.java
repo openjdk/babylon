@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -74,12 +74,8 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
     @Override
     public Block.Builder acceptOp(Block.Builder b, Op op) {
         switch (op) {
-            case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
-                // Merge the successor's target block with this block, and so on
-                // The terminal branch operation is replaced with the operations in the
-                // successor's target block
-                mergeBlock(b, bop);
-            }
+            // Handle constant dispatch before generic merge.
+            // Boolean constants used only as dispatch arguments are dropped and generic merge cannot handle them.
             case CoreOp.BranchOp bop when isPureConditionalDispatchingBlock(bop.branch().targetBlock())
                     && bop.branch().arguments().getFirst() instanceof Op.Result or
                     && or.op() instanceof CoreOp.ConstantOp cop -> {
@@ -91,7 +87,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                     // Merge the successor's target block with this block
                     mergeBlock(b, br.targetBlock());
                 } else {
-                    b.op(CoreOp.branch(b.context().getSuccessorOrCreate(br)));
+                    b.add(CoreOp.branch(b.context().getReferenceOrCreate(br)));
                 }
 
                 // Remove the conditional dispatching block if all predecessor reference args are constants
@@ -99,6 +95,12 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                         .allMatch(r -> r.arguments().getFirst() instanceof Op.Result orr && orr.op() instanceof CoreOp.ConstantOp)) {
                     mergedBlocks.add(bop.branch().targetBlock());
                 }
+            }
+            case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
+                // Merge the successor's target block with this block, and so on
+                // The terminal branch operation is replaced with the operations in the
+                // successor's target block
+                mergeBlock(b, bop);
             }
             case CoreOp.ConstantOp cop when cop.resultType().equals(JavaType.BOOLEAN)
                 && cop.result().uses().stream().allMatch(cr -> cr.op() instanceof CoreOp.BranchOp bop
@@ -108,21 +110,21 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
             case JavaOp.ExceptionRegionEnter ere -> {
                 // Cannot remove block parameters from exception handlers
                 removeUnusedBlockParameters(b, ere.startReference());
-                b.op(op);
+                b.add(op);
             }
             case JavaOp.ExceptionRegionExit ere -> {
                 // Cannot remove block parameters from exception handlers
                 removeUnusedBlockParameters(b, ere.endReference());
-                b.op(op);
+                b.add(op);
             }
-            case Op.BlockTerminating _ -> {
+            case Op.Terminating _ -> {
                 for (Block.Reference successor : op.successors()) {
                     removeUnusedBlockParameters(b, successor);
                 }
-                b.op(op);
+                b.add(op);
             }
             default -> {
-                b.op(op);
+                b.add(op);
             }
         }
         return b;
@@ -189,7 +191,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
         }
         Block.Reference adjustedSuccessor = b.context().getBlock(successor.targetBlock())
                 .reference(arguments);
-        b.context().mapSuccessor(successor, adjustedSuccessor);
+        b.context().mapReference(successor, adjustedSuccessor);
     }
 
     void mergeBlock(Block.Builder b, CoreOp.BranchOp bop) {

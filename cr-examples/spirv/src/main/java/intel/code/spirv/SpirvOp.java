@@ -27,15 +27,16 @@ package intel.code.spirv;
 
 import java.util.List;
 import java.util.Map;
-import jdk.incubator.code.Op;
+import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedOp;
 
-public abstract class SpirvOp extends Op {
+public abstract class SpirvOp extends AbstractOp implements ExternalizedOp.Externalizable {
     private final String opName;
-    private final TypeElement type;
+    private final CodeType type;
 
     SpirvOp(String opName) {
         super(List.of());
@@ -43,13 +44,7 @@ public abstract class SpirvOp extends Op {
         this.type = JavaType.VOID;
     }
 
-    SpirvOp(String opName, TypeElement type, List<Value> operands) {
-        super(operands);
-        this.opName = opName;
-        this.type = type;
-    }
-
-    SpirvOp(String opName, TypeElement type, List<Value> operands, Map<String, Object> attributes) {
+    SpirvOp(String opName, CodeType type, List<Value> operands) {
         super(operands);
         this.opName = opName;
         this.type = type;
@@ -62,7 +57,7 @@ public abstract class SpirvOp extends Op {
     }
 
     @Override
-    public TypeElement resultType() {
+    public CodeType resultType() {
         return type;
     }
 

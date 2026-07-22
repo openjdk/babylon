@@ -35,7 +35,7 @@ public interface S16ImplOfF16 extends IfaceValue {
     short value();
     void value(short value);
 
-    static <T extends S16ImplOfF16> Class<T> typeElementToFloatClassOrNull(OpHelper.Invoke invoke, ClassType classType) {
+    static <T extends S16ImplOfF16> Class<T> codeTypeToFloatClassOrNull(OpHelper.Invoke invoke, ClassType classType) {
         Class<?> clazz = (Class<?>) OpHelper.classTypeToTypeOrThrow(invoke.lookup(),classType);
         if (F16.class.isAssignableFrom(clazz) || BF16.class.isAssignableFrom(clazz)){
             return (Class<T>)clazz;

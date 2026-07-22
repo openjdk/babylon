@@ -34,7 +34,7 @@ import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import jdk.incubator.code.TypeElement;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -76,7 +76,7 @@ public class TranslateToSpirvModel  {
             Block.Parameter bp = entryBlock.parameters().get(i);
             assert entryBlock.ops().get(i) instanceof CoreOp.VarOp;
             SpirvOp funcParam = new SpirvOps.FunctionParameterOp(bp.type(), List.of());
-            spirvBlock.op(funcParam);
+            spirvBlock.add(funcParam);
             valueMap.put(bp, funcParam.result());
             paramOps.add(funcParam);
         }
@@ -84,9 +84,9 @@ public class TranslateToSpirvModel  {
         // Emit all SPIR-V Variable ops first and emit initializing stores afterward, at the CR model VarOp position.
         for (int i = 0; i < paramCount; i++) {
             CoreOp.VarOp jvop = (CoreOp.VarOp)entryBlock.ops().get(i);
-            TypeElement resultType = new PointerType(jvop.varValueType(), StorageType.CROSSWORKGROUP);
+            CodeType resultType = new PointerType(jvop.varValueType(), StorageType.CROSSWORKGROUP);
             SpirvOps.VariableOp svop = new SpirvOps.VariableOp((String)jvop.externalize().get(""), resultType, jvop.varValueType());
-            spirvBlock.op(svop);
+            spirvBlock.add(svop);
             valueMap.put(jvop.result(), svop.result());
             varOps.add(svop);
         }
@@ -99,9 +99,9 @@ public class TranslateToSpirvModel  {
                 if (bi > 0) spirvBlock = blockMap.get(block);
                 Op op = ops.get(i);
                 if (op instanceof CoreOp.VarOp jvop) {
-                    TypeElement resultType = new PointerType(jvop.varValueType(), StorageType.CROSSWORKGROUP);
+                    CodeType resultType = new PointerType(jvop.varValueType(), StorageType.CROSSWORKGROUP);
                     SpirvOps.VariableOp svop = new SpirvOps.VariableOp((String)jvop.externalize().get(""), resultType, jvop.varValueType());
-                    bodyBuilder.entryBlock().op(svop);
+                    bodyBuilder.entryBlock().add(svop);
                     valueMap.put(jvop.result(), svop.result());
                     varOps.add(svop);
                 }
@@ -113,157 +113,157 @@ public class TranslateToSpirvModel  {
             for (Op op : block.ops()) {
                 switch (op) {
                     case CoreOp.ReturnOp rop -> {
-                        spirvBlock.op(new SpirvOps.ReturnOp(rop.resultType(), mapOperands(rop)));
+                        spirvBlock.add(new SpirvOps.ReturnOp(rop.resultType(), mapOperands(rop)));
                     }
                     case CoreOp.VarOp vop -> {
                         Value dest = valueMap.get(vop.result());
                         Value value = valueMap.get(vop.operands().get(0));
                         // init variable here; declaration has been moved to top of function
-                        spirvBlock.op(new SpirvOps.StoreOp(dest, value));
+                        spirvBlock.add(new SpirvOps.StoreOp(dest, value));
                     }
                     case CoreOp.VarAccessOp.VarLoadOp vlo -> {
                         List<Value> operands = mapOperands(vlo);
                         SpirvOps.LoadOp load = new SpirvOps.LoadOp(vlo.resultType(), operands);
-                        spirvBlock.op(load);
+                        spirvBlock.add(load);
                         valueMap.put(vlo.result(), load.result());
                     }
                     case CoreOp.VarAccessOp.VarStoreOp vso -> {
                         Value dest = valueMap.get(vso.varOp().result());
                         Value value = valueMap.get(vso.operands().get(1));
-                        spirvBlock.op(new SpirvOps.StoreOp(dest, value));
+                        spirvBlock.add(new SpirvOps.StoreOp(dest, value));
                     }
                     case JavaOp.ArrayAccessOp.ArrayLoadOp alo -> {
                         Value array = valueMap.get(alo.operands().get(0));
                         Value index = valueMap.get(alo.operands().get(1));
-                        TypeElement arrayType = array.type();
+                        CodeType arrayType = array.type();
                         SpirvOps.ConvertOp convert = new SpirvOps.ConvertOp(JavaType.type(long.class), List.of(index));
-                        spirvBlock.op(new SpirvOps.LoadOp(arrayType, List.of(array)));
-                        spirvBlock.op(convert);
+                        spirvBlock.add(new SpirvOps.LoadOp(arrayType, List.of(array)));
+                        spirvBlock.add(convert);
                         SpirvOp ibac = new SpirvOps.InBoundAccessChainOp(arrayType, List.of(array, convert.result()));
-                        spirvBlock.op(ibac);
+                        spirvBlock.add(ibac);
                         SpirvOp load = new SpirvOps.LoadOp(alo.resultType(), List.of(ibac.result()));
-                        spirvBlock.op(load);
+                        spirvBlock.add(load);
                         valueMap.put(alo.result(), load.result());
                     }
                     case JavaOp.ArrayAccessOp.ArrayStoreOp aso -> {
                         Value array = valueMap.get(aso.operands().get(0));
                         Value index = valueMap.get(aso.operands().get(1));
-                        TypeElement arrayType = array.type();
+                        CodeType arrayType = array.type();
                         SpirvOp ibac = new SpirvOps.InBoundAccessChainOp(arrayType, List.of(array, index));
-                        spirvBlock.op(ibac);
-                        spirvBlock.op(new SpirvOps.StoreOp(ibac.result(), valueMap.get(aso.operands().get(2))));
+                        spirvBlock.add(ibac);
+                        spirvBlock.add(new SpirvOps.StoreOp(ibac.result(), valueMap.get(aso.operands().get(2))));
                     }
                     case JavaOp.ArrayLengthOp alo -> {
                         Op len = new SpirvOps.ArrayLengthOp(JavaType.INT, List.of(valueMap.get(alo.operands().get(0))));
-                        spirvBlock.op(len);
+                        spirvBlock.add(len);
                         valueMap.put(alo.result(), len.result());
                     }
                     case JavaOp.AddOp aop -> {
-                        TypeElement type = aop.operands().get(0).type();
+                        CodeType type = aop.operands().get(0).type();
                         List<Value> operands = mapOperands(aop);
                         SpirvOp addOp;
                         if (isIntegerType(type)) addOp = new SpirvOps.IAddOp(type, operands);
                         else if (isFloatType(type)) addOp = new SpirvOps.FAddOp(type, operands);
                         else throw unsupported("type", type);
-                        spirvBlock.op(addOp);
+                        spirvBlock.add(addOp);
                         valueMap.put(aop.result(), addOp.result());
                      }
                     case JavaOp.SubOp sop -> {
-                        TypeElement  type = sop.operands().get(0).type();
+                        CodeType  type = sop.operands().get(0).type();
                         List<Value> operands = mapOperands(sop);
                         SpirvOp subOp;
                         if (isIntegerType(type)) subOp = new SpirvOps.ISubOp(type, operands);
                         else if (isFloatType(type)) subOp = new SpirvOps.FSubOp(type, operands);
                         else throw unsupported("type", type);
-                        spirvBlock.op(subOp);
+                        spirvBlock.add(subOp);
                         valueMap.put(sop.result(), subOp.result());
                      }
                     case JavaOp.MulOp mop -> {
-                        TypeElement type = mop.operands().get(0).type();
+                        CodeType type = mop.operands().get(0).type();
                         List<Value> operands = mapOperands(mop);
                         SpirvOp mulOp;
                         if (isIntegerType(type)) mulOp = new SpirvOps.IMulOp(type, operands);
                         else if (isFloatType(type)) mulOp = new SpirvOps.FMulOp(type, operands);
                         else throw unsupported("type", type);
-                        spirvBlock.op(mulOp);
+                        spirvBlock.add(mulOp);
                         valueMap.put(mop.result(), mulOp.result());
                     }
                     case JavaOp.DivOp dop -> {
-                        TypeElement type = dop.operands().get(0).type();
+                        CodeType type = dop.operands().get(0).type();
                         List<Value> operands = mapOperands(dop);
                         SpirvOp divOp;
                         if (isIntegerType(type)) divOp = new SpirvOps.IDivOp(type, operands);
                         else if (isFloatType(type)) divOp = new SpirvOps.FDivOp(type, operands);
                         else throw unsupported("type", type);
-                        spirvBlock.op(divOp);
+                        spirvBlock.add(divOp);
                         valueMap.put(dop.result(), divOp.result());
                     }
                     case JavaOp.ModOp mop -> {
-                        TypeElement type = mop.operands().get(0).type();
+                        CodeType type = mop.operands().get(0).type();
                         List<Value> operands = mapOperands(mop);
                         SpirvOp modOp = new SpirvOps.ModOp(type, operands);
-                        spirvBlock.op(modOp);
+                        spirvBlock.add(modOp);
                         valueMap.put(mop.result(), modOp.result());
                     }
                     case JavaOp.EqOp eqop -> {
-                        TypeElement type = eqop.operands().get(0).type();
+                        CodeType type = eqop.operands().get(0).type();
                         List<Value> operands = mapOperands(eqop);
                         SpirvOp seqop;
                         if (isIntegerType(type)) seqop = new SpirvOps.IEqualOp(type, operands);
                         else if (isFloatType(type)) seqop = new SpirvOps.FEqualOp(type, operands);
                         else throw unsupported("type", type);
-                        spirvBlock.op(seqop);
+                        spirvBlock.add(seqop);
                         valueMap.put(eqop.result(), seqop.result());
                     }
                     case JavaOp.NeqOp neqop -> {
-                        TypeElement type = neqop.operands().get(0).type();
+                        CodeType type = neqop.operands().get(0).type();
                         List<Value> operands = mapOperands(neqop);
                         SpirvOp sneqop;
                         if (isIntegerType(type)) sneqop = new SpirvOps.INotEqualOp(type, operands);
                         else if (isFloatType(type)) sneqop = new SpirvOps.FNotEqualOp(type, operands);
                         else throw unsupported("type", type);
-                        spirvBlock.op(sneqop);
+                        spirvBlock.add(sneqop);
                         valueMap.put(neqop.result(), sneqop.result());
                     }
                     case JavaOp.LtOp ltop -> {
-                        TypeElement type = ltop.operands().get(0).type();
+                        CodeType type = ltop.operands().get(0).type();
                         List<Value> operands = mapOperands(ltop);
                         SpirvOp sltop = new SpirvOps.LtOp(type, operands);
-                        spirvBlock.op(sltop);
+                        spirvBlock.add(sltop);
                         valueMap.put(ltop.result(), sltop.result());
                     }
                     case JavaOp.InvokeOp inv -> {
                         List<Value> operands = mapOperands(inv);
                         SpirvOp spirvCall = new SpirvOps.CallOp(inv.invokeReference(), operands);
-                        spirvBlock.op(spirvCall);
+                        spirvBlock.add(spirvCall);
                         valueMap.put(inv.result(), spirvCall.result());
                     }
                     case CoreOp.ConstantOp cop -> {
                         SpirvOp scop = new SpirvOps.ConstantOp(cop.resultType(), cop.value());
-                        spirvBlock.op(scop);
+                        spirvBlock.add(scop);
                         valueMap.put(cop.result(), scop.result());
                     }
                     case JavaOp.ConvOp cop -> {
                         List<Value> operands = mapOperands(cop);
                         SpirvOp scop = new SpirvOps.ConvertOp(cop.resultType(), operands);
-                        spirvBlock.op(scop);
+                        spirvBlock.add(scop);
                         valueMap.put(cop.result(), scop.result());
                     }
                     case JavaOp.FieldAccessOp.FieldLoadOp flo -> {
                         SpirvOp load = new SpirvOps.FieldLoadOp(flo.resultType(), flo.fieldReference(), mapOperands(flo));
-                        spirvBlock.op(load);
+                        spirvBlock.add(load);
                         valueMap.put(flo.result(), load.result());
                     }
                     case CoreOp.BranchOp bop -> {
                         Block.Reference successor = blockMap.get(bop.branch().targetBlock()).reference();
-                        spirvBlock.op(new SpirvOps.BranchOp(successor));
+                        spirvBlock.add(new SpirvOps.BranchOp(successor));
                     }
                     case CoreOp.ConditionalBranchOp cbop -> {
                         Block trueBlock = cbop.trueBranch().targetBlock();
                         Block falseBlock = cbop.falseBranch().targetBlock();
                         Block.Reference spvTrueBlock = blockMap.get(trueBlock).reference();
                         Block.Reference spvFalseBlock = blockMap.get(falseBlock).reference();
-                        spirvBlock.op(new SpirvOps.ConditionalBranchOp(spvTrueBlock, spvFalseBlock, mapOperands(cbop)));
+                        spirvBlock.add(new SpirvOps.ConditionalBranchOp(spvTrueBlock, spvFalseBlock, mapOperands(cbop)));
                     }
                     default -> unsupported("op", op.getClass());
                 }
@@ -291,11 +291,11 @@ public class TranslateToSpirvModel  {
         return operands;
     }
 
-    private boolean isIntegerType(TypeElement type) {
+    private boolean isIntegerType(CodeType type) {
         return type.equals(JavaType.INT) || type.equals(JavaType.LONG);
     }
 
-    private boolean isFloatType(TypeElement type) {
+    private boolean isFloatType(CodeType type) {
         return type.equals(JavaType.FLOAT) || type.equals(JavaType.DOUBLE);
     }
 }

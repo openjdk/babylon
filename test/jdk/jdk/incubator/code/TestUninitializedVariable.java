@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -91,7 +91,7 @@ public class TestUninitializedVariable {
             if (op instanceof CoreOp.VarAccessOp.VarStoreOp vop && !b.getAndSet(true)) {
                 // Drop first encountered var store
             } else {
-                block.op(op);
+                block.add(op);
             }
             return block;
         });

@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -96,14 +94,14 @@ final class UnresolvedTypesTransformer {
         };
     }
 
-    private TypeElement toComponent(TypeElement te) {
+    private CodeType toComponent(CodeType te) {
         if (te instanceof UnresolvedType ut) {
             te = resolvedMap.get(ut);
         }
         return te instanceof ArrayType at ? at.componentType() : null;
     }
 
-    private TypeElement toArray(TypeElement te) {
+    private CodeType toArray(CodeType te) {
         if (te instanceof UnresolvedType ut) {
             te = resolvedMap.get(ut);
         }
@@ -129,7 +127,7 @@ final class UnresolvedTypesTransformer {
                             if (i == 0) yield resolveTo(ut, id.refType());
                             i--;
                         }
-                        yield resolveTo(ut, id.type().parameterTypes().get(i));
+                        yield resolveTo(ut, id.signature().parameterTypes().get(i));
                     }
                     case JavaOp.FieldAccessOp fao ->
                         resolveTo(ut, fao.fieldReference().refType());
@@ -140,7 +138,7 @@ final class UnresolvedTypesTransformer {
                     case CoreOp.VarAccessOp.VarStoreOp vso ->
                         resolveTo(ut, vso.varType().valueType());
                     case JavaOp.NewOp no ->
-                        resolveTo(ut, no.constructorReference().type().parameterTypes().get(i));
+                        resolveTo(ut, no.constructorReference().signature().parameterTypes().get(i));
                     case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
                         resolveTo(ut, toArray(alo.resultType()));
                     case JavaOp.ArrayAccessOp.ArrayStoreOp aso ->
@@ -192,8 +190,8 @@ final class UnresolvedTypesTransformer {
         return changed;
     }
 
-    private boolean resolveFrom(UnresolvedType unresolved, TypeElement from) {
-        TypeElement type = from instanceof UnresolvedType utt ? resolvedMap.get(utt) : from;
+    private boolean resolveFrom(UnresolvedType unresolved, CodeType from) {
+        CodeType type = from instanceof UnresolvedType utt ? resolvedMap.get(utt) : from;
         JavaType resolved = resolvedMap.get(unresolved);
         return switch (unresolved) {
             // Only care about arrays
@@ -212,8 +210,8 @@ final class UnresolvedTypesTransformer {
 
     private static final List<PrimitiveType> INT_TYPES = List.of(JavaType.INT, JavaType.CHAR, JavaType.SHORT, JavaType.BYTE, JavaType.BOOLEAN);
 
-    private boolean resolveTo(UnresolvedType unresolved, TypeElement to) {
-        TypeElement type = to instanceof UnresolvedType utt ? resolvedMap.get(utt) : to;
+    private boolean resolveTo(UnresolvedType unresolved, CodeType to) {
+        CodeType type = to instanceof UnresolvedType utt ? resolvedMap.get(utt) : to;
         JavaType resolved = resolvedMap.get(unresolved);
         return switch (unresolved) {
             case UnresolvedType.Ref _ when (resolved == null || resolved.equals(JavaType.J_L_OBJECT)) && type instanceof JavaType jt && !jt.equals(resolved) -> {
@@ -273,7 +271,7 @@ final class UnresolvedTypesTransformer {
                     // Override blocks with changed parameter types
                     for (int i = 1; i < sourceBlocks.size(); i++) {
                         Block sourceBlock = sourceBlocks.get(i);
-                        List<TypeElement> paramTypes = sourceBlock.parameterTypes();
+                        List<CodeType> paramTypes = sourceBlock.parameterTypes();
                         if (paramTypes.stream().anyMatch(UnresolvedType.class::isInstance)) {
                             Block.Builder newBlock = block.block(paramTypes.stream()
                                     .map(pt -> pt instanceof UnresolvedType ut  ? resolvedMap.get(ut) : pt)
@@ -289,7 +287,7 @@ final class UnresolvedTypesTransformer {
 
             @Override
             public Block.Builder acceptOp(Block.Builder block, Op op) {
-                block.op(op);
+                block.add(op);
                 return block;
             }
         };
@@ -300,19 +298,21 @@ final class UnresolvedTypesTransformer {
             CodeContext cc = block.context();
             switch (op) {
                 case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.op(CoreOp.constant(resolvedMap.get(ut), convertValue(ut, cop.value()))));
+                    cc.mapValue(op.result(), block.add(CoreOp.constant(resolvedMap.get(ut), convertValue(ut, cop.value()))));
                 case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.op(vop.isUninitialized()
+                    cc.mapValue(op.result(), block.add(vop.isUninitialized()
                             ? CoreOp.var(vop.varName(), resolvedMap.get(ut))
-                            : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.getValueOrDefault(vop.initOperand(), vop.initOperand()))));
+                            : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.queryValue(vop.initOperand()).orElse(vop.initOperand()))));
                 case JavaOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
                     List<Value> opers = alop.operands();
                     Value array = opers.getFirst();
                     Value index = opers.getLast();
-                    cc.mapValue(op.result(), block.op(JavaOp.arrayLoadOp(cc.getValueOrDefault(array, array), cc.getValueOrDefault(index, index))));
+                    cc.mapValue(op.result(), block.add(JavaOp.arrayLoadOp(
+                            cc.queryValue(array).orElse(array),
+                            cc.queryValue(index).orElse(index))));
                 }
                 default ->
-                    block.op(op);
+                    block.add(op);
             }
             return block;
         };
@@ -328,30 +328,30 @@ final class UnresolvedTypesTransformer {
                 case JavaOp.BinaryOp _ ->
                     unify(block, op, op.resultType(), op.resultType());
                 default ->
-                    block.op(op);
+                    block.add(op);
             }
             return block;
         };
     }
 
-    private static void unify(Block.Builder block, Op op, TypeElement firstType, TypeElement secondType) {
+    private static void unify(Block.Builder block, Op op, CodeType firstType, CodeType secondType) {
         List<Value> operands = op.operands();
         CodeContext cc = CodeContext.create(block.context());
         Value first = operands.getFirst();
         boolean changed = false;
         if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
-            cc.mapValue(first, block.op(JavaOp.conv(firstType, cc.getValueOrDefault(first, first))));
+            cc.mapValue(first, block.add(JavaOp.conv(firstType, cc.queryValue(first).orElse(first))));
             changed = true;
         }
         Value second = operands.get(1);
         if (second.type() instanceof PrimitiveType && !second.type().equals(secondType)) {
-            cc.mapValue(second, block.op(JavaOp.conv(secondType, cc.getValueOrDefault(second, second))));
+            cc.mapValue(second, block.add(JavaOp.conv(secondType, cc.queryValue(second).orElse(second))));
             changed = true;
         }
         if (changed) {
-            block.context().mapValue(op.result(), block.op(op.transform(cc, CodeTransformer.COPYING_TRANSFORMER)));
+            block.context().mapValue(op.result(), block.add(op.transform(cc, CodeTransformer.COPYING_TRANSFORMER)));
         } else {
-            block.op(op);
+            block.add(op);
         }
     }
 }

@@ -32,7 +32,7 @@ public enum BinaryOpEnum {
     MUL("*"),
     DIV("/");
 
-    String symbol;
+    final String symbol;
 
     BinaryOpEnum(String symbol) {
         this.symbol = symbol;
@@ -43,9 +43,20 @@ public enum BinaryOpEnum {
             case "sub" -> BinaryOpEnum.SUB;
             case "mul" -> BinaryOpEnum.MUL;
             case "div" -> BinaryOpEnum.DIV;
-            default -> throw new RuntimeException("Unknown binary op " + invokeOp.invokeReference().name());
+            default -> throw new IllegalStateException("Unknown binary op " + invokeOp.invokeReference().name());
         };
     }
+
+    public static BinaryOpEnum of(String name) {
+        return switch (name) {
+            case "add" -> BinaryOpEnum.ADD;
+            case "sub" -> BinaryOpEnum.SUB;
+            case "mul" -> BinaryOpEnum.MUL;
+            case "div" -> BinaryOpEnum.DIV;
+            default -> throw new IllegalStateException("Unknown binary op " + name);
+        };
+    }
+
     public String symbol() {
         return symbol;
     }

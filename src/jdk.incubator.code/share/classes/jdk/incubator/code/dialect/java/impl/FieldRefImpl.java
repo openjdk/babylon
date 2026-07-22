@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,10 +32,10 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 
-import jdk.incubator.code.TypeElement;
-import jdk.incubator.code.extern.ExternalizedTypeElement;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
-public record FieldRefImpl(TypeElement refType, String name, TypeElement type) implements FieldRef {
+public record FieldRefImpl(CodeType refType, String name, CodeType type) implements FieldRef {
 
     @Override
     public Field resolveToField(MethodHandles.Lookup l) throws ReflectiveOperationException {
@@ -50,7 +50,7 @@ public record FieldRefImpl(TypeElement refType, String name, TypeElement type) i
     }
 
     @Override
-    public ExternalizedTypeElement externalize() {
+    public ExternalizedCodeType externalize() {
         return JavaTypeUtils.fieldRef(name, refType.externalize(), type.externalize());
     }
 

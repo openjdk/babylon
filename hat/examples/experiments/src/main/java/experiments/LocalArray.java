@@ -31,12 +31,11 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
-import optkl.ifacemapper.BoundSchema;
-import optkl.ifacemapper.Buffer;
+import hat.device.DeviceSchema;
+import hat.device.NonMappableIface;
 import hat.buffer.F32Array;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.Schema;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
@@ -54,27 +53,20 @@ import java.lang.invoke.MethodHandles;
  */
 public class LocalArray {
 
-    private interface MyArray extends Buffer {
+    private interface SharedMemory extends NonMappableIface {
         void array(long index, float value);
         float array(long index);
 
-        Schema<MyArray> schema = Schema.of(MyArray.class,
-                myPrivateArray -> myPrivateArray
-                        .array("array", 16));
-
-        static MyArray create(Accelerator accelerator) {
-            return BoundSchema.of(accelerator ,schema, 1).allocate();
-        }
-
-        static MyArray createLocal() {
-            return create(new Accelerator(MethodHandles.lookup(), Backend.FIRST));
+        DeviceSchema<SharedMemory> deviceSchema = DeviceSchema.of(SharedMemory.class,
+                arr -> arr.array("array", 16));
+        static SharedMemory createLocal() {
+            return null;
         }
     }
 
-
     @Reflect
     private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
-        MyArray mySharedArray = MyArray.createLocal();
+        SharedMemory mySharedArray = SharedMemory.createLocal();
         int lix = kernelContext.lix;
         int blockId = kernelContext.bix;
         int blockSize = kernelContext.lsx;
@@ -90,23 +82,17 @@ public class LocalArray {
         );
     }
 
-    static void main(String[] args) {
-        System.out.println("Testing Shared Data Structures Mapping");
-        System.out.println("Schema description");
-        MyArray.schema.toText(System.out::print);
-        System.out.println(" ==================");
-
+    static void main() {
+        IO.println("Testing Shared Data Structures Mapping");
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
-        accelerator.compute((@Reflect Compute) computeContext -> {
-            LocalArray.myCompute(computeContext, data);
-        });
+        accelerator.compute((@Reflect Compute) computeContext -> LocalArray.myCompute(computeContext, data));
 
         // Check result
         boolean isCorrect = true;
         int jIndex = 0;
         for (int i = 0; i < data.length(); i++) {
-            System.out.println(data.array(i));
+            IO.println(data.array(i));
             if (data.array(i) != jIndex) {
                 isCorrect = false;
                 break;
@@ -117,9 +103,9 @@ public class LocalArray {
             }
         }
         if (isCorrect) {
-            System.out.println("Correct result");
+            IO.println("Correct result");
         } else {
-            System.out.println("Wrong result");
+            IO.println("Wrong result");
         }
     }
 

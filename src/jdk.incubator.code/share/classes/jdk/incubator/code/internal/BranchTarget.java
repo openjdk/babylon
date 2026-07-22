@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,14 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
 package jdk.incubator.code.internal;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeElement;
-
 
 public record BranchTarget(Block.Builder breakBlock, Block.Builder continueBlock) {
 
@@ -37,17 +38,17 @@ public record BranchTarget(Block.Builder breakBlock, Block.Builder continueBlock
 
     public static BranchTarget getBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement) {
         @SuppressWarnings("unchecked")
-        Map<jdk.incubator.code.CodeElement<?, ?>, BranchTarget> m = (Map<jdk.incubator.code.CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
-        if (m != null) {
-            return m.get(codeElement);
-        }
-        return null;
+        var branchMap = (Map<CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
+        return branchMap != null
+                ? branchMap.get(codeElement)
+                : null;
     }
 
-    public static void setBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement, Block.Builder breakBlock, Block.Builder continueBlock) {
+    public static void setBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement,
+                                       Block.Builder breakBlock, Block.Builder continueBlock) {
         @SuppressWarnings("unchecked")
-        Map<jdk.incubator.code.CodeElement<?, ?>, BranchTarget> x = (Map<jdk.incubator.code.CodeElement<?, ?>, BranchTarget>) cc.computePropertyIfAbsent(
+        var branchMap = (Map<CodeElement<?, ?>, BranchTarget>) cc.computePropertyIfAbsent(
                 BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());
-        x.put(codeElement, new BranchTarget(breakBlock, continueBlock));
+        branchMap.put(codeElement, new BranchTarget(breakBlock, continueBlock));
     }
 }

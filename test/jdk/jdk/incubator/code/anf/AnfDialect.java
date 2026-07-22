@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,14 +36,15 @@ public final class AnfDialect {
     private AnfDialect() {
     }
 
-    public static final class AnfLetOp extends Op implements Op.Terminating, Op.Nested {
+    public static final class AnfLetOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.let";
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final TypeElement yieldType;
+            final CodeType yieldType;
 
-            Builder(Body.Builder ancestorBody, TypeElement yieldType) {
+            Builder(Body.Builder ancestorBody, CodeType yieldType) {
                 this.ancestorBody = ancestorBody;
                 this.yieldType = yieldType;
             }
@@ -71,8 +72,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfLetOp(this, cc, ot);
+        public Op transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfLetOp(this, cc, ct);
         }
 
         public AnfLetOp(Body.Builder bodyBuilder) {
@@ -87,20 +88,21 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.bindings.yieldType();
         }
     }
 
 
-    public static final class AnfLetRecOp extends Op implements Op.Terminating, Op.Nested {
+    public static final class AnfLetRecOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.letrec";
 
         public static class Builder {
             final Body.Builder ancestorBody;
-            final TypeElement yieldType;
+            final CodeType yieldType;
 
-            Builder(Body.Builder ancestorBody, TypeElement yieldType) {
+            Builder(Body.Builder ancestorBody, CodeType yieldType) {
                 this.ancestorBody = ancestorBody;
                 this.yieldType = yieldType;
             }
@@ -128,8 +130,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfLetRecOp(this, cc, ot);
+        public Op transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfLetRecOp(this, cc, ct);
         }
 
         public AnfLetRecOp(Body.Builder bodyBuilder) {
@@ -144,7 +146,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.bindings.yieldType();
         }
 
@@ -159,15 +161,16 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfIfOp extends Op implements Op.Terminating, Op.Nested {
+    public static final class AnfIfOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.if";
 
         public static class ThenBuilder {
             final Body.Builder ancestorBody;
-            final TypeElement yieldType;
+            final CodeType yieldType;
             final Value test;
 
-            ThenBuilder(Body.Builder ancestorBody, TypeElement yieldType, Value test) {
+            ThenBuilder(Body.Builder ancestorBody, CodeType yieldType, Value test) {
                 this.ancestorBody = ancestorBody;
                 this.yieldType = yieldType;
                 this.test = test;
@@ -216,8 +219,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfIfOp(this, cc, ot);
+        public Op transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfIfOp(this, cc, ct);
         }
 
         AnfIfOp(Value test, Body.Builder thenBodyBuilder, Body.Builder elseBodyBuilder) {
@@ -245,12 +248,13 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.then_.yieldType();
         }
     }
 
-    public static final class AnfFuncOp extends Op implements Op.Nested {
+    public static final class AnfFuncOp extends AbstractOp
+            implements Op.Nested, ExternalizedOp.Externalizable {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -280,12 +284,11 @@ public final class AnfDialect {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
-
-            String funcName = def.extractAttributeValue(ATTRIBUTE_FUNC_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_FUNC_NAME);
+            String funcName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
             return new AnfFuncOp(funcName, def.bodyDefinitions().get(0));
         }
 
@@ -301,8 +304,8 @@ public final class AnfDialect {
         }
 
         @Override
-        public AnfFuncOp transform(CodeContext cc, CodeTransformer ot) {
-            return new AnfFuncOp(this, cc, ot);
+        public AnfFuncOp transform(CodeContext cc, CodeTransformer ct) {
+            return new AnfFuncOp(this, cc, ct);
         }
 
         AnfFuncOp(String funcName, Body.Builder bodyBuilder) {
@@ -336,12 +339,13 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return invokableType();
         }
     }
 
-    public static final class AnfApply extends Op implements Op.Terminating {
+    public static final class AnfApply extends AbstractOp.Terminating
+            implements ExternalizedOp.Externalizable {
         public static final String NAME = "anf.apply";
 
         public AnfApply(ExternalizedOp def) {
@@ -353,12 +357,12 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ct) {
             return new AnfApply(this, cc);
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             FunctionType ft = (FunctionType) operands().get(0).type();
             return ft.returnType();
         }
@@ -376,24 +380,25 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfApplyStub extends Op implements Op.Terminating {
+    public static final class AnfApplyStub extends AbstractOp.Terminating
+            implements ExternalizedOp.Externalizable {
         public static final String NAME = "anf.apply.stub";
         public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
         public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";
 
         public final String callSiteName;
-        public final TypeElement resultType;
+        public final CodeType resultType;
 
         public static AnfApplyStub create(ExternalizedOp def) {
             if (!def.operands().isEmpty()) {
                 throw new IllegalStateException("Bad op " + def.name());
             }
 
-            String callsiteName = def.extractAttributeValue(ATTRIBUTE_CALLSITE_NAME, true,
-                    v -> switch (v) {
-                        case String s -> s;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_CALLSITE_NAME);
+            String callsiteName = switch (v) {
+                case String s -> s;
+                case null, default -> throw new UnsupportedOperationException("Unsupported func name value:" + v);
+            };
             return new AnfApplyStub(callsiteName, def.operands(), def.resultType());
         }
 
@@ -409,11 +414,11 @@ public final class AnfDialect {
         }
 
         @Override
-        public Op transform(CodeContext cc, CodeTransformer ot) {
+        public Op transform(CodeContext cc, CodeTransformer ct) {
             return new AnfApplyStub(this, cc);
         }
 
-        public AnfApplyStub(String callSiteName, List<Value> arguments, TypeElement resultType) {
+        public AnfApplyStub(String callSiteName, List<Value> arguments, CodeType resultType) {
             super(arguments);
             this.resultType = resultType;
             this.callSiteName = callSiteName;
@@ -423,7 +428,7 @@ public final class AnfDialect {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return this.resultType;
         }
 
@@ -448,9 +453,14 @@ public final class AnfDialect {
         return op;
     }
 
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
+    }
+
     static final OpFactory FACTORY = AnfDialect::createOp;
 
-    public static AnfLetRecOp.Builder letrec(Body.Builder ancestorBody, TypeElement yieldType) {
+    public static AnfLetRecOp.Builder letrec(Body.Builder ancestorBody, CodeType yieldType) {
         return new AnfLetRecOp.Builder(ancestorBody, yieldType);
     }
 
@@ -458,7 +468,7 @@ public final class AnfDialect {
         return new AnfLetRecOp(body);
     }
 
-    public static AnfLetOp.Builder let(Body.Builder ancestorBody, TypeElement yieldType) {
+    public static AnfLetOp.Builder let(Body.Builder ancestorBody, CodeType yieldType) {
         return new AnfLetOp.Builder(ancestorBody, yieldType);
     }
 
@@ -466,7 +476,7 @@ public final class AnfDialect {
         return new AnfLetOp(body);
     }
 
-    public static AnfIfOp.ThenBuilder if_(Body.Builder ancestorBody, TypeElement yieldType, Value test) {
+    public static AnfIfOp.ThenBuilder if_(Body.Builder ancestorBody, CodeType yieldType, Value test) {
         return new AnfIfOp.ThenBuilder(ancestorBody, yieldType, test);
     }
 
@@ -475,7 +485,7 @@ public final class AnfDialect {
     }
 
     public static AnfFuncOp.Builder func(Body.Builder ancestorBody, String funcName, FunctionType funcType) {
-        List<TypeElement> params = new ArrayList<>();
+        List<CodeType> params = new ArrayList<>();
         params.add(funcType.returnType());
         params.addAll(funcType.parameterTypes());
         return new AnfFuncOp.Builder(ancestorBody, funcName, CoreType.functionType(funcType.returnType(), params));
@@ -488,5 +498,5 @@ public final class AnfDialect {
     public static AnfApply apply(List<Value> arguments) {
         return new AnfApply(arguments);
     }
-    //public static AnfApplyStub applyStub(String name, List<Value> arguments, TypeElement type) { return new AnfApplyStub(name, arguments, type);}
+    //public static AnfApplyStub applyStub(String name, List<Value> arguments, CodeType type) { return new AnfApplyStub(name, arguments, type);}
 }

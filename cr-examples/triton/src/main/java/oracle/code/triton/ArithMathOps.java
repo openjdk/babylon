@@ -30,15 +30,14 @@ import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.dialect.java.JavaType;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ArithMathOps {
 
-    static abstract class ArithMathOp extends Op {
+    static abstract class ArithMathOp extends AbstractOp implements ExternalizedOp.Externalizable {
         final String opName;
-        final TypeElement resultType;
+        final CodeType resultType;
 
         public ArithMathOp(ExternalizedOp def) {
             super(def.operands());
@@ -54,7 +53,7 @@ public class ArithMathOps {
             this.resultType = that.resultType;
         }
 
-        ArithMathOp(String name, TypeElement resultType, List<? extends Value> operands) {
+        ArithMathOp(String name, CodeType resultType, List<? extends Value> operands) {
             super(operands);
 
             this.opName = name;
@@ -62,7 +61,7 @@ public class ArithMathOps {
         }
 
         @Override
-        public TypeElement resultType() {
+        public CodeType resultType() {
             return resultType;
         }
 
@@ -84,12 +83,11 @@ public class ArithMathOps {
                 throw new IllegalArgumentException("Operation must have zero operands");
             }
 
-            Object value = def.extractAttributeValue(ATTRIBUTE_CONSTANT_VALUE,true,
-                    v -> processConstantValue(def.resultType(), v));
+            Object value = processConstantValue(def.resultType(), getDefaultAttributeValue(def, ATTRIBUTE_CONSTANT_VALUE));
             return new ConstantOp(def, value);
         }
 
-        static Object processConstantValue(TypeElement t, Object value) {
+        static Object processConstantValue(CodeType t, Object value) {
             if (t.equals(JavaType.BOOLEAN) && value instanceof Boolean) {
                 return value;
             } else if (t.equals(JavaType.BYTE) && value instanceof Number n) {
@@ -133,7 +131,7 @@ public class ArithMathOps {
             return new ConstantOp(this, cc);
         }
 
-        ConstantOp(TypeElement type, Object value) {
+        ConstantOp(CodeType type, Object value) {
             super(NAME, type, List.of());
 
             this.value = value;
@@ -344,7 +342,7 @@ public class ArithMathOps {
             return new TruncOp(this, cc);
         }
 
-        TruncOp(TypeElement t, Value a) {
+        TruncOp(CodeType t, Value a) {
             super(NAME + nameSuffixFromType(a.type(), false),
                     t, List.of(a));
         }
@@ -396,12 +394,12 @@ public class ArithMathOps {
         final CompareKind ck;
 
         public static CompareOp create(ExternalizedOp def) {
-            CompareKind ck = def.extractAttributeValue(ATTRIBUTE_PREDICATE, true,
-                    v -> switch (v) {
-                        case String s -> CompareKind.valueOf(s);
-                        case CompareKind k -> k;
-                        case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
-                    });
+            Object v = getDefaultAttributeValue(def, ATTRIBUTE_PREDICATE);
+            CompareKind ck = switch (v) {
+                case String s -> CompareKind.valueOf(s);
+                case CompareKind k -> k;
+                case null, default -> throw new UnsupportedOperationException("Unsupported start value:" + v);
+            };
             return new CompareOp(def, ck);
         }
 
@@ -423,7 +421,7 @@ public class ArithMathOps {
         }
 
         CompareOp(CompareKind ck, Value a, Value b) {
-            TypeElement t;
+            CodeType t;
             if (a.type() instanceof TensorType ot) {
                 t = new TensorType(JavaType.BOOLEAN, ot.shape());
             }
@@ -445,7 +443,7 @@ public class ArithMathOps {
         }
     }
 
-    static String maxMinSuffixFromType(TypeElement t) {
+    static String maxMinSuffixFromType(CodeType t) {
         if (t instanceof TensorType tt) {
             return maxMinSuffixFromType(tt.eType());
         } else if (t instanceof PtrType pt) {
@@ -459,7 +457,7 @@ public class ArithMathOps {
         }
     }
 
-    static String nameSuffixFromType(TypeElement t, boolean signed) {
+    static String nameSuffixFromType(CodeType t, boolean signed) {
         if (t instanceof TensorType tt) {
             return nameSuffixFromType(tt.eType(), signed);
         } else if (t instanceof PtrType pt) {
@@ -472,6 +470,11 @@ public class ArithMathOps {
         } else {
             throw new UnsupportedOperationException("Unsupported type: " + t);
         }
+    }
+
+    static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
+        var attrs = def.attributes();
+        return attrs.containsKey("") ? attrs.get("") : attrs.get(attributeName);
     }
 
     public static final OpFactory OP_FACTORY = def -> {
@@ -494,7 +497,7 @@ public class ArithMathOps {
 
     // Arith
 
-    public static ConstantOp constant(TypeElement type, Object value) {
+    public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
     }
 
@@ -534,7 +537,7 @@ public class ArithMathOps {
         return new CompareOp(ck, a, b);
     }
 
-    public static TruncOp trunc(TypeElement type, Value a) {
+    public static TruncOp trunc(CodeType type, Value a) {
         return new TruncOp(type, a);
     }
 

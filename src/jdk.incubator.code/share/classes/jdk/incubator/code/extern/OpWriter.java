@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -103,7 +103,7 @@ public final class OpWriter {
                     case Double d -> sb.append(d).append('d');
                     case Character c -> sb.append('\'').append(c).append('\'');
                     case Boolean b -> sb.append(b);
-                    case TypeElement te -> sb.append(JavaTypeUtils.flatten(te.externalize()));
+                    case CodeType te -> sb.append(JavaTypeUtils.flatten(te.externalize()));
                     default -> {  // fallback to a string
                         sb.append('"');
                         quote(o.toString(), sb);
@@ -435,12 +435,14 @@ public final class OpWriter {
     public void writeOp(Op op) {
         if (op.parent() != null) {
             Op.Result opr = op.result();
-            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)) {
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID) || !opr.uses().isEmpty()) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }
         }
-        write(op.externalizeOpName());
+        write((op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName());
 
         if (!op.operands().isEmpty()) {
             write(" ");
@@ -459,7 +461,9 @@ public final class OpWriter {
                 writeLocation(location);
             }
         }
-        Map<String, Object> attributes = op.externalize();
+        Map<String, Object> attributes = (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalize()
+                : Map.of();
         if (!attributes.isEmpty()) {
             write(" ");
             writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
@@ -590,7 +594,7 @@ public final class OpWriter {
         }
     }
 
-    void writeType(TypeElement te) {
+    void writeType(CodeType te) {
         write(JavaTypeUtils.flatten(te.externalize()).toString());
     }
 

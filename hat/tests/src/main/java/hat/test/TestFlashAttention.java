@@ -365,7 +365,7 @@ public class TestFlashAttention {
     }
 
     @HatTest
-    public void testDFTWithOwnDS() {
+    public void testFlashAttention() {
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);

@@ -32,17 +32,6 @@ if ("${CUDA_BACKEND}EMPTY" STREQUAL "EMPTY")
 endif()
 add_subdirectory(cuda)
 
-#if ("${SPIRV_BACKEND}EMPTY" STREQUAL "EMPTY")
-#    set (SPIRV_BACKEND "${CMAKE_SOURCE_DIR}/spirv")
-#    message("SPIRV_BACKEND=${SPIRV_BACKEND}")
-#endif()
-#add_subdirectory(spirv)
-
-#if ("${HIP_BACKEND}EMPTY" STREQUAL "EMPTY")
-#    set (HIP_BACKEND "${CMAKE_SOURCE_DIR}/hip")
- #   message("HIP_BACKEND=${HIP_BACKEND}")
-#endif()
-#add_subdirectory(hip)
 
 if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
     set (MOCK_BACKEND "${CMAKE_SOURCE_DIR}/mock")
