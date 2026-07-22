@@ -1403,8 +1403,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     outerInstance = toValue(tree.encl);
                 }
                 args.add(outerInstance);
-                argtypes.add(outerInstance.type());
+                JavaType outerType = typeToCodeType(tree.constructor.innermostAccessibleEnclosingClass().erasure(types));
+                argtypes.add(outerType);
             }
+
+            MethodRef methodRef = symbolToMethodRef(tree.constructor);
+            argtypes.addAll(methodRef.signature().parameterTypes());
+            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
+
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
                     args.add(loadVar(c));
@@ -1417,14 +1423,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // We need to manually construct the constructor reference,
             // as the signature of the constructor symbol is not augmented
             // with enclosing this and captured params.
-            MethodRef methodRef = symbolToMethodRef(tree.constructor);
-            argtypes.addAll(methodRef.signature().parameterTypes());
             FunctionType constructorSignature = CoreType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
             MethodRef constructorRef = MethodRef.constructor(constructorSignature);
-
-            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
             result = append(JavaOp.new_(tree.varargsElement != null, typeToCodeType(type), constructorRef, args));
         }
