@@ -25,11 +25,11 @@
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit TestAssertOp
- * @run junit/othervm -ea TestAssertOp
+ * @run junit/othervm -da:TestAssertOp TestAssertOp
+ * @run junit/othervm -ea:TestAssertOp TestAssertOp
  * @run main Unreflect TestAssertOp
- * @run junit TestAssertOp
- * @run junit/othervm -ea TestAssertOp
+ * @run junit/othervm -da:TestAssertOp TestAssertOp
+ * @run junit/othervm -ea:TestAssertOp TestAssertOp
  */
 
 import java.lang.invoke.MethodHandles;
@@ -50,6 +50,7 @@ public class TestAssertOp {
         assert i >= 0 : "Failed";
         return i;
     }
+
     @Test
     public void test() {
         CoreOp.FuncOp f = getFuncOp(TestAssertOp.class, "check");
