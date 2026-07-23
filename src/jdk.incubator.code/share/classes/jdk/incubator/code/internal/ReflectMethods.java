@@ -874,7 +874,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
                     Value array = toValue(assign.indexed);
-                    Value index = toValue(assign.index);
+                    Value index = toValue(assign.index, syms.intType);
 
                     // Scan the rhs, the assign expression result is its input
                     result = toValue(tree.rhs, target);
@@ -1005,7 +1005,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
                     Value array = toValue(assign.indexed);
-                    Value index = toValue(assign.index);
+                    Value index = toValue(assign.index, syms.intType);
 
                     Op.Result lhsOpValue = append(JavaOp.arrayLoadOp(array, index));
                     // Scan the rhs
@@ -1116,7 +1116,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             Value array = toValue(tree.indexed);
 
-            Value index = toValue(tree.index, codeTypeToType(JavaType.INT));
+            Value index = toValue(tree.index, syms.intType);
 
             result = append(JavaOp.arrayLoadOp(array, index));
         }
