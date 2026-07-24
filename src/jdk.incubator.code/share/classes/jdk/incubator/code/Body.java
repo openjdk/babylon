@@ -592,6 +592,10 @@ public final class Body implements CodeElement<Body, Block> {
 
         Builder(Builder connectedAncestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
+            Objects.requireNonNull(bodySignature);
+            Objects.requireNonNull(cc);
+            Objects.requireNonNull(ct);
+
             // Structural check
             // The connected ancestor body should not be built before this body is built
             if (connectedAncestorBody != null) {
@@ -647,11 +651,10 @@ public final class Body implements CodeElement<Body, Block> {
          * not {@link Value#isDominatedBy(Value) dominate} a use of that value
          */
         public Body build(Op op) {
-            Objects.requireNonNull(op);
-
             // Structural check
             // This body builder should not be finished
             check();
+            Objects.requireNonNull(op);
             finished = true;
 
             // Structural check
