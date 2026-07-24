@@ -2274,8 +2274,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Pop block
             popBody();
 
+            List<CodeType> catchTypes = new ArrayList<>();
             List<Body.Builder> catchers = new ArrayList<>();
             for (JCTree.JCCatch catcher : tree.catchers) {
+
+                catchTypes.add(TreeInfo.isMultiCatch(catcher)
+                        ? CoreType.tupleType(((JCTree.JCTypeUnion) catcher.param.vartype).alternatives.stream()
+                                .map(a -> typeToCodeType(a.type)).toList())
+                        : typeToCodeType(catcher.param.vartype.type));
+
                 // Push body
                 pushBody(catcher.body, CoreType.functionType(JavaType.VOID, typeToCodeType(catcher.param.type)));
                 Op.Result exVariable = append(CoreOp.var(
@@ -2305,7 +2312,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 finalizer = null;
             }
 
-            result = append(JavaOp.try_(resources, body, catchers, finalizer));
+            result = append(JavaOp.try_(resources, body, catchTypes, catchers, finalizer));
         }
 
         @Override

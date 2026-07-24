@@ -565,6 +565,24 @@ public class TestBytecodeLift {
         }
     }
 
+    @Reflect
+    static int multiCatch(int mode) {
+        try {
+            try {
+                return switch (mode) {
+                    case 1 -> throw new IllegalArgumentException();
+                    case 2 -> throw new IllegalStateException();
+                    case 4 -> throw new ArithmeticException();
+                    default -> 0;
+                };
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                return 10;
+            }
+        } catch (RuntimeException e) {
+            return 20;
+        }
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
