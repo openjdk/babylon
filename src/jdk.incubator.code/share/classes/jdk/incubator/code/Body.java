@@ -651,11 +651,10 @@ public final class Body implements CodeElement<Body, Block> {
          * not {@link Value#isDominatedBy(Value) dominate} a use of that value
          */
         public Body build(Op op) {
-            Objects.requireNonNull(op);
-
             // Structural check
             // This body builder should not be finished
             check();
+            Objects.requireNonNull(op);
             finished = true;
 
             // Structural check

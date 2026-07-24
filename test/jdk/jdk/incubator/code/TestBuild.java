@@ -434,9 +434,13 @@ public class TestBuild {
         entryBlockBuilder.add(branch(blockBuilder.reference()));
 
         for (int j = 0; j < 2; j++) {
+            Class<?> expectedExceptionClass;
             if (j == 1) {
                 // test with built body and block
                 func("f", bodyBuilder);
+                expectedExceptionClass = IllegalStateException.class;
+            } else {
+                expectedExceptionClass = NullPointerException.class;
             }
             for (Object r : List.of(bodyBuilder, blockBuilder)) {
                 for (Method m : r.getClass().getDeclaredMethods()) {
@@ -454,7 +458,7 @@ public class TestBuild {
                         }
                         var wrapperException = Assertions.assertThrowsExactly(InvocationTargetException.class,
                                 () -> m.invoke(r, args));
-                        Assertions.assertInstanceOf(NullPointerException.class, wrapperException.getCause());
+                        Assertions.assertInstanceOf(expectedExceptionClass, wrapperException.getCause());
                     }
                 }
             }
