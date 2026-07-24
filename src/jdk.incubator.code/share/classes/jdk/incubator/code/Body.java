@@ -74,7 +74,7 @@ public final class Body implements CodeElement<Body, Block> {
     // Lazily computed map of a block to its immediate dominator
     // Computed after body is built
     // @@@ when dominance checks are implemented, may be computed and used in build method
-    LazyConstant<Map<Block, Block>> idoms = LazyConstant.of(this::computeImmediateDominators);
+    final LazyConstant<Map<Block, Block>> idoms = LazyConstant.of(this::computeImmediateDominators);
 
     /**
      * Constructs a body, whose connected ancestor body is the given ancestor body.
