@@ -1601,7 +1601,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         @Override
         public Map<String, Object> externalize() {
             // avoid storing explicit catch types if they all match the handlers
-            return explicitCatchTypes == null || explicitCatchTypes.equals(catchTypes())
+            return explicitCatchTypes == null || explicitCatchTypes.equals(implicitCatchTypes())
                     ? Map.of()
                     : Map.of("", CoreType.tupleType(explicitCatchTypes));
         }
@@ -1624,9 +1624,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * {@return the catch types}
          */
         public List<CodeType> catchTypes() {
-            return explicitCatchTypes == null
-                    ? catchReferences().stream().map(r -> r.targetBlock().parameterTypes().getFirst()).toList()
-                    : explicitCatchTypes;
+            return explicitCatchTypes == null ? implicitCatchTypes() : explicitCatchTypes;
+        }
+
+        private List<CodeType> implicitCatchTypes() {
+            return catchReferences().stream().map(r -> r.targetBlock().parameterTypes().getFirst()).toList();
         }
 
         @Override
@@ -5040,7 +5042,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         @Override
         public Map<String, Object> externalize() {
             // avoid storing explicit catch types if they all match the handlers
-            return explicitCatchTypes == null || explicitCatchTypes.equals(catchTypes())
+            return explicitCatchTypes == null || explicitCatchTypes.equals(implicitCatchTypes())
                     ? Map.of()
                     : Map.of("", CoreType.tupleType(explicitCatchTypes));
         }
@@ -5075,9 +5077,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * {@return the catch types}
          */
         public List<CodeType> catchTypes() {
-            return explicitCatchTypes == null
-                    ? handlers.stream().map(h -> h.entryBlock().parameterTypes().getFirst()).toList()
-                    : explicitCatchTypes;
+            return explicitCatchTypes == null ? implicitCatchTypes() : explicitCatchTypes;
+        }
+
+        private List<CodeType> implicitCatchTypes() {
+            return handlers.stream().map(h -> h.entryBlock().parameterTypes().getFirst()).toList();
         }
 
         /**

@@ -1034,8 +1034,10 @@ public final class BytecodeGenerator {
                                 cob.exceptionCatch(tryStart, currentLabel, handler, ((JavaType) type).toNominalDescriptor()));
                     case ClassType ct ->
                         cob.exceptionCatch(tryStart, currentLabel, handler, ct.toNominalDescriptor());
-                    default ->
+                    case PrimitiveType pt when pt.equals(JavaType.VOID) ->
                         cob.exceptionCatchAll(tryStart, currentLabel, handler);
+                    default ->
+                        throw new IllegalArgumentException("Bad catch type: " + catchType);
                 }
                 tryStartLabels[catchBlock.index()] = null;
             }
