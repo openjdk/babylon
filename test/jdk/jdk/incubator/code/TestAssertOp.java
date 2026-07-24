@@ -53,14 +53,8 @@ public class TestAssertOp {
     public void test() {
         CoreOp.FuncOp f = getFuncOp(TestAssertOp.class, "check");
 
-        boolean assertEnabled = false;
-        assert assertEnabled = true;
-
-        if (assertEnabled) {
-            Assertions.assertThrows(AssertionError.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), -42));
-        } else {
-            Assertions.assertEquals(new TestAssertOp().check(-42), Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), -42));
-        }
+        Assertions.assertEquals(new TestAssertOp().check(42), Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), 42));
+        Assertions.assertThrows(AssertionError.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), -42));
     }
 
     static CoreOp.FuncOp getFuncOp(Class<?> c, String name) {
