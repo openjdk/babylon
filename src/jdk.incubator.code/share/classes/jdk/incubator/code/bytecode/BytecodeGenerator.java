@@ -35,6 +35,7 @@ import jdk.incubator.code.bytecode.impl.DynamicFuncCallOp;
 import jdk.incubator.code.bytecode.impl.LoweringTransformer;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 
@@ -172,7 +173,7 @@ public final class BytecodeGenerator {
     private final CodeBuilder cob;
     private final Label[] blockLabels;
     private final Block[][] blocksCatchMap;
-    private final BitSet allCatchBlocks;
+    private final CodeType[] catchBlockTypes;
     private final Label[] tryStartLabels;
     private final Map<Value, Slot> slots;
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
@@ -196,7 +197,7 @@ public final class BytecodeGenerator {
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
         this.blocksCatchMap = new Block[blocks.size()][];
-        this.allCatchBlocks = new BitSet();
+        this.catchBlockTypes = new CodeType[blocks.size()];
         this.tryStartLabels = new Label[blocks.size()];
         this.slots = new IdentityHashMap<>();
         this.singlePredecessorsValues = new IdentityHashMap<>();
@@ -481,7 +482,7 @@ public final class BytecodeGenerator {
             exceptionRegionsChange(catchBlocks);
 
             // If b is a catch block then the exception argument will be represented on the stack
-            if (allCatchBlocks.get(b.index())) {
+            if (catchBlockTypes[b.index()] != null) {
                 // Retain block argument for exception table generation
                 push(b.parameters().getFirst());
             }
@@ -963,10 +964,12 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionEnter op -> {
                     List<Block.Reference> enteringCatchBlocks = op.catchReferences();
+                    List<CodeType> enteringCatchTypes = op.catchTypes();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length + enteringCatchBlocks.size());
                     int i = recentCatchBlocks.length;
+                    int catchIndex = 0;
                     for (Block.Reference catchRef : enteringCatchBlocks) {
-                        allCatchBlocks.set(catchRef.targetBlock().index());
+                        catchBlockTypes[catchRef.targetBlock().index()] = enteringCatchTypes.get(catchIndex++);
                         activeCatchBlocks[i++] = catchRef.targetBlock();
                         setCatchStack(catchRef, recentCatchBlocks);
                     }
@@ -1022,12 +1025,17 @@ public final class BytecodeGenerator {
             // Exit catch blocks missing in the newCatchBlocks
             while (i >=0 && (i >= newCatchBlocks.length || recentCatchBlocks[i] != newCatchBlocks[i])) {
                 Block catchBlock = recentCatchBlocks[i--];
-                List<Block.Parameter> params = catchBlock.parameters();
-                if (!params.isEmpty()) {
-                    JavaType jt = (JavaType) params.get(0).type();
-                    cob.exceptionCatch(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()), jt.toNominalDescriptor());
-                } else {
-                    cob.exceptionCatchAll(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()));
+                CodeType catchType = catchBlockTypes[catchBlock.index()];
+                Label tryStart = tryStartLabels[catchBlock.index()];
+                Label handler = getLabel(catchBlock.index());
+                switch (catchType) {
+                    case TupleType tt ->
+                        tt.componentTypes().forEach(type ->
+                                cob.exceptionCatch(tryStart, currentLabel, handler, ((JavaType) type).toNominalDescriptor()));
+                    case ClassType ct ->
+                        cob.exceptionCatch(tryStart, currentLabel, handler, ct.toNominalDescriptor());
+                    default ->
+                        cob.exceptionCatchAll(tryStart, currentLabel, handler);
                 }
                 tryStartLabels[catchBlock.index()] = null;
             }
@@ -1236,7 +1244,7 @@ public final class BytecodeGenerator {
     private void assignBlockArguments(Block.Reference ref) {
         Block target = ref.targetBlock();
         List<Value> sargs = ref.arguments();
-        if (allCatchBlocks.get(target.index())) {
+        if (catchBlockTypes[target.index()] != null) {
             // Jumping to an exception handler, exception parameter is expected on stack
             Value value = sargs.getFirst();
             if (oprOnStack == value) {
