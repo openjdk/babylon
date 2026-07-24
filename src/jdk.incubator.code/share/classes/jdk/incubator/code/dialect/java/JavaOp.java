@@ -42,6 +42,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 import static jdk.incubator.code.Op.Lowerable.loweringTransformer;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -4853,29 +4854,42 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             final Body.Builder connectedAncestorBody;
             final List<Body.Builder> resources;
             final Body.Builder body;
-            final List<Body.Builder> catchers;
+            final List<CodeType> catchTypes;
+            final List<Body.Builder> handlers;
 
             CatchBuilder(Body.Builder connectedAncestorBody, List<Body.Builder> resources, Body.Builder body) {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.resources = resources;
                 this.body = body;
-                this.catchers = new ArrayList<>();
+                this.catchTypes = new ArrayList<>();
+                this.handlers = new ArrayList<>();
             }
 
-            // @@@ multi-catch
             /**
              * Adds a catch body for handling exceptions of a specific type.
              *
-             * @param exceptionType the type of exception handled
+             * @param handlerExceptionType the type of exception handled
              * @param c a consumer that populates the catch body
              * @return this builder
              */
-            public CatchBuilder catch_(CodeType exceptionType, Consumer<Block.Builder> c) {
-                Body.Builder _catch = Body.Builder.of(connectedAncestorBody,
-                        CoreType.functionType(VOID, exceptionType));
-                c.accept(_catch.entryBlock());
-                catchers.add(_catch);
+            public CatchBuilder catch_(CodeType handlerExceptionType, Consumer<Block.Builder> c) {
+                return catch_(handlerExceptionType, handlerExceptionType, c);
+            }
 
+            /**
+             * Adds a catch body for handling exceptions of a specific catch type and a handler type.
+             *
+             * @param catchType the type of exception(s) caught, use {@link TupleType} for a multi-catch
+             * @param handlerExceptionType the type of exception handled by the catch body
+             * @param c a consumer that populates the catch body
+             * @return this builder
+             */
+            public CatchBuilder catch_(CodeType catchType, CodeType handlerExceptionType, Consumer<Block.Builder> c) {
+                Body.Builder _catch = Body.Builder.of(connectedAncestorBody,
+                        CoreType.functionType(VOID, handlerExceptionType));
+                c.accept(_catch.entryBlock());
+                handlers.add(_catch);
+                catchTypes.add(catchType);
                 return this;
             }
 
@@ -4889,7 +4903,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Body.Builder _finally = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(_finally.entryBlock());
 
-                return new TryOp(resources, body, catchers, _finally);
+                return new TryOp(resources, body, catchTypes, handlers, _finally);
             }
 
             /**
@@ -4898,17 +4912,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
              * @return the completed try operation
              */
             public TryOp noFinalizer() {
-                return new TryOp(resources, body, catchers, null);
+                return new TryOp(resources, body, catchTypes, handlers, null);
             }
         }
 
         static final String NAME = "java.try";
+        static final String ATTRIBUTE_CATCH_TYPES = NAME + ".catchTypes";
         static final MethodRef AUTO_CLOSEABLE_CLOSE_METHOD = MethodRef.method(AutoCloseable.class, "close", void.class);
         static final MethodRef THROWABLE_ADD_SUPPRESSED_METHOD = MethodRef.method(Throwable.class, "addSuppressed", void.class, Throwable.class);
 
         final List<Body> resourcesBodies;
         final Body body;
-        final List<Body> catchBodies;
+        final List<CodeType> explicitCatchTypes;
+        final List<Body> handlers;
         final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
@@ -4932,11 +4948,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             } else {
                 finalizer = null;
             }
-            List<Body.Builder> catchers = bodies.subList(
+            List<CodeType> catchTypes = optionalAttribute(def, ATTRIBUTE_CATCH_TYPES, true, TupleType.class)
+                    .map(TupleType::componentTypes).orElse(null);
+            List<Body.Builder> handlers = bodies.subList(
                     bodyIndex + 1,
                     bodies.size() - (finalizer == null ? 0 : 1));
 
-            this(resources, body, catchers, finalizer);
+            this(resources, body, catchTypes, handlers, finalizer);
         }
 
         TryOp(TryOp that, CodeContext cc, CodeTransformer ct) {
@@ -4946,7 +4964,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     .map(b -> b.transform(cc, ct).build(this))
                     .toList();
             this.body = that.body.transform(cc, ct).build(this);
-            this.catchBodies = that.catchBodies.stream()
+            this.explicitCatchTypes = that.explicitCatchTypes;
+            this.handlers = that.handlers.stream()
                     .map(b -> b.transform(cc, ct).build(this))
                     .toList();
             if (that.finallyBody != null) {
@@ -4963,7 +4982,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         TryOp(List<Body.Builder> resourcesC,
               Body.Builder bodyC,
-              List<Body.Builder> catchersC,
+              List<CodeType> catchTypes,
+              List<Body.Builder> handlersC,
               Body.Builder finalizerC) {
             super(List.of());
 
@@ -4977,7 +4997,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
             this.body = requireBodySignature(NAME + " try", bodyC, CoreType.functionType(VOID, resourceTypes)).build(this);
-            this.catchBodies = catchersC.stream().map(c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
+            this.explicitCatchTypes = catchTypes == null ? null : List.copyOf(catchTypes);
+            this.handlers = handlersC.stream().map(c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
+            if (explicitCatchTypes != null && explicitCatchTypes.size() != handlers.size()) {
+                throw structuralException(NAME, "catch types %s require %d catch bodies, found %d".formatted(explicitCatchTypes, explicitCatchTypes.size(), handlers.size()));
+            }
             if (finalizerC != null) {
                 this.finallyBody = requireVoidBodySignature(NAME + " finalizer", finalizerC).build(this);
             } else {
@@ -4986,11 +5010,21 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         @Override
+        public Map<String, Object> externalize() {
+            return explicitCatchTypes == null
+                    // avoid storing explicit catch types if they all match the handlers
+                    || IntStream.range(0, explicitCatchTypes.size()).allMatch(i ->
+                            explicitCatchTypes.get(i).equals(handlers.get(i).entryBlock().parameterTypes().getFirst()))
+                    ? Map.of()
+                    : Map.of("", CoreType.tupleType(explicitCatchTypes));
+        }
+
+        @Override
         public List<Body> bodies() {
             ArrayList<Body> bodies = new ArrayList<>();
             bodies.addAll(resourcesBodies);
             bodies.add(body);
-            bodies.addAll(catchBodies);
+            bodies.addAll(handlers);
             if (finallyBody != null) {
                 bodies.add(finallyBody);
             }
@@ -5012,10 +5046,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         /**
+         * {@return the catch types}
+         */
+        public List<CodeType> catchTypes() {
+            return explicitCatchTypes == null
+                    ? handlers.stream().map(h -> h.entryBlock().parameterTypes().getFirst()).toList()
+                    : explicitCatchTypes;
+        }
+
+        /**
          * {@return the catch bodies}
          */
         public List<Body> catchBodies() {
-            return catchBodies;
+            return handlers;
         }
 
         /**
@@ -5036,7 +5079,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // There is no recursion here, each time it is structurally different TryOp.
             if (!resourcesBodies.isEmpty()) {
                 b.transformBody(resourcesBodies.size() == 1
-                        && catchBodies.isEmpty()
+                        && handlers.isEmpty()
                         && finallyBody == null
                                 ? lowerBasicTryWithResources()
                                 : normalizeTryWithResources(),
@@ -5053,7 +5096,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             // Simple case with no catch and finally bodies
-            if (catchBodies.isEmpty() && finallyBody == null) {
+            if (handlers.isEmpty() && finallyBody == null) {
                 b.transformBody(body, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.add(branch(exit.reference()));
@@ -5134,9 +5177,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             // Inline the catch bodies
-            for (int i = 0; i < this.catchBodies.size(); i++) {
+            for (int i = 0; i < this.handlers.size(); i++) {
                 Block.Builder catcher = catchers.get(i);
-                Body catcherBody = this.catchBodies.get(i);
+                Body catcherBody = this.handlers.get(i);
                 // Create the throwable argument
                 Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
@@ -5307,14 +5350,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     block.context().mapValues(capturedValues(), entryBlock.parameters());
                     return normalizeExtendedTryWithResources(block.parentBody(), block.context(), new ArrayList<>());
                 };
-                if (catchBodies.isEmpty() && finallyBody == null) {
+                if (handlers.isEmpty() && finallyBody == null) {
                     entryBlock.add(normalizedTry.apply(entryBlock));
                 } else {
                     CatchBuilder catchBuilder = try_(entryBlock.parentBody(), tryB -> {
                         tryB.add(normalizedTry.apply(tryB));
                         tryB.add(core_yield());
                     });
-                    for (Body catcher : catchBodies) {
+                    for (Body catcher : handlers) {
                         catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
                                 catchB.transformBody(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
                     }
@@ -7287,7 +7330,25 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                              Body.Builder body,
                              List<Body.Builder> catchBodies,
                              Body.Builder finallyBody) {
-        return new TryOp(resourceBodies, body, catchBodies, finallyBody);
+        return try_(resourceBodies, body, null, catchBodies, finallyBody);
+    }
+
+    /**
+     * Creates a try or try-with-resources operation.
+     *
+     * @param resourceBodies the resources body builders
+     * @param body           the try body builder
+     * @param catchTypes     the explicit catch types, may be {@code null}
+     * @param catchBodies    the catch body builders
+     * @param finallyBody    the finalizer body builder, may be {@code null}
+     * @return the try or try-with-resources operation
+     */
+    public static TryOp try_(List<Body.Builder> resourceBodies,
+                             Body.Builder body,
+                             List<CodeType> catchTypes,
+                             List<Body.Builder> catchBodies,
+                             Body.Builder finallyBody) {
+        return new TryOp(resourceBodies, body, catchTypes, catchBodies, finallyBody);
     }
 
     //
