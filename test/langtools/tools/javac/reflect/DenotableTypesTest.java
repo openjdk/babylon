@@ -207,7 +207,7 @@ public class DenotableTypesTest {
     @Reflect
     @IR("""
             func @"test10" ()java.type:"void" -> {
-                java.try
+                java.try @Tuple<Tuple<java.type:"DenotableTypesTest$XA", java.type:"DenotableTypesTest$XB">>
                     ()java.type:"void" -> {
                         invoke @java.ref:"DenotableTypesTest::g():void";
                         yield;
