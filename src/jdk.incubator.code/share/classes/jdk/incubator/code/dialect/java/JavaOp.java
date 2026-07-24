@@ -1561,6 +1561,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class ExceptionRegionEnter extends AbstractOp.Terminating
             implements JavaOp {
         static final String NAME = "exception.region.enter";
+        static final String ATTRIBUTE_CATCH_TYPES = NAME + ".catchTypes";
+
+        final List<CodeType> explicitCatchTypes;
 
         // First successor is the non-exceptional successor whose target indicates
         // the first block in the exception region.
@@ -1568,11 +1571,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         // each of which have one block argument whose type is an exception type.
 
         ExceptionRegionEnter(ExternalizedOp def) {
-            this(def.successors());
+            this(optionalAttribute(def, ATTRIBUTE_CATCH_TYPES, true, TupleType.class)
+                            .map(TupleType::componentTypes).orElse(null),
+                 def.successors());
         }
 
         ExceptionRegionEnter(ExceptionRegionEnter that, CodeContext cc) {
             super(that, cc);
+            this.explicitCatchTypes = that.explicitCatchTypes;
         }
 
         @Override
@@ -1580,11 +1586,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return new ExceptionRegionEnter(this, cc);
         }
 
-        ExceptionRegionEnter(List<Block.Reference> references) {
+        ExceptionRegionEnter(List<CodeType> catchTypes, List<Block.Reference> references) {
             if (references.size() < 2) {
                 throw structuralException(NAME, "requires at least 2 successors, found %d".formatted(references.size()));
             }
+            if (catchTypes != null && catchTypes.size() != references.size() - 1) {
+                throw structuralException(NAME, "catch types %s require %d catch references, found %d"
+                        .formatted(catchTypes, catchTypes.size(), references.size() - 1));
+            }
             super(List.of(), references);
+            this.explicitCatchTypes = catchTypes == null ? null : List.copyOf(catchTypes);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            // avoid storing explicit catch types if they all match the handlers
+            return explicitCatchTypes == null || explicitCatchTypes.equals(catchTypes())
+                    ? Map.of()
+                    : Map.of("", CoreType.tupleType(explicitCatchTypes));
         }
 
         /**
@@ -1599,6 +1618,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         public List<Block.Reference> catchReferences() {
             return successors().subList(1, successors().size());
+        }
+
+        /**
+         * {@return the catch types}
+         */
+        public List<CodeType> catchTypes() {
+            return explicitCatchTypes == null
+                    ? catchReferences().stream().map(r -> r.targetBlock().parameterTypes().getFirst()).toList()
+                    : explicitCatchTypes;
         }
 
         @Override
@@ -5011,10 +5039,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         @Override
         public Map<String, Object> externalize() {
-            return explicitCatchTypes == null
-                    // avoid storing explicit catch types if they all match the handlers
-                    || IntStream.range(0, explicitCatchTypes.size()).allMatch(i ->
-                            explicitCatchTypes.get(i).equals(handlers.get(i).entryBlock().parameterTypes().getFirst()))
+            // avoid storing explicit catch types if they all match the handlers
+            return explicitCatchTypes == null || explicitCatchTypes.equals(catchTypes())
                     ? Map.of()
                     : Map.of("", CoreType.tupleType(explicitCatchTypes));
         }
@@ -5115,6 +5141,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             List<Block.Builder> catchers = catchBodies().stream()
                     .map(catcher -> b.block())
                     .toList();
+            List<CodeType> catchTypes = catchTypes();
             Block.Builder catcherFinally;
             if (finallyBody == null) {
                 catcherFinally = null;
@@ -5122,13 +5149,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 catcherFinally = b.block();
                 catchers = new ArrayList<>(catchers);
                 catchers.add(catcherFinally);
+                catchTypes = new ArrayList<>(catchTypes());
+                catchTypes.add(VOID);
             }
 
             // Enter the try exception region
             List<Block.Reference> exitHandlers = catchers.stream()
                     .map(Block.Builder::reference)
                     .toList();
-            Op.Result enter = b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
+            Op.Result enter = b.add(exceptionRegionEnter(
+                    catchTypes.reversed(), tryRegionEnter.reference(), exitHandlers.reversed()));
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
@@ -5357,9 +5387,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         tryB.add(normalizedTry.apply(tryB));
                         tryB.add(core_yield());
                     });
-                    for (Body catcher : handlers) {
-                        catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
-                                catchB.transformBody(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
+                    List<CodeType> catchTypes = catchTypes();
+                    for (int i = 0; i < handlers.size(); i++) {
+                        Body catcher = handlers.get(i);
+                        catchBuilder.catch_(
+                                catchTypes.get(i),
+                                catcher.bodySignature().parameterTypes().getFirst(),
+                                catchB -> catchB.transformBody(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
                     }
                     entryBlock.add(finallyBody == null
                             ? catchBuilder.noFinalizer()
@@ -6230,7 +6264,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the exception region enter operation
      */
     public static ExceptionRegionEnter exceptionRegionEnter(Block.Reference start, Block.Reference... catchers) {
-        return exceptionRegionEnter(start, List.of(catchers));
+        return exceptionRegionEnter(null, start, List.of(catchers));
     }
 
     /**
@@ -6241,10 +6275,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the exception region enter operation
      */
     public static ExceptionRegionEnter exceptionRegionEnter(Block.Reference start, List<Block.Reference> catchers) {
+        return exceptionRegionEnter(null, start, catchers);
+    }
+
+    /**
+     * Creates an exception region enter operation
+     *
+     * @param catchTypes the explicit catch types, may be {@code null}
+     * @param start      the reference to the block that enters the exception region
+     * @param catchers   the references to blocks handling exceptions thrown by blocks within the exception region
+     * @return the exception region enter operation
+     */
+    public static ExceptionRegionEnter exceptionRegionEnter(List<CodeType> catchTypes,
+                                                            Block.Reference start,
+                                                            List<Block.Reference> catchers) {
         List<Block.Reference> s = new ArrayList<>();
         s.add(start);
         s.addAll(catchers);
-        return new ExceptionRegionEnter(s);
+        return new ExceptionRegionEnter(catchTypes, s);
     }
 
     /**
