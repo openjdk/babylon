@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
 * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 *
 * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@
 */
 /*
 You probably should not edit this this file!!!
-It was auto generated 2026-01-08 12:22:32.577 by hat.FFIConfigCreator
+It was auto generated 2026-07-23 16:04:56.597 by hat.FFIConfigCreator
 */
 #pragma once
 
@@ -54,6 +54,7 @@ struct BasicConfig{
     static constexpr int SHOW_COMPILATION_PHASES_BIT      = 1<<0x1c;
     static constexpr int PROFILE_CUDA_KERNEL_BIT          = 1<<0x1d;
     static constexpr int SHOW_COMPUTE_MODEL_JAVA_CODE_BIT = 1<<0x1e;
+    static constexpr int CHECK_SSA_LOWERING_BIT           = 1<<0x1f;
     const static char *bitNames[]; // See below for initialization
     const static char *bitDescriptions[]; // See below for initialization
     int configBits;
@@ -80,6 +81,7 @@ struct BasicConfig{
     bool showCompilationPhases;
     bool profileCudaKernel;
     bool showComputeModelJavaCode;
+    bool checkSsaLowering;
     int platform;
     int device;
     bool alwaysCopy;
@@ -108,6 +110,7 @@ struct BasicConfig{
         showCompilationPhases((configBits & SHOW_COMPILATION_PHASES_BIT)==SHOW_COMPILATION_PHASES_BIT),
         profileCudaKernel((configBits & PROFILE_CUDA_KERNEL_BIT)==PROFILE_CUDA_KERNEL_BIT),
         showComputeModelJavaCode((configBits & SHOW_COMPUTE_MODEL_JAVA_CODE_BIT)==SHOW_COMPUTE_MODEL_JAVA_CODE_BIT),
+        checkSsaLowering((configBits & CHECK_SSA_LOWERING_BIT)==CHECK_SSA_LOWERING_BIT),
         platform(configBits & 0xf),
         alwaysCopy(!minimizeCopies),
         device((configBits & 0xf0) >> 4){
@@ -135,6 +138,7 @@ struct BasicConfig{
                 std::cout << "native showCompilationPhases " << showCompilationPhases << std::endl;
                 std::cout << "native profileCudaKernel " << profileCudaKernel << std::endl;
                 std::cout << "native showComputeModelJavaCode " << showComputeModelJavaCode << std::endl;
+                std::cout << "native checkSsaLowering " << checkSsaLowering << std::endl;
                 std::cout << "native platform " << platform << std::endl;
                 std::cout << "native device " << device << std::endl;
             }
@@ -167,6 +171,7 @@ const char *BasicConfig::bitNames[]={
     "SHOW_COMPILATION_PHASES_BIT",
     "PROFILE_CUDA_KERNEL_BIT",
     "SHOW_COMPUTE_MODEL_JAVA_CODE_BIT",
+    "CHECK_SSA_LOWERING_BIT",
 };
 const char *BasicConfig::bitDescriptions[]={
     "FFI ONLY Try to minimize copies",
@@ -192,5 +197,6 @@ const char *BasicConfig::bitDescriptions[]={
     "Show HAT compilation phases",
     "Add -lineinfo to CUDA kernel compilation for profiling and debugging",
     "Show java code view of compute model",
+    "Verify that code model can be lowered to SSA",
 };
 #endif
