@@ -403,30 +403,7 @@ public class TestBuild {
     }
 
     @Test
-    void testBuilderInoperableAfterBuildFinishes() {
-        var bodyBuilder = Body.Builder.of(null, FUNCTION_TYPE_VOID);
-        var entryBlockBuilder = bodyBuilder.entryBlock();
-        var blockBuilder = entryBlockBuilder.block();
-        blockBuilder.add(return_());
-        entryBlockBuilder.add(branch(blockBuilder.reference()));
-
-        var fop = func("f", bodyBuilder);
-
-        for (Object r : List.of(bodyBuilder, blockBuilder)) {
-            for (Method m : r.getClass().getDeclaredMethods()) {
-                if (m.accessFlags().contains(AccessFlag.STATIC) || !m.accessFlags().contains(AccessFlag.PUBLIC)) {
-                    continue;
-                }
-                List<Object> args = generateArgs(m);
-                var wrapperException = Assertions.assertThrowsExactly(InvocationTargetException.class,
-                        () -> m.invoke(r, args.toArray()));
-                Assertions.assertInstanceOf(IllegalStateException.class, wrapperException.getCause());
-            }
-        }
-    }
-
-    @Test
-    void testNullChecks() {
+    void testBuildersChecks() {
         var bodyBuilder = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         var entryBlockBuilder = bodyBuilder.entryBlock();
         var blockBuilder = entryBlockBuilder.block();
@@ -450,15 +427,14 @@ public class TestBuild {
                     if (m.getName().equals("equals")) {
                         continue;
                     }
-                    int pn = m.getParameterTypes().length;
-                    for (int i = 0; i < pn; i++) {
-                        Object[] args = new Object[pn];
-                        if (pn > 1) {
-                            args[i] = generateArg(m.getParameterTypes()[i]);
-                        }
+                    Object[] args = generateArgs(m);
+                    for (int i = 0; i < args.length; i++) {
+                        Object currArg = args[i];
+                        args[i] = null;
                         var wrapperException = Assertions.assertThrowsExactly(InvocationTargetException.class,
                                 () -> m.invoke(r, args));
                         Assertions.assertInstanceOf(expectedExceptionClass, wrapperException.getCause());
+                        args[i] = currArg;
                     }
                 }
             }
@@ -483,19 +459,18 @@ public class TestBuild {
             arg = func("", FUNCTION_TYPE_VOID).body(b -> b.add(return_())).body();
         } else if (parameterType == Op.class) {
             arg = func("", FUNCTION_TYPE_VOID).body(b -> b.add(return_()));
-        } else if (parameterType == Object.class) {
-            arg = null;
         } else {
             throw new AssertionError("Unhandled parameter type " + parameterType);
         }
         return arg;
     }
 
-    static List<Object> generateArgs(Method m) {
-        List<Object> args = new ArrayList<>();
-        for (Class<?> parameterType : m.getParameterTypes()) {
-            Object arg = generateArg(parameterType);
-            args.add(arg);
+    static Object[] generateArgs(Method m) {
+        Object[] args = new Object[m.getParameterTypes().length];
+        Class<?>[] parameterTypes = m.getParameterTypes();
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class<?> parameterType = parameterTypes[i];
+            args[i] = generateArg(parameterType);
         }
         return args;
     }
