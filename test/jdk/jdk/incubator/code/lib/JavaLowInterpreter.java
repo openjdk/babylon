@@ -270,35 +270,25 @@ public class JavaLowInterpreter extends Interpreter {
                 }
             }
             case JavaOp.AssertOp o -> {
-                try {
-                    JavaEnv je = (JavaEnv) e;
-                    // @@@ better handling of enable/disable assertions independent of javac
-                    VarHandle vh = je.l.findStaticVarHandle(je.l.lookupClass(), "$assertionsDisabled", boolean.class);
-                    boolean assertionsDisabled = (boolean) vh.get();
-                    if (!assertionsDisabled) {
-                        TerminatingOpEffect perdEffect = executeBody(o.predicateBody(), List.of(), e);
-                        boolean b = switch (perdEffect.terminatingOp()) {
-                            case CoreOp.YieldOp _ when perdEffect.operands().getFirst() instanceof Boolean av -> av;
+                TerminatingOpEffect perdEffect = executeBody(o.predicateBody(), List.of(), e);
+                boolean b = switch (perdEffect.terminatingOp()) {
+                    case CoreOp.YieldOp _ when perdEffect.operands().getFirst() instanceof Boolean av -> av;
+                    default -> throw new InternalError();
+                };
+                if (!b) {
+                    Body detailsBody = o.detailsBody();
+                    AssertionError ae;
+                    if (detailsBody != null) {
+                        TerminatingOpEffect messEffect = executeBody(detailsBody, List.of(), e);
+                        Object message = switch (messEffect.terminatingOp()) {
+                            case CoreOp.YieldOp _ -> messEffect.operands().getFirst();
                             default -> throw new InternalError();
                         };
-                        if (!b) {
-                            Body detailsBody = o.detailsBody();
-                            AssertionError ae;
-                            if (detailsBody != null) {
-                                TerminatingOpEffect messEffect = executeBody(detailsBody, List.of(), e);
-                                Object message = switch (messEffect.terminatingOp()) {
-                                    case CoreOp.YieldOp _ -> messEffect.operands().getFirst();
-                                    default -> throw new InternalError();
-                                };
-                                ae = new AssertionError(message);
-                            } else {
-                                ae = new AssertionError();
-                            }
-                            return new TerminatingOpEffect(fakeThrowOp, List.of(ae), e);
-                        }
+                        ae = new AssertionError(message);
+                    } else {
+                        ae = new AssertionError();
                     }
-                } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(fakeThrowOp, List.of(ae), e);
                 }
                 result = null;
             }

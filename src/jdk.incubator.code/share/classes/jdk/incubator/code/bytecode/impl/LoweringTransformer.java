@@ -44,7 +44,6 @@ import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.ConstantExpressionTransformer;
-import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
@@ -75,15 +74,6 @@ public final class LoweringTransformer {
                     yield lowerToConstantLabelSwitchOp(block, block.transformer(), swOp, opt.get());
                 }
                 yield swOp.lower(block, null);
-            }
-            case JavaOp.AssertOp aOp -> {
-                Block.Builder assertBlock = block.block();
-                Block.Builder exit = aOp.lower(assertBlock, null);
-                // @@@ better handling of enable/disable assertions independent of javac
-                block.add(CoreOp.conditionalBranch(
-                        block.add(JavaOp.fieldLoad(JavaType.BOOLEAN, FieldRef.field(lookup.lookupClass(), "$assertionsDisabled", boolean.class))),
-                        exit.reference(), assertBlock.reference()));
-                yield exit;
             }
             case Op.Lowerable lop -> lop.lower(block, null);
             default -> {

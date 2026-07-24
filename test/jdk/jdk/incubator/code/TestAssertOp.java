@@ -25,11 +25,9 @@
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit/othervm -da:TestAssertOp TestAssertOp
- * @run junit/othervm -ea:TestAssertOp TestAssertOp
+ * @run junit TestAssertOp
  * @run main Unreflect TestAssertOp
- * @run junit/othervm -da:TestAssertOp TestAssertOp
- * @run junit/othervm -ea:TestAssertOp TestAssertOp
+ * @run junit TestAssertOp
  */
 
 import java.lang.invoke.MethodHandles;
