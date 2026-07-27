@@ -15,25 +15,36 @@ import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
-import static optkl.ifacemapper.MappableIface.*;
-
 /**
  * How to run?
+ *
+ * <p>
+ *     To run the Vector Addition
  * <code>
  *  java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_01
  * </code>
+ * </p>
  *
+ * <p>
+ *     Matrix Multiplication
  * <code>
  * java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_02
  * </code>
+ * </p>
  *
+ * <p>
+ *     Reduction
  * <code>
  *   java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_03
  * </code>
+ * </p>
  *
+ * <p>
+ *     Transpose Matrix
  * <code>
  *  java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_04
  * </code>
+ * </p>
  */
 public class TestTileAPI {
 
@@ -80,7 +91,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void vector_add(@RO TileContext tc, @RO F32Array inputA, @RO F32Array inputB, @RW F32Array output, @Constant int tile_size) {
+    public static void vector_add(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
 
         // Program id: get tile-id for 1D
         var pid = tc.bid(0);
@@ -96,7 +107,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void myComputeWithTile_vector_add(@RO ComputeContext computeContext, @RO F32Array inputA, @RO F32Array inputB, @RW F32Array output, @Constant int tile_size) {
+    public static void myComputeWithTile_vector_add(ComputeContext computeContext, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
         computeContext.dispatchTile(
                 TileRange.of(inputA.length(), tile_size),
                 tileContext -> vector_add(tileContext, inputA, inputB, output, tile_size));
@@ -254,7 +265,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void matmul(@RO TileContext tc, @RO F32Array inputA, @RO F32Array inputB, @RW F32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void matmul(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
 
         // Calculate bidx and bidy
         int bid = tc.bid(0);
@@ -285,7 +296,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tile_matmul(@RO ComputeContext computeContext, @RO F32Array inputA, @RO F32Array inputB, @RW F32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void tile_matmul(ComputeContext computeContext, F32Array inputA, F32Array inputB, F32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
         computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
                 tileContext -> matmul(tileContext, inputA, inputB, output, tm, tn, tk, M, N));
     }
@@ -404,7 +415,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void tile_reduction(@RO TileContext tileContext, @RO F32Array input, @RO F32Array output, @Constant int tile_size) {
+    public static void tile_reduction(TileContext tileContext, F32Array input, F32Array output, @Constant int tile_size) {
 
         // Obtain the tile-id
         int pid = tileContext.bid(0);
@@ -430,7 +441,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computetile_reduction(@RO ComputeContext computeContext, @RO F32Array input, @RO F32Array output, @Constant int tileSize) {
+    public static void computetile_reduction(ComputeContext computeContext, F32Array input, F32Array output, @Constant int tileSize) {
         computeContext.dispatchTile(TileRange.of(input.length(), tileSize),
                 tileContext -> tile_reduction(tileContext, input, output, tileSize));
     }
@@ -494,7 +505,7 @@ public class TestTileAPI {
                 return @loc="454:5";
             };
             """)
-    public static void transposeKernel(@RO TileContext tileContext, @RO F32Array inputMatrix, @WO F32Array transposedMatrix, @Constant int tm, @Constant int tn) {
+    public static void transposeKernel(TileContext tileContext, F32Array inputMatrix, F32Array transposedMatrix, @Constant int tm, @Constant int tn) {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
@@ -513,7 +524,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeTransposeKernel(@RO ComputeContext computeContext, @RO F32Array input, @RO F32Array output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
+    public static void computeTransposeKernel(ComputeContext computeContext, F32Array input, F32Array output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
         computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
                 tileContext -> transposeKernel(tileContext, input, output, tm, tn));
     }
