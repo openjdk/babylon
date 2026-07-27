@@ -47,11 +47,6 @@ public class TestFuncOpMethodRef {
     final JavaType THIS_CLASS = JavaType.type(this.getClass().describeConstable().get());
     static final JavaType J_U_MAP = JavaType.type(Map.class.describeConstable().get());
 
-    static void test(FuncOp op, MethodRef expectedMethodRef) {
-        Assertions.assertTrue(op.sourceRef().isPresent());
-        Assertions.assertEquals(expectedMethodRef, op.sourceRef().get());
-    }
-
     @Reflect
     static int f(List<Integer> l) {
         return l.getFirst();
@@ -82,5 +77,10 @@ public class TestFuncOpMethodRef {
 
         FuncOp tgop = gop.transform(CodeTransformer.COPYING_TRANSFORMER);
         test(tgop, gmr);
+    }
+
+    static void test(FuncOp op, MethodRef expectedMethodRef) {
+        Assertions.assertTrue(op.sourceRef().isPresent());
+        Assertions.assertEquals(expectedMethodRef, op.sourceRef().get());
     }
 }
