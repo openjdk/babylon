@@ -800,7 +800,7 @@ public final class BytecodeGenerator {
                                                       mDesc.insertParameterTypes(0, specialCaller));
                         }
                         ClassDesc ret = toClassDesc(op.resultType());
-                        if (ret.isClassOrInterface() && !ret.equals(mDesc.returnType())) {
+                        if (!ret.isPrimitive() && !ret.equals(mDesc.returnType())) {
                             // Explicit cast if method return type differs
                             cob.checkcast(ret);
                         }
