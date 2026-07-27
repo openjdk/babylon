@@ -5509,8 +5509,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             CodeType resourceType = resourcesBodies.getFirst().bodySignature().returnType();
             return syntheticBody(entryBlock -> {
                 Block.Builder afterAcquire = entryBlock.block(resourceType);
-                entryBlock.transformBody(resourcesBodies.getFirst(), List.of(), (block, op) -> {
-                    if (op instanceof CoreOp.YieldOp yop) {
+                Body resourceBody = resourcesBodies.getFirst();
+                entryBlock.transformBody(resourceBody, List.of(), (block, op) -> {
+                    if (op instanceof CoreOp.YieldOp yop && op.ancestorBody() == resourceBody) {
                         block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                     } else {
                         return resolveStatementTarget(block, op);

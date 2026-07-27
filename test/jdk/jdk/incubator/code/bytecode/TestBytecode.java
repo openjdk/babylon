@@ -285,9 +285,9 @@ public class TestBytecode {
     }
 
     @Reflect
-    static int tryWithResourceFinallyInLoopWithBreakAndContinue(int i) {
+    static int tryWithConditionalResourceFinallyInLoopWithBreakAndContinue(int i) {
         for (int j = -5; j < 5; j++) {
-            try (var _ = Stream.empty()) {
+            try (var _ = i % 2 == 1 ? Stream.empty(): Stream.empty()) {
                 if (i == j) continue;
                 i++;
             } finally {
