@@ -32,7 +32,6 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -69,7 +68,7 @@ public class TestLocal {
     }
 
     @Reflect
-    private static void myCompute(@MappableIface.RO ComputeContext computeContext, @MappableIface.WO F32Array data) {
+    private static void myCompute(ComputeContext computeContext, F32Array data) {
         computeContext.dispatchKernel(NDRange.of1D(32,16),
                 kernelContext -> compute(kernelContext, data)
         );

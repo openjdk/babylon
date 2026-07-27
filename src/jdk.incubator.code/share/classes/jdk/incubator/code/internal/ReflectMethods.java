@@ -874,7 +874,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
                     Value array = toValue(assign.indexed);
-                    Value index = toValue(assign.index);
+                    Value index = toValue(assign.index, syms.intType);
 
                     // Scan the rhs, the assign expression result is its input
                     result = toValue(tree.rhs, target);
@@ -1005,7 +1005,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
                     Value array = toValue(assign.indexed);
-                    Value index = toValue(assign.index);
+                    Value index = toValue(assign.index, syms.intType);
 
                     Op.Result lhsOpValue = append(JavaOp.arrayLoadOp(array, index));
                     // Scan the rhs
@@ -1116,7 +1116,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             Value array = toValue(tree.indexed);
 
-            Value index = toValue(tree.index, codeTypeToType(JavaType.INT));
+            Value index = toValue(tree.index, syms.intType);
 
             result = append(JavaOp.arrayLoadOp(array, index));
         }
@@ -1403,8 +1403,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     outerInstance = toValue(tree.encl);
                 }
                 args.add(outerInstance);
-                argtypes.add(outerInstance.type());
+                JavaType outerType = typeToCodeType(tree.constructor.innermostAccessibleEnclosingClass().erasure(types));
+                argtypes.add(outerType);
             }
+
+            MethodRef methodRef = symbolToMethodRef(tree.constructor);
+            argtypes.addAll(methodRef.signature().parameterTypes());
+            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
+
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
                     args.add(loadVar(c));
@@ -1417,14 +1423,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // We need to manually construct the constructor reference,
             // as the signature of the constructor symbol is not augmented
             // with enclosing this and captured params.
-            MethodRef methodRef = symbolToMethodRef(tree.constructor);
-            argtypes.addAll(methodRef.signature().parameterTypes());
             FunctionType constructorSignature = CoreType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
             MethodRef constructorRef = MethodRef.constructor(constructorSignature);
-
-            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
             result = append(JavaOp.new_(tree.varargsElement != null, typeToCodeType(type), constructorRef, args));
         }

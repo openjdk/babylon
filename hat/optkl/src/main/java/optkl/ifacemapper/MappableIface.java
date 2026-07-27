@@ -40,6 +40,7 @@ import static optkl.ifacemapper.MapperUtil.SECRET_OFFSET_METHOD_NAME;
 import static optkl.ifacemapper.MapperUtil.SECRET_SEGMENT_METHOD_NAME;
 
 public interface MappableIface extends IfaceValue {
+
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.PARAMETER)
     @interface RW  {}

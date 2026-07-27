@@ -552,6 +552,18 @@ public class TestBytecode {
     }
 
     @Reflect
+    static boolean finallyPassingThrough(boolean flag) {
+        try {
+            if (flag) {
+                return flag;
+            }
+        } finally {
+            flag = !flag;
+        }
+        return flag;
+    }
+
+    @Reflect
     static long doubleUseOfOperand(int x) {
         long piece = x;
         return piece * piece;

@@ -30,16 +30,12 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
-import optkl.ifacemapper.MappableIface;
-import optkl.ifacemapper.MappableIface.RO;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
-
-import static optkl.ifacemapper.MappableIface.WO;
 
 public class TestBlackscholes {
 
@@ -86,7 +82,7 @@ public class TestBlackscholes {
     }
 
     @Reflect
-    public static void blackScholes(@MappableIface.RO ComputeContext cc, @WO F32Array call, @WO F32Array put, @MappableIface.RO F32Array S, @MappableIface.RO F32Array X, @MappableIface.RO F32Array T, float r, float v) {
+    public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of1D(call.length()),
                 kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
         );

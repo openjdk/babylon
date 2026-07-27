@@ -60,7 +60,8 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class C99FFIBackend extends FFIBackend implements BufferTracker {
-    public C99FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
+
+    protected C99FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
         super(arena, lookup, libName, config);
     }
 

@@ -30,8 +30,6 @@ import hat.KernelContext;
 import hat.NDRange;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.WO;
 import optkl.ifacemapper.Schema;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -65,7 +63,7 @@ public class TestWriteOnly {
     }
 
     @Reflect
-    static public void compute(final @RO ComputeContext cc, @RO CellGrid grid, @WO CellGrid gridRes) {
+    public static void compute(final ComputeContext cc, CellGrid grid, CellGrid gridRes) {
         int range = grid.width() * grid.height();
         cc.dispatchKernel(NDRange.of1D(range), kc -> life(kc, grid, gridRes));
     }
@@ -74,16 +72,10 @@ public class TestWriteOnly {
     @Reflect
     public static void testWriteOnly() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup());
-
         int size = 1028;
         CellGrid cellGridRes = CellGrid.create(accelerator, size, size);
         CellGrid cellGrid = CellGrid.create(accelerator, size, size);
-
         accelerator.compute( cc -> compute(cc, cellGrid, cellGridRes));
-
-        // System.out.println("cellGrid width, height are " + cellGrid.width() + ", " + cellGrid.height());
-        // System.out.println("cellGridRes width, height are " + cellGridRes.width() + ", " + cellGridRes.height());
-
         HATAsserts.assertEquals(cellGridRes.width(), size, 0.01f);
         HATAsserts.assertEquals(cellGridRes.height(), size, 0.01f);
     }

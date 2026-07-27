@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,9 +34,6 @@ import hat.buffer.S32Array;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -58,7 +55,7 @@ public class TestArrays {
     }
 
     @Reflect
-    public static void square(@RO ComputeContext cc, @RW S32Array array) {
+    public static void square(ComputeContext cc, S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
                 kc -> squareKernel(kc, array)
         );
@@ -74,7 +71,7 @@ public class TestArrays {
     }
 
     @Reflect
-    public static void vectorAdd(@RO ComputeContext cc, @RO S32Array arrayA, @RO S32Array arrayB, @WO S32Array arrayC) {
+    public static void vectorAdd(ComputeContext cc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         cc.dispatchKernel(NDRange.of1D(arrayA.length()),
                 kc -> vectorAddition(kc, arrayA, arrayB, arrayC)
         );
@@ -91,7 +88,7 @@ public class TestArrays {
     }
 
     @Reflect
-    public static void computeSaxpy(@RO ComputeContext cc, @RO F32Array arrayA, @RO F32Array arrayB, @RW F32Array arrayC, float alpha) {
+    public static void computeSaxpy(ComputeContext cc, F32Array arrayA, F32Array arrayB, F32Array arrayC, float alpha) {
         cc.dispatchKernel(NDRange.of1D(arrayA.length()),
                 kc -> saxpy(kc, arrayA, arrayB, arrayC, alpha)
         );

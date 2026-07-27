@@ -30,7 +30,6 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -67,17 +66,17 @@ public class TestParenthesis {
     }
 
     @Reflect
-    public static void compute(@RO ComputeContext cc, @WO S32Array data) {
+    public static void compute(ComputeContext cc, S32Array data) {
         cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute(kc, data));
     }
 
     @Reflect
-    public static void compute2(@RO ComputeContext cc, @WO S32Array data) {
+    public static void compute2(ComputeContext cc, S32Array data) {
         cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute2(kc, data));
     }
 
     @Reflect
-    public static void compute3(@RO ComputeContext cc, @WO S32Array data) {
+    public static void compute3(ComputeContext cc, S32Array data) {
         cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute3(kc, data));
     }
 

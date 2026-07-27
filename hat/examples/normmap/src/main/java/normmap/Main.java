@@ -36,9 +36,6 @@ import java.util.Random;
 import javax.swing.JPanel;
 import java.awt.Font;
 
-import java.net.URL;
-import java.net.URISyntaxException;
-import java.io.File;
 import java.util.Arrays;
 
 /**
@@ -75,7 +72,7 @@ import java.util.Arrays;
 public class Main {
     public static Random RANDOM = new Random();
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.out.println("Welcome to the Normal Mapping Demo!");
         // Create an application state with 5 lights.
         State state = new State(5);

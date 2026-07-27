@@ -32,7 +32,6 @@ import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -69,7 +68,7 @@ public class TestPrivate {
     }
 
     @Reflect
-    private static void myCompute(@RO ComputeContext computeContext, @WO F32Array data) {
+    private static void myCompute(ComputeContext computeContext, F32Array data) {
         computeContext.dispatchKernel(NDRange.of1D(32),
                 kernelContext -> compute(kernelContext, data)
         );
@@ -80,9 +79,7 @@ public class TestPrivate {
     public void testPrivate() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
-        accelerator.compute(computeContext -> {
-            TestPrivate.myCompute(computeContext, data);
-        });
+        accelerator.compute(computeContext -> TestPrivate.myCompute(computeContext, data));
 
         // Check result
         boolean isCorrect = true;

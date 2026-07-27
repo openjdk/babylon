@@ -49,7 +49,7 @@ import java.util.List;
 
 public class Main {
 
-    public static void main(String[] argArr) {
+    static void main(String[] argArr) {
         var args = new ArrayList<>(List.of(argArr));
         args.add("THARGOID");
         var eliteReader = new EliteMeshParser();

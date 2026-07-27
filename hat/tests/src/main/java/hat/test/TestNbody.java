@@ -41,8 +41,6 @@ import hat.test.exceptions.HATAsserts;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static optkl.ifacemapper.MappableIface.RO;
-import static optkl.ifacemapper.MappableIface.RW;
 import static hat.test.TestNbody.Universe.*;
 
 public class TestNbody {
@@ -107,7 +105,7 @@ public class TestNbody {
     }
 
     @Reflect
-    public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
+    public static void nbodyCompute(ComputeContext cc, Universe universe, final float mass, final float delT, final float espSqr) {
         cc.dispatchKernel(NDRange.of1D(universe.length()), kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
     }
 

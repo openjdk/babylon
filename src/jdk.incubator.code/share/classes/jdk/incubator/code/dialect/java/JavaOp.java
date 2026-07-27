@@ -616,7 +616,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(AssertOp.NAME)
     public static final class AssertOp extends AbstractOp
-            implements JavaOp, Op.Nested, JavaStatement {
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
         static final String NAME = "assert";
 
         private final List<Body> bodies;
@@ -669,6 +669,42 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         public Body detailsBody() {
             return bodies.size() == 2 ? bodies.get(1) : null;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+            Block.Builder exit = b.block();
+            Block.Builder throwBlock = b.block();
+
+            b.transformBody(bodies.get(0), List.of(), loweringTransformer(inherited, (block, op) -> {
+                if (op instanceof CoreOp.YieldOp yo) {
+                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
+                            exit.reference(), throwBlock.reference()));
+                    return block;
+                } else {
+                    return null;
+                }
+            }));
+
+            if (bodies.size() == 2) {
+                throwBlock.transformBody(bodies.get(1), List.of(), loweringTransformer(inherited, (block, op) -> {
+                    if (op instanceof CoreOp.YieldOp yo) {
+                        block.add(throw_(
+                                block.add(new_(MethodRef.constructor(AssertionError.class, Object.class),
+                                        block.context().getValue(yo.yieldValue())))
+                        ));
+                        return block;
+                    } else {
+                        return null;
+                    }
+                }));
+            } else {
+                throwBlock.add(throw_(
+                        throwBlock.add(new_(MethodRef.constructor(AssertionError.class)))
+                ));
+            }
+
+            return exit;
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -192,7 +192,7 @@ public class NewTest {
                   %5 : java.type:"java.util.List<java.lang.String>" = var.load %3;
                   %6 : java.type:"NewTest::BG<java.lang.String>" = new %0 %5 @java.ref:"NewTest::BG::(NewTest, java.util.List)";
                   %7 : java.type:"java.util.List<java.lang.Number>" = var.load %4;
-                  %8 : java.type:"NewTest::BG<java.lang.String>::CG<java.lang.Number>" = new %6 %7 @java.ref:"NewTest::BG::CG::(NewTest::BG<java.lang.String>, java.util.List)";
+                  %8 : java.type:"NewTest::BG<java.lang.String>::CG<java.lang.Number>" = new %6 %7 @java.ref:"NewTest::BG::CG::(NewTest::BG, java.util.List)";
                   %9 : Var<java.type:"NewTest::BG<java.lang.String>::CG<java.lang.Number>"> = var %8 @"numberCG";
                   return;
               };

@@ -119,7 +119,8 @@ public class InjectBufferTracking {
             System.out.println("Weird "+s32Array.array(0)+s32Array.length());
         }
     }
-    public static void main(String[] args) throws NoSuchMethodException {
+
+    static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
         var func = func(lookup, InjectBufferTracking.class, "add", ComputeContext.class, S32Array.class, int.class, int.class);
 

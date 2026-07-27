@@ -206,7 +206,7 @@ public class Main {
         }
 
         @Reflect
-        static public void compute(final @RO ComputeContext cc,
+        public static void compute(final @RO ComputeContext cc,
                                    Viewer viewer, @RO Control ctrl, @RW CellGrid grid) {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
