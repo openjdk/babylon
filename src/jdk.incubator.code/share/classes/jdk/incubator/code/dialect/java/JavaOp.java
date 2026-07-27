@@ -2463,6 +2463,36 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     public sealed static abstract class StatementTargetOp extends AbstractOp.Terminating
             implements JavaOp, Op.Lowerable, JavaStatement {
+
+        @OpDeclaration("java.resolvedControlTransfer")
+        private static final class ResolvedStatementTarget extends StatementTargetOp {
+            private final Op target;
+            private final boolean continues;
+
+            ResolvedStatementTarget(StatementTargetOp source, Op target) {
+                super((Value) null);
+                this.target = target;
+                this.continues = source instanceof ContinueOp
+                        || source instanceof ResolvedStatementTarget resolved && resolved.continues;
+                setLocation(source.location());
+            }
+
+            @Override
+            public ResolvedStatementTarget transform(CodeContext cc, CodeTransformer ct) {
+                return new ResolvedStatementTarget(this, this.target);
+            }
+
+            @Override
+            Op target() {
+                return target;
+            }
+
+            @Override
+            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+                return lower(b, continues ? BranchTarget::continueBlock : BranchTarget::breakBlock);
+            }
+        }
+
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -2913,8 +2943,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         boolean ifExitFromSynchronized(StatementTargetOp lop) {
-            Op target = lop.target();
-            return target == this || target.isAncestorOf(this);
+            return lop instanceof StatementTargetOp.ResolvedStatementTarget || lop.target() == this || lop.target().isAncestorOf(this);
         }
 
         @Override
@@ -5144,12 +5173,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // try-catch-finally -> lower-level try form.
             // There is no recursion here, each time it is structurally different TryOp.
             if (!resourcesBodies.isEmpty()) {
-                b.transformBody(resourcesBodies.size() == 1
+                NormalizedBody normalized = resourcesBodies.size() == 1
                         && handlers.isEmpty()
                         && finallyBody == null
                                 ? lowerBasicTryWithResources()
-                                : normalizeTryWithResources(),
-                        b.context().getValues(capturedValues()),
+                                : normalizeTryWithResources();
+                b.transformBody(normalized.body(),
+                        b.context().getValues(normalized.captures()),
                         loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.add(branch(exit.reference()));
@@ -5414,11 +5444,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// @jls 14.20.3 try-with-resources
         /// @jls 14.20.3.1 Basic try-with-resources
         /// @jls 14.20.3.2 Extended try-with-resources
-        Body normalizeTryWithResources() {
+        NormalizedBody normalizeTryWithResources() {
             return syntheticBody(entryBlock -> {
                 Function<Block.Builder, TryOp> normalizedTry = block -> {
-                    block.context().mapValues(capturedValues(), entryBlock.parameters());
-                    return normalizeExtendedTryWithResources(block.parentBody(), block.context(), new ArrayList<>());
+                    block.context().mapValues(normalizationCaptures(), entryBlock.parameters());
+                    return normalizeExtendedTryWithResources(
+                            block.parentBody(), block.context(), new ArrayList<>());
                 };
                 if (handlers.isEmpty() && finallyBody == null) {
                     entryBlock.add(normalizedTry.apply(entryBlock));
@@ -5433,12 +5464,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         catchBuilder.catch_(
                                 catchTypes.get(i),
                                 catcher.bodySignature().parameterTypes().getFirst(),
-                                catchB -> catchB.transformBody(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
+                                catchB -> catchB.transformBody(
+                                        catcher, catchB.parameters(), entryBlock.context(), this::resolveStatementTarget));
                     }
                     entryBlock.add(finallyBody == null
                             ? catchBuilder.noFinalizer()
                             : catchBuilder.finally_(finB ->
-                                    finB.transformBody(finallyBody, List.of(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER)));
+                                    finB.transformBody(
+                                            finallyBody, List.of(), entryBlock.context(), this::resolveStatementTarget)));
                 }
                 entryBlock.add(core_yield());
             });
@@ -5471,7 +5504,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// ```
         ///
         /// @jls 14.20.3.1 Basic try-with-resources
-        Body lowerBasicTryWithResources() {
+        NormalizedBody lowerBasicTryWithResources() {
             assert resourcesBodies.size() == 1;
             CodeType resourceType = resourcesBodies.getFirst().bodySignature().returnType();
             return syntheticBody(entryBlock -> {
@@ -5480,7 +5513,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     if (op instanceof CoreOp.YieldOp yop) {
                         block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                     } else {
-                        block.add(op);
+                        return resolveStatementTarget(block, op);
                     }
                     return block;
                 });
@@ -5488,7 +5521,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
                 // @@@ following builder code may be refactored into a reflected template method transformation
                 afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
-                    tryEntry.transformBody(body, List.of(resource), afterAcquire.context(), CodeTransformer.COPYING_TRANSFORMER);
+                    tryEntry.transformBody(body, List.of(resource), afterAcquire.context(), this::resolveStatementTarget);
                 }).catch_(type(Throwable.class), catchB -> {
                     Block.Parameter thrown = catchB.parameters().getFirst();
                     catchB.add(varStore(primaryExceptionVar, thrown));
@@ -5531,7 +5564,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         TryOp normalizeExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, List<Value> resourceValues) {
             Body resource = resourcesBodies.get(resourceValues.size());
             Body.Builder resourceBody = Body.Builder.of(ancestorBody, CoreType.functionType(resource.yieldType()), cc);
-            resourceBody.entryBlock().transformBody(resource, resourceValues, cc, CodeTransformer.COPYING_TRANSFORMER);
+            resourceBody.entryBlock().transformBody(resource, resourceValues, cc, this::resolveStatementTarget);
             Body.Builder basicBody = Body.Builder.of(ancestorBody, CoreType.functionType(VOID, List.of(resource.yieldType())), cc);
             Block.Builder bodyB = basicBody.entryBlock();
             resourceValues.add(bodyB.parameters().getFirst());
@@ -5539,23 +5572,43 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 bodyB.add(normalizeExtendedTryWithResources(basicBody, cc, resourceValues));
                 bodyB.add(core_yield());
             } else {
-                bodyB.transformBody(body, resourceValues, cc, CodeTransformer.COPYING_TRANSFORMER);
+                bodyB.transformBody(body, resourceValues, cc, this::resolveStatementTarget);
             }
             return try_(List.of(resourceBody), basicBody, List.of(), null);
         }
 
-        Body syntheticBody(Consumer<Block.Builder> c) {
-            List<Value> captures = capturedValues();
+        private record NormalizedBody(Body body, List<Value> captures) {
+        }
+
+        NormalizedBody syntheticBody(Consumer<Block.Builder> action) {
+            List<Value> captures = normalizationCaptures();
             Body.Builder syntheticBody = Body.Builder.of(null, CoreType.functionType(VOID, captures.stream().map(Value::type).toList()));
             Block.Builder entryBlock = syntheticBody.entryBlock();
             entryBlock.context().mapValues(captures, entryBlock.parameters());
-            c.accept(entryBlock);
-            return syntheticBody.build(unreachable());
+            action.accept(entryBlock);
+            return new NormalizedBody(syntheticBody.build(unreachable()), captures);
+        }
+
+        private Block.Builder resolveStatementTarget(Block.Builder block, Op op) {
+            block.add(switch (op) {
+                case StatementTargetOp.ResolvedStatementTarget _ -> op;
+                case StatementTargetOp st when st.target() == this || st.target().isAncestorOf(this) ->
+                        new StatementTargetOp.ResolvedStatementTarget(st, st.target());
+                default -> op;
+            });
+            return block;
+        }
+
+        private List<Value> normalizationCaptures() {
+            return capturedValues().stream()
+                    .filter(value -> !(value instanceof Result result
+                            && result.op().ancestorOp() instanceof LabeledOp labeled
+                            && labeled.labelIdentifier() == result))
+                    .toList();
         }
 
         boolean ifExitFromTry(StatementTargetOp lop) {
-            Op target = lop.target();
-            return target == this || target.isAncestorOf(this);
+            return lop instanceof StatementTargetOp.ResolvedStatementTarget || lop.target() == this || lop.target().isAncestorOf(this);
         }
 
         Block.Builder inlineFinalizer(Block.Builder block1, Value enter, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
