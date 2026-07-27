@@ -2544,9 +2544,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     boolean isReflectable(JCMethodDecl tree) {
-        return reflectAll || codeReflectionEnabled ||
+        return codeReflectionEnabled ||
                 (tree.body != null &&
-                tree.sym.attribute(crSyms.codeReflectionType.tsym) != null);
+                (reflectAll || tree.sym.attribute(crSyms.codeReflectionType.tsym) != null));
     }
 
     boolean isReflectable(JCFunctionalExpression expr) {
