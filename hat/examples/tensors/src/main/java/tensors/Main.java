@@ -37,7 +37,6 @@ import hat.examples.common.ParseArgs.Options;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;

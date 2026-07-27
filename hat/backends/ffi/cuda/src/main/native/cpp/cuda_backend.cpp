@@ -264,7 +264,7 @@ Backend::CompilationUnit *CudaBackend::compile(const int len, char *source) {
         if (config->trace) {
             std::cout << "compiling from provided  cuda " << std::endl;
         }
-        CudaSource cudaSource(len , source, false, config->profileCudaKernel);
+        CudaSource cudaSource(len , source, false, config->profile);
         return compile(cudaSource);
     }
 }
