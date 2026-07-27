@@ -95,6 +95,7 @@ public class CodeReflectionTester {
     static void check(Method method) {
         if (!method.isAnnotationPresent(Reflect.class)) return;
         CoreOp.FuncOp op = Op.ofMethod(method).orElseThrow();
+        // we remove the source attribute, to avoid updating the tests, which we will do later
         String found = canonicalizeModel(method, removeSourceAttribute(op));
         IR ir = method.getAnnotation(IR.class);
         if (ir == null) {

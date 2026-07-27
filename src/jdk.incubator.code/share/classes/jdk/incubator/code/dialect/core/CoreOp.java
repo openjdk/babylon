@@ -234,7 +234,7 @@ public sealed abstract class CoreOp extends Op {
         @Override
         public Map<String, Object> externalize() {
             Map<String, Object> m = new HashMap<>();
-            if (isFakeSource()) {
+            if (!isSyntheticSourceRef()) {
                 m.put(ATTRIBUTE_FUNC_SOURCE, source);
             } else {
                 m.put("", source.name());
@@ -267,15 +267,15 @@ public sealed abstract class CoreOp extends Op {
         }
 
         /**
-         * Return the reference to the method this function operation models.
-         * @return the reference to the method this function operation models.
+         * {@return the source reference to the method this operation models, otherwise an empty optional
+         * if the reference is unavailable}
          */
         public Optional<MethodRef> sourceRef() {
-            return isFakeSource() ? Optional.of(source) : Optional.empty();
+            return isSyntheticSourceRef() ? Optional.empty() : Optional.of(source);
         }
 
-        private boolean isFakeSource() {
-            return !source.refType().equals(JavaType.VOID);
+        private boolean isSyntheticSourceRef() {
+            return source.refType().equals(JavaType.VOID);
         }
 
         static MethodRef fakeSource(String fn, FunctionType ft) {
