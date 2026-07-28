@@ -605,7 +605,9 @@ static class JavaTypeUtils{
                 writeValueDeclaration(opr).space().equal().space();
             }
         }
-        write(op.externalizeOpName());
+        write((op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName());
 
         if (!op.operands().isEmpty()) {
             space().writeSpaceSeparatedList(op.operands(), this::writeValueUse);
@@ -621,7 +623,9 @@ static class JavaTypeUtils{
                 space().writeLocation(location);
             }
         }
-        Map<String, Object> attributes = op.externalize();
+        Map<String, Object> attributes = (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalize()
+                : Map.of();
         if (!attributes.isEmpty()) {
             space().writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
         }

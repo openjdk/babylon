@@ -98,8 +98,8 @@ import java.lang.reflect.Method;
  * }
  * </li>
  * </ol>
- * If a method or lambda expression (or method reference) is declared reflectable then the compiler generates an error
- * message if it contains program elements that cannot be modeled (and therefore a code model cannot be produced).
+ * If a method or lambda expression (or method reference) is declared reflectable but cannot be modeled, then the
+ * compiler generates a warning message, and access returns an empty optional value.
  * <p>
  * The annotation is ignored if it appears in any other valid syntactic location.
  * <p>

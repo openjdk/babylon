@@ -25,44 +25,29 @@
 
 package jdk.incubator.code.bytecode;
 
-import java.lang.classfile.ClassBuilder;
-import java.lang.classfile.ClassFile;
-import java.lang.classfile.CodeBuilder;
-import java.lang.classfile.Label;
-import java.lang.classfile.Opcode;
-import java.lang.classfile.TypeKind;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
+import jdk.incubator.code.bytecode.impl.BytecodeCompactor;
+import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
+import jdk.incubator.code.bytecode.impl.DynamicFuncCallOp;
+import jdk.incubator.code.bytecode.impl.LoweringTransformer;
+import jdk.incubator.code.dialect.core.CoreOp.*;
+import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
+import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.*;
+
+import java.lang.classfile.*;
 import java.lang.classfile.instruction.SwitchCase;
-import java.lang.constant.ClassDesc;
-import java.lang.constant.Constable;
-import java.lang.constant.ConstantDescs;
-import java.lang.constant.DirectMethodHandleDesc;
-import java.lang.constant.DynamicCallSiteDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodHandleDesc;
-import java.lang.constant.MethodTypeDesc;
-import java.lang.invoke.LambdaMetafactory;
+import java.lang.constant.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.StringConcatFactory;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Stream;
-
-import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
-import jdk.incubator.code.bytecode.impl.BytecodeCompactor;
-import jdk.incubator.code.bytecode.impl.ConstantLabelSwitchOp;
-import jdk.incubator.code.bytecode.impl.LoweringTransform;
-import jdk.incubator.code.dialect.core.CoreOp.*;
-import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.extern.DialectFactory;
-import jdk.incubator.code.internal.OpBuilder;
-import jdk.incubator.code.internal.RemoveUnusedConstantTransformer;
-import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
@@ -72,22 +57,10 @@ import static jdk.incubator.code.dialect.java.JavaOp.*;
  */
 public final class BytecodeGenerator {
 
-    private static final DirectMethodHandleDesc DMHD_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
-            LambdaMetafactory.class.describeConstable().orElseThrow(),
-            "metafactory",
-            CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
-
-    private static final DirectMethodHandleDesc DMHD_REFLECTABLE_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
-            ReflectableLambdaMetafactory.class.describeConstable().orElseThrow(),
-            "metafactory",
-            CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
-
     private static final DirectMethodHandleDesc DMHD_STRING_CONCAT = ofCallsiteBootstrap(
             StringConcatFactory.class.describeConstable().orElseThrow(),
             "makeConcat",
             CD_CallSite);
-
-    private static final MethodTypeDesc OP_METHOD_DESC = MethodTypeDesc.of(Op.class.describeConstable().get());
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -164,40 +137,13 @@ public final class BytecodeGenerator {
         return generateClassData(lookup, clsName, new LinkedHashMap<>(Map.of(name, iop)));
     }
 
-    @SuppressWarnings("unchecked")
     private static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                           ClassDesc clName,
                                                                           SequencedMap<String, ? extends O> ops) {
+        ModuleOp module = LoweringTransformer.transform(lookup, ops);
         byte[] classBytes = ClassFile.of().build(clName, clb -> {
-            List<LambdaOp> lambdaSink = new ArrayList<>();
-            BitSet reflectableLambda = new BitSet();
-            CodeTransformer lowering = LoweringTransform.getInstance(lookup);
-            for (var e : ops.sequencedEntrySet()) {
-                Op transformed = ConstantExpressionTransformer.transform(lookup, e.getValue());
-                transformed = transformed.transform(CodeContext.create(), RemoveUnusedConstantTransformer.INSTANCE);
-                O lowered = NormalizeBlocksTransformer.transform(
-                        (O)transformed.transform(CodeContext.create(), lowering));
-                generateMethod(lookup, clName, e.getKey(), lowered, clb, ops, lambdaSink, reflectableLambda);
-            }
-            var modelsToBuild = new LinkedHashMap<String, FuncOp>();
-            for (int i = 0; i < lambdaSink.size(); i++) {
-                LambdaOp lop = lambdaSink.get(i);
-                if (reflectableLambda.get(i)) {
-                    modelsToBuild.put("op$lambda$" + i, Quoted.embedOp(lop));
-                }
-                generateMethod(lookup, clName, "lambda$" + i, lop, clb, ops, lambdaSink, reflectableLambda);
-            }
-            if (!modelsToBuild.isEmpty()) {
-                var module = OpBuilder.createBuilderFunctions(
-                        modelsToBuild,
-                        b -> b.add(JavaOp.fieldLoad(
-                                FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-
-                for (var e : module.functionTable().sequencedEntrySet()) {
-                    var lowered = NormalizeBlocksTransformer.transform(
-                            e.getValue().transform(CodeContext.create(), lowering));
-                    generateMethod(lookup, clName, e.getKey(), lowered, clb, module.functionTable(), null, null);
-                }
+            for (var e : module.functionTable().sequencedEntrySet()) {
+                generateMethod(lookup, clName, e.getKey(), e.getValue(), clb, module.functionTable());
             }
         });
 
@@ -205,21 +151,16 @@ public final class BytecodeGenerator {
         return BytecodeCompactor.transform(classBytes);
     }
 
-    private static <O extends Op & Op.Invokable> void generateMethod(MethodHandles.Lookup lookup,
-                                                                     ClassDesc className,
-                                                                     String methodName,
-                                                                     O iop,
-                                                                     ClassBuilder clb,
-                                                                     SequencedMap<String, ? extends O> functionTable,
-                                                                     List<LambdaOp> lambdaSink,
-                                                                     BitSet reflectableLambda) {
-        List<Value> capturedValues = iop instanceof LambdaOp lop ? lop.capturedValues() : List.of();
-        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(
-                iop.invokableSignature()).insertParameterTypes(0, capturedValues.stream()
-                        .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new));
+    private static void generateMethod(MethodHandles.Lookup lookup,
+                                       ClassDesc className,
+                                       String methodName,
+                                       FuncOp fop,
+                                       ClassBuilder clb,
+                                       SequencedMap<String, FuncOp> functionTable) {
+        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(fop.invokableSignature());
         clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                cob -> new BytecodeGenerator(lookup, className, capturedValues, TypeKind.from(mtd.returnType()),
-                                             iop.body().blocks(), cob, functionTable, lambdaSink, reflectableLambda).generate());
+                cob -> new BytecodeGenerator(lookup, className, List.of(), TypeKind.from(mtd.returnType()),
+                                             fop.body().blocks(), cob, functionTable).generate());
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
@@ -232,13 +173,11 @@ public final class BytecodeGenerator {
     private final CodeBuilder cob;
     private final Label[] blockLabels;
     private final Block[][] blocksCatchMap;
-    private final BitSet allCatchBlocks;
+    private final CodeType[] catchBlockTypes;
     private final Label[] tryStartLabels;
     private final Map<Value, Slot> slots;
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
-    private final Map<String, ? extends Invokable> functionMap;
-    private final List<LambdaOp> lambdaSink;
-    private final BitSet reflectableLambda;
+    private final Map<String, ? extends Op.Invokable> functionMap;
     private final Map<Op, Boolean> deferCache;
     private Value oprOnStack;
     private Block[] recentCatchBlocks;
@@ -249,9 +188,7 @@ public final class BytecodeGenerator {
                               TypeKind returnType,
                               List<Block> blocks,
                               CodeBuilder cob,
-                              Map<String, ? extends Invokable> functionMap,
-                              List<LambdaOp> lambdaSink,
-                              BitSet reflectableLambda) {
+                              Map<String, ? extends Op.Invokable> functionMap) {
         this.lookup = lookup;
         this.className = className;
         this.capturedValues = capturedValues;
@@ -260,13 +197,11 @@ public final class BytecodeGenerator {
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
         this.blocksCatchMap = new Block[blocks.size()][];
-        this.allCatchBlocks = new BitSet();
+        this.catchBlockTypes = new CodeType[blocks.size()];
         this.tryStartLabels = new Label[blocks.size()];
         this.slots = new IdentityHashMap<>();
         this.singlePredecessorsValues = new IdentityHashMap<>();
         this.functionMap = functionMap;
-        this.lambdaSink = lambdaSink;
-        this.reflectableLambda = reflectableLambda;
         this.deferCache = new IdentityHashMap<>();
     }
 
@@ -430,9 +365,6 @@ public final class BytecodeGenerator {
             // New object cannot use first operand from stack, new array fall through to the default
             case NewOp op when !(op.constructorReference().signature().returnType() instanceof ArrayType) ->
                 false;
-            // For lambda the effective operands are captured values
-            case LambdaOp op ->
-                !(values = op.capturedValues()).isEmpty() && values.getFirst() == opr;
             // Conditional branch may delegate to its binary test operation
             case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CompareOp co ->
                 isFirstOperand(co, opr);
@@ -550,7 +482,7 @@ public final class BytecodeGenerator {
             exceptionRegionsChange(catchBlocks);
 
             // If b is a catch block then the exception argument will be represented on the stack
-            if (allCatchBlocks.get(b.index())) {
+            if (catchBlockTypes[b.index()] != null) {
                 // Retain block argument for exception table generation
                 push(b.parameters().getFirst());
             }
@@ -868,14 +800,14 @@ public final class BytecodeGenerator {
                                                       mDesc.insertParameterTypes(0, specialCaller));
                         }
                         ClassDesc ret = toClassDesc(op.resultType());
-                        if (ret.isClassOrInterface() && !ret.equals(mDesc.returnType())) {
+                        if (!ret.isPrimitive() && !ret.equals(mDesc.returnType())) {
                             // Explicit cast if method return type differs
                             cob.checkcast(ret);
                         }
                         push(op.result());
                     }
                     case FuncCallOp op -> {
-                        Invokable fop = functionMap.get(op.funcName());
+                        Op.Invokable fop = functionMap.get(op.funcName());
                         if (fop == null) {
                             throw new IllegalArgumentException("Could not resolve function: " + op.funcName());
                         }
@@ -896,7 +828,7 @@ public final class BytecodeGenerator {
                     }
                     case FieldAccessOp.FieldLoadOp op -> {
                         processOperands(op);
-                FieldRef fd = op.fieldReference();
+                        FieldRef fd = op.fieldReference();
                         if (op.operands().isEmpty()) {
                             cob.getstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -912,7 +844,7 @@ public final class BytecodeGenerator {
                     }
                     case FieldAccessOp.FieldStoreOp op -> {
                         processOperands(op);
-                FieldRef fd = op.fieldReference();
+                        FieldRef fd = op.fieldReference();
                         if (op.operands().size() == 1) {
                             cob.putstatic(
                                     ((JavaType) fd.refType()).toNominalDescriptor(),
@@ -935,37 +867,22 @@ public final class BytecodeGenerator {
                         cob.checkcast(((JavaType) op.targetType()).toNominalDescriptor());
                         push(op.result());
                     }
-                    case LambdaOp op -> {
-                        JavaType intfType = (JavaType)op.functionalInterface();
-                        MethodTypeDesc mtd = MethodRef.toNominalDescriptor(op.invokableSignature());
-                        try {
-                            Class<?> intfClass = (Class<?>)intfType.erasure().resolve(lookup);
-                            Method intfMethod = funcIntfMethod(intfClass, mtd);
-                            processOperands(op.capturedValues());
-                            ClassDesc[] captureTypes = op.capturedValues().stream()
-                                    .map(Value::type).map(BytecodeGenerator::toClassDesc).toArray(ClassDesc[]::new);
-                            int lambdaIndex = lambdaSink.size();
-                            DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
-                            String intfMethodName = intfMethod.getName();
-                            if (op.isReflectable()) {
-                                lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
-                                intfMethodName = intfMethodName + "=" + "op$lambda$" + lambdaIndex;
-                                reflectableLambda.set(lambdaSink.size());
-                            }
-                            cob.invokedynamic(DynamicCallSiteDesc.of(
-                                    lambdaMetafactory,
-                                    intfMethodName,
-                                    MethodTypeDesc.of(intfType.toNominalDescriptor(), captureTypes),
-                                    toMTD(intfMethod),
-                                    MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
-                                                              className,
-                                                              "lambda$" + lambdaIndex,
-                                                              mtd.insertParameterTypes(0, captureTypes)),
-                                    mtd));
-                            lambdaSink.add(op);
-                        } catch (ReflectiveOperationException e) {
-                            throw new IllegalArgumentException(e);
+                    case DynamicFuncCallOp op -> {
+                        Op.Invokable fop = functionMap.get(op.funcName());
+                        if (fop == null) {
+                            throw new IllegalArgumentException("Could not resolve function: " + op.funcName());
                         }
+                        processOperands(op);
+                        cob.invokedynamic(DynamicCallSiteDesc.of(
+                                op.bootstrapMethod(),
+                                op.invocationName(),
+                                op.invocationType(),
+                                op.interfaceMethodType(),
+                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                        className,
+                                        op.funcName(),
+                                        MethodRef.toNominalDescriptor(fop.invokableSignature())),
+                                op.dynamicMethodType()));
                         push(op.result());
                     }
                     case ConcatOp op -> {
@@ -1047,10 +964,12 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionEnter op -> {
                     List<Block.Reference> enteringCatchBlocks = op.catchReferences();
+                    List<CodeType> enteringCatchTypes = op.catchTypes();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length + enteringCatchBlocks.size());
                     int i = recentCatchBlocks.length;
+                    int catchIndex = 0;
                     for (Block.Reference catchRef : enteringCatchBlocks) {
-                        allCatchBlocks.set(catchRef.targetBlock().index());
+                        catchBlockTypes[catchRef.targetBlock().index()] = enteringCatchTypes.get(catchIndex++);
                         activeCatchBlocks[i++] = catchRef.targetBlock();
                         setCatchStack(catchRef, recentCatchBlocks);
                     }
@@ -1106,12 +1025,19 @@ public final class BytecodeGenerator {
             // Exit catch blocks missing in the newCatchBlocks
             while (i >=0 && (i >= newCatchBlocks.length || recentCatchBlocks[i] != newCatchBlocks[i])) {
                 Block catchBlock = recentCatchBlocks[i--];
-                List<Block.Parameter> params = catchBlock.parameters();
-                if (!params.isEmpty()) {
-                    JavaType jt = (JavaType) params.get(0).type();
-                    cob.exceptionCatch(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()), jt.toNominalDescriptor());
-                } else {
-                    cob.exceptionCatchAll(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()));
+                CodeType catchType = catchBlockTypes[catchBlock.index()];
+                Label tryStart = tryStartLabels[catchBlock.index()];
+                Label handler = getLabel(catchBlock.index());
+                switch (catchType) {
+                    case TupleType tt ->
+                        tt.componentTypes().forEach(type ->
+                                cob.exceptionCatch(tryStart, currentLabel, handler, ((JavaType) type).toNominalDescriptor()));
+                    case ClassType ct ->
+                        cob.exceptionCatch(tryStart, currentLabel, handler, ct.toNominalDescriptor());
+                    case PrimitiveType pt when pt.equals(JavaType.VOID) ->
+                        cob.exceptionCatchAll(tryStart, currentLabel, handler);
+                    default ->
+                        throw new IllegalArgumentException("Bad catch type: " + catchType);
                 }
                 tryStartLabels[catchBlock.index()] = null;
             }
@@ -1194,47 +1120,6 @@ public final class BytecodeGenerator {
         } else {
             return null;
         }
-    }
-
-    private Method funcIntfMethod(Class<?> intfc, MethodTypeDesc mtd) {
-        Method intfM = null;
-        for (Method m : intfc.getMethods()) {
-            // ensure it's SAM interface
-            String methodName = m.getName();
-            if (Modifier.isAbstract(m.getModifiers())
-                    && (m.getReturnType() != String.class
-                        || m.getParameterCount() != 0
-                        || !methodName.equals("toString"))
-                    && (m.getReturnType() != int.class
-                        || m.getParameterCount() != 0
-                        || !methodName.equals("hashCode"))
-                    && (m.getReturnType() != boolean.class
-                        || m.getParameterCount() != 1
-                        || m.getParameterTypes()[0] != Object.class
-                        || !methodName.equals("equals"))) {
-                if (intfM == null && isAdaptable(m, mtd)) {
-                    intfM = m;
-                } else if (!intfM.getName().equals(methodName)) {
-                    // too many abstract methods
-                    throw new IllegalArgumentException("Not a single-method interface: " + intfc.getName());
-                }
-            }
-        }
-        if (intfM == null) {
-            throw new IllegalArgumentException("No method in: " + intfc.getName() + " matching: " + mtd);
-        }
-        return intfM;
-    }
-
-    private static boolean isAdaptable(Method m, MethodTypeDesc mdesc) {
-        // @@@ filter overrides
-        return true;
-    }
-
-    private static MethodTypeDesc toMTD(Method m) {
-        return MethodTypeDesc.of(
-                m.getReturnType().describeConstable().get(),
-                Stream.of(m.getParameterTypes()).map(t -> t.describeConstable().get()).toList());
     }
 
     private void conditionalBranch(Opcode reverseOpcode, Block.Reference trueBlock, Block.Reference falseBlock) {
@@ -1361,7 +1246,7 @@ public final class BytecodeGenerator {
     private void assignBlockArguments(Block.Reference ref) {
         Block target = ref.targetBlock();
         List<Value> sargs = ref.arguments();
-        if (allCatchBlocks.get(target.index())) {
+        if (catchBlockTypes[target.index()] != null) {
             // Jumping to an exception handler, exception parameter is expected on stack
             Value value = sargs.getFirst();
             if (oprOnStack == value) {

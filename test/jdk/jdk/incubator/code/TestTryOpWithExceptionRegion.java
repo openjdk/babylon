@@ -1,6 +1,8 @@
+import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
@@ -43,6 +46,7 @@ public class TestTryOpWithExceptionRegion {
         }
     }
 
+    BiConsumer<Block.Builder, Value> IGNORE_RETURN = (rb, rv) -> {};
     @Test
     void testTryOpEnclosingExceptionRegion() throws NoSuchMethodException {
         // lower n + inline it in m
@@ -51,9 +55,7 @@ public class TestTryOpWithExceptionRegion {
         CoreOp.FuncOp m = Op.ofMethod(this.getClass().getDeclaredMethod("m", IntConsumer.class)).get();
         CoreOp.FuncOp m2 = m.transform((b, o) -> {
             if (o instanceof JavaOp.InvokeOp iop && iop.invokeReference().name().equals("n")) {
-                var bb = Inliner.inline(b, ln, b.context().getValues(m.parameters()), (b2, v2) -> {
-                });
-                return bb.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER);
+                return Inliner.inline(b, ln, b.context().getValues(m.parameters()), IGNORE_RETURN);
             } else {
                 b.add(o);
                 return b;
@@ -82,8 +84,7 @@ public class TestTryOpWithExceptionRegion {
         CoreOp.FuncOp n = Op.ofMethod(this.getClass().getDeclaredMethod("n", IntConsumer.class)).get();
         CoreOp.FuncOp lm2 = lm.transform((b, o) -> {
             if (o instanceof JavaOp.InvokeOp iop && iop.invokeReference().name().equals("n")) {
-                var bb = Inliner.inline(b, n, b.context().getValues(lm.parameters()), (b2, v2) -> {});
-                return bb.withContextAndTransformer(b.context(), CodeTransformer.COPYING_TRANSFORMER);
+                return Inliner.inline(b, n, b.context().getValues(lm.parameters()), IGNORE_RETURN);
             } else {
                 b.add(o);
                 return b;

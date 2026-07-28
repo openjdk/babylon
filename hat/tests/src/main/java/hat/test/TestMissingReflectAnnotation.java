@@ -30,8 +30,6 @@ import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -63,13 +61,13 @@ public class TestMissingReflectAnnotation {
     }
 
     @Reflect
-    public static void square(@RO ComputeContext cc, @RW S32Array array) {
+    public static void square(ComputeContext cc, S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
                 kc -> squareKernelWithoutReflectAnnotation(kc, array)
         );
     }
 
-    public static void squareWithoutReflectAnnotation(@RO ComputeContext cc, @RW S32Array array) {
+    public static void squareWithoutReflectAnnotation(ComputeContext cc, S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
                 kc -> squareKernel(kc, array)
         );

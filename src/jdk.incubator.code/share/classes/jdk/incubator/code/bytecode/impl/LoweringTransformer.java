@@ -30,20 +30,26 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.Set;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
+import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.ConstantExpressionTransformer;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.internal.BranchTarget;
+import jdk.incubator.code.internal.RemoveUnusedConstantTransformer;
 
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
@@ -51,13 +57,16 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
 
 /**
  * Lowering transformer generates models supported by {@code BytecodeGenerator}.
+ * It expands lambda operations into synthetic functions and dynamic function calls,
+ * evaluates constant expressions, removes unused constants, lowers operations, and
+ * normalizes blocks.
  * Constant-labeled switch statements and switch expressions are lowered to
  * {@code ConstantLabelSwitchOp} with evaluated labels.
  * We expect label value to be the second operand to the operation that perform equality check.
  */
-public final class LoweringTransform {
+public final class LoweringTransformer {
 
-    public static CodeTransformer getInstance(MethodHandles.Lookup lookup) {
+    private static CodeTransformer getInstance(MethodHandles.Lookup lookup) {
         return (block, op) -> switch (op) {
             case JavaOp.JavaSwitchOp swOp -> {
                 Optional<LabelsAndTargets> opt = isCaseConstantSwitchWithIntegralSelector(swOp, lookup);
@@ -72,6 +81,20 @@ public final class LoweringTransform {
                 yield block;
             }
         };
+    }
+
+    public static <O extends Op & Op.Invokable> CoreOp.ModuleOp transform(MethodHandles.Lookup lookup,
+                                                                          SequencedMap<String, ? extends O> ops) {
+        CoreOp.ModuleOp module = LambdaExpansionTransformer.transform(lookup, ops);
+        CodeTransformer lowering = getInstance(lookup);
+        List<FuncOp> functions = new ArrayList<>();
+        for (FuncOp fop : module.functionTable().sequencedValues()) {
+            Op transformed = ConstantExpressionTransformer.transform(lookup, fop);
+            transformed = transformed.transform(CodeContext.create(), RemoveUnusedConstantTransformer.INSTANCE);
+            functions.add(NormalizeBlocksTransformer.transform(
+                    (FuncOp) transformed.transform(CodeContext.create(), lowering)));
+        }
+        return CoreOp.module(functions);
     }
 
     private static Block.Builder lowerToConstantLabelSwitchOp(Block.Builder block, CodeTransformer transformer,

@@ -28,6 +28,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -48,7 +49,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -281,6 +284,20 @@ public class TestBytecode {
         return i;
     }
 
+    @Reflect
+    static int tryWithConditionalResourceFinallyInLoopWithBreakAndContinue(int i) {
+        for (int j = -5; j < 5; j++) {
+            try (var _ = i % 2 == 1 ? Stream.empty(): Stream.empty()) {
+                if (i == j) continue;
+                i++;
+            } finally {
+                if (i == -j) break;
+                i = i + j;
+            }
+        }
+        return i;
+    }
+
     public record A(String s) {}
 
     @Reflect
@@ -398,6 +415,27 @@ public class TestBytecode {
     @Reflect
     static int nestedLambdasWithCaptures(int i, int j, String s) {
         return consumeLambda(i, a -> consumeLambda(a, b -> a + b + j - s.length()) + s.length());
+    }
+
+    static String lambdaModelText(Object f) {
+        return OpWriter.toText(Op.ofLambda(f).orElseThrow().op(), OpWriter.LocationOption.DROP_LOCATION);
+    }
+
+    @Reflect
+    static String nestedLambdaModels(boolean b) {
+        Supplier<IntSupplier> outer = () -> () -> {
+            if (b) {
+                return 1;
+            }
+            return 2;
+        };
+        return """
+               outer lambda model:
+               %s
+               inner lambda model:
+               %s
+               """.formatted(lambdaModelText(outer),
+                             lambdaModelText(outer.get()));
     }
 
     @Reflect
@@ -528,6 +566,18 @@ public class TestBytecode {
     }
 
     @Reflect
+    static boolean finallyPassingThrough(boolean flag) {
+        try {
+            if (flag) {
+                return flag;
+            }
+        } finally {
+            flag = !flag;
+        }
+        return flag;
+    }
+
+    @Reflect
     static long doubleUseOfOperand(int x) {
         long piece = x;
         return piece * piece;
@@ -542,6 +592,14 @@ public class TestBytecode {
     static String staticVarargInvokeWithNoRegularArgs(String s) {
         String a = "prefix";
         return Arrays.asList(a, s).toString();
+    }
+
+    @Reflect
+    static int patternMatchSameType(String s) {
+        if (s instanceof String ss) {
+            return ss.length();
+        }
+        return -1;
     }
 
     record TestData(Method testMethod) {

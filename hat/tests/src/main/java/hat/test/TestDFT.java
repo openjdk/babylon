@@ -38,9 +38,6 @@ import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 import optkl.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
@@ -118,9 +115,7 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void dftCompute(@RO ComputeContext cc,
-                                   @RO ArrayComplex input,
-                                   @WO ArrayComplex output) {
+    private static void dftCompute(ComputeContext cc, ArrayComplex input, ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
         cc.dispatchKernel(range, kernelContext -> dftKernel(kernelContext, input, output));
     }
@@ -177,9 +172,7 @@ public class TestDFT {
 
 
     @Reflect
-    private static void complexNumbersInPrivate(@RW ComputeContext cc,
-                                   @RO ArrayComplex input,
-                                   @WO ArrayComplex output) {
+    private static void complexNumbersInPrivate(ComputeContext cc, ArrayComplex input, ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
         cc.dispatchKernel(range, kernelContext -> testPrivateDS(kernelContext, input, output));
     }

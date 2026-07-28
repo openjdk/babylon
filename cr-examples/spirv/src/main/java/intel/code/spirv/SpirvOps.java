@@ -444,18 +444,15 @@ public class SpirvOps {
         }
     }
 
-    public static final class BranchOp extends SpirvOp implements Op.BlockTerminating {
+    public static final class BranchOp extends SpirvTerminatingOp {
         public static final String NAME = NAME_PREFIX + "br";
-        private final Block.Reference successor;
 
         public BranchOp(Block.Reference successor) {
-            super(NAME, JavaType.VOID, List.of());
-            this.successor = successor;
+            super(NAME, JavaType.VOID, List.of(), List.of(successor));
         }
 
         public BranchOp(BranchOp that, CodeContext cc) {
             super(that, cc);
-            this.successor = that.successor;
         }
 
         @Override
@@ -464,30 +461,19 @@ public class SpirvOps {
         }
 
         public Block branch() {
-            return successor.targetBlock();
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return List.of(successor);
+            return successors().get(0).targetBlock();
         }
     }
 
-    public static final class ConditionalBranchOp extends SpirvOp implements Op.BlockTerminating {
+    public static final class ConditionalBranchOp extends SpirvTerminatingOp {
         public static final String NAME = NAME_PREFIX + "brcond";
-        private final Block.Reference trueBlock;
-        private final Block.Reference falseBlock;
 
         public ConditionalBranchOp(Block.Reference trueBlock, Block.Reference falseBlock, List<Value> operands) {
-                super(NAME, JavaType.VOID, operands);
-                this.trueBlock = trueBlock;
-                this.falseBlock = falseBlock;
+            super(NAME, JavaType.VOID, operands, List.of(trueBlock, falseBlock));
         }
 
         public ConditionalBranchOp(ConditionalBranchOp that, CodeContext cc) {
             super(that, cc);
-            this.trueBlock = that.trueBlock;
-            this.falseBlock = that.falseBlock;
         }
 
         @Override
@@ -496,16 +482,11 @@ public class SpirvOps {
         }
 
         public Block trueBranch() {
-            return trueBlock.targetBlock();
+            return successors().get(0).targetBlock();
         }
 
         public Block falseBranch() {
-            return falseBlock.targetBlock();
-        }
-
-        @Override
-        public List<Block.Reference> successors() {
-            return List.of(trueBlock, falseBlock);
+            return successors().get(1).targetBlock();
         }
     }
 
@@ -574,11 +555,11 @@ public class SpirvOps {
         }
     }
 
-    public static final class ReturnOp extends SpirvOp implements Op.Terminating {
+    public static final class ReturnOp extends SpirvTerminatingOp {
         public static final String OPNAME = "return";
 
         public ReturnOp(CodeType resultType, List<Value> operands) {
-            super(OPNAME, resultType, operands);
+            super(OPNAME, resultType, operands, List.of());
         }
 
         public ReturnOp(ReturnOp that, CodeContext cc) {

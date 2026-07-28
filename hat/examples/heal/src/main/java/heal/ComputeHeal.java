@@ -60,7 +60,6 @@ import jdk.incubator.code.Reflect;
 import java.util.stream.IntStream;
 
 import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
 import optkl.ifacemapper.MappableIface.WO;
 
 public class ComputeHeal {

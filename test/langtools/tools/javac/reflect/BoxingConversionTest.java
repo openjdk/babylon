@@ -96,9 +96,9 @@ public class BoxingConversionTest {
             func @"test5" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
                 %3 : java.type:"java.lang.Integer" = var.load %2;
-                %4 : java.type:"int" = constant @1;
-                %5 : java.type:"int" = invoke %3 @java.ref:"java.lang.Integer::intValue():int";
-                %6 : java.type:"int" = add %5 %4;
+                %4 : java.type:"int" = invoke %3 @java.ref:"java.lang.Integer::intValue():int";
+                %5 : java.type:"int" = constant @1;
+                %6 : java.type:"int" = add %4 %5;
                 %7 : java.type:"java.lang.Integer" = invoke %6 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 var.store %2 %7;
                 return;
@@ -113,9 +113,9 @@ public class BoxingConversionTest {
             func @"test6" (%0 : java.type:"BoxingConversionTest", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Integer"> = var %1 @"i2";
                 %3 : java.type:"java.lang.Integer" = var.load %2;
-                %4 : java.type:"int" = constant @3;
-                %5 : java.type:"int" = invoke %3 @java.ref:"java.lang.Integer::intValue():int";
-                %6 : java.type:"int" = add %5 %4;
+                %4 : java.type:"int" = invoke %3 @java.ref:"java.lang.Integer::intValue():int";
+                %5 : java.type:"int" = constant @3;
+                %6 : java.type:"int" = add %4 %5;
                 %7 : java.type:"java.lang.Integer" = invoke %6 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 var.store %2 %7;
                 return;
@@ -134,9 +134,9 @@ public class BoxingConversionTest {
             func @"test7" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
                 %2 : java.type:"java.lang.Integer" = field.load %1 @java.ref:"BoxingConversionTest$Box::i:java.lang.Integer";
-                %3 : java.type:"int" = constant @1;
-                %4 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
-                %5 : java.type:"int" = add %4 %3;
+                %3 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
+                %4 : java.type:"int" = constant @1;
+                %5 : java.type:"int" = add %3 %4;
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 field.store %1 %6 @java.ref:"BoxingConversionTest$Box::i:java.lang.Integer";
                 return;
@@ -151,9 +151,9 @@ public class BoxingConversionTest {
             func @"test8" (%0 : java.type:"BoxingConversionTest")java.type:"void" -> {
                 %1 : java.type:"BoxingConversionTest$Box" = new @java.ref:"BoxingConversionTest$Box::()";
                 %2 : java.type:"java.lang.Integer" = field.load %1 @java.ref:"BoxingConversionTest$Box::i:java.lang.Integer";
-                %3 : java.type:"int" = constant @3;
-                %4 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
-                %5 : java.type:"int" = add %4 %3;
+                %3 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
+                %4 : java.type:"int" = constant @3;
+                %5 : java.type:"int" = add %3 %4;
                 %6 : java.type:"java.lang.Integer" = invoke %5 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                 field.store %1 %6 @java.ref:"BoxingConversionTest$Box::i:java.lang.Integer";
                 return;
@@ -860,5 +860,57 @@ public class BoxingConversionTest {
             j += i;
         }
         return j;
+    }
+
+    @Reflect
+    @IR("""
+            func @"boxedIndexArrayRead" (%0 : java.type:"int[]", %1 : java.type:"java.lang.Integer")java.type:"int" -> {
+                %2 : Var<java.type:"int[]"> = var %0 @"arr";
+                %3 : Var<java.type:"java.lang.Integer"> = var %1 @"index";
+                %4 : java.type:"int[]" = var.load %2;
+                %5 : java.type:"java.lang.Integer" = var.load %3;
+                %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                %7 : java.type:"int" = array.load %4 %6;
+                return %7;
+            };
+            """)
+    public static int boxedIndexArrayRead(int[] arr, Integer index) {
+        return arr[index];
+    }
+
+    @Reflect
+    @IR("""
+            func @"boxedIndexArrayWrite" (%0 : java.type:"int[]", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %0 @"arr";
+                %3 : Var<java.type:"java.lang.Integer"> = var %1 @"index";
+                %4 : java.type:"int[]" = var.load %2;
+                %5 : java.type:"java.lang.Integer" = var.load %3;
+                %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                %7 : java.type:"int" = constant @1;
+                array.store %4 %6 %7;
+                return;
+            };
+            """)
+    static void boxedIndexArrayWrite(int[] arr, Integer index) {
+        arr[index] = 1;
+    }
+
+    @Reflect
+    @IR("""
+            func @"boxedIndexArrayWriteCompound" (%0 : java.type:"int[]", %1 : java.type:"java.lang.Integer")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %0 @"arr";
+                %3 : Var<java.type:"java.lang.Integer"> = var %1 @"index";
+                %4 : java.type:"int[]" = var.load %2;
+                %5 : java.type:"java.lang.Integer" = var.load %3;
+                %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                %7 : java.type:"int" = array.load %4 %6;
+                %8 : java.type:"int" = constant @1;
+                %9 : java.type:"int" = add %7 %8;
+                array.store %4 %6 %9;
+                return;
+            };
+            """)
+    static void boxedIndexArrayWriteCompound(int[] arr, Integer index) {
+        arr[index] += 1;
     }
 }

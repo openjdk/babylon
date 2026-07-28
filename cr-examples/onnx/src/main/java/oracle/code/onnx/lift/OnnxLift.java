@@ -272,7 +272,7 @@ public final class OnnxLift {
 
     private static LiftedModelWrapper lift(OnnxModel.GraphProto g) {
         var valueMap = new LinkedHashMap<String, Value>();
-        var func = CoreOp.FuncOp.func(g.name(), toFunctionType(g)).body(fb -> {
+        var func = CoreOp.func(g.name(), toFunctionType(g)).body(fb -> {
 
             { // fill value map for parameters and initializers
                 Iterator<Block.Parameter> params = fb.entryBlock().parameters().iterator();

@@ -4,6 +4,7 @@ package oracle.code.onnx.foreign;
 
 import java.lang.invoke.*;
 import java.lang.foreign.*;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
@@ -98,7 +99,7 @@ public class OrtCustomOp {
         return version$LAYOUT;
     }
 
-    private static final long version$OFFSET = 0;
+    private static final long version$OFFSET = $LAYOUT.byteOffset(groupElement("version"));
 
     /**
      * Offset for field:
@@ -135,9 +136,9 @@ public class OrtCustomOp {
      * void *(*CreateKernel)(const struct OrtCustomOp *, const OrtApi *, const OrtKernelInfo *)
      * }
      */
-    public static class CreateKernel {
+    public final static class CreateKernel {
 
-        CreateKernel() {
+        private CreateKernel() {
             // Should not be called directly
         }
 
@@ -177,9 +178,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -198,7 +201,7 @@ public class OrtCustomOp {
         return CreateKernel$LAYOUT;
     }
 
-    private static final long CreateKernel$OFFSET = 8;
+    private static final long CreateKernel$OFFSET = $LAYOUT.byteOffset(groupElement("CreateKernel"));
 
     /**
      * Offset for field:
@@ -235,9 +238,9 @@ public class OrtCustomOp {
      * const char *(*GetName)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetName {
+    public final static class GetName {
 
-        GetName() {
+        private GetName() {
             // Should not be called directly
         }
 
@@ -275,9 +278,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -296,7 +301,7 @@ public class OrtCustomOp {
         return GetName$LAYOUT;
     }
 
-    private static final long GetName$OFFSET = 16;
+    private static final long GetName$OFFSET = $LAYOUT.byteOffset(groupElement("GetName"));
 
     /**
      * Offset for field:
@@ -333,9 +338,9 @@ public class OrtCustomOp {
      * const char *(*GetExecutionProviderType)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetExecutionProviderType {
+    public final static class GetExecutionProviderType {
 
-        GetExecutionProviderType() {
+        private GetExecutionProviderType() {
             // Should not be called directly
         }
 
@@ -373,9 +378,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -394,7 +401,7 @@ public class OrtCustomOp {
         return GetExecutionProviderType$LAYOUT;
     }
 
-    private static final long GetExecutionProviderType$OFFSET = 24;
+    private static final long GetExecutionProviderType$OFFSET = $LAYOUT.byteOffset(groupElement("GetExecutionProviderType"));
 
     /**
      * Offset for field:
@@ -431,9 +438,9 @@ public class OrtCustomOp {
      * ONNXTensorElementDataType (*GetInputType)(const struct OrtCustomOp *, size_t)
      * }
      */
-    public static class GetInputType {
+    public final static class GetInputType {
 
-        GetInputType() {
+        private GetInputType() {
             // Should not be called directly
         }
 
@@ -472,9 +479,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -493,7 +502,7 @@ public class OrtCustomOp {
         return GetInputType$LAYOUT;
     }
 
-    private static final long GetInputType$OFFSET = 32;
+    private static final long GetInputType$OFFSET = $LAYOUT.byteOffset(groupElement("GetInputType"));
 
     /**
      * Offset for field:
@@ -530,9 +539,9 @@ public class OrtCustomOp {
      * size_t (*GetInputTypeCount)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetInputTypeCount {
+    public final static class GetInputTypeCount {
 
-        GetInputTypeCount() {
+        private GetInputTypeCount() {
             // Should not be called directly
         }
 
@@ -570,9 +579,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static long invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static long invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (long) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -591,7 +602,7 @@ public class OrtCustomOp {
         return GetInputTypeCount$LAYOUT;
     }
 
-    private static final long GetInputTypeCount$OFFSET = 40;
+    private static final long GetInputTypeCount$OFFSET = $LAYOUT.byteOffset(groupElement("GetInputTypeCount"));
 
     /**
      * Offset for field:
@@ -628,9 +639,9 @@ public class OrtCustomOp {
      * ONNXTensorElementDataType (*GetOutputType)(const struct OrtCustomOp *, size_t)
      * }
      */
-    public static class GetOutputType {
+    public final static class GetOutputType {
 
-        GetOutputType() {
+        private GetOutputType() {
             // Should not be called directly
         }
 
@@ -669,9 +680,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -690,7 +703,7 @@ public class OrtCustomOp {
         return GetOutputType$LAYOUT;
     }
 
-    private static final long GetOutputType$OFFSET = 48;
+    private static final long GetOutputType$OFFSET = $LAYOUT.byteOffset(groupElement("GetOutputType"));
 
     /**
      * Offset for field:
@@ -727,9 +740,9 @@ public class OrtCustomOp {
      * size_t (*GetOutputTypeCount)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetOutputTypeCount {
+    public final static class GetOutputTypeCount {
 
-        GetOutputTypeCount() {
+        private GetOutputTypeCount() {
             // Should not be called directly
         }
 
@@ -767,9 +780,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static long invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static long invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (long) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -788,7 +803,7 @@ public class OrtCustomOp {
         return GetOutputTypeCount$LAYOUT;
     }
 
-    private static final long GetOutputTypeCount$OFFSET = 56;
+    private static final long GetOutputTypeCount$OFFSET = $LAYOUT.byteOffset(groupElement("GetOutputTypeCount"));
 
     /**
      * Offset for field:
@@ -825,9 +840,9 @@ public class OrtCustomOp {
      * void (*KernelCompute)(void *, OrtKernelContext *)
      * }
      */
-    public static class KernelCompute {
+    public final static class KernelCompute {
 
-        KernelCompute() {
+        private KernelCompute() {
             // Should not be called directly
         }
 
@@ -865,9 +880,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static void invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static void invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                  DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -886,7 +903,7 @@ public class OrtCustomOp {
         return KernelCompute$LAYOUT;
     }
 
-    private static final long KernelCompute$OFFSET = 64;
+    private static final long KernelCompute$OFFSET = $LAYOUT.byteOffset(groupElement("KernelCompute"));
 
     /**
      * Offset for field:
@@ -923,9 +940,9 @@ public class OrtCustomOp {
      * void (*KernelDestroy)(void *)
      * }
      */
-    public static class KernelDestroy {
+    public final static class KernelDestroy {
 
-        KernelDestroy() {
+        private KernelDestroy() {
             // Should not be called directly
         }
 
@@ -962,9 +979,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static void invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static void invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                  DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -983,7 +1002,7 @@ public class OrtCustomOp {
         return KernelDestroy$LAYOUT;
     }
 
-    private static final long KernelDestroy$OFFSET = 72;
+    private static final long KernelDestroy$OFFSET = $LAYOUT.byteOffset(groupElement("KernelDestroy"));
 
     /**
      * Offset for field:
@@ -1020,9 +1039,9 @@ public class OrtCustomOp {
      * OrtCustomOpInputOutputCharacteristic (*GetInputCharacteristic)(const struct OrtCustomOp *, size_t)
      * }
      */
-    public static class GetInputCharacteristic {
+    public final static class GetInputCharacteristic {
 
-        GetInputCharacteristic() {
+        private GetInputCharacteristic() {
             // Should not be called directly
         }
 
@@ -1061,9 +1080,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1082,7 +1103,7 @@ public class OrtCustomOp {
         return GetInputCharacteristic$LAYOUT;
     }
 
-    private static final long GetInputCharacteristic$OFFSET = 80;
+    private static final long GetInputCharacteristic$OFFSET = $LAYOUT.byteOffset(groupElement("GetInputCharacteristic"));
 
     /**
      * Offset for field:
@@ -1119,9 +1140,9 @@ public class OrtCustomOp {
      * OrtCustomOpInputOutputCharacteristic (*GetOutputCharacteristic)(const struct OrtCustomOp *, size_t)
      * }
      */
-    public static class GetOutputCharacteristic {
+    public final static class GetOutputCharacteristic {
 
-        GetOutputCharacteristic() {
+        private GetOutputCharacteristic() {
             // Should not be called directly
         }
 
@@ -1160,9 +1181,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1181,7 +1204,7 @@ public class OrtCustomOp {
         return GetOutputCharacteristic$LAYOUT;
     }
 
-    private static final long GetOutputCharacteristic$OFFSET = 88;
+    private static final long GetOutputCharacteristic$OFFSET = $LAYOUT.byteOffset(groupElement("GetOutputCharacteristic"));
 
     /**
      * Offset for field:
@@ -1218,9 +1241,9 @@ public class OrtCustomOp {
      * OrtMemType (*GetInputMemoryType)(const struct OrtCustomOp *, size_t)
      * }
      */
-    public static class GetInputMemoryType {
+    public final static class GetInputMemoryType {
 
-        GetInputMemoryType() {
+        private GetInputMemoryType() {
             // Should not be called directly
         }
 
@@ -1259,9 +1282,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0, long _x1) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0, long _x1) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1280,7 +1305,7 @@ public class OrtCustomOp {
         return GetInputMemoryType$LAYOUT;
     }
 
-    private static final long GetInputMemoryType$OFFSET = 96;
+    private static final long GetInputMemoryType$OFFSET = $LAYOUT.byteOffset(groupElement("GetInputMemoryType"));
 
     /**
      * Offset for field:
@@ -1317,9 +1342,9 @@ public class OrtCustomOp {
      * int (*GetVariadicInputMinArity)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetVariadicInputMinArity {
+    public final static class GetVariadicInputMinArity {
 
-        GetVariadicInputMinArity() {
+        private GetVariadicInputMinArity() {
             // Should not be called directly
         }
 
@@ -1357,9 +1382,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1378,7 +1405,7 @@ public class OrtCustomOp {
         return GetVariadicInputMinArity$LAYOUT;
     }
 
-    private static final long GetVariadicInputMinArity$OFFSET = 104;
+    private static final long GetVariadicInputMinArity$OFFSET = $LAYOUT.byteOffset(groupElement("GetVariadicInputMinArity"));
 
     /**
      * Offset for field:
@@ -1415,9 +1442,9 @@ public class OrtCustomOp {
      * int (*GetVariadicInputHomogeneity)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetVariadicInputHomogeneity {
+    public final static class GetVariadicInputHomogeneity {
 
-        GetVariadicInputHomogeneity() {
+        private GetVariadicInputHomogeneity() {
             // Should not be called directly
         }
 
@@ -1455,9 +1482,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1476,7 +1505,7 @@ public class OrtCustomOp {
         return GetVariadicInputHomogeneity$LAYOUT;
     }
 
-    private static final long GetVariadicInputHomogeneity$OFFSET = 112;
+    private static final long GetVariadicInputHomogeneity$OFFSET = $LAYOUT.byteOffset(groupElement("GetVariadicInputHomogeneity"));
 
     /**
      * Offset for field:
@@ -1513,9 +1542,9 @@ public class OrtCustomOp {
      * int (*GetVariadicOutputMinArity)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetVariadicOutputMinArity {
+    public final static class GetVariadicOutputMinArity {
 
-        GetVariadicOutputMinArity() {
+        private GetVariadicOutputMinArity() {
             // Should not be called directly
         }
 
@@ -1553,9 +1582,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1574,7 +1605,7 @@ public class OrtCustomOp {
         return GetVariadicOutputMinArity$LAYOUT;
     }
 
-    private static final long GetVariadicOutputMinArity$OFFSET = 120;
+    private static final long GetVariadicOutputMinArity$OFFSET = $LAYOUT.byteOffset(groupElement("GetVariadicOutputMinArity"));
 
     /**
      * Offset for field:
@@ -1611,9 +1642,9 @@ public class OrtCustomOp {
      * int (*GetVariadicOutputHomogeneity)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetVariadicOutputHomogeneity {
+    public final static class GetVariadicOutputHomogeneity {
 
-        GetVariadicOutputHomogeneity() {
+        private GetVariadicOutputHomogeneity() {
             // Should not be called directly
         }
 
@@ -1651,9 +1682,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1672,7 +1705,7 @@ public class OrtCustomOp {
         return GetVariadicOutputHomogeneity$LAYOUT;
     }
 
-    private static final long GetVariadicOutputHomogeneity$OFFSET = 128;
+    private static final long GetVariadicOutputHomogeneity$OFFSET = $LAYOUT.byteOffset(groupElement("GetVariadicOutputHomogeneity"));
 
     /**
      * Offset for field:
@@ -1709,9 +1742,9 @@ public class OrtCustomOp {
      * OrtStatusPtr (*CreateKernelV2)(const struct OrtCustomOp *, const OrtApi *, const OrtKernelInfo *, void **)
      * }
      */
-    public static class CreateKernelV2 {
+    public final static class CreateKernelV2 {
 
-        CreateKernelV2() {
+        private CreateKernelV2() {
             // Should not be called directly
         }
 
@@ -1752,9 +1785,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1, MemorySegment _x2, MemorySegment _x3) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2, MemorySegment _x3) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2, _x3);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1773,7 +1808,7 @@ public class OrtCustomOp {
         return CreateKernelV2$LAYOUT;
     }
 
-    private static final long CreateKernelV2$OFFSET = 136;
+    private static final long CreateKernelV2$OFFSET = $LAYOUT.byteOffset(groupElement("CreateKernelV2"));
 
     /**
      * Offset for field:
@@ -1810,9 +1845,9 @@ public class OrtCustomOp {
      * OrtStatusPtr (*KernelComputeV2)(void *, OrtKernelContext *)
      * }
      */
-    public static class KernelComputeV2 {
+    public final static class KernelComputeV2 {
 
-        KernelComputeV2() {
+        private KernelComputeV2() {
             // Should not be called directly
         }
 
@@ -1851,9 +1886,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1872,7 +1909,7 @@ public class OrtCustomOp {
         return KernelComputeV2$LAYOUT;
     }
 
-    private static final long KernelComputeV2$OFFSET = 144;
+    private static final long KernelComputeV2$OFFSET = $LAYOUT.byteOffset(groupElement("KernelComputeV2"));
 
     /**
      * Offset for field:
@@ -1909,9 +1946,9 @@ public class OrtCustomOp {
      * OrtStatusPtr (*InferOutputShapeFn)(const struct OrtCustomOp *, OrtShapeInferContext *)
      * }
      */
-    public static class InferOutputShapeFn {
+    public final static class InferOutputShapeFn {
 
-        InferOutputShapeFn() {
+        private InferOutputShapeFn() {
             // Should not be called directly
         }
 
@@ -1950,9 +1987,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -1971,7 +2010,7 @@ public class OrtCustomOp {
         return InferOutputShapeFn$LAYOUT;
     }
 
-    private static final long InferOutputShapeFn$OFFSET = 152;
+    private static final long InferOutputShapeFn$OFFSET = $LAYOUT.byteOffset(groupElement("InferOutputShapeFn"));
 
     /**
      * Offset for field:
@@ -2008,9 +2047,9 @@ public class OrtCustomOp {
      * int (*GetStartVersion)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetStartVersion {
+    public final static class GetStartVersion {
 
-        GetStartVersion() {
+        private GetStartVersion() {
             // Should not be called directly
         }
 
@@ -2048,9 +2087,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -2069,7 +2110,7 @@ public class OrtCustomOp {
         return GetStartVersion$LAYOUT;
     }
 
-    private static final long GetStartVersion$OFFSET = 160;
+    private static final long GetStartVersion$OFFSET = $LAYOUT.byteOffset(groupElement("GetStartVersion"));
 
     /**
      * Offset for field:
@@ -2106,9 +2147,9 @@ public class OrtCustomOp {
      * int (*GetEndVersion)(const struct OrtCustomOp *)
      * }
      */
-    public static class GetEndVersion {
+    public final static class GetEndVersion {
 
-        GetEndVersion() {
+        private GetEndVersion() {
             // Should not be called directly
         }
 
@@ -2146,9 +2187,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static int invoke(MemorySegment funcPtr,MemorySegment _x0) {
+        public static int invoke(MemorySegment funcPtr, MemorySegment _x0) {
             try {
                 return (int) DOWN$MH.invokeExact(funcPtr, _x0);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -2167,7 +2210,7 @@ public class OrtCustomOp {
         return GetEndVersion$LAYOUT;
     }
 
-    private static final long GetEndVersion$OFFSET = 168;
+    private static final long GetEndVersion$OFFSET = $LAYOUT.byteOffset(groupElement("GetEndVersion"));
 
     /**
      * Offset for field:
@@ -2204,9 +2247,9 @@ public class OrtCustomOp {
      * size_t (*GetMayInplace)(int **, int **)
      * }
      */
-    public static class GetMayInplace {
+    public final static class GetMayInplace {
 
-        GetMayInplace() {
+        private GetMayInplace() {
             // Should not be called directly
         }
 
@@ -2245,9 +2288,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static long invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static long invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (long) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -2266,7 +2311,7 @@ public class OrtCustomOp {
         return GetMayInplace$LAYOUT;
     }
 
-    private static final long GetMayInplace$OFFSET = 176;
+    private static final long GetMayInplace$OFFSET = $LAYOUT.byteOffset(groupElement("GetMayInplace"));
 
     /**
      * Offset for field:
@@ -2303,9 +2348,9 @@ public class OrtCustomOp {
      * void (*ReleaseMayInplace)(int *, int *)
      * }
      */
-    public static class ReleaseMayInplace {
+    public final static class ReleaseMayInplace {
 
-        ReleaseMayInplace() {
+        private ReleaseMayInplace() {
             // Should not be called directly
         }
 
@@ -2343,9 +2388,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static void invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static void invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                  DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -2364,7 +2411,7 @@ public class OrtCustomOp {
         return ReleaseMayInplace$LAYOUT;
     }
 
-    private static final long ReleaseMayInplace$OFFSET = 184;
+    private static final long ReleaseMayInplace$OFFSET = $LAYOUT.byteOffset(groupElement("ReleaseMayInplace"));
 
     /**
      * Offset for field:
@@ -2401,9 +2448,9 @@ public class OrtCustomOp {
      * size_t (*GetAliasMap)(int **, int **)
      * }
      */
-    public static class GetAliasMap {
+    public final static class GetAliasMap {
 
-        GetAliasMap() {
+        private GetAliasMap() {
             // Should not be called directly
         }
 
@@ -2442,9 +2489,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static long invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static long invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                 return (long) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -2463,7 +2512,7 @@ public class OrtCustomOp {
         return GetAliasMap$LAYOUT;
     }
 
-    private static final long GetAliasMap$OFFSET = 192;
+    private static final long GetAliasMap$OFFSET = $LAYOUT.byteOffset(groupElement("GetAliasMap"));
 
     /**
      * Offset for field:
@@ -2500,9 +2549,9 @@ public class OrtCustomOp {
      * void (*ReleaseAliasMap)(int *, int *)
      * }
      */
-    public static class ReleaseAliasMap {
+    public final static class ReleaseAliasMap {
 
-        ReleaseAliasMap() {
+        private ReleaseAliasMap() {
             // Should not be called directly
         }
 
@@ -2540,9 +2589,11 @@ public class OrtCustomOp {
         /**
          * Invoke the upcall stub {@code funcPtr}, with given parameters
          */
-        public static void invoke(MemorySegment funcPtr,MemorySegment _x0, MemorySegment _x1) {
+        public static void invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1) {
             try {
                  DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
             } catch (Throwable ex$) {
                 throw new AssertionError("should not reach here", ex$);
             }
@@ -2561,7 +2612,7 @@ public class OrtCustomOp {
         return ReleaseAliasMap$LAYOUT;
     }
 
-    private static final long ReleaseAliasMap$OFFSET = 200;
+    private static final long ReleaseAliasMap$OFFSET = $LAYOUT.byteOffset(groupElement("ReleaseAliasMap"));
 
     /**
      * Offset for field:

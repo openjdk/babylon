@@ -24,16 +24,17 @@
  */
 package hat.backend.ffi;
 
+import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.extern.ExternalizedOp;
 import optkl.ifacemapper.BoundSchema;
 
 import java.util.List;
 
-public class PTXPtrOp extends Op {
+public class PTXPtrOp extends AbstractOp implements ExternalizedOp.Externalizable {
     public String fieldName;
     public static final String NAME = "ptxPtr";
     final CodeType resultType;

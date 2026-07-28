@@ -36,9 +36,6 @@ import hat.device.NonMappableIface;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -263,86 +260,86 @@ public class TestVectorTypes {
     }
 
     @Reflect
-    public static void computeGraph01(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c, int size) {
+    public static void computeGraph01( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4, 128), kernelContext -> TestVectorTypes.vectorOps01(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph02(@RO ComputeContext cc, @RW F32ArrayPadded a, @WO F32ArrayPadded b, int size) {
+    public static void computeGraph02( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps02(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph03(@RO ComputeContext cc, @RO F32ArrayPadded a, @WO F32ArrayPadded b, int size) {
+    public static void computeGraph03( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps03(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph04(@RO ComputeContext cc, @RO F32ArrayPadded a, @WO F32ArrayPadded b, int size) {
+    public static void computeGraph04( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps04(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph05(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
+    public static void computeGraph05( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps05(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph06(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
+    public static void computeGraph06( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps06(kernelContext, a, b, c));
     }
 
 
     @Reflect
-    public static void computeGraph07(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
+    public static void computeGraph07( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps07(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph08(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
+    public static void computeGraph08( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps08(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph09(@RO ComputeContext cc, @RO F32ArrayPadded a, @RO F32ArrayPadded b, @WO F32ArrayPadded c,  int size) {
+    public static void computeGraph09( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps09(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void computeGraph10(@RO ComputeContext cc, @RO F32ArrayPadded a,  @WO F32ArrayPadded b, int size) {
+    public static void computeGraph10( ComputeContext cc,  F32ArrayPadded a,   F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps10(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph11(@RO ComputeContext cc, @RO F32ArrayPadded a,  @WO F32ArrayPadded b, int size) {
+    public static void computeGraph11( ComputeContext cc,  F32ArrayPadded a,   F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps11(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph12(@RO ComputeContext cc, @RO F32ArrayPadded a,  @WO F32ArrayPadded b, int size) {
+    public static void computeGraph12( ComputeContext cc,  F32ArrayPadded a,   F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps12(kernelContext, a, b));
     }
 
     @Reflect
-    public static void computeGraph14(@RO ComputeContext cc, @RW F32ArrayPadded a, int size) {
+    public static void computeGraph14( ComputeContext cc,  F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps14(kernelContext, a));
     }
 
     @Reflect
-    public static void computeGraph15(@RO ComputeContext cc, @WO F32ArrayPadded a, int size) {
+    public static void computeGraph15( ComputeContext cc,  F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 4 for this example
         cc.dispatchKernel(NDRange.of1D(size/4), kernelContext -> TestVectorTypes.vectorOps15(kernelContext, a));
     }

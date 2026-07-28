@@ -32,7 +32,6 @@ import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -122,13 +121,13 @@ public class TestReductions {
     private static final int BLOCK_SIZE = 16;
 
     @Reflect
-    private static void reduceGlobal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.WO S32Array partialSums) {
+    private static void reduceGlobal(ComputeContext cc, S32Array input, S32Array partialSums) {
         // 2 groups of 16 threads each
         cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceGlobal(kc, input, partialSums));
     }
 
     @Reflect
-    private static void reduceLocal(@MappableIface.RO ComputeContext cc, @MappableIface.RO S32Array input, @MappableIface.WO S32Array partialSums) {
+    private static void reduceLocal(ComputeContext cc, S32Array input, S32Array partialSums) {
         // 2 groups of 16 threads each
         cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceLocal(kc, input, partialSums));
     }

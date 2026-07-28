@@ -52,7 +52,7 @@ public class CodeReflectionTester {
 
     public static void check(Class<?> clazz) throws ReflectiveOperationException {
         for (Method m : clazz.getDeclaredMethods()) {
-            check(m);
+            if (!m.isBridge()) check(m);
         }
         for (Field f : clazz.getDeclaredFields()) {
             check(f);

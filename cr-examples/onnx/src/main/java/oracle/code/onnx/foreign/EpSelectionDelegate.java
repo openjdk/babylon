@@ -4,18 +4,22 @@ package oracle.code.onnx.foreign;
 
 import java.lang.invoke.*;
 import java.lang.foreign.*;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
+
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
  * typedef OrtStatus *(*EpSelectionDelegate)(const OrtEpDevice **, size_t, const OrtKeyValuePairs *, const OrtKeyValuePairs *, const OrtEpDevice **, size_t, size_t *, void *)
  * }
  */
-public class EpSelectionDelegate {
+public final class EpSelectionDelegate {
 
-    EpSelectionDelegate() {
+    private EpSelectionDelegate() {
         // Should not be called directly
     }
 
@@ -60,9 +64,11 @@ public class EpSelectionDelegate {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static MemorySegment invoke(MemorySegment funcPtr,MemorySegment ep_devices, long num_devices, MemorySegment model_metadata, MemorySegment runtime_metadata, MemorySegment selected, long max_selected, MemorySegment num_selected, MemorySegment state) {
+    public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment ep_devices, long num_devices, MemorySegment model_metadata, MemorySegment runtime_metadata, MemorySegment selected, long max_selected, MemorySegment num_selected, MemorySegment state) {
         try {
             return (MemorySegment) DOWN$MH.invokeExact(funcPtr, ep_devices, num_devices, model_metadata, runtime_metadata, selected, max_selected, num_selected, state);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }

@@ -17,9 +17,9 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  * typedef void (*OrtLoggingFunction)(void *, OrtLoggingLevel, const char *, const char *, const char *, const char *)
  * }
  */
-public class OrtLoggingFunction {
+public final class OrtLoggingFunction {
 
-    OrtLoggingFunction() {
+    private OrtLoggingFunction() {
         // Should not be called directly
     }
 
@@ -61,9 +61,11 @@ public class OrtLoggingFunction {
     /**
      * Invoke the upcall stub {@code funcPtr}, with given parameters
      */
-    public static void invoke(MemorySegment funcPtr,MemorySegment param, int severity, MemorySegment category, MemorySegment logid, MemorySegment code_location, MemorySegment message) {
+    public static void invoke(MemorySegment funcPtr, MemorySegment param, int severity, MemorySegment category, MemorySegment logid, MemorySegment code_location, MemorySegment message) {
         try {
              DOWN$MH.invokeExact(funcPtr, param, severity, category, logid, code_location, message);
+        } catch (Error | RuntimeException ex) {
+            throw ex;
         } catch (Throwable ex$) {
             throw new AssertionError("should not reach here", ex$);
         }

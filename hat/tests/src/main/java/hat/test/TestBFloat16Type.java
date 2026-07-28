@@ -38,7 +38,6 @@ import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
 import hat.test.exceptions.HATExpectedPrecisionError;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.*;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -46,7 +45,7 @@ import java.util.Random;
 public class TestBFloat16Type {
 
     @Reflect
-    public static void kernel_copy(KernelContext kernelContext, BF16Array a, BF16Array b) {
+    public static void kernelCopy(KernelContext kernelContext, BF16Array a, BF16Array b) {
         if (kernelContext.gix < kernelContext.gsx) {
             BF16 ha = a.array(kernelContext.gix);
             b.array(kernelContext.gix).value(ha.value());
@@ -255,85 +254,85 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void compute01(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.kernel_copy(kernelContext, a, b));
+    public static void compute01(ComputeContext computeContext, BF16Array a, BF16Array b) {
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.kernelCopy(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute02(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void compute02(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestBFloat16Type.bf16_02(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute03(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void compute03(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestBFloat16Type.bf16_03(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute04(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void compute04(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
                 kernelContext -> TestBFloat16Type.bf16_04(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute05(@RO ComputeContext computeContext, @WO BF16Array a) {
+    public static void compute05(ComputeContext computeContext, BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_05(kernelContext, a));
     }
 
     @Reflect
-    public static void compute06(@RO ComputeContext computeContext, @WO BF16Array a) {
+    public static void compute06(ComputeContext computeContext, BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_06(kernelContext, a));
     }
 
     @Reflect
-    public static void compute08(@RO ComputeContext computeContext, @WO BF16Array a) {
+    public static void compute08(ComputeContext computeContext, BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_08(kernelContext, a));
     }
 
     @Reflect
-    public static void compute09(@RO ComputeContext computeContext, @RW BF16Array a, @WO BF16Array b) {
+    public static void compute09(ComputeContext computeContext, BF16Array a, BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_09(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute10(@RO ComputeContext computeContext, @WO BF16Array a) {
+    public static void compute10(ComputeContext computeContext, BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_10(kernelContext, a));
     }
 
     @Reflect
-    public static void compute11(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void compute11(ComputeContext computeContext, BF16Array a, BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length(),16), kernelContext -> TestBFloat16Type.bf16_11(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute12(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void compute12(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_12(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute13(@RO ComputeContext computeContext, @RO BF16Array a, @RO BF16Array b, @WO BF16Array c) {
+    public static void compute13(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_13(kernelContext, a, b, c));
     }
 
     @Reflect
-    public static void compute14(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void compute14(ComputeContext computeContext, BF16Array a, BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_14(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute15(@RO ComputeContext computeContext, @RO BF16Array a, @WO BF16Array b) {
+    public static void compute15(ComputeContext computeContext, BF16Array a, BF16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()), kernelContext -> TestBFloat16Type.bf16_15(kernelContext, a, b));
     }
 
     @Reflect
-    public static void compute16(@RO ComputeContext computeContext, @RW BF16Array a) {
+    public static void compute16(ComputeContext computeContext, BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(1), kernelContext -> TestBFloat16Type.bf16_16(kernelContext, a));
     }
 
     @Reflect
-    public static void compute17(@RO ComputeContext computeContext, @RW BF16Array a) {
+    public static void compute17(ComputeContext computeContext, BF16Array a) {
         computeContext.dispatchKernel(NDRange.of1D(1), kernelContext -> TestBFloat16Type.bf16_17(kernelContext, a));
     }
 

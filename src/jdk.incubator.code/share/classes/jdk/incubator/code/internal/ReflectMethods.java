@@ -61,7 +61,10 @@ import com.sun.tools.javac.tree.JCTree.JCArrayAccess;
 import com.sun.tools.javac.tree.JCTree.JCAssign;
 import com.sun.tools.javac.tree.JCTree.JCBinary;
 import com.sun.tools.javac.tree.JCTree.JCBlock;
+import com.sun.tools.javac.tree.JCTree.JCCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
+import com.sun.tools.javac.tree.JCTree.JCConstantCaseLabel;
+import com.sun.tools.javac.tree.JCTree.JCDefaultCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
@@ -111,6 +114,7 @@ import static com.sun.tools.javac.code.Kinds.Kind.TYP;
 import static com.sun.tools.javac.code.Kinds.Kind.VAR;
 import static com.sun.tools.javac.code.TypeTag.BOT;
 import static com.sun.tools.javac.code.TypeTag.CLASS;
+import static com.sun.tools.javac.code.TypeTag.INT;
 import static com.sun.tools.javac.code.TypeTag.METHOD;
 import static com.sun.tools.javac.code.TypeTag.NONE;
 import static com.sun.tools.javac.main.Option.G_CUSTOM;
@@ -213,15 +217,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             } else {
                 // if the method is annotated, scan it
                 BodyScanner bodyScanner = new BodyScanner(tree);
-                CoreOp.FuncOp funcOp;
-                try {
-                    funcOp = bodyScanner.scanMethod();
-                } catch (Exception e) {
-                    // log as warning for debugging purposes when reflectAll enabled
-                    log.warning(tree, Warnings.ReflectableMethodUnsupported(currentClassSym.enclClass(), e.toString()));
-                    super.visitMethodDef(tree);
-                    return;
-                }
+                CoreOp.FuncOp funcOp = bodyScanner.scanMethod();
                 if (dumpIR) {
                     // dump the method IR if requested
                     log.note(Notes.ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
@@ -265,6 +261,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             if (!ops.isEmpty()) {
                 tree.defs = tree.defs.prependList(opMethodDecls.toList());
                 tree = new JCReflectMethodsClassDecl(tree, ops);
+                // store the tree for later phases
+                Env<AttrContext> classEnv = typeEnvs.get(tree.sym);
+                classEnv.tree = tree;
+                classEnv.enclClass = tree;
                 currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
@@ -310,14 +310,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // quoted lambda - scan it
             BodyScanner bodyScanner = new BodyScanner(tree);
-            CoreOp.FuncOp funcOp;
-            try {
-                funcOp = bodyScanner.scanLambda();
-            } catch (Exception e) {
-                log.warning(tree, Warnings.ReflectableLambdaUnsupported(currentClassSym.enclClass(), e.toString()));
-                super.visitLambda(tree);
-                return;
-            }
+            CoreOp.FuncOp funcOp = bodyScanner.scanLambda();
             if (dumpIR) {
                 // dump the method IR if requested
                 log.note(Notes.ReflectableLambdaIrDump(funcOp.toText()));
@@ -421,8 +414,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
         try {
             this.make = make;
             currentClassSym = classSym;
-            BodyScanner bodyScanner = new BodyScanner(methodDecl);
-            return bodyScanner.scanMethod(attributedBody);
+            // same checks as in ReflectMethods::visitMethodDef
+            boolean isReflectable = !methodDecl.sym.isConstructor() && isReflectable(methodDecl);
+            if (isReflectable && !isInsideInnerOrLocalClass()) {
+                BodyScanner bodyScanner = new BodyScanner(methodDecl);
+                return bodyScanner.scanMethod(attributedBody);
+            } else {
+                return null;
+            }
         } finally {
             currentClassSym = null;
             this.make = null;
@@ -712,7 +711,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             return flow.aliveAfter(typeEnvs.get(currentClassSym), node, make);
         }
 
-        private <O extends Op & Op.Terminating> void appendTerminating(Supplier<O> sop) {
+        private void appendTerminating(Supplier<Op.Terminating> sop) {
             // Append only if an existing terminating operation is not present
             if (lastOp == null || !(lastOp instanceof Op.Terminating)) {
                 append(sop.get());
@@ -879,7 +878,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
                     Value array = toValue(assign.indexed);
-                    Value index = toValue(assign.index);
+                    Value index = toValue(assign.index, syms.intType);
 
                     // Scan the rhs, the assign expression result is its input
                     result = toValue(tree.rhs, target);
@@ -894,49 +893,52 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitAssignop(JCTree.JCAssignOp tree) {
-            // Capture applying rhs and operation
-            Function<Value, Value> scanRhs = (lhs) -> {
-                Type unboxedType = types.unboxedTypeOrType(tree.type);
-                Value rhs;
-                if (tree.operator.opcode == ByteCodes.string_add && tree.rhs.type.isPrimitive()) {
-                    rhs = toValue(tree.rhs);
-                } else {
-                    rhs = toValue(tree.rhs, unboxedType);
-                }
-                lhs = unboxIfNeeded(lhs);
+            if (tree.operator.opcode == ByteCodes.string_add) {
+                // string concat
+                applyCompoundAssign(tree.lhs, lhs -> {
+                    Type rhsType = tree.rhs.type;
+                    Value rhs = toValue(tree.rhs,
+                            rhsType.hasTag(BOT) ? syms.stringType : rhsType);
+                    // lhs cannot have null type, no target type needed
+                    Value assignOpResult = append(JavaOp.concat(lhs, rhs));
+                    return result = convert(assignOpResult, tree.type);
+                });
+            } else {
+                // arithmetic op
+                applyCompoundAssign(tree.lhs, lhs -> {
+                    Type lhsType = tree.operator.type.getParameterTypes().head;
+                    Type rhsType = tree.operator.type.getParameterTypes().tail.head;
 
-                Value assignOpResult = switch (tree.getTag()) {
+                    // We need to first convert LHS, then process RHS
+                    // as described in JLS 15.26.2
+                    lhs = convert(lhs, lhsType);
+                    Value rhs = toValue(tree.rhs, rhsType);
 
-                    // Arithmetic operations
-                    case PLUS_ASG -> {
-                        if (tree.operator.opcode == ByteCodes.string_add) {
-                            yield append(JavaOp.concat(lhs, rhs));
-                        } else {
-                            yield append(JavaOp.add(lhs, rhs));
-                        }
-                    }
-                    case MINUS_ASG -> append(JavaOp.sub(lhs, rhs));
-                    case MUL_ASG -> append(JavaOp.mul(lhs, rhs));
-                    case DIV_ASG -> append(JavaOp.div(lhs, rhs));
-                    case MOD_ASG -> append(JavaOp.mod(lhs, rhs));
+                    Value assignOpResult = switch (tree.getTag()) {
 
-                    // Bitwise operations (including their boolean variants)
-                    case BITOR_ASG -> append(JavaOp.or(lhs, rhs));
-                    case BITAND_ASG -> append(JavaOp.and(lhs, rhs));
-                    case BITXOR_ASG -> append(JavaOp.xor(lhs, rhs));
+                        // Arithmetic operations
+                        case PLUS_ASG -> append(JavaOp.add(lhs, rhs));
+                        case MINUS_ASG -> append(JavaOp.sub(lhs, rhs));
+                        case MUL_ASG -> append(JavaOp.mul(lhs, rhs));
+                        case DIV_ASG -> append(JavaOp.div(lhs, rhs));
+                        case MOD_ASG -> append(JavaOp.mod(lhs, rhs));
 
-                    // Shift operations
-                    case SL_ASG -> append(JavaOp.lshl(lhs, rhs));
-                    case SR_ASG -> append(JavaOp.ashr(lhs, rhs));
-                    case USR_ASG -> append(JavaOp.lshr(lhs, rhs));
+                        // Bitwise operations (including their boolean variants)
+                        case BITOR_ASG -> append(JavaOp.or(lhs, rhs));
+                        case BITAND_ASG -> append(JavaOp.and(lhs, rhs));
+                        case BITXOR_ASG -> append(JavaOp.xor(lhs, rhs));
+
+                        // Shift operations
+                        case SL_ASG -> append(JavaOp.lshl(lhs, rhs));
+                        case SR_ASG -> append(JavaOp.ashr(lhs, rhs));
+                        case USR_ASG -> append(JavaOp.lshr(lhs, rhs));
 
 
-                    default -> throw unreachable();
-                };
-                return result = convert(assignOpResult, tree.type);
-            };
-
-            applyCompoundAssign(tree.lhs, scanRhs);
+                        default -> throw unreachable();
+                    };
+                    return result = convert(assignOpResult, tree.type);
+                });
+            }
         }
 
         void applyCompoundAssign(JCTree.JCExpression lhs, Function<Value, Value> scanRhs) {
@@ -1007,7 +1009,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
                     Value array = toValue(assign.indexed);
-                    Value index = toValue(assign.index);
+                    Value index = toValue(assign.index, syms.intType);
 
                     Op.Result lhsOpValue = append(JavaOp.arrayLoadOp(array, index));
                     // Scan the rhs
@@ -1118,7 +1120,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             Value array = toValue(tree.indexed);
 
-            Value index = toValue(tree.index, codeTypeToType(JavaType.INT));
+            Value index = toValue(tree.index, syms.intType);
 
             result = append(JavaOp.arrayLoadOp(array, index));
         }
@@ -1189,7 +1191,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     break;
                 }
                 default:
-                    unsupported(meth);
+                    throw unreachable();
             }
         }
 
@@ -1263,6 +1265,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
             } else {
                 result = append(JavaOp.instanceOf(typeToCodeType(tree.pattern.type), target));
             }
+        }
+
+        Body.Builder scanPatternAsBody(JCTree.JCPattern pattern, Value target) {
+            pushBody(pattern, CoreType.functionType(JavaType.BOOLEAN));
+            Value localTarget = boxIfNeeded(target);
+            Value patVal = scanPattern(pattern, localTarget);
+            append(CoreOp.core_yield(patVal));
+            Body.Builder patternBody = stack.body;
+            popBody();
+            return patternBody;
         }
 
         Value scanPattern(JCTree.JCPattern pattern, Value target) {
@@ -1382,11 +1394,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 scan(tree.def);
             }
 
-            if (tree.type.tsym.isDirectlyOrIndirectlyLocal() && (tree.type.tsym.flags() & NOOUTERTHIS) != 0) {
-                // local class creation in pre-construction context is not supported
-                throw unsupported(tree);
-            }
-
             List<CodeType> argtypes = new ArrayList<>();
             Type type = tree.type;
             List<Value> args = new ArrayList<>();
@@ -1400,8 +1407,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     outerInstance = toValue(tree.encl);
                 }
                 args.add(outerInstance);
-                argtypes.add(outerInstance.type());
+                JavaType outerType = typeToCodeType(tree.constructor.innermostAccessibleEnclosingClass().erasure(types));
+                argtypes.add(outerType);
             }
+
+            MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
+            argtypes.addAll(methodRef.signature().parameterTypes());
+            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
+
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
                     args.add(loadVar(c));
@@ -1414,14 +1427,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // We need to manually construct the constructor reference,
             // as the signature of the constructor symbol is not augmented
             // with enclosing this and captured params.
-            MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
-            argtypes.addAll(methodRef.signature().parameterTypes());
             FunctionType constructorSignature = CoreType.functionType(
                     symbolToErasedDesc(tree.constructor.owner),
                     argtypes);
             MethodRef constructorRef = MethodRef.constructor(constructorSignature);
-
-            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
 
             result = append(JavaOp.new_(tree.varargsElement != null, typeToCodeType(type), constructorRef, args));
         }
@@ -1544,8 +1553,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 // Push if condition
                 pushBody(cond,
                         CoreType.functionType(JavaType.BOOLEAN));
-                Value last = toValue(cond);
-                last = convert(last, codeTypeToType(JavaType.BOOLEAN));
+                Value last = toValue(cond, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(last));
                 bodies.add(stack.body);
@@ -1594,10 +1602,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Type switchType = adaptBottom(tree.type);
             FunctionType caseBodyType = CoreType.functionType(typeToCodeType(switchType));
 
-            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, caseBodyType,
+            SwitchBodyInfo bodyInfo = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, caseBodyType,
                     !tree.hasUnconditionalPattern);
 
-            result = append(JavaOp.switchExpression(caseBodyType.returnType(), target, bodies));
+            result = append(JavaOp.switchExpression(caseBodyType.returnType(), target, bodyInfo.handlesNull, bodyInfo.bodies));
         }
 
         @Override
@@ -1606,24 +1614,32 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             FunctionType actionType = CoreType.FUNCTION_TYPE_VOID;
 
-            List<Body.Builder> bodies = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, actionType,
+            SwitchBodyInfo bodyInfo = visitSwitchStatAndExpr(tree, tree.selector, target, tree.cases, actionType,
                     tree.patternSwitch && !tree.hasUnconditionalPattern);
 
-            result = append(JavaOp.switchStatement(target, bodies));
+            result = append(JavaOp.switchStatement(target, bodyInfo.handlesNull, bodyInfo.bodies));
         }
 
-        private List<Body.Builder> visitSwitchStatAndExpr(JCTree tree, JCExpression selector, Value target,
+        record SwitchBodyInfo(boolean handlesNull, List<Body.Builder> bodies) { }
+
+        private SwitchBodyInfo visitSwitchStatAndExpr(JCTree tree, JCExpression selector, Value target,
                                                           List<JCTree.JCCase> cases, FunctionType caseBodyType,
                                                           boolean isDefaultCaseNeeded) {
             List<Body.Builder> bodies = new ArrayList<>();
             boolean hasDefaultCase = false;
+            boolean handlesNull = false;
 
             for (JCTree.JCCase c : cases) {
+                if (handlesNull(c)) {
+                    handlesNull = true;
+                }
+                if (isDefault(c)) {
+                    hasDefaultCase = true;
+                }
                 Body.Builder caseLabel = visitCaseLabel(tree, target, c);
                 Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType, cases.getLast() == c);
                 bodies.add(caseLabel);
                 bodies.add(caseBody);
-                hasDefaultCase = c.labels.head instanceof JCTree.JCDefaultCaseLabel;
             }
 
             if (!hasDefaultCase && isDefaultCaseNeeded) {
@@ -1642,7 +1658,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 popBody();
             }
 
-            return bodies;
+            return new SwitchBodyInfo(handlesNull, bodies);
+        }
+
+        boolean handlesNull(JCTree.JCCase caseTree) {
+            return caseTree.labels.stream().anyMatch(l -> l instanceof JCConstantCaseLabel constLabel &&
+                    TreeInfo.isNull(constLabel.expr));
+        }
+
+        boolean isDefault(JCTree.JCCase caseTree) {
+            return caseTree.labels.stream().anyMatch(l -> l instanceof JCDefaultCaseLabel);
         }
 
         private Value processConstantLabel(Value target, JCTree.JCConstantCaseLabel label) {
@@ -1670,10 +1695,17 @@ public class ReflectMethods extends TreeTranslatorPrev {
             FunctionType caseLabelType = CoreType.functionType(JavaType.BOOLEAN, target.type());
 
             JCTree.JCCaseLabel headCl = c.labels.head;
-            if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
-                if (c.labels.size() > 1) {
-                    throw unsupported(c);
-                }
+            if (isDefault(c)) {
+                // @@@ Do we need to model the default label body?
+                pushBody(headCl, CoreType.functionType(JavaType.BOOLEAN));
+
+                append(CoreOp.core_yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
+                body = stack.body;
+
+                // Pop label
+                popBody();
+            } else if (headCl instanceof JCTree.JCPatternCaseLabel pcl) {
+                boolean isMultiLabel = c.labels.size() > 1;
 
                 pushBody(pcl, caseLabelType);
 
@@ -1682,20 +1714,38 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 if (c.guard != null) {
                     List<Body.Builder> clBodies = new ArrayList<>();
 
-                    pushBody(pcl.pat, CoreType.functionType(JavaType.BOOLEAN));
+                    if (isMultiLabel) {
+                        // push a body for or-ing the patterns
+                        pushBody(pcl, CoreType.functionType(JavaType.BOOLEAN));
+                    }
 
-                    localTarget = boxIfNeeded(localTarget);
-                    Value patVal = scanPattern(pcl.pat, localTarget);
-                    append(CoreOp.core_yield(patVal));
-                    clBodies.add(stack.body);
-                    popBody();
+                    for (JCCaseLabel l : c.labels) {
+                        JCTree.JCPatternCaseLabel pat = (JCTree.JCPatternCaseLabel)l;
+                        clBodies.add(scanPatternAsBody(pat.pat, localTarget));
+                    }
+
+                    if (isMultiLabel) {
+                        // or the pattern bodies and replace clBodies with a single body
+                        Value patternOrResult = append(JavaOp.conditionalOr(clBodies));
+                        append(CoreOp.core_yield(patternOrResult));
+                        clBodies.clear();
+                        clBodies.add(stack.body);
+                        popBody();
+                    }
 
                     pushBody(c.guard, CoreType.functionType(JavaType.BOOLEAN));
-                    append(CoreOp.core_yield(toValue(c.guard)));
+                    append(CoreOp.core_yield(toValue(c.guard, syms.booleanType)));
                     clBodies.add(stack.body);
                     popBody();
 
                     localResult = append(JavaOp.conditionalAnd(clBodies));
+                } else if (isMultiLabel) {
+                    List<Body.Builder> clBodies = new ArrayList<>();
+                    for (JCCaseLabel l : c.labels) {
+                        JCTree.JCPatternCaseLabel pat = (JCTree.JCPatternCaseLabel)l;
+                        clBodies.add(scanPatternAsBody(pat.pat, localTarget));
+                    }
+                    localResult = append(JavaOp.conditionalOr(clBodies));
                 } else {
                     localTarget = boxIfNeeded(localTarget);
                     localResult = scanPattern(pcl.pat, localTarget);
@@ -1735,15 +1785,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 body = stack.body;
 
                 // Pop labels
-                popBody();
-            } else if (headCl instanceof JCTree.JCDefaultCaseLabel) {
-                // @@@ Do we need to model the default label body?
-                pushBody(headCl, CoreType.functionType(JavaType.BOOLEAN));
-
-                append(CoreOp.core_yield(append(CoreOp.constant(JavaType.BOOLEAN, true))));
-                body = stack.body;
-
-                // Pop label
                 popBody();
             } else {
                 throw unreachable();
@@ -1813,9 +1854,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Push while condition
             pushBody(cond, CoreType.functionType(JavaType.BOOLEAN));
-            Value last = toValue(cond);
+            Value last = toValue(cond, syms.booleanType);
             // Yield the boolean result of the condition
-            last = convert(last, codeTypeToType(JavaType.BOOLEAN));
             append(CoreOp.core_yield(last));
             Body.Builder condition = stack.body;
 
@@ -1851,8 +1891,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Push while condition
             pushBody(cond, CoreType.functionType(JavaType.BOOLEAN));
-            Value last = toValue(cond);
-            last = convert(last, codeTypeToType(JavaType.BOOLEAN));
+            Value last = toValue(cond, syms.booleanType);
             // Yield the boolean result of the condition
             append(CoreOp.core_yield(last));
             Body.Builder condition = stack.body;
@@ -1980,7 +2019,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             if (tree.cond != null) {
                 vds.mapVarsToBlockArguments();
 
-                Value last = toValue(tree.cond);
+                Value last = toValue(tree.cond, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(last));
             } else {
@@ -2029,7 +2068,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Push condition
             pushBody(cond,
                     CoreType.functionType(JavaType.BOOLEAN));
-            Value condVal = toValue(cond);
+            Value condVal = toValue(cond, syms.booleanType);
             // Yield the boolean result of the condition
             append(CoreOp.core_yield(condVal));
             Body.Builder predicateBody = stack.body;
@@ -2094,7 +2133,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Push condition
             pushBody(cond,
                     CoreType.functionType(JavaType.BOOLEAN));
-            Value condVal = toValue(cond);
+            Value condVal = toValue(cond, syms.booleanType);
 
             // Yield the boolean result of the condition
             append(CoreOp.core_yield(condVal));
@@ -2239,8 +2278,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Pop block
             popBody();
 
+            List<CodeType> catchTypes = new ArrayList<>();
             List<Body.Builder> catchers = new ArrayList<>();
             for (JCTree.JCCatch catcher : tree.catchers) {
+
+                catchTypes.add(TreeInfo.isMultiCatch(catcher)
+                        ? CoreType.tupleType(((JCTree.JCTypeUnion) catcher.param.vartype).alternatives.stream()
+                                .map(a -> typeToCodeType(a.type)).toList())
+                        : typeToCodeType(catcher.param.vartype.type));
+
                 // Push body
                 pushBody(catcher.body, CoreType.functionType(JavaType.VOID, typeToCodeType(catcher.param.type)));
                 Op.Result exVariable = append(CoreOp.var(
@@ -2270,7 +2316,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 finalizer = null;
             }
 
-            result = append(JavaOp.try_(resources, body, catchers, finalizer));
+            result = append(JavaOp.try_(resources, body, catchTypes, catchers, finalizer));
         }
 
         @Override
@@ -2280,14 +2326,24 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case POSTINC, POSTDEC, PREINC, PREDEC -> {
                     // Capture applying rhs and operation
                     Function<Value, Value> scanRhs = (lhs) -> {
-                        Type unboxedType = types.unboxedTypeOrType(tree.type);
-                        Value one = convert(append(numericOneValue(unboxedType)), unboxedType);
-                        Value unboxedLhs = unboxIfNeeded(lhs);
+                        // arithmetic operators are all of kind (T, T)T
+                        Type opType = tree.operator.type.getReturnType();
+                        if (!opType.hasTag(INT) &&
+                                opType.getTag().isSubRangeOf(INT)) {
+                            // unary ++/-- can use sub-int operator types,
+                            // which doesn't make sense for the model
+                            opType = syms.intType;
+                        }
 
-                        Value unboxedLhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
-                            append(JavaOp.add(unboxedLhs, one)) :
-                            append(JavaOp.sub(unboxedLhs, one));
-                        Value lhsPlusOne = convert(unboxedLhsPlusOne, tree.type);
+                        // We first convert LHS, then process RHS
+                        // While JLS doesn't require this, javac generates bytecode this way
+                        Value lhsConv = convert(lhs, opType);
+                        Value one = append(numericOneValue(opType));
+
+                        Value lhsPlusOne = (tag == Tag.PREINC || tag ==  Tag.POSTINC) ?
+                            append(JavaOp.add(lhsConv, one)) :
+                            append(JavaOp.sub(lhsConv, one));
+                        lhsPlusOne = convert(lhsPlusOne, tree.type);
 
                         // Assign expression result
                         result = (tag == Tag.POSTINC || tag == Tag.POSTDEC) ?
@@ -2326,7 +2382,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 // Push lhs
                 pushBody(tree.lhs, CoreType.functionType(JavaType.BOOLEAN));
-                Value lhs = toValue(tree.lhs);
+                Value lhs = toValue(tree.lhs, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(lhs));
                 Body.Builder bodyLhs = stack.body;
@@ -2336,7 +2392,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 // Push rhs
                 pushBody(tree.rhs, CoreType.functionType(JavaType.BOOLEAN));
-                Value rhs = toValue(tree.rhs);
+                Value rhs = toValue(tree.rhs, syms.booleanType);
                 // Yield the boolean result of the condition
                 append(CoreOp.core_yield(rhs));
                 Body.Builder bodyRhs = stack.body;
@@ -2359,11 +2415,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 result = append(JavaOp.concat(lhs, rhs));
             }
             else {
-                Type opType = tree.operator.type.getParameterTypes().getFirst();
-                // @@@ potentially handle shift input conversion like other binary ops
-                boolean isShift = tag == Tag.SL || tag == Tag.SR || tag == Tag.USR;
-                Value lhs = toValue(tree.lhs, opType);
-                Value rhs = toValue(tree.rhs, isShift ? tree.operator.type.getParameterTypes().getLast() : opType);
+                Type lhsType = tree.operator.type.getParameterTypes().head;
+                Type rhsType = tree.operator.type.getParameterTypes().tail.head;
+                Value lhs = toValue(tree.lhs, lhsType);
+                Value rhs = toValue(tree.rhs, rhsType);
 
                 result = switch (tag) {
                     // Arithmetic operations
@@ -2445,10 +2500,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
             computeCapturesIfNeeded(tree);
         }
 
-        UnsupportedASTException unsupported(JCTree tree) {
-            return new UnsupportedASTException(tree);
-        }
-
         AssertionError unreachable() {
             return new AssertionError("Should not reach here!");
         }
@@ -2497,28 +2548,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
     }
 
-    /**
-     * An exception thrown when an unsupported AST node is found when building a method IR.
-     */
-    static class UnsupportedASTException extends RuntimeException {
-
-        private static final long serialVersionUID = 0;
-        transient final JCTree tree;
-
-        public UnsupportedASTException(JCTree tree) {
-            this.tree = tree;
-        }
-
-        @Override
-        public String toString() {
-            return super.toString() + ":" + tree;
-        }
-    }
-
     boolean isReflectable(JCMethodDecl tree) {
-        return reflectAll || codeReflectionEnabled ||
+        return codeReflectionEnabled ||
                 (tree.body != null &&
-                tree.sym.attribute(crSyms.codeReflectionType.tsym) != null);
+                (reflectAll || tree.sym.attribute(crSyms.codeReflectionType.tsym) != null));
     }
 
     boolean isReflectable(JCFunctionalExpression expr) {

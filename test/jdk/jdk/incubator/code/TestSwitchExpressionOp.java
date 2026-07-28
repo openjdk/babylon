@@ -21,8 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
@@ -123,7 +124,7 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    // @Test
+    @Test
     void testCasePatternMultiLabel() {
         CoreOp.FuncOp lmodel = lower("casePatternMultiLabel");
         Object[] args = {(byte) 1, (short) 2, 'A', 3, 4L, 5f, 6d, true, "str"};
@@ -131,9 +132,8 @@ public class TestSwitchExpressionOp {
             Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
         }
     }
-    // @Reflect
-    // code model for such as code is not supported
-    // @@@ support this case and uncomment its test
+
+    @Reflect
     private static String casePatternMultiLabel(Object o) {
         return switch (o) {
             case Integer _, Long _, Character _, Byte _, Short _-> "integral type";
@@ -287,9 +287,16 @@ public class TestSwitchExpressionOp {
         };
     }
 
-    // @Reflect
-    // compiler code doesn't support case null, default
-    // @@@ support such as case and test the switch expression lowering for this case
+    @Test
+    void testCaseConstantNullAndDefault() {
+        CoreOp.FuncOp lmodel = lower("caseConstantNullAndDefault");
+        String[] args = { "abc", "hello", null };
+        for (String arg : args) {
+            Assertions.assertEquals(caseConstantNullAndDefault(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
     private static String caseConstantNullAndDefault(String s) {
         return switch (s) {
             case "abc" -> "alphabet";
@@ -583,6 +590,6 @@ public class TestSwitchExpressionOp {
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst();
 
-        return CoreOp.ofMethod(om.get()).get();
+        return Op.ofMethod(om.get()).get();
     }
 }

@@ -55,15 +55,11 @@ public final class ExceptionTableCompactor implements CodeTransform {
                 last = ec;
             }
         } else {
+            if (last != null) {
+                cob.with(last);
+                last = null;
+            }
             cob.with(coe);
-        }
-    }
-
-    @Override
-    public void atEnd(CodeBuilder cob) {
-        if (last != null) {
-            cob.with(last);
-            last = null;
         }
     }
 }

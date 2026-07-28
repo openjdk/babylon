@@ -26,6 +26,7 @@
 package experiments;
 
 
+import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
@@ -80,12 +81,12 @@ import static optkl.OpHelper.Invoke.invoke;
  */
 public class CreateFuncOp {
 
-    public abstract static class Inject extends Op {
+    public abstract static class Inject extends AbstractOp {
         public Inject(List<Value> operands) {
             super(operands);
         }
 
-        protected Inject(Op that, CodeContext cc) {
+        protected Inject(Inject that, CodeContext cc) {
             super(that, cc);
         }
     }

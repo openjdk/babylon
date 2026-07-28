@@ -21,8 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
@@ -135,6 +136,44 @@ public class TestSwitchStatementOp {
     }
 
     @Test
+    void testCasePatternMultiLabel() {
+        CoreOp.FuncOp lmodel = lower("casePatternMultiLabel");
+        Object[] args = {(byte) 1, (short) 2, 'A', 3, 4L, 5f, 6d, true, "str"};
+        for (Object arg : args) {
+            Assertions.assertEquals(casePatternMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String casePatternMultiLabel(Object o) {
+        String s = null;
+        switch (o) {
+            case Integer _, Long _, Character _, Byte _, Short _-> s = "integral type";
+            default -> s = "non integral type";
+        };
+        return s;
+    }
+
+    @Test
+    void testCasePatternGuardedMultiLabel() {
+        CoreOp.FuncOp lmodel = lower("casePatternGuardedMultiLabel");
+        Object[] args = {(byte) -1, (short) 2, 'A', -3, 4L, -5f, 6d, true, "str"};
+        for (Object arg : args) {
+            Assertions.assertEquals(casePatternGuardedMultiLabel(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String casePatternGuardedMultiLabel(Object o) {
+        String s = null;
+        switch (o) {
+            case Integer _, Long _, Byte _, Short _ when ((Number)o).intValue() > 0 -> s = "integral type";
+            default -> s = "non integral type";
+        };
+        return s;
+    }
+
+    @Test
     void testCaseConstantThrow() {
         CoreOp.FuncOp lmodel = lower("caseConstantThrow");
 
@@ -197,6 +236,25 @@ public class TestSwitchStatementOp {
                 r += "Neither A nor B";
         }
         return r;
+    }
+
+    @Test
+    void testCaseConstantNullAndDefault() {
+        CoreOp.FuncOp lmodel = lower("caseConstantNullAndDefault");
+        String[] args = { "abc", "hello", null };
+        for (String arg : args) {
+            Assertions.assertEquals(caseConstantNullAndDefault(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    private static String caseConstantNullAndDefault(String s) {
+        String res = null;
+        switch (s) {
+            case "abc" -> res = "alphabet";
+            case null, default -> res = "null or default";
+        };
+        return res;
     }
 
     @Test
@@ -647,6 +705,6 @@ public class TestSwitchStatementOp {
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst();
 
-        return CoreOp.ofMethod(om.get()).get();
+        return Op.ofMethod(om.get()).get();
     }
 }

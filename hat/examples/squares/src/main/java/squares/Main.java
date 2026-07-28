@@ -33,7 +33,6 @@ import hat.backend.Backend;
 import hat.buffer.S32Array;
 
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 
@@ -53,7 +52,7 @@ public class Main {
     }
 
     @Reflect
-    public static void square(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array s32Array) {
+    public static void square(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()), kc -> squareKernel(kc, s32Array));
     }
 

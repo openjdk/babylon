@@ -37,9 +37,6 @@ import java.awt.Color;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.RW;
 
 public class Main {
     @Reflect
@@ -72,7 +69,7 @@ public class Main {
                 kc -> Main.mandel(kc, s32Array2D, pallete, x, y, scale));
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         final int width = 1024;
         final int height = 1024;
         final float defaultScale = 3f;
