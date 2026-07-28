@@ -1340,7 +1340,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Find nearest ancestor body stack element associated with a statement tree
             // @@@ Strengthen check of tree?
             BodyStack _variablesStack = stack;
-            while (!(_variablesStack.tree instanceof JCTree.JCStatement)) {
+            while (_variablesStack.parent != null && !(_variablesStack.tree instanceof JCTree.JCStatement)) {
                 _variablesStack = _variablesStack.parent;
             }
             BodyStack variablesStack = _variablesStack;
