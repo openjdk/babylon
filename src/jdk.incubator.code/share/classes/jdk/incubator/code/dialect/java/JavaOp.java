@@ -42,6 +42,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 import static jdk.incubator.code.Op.Lowerable.loweringTransformer;
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -1596,6 +1597,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class ExceptionRegionEnter extends AbstractOp.Terminating
             implements JavaOp {
         static final String NAME = "exception.region.enter";
+        static final String ATTRIBUTE_CATCH_TYPES = NAME + ".catchTypes";
+
+        final List<CodeType> explicitCatchTypes;
 
         // First successor is the non-exceptional successor whose target indicates
         // the first block in the exception region.
@@ -1603,11 +1607,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         // each of which have one block argument whose type is an exception type.
 
         ExceptionRegionEnter(ExternalizedOp def) {
-            this(def.successors());
+            this(optionalAttribute(def, ATTRIBUTE_CATCH_TYPES, true, TupleType.class)
+                            .map(TupleType::componentTypes).orElse(null),
+                 def.successors());
         }
 
         ExceptionRegionEnter(ExceptionRegionEnter that, CodeContext cc) {
             super(that, cc);
+            this.explicitCatchTypes = that.explicitCatchTypes;
         }
 
         @Override
@@ -1615,11 +1622,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return new ExceptionRegionEnter(this, cc);
         }
 
-        ExceptionRegionEnter(List<Block.Reference> references) {
+        ExceptionRegionEnter(List<CodeType> catchTypes, List<Block.Reference> references) {
             if (references.size() < 2) {
                 throw structuralException(NAME, "requires at least 2 successors, found %d".formatted(references.size()));
             }
+            if (catchTypes != null && catchTypes.size() != references.size() - 1) {
+                throw structuralException(NAME, "catch types %s require %d catch references, found %d"
+                        .formatted(catchTypes, catchTypes.size(), references.size() - 1));
+            }
             super(List.of(), references);
+            this.explicitCatchTypes = catchTypes == null ? null : List.copyOf(catchTypes);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            // avoid storing explicit catch types if they all match the handlers
+            return explicitCatchTypes == null || explicitCatchTypes.equals(implicitCatchTypes())
+                    ? Map.of()
+                    : Map.of("", CoreType.tupleType(explicitCatchTypes));
         }
 
         /**
@@ -1634,6 +1654,17 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         public List<Block.Reference> catchReferences() {
             return successors().subList(1, successors().size());
+        }
+
+        /**
+         * {@return the catch types}
+         */
+        public List<CodeType> catchTypes() {
+            return explicitCatchTypes == null ? implicitCatchTypes() : explicitCatchTypes;
+        }
+
+        private List<CodeType> implicitCatchTypes() {
+            return catchReferences().stream().map(r -> r.targetBlock().parameterTypes().getFirst()).toList();
         }
 
         @Override
@@ -2432,6 +2463,36 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     public sealed static abstract class StatementTargetOp extends AbstractOp.Terminating
             implements JavaOp, Op.Lowerable, JavaStatement {
+
+        @OpDeclaration("java.resolvedControlTransfer")
+        private static final class ResolvedStatementTarget extends StatementTargetOp {
+            private final Op target;
+            private final boolean continues;
+
+            ResolvedStatementTarget(StatementTargetOp source, Op target) {
+                super((Value) null);
+                this.target = target;
+                this.continues = source instanceof ContinueOp
+                        || source instanceof ResolvedStatementTarget resolved && resolved.continues;
+                setLocation(source.location());
+            }
+
+            @Override
+            public ResolvedStatementTarget transform(CodeContext cc, CodeTransformer ct) {
+                return new ResolvedStatementTarget(this, this.target);
+            }
+
+            @Override
+            Op target() {
+                return target;
+            }
+
+            @Override
+            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+                return lower(b, continues ? BranchTarget::continueBlock : BranchTarget::breakBlock);
+            }
+        }
+
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -2882,8 +2943,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         boolean ifExitFromSynchronized(StatementTargetOp lop) {
-            Op target = lop.target();
-            return target == this || target.isAncestorOf(this);
+            return lop instanceof StatementTargetOp.ResolvedStatementTarget || lop.target() == this || lop.target().isAncestorOf(this);
         }
 
         @Override
@@ -4889,29 +4949,42 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             final Body.Builder connectedAncestorBody;
             final List<Body.Builder> resources;
             final Body.Builder body;
-            final List<Body.Builder> catchers;
+            final List<CodeType> catchTypes;
+            final List<Body.Builder> handlers;
 
             CatchBuilder(Body.Builder connectedAncestorBody, List<Body.Builder> resources, Body.Builder body) {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.resources = resources;
                 this.body = body;
-                this.catchers = new ArrayList<>();
+                this.catchTypes = new ArrayList<>();
+                this.handlers = new ArrayList<>();
             }
 
-            // @@@ multi-catch
             /**
              * Adds a catch body for handling exceptions of a specific type.
              *
-             * @param exceptionType the type of exception handled
+             * @param handlerExceptionType the type of exception handled
              * @param c a consumer that populates the catch body
              * @return this builder
              */
-            public CatchBuilder catch_(CodeType exceptionType, Consumer<Block.Builder> c) {
-                Body.Builder _catch = Body.Builder.of(connectedAncestorBody,
-                        CoreType.functionType(VOID, exceptionType));
-                c.accept(_catch.entryBlock());
-                catchers.add(_catch);
+            public CatchBuilder catch_(CodeType handlerExceptionType, Consumer<Block.Builder> c) {
+                return catch_(handlerExceptionType, handlerExceptionType, c);
+            }
 
+            /**
+             * Adds a catch body for handling exceptions of a specific catch type and a handler type.
+             *
+             * @param catchType the type of exception(s) caught, use {@link TupleType} for a multi-catch
+             * @param handlerExceptionType the type of exception handled by the catch body
+             * @param c a consumer that populates the catch body
+             * @return this builder
+             */
+            public CatchBuilder catch_(CodeType catchType, CodeType handlerExceptionType, Consumer<Block.Builder> c) {
+                Body.Builder _catch = Body.Builder.of(connectedAncestorBody,
+                        CoreType.functionType(VOID, handlerExceptionType));
+                c.accept(_catch.entryBlock());
+                handlers.add(_catch);
+                catchTypes.add(catchType);
                 return this;
             }
 
@@ -4925,7 +4998,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Body.Builder _finally = Body.Builder.of(connectedAncestorBody, CoreType.FUNCTION_TYPE_VOID);
                 c.accept(_finally.entryBlock());
 
-                return new TryOp(resources, body, catchers, _finally);
+                return new TryOp(resources, body, catchTypes, handlers, _finally);
             }
 
             /**
@@ -4934,17 +5007,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
              * @return the completed try operation
              */
             public TryOp noFinalizer() {
-                return new TryOp(resources, body, catchers, null);
+                return new TryOp(resources, body, catchTypes, handlers, null);
             }
         }
 
         static final String NAME = "java.try";
+        static final String ATTRIBUTE_CATCH_TYPES = NAME + ".catchTypes";
         static final MethodRef AUTO_CLOSEABLE_CLOSE_METHOD = MethodRef.method(AutoCloseable.class, "close", void.class);
         static final MethodRef THROWABLE_ADD_SUPPRESSED_METHOD = MethodRef.method(Throwable.class, "addSuppressed", void.class, Throwable.class);
 
         final List<Body> resourcesBodies;
         final Body body;
-        final List<Body> catchBodies;
+        final List<CodeType> explicitCatchTypes;
+        final List<Body> handlers;
         final Body finallyBody;
 
         TryOp(ExternalizedOp def) {
@@ -4968,11 +5043,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             } else {
                 finalizer = null;
             }
-            List<Body.Builder> catchers = bodies.subList(
+            List<CodeType> catchTypes = optionalAttribute(def, ATTRIBUTE_CATCH_TYPES, true, TupleType.class)
+                    .map(TupleType::componentTypes).orElse(null);
+            List<Body.Builder> handlers = bodies.subList(
                     bodyIndex + 1,
                     bodies.size() - (finalizer == null ? 0 : 1));
 
-            this(resources, body, catchers, finalizer);
+            this(resources, body, catchTypes, handlers, finalizer);
         }
 
         TryOp(TryOp that, CodeContext cc, CodeTransformer ct) {
@@ -4982,7 +5059,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     .map(b -> b.transform(cc, ct).build(this))
                     .toList();
             this.body = that.body.transform(cc, ct).build(this);
-            this.catchBodies = that.catchBodies.stream()
+            this.explicitCatchTypes = that.explicitCatchTypes;
+            this.handlers = that.handlers.stream()
                     .map(b -> b.transform(cc, ct).build(this))
                     .toList();
             if (that.finallyBody != null) {
@@ -4999,7 +5077,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         TryOp(List<Body.Builder> resourcesC,
               Body.Builder bodyC,
-              List<Body.Builder> catchersC,
+              List<CodeType> catchTypes,
+              List<Body.Builder> handlersC,
               Body.Builder finalizerC) {
             super(List.of());
 
@@ -5013,7 +5092,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
             this.body = requireBodySignature(NAME + " try", bodyC, CoreType.functionType(VOID, resourceTypes)).build(this);
-            this.catchBodies = catchersC.stream().map(c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
+            this.explicitCatchTypes = catchTypes == null ? null : List.copyOf(catchTypes);
+            this.handlers = handlersC.stream().map(c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
+            if (explicitCatchTypes != null && explicitCatchTypes.size() != handlers.size()) {
+                throw structuralException(NAME, "catch types %s require %d catch bodies, found %d".formatted(explicitCatchTypes, explicitCatchTypes.size(), handlers.size()));
+            }
             if (finalizerC != null) {
                 this.finallyBody = requireVoidBodySignature(NAME + " finalizer", finalizerC).build(this);
             } else {
@@ -5022,11 +5105,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         @Override
+        public Map<String, Object> externalize() {
+            // avoid storing explicit catch types if they all match the handlers
+            return explicitCatchTypes == null || explicitCatchTypes.equals(implicitCatchTypes())
+                    ? Map.of()
+                    : Map.of("", CoreType.tupleType(explicitCatchTypes));
+        }
+
+        @Override
         public List<Body> bodies() {
             ArrayList<Body> bodies = new ArrayList<>();
             bodies.addAll(resourcesBodies);
             bodies.add(body);
-            bodies.addAll(catchBodies);
+            bodies.addAll(handlers);
             if (finallyBody != null) {
                 bodies.add(finallyBody);
             }
@@ -5048,10 +5139,21 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         /**
+         * {@return the catch types}
+         */
+        public List<CodeType> catchTypes() {
+            return explicitCatchTypes == null ? implicitCatchTypes() : explicitCatchTypes;
+        }
+
+        private List<CodeType> implicitCatchTypes() {
+            return handlers.stream().map(h -> h.entryBlock().parameterTypes().getFirst()).toList();
+        }
+
+        /**
          * {@return the catch bodies}
          */
         public List<Body> catchBodies() {
-            return catchBodies;
+            return handlers;
         }
 
         /**
@@ -5071,12 +5173,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // try-catch-finally -> lower-level try form.
             // There is no recursion here, each time it is structurally different TryOp.
             if (!resourcesBodies.isEmpty()) {
-                b.transformBody(resourcesBodies.size() == 1
-                        && catchBodies.isEmpty()
+                NormalizedBody normalized = resourcesBodies.size() == 1
+                        && handlers.isEmpty()
                         && finallyBody == null
                                 ? lowerBasicTryWithResources()
-                                : normalizeTryWithResources(),
-                        b.context().getValues(capturedValues()),
+                                : normalizeTryWithResources();
+                b.transformBody(normalized.body(),
+                        b.context().getValues(normalized.captures()),
                         loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.add(branch(exit.reference()));
@@ -5089,7 +5192,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             // Simple case with no catch and finally bodies
-            if (catchBodies.isEmpty() && finallyBody == null) {
+            if (handlers.isEmpty() && finallyBody == null) {
                 b.transformBody(body, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.add(branch(exit.reference()));
@@ -5108,6 +5211,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             List<Block.Builder> catchers = catchBodies().stream()
                     .map(catcher -> b.block())
                     .toList();
+            List<CodeType> catchTypes = catchTypes();
             Block.Builder catcherFinally;
             if (finallyBody == null) {
                 catcherFinally = null;
@@ -5115,13 +5219,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 catcherFinally = b.block();
                 catchers = new ArrayList<>(catchers);
                 catchers.add(catcherFinally);
+                catchTypes = new ArrayList<>(catchTypes());
+                catchTypes.add(VOID);
             }
 
             // Enter the try exception region
             List<Block.Reference> exitHandlers = catchers.stream()
                     .map(Block.Builder::reference)
                     .toList();
-            Op.Result enter = b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
+            Op.Result enter = b.add(exceptionRegionEnter(
+                    catchTypes.reversed(), tryRegionEnter.reference(), exitHandlers.reversed()));
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
@@ -5170,9 +5277,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             // Inline the catch bodies
-            for (int i = 0; i < this.catchBodies.size(); i++) {
+            for (int i = 0; i < this.handlers.size(); i++) {
                 Block.Builder catcher = catchers.get(i);
-                Body catcherBody = this.catchBodies.get(i);
+                Body catcherBody = this.handlers.get(i);
                 // Create the throwable argument
                 Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
@@ -5337,27 +5444,34 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// @jls 14.20.3 try-with-resources
         /// @jls 14.20.3.1 Basic try-with-resources
         /// @jls 14.20.3.2 Extended try-with-resources
-        Body normalizeTryWithResources() {
+        NormalizedBody normalizeTryWithResources() {
             return syntheticBody(entryBlock -> {
                 Function<Block.Builder, TryOp> normalizedTry = block -> {
-                    block.context().mapValues(capturedValues(), entryBlock.parameters());
-                    return normalizeExtendedTryWithResources(block.parentBody(), block.context(), new ArrayList<>());
+                    block.context().mapValues(normalizationCaptures(), entryBlock.parameters());
+                    return normalizeExtendedTryWithResources(
+                            block.parentBody(), block.context(), new ArrayList<>());
                 };
-                if (catchBodies.isEmpty() && finallyBody == null) {
+                if (handlers.isEmpty() && finallyBody == null) {
                     entryBlock.add(normalizedTry.apply(entryBlock));
                 } else {
                     CatchBuilder catchBuilder = try_(entryBlock.parentBody(), tryB -> {
                         tryB.add(normalizedTry.apply(tryB));
                         tryB.add(core_yield());
                     });
-                    for (Body catcher : catchBodies) {
-                        catchBuilder.catch_(catcher.bodySignature().parameterTypes().getFirst(), catchB ->
-                                catchB.transformBody(catcher, catchB.parameters(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER));
+                    List<CodeType> catchTypes = catchTypes();
+                    for (int i = 0; i < handlers.size(); i++) {
+                        Body catcher = handlers.get(i);
+                        catchBuilder.catch_(
+                                catchTypes.get(i),
+                                catcher.bodySignature().parameterTypes().getFirst(),
+                                catchB -> catchB.transformBody(
+                                        catcher, catchB.parameters(), entryBlock.context(), this::resolveStatementTarget));
                     }
                     entryBlock.add(finallyBody == null
                             ? catchBuilder.noFinalizer()
                             : catchBuilder.finally_(finB ->
-                                    finB.transformBody(finallyBody, List.of(), entryBlock.context(), CodeTransformer.COPYING_TRANSFORMER)));
+                                    finB.transformBody(
+                                            finallyBody, List.of(), entryBlock.context(), this::resolveStatementTarget)));
                 }
                 entryBlock.add(core_yield());
             });
@@ -5390,16 +5504,17 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// ```
         ///
         /// @jls 14.20.3.1 Basic try-with-resources
-        Body lowerBasicTryWithResources() {
+        NormalizedBody lowerBasicTryWithResources() {
             assert resourcesBodies.size() == 1;
             CodeType resourceType = resourcesBodies.getFirst().bodySignature().returnType();
             return syntheticBody(entryBlock -> {
                 Block.Builder afterAcquire = entryBlock.block(resourceType);
-                entryBlock.transformBody(resourcesBodies.getFirst(), List.of(), (block, op) -> {
-                    if (op instanceof CoreOp.YieldOp yop) {
+                Body resourceBody = resourcesBodies.getFirst();
+                entryBlock.transformBody(resourceBody, List.of(), (block, op) -> {
+                    if (op instanceof CoreOp.YieldOp yop && op.ancestorBody() == resourceBody) {
                         block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                     } else {
-                        block.add(op);
+                        return resolveStatementTarget(block, op);
                     }
                     return block;
                 });
@@ -5407,7 +5522,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
                 // @@@ following builder code may be refactored into a reflected template method transformation
                 afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
-                    tryEntry.transformBody(body, List.of(resource), afterAcquire.context(), CodeTransformer.COPYING_TRANSFORMER);
+                    tryEntry.transformBody(body, List.of(resource), afterAcquire.context(), this::resolveStatementTarget);
                 }).catch_(type(Throwable.class), catchB -> {
                     Block.Parameter thrown = catchB.parameters().getFirst();
                     catchB.add(varStore(primaryExceptionVar, thrown));
@@ -5450,7 +5565,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         TryOp normalizeExtendedTryWithResources(Body.Builder ancestorBody, CodeContext cc, List<Value> resourceValues) {
             Body resource = resourcesBodies.get(resourceValues.size());
             Body.Builder resourceBody = Body.Builder.of(ancestorBody, CoreType.functionType(resource.yieldType()), cc);
-            resourceBody.entryBlock().transformBody(resource, resourceValues, cc, CodeTransformer.COPYING_TRANSFORMER);
+            resourceBody.entryBlock().transformBody(resource, resourceValues, cc, this::resolveStatementTarget);
             Body.Builder basicBody = Body.Builder.of(ancestorBody, CoreType.functionType(VOID, List.of(resource.yieldType())), cc);
             Block.Builder bodyB = basicBody.entryBlock();
             resourceValues.add(bodyB.parameters().getFirst());
@@ -5458,23 +5573,43 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 bodyB.add(normalizeExtendedTryWithResources(basicBody, cc, resourceValues));
                 bodyB.add(core_yield());
             } else {
-                bodyB.transformBody(body, resourceValues, cc, CodeTransformer.COPYING_TRANSFORMER);
+                bodyB.transformBody(body, resourceValues, cc, this::resolveStatementTarget);
             }
             return try_(List.of(resourceBody), basicBody, List.of(), null);
         }
 
-        Body syntheticBody(Consumer<Block.Builder> c) {
-            List<Value> captures = capturedValues();
+        private record NormalizedBody(Body body, List<Value> captures) {
+        }
+
+        NormalizedBody syntheticBody(Consumer<Block.Builder> action) {
+            List<Value> captures = normalizationCaptures();
             Body.Builder syntheticBody = Body.Builder.of(null, CoreType.functionType(VOID, captures.stream().map(Value::type).toList()));
             Block.Builder entryBlock = syntheticBody.entryBlock();
             entryBlock.context().mapValues(captures, entryBlock.parameters());
-            c.accept(entryBlock);
-            return syntheticBody.build(unreachable());
+            action.accept(entryBlock);
+            return new NormalizedBody(syntheticBody.build(unreachable()), captures);
+        }
+
+        private Block.Builder resolveStatementTarget(Block.Builder block, Op op) {
+            block.add(switch (op) {
+                case StatementTargetOp.ResolvedStatementTarget _ -> op;
+                case StatementTargetOp st when st.target() == this || st.target().isAncestorOf(this) ->
+                        new StatementTargetOp.ResolvedStatementTarget(st, st.target());
+                default -> op;
+            });
+            return block;
+        }
+
+        private List<Value> normalizationCaptures() {
+            return capturedValues().stream()
+                    .filter(value -> !(value instanceof Result result
+                            && result.op().ancestorOp() instanceof LabeledOp labeled
+                            && labeled.labelIdentifier() == result))
+                    .toList();
         }
 
         boolean ifExitFromTry(StatementTargetOp lop) {
-            Op target = lop.target();
-            return target == this || target.isAncestorOf(this);
+            return lop instanceof StatementTargetOp.ResolvedStatementTarget || lop.target() == this || lop.target().isAncestorOf(this);
         }
 
         Block.Builder inlineFinalizer(Block.Builder block1, Value enter, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
@@ -6223,7 +6358,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the exception region enter operation
      */
     public static ExceptionRegionEnter exceptionRegionEnter(Block.Reference start, Block.Reference... catchers) {
-        return exceptionRegionEnter(start, List.of(catchers));
+        return exceptionRegionEnter(null, start, List.of(catchers));
     }
 
     /**
@@ -6234,10 +6369,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the exception region enter operation
      */
     public static ExceptionRegionEnter exceptionRegionEnter(Block.Reference start, List<Block.Reference> catchers) {
+        return exceptionRegionEnter(null, start, catchers);
+    }
+
+    /**
+     * Creates an exception region enter operation
+     *
+     * @param catchTypes the explicit catch types, may be {@code null}
+     * @param start      the reference to the block that enters the exception region
+     * @param catchers   the references to blocks handling exceptions thrown by blocks within the exception region
+     * @return the exception region enter operation
+     */
+    public static ExceptionRegionEnter exceptionRegionEnter(List<CodeType> catchTypes,
+                                                            Block.Reference start,
+                                                            List<Block.Reference> catchers) {
         List<Block.Reference> s = new ArrayList<>();
         s.add(start);
         s.addAll(catchers);
-        return new ExceptionRegionEnter(s);
+        return new ExceptionRegionEnter(catchTypes, s);
     }
 
     /**
@@ -7323,7 +7472,25 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                              Body.Builder body,
                              List<Body.Builder> catchBodies,
                              Body.Builder finallyBody) {
-        return new TryOp(resourceBodies, body, catchBodies, finallyBody);
+        return try_(resourceBodies, body, null, catchBodies, finallyBody);
+    }
+
+    /**
+     * Creates a try or try-with-resources operation.
+     *
+     * @param resourceBodies the resources body builders
+     * @param body           the try body builder
+     * @param catchTypes     the explicit catch types, may be {@code null}
+     * @param catchBodies    the catch body builders
+     * @param finallyBody    the finalizer body builder, may be {@code null}
+     * @return the try or try-with-resources operation
+     */
+    public static TryOp try_(List<Body.Builder> resourceBodies,
+                             Body.Builder body,
+                             List<CodeType> catchTypes,
+                             List<Body.Builder> catchBodies,
+                             Body.Builder finallyBody) {
+        return new TryOp(resourceBodies, body, catchTypes, catchBodies, finallyBody);
     }
 
     //

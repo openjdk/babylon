@@ -284,6 +284,20 @@ public class TestBytecode {
         return i;
     }
 
+    @Reflect
+    static int tryWithConditionalResourceFinallyInLoopWithBreakAndContinue(int i) {
+        for (int j = -5; j < 5; j++) {
+            try (var _ = i % 2 == 1 ? Stream.empty(): Stream.empty()) {
+                if (i == j) continue;
+                i++;
+            } finally {
+                if (i == -j) break;
+                i = i + j;
+            }
+        }
+        return i;
+    }
+
     public record A(String s) {}
 
     @Reflect
