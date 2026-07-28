@@ -29,7 +29,10 @@
  * @test
  * @summary Verify reflected bridge generation
  * @modules jdk.incubator.code
+ * @build BridgeTest
+ * @build CodeReflectionTester
  * @run main BridgeTest
+ * @run main CodeReflectionTester BridgeTest$StringValue
  */
 public class BridgeTest {
 
@@ -40,6 +43,12 @@ public class BridgeTest {
     static final class StringValue implements Value<String> {
         @Override
         @Reflect
+        @IR("""
+            func @"value" (%0 : java.type:"BridgeTest$StringValue")java.type:"java.lang.String" -> {
+                %1 : java.type:"java.lang.String" = constant @"string value";
+                return %1;
+            };
+            """)
         public String value() {
             return "string value";
         }
