@@ -261,6 +261,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             if (!ops.isEmpty()) {
                 tree.defs = tree.defs.prependList(opMethodDecls.toList());
                 tree = new JCReflectMethodsClassDecl(tree, ops);
+                // store the tree for later phases
                 Env<AttrContext> classEnv = typeEnvs.get(tree.sym);
                 classEnv.tree = tree;
                 classEnv.enclClass = tree;
