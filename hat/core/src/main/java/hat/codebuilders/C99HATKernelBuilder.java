@@ -25,6 +25,7 @@
 package hat.codebuilders;
 
 import hat.KernelContext;
+import hat.TileContext;
 import hat.buffer.BF16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
@@ -406,7 +407,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T types() {
         return typedefKeyword().sp().s08Type("byte").snl()
                 .typedefKeyword().sp().s08Type("boolean").snl()
-                .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl();
+                .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl()
+                .typedefStruct(TileContext.class, _ -> s32Type("dimensions").semicolon()).nl();
     }
 
     @Override
@@ -440,6 +442,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(KernelContext.class).asterisk();
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, TileContext.class)) {
+            HAT_GLOBAL_MEM().sp().suffix_t(TileContext.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, F16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, BF16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls

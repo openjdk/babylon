@@ -199,7 +199,7 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
 
     const auto status = cuLaunchKernel(cudaKernel->function, //
                                  blocksPerGridX, blocksPerGridY, blocksPerGridZ, //
-                                 threadsPerBlockX, threadsPerBlockY, threadsPerBlockZ, //
+                                 1, 1, 1, //
                                  0, //
                                  cuStream, //
                                  cudaKernel->argslist, //

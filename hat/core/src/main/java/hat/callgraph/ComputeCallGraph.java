@@ -27,6 +27,7 @@ package hat.callgraph;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import hat.TileContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import optkl.OpHelper;
@@ -61,12 +62,13 @@ public class ComputeCallGraph implements LookupCarrier {
     static boolean isValidKernelDispatch(MethodHandles.Lookup lookup, Method calledMethod, CoreOp.FuncOp funcOp) {
         // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
         // We also check that other args are primitive or ifacebuffers  (or atomics?)...
-        class Traits{
+        class Traits {
             boolean firstArgKernelContext = false;
-            boolean atLeastOneIfaceBufferParam=false;
-            boolean hasOnlyPrimitiveAndIfaceBufferParams=true;
-            boolean ok(){
-                return firstArgKernelContext &&atLeastOneIfaceBufferParam&&hasOnlyPrimitiveAndIfaceBufferParams;
+            boolean atLeastOneIfaceBufferParam = false;
+            boolean hasOnlyPrimitiveAndIfaceBufferParams = true;
+
+            boolean ok() {
+                return firstArgKernelContext && atLeastOneIfaceBufferParam && hasOnlyPrimitiveAndIfaceBufferParams;
             }
         }
         var traits = new Traits();
@@ -76,7 +78,7 @@ public class ComputeCallGraph implements LookupCarrier {
                 FuncOpParams paramTable = new FuncOpParams(funcOp);
                 paramTable.stream().forEach(paramInfo -> {
                     if (paramInfo.idx == 0) {
-                        traits.firstArgKernelContext = parameterTypes[0].isAssignableFrom(KernelContext.class);
+                        traits.firstArgKernelContext = (parameterTypes[0].isAssignableFrom(KernelContext.class) || parameterTypes[0].isAssignableFrom(TileContext.class));
                     } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
@@ -95,25 +97,24 @@ public class ComputeCallGraph implements LookupCarrier {
 
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp entry) {
         this.computeContext = computeContext;
-        this.callDag = new MethodCallDag(lookup(), method,entry,null);
-        if (showComputeCallDag){
+        this.callDag = new MethodCallDag(lookup(), method, entry, null);
+        if (showComputeCallDag) {
             this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
         }
 
-            callDag.rankOrdered.stream()
-                    .filter(m->m instanceof MethodCallDag.OtherMethodCall &&
+        callDag.rankOrdered.stream()
+                .filter(m -> m instanceof MethodCallDag.OtherMethodCall &&
                         this.callDag.entryPoint.method().getDeclaringClass().equals(m.method().getDeclaringClass())
-                                && isValidKernelDispatch(computeContext.lookup(),m.method(),m.funcOp()))
-                .forEach(m-> kernelCallGraphMap.computeIfAbsent( m.methodRef(), _ ->
-                    new KernelCallGraph(this, m.method(), m.funcOp())
-            )
-        );
-
+                        && isValidKernelDispatch(computeContext.lookup(), m.method(), m.funcOp()))
+                .forEach(m -> kernelCallGraphMap.computeIfAbsent(m.methodRef(), _ ->
+                                new KernelCallGraph(this, m.method(), m.funcOp())
+                        )
+                );
     }
 
     public CoreOp.FuncOp lazyLower(){
         if (lowered == null) {
-            lowered =callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+            lowered = callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
         }
         return lowered;
     }

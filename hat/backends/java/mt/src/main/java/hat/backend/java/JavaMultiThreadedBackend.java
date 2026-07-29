@@ -57,5 +57,9 @@ public class JavaMultiThreadedBackend extends JavaBackend {
         return workStealer;
     }
 
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+        throw new UnsupportedOperationException();
+    }
 
 }

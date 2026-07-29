@@ -394,8 +394,9 @@ public class CudaBackend extends C99FFIBackend {
         });
         compiledKernel.dispatch(kernelContext, args);
     }
+
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), args);
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp()), false), args);
     }
 
     ///   Same as OpenCL backend until here
@@ -469,9 +470,8 @@ public class CudaBackend extends C99FFIBackend {
         }, varTable).funcOp();
     }
 
-    static public String createFunction(MethodHandles.Lookup lookup,PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
+    public static String createFunction(MethodHandles.Lookup lookup,PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
          CoreOp.FuncOp ssa =SSA.transform(lowered);
-
 
         // building fn info (name, params)
         builder.functionHeader(lowered.funcName(), entry, lowered.body().yieldType());
@@ -494,5 +494,31 @@ public class CudaBackend extends C99FFIBackend {
         builder.ptxRegisterDecl();
         out += builder.getText() + body;
         return out;
+    }
+
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
+            if (config().ptx()) {
+                throw new UnsupportedOperationException("tile for PTX not supported");
+            }
+            String code = createC99Tile(kernelCallGraph, args);
+            if (config().showCode()) {
+                IO.println(code);
+            }
+            var compilationUnit = backendBridge.compile(code);
+            IO.println("Is compilation OK? " + compilationUnit.ok());
+            if (compilationUnit.ok()) {
+                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
+                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
+            } else {
+                throw new IllegalStateException("cuda failed to compile ");
+            }
+        });
+        compiledKernel.dispatch(kernelContext, args);
+    }
+
+    String createC99Tile(KernelCallGraph kernelCallGraph, Object... args){
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp()), true), args);
     }
 }

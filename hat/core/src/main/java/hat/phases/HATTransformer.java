@@ -45,6 +45,8 @@ public class HATTransformer {
             // ID's /thread access
             new HATThreadsPhase(),
 
+            new HATTilePhase(),
+
             // Warp size
             new HATWarpSizePhase(),
 

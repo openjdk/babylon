@@ -28,6 +28,7 @@ import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
+import hat.dialect.HATTileOp;
 import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.Value;
@@ -55,6 +56,7 @@ import static hat.phases.HATPhaseUtils.isMathLib;
 import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
+
 
     @FunctionalInterface
     private interface CodeGenAction {
@@ -985,5 +987,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .recurseResultOrThrow(reference).comma().sp()
                         .id(tensorVarOp.varName()).comma().sp()
                         .id(ZERO));
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder hatTileOp(HATTileOp hatTileOp) {
+        throw new UnsupportedOperationException("");
     }
 }

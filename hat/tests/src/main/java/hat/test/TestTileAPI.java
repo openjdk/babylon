@@ -19,6 +19,13 @@ import java.lang.invoke.MethodHandles;
  * How to run?
  *
  * <p>
+ *     Empty Tile Kernel
+ *     <code>
+ *         java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_00
+ *     </code>
+ * </p>
+ *
+ * <p>
  *     To run the Vector Addition
  * <code>
  *  java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_01
@@ -47,6 +54,31 @@ import java.lang.invoke.MethodHandles;
  * </p>
  */
 public class TestTileAPI {
+
+    @Reflect
+    public static void emptyTile(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
+        // Program id: get tile-id for 1D
+        var pid = tc.bid(0);
+        inputA.array(0, pid);
+    }
+
+    @Reflect
+    public static void computeEmptyTile(ComputeContext computeContext, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
+        computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
+                tileContext -> emptyTile(tileContext, inputA, inputB, output, tile_size));
+    }
+
+    @Reflect
+    @HatTest
+    public void test_hat_tile_00() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = Math.powExact(2, 12);
+        final int tile_size = 64;
+        F32Array inputA = F32Array.create(accelerator, size);
+        F32Array inputB = F32Array.create(accelerator, size);
+        F32Array result = F32Array.create(accelerator, size);
+        accelerator.compute( computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tile_size));
+    }
 
 
     // ================================================================================================================
@@ -108,8 +140,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void myComputeWithTile_vector_add(ComputeContext computeContext, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
-        computeContext.dispatchTile(
-                TileRange.of(inputA.length(), tile_size),
+        computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
                 tileContext -> vector_add(tileContext, inputA, inputB, output, tile_size));
     }
 
@@ -267,7 +298,7 @@ public class TestTileAPI {
     @Reflect
     public static void matmul(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
 
-        // Calculate bidx and bidy
+        // Calculate bidx and bidy using swizzle
         int bid = tc.bid(0);
         int num_bid_m = Math.ceilDiv(M, tm);
         int num_bid_n = Math.ceilDiv(N, tn);
@@ -442,7 +473,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void computetile_reduction(ComputeContext computeContext, F32Array input, F32Array output, @Constant int tileSize) {
-        computeContext.dispatchTile(TileRange.of(input.length(), tileSize),
+        computeContext.dispatchTile(TileRange.of1D(input.length(), tileSize),
                 tileContext -> tile_reduction(tileContext, input, output, tileSize));
     }
 

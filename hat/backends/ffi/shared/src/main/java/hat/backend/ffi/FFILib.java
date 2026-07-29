@@ -142,7 +142,7 @@ public class FFILib {
         }
         public long invoke(long handle, int i, MemorySegment memorySegment) {
             if (mh == null){
-                throw new RuntimeException("Null methodhandle "+name);
+                throw new RuntimeException("Null methodhandle "+ name);
             }
             if (handle == 0L) {
                 throw new IllegalArgumentException("handle is zero");

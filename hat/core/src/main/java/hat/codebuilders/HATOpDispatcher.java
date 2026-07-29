@@ -27,6 +27,7 @@ package hat.codebuilders;
 import hat.dialect.HATBarrierOp;
 import hat.dialect.HATOp;
 import hat.dialect.HATThreadOp;
+import hat.dialect.HATTileOp;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
@@ -39,15 +40,17 @@ import static hat.dialect.HATPtrOp.HATPtrStoreOp;
 /* this should not be too C99 specific but can reference HAT ops.  */
 public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
-    T hatBarrierOp( HATBarrierOp barrierOp);
+    T hatBarrierOp(HATBarrierOp barrierOp);
 
-    T hatThreadIdOp( HATThreadOp hatThreadOp);
+    T hatThreadIdOp(HATThreadOp hatThreadOp);
 
     T hatPtrLoadOp(HATPtrLoadOp hatPtrLoadOp);
 
-    T hatPtrStoreOp( HATPtrStoreOp hatPtrStoreOp);
+    T hatPtrStoreOp(HATPtrStoreOp hatPtrStoreOp);
 
-    T hatPtrLengthOp( HATPtrLengthOp hatPtrLengthOp);
+    T hatPtrLengthOp(HATPtrLengthOp hatPtrLengthOp);
+
+    T hatTileOp(HATTileOp hatTileOp);
 
     @Override
     default T recurse(Op op) {
@@ -58,6 +61,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrLoadOp hatPtrLoadOp -> hatPtrLoadOp(hatPtrLoadOp);
                 case HATPtrStoreOp hatPtrStoreOp -> hatPtrStoreOp(hatPtrStoreOp);
                 case HATPtrLengthOp hatPtrLengthOp -> hatPtrLengthOp(hatPtrLengthOp);
+                case HATTileOp hatTileOp -> hatTileOp(hatTileOp);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {

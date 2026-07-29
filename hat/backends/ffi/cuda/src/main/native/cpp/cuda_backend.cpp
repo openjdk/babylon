@@ -154,9 +154,9 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     // create var/cuda directory
     std::string localDirectory = "./var/cuda";
     std::filesystem::create_directories(localDirectory);
-    // create temp file for cuda generarated code
+    // create temp file for cuda generated code
     const uint64_t time = timeSinceEpochMillisec();
-    const std::string ptxPath = tmpFileName(time, localDirectory, ".ptx");
+    const std::string ptxPath = tmpFileName(time, localDirectory, ".cubin");
     const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
 
     // compile the generated code
@@ -166,12 +166,19 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
         const auto path = "nvcc";
         std::vector<std::string> command;
         command.push_back(path);
-        command.push_back("-ptx");
-        command.push_back("-Wno-deprecated-gpu-targets");
+        //command.push_back("-ptx");
+        command.push_back("--tilecubin");
+        // command.push_back("-Wno-deprecated-gpu-targets");
         command.push_back(cudaPath);
         if (cudaSource->lineInfo()) {
             command.push_back("-lineinfo");
         }
+
+        command.push_back("--std=c++20");
+        command.push_back("--enable-tile");
+        command.push_back("-arch");
+        command.push_back("sm_120");
+
         command.push_back("-o");
         command.push_back(ptxPath);
 
@@ -230,6 +237,7 @@ CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
         jitOptVals[4] = reinterpret_cast<void *>(1);
 
         CUDA_CHECK(cuCtxSetCurrent(context), "cuCtxSetCurrent");
+        std::cout << "ptx-text????  " << ptx->text << std::endl;
         CUDA_CHECK(cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals), "cuModuleLoadDataEx");
 
         if (*infLog->text!='\0'){

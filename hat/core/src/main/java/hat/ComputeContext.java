@@ -190,58 +190,86 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
      */
     public void dispatchTile(TileRange tileRange, Tile tileKernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(tileKernel).orElseThrow();
-        JavaOp.LambdaOp lambdaOp = quoted.op();
-        IO.println("Lambda");
-        IO.println(lambdaOp.toText());
-        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();
-        try {
-            Method method = methodRef.resolveToMethod(this.lookup());
-            FuncOp funcOp = Op.ofMethod(method).get();
-            IO.println("function: ");
-            IO.println(funcOp.toText());
 
-            // Analysis of fields to transform into constants
-            funcOp = funcOp.transform((blockBuilder, op) -> {
-                if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-                    boolean isStaticField = fieldLoadOp.operands().isEmpty();
-                    if (isStaticField) {
-                        blockBuilder.add(fieldLoadOp);
-                        CodeType typeElement = fieldLoadOp.resultType();
-                        if (typeElement instanceof PrimitiveType primitiveType) {
-                            JavaType basicType = primitiveType.toBasicType();
-                            if (basicType == JavaType.INT) {
-                                // Found the int field. we can replace it with a constant value
-                                try {
-                                    Field field = fieldLoadOp.fieldReference().resolveToField(this.lookup());
-                                    IO.println(field);
-                                    // We can pass null because, at this point, we know it is a static field
-                                    int anInt = field.getInt(null);
-                                    CoreOp.ConstantOp c = CoreOp.constant(basicType, anInt);
-                                    Op.Result op1 = blockBuilder.add(c);
-                                    c.setLocation(fieldLoadOp.location());
-                                    blockBuilder.context().mapValue(fieldLoadOp.result(), op1);
-                                } catch (ReflectiveOperationException e) {
-                                    throw new RuntimeException(e);
-                                }
-                            }
-                        } else {
-                            blockBuilder.add(fieldLoadOp);
-                        }
-                    } else {
-                        blockBuilder.add(fieldLoadOp);
-                    }
-                } else {
-                    blockBuilder.add(op);
+        var location = quoted.op().location();
+
+        KernelCallSite kernelCallSite;
+        if (kernelCallSiteCache.containsKey(location)) {
+            var oldKernelCallSite = kernelCallSiteCache.get(location);
+            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
+        } else {
+            kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
+                JavaOp.LambdaOp lambdaOp = quoted.op();
+
+
+                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();
+
+                IO.println("Lambda");
+                IO.println(lambdaOp.toText());
+
+                KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+
+                if (kernelCallGraph == null) {
+                    throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
                 }
-                return blockBuilder;
+                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
             });
-
-            IO.println("Transformed: " + funcOp.toText());
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
         }
 
-        // TODO: Dispatch the Tile-Range which include JIT Compilation + Execution
+        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
+        KernelContext kernelContext = accelerator.range(tileRange);
+        args[0] = kernelContext;
+        accelerator.backend.dispatchTile(kernelCallSite.kernelCallGraph, kernelContext, args);
+
+//        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();
+//        try {
+//            Method method = methodRef.resolveToMethod(this.lookup());
+//            FuncOp funcOp = Op.ofMethod(method).get();
+//            IO.println("function: ");
+//            IO.println(funcOp.toText());
+//
+//            // Analysis of fields to transform into constants
+//            funcOp = funcOp.transform((blockBuilder, op) -> {
+//                if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
+//                    boolean isStaticField = fieldLoadOp.operands().isEmpty();
+//                    if (isStaticField) {
+//                        blockBuilder.add(fieldLoadOp);
+//                        CodeType typeElement = fieldLoadOp.resultType();
+//                        if (typeElement instanceof PrimitiveType primitiveType) {
+//                            JavaType basicType = primitiveType.toBasicType();
+//                            if (basicType == JavaType.INT) {
+//                                // Found the int field. we can replace it with a constant value
+//                                try {
+//                                    Field field = fieldLoadOp.fieldReference().resolveToField(this.lookup());
+//                                    IO.println(field);
+//                                    // We can pass null because, at this point, we know it is a static field
+//                                    int anInt = field.getInt(null);
+//                                    CoreOp.ConstantOp c = CoreOp.constant(basicType, anInt);
+//                                    Op.Result op1 = blockBuilder.add(c);
+//                                    c.setLocation(fieldLoadOp.location());
+//                                    blockBuilder.context().mapValue(fieldLoadOp.result(), op1);
+//                                } catch (ReflectiveOperationException e) {
+//                                    throw new RuntimeException(e);
+//                                }
+//                            }
+//                        } else {
+//                            blockBuilder.add(fieldLoadOp);
+//                        }
+//                    } else {
+//                        blockBuilder.add(fieldLoadOp);
+//                    }
+//                } else {
+//                    blockBuilder.add(op);
+//                }
+//                return blockBuilder;
+//            });
+//
+//            IO.println("Transformed: " + funcOp.toText());
+//        } catch (ReflectiveOperationException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        // TODO: Dispatch the Tile-Range which include JIT Compilation + Execution
 
     }
 

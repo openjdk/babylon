@@ -88,6 +88,10 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
         return new KernelContext(ndRange);
     }
 
+    public KernelContext range(TileRange tileRange) {
+        return new KernelContext(tileRange);
+    }
+
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {
         this(lookup, provider.get());
     }

@@ -73,4 +73,9 @@ public class OpenCLBackend extends C99FFIBackend {
         return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp())), args);
     }
 
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+        throw new UnsupportedOperationException();
+    }
+
 }

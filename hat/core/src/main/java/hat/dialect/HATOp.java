@@ -33,7 +33,7 @@ import java.util.List;
 
 public abstract sealed class HATOp extends AbstractOp
         implements ExternalizedOp.Externalizable
-        permits HATBarrierOp, HATPtrOp, HATThreadOp {
+        permits HATBarrierOp, HATPtrOp, HATThreadOp, HATTileOp {
     protected HATOp(List<Value> operands) {
         super(operands);
     }

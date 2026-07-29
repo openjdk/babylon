@@ -24,7 +24,6 @@
  */
 package hat.backend.ffi;
 
-
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
@@ -55,5 +54,10 @@ public class MockBackend extends FFIBackend {
         // and rechable methods to a form that our mock backend can execute.
         kernelCallGraph.callDag.rankOrdered.forEach(f -> {
         });
+    }
+
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+        throw new UnsupportedOperationException();
     }
 }

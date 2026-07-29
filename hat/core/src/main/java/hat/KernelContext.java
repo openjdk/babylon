@@ -105,6 +105,36 @@ public class KernelContext {
         }
     }
 
+    public KernelContext(TileRange tileRange) {
+        if (tileRange == null) {
+            throw new NullPointerException("tileRange is null");
+        }
+        // We do not need the following values
+        NDRange.Global global = tileRange.global();
+        NDRange.Local local = tileRange.local();
+        switch (global) {
+            case NDRange.Global1D global1D -> {
+                this.ndRange = NDRange.of1D(global1D.x(), ((NDRange.Local1D)local).x());
+                this.dimensions = 1;
+            }
+            case NDRange.Global2D global2D -> {
+                this.ndRange = NDRange.of2D(global2D.x(), global2D.y(), ((NDRange.Local2D)local).x(), ((NDRange.Local2D)local).y());
+                this.dimensions = 2;
+            }
+            case NDRange.Global3D global3D -> {
+                this.ndRange = NDRange.of3D(global3D.x(), global3D.y(), global3D.z(),
+                    ((NDRange.Local3D)local).x(),
+                    ((NDRange.Local3D)local).y(),
+                    ((NDRange.Local3D)local).z());
+                this.dimensions = 3;
+            }
+        }
+
+        this.gsx = 0;
+        this.gsy = 0;
+        this.gsz = 0;
+    }
+
     /**
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.
      */

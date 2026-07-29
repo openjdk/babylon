@@ -106,6 +106,7 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
 
     public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
 
+    public abstract void dispatchTile(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
 
     public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         var transformer = Trxfmr.of(lookup,funcOp);

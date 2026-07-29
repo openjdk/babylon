@@ -217,11 +217,11 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(kernelAnnotation.value());
         } else {
-            Set<Class<?>> typedeffed = new HashSet<>();
-            typedeffed.add(F16.class);
-            typedeffed.add(BF16.class);
+            Set<Class<?>> typeDefined = new HashSet<>();
+            typeDefined.add(F16.class);
+            typeDefined.add(BF16.class);
             kernelCallGraph.accessedNonMappableIfaceClasses.stream()
-                    .filter(c->!typedeffed.contains(c))
+                    .filter(c->!typeDefined.contains(c))
                     .map(c->(Class<NonMappableIface>) c) // why do we need to do this.
                     .forEach(c -> {
                         // We create a dag of iface references rooted at c
@@ -234,13 +234,13 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                         // Now we can generate typedefs in rankOrder (so inner typedefs first)
                         if (ifaceDataDag.isDag()) {
                             ifaceDataDag.rankOrdered.stream()
-                                    .filter(ifaceInfo -> !typedeffed.contains(ifaceInfo.clazz()))
-                                    .forEach(ifaceInfo -> typedeffed.add(
+                                    .filter(ifaceInfo -> !typeDefined.contains(ifaceInfo.clazz()))
+                                    .forEach(ifaceInfo -> typeDefined.add(
                                             DeviceSchema.getDeviceSchemaOrThrow(ifaceInfo.clazz()).typedef(builder).clazz()
                                     )
                             );
                         } else  {
-                            typedeffed.add(DeviceSchema.getDeviceSchemaOrThrow(c).typedef(builder).clazz());
+                            typeDefined.add(DeviceSchema.getDeviceSchemaOrThrow(c).typedef(builder).clazz());
                         }
                     });
 

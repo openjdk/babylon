@@ -371,6 +371,22 @@ public class HATPhaseUtils {
         return invoke.isPresent() && !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
     }
 
+    public static int findValueIntExpression(Value v) {
+        return switch (OpHelper.asOpFromResultOrNull(v)) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
+                    findValueIntExpression(varLoadOp.operands().getFirst()); //recurse
+            case CoreOp.VarOp varOp -> findValueIntExpression(varOp.operands().getFirst());
+            case CoreOp.ConstantOp constantOp -> {
+                if (constantOp.value() instanceof Integer i) {
+                    yield i;
+                }
+                yield -1;
+            }
+            case null -> -1;
+            default -> -1;
+        };
+    }
+
     private HATPhaseUtils() {
         /* This utility class should not be instantiated */
     }

@@ -44,4 +44,9 @@ public class JavaSequentialBackend extends JavaBackend {
 
         }
     }
+
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+        throw new UnsupportedOperationException();
+    }
 }
