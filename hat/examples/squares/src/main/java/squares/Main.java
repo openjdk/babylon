@@ -29,6 +29,8 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 
@@ -45,9 +47,9 @@ public class Main {
 
     @Reflect
     public static void squareKernel(KernelContext kc, S32Array s32Array) {
-        if (KernelContext.GIX() < KernelContext.GSX()){
-           int value = s32Array.array(KernelContext.GIX());       // arr[cc.x]
-           s32Array.array(KernelContext.GIX(), squareit(value));  // arr[cc.x]=value*value
+        if (GIX() < GSX()){
+           int value = s32Array.array(GIX());       // arr[cc.x]
+           s32Array.array(GIX(), squareit(value));  // arr[cc.x]=value*value
         }
     }
 

@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.HATMath;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.device.DeviceSchema;
@@ -75,8 +76,8 @@ public class TestDFT {
                                   ArrayComplex input,
                                   ArrayComplex output) {
         int size = input.length();
-        int idx = KernelContext.GIX();
-        if (idx < KernelContext.GSX()) {
+        int idx = GIX();
+        if (idx < GSX()) {
             float sumReal = 0.0f;
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -160,7 +161,7 @@ public class TestDFT {
     public static void testPrivateDS(KernelContext kc,
                                       ArrayComplex input,
                                       ArrayComplex output) {
-        int idx = KernelContext.GIX();
+        int idx = GIX();
         ArrayComplexPrivate priv = ArrayComplexPrivate.createPrivate();
         ArrayComplexPrivate.PrivateComplex complex = priv.complex(0);
         complex.real(1.0f);

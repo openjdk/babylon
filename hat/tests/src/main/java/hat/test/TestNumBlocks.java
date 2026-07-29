@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.test.annotation.HatTest;
@@ -43,9 +44,9 @@ import static hat.NDRange.NDRange1D;
 public class TestNumBlocks {
 
     @Reflect
-    private static void kernel_numblocks_X(KernelContext kernelContext, F32Array output) {
-        int idx = KernelContext.GIX();
-        int bsx = KernelContext.BSX();
+    private static void kernel_numblocks_X(KernelContext unused, F32Array output) {
+        int idx = GIX();
+        int bsx = BSX();
         // Write the number of blocks
         output.array(idx, bsx);
     }

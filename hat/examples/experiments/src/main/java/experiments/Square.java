@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.buffer.S32Array;
 import jdk.incubator.code.Reflect;
@@ -48,8 +49,8 @@ public class Square {
 
     @Reflect
     public static void squareKernel(@RO KernelContext kc, @RW S32Array a) {
-        int id = KernelContext.GIX();
-        if (id < KernelContext.GSX()) {
+        int id = GIX();
+        if (id < GSX()) {
             int value = a.array(id);
             a.array(id, square(value));
         }

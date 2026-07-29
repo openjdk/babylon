@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.Accelerator.Compute;
 import hat.ComputeContext.Kernel;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -94,10 +95,10 @@ public class GroovyShader  {
     public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
         int width = (int) uniforms.iResolution().x();
         int height = (int) uniforms.iResolution().y();
-        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(KernelContext.GIX() % width), (float)(height-(KernelContext.GIX() / width))));
-        f32Array.array(KernelContext.GIX() * 3, fragColor.x());
-        f32Array.array(KernelContext.GIX() * 3+1, fragColor.y());
-        f32Array.array(KernelContext.GIX() * 3+2, fragColor.z());
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(GIX() % width), (float)(height-(GIX() / width))));
+        f32Array.array(GIX() * 3, fragColor.x());
+        f32Array.array(GIX() * 3+1, fragColor.y());
+        f32Array.array(GIX() * 3+2, fragColor.z());
     }
 
     @Reflect

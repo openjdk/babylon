@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -94,16 +95,16 @@ public class GetBackend {
          */
         @Reflect
         static void kernel(KernelContext kid, F32Array a, F32Array b, F32Array c) {
-            for (int j = 0; j < KernelContext.GSX(); j++) {
+            for (int j = 0; j < GSX(); j++) {
                 float sum = 0f;
-                for (int k = 0; k < KernelContext.GSX(); k++) {
+                for (int k = 0; k < GSX(); k++) {
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
-                    sum += a.array(KernelContext.GIX() * KernelContext.GSX() + k) * b.array(k * KernelContext.GSX() + j);
+                    sum += a.array(GIX() * GSX() + k) * b.array(k * GSX() + j);
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
-                    sum += a.array(KernelContext.GIX() * KernelContext.GSX() + k) * b.array(k * KernelContext.GSX() + j);
+                    sum += a.array(GIX() * GSX() + k) * b.array(k * GSX() + j);
                 }
                 //c[kid.x * kid.max + j] = sum;
-                c.array(KernelContext.GIX() * KernelContext.GSX() + j, sum);
+                c.array(GIX() * GSX() + j, sum);
             }
         }
 

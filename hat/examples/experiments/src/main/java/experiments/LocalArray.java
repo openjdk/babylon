@@ -30,6 +30,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
@@ -65,13 +66,13 @@ public class LocalArray {
     }
 
     @Reflect
-    private static void compute(@RO KernelContext kernelContext, @RW F32Array data) {
+    private static void compute(@RO KernelContext unused, @RW F32Array data) {
         SharedMemory mySharedArray = SharedMemory.createLocal();
-        int lix = KernelContext.LIX();
-        int blockId = KernelContext.BIX();
-        int blockSize = KernelContext.LSX();
+        int lix = LIX();
+        int blockId = BIX();
+        int blockSize = LSX();
         mySharedArray.array(lix, lix);
-        KernelContext.barrier();
+        barrier();
         data.array(lix + (long) blockId * blockSize, mySharedArray.array(lix));
     }
 

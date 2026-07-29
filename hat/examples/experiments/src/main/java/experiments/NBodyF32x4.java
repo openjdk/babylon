@@ -27,6 +27,7 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import jdk.incubator.code.Reflect;
@@ -100,7 +101,7 @@ public class NBodyF32x4 {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
-        Universe.Body body = universe.body(KernelContext.GIX());
+        Universe.Body body = universe.body(GIX());
 
         for (int i = 0; i < universe.length(); i++) {
             Universe.Body otherBody = universe.body(i);
@@ -136,7 +137,7 @@ public class NBodyF32x4 {
         KernelContext kernelContext = new KernelContext(ndrange);
         //We can't do this once we refactor to static KerneContext
         throw new RuntimeException("We need NDRANGE for this");
-       // for (KernelContext.GIX() = 0; KernelContext.GIX() < KernelContext.GSX(); KernelContext.GIX()++) {
+       // for (GIX() = 0; GIX() < GSX(); GIX()++) {
           // nbodyKernel(kernelContext,universe,mass,delT,espSqr);
        // }
     }

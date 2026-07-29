@@ -30,6 +30,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -50,18 +51,18 @@ public class Main {
                                           F32Array tArray,
                                           float r,
                                           float v) {
-        if (KernelContext.GIX() < KernelContext.GSX()){
-            float S = sArray.array(KernelContext.GIX());
-            float X = xArray.array(KernelContext.GIX());
-            float T = tArray.array(KernelContext.GIX());
+        if (GIX() < GSX()){
+            float S = sArray.array(GIX());
+            float X = xArray.array(GIX());
+            float T = tArray.array(GIX());
             float expNegRt = (float) Math.exp(-r * T);
             float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
             float d2 = (float) (d1 - v * Math.sqrt(T));
             float cnd1 = CND(d1);
             float cnd2 = CND(d2);
             float value = S * cnd1 - expNegRt * X * cnd2;
-            call.array(KernelContext.GIX(), value);
-            put.array(KernelContext.GIX(), expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
+            call.array(GIX(), value);
+            put.array(GIX(), expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
         }
     }
 

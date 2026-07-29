@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.HATMath;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -102,11 +103,11 @@ public class Main {
      * @param softMaxScale
      */
     @Reflect
-    public static void selfAttentionV2HAT(KernelContext kernelContext,
+    public static void selfAttentionV2HAT(KernelContext unused,
                                           F32Array Q, F32Array K, F32Array V,
                                           F32Array attentionMatrix, F32Array O,
                                           final int N, final int d, final float softMaxScale) {
-        int idx = KernelContext.GIX();
+        int idx = GIX();
         if (idx < N) {
             // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
             for (int j = 0; j < N; j++) {
@@ -379,12 +380,12 @@ public class Main {
      * @param softmaxScale
      */
     @Reflect
-    public static void flashAttention(KernelContext kernelContext,
+    public static void flashAttention(KernelContext unused,
                                       F32Array Q, F32Array K, F32Array V,
                                       F32Array O, F32Array m, F32Array l,
                                       final int N, final int d, final float softmaxScale) {
-        int bx = KernelContext.BIX();
-        int tid = KernelContext.LIX();
+        int bx = BIX();
+        int tid = LIX();
 
         // Parameters used
         final int headDim = 64;
@@ -409,7 +410,7 @@ public class Main {
             sharedArray.array((tid * d + k) + sQ_index,
                     Q.array((startIndex + (tid * d + k) * d + k)));
         }
-        KernelContext.barrier();
+        barrier();
 
         int numBlocks = ceilFunction(N, blockN);
         for (int tileId = 0; tileId < numBlocks; tileId++) {
@@ -421,7 +422,7 @@ public class Main {
                 sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
                 sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
             }
-            KernelContext.barrier();
+            barrier();
 
             // m we accumulate the max values
             float m_prev = m.array(tileId * blockN + tid);
@@ -478,7 +479,7 @@ public class Main {
             m.array(tileId * blockN + tid, m_new);
             l.array(tileId * blockN + tid, l_new);
 
-            KernelContext.barrier();
+            barrier();
         }
     }
 
@@ -524,8 +525,8 @@ public class Main {
                                       F16Array Q, F16Array K, F16Array V,
                                       F16Array O, F16Array m, F16Array l,
                                       final int N, final int d, final float softmaxScale) {
-        int bx = KernelContext.BIX();
-        int tid = KernelContext.LIX();
+        int bx = BIX();
+        int tid = LIX();
 
         // Parameters used
         final int headDim = 64;
@@ -554,7 +555,7 @@ public class Main {
             sharedArray.array((tid * d + k) + sQ_index).value(valQ.value());
         }
 
-        KernelContext.barrier();
+        barrier();
 
         int numBlocks = ceilFunction(N, blockN);
         for (int tileId = 0; tileId < numBlocks; tileId++) {
@@ -568,7 +569,7 @@ public class Main {
                 sharedArray.array((tid * d + k) + sK_index).value(kVal.value());
                 sharedArray.array((tid + d + k) + sV_index).value(vVal.value());
             }
-            KernelContext.barrier();
+            barrier();
 
             // m we accumulate the max values
             F16 m_prev = m.array(tileId * blockN + tid);
@@ -644,7 +645,7 @@ public class Main {
             m.array(tileId * blockN + tid).value(m_new.value());
             l.array(tileId * blockN + tid).value(l_new.value());
 
-            KernelContext.barrier();
+            barrier();
         }
     }
 

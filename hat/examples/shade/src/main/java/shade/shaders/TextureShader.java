@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.ComputeContext.Kernel;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -284,12 +285,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
         int width = (int) uniforms.iResolution().x();
         int height = (int) uniforms.iResolution().y();
         var fragColor = mainImage(uniforms, vec4.vec4(0f),
-                vec2.vec2((float)(KernelContext.GIX() % width),
-                        (float)(height-(KernelContext.GIX() / width))),tex,tw,th
+                vec2.vec2((float)(GIX() % width),
+                        (float)(height-(GIX() / width))),tex,tw,th
         );
-        f32Array.array(KernelContext.GIX() * 3, fragColor.x());
-        f32Array.array(KernelContext.GIX() * 3+1, fragColor.y());
-        f32Array.array(KernelContext.GIX() * 3+2, fragColor.z());
+        f32Array.array(GIX() * 3, fragColor.x());
+        f32Array.array(GIX() * 3+1, fragColor.y());
+        f32Array.array(GIX() * 3+2, fragColor.z());
     }
 
     @Reflect

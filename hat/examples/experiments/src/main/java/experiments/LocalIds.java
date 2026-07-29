@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface.RO;
@@ -50,10 +51,10 @@ public class LocalIds {
 
     @Reflect
     private static void assign(@RO KernelContext __, @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
-        int gx = KernelContext.GIX();
-        int lx = KernelContext.LIX();
-        int lsx = KernelContext.LSX();
-        int bix = KernelContext.BIX();
+        int gx = GIX();
+        int lx = LIX();
+        int lsx = LSX();
+        int bix = BIX();
         arrayA.array(gx, lx);
         arrayB.array(gx, lsx);
         arrayC.array(gx, bix);

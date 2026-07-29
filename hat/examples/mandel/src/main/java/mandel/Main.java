@@ -43,7 +43,7 @@ import jdk.incubator.code.Reflect;
 
 public class Main {
     @Reflect
-    public static void mandel(KernelContext kernelContext, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
+    public static void mandel(KernelContext unused, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
         if (GIX() < GSX()) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();
@@ -59,7 +59,6 @@ public class Main {
                 zx = new_zx;
                 colorIdx++;
             }
-            KernelContext.barrier();
             int color = colorIdx < pallette.length() ? pallette.array(colorIdx) : 0;
             s32Array2D.array(GIX(), color);
         }

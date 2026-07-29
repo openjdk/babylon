@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.annotations.Kernel;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
@@ -171,36 +172,36 @@ public class PrefixSum {
         // int[] scratch=scratchBuf.arrayView();
         int[] data = dataBuf.arrayView();
 
-        scratchBuf.array(KernelContext.LIX(), data[KernelContext.GIX()]); // scratch[KernelContext.LIX()]=data[KernelContext.GIX()];
-        KernelContext.barrier();
+        scratchBuf.array(LIX(), data[GIX()]); // scratch[LIX()]=data[GIX()];
+        barrier();
 
-        for (int step = 2; step <= KernelContext.LSX(); step <<= 1) {
-            if (((KernelContext.LIX() + 1) % step) == 0) {
-                scratchBuf.array(KernelContext.LIX(), scratchBuf.array(KernelContext.LIX()) + scratchBuf.array(KernelContext.LIX() - (step >> 1))); // scratch[KernelContext.LIX()]+=scratch[KernelContext.LIX()-(step>>1)];
+        for (int step = 2; step <= LSX(); step <<= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + scratchBuf.array(LIX() - (step >> 1))); // scratch[LIX()]+=scratch[LIX()-(step>>1)];
             }
-            KernelContext.barrier();
+            barrier();
         }
         int sum = 0;
-        if ((KernelContext.LIX() + 1) == KernelContext.LSX()) {
-            sum = scratchBuf.array(KernelContext.LIX());    // sum = scratch[KernelContext.LIX()];
-            scratchBuf.array(KernelContext.LIX(), 0); // scratch[KernelContext.LIX()]=0;
+        if ((LIX() + 1) == LSX()) {
+            sum = scratchBuf.array(LIX());    // sum = scratch[LIX()];
+            scratchBuf.array(LIX(), 0); // scratch[LIX()]=0;
         }
-        KernelContext.barrier();
-        for (int step = KernelContext.LSX(); step > 1; step >>= 1) {
-            if (((KernelContext.LIX() + 1) % step) == 0) {
-                int prev = scratchBuf.array(KernelContext.LIX() - (step >> 1));                // int prev = scratch[KernelContext.LIX()-(step>>1)];
-                scratchBuf.array(KernelContext.LIX() - (step >> 1), scratchBuf.array(KernelContext.LIX())); // scratch[KernelContext.LIX()-(step>>1)]=scratch[KernelContext.LIX()];
-                scratchBuf.array(KernelContext.LIX(), scratchBuf.array(KernelContext.LIX()) + prev);        //  scratch[KernelContext.LIX()]+= prev;
+        barrier();
+        for (int step = LSX(); step > 1; step >>= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                int prev = scratchBuf.array(LIX() - (step >> 1));                // int prev = scratch[LIX()-(step>>1)];
+                scratchBuf.array(LIX() - (step >> 1), scratchBuf.array(LIX())); // scratch[LIX()-(step>>1)]=scratch[LIX()];
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + prev);        //  scratch[LIX()]+= prev;
             }
-            KernelContext.barrier();
+            barrier();
         }
 
-        if ((KernelContext.LIX() + 1) == KernelContext.LSX()) {
-            data[KernelContext.GIX()] = sum;
+        if ((LIX() + 1) == LSX()) {
+            data[GIX()] = sum;
         } else {
-            data[KernelContext.GIX()] = scratchBuf.array(KernelContext.LIX() + 1);  // data[ KernelContext.GIX()] = scratch[KernelContext.LIX()+1];
+            data[GIX()] = scratchBuf.array(LIX() + 1);  // data[ GIX()] = scratch[LIX()+1];
         }
-        KernelContext.barrier();
+        barrier();
 
     }
 
@@ -260,35 +261,35 @@ public class PrefixSum {
         var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();  // int[] scratch=scratchBuf.arrayView();
 
-        int gid = (KernelContext.GIX() * (KernelContext.GSX())) - 1; // 0-> -1?  hence the >0 checks below.
+        int gid = (GIX() * (GSX())) - 1; // 0-> -1?  hence the >0 checks below.
 
-        scratchBuf.array(KernelContext.LIX(), (gid > 0) ? data[gid] : 0);   // scratch[KernelContext.LIX()]= (gid>0)?data[gid]:0;
+        scratchBuf.array(LIX(), (gid > 0) ? data[gid] : 0);   // scratch[LIX()]= (gid>0)?data[gid]:0;
         kc.barrier();
-        for (int step = 2; step <= KernelContext.GSX(); step <<= 1) {
-            if (((KernelContext.LIX() + 1) % step) == 0) {
-                scratchBuf.array(KernelContext.LIX(), scratchBuf.array(KernelContext.LIX()) + scratchBuf.array(KernelContext.LIX() - (step >> 1))); // scratch[KernelContext.LIX()]+=scratch[KernelContext.LIX()-(step>>1)];
+        for (int step = 2; step <= GSX(); step <<= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + scratchBuf.array(LIX() - (step >> 1))); // scratch[LIX()]+=scratch[LIX()-(step>>1)];
             }
             kc.barrier();
         }
         int sum = 0;
-        if ((KernelContext.LIX() + 1) == KernelContext.GSX()) {
-            sum = scratchBuf.array(KernelContext.LIX());     // sum = scratch[KernelContext.LIX()];
-            scratchBuf.array(KernelContext.LIX(), 0);  // scratch[KernelContext.LIX()]=0;
+        if ((LIX() + 1) == GSX()) {
+            sum = scratchBuf.array(LIX());     // sum = scratch[LIX()];
+            scratchBuf.array(LIX(), 0);  // scratch[LIX()]=0;
         }
         kc.barrier();
-        for (int step = KernelContext.GSX(); step > 1; step >>= 1) {
-            if (((KernelContext.LIX() + 1) % step) == 0) {
-                int swap = scratchBuf.array(KernelContext.LIX() - (step >> 1));                // int swap = scratch[KernelContext.LIX()-(step>>1)];
-                scratchBuf.array(KernelContext.LIX() - (step >> 1), scratchBuf.array(KernelContext.LIX())); // scratch[KernelContext.LIX()-(step>>1)]=scratch[KernelContext.LIX()];
-                scratchBuf.array(KernelContext.LIX(), scratchBuf.array(KernelContext.LIX()) + swap);        // scratch[KernelContext.LIX()]+= swap;
+        for (int step = GSX(); step > 1; step >>= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                int swap = scratchBuf.array(LIX() - (step >> 1));                // int swap = scratch[LIX()-(step>>1)];
+                scratchBuf.array(LIX() - (step >> 1), scratchBuf.array(LIX())); // scratch[LIX()-(step>>1)]=scratch[LIX()];
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + swap);        // scratch[LIX()]+= swap;
             }
             kc.barrier();
         }
 
-        if ((KernelContext.LIX() + 1) == KernelContext.GSX()) {
+        if ((LIX() + 1) == GSX()) {
             data[gid] = sum;
         } else if (gid > 0) {
-            data[gid] = scratchBuf.array(KernelContext.LIX() + 1); //  data[ gid] = scratch[KernelContext.LIX()+1];
+            data[gid] = scratchBuf.array(LIX() + 1); //  data[ gid] = scratch[LIX()+1];
         }
         kc.barrier(); */
     }
@@ -307,13 +308,13 @@ public class PrefixSum {
         int[] data = dataBuf.arrayView();
         //  int[] scratch=scratchBuf.arrayView();
 
-        scratchBuf.array(KernelContext.LIX(), data[KernelContext.GIX()]); // scratch[KernelContext.LIX()] = data[KernelContext.GIX()];
+        scratchBuf.array(LIX(), data[GIX()]); // scratch[LIX()] = data[GIX()];
         kc.barrier();
-        if ((KernelContext.LIX() + 1) != KernelContext.GSX() && KernelContext.GIX() > 0) {// don't do this for last in group
-            scratchBuf.array(KernelContext.LIX(), scratchBuf.array(KernelContext.LIX()) + data[(KernelContext.GIX() * KernelContext.GSX()) - 1]); // scratch[KernelContext.LIX()]+= data[(KernelContext.GIX()*KernelContext.GSX())-1];
+        if ((LIX() + 1) != GSX() && GIX() > 0) {// don't do this for last in group
+            scratchBuf.array(LIX(), scratchBuf.array(LIX()) + data[(GIX() * GSX()) - 1]); // scratch[LIX()]+= data[(GIX()*GSX())-1];
         }
         kc.barrier();
-        data[KernelContext.GIX()] = scratchBuf.array(KernelContext.LIX()); // data[KernelContext.GIX()]=scratch[KernelContext.LIX()];
+        data[GIX()] = scratchBuf.array(LIX()); // data[GIX()]=scratch[LIX()];
     }
     static String view(int[] data){
         StringBuilder sb = new StringBuilder();
