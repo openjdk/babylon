@@ -343,11 +343,9 @@ public final class BytecodeGenerator {
     private static boolean canDefer(VarOp op) {
         if (op.isUninitialized()) {
             // Uninitialized var with single store dominating to all its uses can be deferred
-            var storeUses = op.result().uses().stream().filter(u -> u.op() instanceof VarAccessOp.VarStoreOp).toList();
-            if (storeUses.size() == 1) {
-                return op.result().uses().stream().allMatch(u -> u.isDominatedBy(storeUses.getFirst()));
-            }
-            return false;
+            var uses = op.result().uses();
+            var storeUses = uses.stream().filter(u -> u.op() instanceof VarAccessOp.VarStoreOp).toList();
+            return storeUses.size() == 1 && uses.stream().allMatch(u -> u.isDominatedBy(storeUses.getFirst()));
         } else {
             // Initialized var used only for loads or var with a single-use entry block parameter operand can be deferred
             return op.result().uses().stream().allMatch(u -> u.op() instanceof VarAccessOp.VarLoadOp)
