@@ -298,6 +298,15 @@ public class TestBytecode {
         return i;
     }
 
+    @Reflect
+    static int definitiveAssignment(int i) {
+        int assigned;
+        if (i > 0 && (assigned = i) > 1) {
+            return assigned;
+        }
+        return -1;
+    }
+
     public record A(String s) {}
 
     @Reflect
