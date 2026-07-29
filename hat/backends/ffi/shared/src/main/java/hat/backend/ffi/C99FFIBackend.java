@@ -171,6 +171,9 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                 }
             }
 
+            // Set the tile Model
+            kernelBufferContext.tile_model(kernelContext.tileModel);
+
             args[0] = this.kernelBufferContext;
             ArgArray.update(argArray, kernelCallGraph, args);
             kernelBridge.ndRange(this.argArray);

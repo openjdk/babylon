@@ -414,6 +414,8 @@ public:
     bool wsx;
     bool wsy;
     bool wsz;
+
+    bool tile_model;
 };
 
 class Backend {

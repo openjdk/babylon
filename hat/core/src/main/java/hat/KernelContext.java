@@ -75,12 +75,15 @@ public class KernelContext {
 
     public final NDRange ndRange;
 
+    public final boolean tileModel;
+
     public KernelContext(NDRange ndRange) {
         if (ndRange == null) {
             throw new NullPointerException("ndRange is null");
         }
 
         this.ndRange = ndRange;
+        this.tileModel = false;
         switch (ndRange) {
             case NDRange.NDRange1D ndRange1D -> {
                 this.gsx = ((NDRange.M1D)(ndRange1D.global())).x();
@@ -133,6 +136,7 @@ public class KernelContext {
         this.gsx = 0;
         this.gsy = 0;
         this.gsz = 0;
+        this.tileModel = true;
     }
 
     /**

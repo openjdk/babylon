@@ -148,34 +148,43 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
 
     const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
-    int threadsPerBlockX = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsx, kernelContext->lsx);
-    int threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
-    int threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
+    int threadsPerBlockX = 1;
+    int threadsPerBlockY = 1;
+    int threadsPerBlockZ = 1;
+    int blocksPerGridX = ceil_div(kernelContext->gsx, kernelContext->lsx);
+    int blocksPerGridY = ceil_div(kernelContext->gsy, kernelContext->lsy);
+    int blocksPerGridZ = ceil_div(kernelContext->gsz, kernelContext->lsz);
 
-    int warpFactor[3] = { 1, 1, 1 };
-    if (kernelContext->wsx) {
-        warpFactor[0] = 32;
-    }
-    if (kernelContext->wsy) {
-        warpFactor[1] = 32;
-    }
-    if (kernelContext->wsz) {
-        warpFactor[2] = 32;
-    }
+    if (!kernelContext -> tile_model) {
+        threadsPerBlockX = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsx, kernelContext->lsx);
+        threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
+        threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
 
-    int globalSize[3] = { kernelContext->gsx, kernelContext->gsy, kernelContext->gsz };
-    globalSize[0] = kernelContext->tlx? ceil_div(kernelContext->gsx, kernelContext->tlx) * warpFactor[0]: kernelContext->gsx;
-    globalSize[1] = kernelContext->tly? ceil_div(kernelContext->gsy, kernelContext->tly) * warpFactor[1]: kernelContext->gsy;
-    globalSize[2] = kernelContext->tlz? ceil_div(kernelContext->gsz, kernelContext->tlz) * warpFactor[2]: kernelContext->gsz;
+        int warpFactor[3] = { 1, 1, 1 };
+        if (kernelContext->wsx) {
+            warpFactor[0] = 32;
+        }
+        if (kernelContext->wsy) {
+            warpFactor[1] = 32;
+        }
+        if (kernelContext->wsz) {
+            warpFactor[2] = 32;
+        }
 
-    int blocksPerGridX = ceil_div(globalSize[0], threadsPerBlockX);
-    int blocksPerGridY = 1;
-    int blocksPerGridZ = 1;
-    if (kernelContext->dimensions > 1) {
-        blocksPerGridY = ceil_div(globalSize[1], threadsPerBlockY);
-    }
-    if (kernelContext->dimensions > 2) {
-        blocksPerGridZ = ceil_div(globalSize[2], threadsPerBlockZ);
+        int globalSize[3] = { kernelContext->gsx, kernelContext->gsy, kernelContext->gsz };
+        globalSize[0] = kernelContext->tlx? ceil_div(kernelContext->gsx, kernelContext->tlx) * warpFactor[0]: kernelContext->gsx;
+        globalSize[1] = kernelContext->tly? ceil_div(kernelContext->gsy, kernelContext->tly) * warpFactor[1]: kernelContext->gsy;
+        globalSize[2] = kernelContext->tlz? ceil_div(kernelContext->gsz, kernelContext->tlz) * warpFactor[2]: kernelContext->gsz;
+
+        blocksPerGridX = ceil_div(globalSize[0], threadsPerBlockX);
+        blocksPerGridY = 1;
+        blocksPerGridZ = 1;
+        if (kernelContext->dimensions > 1) {
+            blocksPerGridY = ceil_div(globalSize[1], threadsPerBlockY);
+        }
+        if (kernelContext->dimensions > 2) {
+            blocksPerGridZ = ceil_div(globalSize[2], threadsPerBlockZ);
+        }
     }
 
     // Enable debug information with info: HAT=INFO
@@ -199,7 +208,7 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
 
     const auto status = cuLaunchKernel(cudaKernel->function, //
                                  blocksPerGridX, blocksPerGridY, blocksPerGridZ, //
-                                 1, 1, 1, //
+                                 threadsPerBlockX, threadsPerBlockY, threadsPerBlockZ, //
                                  0, //
                                  cuStream, //
                                  cudaKernel->argslist, //
