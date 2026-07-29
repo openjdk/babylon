@@ -340,11 +340,19 @@ public final class BytecodeGenerator {
         return !op.resultType().equals(JavaType.J_L_CLASS);
     }
 
-    // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return op.isUninitialized()
-            || !moreThanOneUse(op.result())
-            || op.initOperand() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
+        if (op.isUninitialized()) {
+            // Uninitialized var with single store dominating to all its uses can be deferred
+            var uses = op.result().uses();
+            var storeUses = uses.stream().filter(u -> u.op() instanceof VarAccessOp.VarStoreOp).toList();
+            return storeUses.size() == 1 && uses.stream().allMatch(u -> u.isDominatedBy(storeUses.getFirst()));
+        } else {
+            // Initialized var used only for loads or var with a single-use entry block parameter operand can be deferred
+            return op.result().uses().stream().allMatch(u -> u.op() instanceof VarAccessOp.VarLoadOp)
+                    || op.initOperand() instanceof Block.Parameter bp
+                        && bp.declaringBlock().isEntryBlock()
+                        && !moreThanOneUse(bp);
+        }
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -506,7 +514,17 @@ public final class BytecodeGenerator {
                         }
                     }
                     case VarOp op when op.isUninitialized() -> {
-                        // Do nothing
+                        if (!canDefer(op)) {
+                            switch (toTypeKind(op.resultType()).asLoadable()) {
+                                case INT -> cob.iconst_0();
+                                case LONG -> cob.lconst_0();
+                                case FLOAT -> cob.fconst_0();
+                                case DOUBLE -> cob.dconst_0();
+                                case REFERENCE -> cob.aconst_null();
+                                default -> throw new IllegalArgumentException("Bad variable type: " + toTypeKind(op.resultType()));
+                            }
+                            storeIfUsed(op.result());
+                        }
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
