@@ -120,9 +120,9 @@ public class Mesh {
     public static class ComputeApp {
         @Reflect
         public static void initPoints(KernelContext kc, MeshData mesh) {
-            if (kc.gix < kc.gsx) {
-                MeshData.Point3D point = mesh.point(kc.gix);
-                point.x(kc.gix);
+            if (KernelContext.GIX() < KernelContext.GSX()) {
+                MeshData.Point3D point = mesh.point(KernelContext.GIX());
+                point.x(KernelContext.GIX());
                 point.y(0);
                 point.z(0);
             }

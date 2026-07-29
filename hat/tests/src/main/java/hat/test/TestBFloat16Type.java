@@ -46,55 +46,55 @@ public class TestBFloat16Type {
 
     @Reflect
     public static void kernelCopy(KernelContext kernelContext, BF16Array a, BF16Array b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
-            b.array(kernelContext.gix).value(ha.value());
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
+            b.array(KernelContext.GIX()).value(ha.value());
         }
     }
 
     @Reflect
     public static void bf16_02(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
-            BF16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
+            BF16 hb = b.array(KernelContext.GIX());
             BF16 result = BF16.add(ha, hb);
-            BF16 hc = c.array(kernelContext.gix);
+            BF16 hc = c.array(KernelContext.GIX());
             hc.value(result.value());
         }
     }
 
     @Reflect
     public static void bf16_03(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
-            BF16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
+            BF16 hb = b.array(KernelContext.GIX());
 
             BF16 result = BF16.add(ha, BF16.add(hb, hb));
-            BF16 hC = c.array(kernelContext.gix);
+            BF16 hC = c.array(KernelContext.GIX());
             hC.value(result.value());
         }
     }
 
     @Reflect
     public static void bf16_04(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
-            BF16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
+            BF16 hb = b.array(KernelContext.GIX());
 
             BF16 r1 = BF16.mul(ha, hb);
             BF16 r2 = BF16.div(ha, hb);
             BF16 r3 = BF16.sub(ha, hb);
             BF16 r4 = BF16.add(r1, r2);
             BF16 r5 = BF16.add(r4, r3);
-            BF16 hC = c.array(kernelContext.gix);
+            BF16 hC = c.array(KernelContext.GIX());
             hC.value(r5.value());
         }
     }
 
     @Reflect
     public static void bf16_05(KernelContext kernelContext, BF16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
             BF16 initVal = BF16.of( 2.1f);
             ha.value(initVal.value());
         }
@@ -102,37 +102,37 @@ public class TestBFloat16Type {
 
     @Reflect
     public static void bf16_06(KernelContext kernelContext, BF16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 initVal = BF16.of(kernelContext.gix);
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 initVal = BF16.of(KernelContext.GIX());
+            BF16 ha = a.array(KernelContext.GIX());
             ha.value(initVal.value());
         }
     }
 
     @Reflect
     public static void bf16_08(KernelContext kernelContext, BF16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 initVal = BF16.float2bfloat16(kernelContext.gix);
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 initVal = BF16.float2bfloat16(KernelContext.GIX());
+            BF16 ha = a.array(KernelContext.GIX());
             ha.value(initVal.value());
         }
     }
 
     @Reflect
     public static void bf16_09(KernelContext kernelContext, BF16Array a, BF16Array b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
             float f = BF16.bfloat162float(ha);
             BF16 result = BF16.float2bfloat16(f);
-            BF16 hb = b.array(kernelContext.gix);
+            BF16 hb = b.array(KernelContext.GIX());
             hb.value(result.value());
         }
     }
 
     @Reflect
     public static void bf16_10(KernelContext kernelContext, BF16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
             BF16 f16 = BF16.of(1.1f);
             float f = BF16.bfloat162float(f16);
             BF16 result = BF16.float2bfloat16(f);
@@ -157,48 +157,48 @@ public class TestBFloat16Type {
     @Reflect
     public static void bf16_11(KernelContext kernelContext, BF16Array a, BF16Array b) {
         LocalArray sm = LocalArray.createLocal();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int lix = kernelContext.lix;
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int lix = KernelContext.LIX();
+            BF16 ha = a.array(KernelContext.GIX());
 
             sm.array(lix).value(ha.value());
-            kernelContext.barrier();
+            KernelContext.barrier();
 
             BF16 hb = sm.array(lix);
-            b.array(kernelContext.gix).value(hb.value());
+            b.array(KernelContext.GIX()).value(hb.value());
         }
     }
 
     @Reflect
     public static void bf16_12(KernelContext kernelContext, BF16Array a, BF16Array b, BF16Array c) {
         // Test the fluent API style
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
-            BF16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
+            BF16 hb = b.array(KernelContext.GIX());
             BF16 result = BF16.add(ha,hb);
-            c.array(kernelContext.gix).value(result.value());
+            c.array(KernelContext.GIX()).value(result.value());
         }
     }
 
     @Reflect
     public static void bf16_13(KernelContext kernelContext, BF16Array a, BF16Array b,  BF16Array c) {
         // Test the fluent API style
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
-            BF16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
+            BF16 hb = b.array(KernelContext.GIX());
             BF16 result = BF16.div(BF16.mul(BF16.sub(BF16.add(ha,hb),hb),ha),ha);
-            c.array(kernelContext.gix).value(result.value());
+            c.array(KernelContext.GIX()).value(result.value());
         }
     }
 
     @Reflect
     public static void bf16_14(KernelContext kernelContext, BF16Array a, BF16Array b) {
         // Testing mixed float types
-        if (kernelContext.gix < kernelContext.gsx) {
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            BF16 ha = a.array(KernelContext.GIX());
             float myFloat = 32.1f;
             BF16 result = BF16.add(myFloat, ha);
-            b.array(kernelContext.gix).value(result.value());
+            b.array(KernelContext.GIX()).value(result.value());
         }
     }
 
@@ -219,12 +219,12 @@ public class TestBFloat16Type {
     @Reflect
     public static void bf16_15(KernelContext kernelContext, BF16Array a, BF16Array b) {
         PrivateArray privateArray = PrivateArray.createPrivate();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int lix = kernelContext.lix;
-            BF16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int lix = KernelContext.LIX();
+            BF16 ha = a.array(KernelContext.GIX());
             privateArray.array(lix).value(ha.value());
             BF16 hb = privateArray.array(lix);
-            b.array(kernelContext.gix).value(hb.value());
+            b.array(KernelContext.GIX()).value(hb.value());
         }
     }
 

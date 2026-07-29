@@ -83,13 +83,13 @@ public class Main {
      */
     @Reflect
     public static void matrixMultiplyKernel2D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
+        if (kc.GIX() < kc.GSX()) {
+            if (kc.GIY() < kc.GSY()) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + kc.giy));
+                    acc += (matrixA.array(kc.GIX() * size + k) * matrixB.array(k * size + kc.GIY()));
                 }
-                matrixC.array(kc.gix * size + kc.giy, acc);
+                matrixC.array(kc.GIX() * size + kc.GIY(), acc);
             }
         }
     }
@@ -105,30 +105,30 @@ public class Main {
      */
     @Reflect
     public static void matrixMultiplyKernel2DLI(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
+        if (kc.GIX() < kc.GSX()) {
+            if (kc.GIY() < kc.GSY()) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.giy * size + k) * matrixB.array(k * size + kc.gix));
+                    acc += (matrixA.array(kc.GIY() * size + k) * matrixB.array(k * size + kc.GIX()));
                 }
-                matrixC.array(kc.giy * size + kc.gix, acc);
+                matrixC.array(kc.GIY() * size + kc.GIX(), acc);
             }
         }
     }
 
     @Reflect
     public static void matrixMultiplyKernel2DLIF16(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
+        if (kc.GIX() < kc.GSX()) {
+            if (kc.GIY() < kc.GSY()) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    F16 ha = matrixA.array(kc.giy * size + k);
-                    F16 hb = matrixB.array(k * size + kc.gix);
+                    F16 ha = matrixA.array(kc.GIY() * size + k);
+                    F16 hb = matrixB.array(k * size + kc.GIX());
                     F16 hc = F16.mul(ha, hb);
                     float fc = F16.f16ToFloat(hc);
                     acc += fc;
                 }
-                matrixC.array(kc.giy * size + kc.gix, acc);
+                matrixC.array(kc.GIY() * size + kc.GIX(), acc);
             }
         }
     }
@@ -155,16 +155,16 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DTiling(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DTiling(KernelContext __, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
 
         final int tileSize = 16;
         MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal();
         MyLocalArrayFixedSize tileB = MyLocalArrayFixedSize.createLocal();
 
-        int groupIndexX = kc.bix;
-        int groupIndexY = kc.biy;
-        int localIdx = kc.lix;
-        int localIdy = kc.liy;
+        int groupIndexX = KernelContext.BIX();
+        int groupIndexY = KernelContext.BIY();
+        int localIdx = KernelContext.LIX();
+        int localIdy = KernelContext.LIY();
 
         // we identify the row and column
         int row = groupIndexY * tileSize + localIdy;
@@ -179,7 +179,7 @@ public class Main {
 
             // Apply a barrier for the local group: we need to guarantee that all threads that belong
             // to the same group reach this point before doing the partial reduction
-            kc.barrier();
+            KernelContext.barrier();
 
             // compute partial reductions over the tile
             for (int k = 0; k < tileSize; k++) {
@@ -189,7 +189,7 @@ public class Main {
             // A new local barrier for all threads that belong to the same group before loading a new tile into
             // share memory. With the following barrier, we can ensure that all threads within the same workgroup
             // finished the compute for the partial reduction
-            kc.barrier();
+            KernelContext.barrier();
         }
 
         // copy result from shared memory to global memory
@@ -261,14 +261,14 @@ public class Main {
      * {@url https://siboehm.com/articles/22/CUDA-MMM}
      * </p>
      *
-     * @param kc
+     * @param __
      * @param matrixA
      * @param matrixB
      * @param matrixC
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTiling(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTiling(KernelContext __, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -278,15 +278,15 @@ public class Main {
         final int TM = 4;
         final int TN = 4;
 
-        int bx = kc.bix;
-        int by = kc.biy;
+        int bx = KernelContext.BIX();
+        int by = KernelContext.BIY();
 
         int totalResultsBlockTile = BM * BN;
         final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
 
-        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
-        final int threadCol = kc.lix;
-        final int threadRow = kc.liy;
+        final int linearLocalId =  KernelContext.LIY() *  KernelContext.LSX() +  KernelContext.LIX();
+        final int threadCol =  KernelContext.LIX();
+        final int threadRow =  KernelContext.LIY();
 
         SharedMemory tileA = SharedMemory.createLocal();
         SharedMemory tileB = SharedMemory.createLocal();
@@ -329,7 +329,7 @@ public class Main {
                 tileB.array((innerRowB + loadOffset) * BN + innerColB,
                         matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom));
             }
-            kc.barrier();
+            KernelContext.barrier();
 
             aFrom += (BK);
             int f = BK * size;
@@ -355,7 +355,7 @@ public class Main {
                     }
                 }
             }
-            kc.barrier();
+            KernelContext.barrier();
         }
 
         // Finally, we store the results of the reductions for the whole 2D register block into global memory.
@@ -390,7 +390,7 @@ public class Main {
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingVectorized(KernelContext kc, F32ArrayPadded matrixA, F32ArrayPadded matrixB, F32ArrayPadded matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingVectorized(KernelContext __, F32ArrayPadded matrixA, F32ArrayPadded matrixB, F32ArrayPadded matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -403,12 +403,12 @@ public class Main {
         final int TM = 4;
         final int TN = 4;
 
-        int bx = kc.bix;
-        int by = kc.biy;
+        int bx = KernelContext.BIX();
+        int by = KernelContext.BIY();
 
-        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
-        final int threadCol = kc.lix;
-        final int threadRow = kc.liy;
+        final int linearLocalId = KernelContext.LIY() * KernelContext.LSX() + KernelContext.LIX();
+        final int threadCol = KernelContext.LIX();
+        final int threadRow = KernelContext.LIY();
 
         SharedMemory tileA = SharedMemory.createLocal();
         SharedMemory tileB = SharedMemory.createLocal();
@@ -450,7 +450,7 @@ public class Main {
             tileB.array(innerRowB * (BN + extraCols) + innerColB * 4 + 2, loadB.z());
             tileB.array(innerRowB * (BN + extraCols) + innerColB * 4 + 3, loadB.w());
 
-            kc.barrier();
+            KernelContext.barrier();
 
             aFrom += (BK);
             int f = BK * size;
@@ -476,7 +476,7 @@ public class Main {
                     }
                 }
             }
-            kc.barrier();
+            KernelContext.barrier();
         }
 
         // Finally, we store the results of the reductions for the whole 2D register block into global memory.
@@ -535,7 +535,7 @@ public class Main {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DRegisterTilingHalf(KernelContext kc, F16Array matrixA, F16Array matrixB, F16Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DRegisterTilingHalf(KernelContext __, F16Array matrixA, F16Array matrixB, F16Array matrixC, int size) {
 
         // Configuration for the kernel: Keep in mind that if you change the following parameters,
         // also change the scheduling (global and local work sizes).
@@ -545,15 +545,15 @@ public class Main {
         final int TM = 4;
         final int TN = 4;
 
-        int bx = kc.bix;
-        int by = kc.biy;
+        int bx = KernelContext.BIX();
+        int by = KernelContext.BIY();
 
         int totalResultsBlockTile = BM * BN;
         final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
 
-        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
-        final int threadCol = kc.lix;
-        final int threadRow = kc.liy;
+        final int linearLocalId = KernelContext.LIY() * KernelContext.LSX() + KernelContext.LIX();
+        final int threadCol = KernelContext.LIX();
+        final int threadRow = KernelContext.LIY();
 
         SharedMemoryHalf tileA = SharedMemoryHalf.createLocal();
         SharedMemoryHalf tileB = SharedMemoryHalf.createLocal();
@@ -597,7 +597,7 @@ public class Main {
                 F16 hb = matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom);
                 tileB.array((innerRowB + loadOffset) * BN + innerColB).value(hb.value());
             }
-            kc.barrier();
+            KernelContext.barrier();
 
             aFrom += (BK);
             int f = BK * size;
@@ -627,7 +627,7 @@ public class Main {
                     }
                 }
             }
-            kc.barrier();
+            KernelContext.barrier();
         }
 
         // Finally, we store the results of the reductions for the whole 2D register block into global memory.
@@ -644,7 +644,7 @@ public class Main {
     public static float compute(KernelContext kc, F32Array matrixA, F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
-            acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
+            acc += (matrixA.array(kc.GIX() * size + k) * matrixB.array(k * size + j));
         }
         return acc;
     }
@@ -652,21 +652,21 @@ public class Main {
     /**
      * Naive Matrix Multiplication implemented in 1D.
      *
-     * @param kc
+     * @param __
      * @param matrixA
      * @param matrixB
      * @param matrixC
      * @param size
      */
     @Reflect
-    public static void matrixMultiplyKernel1D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
+    public static void matrixMultiplyKernel1D(KernelContext __, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+        if (KernelContext.GIX() < KernelContext.GSX()) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
+                    acc += (matrixA.array(KernelContext.GIX() * size + k) * matrixB.array(k * size + j));
                 }
-                matrixC.array(kc.gix * size + j, acc);
+                matrixC.array(KernelContext.GIX() * size + j, acc);
             }
         }
     }
@@ -676,10 +676,10 @@ public class Main {
      */
     @Reflect
     public static void matrixMultiplyKernel1DWithFunctionCalls(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
+        if (kc.GIX() < kc.GSX()) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);
-                matrixC.array(kc.gix * size + j, acc);
+                matrixC.array(kc.GIX() * size + j, acc);
             }
         }
     }

@@ -37,21 +37,18 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static optkl.OpHelper.FieldAccess.fieldAccess;
+import static optkl.OpHelper.Invoke.invoke;
 
 public record HATWarpSizePhase() implements HATPhase {
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        Set<CodeElement<?, ?>> varAccessesToBeRemoved = new HashSet<>();
         return Trxfmr.of(lookup, funcOp)
                 .transform(c -> {
-                    if (fieldAccess(lookup, c.op()) instanceof OpHelper.FieldAccess.Instance fieldAccess
-                            && fieldAccess.refType(KernelContext.class) && fieldAccess.nameMatchesRegex("wrs")) {
-                        varAccessesToBeRemoved.add(fieldAccess.instanceVarAccess().op());
-                        c.replace(HATThreadOp.create(fieldAccess.name()));
+                    if (invoke(lookup, c.op()) instanceof OpHelper.Invoke.Static invokeStatic
+                            && invokeStatic.refIs(KernelContext.class) && invokeStatic.nameMatchesRegex("WRZ")) {
+                        c.replace(HATThreadOp.create(invokeStatic.name()));
                     }}, varTable)
-                .remap(varAccessesToBeRemoved)
-                .remove(varAccessesToBeRemoved::contains, varTable)
                 .funcOp();
     }
 }

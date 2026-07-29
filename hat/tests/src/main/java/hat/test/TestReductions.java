@@ -66,9 +66,9 @@ public class TestReductions {
      */
     @Reflect
     private static void reduceGlobal(KernelContext context, S32Array input, S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+        int localId = KernelContext.LIX();
+        int localSize = KernelContext.LSX();
+        int blockId = KernelContext.BIX();
         int baseIndex = localSize * blockId + localId;
 
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
@@ -77,7 +77,7 @@ public class TestReductions {
                 val += input.array((baseIndex + offset));
                 input.array(baseIndex, val);
             }
-            context.barrier();
+            KernelContext.barrier();
         }
         if (localId == 0) {
             // copy from shared memory to global memory
@@ -95,19 +95,19 @@ public class TestReductions {
      */
     @Reflect
     private static void reduceLocal(KernelContext context, S32Array input, S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+        int localId = KernelContext.LIX();
+        int localSize = KernelContext.LSX();
+        int blockId = KernelContext.BIX();
 
         // Prototype: allocate in shared memory an array of 16 ints
         MySharedArray sharedArray = MySharedArray.createLocal();
 
         // Copy from global to shared memory
-        sharedArray.array(localId, input.array(context.gix));
+        sharedArray.array(localId, input.array(KernelContext.GIX()));
 
         // Reduction using local memory
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
-            context.barrier();
+            KernelContext.barrier();
             if (localId < offset) {
                 sharedArray.array(localId,  sharedArray.array(localId) +  sharedArray.array(localId + offset));
             }

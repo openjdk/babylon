@@ -44,8 +44,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps01(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
             Float4 vC = Float4.add(vA, vB);
@@ -55,8 +55,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps02(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4.MutableImpl vA = a.float4View(index * 4);
             float scaleX = vA.x() * 10.0f;
             vA.x(scaleX);
@@ -66,8 +66,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps03(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             // Obtain a view of the input data as a float4 and
             // store that view in private memory
@@ -89,8 +89,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps04(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4.MutableImpl vA = a.float4View(index * 4);
             vA.x(vA.x() * 10.0f);
             vA.y(vA.y() * 20.0f);
@@ -102,8 +102,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps05(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
             Float4 vC = vA.add(vB).add(vB);
@@ -113,8 +113,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps06(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
          //   Float4 vD = Float4.sub(vA, vB);
@@ -125,8 +125,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps07(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
             Float4 vC = vA.add(vB).sub(vB);
@@ -136,8 +136,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps08(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
             Float4 vC = vA.add(vB).mul(vA).div(vB);
@@ -148,8 +148,8 @@ public class TestVectorTypes {
     @Reflect
     public static void vectorOps09(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         // Checking composition
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             Float4 vB = b.float4View(index * 4);
             Float4 vC = vA.add(vA.mul(vB));
@@ -178,12 +178,12 @@ public class TestVectorTypes {
     @Reflect
     public static void vectorOps10(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
-            int lix = kernelContext.lix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
+            int lix = KernelContext.LIX();
             Float4 vA = a.float4View(index * 4);
             sm.storeFloat4View(vA, lix * 4);
-            kernelContext.barrier();
+            KernelContext.barrier();
             Float4 r = sm.float4View(lix * 4);
             b.storeFloat4View(r, index * 4);
         }
@@ -210,11 +210,11 @@ public class TestVectorTypes {
     @Reflect
     public static void vectorOps11(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         PrivateMemory pm = PrivateMemory.createPrivate();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             pm.storeFloat4View(vA, 0);
-            kernelContext.barrier();
+            KernelContext.barrier();
             Float4 r = pm.float4View(0);
             b.storeFloat4View(r, index * 4);
         }
@@ -223,15 +223,15 @@ public class TestVectorTypes {
     @Reflect
     public static void vectorOps12(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
-            int lix = kernelContext.lix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
+            int lix = KernelContext.LIX();
             Float4 vA = a.float4View(index * 4);
             sm.array(lix * 4 + 0, vA.x());
             sm.array(lix * 4 + 1, vA.y());
             sm.array(lix * 4 + 2, vA.z());
             sm.array(lix * 4 + 3, vA.w());
-            kernelContext.barrier();
+            KernelContext.barrier();
             Float4 r = sm.float4View(lix * 4);
             b.storeFloat4View(r, index * 4);
         }
@@ -239,8 +239,8 @@ public class TestVectorTypes {
 
     @Reflect
     public static void vectorOps14(KernelContext kernelContext, F32ArrayPadded a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 vA = a.float4View(index * 4);
             Float4.MutableImpl vB = Float4.makeMutable(vA);
             vB.x(10.0f);
@@ -252,8 +252,8 @@ public class TestVectorTypes {
     public static void vectorOps15(KernelContext kernelContext, F32ArrayPadded a) {
         // in this sample, we don't perform the vload, but rather the vstore directly
         // from a new float4.
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4 result = Float4.of(1.0f, 2.0f, 3.0f, 4.0f);
             a.storeFloat4View(result, index * 4);
         }

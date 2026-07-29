@@ -275,14 +275,14 @@ public class Main extends JFrame implements Runnable {
             float delT,
             float espSqr
     ) {
-        run(kc.gix, bodies, xyzPos, xyzVel, image, imageWidth, mass, delT, espSqr);
+        run(KernelContext.GIX(), bodies, xyzPos, xyzVel, image, imageWidth, mass, delT, espSqr);
     }
 
     @Reflect
     public static void clearImage(
             KernelContext kc,
             S32RGBAImage image) {
-        image.data(kc.gix, 0);
+        image.data(KernelContext.GIX(), 0);
     }
 
     @Reflect

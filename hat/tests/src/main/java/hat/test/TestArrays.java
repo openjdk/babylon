@@ -48,9 +48,9 @@ public class TestArrays {
 
     @Reflect
     public static void squareKernel(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx) {
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int value = array.array(KernelContext.GIX());
+            array.array(KernelContext.GIX(), squareit(value));
         }
     }
 
@@ -63,10 +63,10 @@ public class TestArrays {
 
     @Reflect
     public static void vectorAddition(KernelContext kc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
-        if (kc.gix < kc.gsx) {
-            int valueA = arrayA.array(kc.gix);
-            int valueB = arrayB.array(kc.gix);
-            arrayC.array(kc.gix, (valueA + valueB));
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int valueA = arrayA.array(KernelContext.GIX());
+            int valueB = arrayB.array(KernelContext.GIX());
+            arrayC.array(KernelContext.GIX(), (valueA + valueB));
         }
     }
 
@@ -79,11 +79,11 @@ public class TestArrays {
 
     @Reflect
     public static void saxpy(KernelContext kc, F32Array arrayA, F32Array arrayB, F32Array arrayC, float alpha) {
-        if (kc.gix < kc.gsx) {
-            float valueA = arrayA.array(kc.gix);
-            float valueB = arrayB.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            float valueA = arrayA.array(KernelContext.GIX());
+            float valueB = arrayB.array(KernelContext.GIX());
             float result = alpha * valueA + valueB;
-            arrayC.array(kc.gix, result);
+            arrayC.array(KernelContext.GIX(), result);
         }
     }
 

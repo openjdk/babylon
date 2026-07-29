@@ -44,8 +44,8 @@ public class TestNumBlocks {
 
     @Reflect
     private static void kernel_numblocks_X(KernelContext kernelContext, F32Array output) {
-        int idx = kernelContext.gix;
-        int bsx = kernelContext.bsx;
+        int idx = KernelContext.GIX();
+        int bsx = KernelContext.BSX();
         // Write the number of blocks
         output.array(idx, bsx);
     }

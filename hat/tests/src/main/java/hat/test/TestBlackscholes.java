@@ -43,18 +43,18 @@ public class TestBlackscholes {
     public static void blackScholesKernel(KernelContext kc, F32Array call, F32Array put,
                                           F32Array sArray, F32Array xArray, F32Array tArray,
                                           float r, float v) {
-        if (kc.gix < kc.gsx) {
-            float S = sArray.array(kc.gix);
-            float X = xArray.array(kc.gix);
-            float T = tArray.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            float S = sArray.array(KernelContext.GIX());
+            float X = xArray.array(KernelContext.GIX());
+            float T = tArray.array(KernelContext.GIX());
             float expNegRt = (float) Math.exp(-r * T);
             float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
             float d2 = (float) (d1 - v * Math.sqrt(T));
             float cnd1 = CND(d1);
             float cnd2 = CND(d2);
             float value = S * cnd1 - expNegRt * X * cnd2;
-            call.array(kc.gix, value);
-            put.array(kc.gix, expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
+            call.array(KernelContext.GIX(), value);
+            put.array(KernelContext.GIX(), expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
         }
     }
 

@@ -43,10 +43,10 @@ public class TestConstants {
     @Reflect
     public static void vectorWithConstants(KernelContext kc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         final int BM = 100;
-        if (kc.gix < kc.gsx) {
-            final int valueA = arrayA.array(kc.gix);
-            final int valueB = arrayB.array(kc.gix);
-            arrayC.array(kc.gix, (BM + valueA + valueB));
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            final int valueA = arrayA.array(KernelContext.GIX());
+            final int valueB = arrayB.array(KernelContext.GIX());
+            arrayC.array(KernelContext.GIX(), (BM + valueA + valueB));
         }
     }
 
@@ -92,11 +92,11 @@ public class TestConstants {
 
     @Reflect
     public static void vectorWithConstants2(KernelContext kc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
-        if (kc.gix < kc.gsx) {
-            final int valueA = arrayA.array(kc.gix);
-            final int valueB = arrayB.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            final int valueA = arrayA.array(KernelContext.GIX());
+            final int valueB = arrayB.array(KernelContext.GIX());
             final int result = compute(valueA, valueB);
-            arrayC.array(kc.gix, result);
+            arrayC.array(KernelContext.GIX(), result);
         }
     }
 

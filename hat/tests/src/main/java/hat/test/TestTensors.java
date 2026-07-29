@@ -27,6 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange.Tile2D;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -73,8 +74,8 @@ public class TestTensors {
         final int WMMA_M = SHAPE;
         final int WMMA_N = SHAPE;
         final int WMMA_K = SHAPE;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -134,8 +135,8 @@ public class TestTensors {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -185,8 +186,8 @@ public class TestTensors {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -235,8 +236,8 @@ public class TestTensors {
         final int WMMA_M = sizeShape;
         final int WMMA_N = sizeShape;
         final int WMMA_K = sizeShape;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;

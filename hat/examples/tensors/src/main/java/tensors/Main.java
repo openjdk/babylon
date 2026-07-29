@@ -28,6 +28,8 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -70,8 +72,8 @@ public class Main {
         final int WMMA_M = shapeSize;
         final int WMMA_N = shapeSize;
         final int WMMA_K = shapeSize;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = size;
         final int ldb = size;
@@ -106,12 +108,12 @@ public class Main {
 
     @Reflect
     public static void mxmNaiveF32(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx && kc.giy < kc.gsy) {
+        if (GIX() < GSX() && GIY() < GSY()) {
             float acc = 0.0f;
             for (int k = 0; k < size; k++) {
-                acc += (matrixA.array(k * size + kc.giy) * matrixB.array(kc.gix * size + k));
+                acc += (matrixA.array(k * size + GIY()) * matrixB.array(GIX() * size + k));
             }
-            matrixC.array(kc.gix * size + kc.giy, acc);
+            matrixC.array(GIX() * size + GIY(), acc);
         }
     }
 
@@ -124,16 +126,16 @@ public class Main {
 
     @Reflect
     public static void mxmNaiveF16(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx && kc.giy < kc.gsy) {
+        if (GIX() < GSX() && GIY() < GSY()) {
             float acc = 0.0f;
             for (int k = 0; k < size; k++) {
-                F16 ha = matrixA.array(k * size + kc.giy);
-                F16 hb = matrixB.array(kc.gix * size + k);
+                F16 ha = matrixA.array(k * size + GIY());
+                F16 hb = matrixB.array(GIX() * size + k);
                 F16 hc = F16.mul(ha, hb);
                 float fc = F16.f16ToFloat(hc);
                 acc += fc;
             }
-            matrixC.array(kc.gix * size + kc.giy, acc);
+            matrixC.array(GIX() * size + GIY(), acc);
         }
 
     }

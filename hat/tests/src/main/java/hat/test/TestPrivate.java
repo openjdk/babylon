@@ -60,9 +60,9 @@ public class TestPrivate {
     @Reflect
     private static void compute(KernelContext kernelContext, F32Array data) {
         PrivateArray privateArray = PrivateArray.createPrivate();
-        int lix = kernelContext.lix;
-        int blockId = kernelContext.bix;
-        int blockSize = kernelContext.lsx;
+        int lix = KernelContext.LIX();
+        int blockId = KernelContext.BIX();
+        int blockSize = KernelContext.LSX();
         privateArray.array(0, lix);
         data.array(lix + (long) blockId * blockSize, privateArray.array(0));
     }

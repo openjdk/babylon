@@ -102,8 +102,8 @@ public class Main {
     @Reflect
     private static void dftKernel(KernelContext kc, ComplexArray input, ComplexArray output) {
         int size = input.length();
-        int idx = kc.gix;
-        if (idx < kc.gsx) {
+        int idx = KernelContext.GIX();
+        if (idx < KernelContext.GSX()) {
             float sumReal = 0.0f;
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -129,8 +129,8 @@ public class Main {
     @Reflect
     private static void dftPlainKernel(KernelContext kc, F32Array inReal, F32Array inImag, F32Array outReal, F32Array outImag) {
         int size = inReal.length();
-        int idx = kc.gix;
-        if (idx < kc.gsx) {
+        int idx = KernelContext.GIX();
+        if (idx < KernelContext.GSX()) {
             float sumReal = 0.0f;
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {

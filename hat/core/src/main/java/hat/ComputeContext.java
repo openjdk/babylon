@@ -171,9 +171,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             });
         }
         Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
-        KernelContext kernelContext = accelerator.range(ndRange);
-        args[0] = kernelContext;
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);
+        args[0] = accelerator.range(ndRange);
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, (KernelContext) args[0], args);
     }
 
 

@@ -82,8 +82,8 @@ public class TestFlashAttention {
                                          F16Array Q, F16Array K, F16Array V,
                                          F16Array O, F16Array m, F16Array l,
                                          final int N, final int d, final float softmaxScale) {
-        int bx = kernelContext.bix;
-        int tid = kernelContext.lix;
+        int bx = kernelContext.BIX();
+        int tid = kernelContext.LIX();
 
         // Parameters used
         final int headDim = 64;
@@ -112,7 +112,7 @@ public class TestFlashAttention {
             sharedArray.array((tid * d + k) + sQ_index).value(valQ.value());
         }
 
-        kernelContext.barrier();
+        KernelContext.barrier();
 
         int numBlocks = ceilFunction(N, blockN);
         for (int tileId = 0; tileId < numBlocks; tileId++) {
@@ -126,7 +126,7 @@ public class TestFlashAttention {
                 sharedArray.array((tid * d + k) + sK_index).value(kVal.value());
                 sharedArray.array((tid + d + k) + sV_index).value(vVal.value());
             }
-            kernelContext.barrier();
+            KernelContext.barrier();
 
             // m we accumulate the max values
             F16 m_prev = m.array(tileId * blockN + tid);
@@ -202,7 +202,7 @@ public class TestFlashAttention {
             m.array(tileId * blockN + tid).value(m_new.value());
             l.array(tileId * blockN + tid).value(l_new.value());
 
-            kernelContext.barrier();
+            KernelContext.barrier();
         }
     }
 
@@ -251,12 +251,12 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttention(KernelContext kernelContext,
+    public static void flashAttention(KernelContext __,
                                       F32Array Q, F32Array K, F32Array V,
                                       F32Array O, F32Array m, F32Array l,
                                       final int N, final int d, final float softmaxScale) {
-        int bx = kernelContext.bix;
-        int tid = kernelContext.lix;
+        int bx = KernelContext.BIX();
+        int tid = KernelContext.LIX();
 
         // Parameters used
         final int headDim = 64;
@@ -281,7 +281,7 @@ public class TestFlashAttention {
             sharedArray.array((tid * d + k) + sQ_index,
                     Q.array((startIndex + (tid * d + k) * d + k)));
         }
-        kernelContext.barrier();
+        KernelContext.barrier();
 
         int numBlocks = ceilFunction(N, blockN);
         for (int tileId = 0; tileId < numBlocks; tileId++) {
@@ -293,7 +293,7 @@ public class TestFlashAttention {
                 sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
                 sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
             }
-            kernelContext.barrier();
+            KernelContext.barrier();
 
             // m we accumulate the max values
             float m_prev = m.array(tileId * blockN + tid);
@@ -350,7 +350,7 @@ public class TestFlashAttention {
             m.array(tileId * blockN + tid, m_new);
             l.array(tileId * blockN + tid, l_new);
 
-            kernelContext.barrier();
+            KernelContext.barrier();
         }
     }
 

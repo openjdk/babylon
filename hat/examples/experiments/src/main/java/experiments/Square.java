@@ -48,8 +48,8 @@ public class Square {
 
     @Reflect
     public static void squareKernel(@RO KernelContext kc, @RW S32Array a) {
-        int id = kc.gix;
-        if (id < kc.gsx) {
+        int id = KernelContext.GIX();
+        if (id < KernelContext.GSX()) {
             int value = a.array(id);
             a.array(id, square(value));
         }

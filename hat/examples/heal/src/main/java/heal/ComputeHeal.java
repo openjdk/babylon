@@ -238,7 +238,7 @@ public class ComputeHeal {
                                      Box selectionBox,
                                      XYRGBList xyrgbList,
                                      F32Array sumArray) {
-        bestFitCore(kc.gix, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
+        bestFitCore(KernelContext.GIX(), s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 
     @Reflect

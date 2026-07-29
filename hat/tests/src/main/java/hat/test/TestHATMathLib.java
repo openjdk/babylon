@@ -45,11 +45,11 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib01(KernelContext kc, F16Array a, F16Array b, F16Array c) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
             F16 result = HATMath.maxf16(ha, hb);
-            F16 hC = c.array(kc.gix);
+            F16 hC = c.array(KernelContext.GIX());
             hC.value(result.value());
         }
     }
@@ -62,11 +62,11 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib02(KernelContext kc, F32Array a, F32Array b, F32Array c) {
-        if (kc.gix < kc.gsx) {
-            float ha = a.array(kc.gix);
-            float hb = b.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            float ha = a.array(KernelContext.GIX());
+            float hb = b.array(KernelContext.GIX());
             float result = HATMath.maxf(ha, hb);
-            c.array(kc.gix, result);
+            c.array(KernelContext.GIX(), result);
         }
     }
 
@@ -78,15 +78,15 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib03(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
-            F16 hC = c.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
+            F16 hC = c.array(KernelContext.GIX());
 
             F16 result = HATMath.maxf16(ha, hb);
             result = HATMath.maxf16(result, hC);
 
-            F16 hD = d.array(kc.gix);
+            F16 hD = d.array(KernelContext.GIX());
             hD.value(result.value());
         }
     }
@@ -99,15 +99,15 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib04(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
-            F16 hC = c.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
+            F16 hC = c.array(KernelContext.GIX());
 
             F16 init = F16.of(2.0f);
             F16 result = HATMath.maxf16(F16.add(ha, hb), F16.mul(hC, init));
 
-            F16 hD = d.array(kc.gix);
+            F16 hD = d.array(KernelContext.GIX());
             hD.value(result.value());
         }
     }
@@ -120,15 +120,15 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib05(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
-            F16 hC = c.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
+            F16 hC = c.array(KernelContext.GIX());
 
             F16 init = F16.of(2.0f);
             F16 result = HATMath.maxf16(HATMath.maxf16(ha, hb), HATMath.maxf16(hC, init));
 
-            F16 hD = d.array(kc.gix);
+            F16 hD = d.array(KernelContext.GIX());
             hD.value(result.value());
         }
     }
@@ -141,10 +141,10 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib06(KernelContext kc, F16Array a, F16Array b) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
             F16 result = HATMath.expf16(ha);
-            F16 hB = b.array(kc.gix);
+            F16 hB = b.array(KernelContext.GIX());
             hB.value(result.value());
         }
     }
@@ -157,10 +157,10 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib07(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            float fa = a.array(KernelContext.GIX());
             float result = HATMath.cosf(fa);
-            b.array(kc.gix, result);
+            b.array(KernelContext.GIX(), result);
         }
     }
 
@@ -172,10 +172,10 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib08(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            float fa = a.array(KernelContext.GIX());
             float result = HATMath.sinf(fa);
-            b.array(kc.gix, result);
+            b.array(KernelContext.GIX(), result);
         }
     }
 
@@ -187,10 +187,10 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib09(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            float fa = a.array(KernelContext.GIX());
             float result = HATMath.tanf(fa);
-            b.array(kc.gix, result);
+            b.array(KernelContext.GIX(), result);
         }
     }
 
@@ -202,10 +202,10 @@ public class TestHATMathLib {
 
     @Reflect
     private static void testMathLib10(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            float fa = a.array(KernelContext.GIX());
             float result = HATMath.sqrtf(fa);
-            b.array(kc.gix, result);
+            b.array(KernelContext.GIX(), result);
         }
     }
 

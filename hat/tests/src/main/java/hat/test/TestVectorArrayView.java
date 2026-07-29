@@ -45,8 +45,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps01(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] vA = a.float4ArrayView();
             Float4[] vB = b.float4ArrayView();
@@ -60,8 +60,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps01WithFloat4s(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] vA = a.float4ArrayView();
             Float4[] vB = b.float4ArrayView();
@@ -74,8 +74,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps01WithSeparateAdd(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] vA = a.float4ArrayView();
             Float4[] vB = b.float4ArrayView();
@@ -87,8 +87,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps02(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4.MutableImpl[] vArr = a.float4ArrayView();
             Float4.MutableImpl[] bArr = b.float4ArrayView();
@@ -101,8 +101,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps03(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4.MutableImpl[] vA = a.float4ArrayView();
             Float4.MutableImpl[] vB = b.float4ArrayView();
@@ -121,8 +121,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps04(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4.MutableImpl[] vA = a.float4ArrayView();
             Float4.MutableImpl[] vB = b.float4ArrayView();
@@ -137,8 +137,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps05(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] vA = a.float4ArrayView();
             Float4[] vB = b.float4ArrayView();
@@ -153,8 +153,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps06(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] vA = a.float4ArrayView();
             Float4[] vB = b.float4ArrayView();
@@ -169,8 +169,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps07(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] vAArray = a.float4ArrayView();
             Float4[] vBArray = b.float4ArrayView();
@@ -186,8 +186,8 @@ public class TestVectorArrayView {
 
     @Reflect
     public static void vectorOps08(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] vAArray = a.float4ArrayView();
             Float4[] vBArray = b.float4ArrayView();
@@ -205,8 +205,8 @@ public class TestVectorArrayView {
     @Reflect
     public static void vectorOps09(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         // Checking composition
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
             Float4[] vAArray = a.float4ArrayView();
             Float4[] vBArray = b.float4ArrayView();
             Float4[] vCArray = c.float4ArrayView();
@@ -235,9 +235,9 @@ public class TestVectorArrayView {
     @Reflect
     public static void vectorOps10(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
-            int lix = kernelContext.lix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
+            int lix = KernelContext.LIX();
 
             Float4[] aArr = a.float4ArrayView();
             Float4[] bArr = b.float4ArrayView();
@@ -245,7 +245,7 @@ public class TestVectorArrayView {
 
             Float4 vA = aArr[index * 4];
             smArr[lix * 4] = vA;
-            kernelContext.barrier();
+            KernelContext.barrier();
             Float4 r = smArr[lix * 4];
             bArr[index * 4] = r;
         }
@@ -267,8 +267,8 @@ public class TestVectorArrayView {
     @Reflect
     public static void vectorOps11(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         PrivateMemory pm = PrivateMemory.createPrivate();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
 
             Float4[] aArr = a.float4ArrayView();
             Float4[] bArr = b.float4ArrayView();
@@ -276,7 +276,7 @@ public class TestVectorArrayView {
 
             Float4 vA = aArr[index * 4];
             pmArr[0] = vA;
-            kernelContext.barrier();
+            KernelContext.barrier();
             Float4 r = pmArr[0];
             bArr[index * 4] = r;
         }
@@ -285,9 +285,9 @@ public class TestVectorArrayView {
     @Reflect
     public static void vectorOps12(KernelContext kernelContext, F32ArrayPadded a, F32ArrayPadded b) {
         SharedMemory sm = SharedMemory.createLocal();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int index = kernelContext.gix;
-            int lix = kernelContext.lix;
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int index = KernelContext.GIX();
+            int lix = KernelContext.LIX();
             Float4.MutableImpl[] aArr = a.float4ArrayView();
             Float4.MutableImpl[] bArr = b.float4ArrayView();
             Float4.MutableImpl[] smArr = sm.float4LocalArrayView();
@@ -299,7 +299,7 @@ public class TestVectorArrayView {
             smVector.z(vA.z());
             smVector.w(vA.w());
             smArr[lix * 4] = smVector;
-            kernelContext.barrier();
+            KernelContext.barrier();
             Float4.MutableImpl r = smArr[lix * 4];
             bArr[index * 4] = r;
         }

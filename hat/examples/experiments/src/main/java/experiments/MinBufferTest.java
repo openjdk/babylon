@@ -45,8 +45,8 @@ public class MinBufferTest {
     public static class ComputeApp {
         @Reflect
         public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
-            if (kc.gix < kc.gsx) {
-                s32Array.array(kc.gix, s32Array.array(kc.gix) + 1);
+            if (KernelContext.GIX() < KernelContext.GSX()) {
+                s32Array.array(KernelContext.GIX(), s32Array.array(KernelContext.GIX()) + 1);
             }
         }
 

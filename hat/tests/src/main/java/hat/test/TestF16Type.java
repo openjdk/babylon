@@ -48,56 +48,56 @@ public class TestF16Type {
 
     @Reflect
     public static void copy01(KernelContext kernelContext, F16Array a, F16Array b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
-            b.array(kernelContext.gix).value(ha.value());
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            b.array(KernelContext.GIX()).value(ha.value());
         }
     }
 
     @Reflect
     public static void f16Ops_02(KernelContext kernelContext, F16Array a, F16Array b, F16Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
-            F16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
 
             F16 result = F16.add(ha, hb);
-            F16 hC = c.array(kernelContext.gix);
+            F16 hC = c.array(KernelContext.GIX());
             hC.value(result.value());
         }
     }
 
     @Reflect
     public static void f16Ops_03(KernelContext kernelContext, F16Array a, F16Array b, F16Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
-            F16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
 
             F16 result = F16.add(ha, F16.add(hb, hb));
-            F16 hC = c.array(kernelContext.gix);
+            F16 hC = c.array(KernelContext.GIX());
             hC.value(result.value());
         }
     }
 
     @Reflect
     public static void f16Ops_04(KernelContext kernelContext, F16Array a, F16Array b, F16Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
-            F16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
 
             F16 r1 = F16.mul(ha, hb);
             F16 r2 = F16.div(ha, hb);
             F16 r3 = F16.sub(ha, hb);
             F16 r4 = F16.add(r1, r2);
             F16 r5 = F16.add(r4, r3);
-            F16 hC = c.array(kernelContext.gix);
+            F16 hC = c.array(KernelContext.GIX());
             hC.value(r5.value());
         }
     }
 
     @Reflect
     public static void f16Ops_05(KernelContext kernelContext, F16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
             F16 initVal = F16.of( 2.1f);
             ha.value(initVal.value());
         }
@@ -105,37 +105,37 @@ public class TestF16Type {
 
     @Reflect
     public static void f16Ops_06(KernelContext kernelContext, F16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 initVal = F16.of(kernelContext.gix);
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 initVal = F16.of(KernelContext.GIX());
+            F16 ha = a.array(KernelContext.GIX());
             ha.value(initVal.value());
         }
     }
 
     @Reflect
     public static void f16Ops_08(KernelContext kernelContext, F16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 initVal = F16.floatToF16(kernelContext.gix);
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 initVal = F16.floatToF16(KernelContext.GIX());
+            F16 ha = a.array(KernelContext.GIX());
             ha.value(initVal.value());
         }
     }
 
     @Reflect
     public static void f16Ops_09(KernelContext kernelContext, F16Array a, F16Array b) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
             float f = F16.f16ToFloat(ha);
             F16 result = F16.floatToF16(f);
-            F16 hb = b.array(kernelContext.gix);
+            F16 hb = b.array(KernelContext.GIX());
             hb.value(result.value());
         }
     }
 
     @Reflect
     public static void f16Ops_10(KernelContext kernelContext, F16Array a) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
             F16 f16 = F16.of(1.1f);
             float f = F16.f16ToFloat(f16);
             F16 result = F16.floatToF16(f);
@@ -163,48 +163,48 @@ public class TestF16Type {
     @Reflect
     public static void f16Ops_11(KernelContext kernelContext, F16Array a, F16Array b) {
         DeviceLocalArray sm = DeviceLocalArray.createLocal();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int lix = kernelContext.lix;
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int lix = KernelContext.LIX();
+            F16 ha = a.array(KernelContext.GIX());
 
             // store into local memory
             sm.array(lix).value(ha.value());
-            kernelContext.barrier();
+            KernelContext.barrier();
 
             F16 hb = sm.array(lix);
-            b.array(kernelContext.gix).value(hb.value());
+            b.array(KernelContext.GIX()).value(hb.value());
         }
     }
 
     @Reflect
     public static void f16Ops_12(KernelContext kernelContext, F16Array a, F16Array b,  F16Array c) {
         // Test the fluent API style
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
-            F16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
             F16 result = F16.add(ha,hb);
-            c.array(kernelContext.gix).value(result.value());
+            c.array(KernelContext.GIX()).value(result.value());
         }
     }
 
     @Reflect
     public static void f16Ops_13(KernelContext kernelContext, F16Array a, F16Array b,  F16Array c) {
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
-            F16 hb = b.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
+            F16 hb = b.array(KernelContext.GIX());
             F16 result = F16.div(F16.mul(F16.sub(F16.add(ha,hb),hb),ha),ha);
-            c.array(kernelContext.gix).value(result.value());
+            c.array(KernelContext.GIX()).value(result.value());
         }
     }
 
     @Reflect
     public static void f16Ops_14(KernelContext kernelContext, F16Array a, F16Array b) {
         // Testing mixed float types
-        if (kernelContext.gix < kernelContext.gsx) {
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            F16 ha = a.array(KernelContext.GIX());
             float myFloat = 32.1f;
             F16 result = F16.add(myFloat, ha);
-            b.array(kernelContext.gix).value(result.value());
+            b.array(KernelContext.GIX()).value(result.value());
         }
     }
 
@@ -227,15 +227,15 @@ public class TestF16Type {
     @Reflect
     public static void f16Ops_15(KernelContext kernelContext, F16Array a, F16Array b) {
         DevicePrivateArray privateArray = DevicePrivateArray.createPrivate();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int lix = kernelContext.lix;
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int lix = KernelContext.LIX();
+            F16 ha = a.array(KernelContext.GIX());
 
             // store into the private object
             privateArray.array(lix).value(ha.value());
 
             F16 hb = privateArray.array(lix);
-            b.array(kernelContext.gix).value(hb.value());
+            b.array(KernelContext.GIX()).value(hb.value());
         }
     }
 
@@ -259,9 +259,9 @@ public class TestF16Type {
     @Reflect
     public static void f16Ops_16(KernelContext kernelContext, F16Array a, F16Array b) {
         DevicePrivateArray2 privateArray = DevicePrivateArray2.createPrivate();
-        if (kernelContext.gix < kernelContext.gsx) {
-            int lix = kernelContext.lix;
-            F16 ha = a.array(kernelContext.gix);
+        if (KernelContext.GIX() < KernelContext.GSX()) {
+            int lix = KernelContext.LIX();
+            F16 ha = a.array(KernelContext.GIX());
 
             // This is expected to fail on the GPU due to the assigment of different types.
             // ha is a typed F16Impl, which is a subtype of F16.
@@ -271,7 +271,7 @@ public class TestF16Type {
             privateArray.array(lix, ha);
 
             F16 hb = privateArray.array(lix);
-            b.array(kernelContext.gix).value(hb.value());
+            b.array(KernelContext.GIX()).value(hb.value());
         }
     }
 
@@ -302,17 +302,17 @@ public class TestF16Type {
 
     @Reflect
     public static void f16Ops_19(KernelContext kernelContext, F16Array a, F32Array b, F32Array c) {
-        if (kernelContext.gix < a.length()) {
-            float mul = F16.f16ToFloat(a.array(kernelContext.gix)) * b.array(kernelContext.gix);
-            c.array(kernelContext.gix, mul);
+        if (KernelContext.GIX() < a.length()) {
+            float mul = F16.f16ToFloat(a.array(KernelContext.GIX())) * b.array(KernelContext.GIX());
+            c.array(KernelContext.GIX(), mul);
         }
     }
 
     @Reflect
     public static void f16Ops_20(KernelContext kernelContext, F16Array a, F32Array b, F32Array c) {
-        if (kernelContext.gix < a.length()) {
-            float mul = b.array(kernelContext.gix) * F16.f16ToFloat(a.array(kernelContext.gix));
-                    c.array(kernelContext.gix, mul);
+        if (KernelContext.GIX() < a.length()) {
+            float mul = b.array(KernelContext.GIX()) * F16.f16ToFloat(a.array(KernelContext.GIX()));
+                    c.array(KernelContext.GIX(), mul);
         }
     }
 

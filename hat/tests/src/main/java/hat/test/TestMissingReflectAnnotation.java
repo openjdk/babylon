@@ -47,16 +47,16 @@ public class TestMissingReflectAnnotation {
 
     @Reflect
     public static void squareKernel(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx){
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+        if (KernelContext.GIX() < KernelContext.GSX()){
+            int value = array.array(KernelContext.GIX());
+            array.array(KernelContext.GIX(), squareit(value));
         }
     }
 
     public static void squareKernelWithoutReflectAnnotation(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx){
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+        if (KernelContext.GIX() < KernelContext.GSX()){
+            int value = array.array(KernelContext.GIX());
+            array.array(KernelContext.GIX(), squareit(value));
         }
     }
 

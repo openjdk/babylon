@@ -40,8 +40,8 @@ public class ForTests {
 
         @Reflect
         static void breakAndContinue(KernelContext kc, F32Array a) {
-            long i = kc.gix;
-            long size = kc.gsx;
+            long i = KernelContext.GIX();
+            long size = KernelContext.GSX();
             outer:
             for (long j = 0; j < size; j++) {
                 float sum = 0f;

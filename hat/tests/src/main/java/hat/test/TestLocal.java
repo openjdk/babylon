@@ -59,11 +59,11 @@ public class TestLocal {
     @Reflect
     private static void compute(KernelContext kernelContext, F32Array data) {
         MySharedArray mySharedArray = MySharedArray.createLocal();
-        int lix = kernelContext.lix;
-        int blockId = kernelContext.bix;
-        int blockSize = kernelContext.lsx;
+        int lix = KernelContext.LIX();
+        int blockId = KernelContext.BIX();
+        int blockSize = KernelContext.LSX();
         mySharedArray.array(lix, lix);
-        kernelContext.barrier();
+        KernelContext.barrier();
         data.array(lix + (long) blockId * blockSize, mySharedArray.array(lix));
     }
 
