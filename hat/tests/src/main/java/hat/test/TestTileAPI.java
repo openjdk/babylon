@@ -59,7 +59,8 @@ public class TestTileAPI {
     public static void emptyTile(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
         // Program id: get tile-id for 1D
         var pid = tc.bid(0);
-        inputA.array(0, pid);
+
+        var aTile = tc.load(inputA, pid, tile_size);
     }
 
     @Reflect

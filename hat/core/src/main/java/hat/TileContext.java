@@ -1,94 +1,62 @@
+
 package hat;
 
 import hat.buffer.F32Array;
 import optkl.ifacemapper.Buffer;
 
-public class TileContext {
+public interface TileContext {
 
-    public int bid(int tileDim) {
-        return 0;
-    }
+    int bid(int tileDim);
 
-    public TileData load(Buffer buffer, int pid, int tileSize) {
-        return null;
-    }
+    Tile load(Buffer buffer, int pid, int tileSize);
 
-    public TileData load(Buffer buffer, TileIndex1D pid, TileShape tileShape) {
-        return null;
-    }
+    Tile load(Buffer buffer, TileIndex1D pid, TileShape tileShape);
 
-    public TileData load(Buffer buffer, TileIndex2D pid, TileShape tileShape) {
-        return null;
-    }
+    Tile load(Buffer buffer, TileIndex2D pid, TileShape tileShape);
 
-    public TileData load(Buffer buffer, TileIndex3D pid, TileShape tileShape) {
-        return null;
-    }
+    Tile load(Buffer buffer, TileIndex3D pid, TileShape tileShape);
 
-    public void store(Buffer buffer, int pid, TileData result) {
-    }
+    void store(Buffer buffer, int pid, Tile result);
 
-    public void store(Buffer buffer, TileIndex1D tileIndex1D, TileData result) {
+    void store(Buffer buffer, TileIndex1D tileIndex1D, Tile result);
 
-    }
+    void store(Buffer buffer, TileIndex2D tileIndex2D, Tile result);
 
-    public void store(Buffer buffer, TileIndex2D tileIndex2D, TileData result) {
+    void store(Buffer buffer, TileIndex3D tileIndex3D, Tile result);
 
-    }
-
-    public void store(Buffer buffer, TileIndex3D tileIndex3D, TileData result) {
-
-    }
-
-    public TileIndex2D index(int bidx, int bidy) {
+    default TileIndex2D index(int bidx, int bidy) {
         return new TileIndex2D(bidx, bidy);
     }
 
-    public TileIndex1D index(int bidx) {
+    default TileIndex1D index(int bidx) {
         return new TileIndex1D(bidx);
     }
 
-    public TileIndex3D index(int bidx, int bidy, int bidz) {
+    default TileIndex3D index(int bidx, int bidy, int bidz) {
         return new TileIndex3D(bidx, bidy, bidz);
     }
 
-    public TileShape shape(int tm, int tk) {
+    default TileShape shape(int tm, int tk) {
         return new TileShape(tm, tk);
     }
 
-    public TileShape shape(int tm) {
+    default TileShape shape(int tm) {
         return new TileShape(tm);
     }
 
-    public int num_tiles(F32Array inputA, int i, TileShape shape) {
-        return 0;
-    }
+    int num_tiles(F32Array inputA, int i, TileShape shape);
 
-    public TileData zeros(int tm, int tk) {
-        return null;
-    }
+    Tile zeros(int tm, int tk);
 
-    public TileData sum(TileData tileA, int index) {
-        return null;
-    }
+    Tile sum(Tile tileA, int index);
 
-    public void sum(TileData tileA, TileIndex1D index) {
+    void sum(Tile tileA, TileIndex1D index);
 
-    }
+    void sum(Tile tileA, TileIndex2D index);
 
-    public void sum(TileData tileA, TileIndex2D index) {
+    void sum(Tile tileA, TileIndex3D index);
 
-    }
+    Tile full(TileShape shape, int index);
 
-    public void sum(TileData tileA, TileIndex3D index) {
-
-    }
-
-    public TileData full(TileShape shape, int index) {
-        return null;
-    }
-
-    public TileData transpose(TileData inputTile) {
-        return null;
-    }
+    Tile transpose(Tile inputTile);
 }

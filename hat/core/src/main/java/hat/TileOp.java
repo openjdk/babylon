@@ -1,12 +1,12 @@
 package hat;
 
-public class TileOp {
+public interface TileOp {
 
-    public static TileData add(TileData aTile, TileData bTile) {
+    static Tile add(Tile aTile, Tile bTile) {
         return null;
     }
 
-    public static TileData mma(TileData tileA, TileData tileB, TileData accumulator) {
+    static Tile mma(Tile tileA, Tile tileB, Tile accumulator) {
         return null;
     }
 }
