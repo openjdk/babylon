@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import optkl.ifacemapper.SchemaBuilder;
@@ -98,7 +99,7 @@ public class MatrixMultiply {
             //   OpenCL kc.x -> get_global_id(0)
             //   CUDA   kc.x -> blockIdx.x*blockDim.x+threadIdx.x
             //   SPIRV  kc.x -> builtin GlobalInvocationId.x?
-            long i = kc.gix;
+            long i = GIX();
             long size = sz;
 
             for (long j = 0; j < size; j++) {

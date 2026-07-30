@@ -24,6 +24,8 @@
  */
 package hat;
 
+import optkl.util.Regex;
+
 /**
  * Created by a dispatch call to a kernel from within a Compute method and 'conceptually' passed to a kernel.
  * <p>
@@ -40,38 +42,38 @@ package hat;
  */
 public class KernelContext {
     // Global accesses
-    public int gix;
-    public int giy;
-    public int giz;
+  //  public int gix;
+   // public int giy;
+   // public int giz;
 
-    public final int gsx;
-    public final int gsy;
-    public final int gsz;
+   // public final int gsx;
+   // public final int gsy;
+   // public final int gsz;
 
     // Local accesses within a group
-    public int lix;
-    public int liy;
-    public int liz;
+   // public int lix;
+   // public int liy;
+   // public int liz;
 
     // Specify sizes for the local group sizes
-    public int lsx;
-    public int lsy;
-    public int lsz;
+   // public int lsx;
+ //   public int lsy;
+ //   public int lsz;
 
     // Specify group/block index
-    public int bix;
-    public int biy;
-    public int biz;
+  //  public int bix;
+  //  public int biy;
+  //  public int biz;
 
     // Specify the number of blocks
-    public int bsx;
-    public int bsy;
-    public int bsz;
+  //  public int bsx;
+  //  public int bsy;
+  //  public int bsz;
 
     // Warp size
-    public int wrs;
+   // public int wrs;
 
-    final int dimensions;
+   // final int dimensions;
 
     public final NDRange ndRange;
 
@@ -81,7 +83,7 @@ public class KernelContext {
         }
 
         this.ndRange = ndRange;
-        switch (ndRange) {
+      /*  switch (ndRange) {
             case NDRange.NDRange1D ndRange1D -> {
                 this.gsx = ((NDRange.M1D)(ndRange1D.global())).x();
                 this.gsy = 1;
@@ -102,14 +104,36 @@ public class KernelContext {
             }
             default -> throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
 
-        }
+        }*/
     }
+
+
+
+    public final static Regex threadAccessRegex = Regex.of("(([GLB][SI][XYZ])|WRS|barrier)");
 
     /**
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.
      */
-    public void barrier() {
+    public static void barrier() {
         // empty method - this is just a marker for the HAT Kernels
     }
-
+    public static int GIX(){return 0;};
+    public static int GIY(){return 0;};
+    public static int GIZ(){return 0;};
+    public static int GSX(){return 0;};
+    public static int GSY(){return 0;};
+    public static int GSZ(){return 0;};
+    public static int BIX(){return 0;};
+    public static int BIY(){return 0;};
+    public static int BIZ(){return 0;};
+    public static int BSX(){return 0;};
+    public static int BSY(){return 0;};
+    public static int BSZ(){return 0;};
+    public static int LIX(){return 0;};
+    public static int LIY(){return 0;};
+    public static int LIZ(){return 0;};
+    public static int LSX(){return 0;};
+    public static int LSY(){return 0;};
+    public static int LSZ(){return 0;};
+    public static int WRS(){return 0;};
 }

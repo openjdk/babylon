@@ -34,7 +34,7 @@ public class HATTransformer {
 
     public static final List<HATPhase> KernelPhases = List.of(
             // barriers
-            new HATBarrierPhase(),
+          //  new HATBarrierPhase(),
 
             // array views
             new HATArrayViewPhase(),
@@ -43,10 +43,10 @@ public class HATTransformer {
             new HATMemoryPhase(),
 
             // ID's /thread access
-            new HATThreadsPhase(),
+           // new HATThreadsPhase(),
 
             // Warp size
-            new HATWarpSizePhase(),
+           // new HATWarpSizePhase(),
 
             // MathLib phase
             new HATMathLibPhase(),

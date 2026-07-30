@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.device.DeviceSchema;
@@ -66,9 +67,9 @@ public class TestReductions {
      */
     @Reflect
     private static void reduceGlobal(KernelContext context, S32Array input, S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+        int localId = LIX();
+        int localSize = LSX();
+        int blockId = BIX();
         int baseIndex = localSize * blockId + localId;
 
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
@@ -77,7 +78,7 @@ public class TestReductions {
                 val += input.array((baseIndex + offset));
                 input.array(baseIndex, val);
             }
-            context.barrier();
+            barrier();
         }
         if (localId == 0) {
             // copy from shared memory to global memory
@@ -95,19 +96,19 @@ public class TestReductions {
      */
     @Reflect
     private static void reduceLocal(KernelContext context, S32Array input, S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+        int localId = LIX();
+        int localSize = LSX();
+        int blockId = BIX();
 
         // Prototype: allocate in shared memory an array of 16 ints
         MySharedArray sharedArray = MySharedArray.createLocal();
 
         // Copy from global to shared memory
-        sharedArray.array(localId, input.array(context.gix));
+        sharedArray.array(localId, input.array(GIX()));
 
         // Reduction using local memory
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
-            context.barrier();
+            barrier();
             if (localId < offset) {
                 sharedArray.array(localId,  sharedArray.array(localId) +  sharedArray.array(localId + offset));
             }

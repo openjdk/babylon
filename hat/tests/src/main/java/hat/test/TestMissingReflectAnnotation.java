@@ -29,6 +29,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
 import hat.backend.Backend;
+import static hat.KernelContext.*;
 import hat.buffer.S32Array;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
@@ -46,17 +47,17 @@ public class TestMissingReflectAnnotation {
     }
 
     @Reflect
-    public static void squareKernel(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx){
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+    public static void squareKernel(KernelContext unused, S32Array array) {
+        if (GIX() < GSX()){
+            int value = array.array(GIX());
+            array.array(GIX(), squareit(value));
         }
     }
 
-    public static void squareKernelWithoutReflectAnnotation(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx){
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+    public static void squareKernelWithoutReflectAnnotation(KernelContext unused, S32Array array) {
+        if (GIX() < GSX()){
+            int value = array.array(GIX());
+            array.array(GIX(), squareit(value));
         }
     }
 

@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;
@@ -120,9 +121,9 @@ public class Mesh {
     public static class ComputeApp {
         @Reflect
         public static void initPoints(KernelContext kc, MeshData mesh) {
-            if (kc.gix < kc.gsx) {
-                MeshData.Point3D point = mesh.point(kc.gix);
-                point.x(kc.gix);
+            if (GIX() < GSX()) {
+                MeshData.Point3D point = mesh.point(GIX());
+                point.x(GIX());
                 point.y(0);
                 point.z(0);
             }

@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -80,7 +81,7 @@ public class TestNbody {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
-        Body body = universe.body(kc.gix);
+        Body body = universe.body(GIX());
 
         for (int i = 0; i < universe.length(); i++) {
             Body otherBody = universe.body(i);

@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.*;
 import hat.device.DeviceSchema;
@@ -51,10 +52,10 @@ public class TestArrayView {
      * simple square kernel example using S32Array's ArrayView
      */
     @Reflect
-    public static void squareKernel(KernelContext kc, S32Array s32Array) {
-        if (kc.gix < kc.gsx){
+    public static void squareKernel(KernelContext unused, S32Array s32Array) {
+        if (GIX() < GSX()){
             int[] arr = s32Array.arrayView();
-            arr[kc.gix] *= arr[kc.gix];
+            arr[GIX()] *= arr[GIX()];
         }
     }
 
@@ -86,9 +87,9 @@ public class TestArrayView {
      * making sure arrayviews aren't reliant on varOps
      */
     @Reflect
-    public static void squareKernelNoVarOp(KernelContext kc, S32Array s32Array) {
-        if (kc.gix<kc.gsx){
-            s32Array.arrayView()[kc.gix] *= s32Array.arrayView()[kc.gix];
+    public static void squareKernelNoVarOp(KernelContext unused, S32Array s32Array) {
+        if (GIX()<GSX()){
+            s32Array.arrayView()[GIX()] *= s32Array.arrayView()[GIX()];
         }
     }
 
@@ -116,10 +117,10 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void square2DKernel(KernelContext kc, S32Array2D s32Array2D) {
-        if (kc.gix < kc.gsx){
+    public static void square2DKernel(KernelContext unused, S32Array2D s32Array2D) {
+        if (GIX() < GSX()){
             int[][] arr = s32Array2D.arrayView();
-            arr[kc.gix][kc.giy] *= arr[kc.gix][kc.giy];
+            arr[GIX()][GIY()] *= arr[GIX()][GIY()];
         }
     }
 
@@ -289,9 +290,9 @@ public class TestArrayView {
         }
 
         @Reflect
-        public static void life(KernelContext kc, CellGrid cellGrid, CellGrid cellGridRes) {
-            if (kc.gix < kc.gsx) {
-                Compute.lifePerIdx(kc.gix, cellGrid, cellGridRes);
+        public static void life(KernelContext unused, CellGrid cellGrid, CellGrid cellGridRes) {
+            if (GIX() < GSX()) {
+                Compute.lifePerIdx(GIX(), cellGrid, cellGridRes);
             }
         }
 
@@ -387,14 +388,14 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void mandel(KernelContext kc, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
-        if (kc.gix < kc.gsx) {
+    public static void mandel(KernelContext unused, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
+        if (GIX() < GSX()) {
             int[] pal = pallette.arrayView();
             int[][] s32 = s32Array2D.arrayView();
             float width = s32Array2D.width();
             float height = s32Array2D.height();
-            float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-            float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+            float x = ((GIX() % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+            float y = ((GIX() / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
             float zx = x;
             float zy = y;
             float new_zx;
@@ -406,7 +407,7 @@ public class TestArrayView {
                 colorIdx++;
             }
             int color = colorIdx < pal.length ? pal[colorIdx] : 0;
-            s32[kc.gix % s32Array2D.width()][kc.gix / s32Array2D.width()] = color;
+            s32[GIX() % s32Array2D.width()][GIX() / s32Array2D.width()] = color;
         }
     }
 
@@ -458,7 +459,7 @@ public class TestArrayView {
      * simplified version of BlackScholes using ArrayView
      */
     @Reflect
-    public static void blackScholesKernel(KernelContext kc,
+    public static void blackScholesKernel(KernelContext unused,
                                           F32Array call,
                                           F32Array put,
                                           F32Array sArray,
@@ -466,21 +467,21 @@ public class TestArrayView {
                                           F32Array tArray,
                                           float r,
                                           float v) {
-        if (kc.gix<kc.gsx){
+        if (GIX()<GSX()){
             float[] callArr = call.arrayView();
             float[] putArr = put.arrayView();
             float[] sArr = sArray.arrayView();
             float[] xArr = xArray.arrayView();
             float[] tArr = tArray.arrayView();
 
-            float expNegRt = (float) Math.exp(-r * tArr[kc.gix]);
-            float d1 = (float) ((Math.log(sArr[kc.gix] / xArr[kc.gix]) + (r + v * v * .5f) * tArr[kc.gix]) / (v * Math.sqrt(tArr[kc.gix])));
-            float d2 = (float) (d1 - v * Math.sqrt(tArr[kc.gix]));
+            float expNegRt = (float) Math.exp(-r * tArr[GIX()]);
+            float d1 = (float) ((Math.log(sArr[GIX()] / xArr[GIX()]) + (r + v * v * .5f) * tArr[GIX()]) / (v * Math.sqrt(tArr[GIX()])));
+            float d2 = (float) (d1 - v * Math.sqrt(tArr[GIX()]));
             float cnd1 = CND(d1);
             float cnd2 = CND(d2);
-            float value = sArr[kc.gix] * cnd1 - expNegRt * xArr[kc.gix] * cnd2;
-            callArr[kc.gix] = value;
-            putArr[kc.gix] = expNegRt * xArr[kc.gix] * (1 - cnd2) - sArr[kc.gix] * (1 - cnd1);
+            float value = sArr[GIX()] * cnd1 - expNegRt * xArr[GIX()] * cnd2;
+            callArr[GIX()] = value;
+            putArr[GIX()] = expNegRt * xArr[GIX()] * (1 - cnd2) - sArr[GIX()] * (1 - cnd1);
         }
     }
 
@@ -619,19 +620,19 @@ public class TestArrayView {
     @Reflect
     public static void squareKernelWithPrivateAndLocal(KernelContext kc, S32Array s32Array) {
         SharedMemory shared = SharedMemory.createLocal();
-        if (kc.gix < kc.gsx){
+        if (GIX() < GSX()){
             int[] arr = s32Array.arrayView();
-            arr[kc.gix] += arr[kc.gix];
+            arr[GIX()] += arr[GIX()];
 
             PrivateArray priv = PrivateArray.createPrivate();
             int[] privView = priv.privateArrayView();
             privView[0] = 1;
-            arr[kc.gix] += privView[0];
+            arr[GIX()] += privView[0];
 
             int[] sharedView = shared.localArrayView();
             sharedView[0] = 16;
-            kc.barrier();
-            arr[kc.gix] += sharedView[0];
+            barrier();
+            arr[GIX()] += sharedView[0];
         }
     }
 
@@ -700,17 +701,17 @@ public class TestArrayView {
     @Reflect
     public static void kernelBasicDeviceType( KernelContext kc, S32Array s32Array) {
         SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
-        if (kc.gix < kc.gsx){
+        if (GIX() < GSX()){
             PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();
 
             int[] arr = s32Array.arrayView();
             int[] privView = priv.privateArrayView();
             int[] sharedView = shared.localArrayView();
 
-            privView[kc.gix] = arr[kc.gix];
-            sharedView[kc.gix] = arr[kc.gix];
-            kc.barrier();
-            arr[kc.gix] = privView[kc.gix] + sharedView[kc.gix];
+            privView[GIX()] = arr[GIX()];
+            sharedView[GIX()] = arr[GIX()];
+            barrier();
+            arr[GIX()] = privView[GIX()] + sharedView[GIX()];
         }
     }
 
@@ -738,17 +739,17 @@ public class TestArrayView {
     @Reflect
     public static void squareKernelDeviceType( KernelContext kc, S32Array s32Array) {
         SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
-        if (kc.gix < kc.gsx){
+        if (GIX() < GSX()){
             PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();
 
             int[] arr = s32Array.arrayView();
             int[] privView = priv.privateArrayView();
             int[] sharedView = shared.localArrayView();
 
-            privView[kc.gix] = arr[kc.gix];
-            sharedView[privView[kc.gix]] = 16 * privView[kc.gix];
-            kc.barrier();
-            arr[kc.gix] += privView[kc.gix] + sharedView[kc.gix];
+            privView[GIX()] = arr[GIX()];
+            sharedView[privView[GIX()]] = 16 * privView[GIX()];
+            barrier();
+            arr[GIX()] += privView[GIX()] + sharedView[GIX()];
         }
     }
 
