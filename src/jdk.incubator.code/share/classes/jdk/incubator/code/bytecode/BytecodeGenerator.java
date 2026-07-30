@@ -871,8 +871,8 @@ public final class BytecodeGenerator {
                         }
                         push(op.result());
                     }
-                    case FieldAccessOp.FieldLoadOp op -> fieldAccess(op, false);
-                    case FieldAccessOp.FieldStoreOp op -> fieldAccess(op, true);
+                    case FieldAccessOp.FieldLoadOp op -> fieldAccess(op);
+                    case FieldAccessOp.FieldStoreOp op -> fieldAccess(op);
                     case InstanceOfOp op -> {
                         processFirstOperand(op);
                         cob.instanceOf(((JavaType) op.targetType()).toNominalDescriptor());
@@ -1031,10 +1031,11 @@ public final class BytecodeGenerator {
                           type instanceof MethodTypeDesc ? MTD_FIND_METHOD : MTD_FIND_FIELD);
     }
 
-    private void fieldAccess(FieldAccessOp op, boolean store) {
+    private void fieldAccess(FieldAccessOp op) {
         FieldRef ref = op.fieldReference();
         JavaType refType = (JavaType) ref.refType();
         ClassDesc fieldType = ((JavaType) ref.type()).toNominalDescriptor();
+        boolean store = op instanceof FieldAccessOp.FieldStoreOp;
         boolean isStatic = op.operands().size() == (store ? 1 : 0);
         boolean protectedAccess = false;
         try {
