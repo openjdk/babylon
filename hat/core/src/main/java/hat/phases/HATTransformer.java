@@ -45,7 +45,8 @@ public class HATTransformer {
             // ID's /thread access
             new HATThreadsPhase(),
 
-            new HATTilePhase(),
+            // Handle the Block-Ids for the Tile Programming Model
+            new HATTileIDsPhase(),
 
             // Warp size
             new HATWarpSizePhase(),
@@ -60,16 +61,18 @@ public class HATTransformer {
             new HATFP16Phase(),
 
             // Tensors
-            new HATTensorsPhase()
+            new HATTensorsPhase(),
 
+            // Tiles
+            new HATTilesPhase()
     );
 
-    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
+    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases) {
         phases.forEach(phase -> {
             if (showCompilationPhases) {
                 IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
-            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp(), varTable));
+            funcOpCarrier.funcOp(phase.transform(lookup, funcOpCarrier.funcOp(), varTable));
             if (showCompilationPhases) {
                 IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }

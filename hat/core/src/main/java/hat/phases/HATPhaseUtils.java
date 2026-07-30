@@ -25,6 +25,8 @@
 package hat.phases;
 
 import hat.HATMath;
+import hat.TileContext;
+import hat.TileOp;
 import hat.device.NonMappableIface;
 import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
@@ -221,6 +223,22 @@ public class HATPhaseUtils {
             return true;
         }
         return isReturnTensorValueOperation(invoke);
+    }
+
+    public static boolean isTileOperation(OpHelper.Invoke invoke) {
+        return isTileLoad(invoke) || isTileStore(invoke) || isTileMath(invoke);
+    }
+
+    public static boolean isTileLoad(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("load");
+    }
+
+    public static boolean isTileStore(OpHelper.Invoke invoke) {
+        return invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("store");
+    }
+
+    public static boolean isTileMath(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(TileOp.class) && invoke.nameMatchesRegex("add|mma");
     }
 
     public static boolean isTensorCreate(OpHelper.Invoke invoke) {

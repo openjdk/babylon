@@ -2,6 +2,7 @@
 package hat;
 
 import hat.buffer.F32Array;
+import optkl.IfaceValue;
 import optkl.ifacemapper.Buffer;
 
 public interface TileContext {

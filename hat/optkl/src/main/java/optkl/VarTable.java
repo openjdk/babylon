@@ -40,6 +40,7 @@ public class VarTable {
         VECTOR,
         TENSOR,
         TENSOR_SHAPE,
+        TILE
     }
 
     /**

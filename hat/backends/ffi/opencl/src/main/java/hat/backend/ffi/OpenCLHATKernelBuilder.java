@@ -674,6 +674,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    protected OpenCLHATKernelBuilder varOpTile(CoreOp.VarOp varOp) {
+        throw new UnsupportedOperationException("VarOp for Tiles is not supported for the OpenCL backend");
+    }
+
+    @Override
     protected OpenCLHATKernelBuilder hatWarpSize() {
         return id("HAT_WRS");
     }
@@ -929,6 +934,21 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .recurseResultOrThrow(leadingDimension).comma().sp()
                         .recurseResultOrThrow(ptrValue).comma().sp()
                         .id(tensorVarOp.varName()));
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileLoadOperation(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("HAT Tile Load Operation not supported for the OpenCL backend");
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileStoreOperation(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("HAT Tile Store Operation not supported for the OpenCL backend");
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileArithmeticOperation(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("HAT Tile Arithmetic Operation not supported for the OpenCL backend");
     }
 
     /**

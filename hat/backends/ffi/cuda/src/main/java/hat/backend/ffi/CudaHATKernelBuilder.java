@@ -276,7 +276,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
                 // tile
                 .when(isTile, _ -> include("cuda_tile.h"))
-                .when(isTile, _-> id("namespace ct = cuda::tiles").semicolon().nl());
+                .when(isTile, _-> id("namespace ct = cuda::tiles").semicolon().nl())
+                .when(isTile, _-> namespace("ct::literals"));
     }
 
     @Override
@@ -810,6 +811,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return sp().varName(varOp);
     }
 
+    @Override
+    protected CudaHATKernelBuilder varOpTile(VarOp varOp) {
+        return id("auto")
+                .sp()
+                .varName(varOp)
+                .assign()
+                .recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
+    }
+
     public static final String WMMA_MEM_COL_MAJOR = "nvcuda::wmma::mem_col_major";
     public static final String WMMA_MEM_ROW_MAJOR = "nvcuda::wmma::mem_row_major";
     public static final String WMMA_STORE_TENSOR = "nvcuda::wmma::store_matrix_sync";
@@ -1018,6 +1028,64 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     }
 
+    @Override
+    protected CudaHATKernelBuilder hatTileLoadOperation(Invoke invoke) {
+        List<Value> operands = invoke.op().operands();
+        Value inputReference = operands.get(1);
+        Value blockId = operands.get(2);
+        Value shape = operands.get(3);
+
+        id("ct::partition_view{ct::tensor_span{");
+        recurseResultOrThrow(inputReference).rarrow().id(ARRAY);
+        id(", ct::extents{1024}}, ct::shape{ 16_ic");
+
+        // We can't use a shape that is not a constant value
+        //recurseResultOrThrow(shape);
+
+        id(" }}.load_masked(");
+        recurseResultOrThrow(blockId);
+        id(")");
+        return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTileStoreOperation(Invoke invoke) {
+        List<Value> operands = invoke.op().operands();
+        Value inputReference = operands.get(1);
+        Value blockId = operands.get(2);
+        Value tensor = operands.get(3);
+
+        id("ct::partition_view{ct::tensor_span{");
+        recurseResultOrThrow(inputReference).rarrow().id(ARRAY);
+        id(", ct::extents{1024}}, ct::shape{ 16_ic");
+
+        // We can't use a shape that is not a constant value
+        //recurseResultOrThrow(shape);
+
+        id(" }}.store_masked(");
+        recurseResultOrThrow(tensor)
+                .comma()
+                .sp()
+                .recurseResultOrThrow(blockId)
+                .id(")");
+        return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTileArithmeticOperation(Invoke invoke) {
+        List<Value> operands = invoke.op().operands();
+        Value left = operands.get(0);
+        Value right = operands.get(1);
+        String operation = invoke.name();
+        recurseResultOrThrow(left);
+        switch (operation) {
+            case "add" -> sp().plus().sp();
+            default -> throw new UnsupportedOperationException("Unsupported tile Operation: " + operation);
+        }
+        recurseResultOrThrow(right);
+        return self();
+    }
+
     /**
      * Example of code being generated:
      *
@@ -1087,6 +1155,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatTileOp(HATTileOp hatTileOp) {
-        return id("ct::bid().x");
+        id("ct::bid().x;").nl();
+//        id("auto a = ct::assume_aligned(inputA->array, 16_ic);").nl();
+//        id("auto b = ct::assume_aligned(inputB->array, 16_ic);").nl();
+//        id("auto c = ct::assume_aligned(output->array, 16_ic);").nl();
+        return self();
     }
 }

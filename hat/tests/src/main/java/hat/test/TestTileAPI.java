@@ -1,19 +1,19 @@
 package hat.test;
 
-import hat.Accelerator;
-import hat.ComputeContext;
-import hat.Constant;
-import hat.TileContext;
-import hat.TileModel;
-import hat.TileOp;
-import hat.TileRange;
+import hat.*;
+import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
 import hat.test.annotation.HatTest;
+import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
+import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
+import java.util.Random;
+
+import static optkl.ifacemapper.MappableIface.*;
 
 /**
  * How to run?
@@ -56,29 +56,63 @@ import java.lang.invoke.MethodHandles;
 public class TestTileAPI {
 
     @Reflect
-    public static void emptyTile(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
-        // Program id: get tile-id for 1D
+//    @Kernel("""
+//            HAT_KERNEL void helloTile(
+//                HAT_GLOBAL_MEM TileContext_t* tc,
+//                HAT_GLOBAL_MEM F32Array_t* inputA,
+//                HAT_GLOBAL_MEM F32Array_t* inputB,
+//                HAT_GLOBAL_MEM F32Array_t* output,
+//                int tile_size
+//            ){
+//                int pid = ct::bid().x;
+////                auto a = ct::assume_aligned(inputA->array, 16_ic);
+////                auto b = ct::assume_aligned(inputB->array, 16_ic);
+////                auto c = ct::assume_aligned(output->array, 16_ic);
+//
+//                auto aTile = ct::partition_view{ct::tensor_span{inputA->array, ct::extents{1024}}, ct::shape{ 16_ic }}.load_masked(pid);
+//                auto bTile = ct::partition_view{ct::tensor_span{inputB->array, ct::extents{1024}}, ct::shape{ 16_ic }}.load_masked(pid);
+//                auto tileResult = aTile + bTile;
+//                ct::partition_view{ct::tensor_span{output->array, ct::extents{1024}}, ct::shape{ 16_ic }}.store_masked(tileResult, pid);
+//                return;
+//            }
+//
+//            """)
+    public static void helloTile(@RO TileContext tc, @RO F32Array inputA, @RO  F32Array inputB, @WO F32Array output, @Constant int tile_size) {
         var pid = tc.bid(0);
-
         var aTile = tc.load(inputA, pid, tile_size);
+        var bTile = tc.load(inputB, pid, tile_size);
+        var tileResult = TileOp.add(aTile, bTile);
+        tc.store(output, pid, tileResult);
     }
 
     @Reflect
-    public static void computeEmptyTile(ComputeContext computeContext, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
+    public static void computeEmptyTile(@RO ComputeContext computeContext, @RO F32Array inputA, @RO F32Array inputB, @WO F32Array output, @Constant int tile_size) {
         computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
-                tileContext -> emptyTile(tileContext, inputA, inputB, output, tile_size));
+                tileContext -> helloTile(tileContext, inputA, inputB, output, tile_size));
     }
 
     @Reflect
     @HatTest
     public void test_hat_tile_00() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        final int size = Math.powExact(2, 12);
-        final int tile_size = 64;
+        final int size = 1024;
+        final int tile_size = 16;
         F32Array inputA = F32Array.create(accelerator, size);
         F32Array inputB = F32Array.create(accelerator, size);
+
+        // Fill data
+        Random r = new Random();
+        for (int i = 0; i < size; i++) {
+            inputA.array(i, r.nextFloat());
+            inputB.array(i, r.nextFloat());
+        }
+
         F32Array result = F32Array.create(accelerator, size);
         accelerator.compute( computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tile_size));
+
+        for (int i = 0; i < size; i++) {
+            HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
+        }
     }
 
 

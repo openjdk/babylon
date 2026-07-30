@@ -50,7 +50,10 @@ public interface F32Array extends Buffer {
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<F32Array> schema = Schema.of(F32Array.class);
+    Schema<F32Array> schema = Schema.of(F32Array.class, $ -> $
+            .arrayLen("length").pad(12).array("array"));
+
+    //Schema<F32Array> schema = Schema.of(F32Array.class);
 
     static F32Array create(ArenaAndLookupCarrier cc, int length) {
         return BoundSchema.of(cc ,schema, length).allocate();

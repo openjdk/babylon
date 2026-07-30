@@ -507,7 +507,6 @@ public class CudaBackend extends C99FFIBackend {
                 IO.println(code);
             }
             var compilationUnit = backendBridge.compile(code, 1);
-            IO.println("Is compilation OK? " + compilationUnit.ok());
             if (compilationUnit.ok()) {
                 var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
                 return new CompiledKernel(this, kernelCallGraph,  kernel, args);

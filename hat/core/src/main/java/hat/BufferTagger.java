@@ -59,7 +59,9 @@ public class BufferTagger {
             } else if (OpHelper.isAssignable(lookup, p.type(), MappableIface.class)) {
                 // accessList.add(AccessType.NA); // is a buffer but not accessed
                 // TODO: shouldn't be RO as default
-                accessList.add(AccessType.RO);
+
+                // TODO: Changed to RW as default
+                accessList.add(AccessType.RW);
             } else {
                 accessList.add(AccessType.NOT_BUFFER); // is not a buffer
             }
@@ -109,14 +111,14 @@ public class BufferTagger {
                 case CoreOp.VarOp vop -> { // map the new VarOp to the "root" param
                     if (OpHelper.isAssignable(lookup,  vop.resultType().valueType(), Buffer.class)) {
                         remappedVals.put(vop.initOperand(), getRootValue(vop));
-                    }else{
+                    } else{
                         // or else maybe CoreOp.VarOp vop when ??? ->
                     }
                 }
                 case JavaOp.FieldAccessOp.FieldLoadOp flop -> {
                     if (OpHelper.isAssignable(lookup,  flop.fieldReference().refType(), KernelContext.class)) {
                         updateAccessType(getRootValue(flop), AccessType.RO); // handle kc access
-                    }else{
+                    } else {
                         // or else
                     }
                 }
