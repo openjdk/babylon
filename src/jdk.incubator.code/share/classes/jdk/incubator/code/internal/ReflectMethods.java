@@ -261,6 +261,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             if (!ops.isEmpty()) {
                 tree.defs = tree.defs.prependList(opMethodDecls.toList());
                 tree = new JCReflectMethodsClassDecl(tree, ops);
+                // store the tree for later phases
+                Env<AttrContext> classEnv = typeEnvs.get(tree.sym);
+                classEnv.tree = tree;
+                classEnv.enclClass = tree;
                 currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
@@ -2274,8 +2278,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Pop block
             popBody();
 
+            List<CodeType> catchTypes = new ArrayList<>();
             List<Body.Builder> catchers = new ArrayList<>();
             for (JCTree.JCCatch catcher : tree.catchers) {
+
+                catchTypes.add(TreeInfo.isMultiCatch(catcher)
+                        ? CoreType.tupleType(((JCTree.JCTypeUnion) catcher.param.vartype).alternatives.stream()
+                                .map(a -> typeToCodeType(a.type)).toList())
+                        : typeToCodeType(catcher.param.vartype.type));
+
                 // Push body
                 pushBody(catcher.body, CoreType.functionType(JavaType.VOID, typeToCodeType(catcher.param.type)));
                 Op.Result exVariable = append(CoreOp.var(
@@ -2305,7 +2316,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 finalizer = null;
             }
 
-            result = append(JavaOp.try_(resources, body, catchers, finalizer));
+            result = append(JavaOp.try_(resources, body, catchTypes, catchers, finalizer));
         }
 
         @Override
@@ -2537,9 +2548,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     boolean isReflectable(JCMethodDecl tree) {
-        return reflectAll || codeReflectionEnabled ||
+        return codeReflectionEnabled ||
                 (tree.body != null &&
-                tree.sym.attribute(crSyms.codeReflectionType.tsym) != null);
+                (reflectAll || tree.sym.attribute(crSyms.codeReflectionType.tsym) != null));
     }
 
     boolean isReflectable(JCFunctionalExpression expr) {

@@ -35,6 +35,7 @@ import jdk.incubator.code.bytecode.impl.DynamicFuncCallOp;
 import jdk.incubator.code.bytecode.impl.LoweringTransformer;
 import jdk.incubator.code.dialect.core.CoreOp.*;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 
@@ -172,7 +173,7 @@ public final class BytecodeGenerator {
     private final CodeBuilder cob;
     private final Label[] blockLabels;
     private final Block[][] blocksCatchMap;
-    private final BitSet allCatchBlocks;
+    private final CodeType[] catchBlockTypes;
     private final Label[] tryStartLabels;
     private final Map<Value, Slot> slots;
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
@@ -196,7 +197,7 @@ public final class BytecodeGenerator {
         this.cob = cob;
         this.blockLabels = new Label[blocks.size()];
         this.blocksCatchMap = new Block[blocks.size()][];
-        this.allCatchBlocks = new BitSet();
+        this.catchBlockTypes = new CodeType[blocks.size()];
         this.tryStartLabels = new Label[blocks.size()];
         this.slots = new IdentityHashMap<>();
         this.singlePredecessorsValues = new IdentityHashMap<>();
@@ -339,11 +340,19 @@ public final class BytecodeGenerator {
         return !op.resultType().equals(JavaType.J_L_CLASS);
     }
 
-    // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return op.isUninitialized()
-            || !moreThanOneUse(op.result())
-            || op.initOperand() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
+        if (op.isUninitialized()) {
+            // Uninitialized var with single store dominating to all its uses can be deferred
+            var uses = op.result().uses();
+            var storeUses = uses.stream().filter(u -> u.op() instanceof VarAccessOp.VarStoreOp).toList();
+            return storeUses.size() == 1 && uses.stream().allMatch(u -> u.isDominatedBy(storeUses.getFirst()));
+        } else {
+            // Initialized var used only for loads or var with a single-use entry block parameter operand can be deferred
+            return op.result().uses().stream().allMatch(u -> u.op() instanceof VarAccessOp.VarLoadOp)
+                    || op.initOperand() instanceof Block.Parameter bp
+                        && bp.declaringBlock().isEntryBlock()
+                        && !moreThanOneUse(bp);
+        }
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -481,7 +490,7 @@ public final class BytecodeGenerator {
             exceptionRegionsChange(catchBlocks);
 
             // If b is a catch block then the exception argument will be represented on the stack
-            if (allCatchBlocks.get(b.index())) {
+            if (catchBlockTypes[b.index()] != null) {
                 // Retain block argument for exception table generation
                 push(b.parameters().getFirst());
             }
@@ -505,7 +514,17 @@ public final class BytecodeGenerator {
                         }
                     }
                     case VarOp op when op.isUninitialized() -> {
-                        // Do nothing
+                        if (!canDefer(op)) {
+                            switch (toTypeKind(op.resultType()).asLoadable()) {
+                                case INT -> cob.iconst_0();
+                                case LONG -> cob.lconst_0();
+                                case FLOAT -> cob.fconst_0();
+                                case DOUBLE -> cob.dconst_0();
+                                case REFERENCE -> cob.aconst_null();
+                                default -> throw new IllegalArgumentException("Bad variable type: " + toTypeKind(op.resultType()));
+                            }
+                            storeIfUsed(op.result());
+                        }
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
@@ -799,7 +818,7 @@ public final class BytecodeGenerator {
                                                       mDesc.insertParameterTypes(0, specialCaller));
                         }
                         ClassDesc ret = toClassDesc(op.resultType());
-                        if (ret.isClassOrInterface() && !ret.equals(mDesc.returnType())) {
+                        if (!ret.isPrimitive() && !ret.equals(mDesc.returnType())) {
                             // Explicit cast if method return type differs
                             cob.checkcast(ret);
                         }
@@ -963,10 +982,12 @@ public final class BytecodeGenerator {
                 }
                 case ExceptionRegionEnter op -> {
                     List<Block.Reference> enteringCatchBlocks = op.catchReferences();
+                    List<CodeType> enteringCatchTypes = op.catchTypes();
                     Block[] activeCatchBlocks = Arrays.copyOf(recentCatchBlocks, recentCatchBlocks.length + enteringCatchBlocks.size());
                     int i = recentCatchBlocks.length;
+                    int catchIndex = 0;
                     for (Block.Reference catchRef : enteringCatchBlocks) {
-                        allCatchBlocks.set(catchRef.targetBlock().index());
+                        catchBlockTypes[catchRef.targetBlock().index()] = enteringCatchTypes.get(catchIndex++);
                         activeCatchBlocks[i++] = catchRef.targetBlock();
                         setCatchStack(catchRef, recentCatchBlocks);
                     }
@@ -1022,12 +1043,19 @@ public final class BytecodeGenerator {
             // Exit catch blocks missing in the newCatchBlocks
             while (i >=0 && (i >= newCatchBlocks.length || recentCatchBlocks[i] != newCatchBlocks[i])) {
                 Block catchBlock = recentCatchBlocks[i--];
-                List<Block.Parameter> params = catchBlock.parameters();
-                if (!params.isEmpty()) {
-                    JavaType jt = (JavaType) params.get(0).type();
-                    cob.exceptionCatch(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()), jt.toNominalDescriptor());
-                } else {
-                    cob.exceptionCatchAll(tryStartLabels[catchBlock.index()], currentLabel, getLabel(catchBlock.index()));
+                CodeType catchType = catchBlockTypes[catchBlock.index()];
+                Label tryStart = tryStartLabels[catchBlock.index()];
+                Label handler = getLabel(catchBlock.index());
+                switch (catchType) {
+                    case TupleType tt ->
+                        tt.componentTypes().forEach(type ->
+                                cob.exceptionCatch(tryStart, currentLabel, handler, ((JavaType) type).toNominalDescriptor()));
+                    case ClassType ct ->
+                        cob.exceptionCatch(tryStart, currentLabel, handler, ct.toNominalDescriptor());
+                    case PrimitiveType pt when pt.equals(JavaType.VOID) ->
+                        cob.exceptionCatchAll(tryStart, currentLabel, handler);
+                    default ->
+                        throw new IllegalArgumentException("Bad catch type: " + catchType);
                 }
                 tryStartLabels[catchBlock.index()] = null;
             }
@@ -1236,7 +1264,7 @@ public final class BytecodeGenerator {
     private void assignBlockArguments(Block.Reference ref) {
         Block target = ref.targetBlock();
         List<Value> sargs = ref.arguments();
-        if (allCatchBlocks.get(target.index())) {
+        if (catchBlockTypes[target.index()] != null) {
             // Jumping to an exception handler, exception parameter is expected on stack
             Value value = sargs.getFirst();
             if (oprOnStack == value) {
