@@ -576,7 +576,7 @@ public:
 
     virtual void computeEnd() = 0;
 
-    virtual CompilationUnit *compile(int len, char *source) = 0;
+    virtual CompilationUnit *compile(int len, char *source, int typeModel) = 0;
 
     virtual bool getBufferFromDeviceIfDirty(void *memorySegment, long memorySegmentLength) = 0;
 

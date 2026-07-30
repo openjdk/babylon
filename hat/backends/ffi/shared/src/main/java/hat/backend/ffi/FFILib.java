@@ -155,6 +155,25 @@ public class FFILib {
         }
     }
 
+    public static class LongHandleIntAddressMethodPtrInt extends MethodPtr{
+        LongHandleIntAddressMethodPtrInt(FFILib ffiLib, String name) {
+            super(ffiLib, FunctionDescriptor.of(JAVA_LONG,JAVA_LONG,JAVA_INT,ADDRESS, JAVA_INT), name);
+        }
+        public long invoke(long handle, int i, MemorySegment memorySegment, int typeModel) {
+            if (mh == null){
+                throw new RuntimeException("Null methodhandle "+ name);
+            }
+            if (handle == 0L) {
+                throw new IllegalArgumentException("handle is zero");
+            }
+            try {
+                return (long)mh.invoke(handle, i, memorySegment, typeModel);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public static class LongHandleIntMethodPtr extends MethodPtr{
         LongHandleIntMethodPtr(FFILib ffiLib, String name) {
             super(ffiLib,FunctionDescriptor.of(JAVA_LONG,JAVA_INT), name);
@@ -217,6 +236,9 @@ public class FFILib {
     }
     public LongHandleIntAddressMethodPtr longHandleIntAddressFunc(String name) {
         return new LongHandleIntAddressMethodPtr(this, name);
+    }
+    public LongHandleIntAddressMethodPtrInt longHandleIntAddressIntFunc(String name) {
+        return new LongHandleIntAddressMethodPtrInt(this, name);
     }
     public LongHandleIntMethodPtr longHandleIntFunc(String name) {
         return new LongHandleIntMethodPtr(this, name);

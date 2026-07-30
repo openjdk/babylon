@@ -92,14 +92,16 @@ public:
 
 class CudaSource final :public Text  {
 public:
-    CudaSource(size_t len, char *text, bool isCopy, bool lineinfo);
+    CudaSource(size_t len, char *text, bool isCopy, bool lineinfo, int typeModel);
     bool lineInfo() const;
+    int typeModel() const;
     explicit CudaSource(size_t len);
     explicit CudaSource(char* text);
     CudaSource();
     ~CudaSource() override = default;
 private:
     bool _lineInfo = false;
+    int _typeModel = 0;
 };
 
 class CudaBackend final : public Backend {
@@ -180,7 +182,7 @@ public:
     CudaModule * compile(const PtxSource *ptxSource);
     CudaModule * compile(const PtxSource &ptxSource);
     static PtxSource *nvcc(const CudaSource *cudaSource);
-    CompilationUnit * compile(int len, char *source) override;
+    CompilationUnit * compile(int len, char *source, int typeModel) override;
     void computeStart() override;
     void computeEnd() override;
     CudaBuffer * getOrCreateBuffer(BufferState *bufferState) override;

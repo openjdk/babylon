@@ -135,7 +135,7 @@ public:
         std::cout << "mock compute start()" << std::endl;
     }
 
-    CompilationUnit *compile(int len, char *source) override {
+    CompilationUnit *compile(int len, char *source, int typeModel) override {
         std::cout << "mock compileProgram()" << std::endl;
         size_t srcLen = ::strlen(source);
         char *src = new char[srcLen + 1];

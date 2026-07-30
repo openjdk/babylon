@@ -151,11 +151,14 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int threadsPerBlockX = 1;
     int threadsPerBlockY = 1;
     int threadsPerBlockZ = 1;
-    int blocksPerGridX = ceil_div(kernelContext->gsx, kernelContext->lsx);
-    int blocksPerGridY = ceil_div(kernelContext->gsy, kernelContext->lsy);
-    int blocksPerGridZ = ceil_div(kernelContext->gsz, kernelContext->lsz);
-
-    if (!kernelContext -> tile_model) {
+    int blocksPerGridX = 1;
+    int blocksPerGridY = 1;
+    int blocksPerGridZ = 1;
+    if (kernelContext->tile_model) {
+        blocksPerGridX = ceil_div(kernelContext->gsx, kernelContext->lsx);
+        blocksPerGridY = ceil_div(kernelContext->gsy, kernelContext->lsy);
+        blocksPerGridZ = ceil_div(kernelContext->gsz, kernelContext->lsz);
+    } else  {
         threadsPerBlockX = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsx, kernelContext->lsx);
         threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
         threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
