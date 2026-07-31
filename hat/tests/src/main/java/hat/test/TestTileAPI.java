@@ -1,14 +1,18 @@
 package hat.test;
 
-import hat.*;
-import hat.annotations.Kernel;
+import hat.Accelerator;
+import hat.ComputeContext;
+import hat.Constant;
+import hat.TileContext;
+import hat.TileModel;
+import hat.TileOp;
+import hat.TileRange;
 import hat.backend.Backend;
-import hat.buffer.F32Array;
+import hat.buffer.TileF32Array;
 
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -77,7 +81,7 @@ public class TestTileAPI {
 //            }
 //
 //            """)
-    public static void helloTile(@RO TileContext tc, @RO F32Array inputA, @RO  F32Array inputB, @WO F32Array output, @Constant int tile_size) {
+    public static void helloTile(@RO TileContext tc, @RO TileF32Array inputA, @RO TileF32Array inputB, @WO TileF32Array output, @Constant int tile_size) {
         var pid = tc.bid(0);
         var aTile = tc.load(inputA, pid, tile_size);
         var bTile = tc.load(inputB, pid, tile_size);
@@ -86,7 +90,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeEmptyTile(@RO ComputeContext computeContext, @RO F32Array inputA, @RO F32Array inputB, @WO F32Array output, @Constant int tile_size) {
+    public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TileF32Array inputA, @RO TileF32Array inputB, @WO TileF32Array output, @Constant int tile_size) {
         computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
                 tileContext -> helloTile(tileContext, inputA, inputB, output, tile_size));
     }
@@ -97,8 +101,8 @@ public class TestTileAPI {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
         final int tile_size = 16;
-        F32Array inputA = F32Array.create(accelerator, size);
-        F32Array inputB = F32Array.create(accelerator, size);
+        TileF32Array inputA = TileF32Array.create(accelerator, size);
+        TileF32Array inputB = TileF32Array.create(accelerator, size);
 
         // Fill data
         Random r = new Random();
@@ -107,7 +111,7 @@ public class TestTileAPI {
             inputB.array(i, r.nextFloat());
         }
 
-        F32Array result = F32Array.create(accelerator, size);
+        TileF32Array result = TileF32Array.create(accelerator, size);
         accelerator.compute( computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tile_size));
 
         for (int i = 0; i < size; i++) {
@@ -123,24 +127,24 @@ public class TestTileAPI {
 
     // Initial code-model
     @TileModel(model="""
-            func @loc="29:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"vector_add" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.F32Array", %2 : java.type:"hat.buffer.F32Array", %3 : java.type:"hat.buffer.F32Array", %4 : java.type:"int")java.type:"void" -> {
+            func @loc="29:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"vector_add" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.TileF32Array", %2 : java.type:"hat.buffer.TileF32Array", %3 : java.type:"hat.buffer.TileF32Array", %4 : java.type:"int")java.type:"void" -> {
                 %5 : Var<java.type:"hat.TileContext"> = var %0 @loc="29:5" @"tc";
-                %6 : Var<java.type:"hat.buffer.F32Array"> = var %1 @loc="29:5" @"inputA";
-                %7 : Var<java.type:"hat.buffer.F32Array"> = var %2 @loc="29:5" @"inputB";
-                %8 : Var<java.type:"hat.buffer.F32Array"> = var %3 @loc="29:5" @"output";
+                %6 : Var<java.type:"hat.buffer.TileF32Array"> = var %1 @loc="29:5" @"inputA";
+                %7 : Var<java.type:"hat.buffer.TileF32Array"> = var %2 @loc="29:5" @"inputB";
+                %8 : Var<java.type:"hat.buffer.TileF32Array"> = var %3 @loc="29:5" @"output";
                 %9 : Var<java.type:"int"> = var %4 @loc="29:5" @"tile_size";
                 %10 : java.type:"hat.TileContext" = var.load %5 @loc="33:19";
                 %11 : java.type:"int" = constant @loc="33:26" @0;
                 %12 : java.type:"int" = invoke %10 %11 @loc="33:19" @java.ref:"hat.TileContext::bid(int):int";
                 %13 : Var<java.type:"int"> = var %12 @loc="33:9" @"pid";
                 %14 : java.type:"hat.TileContext" = var.load %5 @loc="35:22";
-                %15 : java.type:"hat.buffer.F32Array" = var.load %6 @loc="35:30";
+                %15 : java.type:"hat.buffer.TileF32Array" = var.load %6 @loc="35:30";
                 %16 : java.type:"int" = var.load %13 @loc="35:38";
                 %17 : java.type:"int" = var.load %9 @loc="35:43";
                 %18 : java.type:"hat.TileData" = invoke %14 %15 %16 %17 @loc="35:22" @java.ref:"hat.TileContext::load(hat.buffer.Buffer, int, int):hat.TileData";
                 %19 : Var<java.type:"hat.TileData"> = var %18 @loc="35:9" @"a_tile";
                 %20 : java.type:"hat.TileContext" = var.load %5 @loc="36:22";
-                %21 : java.type:"hat.buffer.F32Array" = var.load %7 @loc="36:30";
+                %21 : java.type:"hat.buffer.TileF32Array" = var.load %7 @loc="36:30";
                 %22 : java.type:"int" = var.load %13 @loc="36:38";
                 %23 : java.type:"int" = var.load %9 @loc="36:43";
                 %24 : java.type:"hat.TileData" = invoke %20 %21 %22 %23 @loc="36:22" @java.ref:"hat.TileContext::load(hat.buffer.Buffer, int, int):hat.TileData";
@@ -150,7 +154,7 @@ public class TestTileAPI {
                 %28 : java.type:"hat.TileData" = invoke %26 %27 @loc="40:22" @java.ref:"hat.TileOp::add(hat.TileData, hat.TileData):hat.TileData";
                 %29 : Var<java.type:"hat.TileData"> = var %28 @loc="40:9" @"result";
                 %30 : java.type:"hat.TileContext" = var.load %5 @loc="42:9";
-                %31 : java.type:"hat.buffer.F32Array" = var.load %8 @loc="42:18";
+                %31 : java.type:"hat.buffer.TileF32Array" = var.load %8 @loc="42:18";
                 %32 : java.type:"int" = var.load %13 @loc="42:26";
                 %33 : java.type:"hat.TileData" = var.load %29 @loc="42:31";
                 invoke %30 %31 %32 %33 @loc="42:9" @java.ref:"hat.TileContext::store(hat.buffer.Buffer, int, hat.TileData):void";
@@ -158,7 +162,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void vector_add(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
+    public static void vector_add(TileContext tc, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tile_size) {
 
         // Program id: get tile-id for 1D
         var pid = tc.bid(0);
@@ -174,7 +178,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void myComputeWithTile_vector_add(ComputeContext computeContext, F32Array inputA, F32Array inputB, F32Array output, @Constant int tile_size) {
+    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tile_size) {
         computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
                 tileContext -> vector_add(tileContext, inputA, inputB, output, tile_size));
     }
@@ -189,9 +193,9 @@ public class TestTileAPI {
         final int size = Math.powExact(2, 12);
         final int tile_size = 64;
 
-        F32Array inputA = F32Array.create(accelerator, size);
-        F32Array inputB = F32Array.create(accelerator, size);
-        F32Array result = F32Array.create(accelerator, size);
+        TileF32Array inputA = TileF32Array.create(accelerator, size);
+        TileF32Array inputB = TileF32Array.create(accelerator, size);
+        TileF32Array result = TileF32Array.create(accelerator, size);
 
         accelerator.compute( computeContext ->
             myComputeWithTile_vector_add(computeContext, inputA, inputB, result, tile_size));
@@ -202,11 +206,11 @@ public class TestTileAPI {
     // ================================================================================================================
     public static final int GROUP_SIZE_M = 8;
     @TileModel(model = """
-            func @loc="120:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"matmul" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.F32Array", %2 : java.type:"hat.buffer.F32Array", %3 : java.type:"hat.buffer.F32Array", %4 : java.type:"int", %5 : java.type:"int", %6 : java.type:"int", %7 : java.type:"int", %8 : java.type:"int")java.type:"void" -> {
+            func @loc="120:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"matmul" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.TileF32Array", %2 : java.type:"hat.buffer.TileF32Array", %3 : java.type:"hat.buffer.TileF32Array", %4 : java.type:"int", %5 : java.type:"int", %6 : java.type:"int", %7 : java.type:"int", %8 : java.type:"int")java.type:"void" -> {
                 %9 : Var<java.type:"hat.TileContext"> = var %0 @loc="120:5" @"tc";
-                %10 : Var<java.type:"hat.buffer.F32Array"> = var %1 @loc="120:5" @"inputA";
-                %11 : Var<java.type:"hat.buffer.F32Array"> = var %2 @loc="120:5" @"inputB";
-                %12 : Var<java.type:"hat.buffer.F32Array"> = var %3 @loc="120:5" @"output";
+                %10 : Var<java.type:"hat.buffer.TileF32Array"> = var %1 @loc="120:5" @"inputA";
+                %11 : Var<java.type:"hat.buffer.TileF32Array"> = var %2 @loc="120:5" @"inputB";
+                %12 : Var<java.type:"hat.buffer.TileF32Array"> = var %3 @loc="120:5" @"output";
                 %13 : Var<java.type:"int"> = var %4 @loc="120:5" @"tm";
                 %14 : Var<java.type:"int"> = var %5 @loc="120:5" @"tn";
                 %15 : Var<java.type:"int"> = var %6 @loc="120:5" @"tk";
@@ -255,13 +259,13 @@ public class TestTileAPI {
                 %58 : java.type:"int" = div %56 %57 @loc="133:20";
                 %59 : Var<java.type:"int"> = var %58 @loc="133:9" @"bidy";
                 %60 : java.type:"hat.TileContext" = var.load %9 @loc="136:25";
-                %61 : java.type:"hat.buffer.F32Array" = var.load %10 @loc="136:38";
+                %61 : java.type:"hat.buffer.TileF32Array" = var.load %10 @loc="136:38";
                 %62 : java.type:"int" = constant @loc="136:46" @1;
                 %63 : java.type:"hat.TileContext" = var.load %9 @loc="136:49";
                 %64 : java.type:"int" = var.load %13 @loc="136:58";
                 %65 : java.type:"int" = var.load %15 @loc="136:61";
                 %66 : java.type:"hat.TileShape" = invoke %63 %64 %65 @loc="136:49" @java.ref:"hat.TileContext::shape(int, int):hat.TileShape";
-                %67 : java.type:"int" = invoke %60 %61 %62 %66 @loc="136:25" @java.ref:"hat.TileContext::num_tiles(hat.buffer.F32Array, int, hat.TileShape):int";
+                %67 : java.type:"int" = invoke %60 %61 %62 %66 @loc="136:25" @java.ref:"hat.TileContext::num_tiles(hat.buffer.TileF32Array, int, hat.TileShape):int";
                 %68 : Var<java.type:"int"> = var %67 @loc="136:9" @"num_tiles";
                 %69 : java.type:"hat.TileContext" = var.load %9 @loc="139:27";
                 %70 : java.type:"int" = var.load %13 @loc="139:36";
@@ -289,7 +293,7 @@ public class TestTileAPI {
                     }
                     (%84 : Var<java.type:"int">)java.type:"void" -> {
                         %85 : java.type:"hat.TileContext" = var.load %9 @loc="142:25";
-                        %86 : java.type:"hat.buffer.F32Array" = var.load %10 @loc="142:33";
+                        %86 : java.type:"hat.buffer.TileF32Array" = var.load %10 @loc="142:33";
                         %87 : java.type:"hat.TileContext" = var.load %9 @loc="142:41";
                         %88 : java.type:"int" = var.load %53 @loc="142:50";
                         %89 : java.type:"int" = var.load %84 @loc="142:56";
@@ -301,7 +305,7 @@ public class TestTileAPI {
                         %95 : java.type:"hat.TileData" = invoke %85 %86 %90 %94 @loc="142:25" @java.ref:"hat.TileContext::load(hat.buffer.Buffer, hat.TileIndex2D, hat.TileShape):hat.TileData";
                         %96 : Var<java.type:"hat.TileData"> = var %95 @loc="142:13" @"tileA";
                         %97 : java.type:"hat.TileContext" = var.load %9 @loc="143:25";
-                        %98 : java.type:"hat.buffer.F32Array" = var.load %11 @loc="143:33";
+                        %98 : java.type:"hat.buffer.TileF32Array" = var.load %11 @loc="143:33";
                         %99 : java.type:"hat.TileContext" = var.load %9 @loc="143:41";
                         %100 : java.type:"int" = var.load %84 @loc="143:50";
                         %101 : java.type:"int" = var.load %59 @loc="143:53";
@@ -320,7 +324,7 @@ public class TestTileAPI {
                         java.continue @loc="141:9";
                     };
                 %113 : java.type:"hat.TileContext" = var.load %9 @loc="147:9";
-                %114 : java.type:"hat.buffer.F32Array" = var.load %12 @loc="147:18";
+                %114 : java.type:"hat.buffer.TileF32Array" = var.load %12 @loc="147:18";
                 %115 : java.type:"hat.TileContext" = var.load %9 @loc="147:26";
                 %116 : java.type:"int" = var.load %53 @loc="147:35";
                 %117 : java.type:"int" = var.load %59 @loc="147:41";
@@ -331,7 +335,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void matmul(TileContext tc, F32Array inputA, F32Array inputB, F32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void matmul(TileContext tc, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
 
         // Calculate bidx and bidy using swizzle
         int bid = tc.bid(0);
@@ -362,7 +366,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tile_matmul(ComputeContext computeContext, F32Array inputA, F32Array inputB, F32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void tile_matmul(ComputeContext computeContext, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
         computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
                 tileContext -> matmul(tileContext, inputA, inputB, output, tm, tn, tk, M, N));
     }
@@ -375,9 +379,9 @@ public class TestTileAPI {
 
         final int size = 1024;
 
-        F32Array matrixA = F32Array.create(accelerator, size * size);
-        F32Array matrixB = F32Array.create(accelerator, size * size);
-        F32Array matrixC = F32Array.create(accelerator, size * size);
+        TileF32Array matrixA = TileF32Array.create(accelerator, size * size);
+        TileF32Array matrixB = TileF32Array.create(accelerator, size * size);
+        TileF32Array matrixC = TileF32Array.create(accelerator, size * size);
 
         int tm = 64;
         int tn = 64;
@@ -405,22 +409,22 @@ public class TestTileAPI {
     // Expressing Reductions
     // ================================================================================================================
     @TileModel(model = """
-            func @loc="319:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"tile_reduction" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.F32Array", %2 : java.type:"hat.buffer.F32Array", %3 : java.type:"int")java.type:"void" -> {
+            func @loc="319:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"tile_reduction" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.TileF32Array", %2 : java.type:"hat.buffer.TileF32Array", %3 : java.type:"int")java.type:"void" -> {
                 %4 : Var<java.type:"hat.TileContext"> = var %0 @loc="319:5" @"tileContext";
-                %5 : Var<java.type:"hat.buffer.F32Array"> = var %1 @loc="319:5" @"input";
-                %6 : Var<java.type:"hat.buffer.F32Array"> = var %2 @loc="319:5" @"output";
+                %5 : Var<java.type:"hat.buffer.TileF32Array"> = var %1 @loc="319:5" @"input";
+                %6 : Var<java.type:"hat.buffer.TileF32Array"> = var %2 @loc="319:5" @"output";
                 %7 : Var<java.type:"int"> = var %3 @loc="319:5" @"tile_size";
                 %8 : java.type:"hat.TileContext" = var.load %4 @loc="322:19";
                 %9 : java.type:"int" = constant @loc="322:35" @0;
                 %10 : java.type:"int" = invoke %8 %9 @loc="322:19" @java.ref:"hat.TileContext::bid(int):int";
                 %11 : Var<java.type:"int"> = var %10 @loc="322:9" @"pid";
                 %12 : java.type:"hat.TileContext" = var.load %4 @loc="325:25";
-                %13 : java.type:"hat.buffer.F32Array" = var.load %5 @loc="325:47";
+                %13 : java.type:"hat.buffer.TileF32Array" = var.load %5 @loc="325:47";
                 %14 : java.type:"int" = constant @loc="325:54" @0;
                 %15 : java.type:"hat.TileContext" = var.load %4 @loc="325:57";
                 %16 : java.type:"int" = var.load %7 @loc="325:75";
                 %17 : java.type:"hat.TileShape" = invoke %15 %16 @loc="325:57" @java.ref:"hat.TileContext::shape(int):hat.TileShape";
-                %18 : java.type:"int" = invoke %12 %13 %14 %17 @loc="325:25" @java.ref:"hat.TileContext::num_tiles(hat.buffer.F32Array, int, hat.TileShape):int";
+                %18 : java.type:"int" = invoke %12 %13 %14 %17 @loc="325:25" @java.ref:"hat.TileContext::num_tiles(hat.buffer.TileF32Array, int, hat.TileShape):int";
                 %19 : Var<java.type:"int"> = var %18 @loc="325:9" @"num_tiles";
                 %20 : java.type:"hat.TileContext" = var.load %4 @loc="327:19";
                 %21 : java.type:"hat.TileContext" = var.load %4 @loc="327:36";
@@ -450,7 +454,7 @@ public class TestTileAPI {
                     }
                     (%37 : Var<java.type:"int">)java.type:"void" -> {
                         %38 : java.type:"hat.TileContext" = var.load %4 @loc="330:25";
-                        %39 : java.type:"hat.buffer.F32Array" = var.load %5 @loc="330:42";
+                        %39 : java.type:"hat.buffer.TileF32Array" = var.load %5 @loc="330:42";
                         %40 : java.type:"hat.TileContext" = var.load %4 @loc="330:49";
                         %41 : java.type:"int" = var.load %11 @loc="330:67";
                         %42 : java.type:"hat.TileIndex1D" = invoke %40 %41 @loc="330:49" @java.ref:"hat.TileContext::index(int):hat.TileIndex1D";
@@ -471,7 +475,7 @@ public class TestTileAPI {
                         java.continue @loc="328:9";
                     };
                 %56 : java.type:"hat.TileContext" = var.load %4 @loc="335:9";
-                %57 : java.type:"hat.buffer.F32Array" = var.load %6 @loc="335:27";
+                %57 : java.type:"hat.buffer.TileF32Array" = var.load %6 @loc="335:27";
                 %58 : java.type:"hat.TileContext" = var.load %4 @loc="335:35";
                 %59 : java.type:"int" = constant @loc="335:53" @0;
                 %60 : java.type:"hat.TileIndex1D" = invoke %58 %59 @loc="335:35" @java.ref:"hat.TileContext::index(int):hat.TileIndex1D";
@@ -481,7 +485,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void tile_reduction(TileContext tileContext, F32Array input, F32Array output, @Constant int tile_size) {
+    public static void tile_reduction(TileContext tileContext, TileF32Array input, TileF32Array output, @Constant int tile_size) {
 
         // Obtain the tile-id
         int pid = tileContext.bid(0);
@@ -507,7 +511,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computetile_reduction(ComputeContext computeContext, F32Array input, F32Array output, @Constant int tileSize) {
+    public static void computetile_reduction(ComputeContext computeContext, TileF32Array input, TileF32Array output, @Constant int tileSize) {
         computeContext.dispatchTile(TileRange.of1D(input.length(), tileSize),
                 tileContext -> tile_reduction(tileContext, input, output, tileSize));
     }
@@ -520,8 +524,8 @@ public class TestTileAPI {
         final int size = Math.powExact(2, 12);
         final int tileSize = 64;
 
-        F32Array input = F32Array.create(accelerator, size);
-        F32Array result = F32Array.create(accelerator, size);
+        TileF32Array input = TileF32Array.create(accelerator, size);
+        TileF32Array result = TileF32Array.create(accelerator, size);
 
         accelerator.compute( computeContext ->
                 computetile_reduction(computeContext, input, result, tileSize));
@@ -530,10 +534,10 @@ public class TestTileAPI {
     // Matrix transpose example
     @Reflect
     @TileModel(model = """
-            func @loc="454:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"transposeKernel" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.F32Array", %2 : java.type:"hat.buffer.F32Array", %3 : java.type:"int", %4 : java.type:"int")java.type:"void" -> {
+            func @loc="454:5:file:///Users/juanfumero/repos/private-babylon/hat/tests/src/main/java/hat/test/TestTileAPI.java" @"transposeKernel" (%0 : java.type:"hat.TileContext", %1 : java.type:"hat.buffer.TileF32Array", %2 : java.type:"hat.buffer.TileF32Array", %3 : java.type:"int", %4 : java.type:"int")java.type:"void" -> {
                 %5 : Var<java.type:"hat.TileContext"> = var %0 @loc="454:5" @"tileContext";
-                %6 : Var<java.type:"hat.buffer.F32Array"> = var %1 @loc="454:5" @"inputMatrix";
-                %7 : Var<java.type:"hat.buffer.F32Array"> = var %2 @loc="454:5" @"transposedMatrix";
+                %6 : Var<java.type:"hat.buffer.TileF32Array"> = var %1 @loc="454:5" @"inputMatrix";
+                %7 : Var<java.type:"hat.buffer.TileF32Array"> = var %2 @loc="454:5" @"transposedMatrix";
                 %8 : Var<java.type:"int"> = var %3 @loc="454:5" @"tm";
                 %9 : Var<java.type:"int"> = var %4 @loc="454:5" @"tn";
                 %10 : java.type:"hat.TileContext" = var.load %5 @loc="456:20";
@@ -545,7 +549,7 @@ public class TestTileAPI {
                 %16 : java.type:"int" = invoke %14 %15 @loc="457:20" @java.ref:"hat.TileContext::bid(int):int";
                 %17 : Var<java.type:"int"> = var %16 @loc="457:9" @"bidy";
                 %18 : java.type:"hat.TileContext" = var.load %5 @loc="458:25";
-                %19 : java.type:"hat.buffer.F32Array" = var.load %6 @loc="458:42";
+                %19 : java.type:"hat.buffer.TileF32Array" = var.load %6 @loc="458:42";
                 %20 : java.type:"hat.TileContext" = var.load %5 @loc="458:55";
                 %21 : java.type:"int" = var.load %13 @loc="458:73";
                 %22 : java.type:"int" = var.load %17 @loc="458:79";
@@ -561,7 +565,7 @@ public class TestTileAPI {
                 %32 : java.type:"hat.TileData" = invoke %30 %31 @loc="459:30" @java.ref:"hat.TileContext::transpose(hat.TileData):hat.TileData";
                 %33 : Var<java.type:"hat.TileData"> = var %32 @loc="459:9" @"transposedTile";
                 %34 : java.type:"hat.TileContext" = var.load %5 @loc="460:9";
-                %35 : java.type:"hat.buffer.F32Array" = var.load %7 @loc="460:27";
+                %35 : java.type:"hat.buffer.TileF32Array" = var.load %7 @loc="460:27";
                 %36 : java.type:"hat.TileContext" = var.load %5 @loc="460:45";
                 %37 : java.type:"int" = var.load %17 @loc="460:63";
                 %38 : java.type:"int" = var.load %13 @loc="460:69";
@@ -571,7 +575,7 @@ public class TestTileAPI {
                 return @loc="454:5";
             };
             """)
-    public static void transposeKernel(TileContext tileContext, F32Array inputMatrix, F32Array transposedMatrix, @Constant int tm, @Constant int tn) {
+    public static void transposeKernel(TileContext tileContext, TileF32Array inputMatrix, TileF32Array transposedMatrix, @Constant int tm, @Constant int tn) {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
@@ -590,7 +594,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeTransposeKernel(ComputeContext computeContext, F32Array input, F32Array output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
+    public static void computeTransposeKernel(ComputeContext computeContext, TileF32Array input, TileF32Array output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
         computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
                 tileContext -> transposeKernel(tileContext, input, output, tm, tn));
     }
@@ -604,8 +608,8 @@ public class TestTileAPI {
         final int N = 512;
         final int tileSize = 128;
 
-        F32Array input = F32Array.create(accelerator, M * N);
-        F32Array result = F32Array.create(accelerator, M * N);
+        TileF32Array input = TileF32Array.create(accelerator, M * N);
+        TileF32Array result = TileF32Array.create(accelerator, M * N);
 
         accelerator.compute( computeContext ->
                 computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));

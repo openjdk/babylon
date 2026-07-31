@@ -26,17 +26,17 @@ package hat.buffer;
 
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
-import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 
 import java.lang.foreign.MemorySegment;
 
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface F32Array extends Buffer {
+public interface TileF32Array extends Buffer {
     @Reflect
     default void schema() {
         array(length());
@@ -50,22 +50,23 @@ public interface F32Array extends Buffer {
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<F32Array> schema = Schema.of(F32Array.class);
+    Schema<TileF32Array> schema = Schema.of(TileF32Array.class, $ -> $
+            .arrayLen("length").pad(12).array("array"));
 
-    static F32Array create(ArenaAndLookupCarrier cc, int length) {
-        return BoundSchema.of(cc, schema, length).allocate();
+    static TileF32Array create(ArenaAndLookupCarrier cc, int length) {
+        return BoundSchema.of(cc ,schema, length).allocate();
     }
 
-    default F32Array copyFrom(float[] floats) {
+    default TileF32Array copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
         return this;
     }
 
-    static F32Array createFrom(ArenaAndLookupCarrier cc, float[] arr) {
+    static TileF32Array createFrom(ArenaAndLookupCarrier cc, float[] arr) {
         return create(cc, arr.length).copyFrom(arr);
     }
 
-    default F32Array copyTo(float[] floats) {
+    default TileF32Array copyTo(float[] floats) {
         MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
         return this;
     }
