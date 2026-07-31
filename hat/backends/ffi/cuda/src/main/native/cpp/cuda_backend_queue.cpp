@@ -153,13 +153,13 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
 
     int warpFactor[3] = { 1, 1, 1 };
-    if (kernelContext->wsx) {
+    if (kernelContext->wsx != 0) {
         warpFactor[0] = 32;
     }
-    if (kernelContext->wsy) {
+    if (kernelContext->wsy != 0) {
         warpFactor[1] = 32;
     }
-    if (kernelContext->wsz) {
+    if (kernelContext->wsz != 0) {
         warpFactor[2] = 32;
     }
 

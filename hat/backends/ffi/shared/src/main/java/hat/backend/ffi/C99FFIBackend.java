@@ -152,20 +152,20 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             }
 
             // Set warp
-            kernelBufferContext.wsx(false);
-            kernelBufferContext.wsy(false);
-            kernelBufferContext.wsz(false);
+            kernelBufferContext.wsx(0);
+            kernelBufferContext.wsy(0);
+            kernelBufferContext.wsz(0);
             if (kernelContext.ndRange.hasWarp()) {
                 switch (kernelContext.ndRange.warp()) {
-                    case NDRange.Warp1D warp1D -> kernelBufferContext.wsx(warp1D.x());
+                    case NDRange.Warp1D warp1D -> kernelBufferContext.wsx(warp1D.x()?1:0);
                     case NDRange.Warp2D warp2D -> {
-                        kernelBufferContext.wsx(warp2D.x());
-                        kernelBufferContext.wsy(warp2D.y());
+                        kernelBufferContext.wsx(warp2D.x()?1:0);
+                        kernelBufferContext.wsy(warp2D.y()?1:0);
                     }
                     case NDRange.Warp3D warp3D -> {
-                        kernelBufferContext.wsx(warp3D.x());
-                        kernelBufferContext.wsy(warp3D.y());
-                        kernelBufferContext.wsz(warp3D.z());
+                        kernelBufferContext.wsx(warp3D.x()?1:0);
+                        kernelBufferContext.wsy(warp3D.y()?1:0);
+                        kernelBufferContext.wsz(warp3D.z()?1:0);
                     }
                     case null, default -> throw new IllegalArgumentException("Unknown global range " + kernelContext.ndRange.warp().getClass());
                 }

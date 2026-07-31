@@ -62,11 +62,11 @@ public class ComputeCallGraph implements LookupCarrier {
         // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
         // We also check that other args are primitive or ifacebuffers  (or atomics?)...
         class Traits{
-            boolean firstArgKernelContext = false;
+            //boolean firstArgKernelContext = false;
             boolean atLeastOneIfaceBufferParam=false;
             boolean hasOnlyPrimitiveAndIfaceBufferParams=true;
             boolean ok(){
-                return firstArgKernelContext &&atLeastOneIfaceBufferParam&&hasOnlyPrimitiveAndIfaceBufferParams;
+                return /*firstArgKernelContext &&*/atLeastOneIfaceBufferParam&&hasOnlyPrimitiveAndIfaceBufferParams;
             }
         }
         var traits = new Traits();
@@ -75,17 +75,20 @@ public class ComputeCallGraph implements LookupCarrier {
                 && parameterTypes.length > 1) {
                 FuncOpParams paramTable = new FuncOpParams(funcOp);
                 paramTable.stream().forEach(paramInfo -> {
-                    if (paramInfo.idx == 0) {
-                        traits.firstArgKernelContext = parameterTypes[0].isAssignableFrom(KernelContext.class);
-                    } else {
+                   // if (paramInfo.idx == 0) {
+                  //      traits.firstArgKernelContext = parameterTypes[0].isAssignableFrom(KernelContext.class);
+                   // } else {
                         if (paramInfo.isPrimitive()) {
+                            // OK
+                        }else  if (OpHelper.isAssignable(lookup,paramInfo.javaType, KernelContext.class)){
+                            // We used to expect this to be first...
                             // OK
                         } else if (OpHelper.isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
                             traits.atLeastOneIfaceBufferParam= true;
                         } else {
                             traits.hasOnlyPrimitiveAndIfaceBufferParams=false;
                         }
-                    }
+                   // }
                 });
             }
             return traits.ok();
@@ -119,6 +122,16 @@ public class ComputeCallGraph implements LookupCarrier {
     }
 
     public void invokeWithArgs(Object[] args) {
+        try {
+            if (bytecodeGeneratedMethodHandle == null) {
+                bytecodeGeneratedMethodHandle = BytecodeGenerator.generate(lookup(),lazyLower());
+            }
+            bytecodeGeneratedMethodHandle.invokeWithArguments(args);
+        }catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public void newInvokeWithArgs(Object[] args) {
         try {
             if (bytecodeGeneratedMethodHandle == null) {
                 bytecodeGeneratedMethodHandle = BytecodeGenerator.generate(lookup(),lazyLower());
