@@ -37,21 +37,22 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface TileF32Array extends Buffer {
+
     @Reflect
     default void schema() {
         array(length());
     }
 
     int length();
-
     float array(long idx);
-
     void array(long idx, float f);
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
     Schema<TileF32Array> schema = Schema.of(TileF32Array.class, $ -> $
-            .arrayLen("length").pad(12).array("array"));
+            .arrayLen("length")
+            .pad(12)
+            .array("array"));
 
     static TileF32Array create(ArenaAndLookupCarrier cc, int length) {
         return BoundSchema.of(cc ,schema, length).allocate();
