@@ -903,7 +903,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (invoke.name()) {
             case "load" -> hatTileLoadOperation(invoke);
             case "store" -> hatTileStoreOperation(invoke);
-            case "add" -> hatTileArithmeticOperation(invoke);
+            case "add","sub","mul","div"  -> hatTileBinaryArithmeticOperation(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
     }
@@ -1573,7 +1573,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
     }
 
-
     protected abstract T hatBinaryVectorOp(OpHelper.Invoke binOp);
 
     protected abstract T varOpForNarrowType(CoreOp.VarOp varOp);
@@ -1598,7 +1597,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T hatTileStoreOperation(Invoke invoke);
 
-    protected abstract T hatTileArithmeticOperation(Invoke invoke);
+    protected abstract T hatTileBinaryArithmeticOperation(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 

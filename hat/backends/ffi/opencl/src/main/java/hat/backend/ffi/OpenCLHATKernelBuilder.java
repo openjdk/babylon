@@ -947,7 +947,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    protected OpenCLHATKernelBuilder hatTileArithmeticOperation(OpHelper.Invoke invoke) {
+    protected OpenCLHATKernelBuilder hatTileBinaryArithmeticOperation(OpHelper.Invoke invoke) {
         throw new UnsupportedOperationException("HAT Tile Arithmetic Operation not supported for the OpenCL backend");
     }
 

@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import hat.TileShape;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
@@ -31,10 +32,12 @@ import hat.dialect.HATTileOp;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
@@ -44,13 +47,7 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SequencedSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
@@ -1028,6 +1025,24 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     }
 
+    private int obtainShapeDimensions(Value value) {
+        int dimensions;
+        if (value.asResult().op().resultType().equals(JavaType.INT)) {
+            dimensions = 1;
+        } else {
+            // we expect an invoke that describes the shape.
+            while (!(value.declaringElement() instanceof JavaOp.InvokeOp invokeOp)) {
+                if (Objects.requireNonNull(value.asResult().op()) instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                    value = varLoadOp.varOperand();
+                } else {
+                    throw new IllegalStateException("Unexpected value: " + value.asResult().op());
+                }
+            }
+            dimensions = invokeOp.operands().size() - 1; // (this, ...)
+        }
+        return dimensions;
+    }
+
     @Override
     protected CudaHATKernelBuilder hatTileLoadOperation(Invoke invoke) {
         List<Value> operands = invoke.op().operands();
@@ -1037,7 +1052,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference).rarrow().id(ARRAY);
-        id(", ct::extents{1024}}, ct::shape{ 16_ic");
+        id(", ct::extents{");
+
+        // We assume the input is TileF32Array for the TileAPI.
+        // If it is 1D, then the length is taken from the "length" field.
+        int dimensions = obtainShapeDimensions(shape);
+        if (dimensions == 1) {
+            recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
+        } else {
+            throw new UnsupportedOperationException("Tile dimensions not controlled");
+        }
+        id("}}, ct::shape{ 16_ic");
 
         // We can't use a shape that is not a constant value
         //recurseResultOrThrow(shape);
@@ -1057,10 +1082,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference).rarrow().id(ARRAY);
-        id(", ct::extents{1024}}, ct::shape{ 16_ic");
-
-        // We can't use a shape that is not a constant value
-        //recurseResultOrThrow(shape);
+        id(", ct::extents{");
+        recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
+        id("}}, ct::shape{ 16_ic");
 
         id(" }}.store_masked(");
         recurseResultOrThrow(tensor)
@@ -1072,7 +1096,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    protected CudaHATKernelBuilder hatTileArithmeticOperation(Invoke invoke) {
+    protected CudaHATKernelBuilder hatTileBinaryArithmeticOperation(Invoke invoke) {
         List<Value> operands = invoke.op().operands();
         Value left = operands.get(0);
         Value right = operands.get(1);
@@ -1080,6 +1104,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         recurseResultOrThrow(left);
         switch (operation) {
             case "add" -> sp().plus().sp();
+            case "sub" -> sp().sub().sp();
+            case "mul" -> sp().mul().sp();
+            case "div" -> sp().div().sp();
             default -> throw new UnsupportedOperationException("Unsupported tile Operation: " + operation);
         }
         recurseResultOrThrow(right);
@@ -1152,6 +1179,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     protected static final String ARRAY = "array";
+    protected static final String LENGTH = "length";
 
     @Override
     public CudaHATKernelBuilder hatTileOp(HATTileOp hatTileOp) {

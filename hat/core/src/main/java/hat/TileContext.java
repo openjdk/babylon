@@ -10,6 +10,8 @@ public interface TileContext {
 
     Tile load(Buffer buffer, int pid, int tileSize);
 
+    Tile load(Buffer buffer, int pid, TileShape tileShape);
+
     Tile load(Buffer buffer, TileIndex1D pid, TileShape tileShape);
 
     Tile load(Buffer buffer, TileIndex2D pid, TileShape tileShape);

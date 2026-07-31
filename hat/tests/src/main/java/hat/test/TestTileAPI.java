@@ -108,9 +108,9 @@ public class TestTileAPI {
 //            """)
     public static void helloTile(@RO TileContext tc, @RO TileF32Array inputA, @RO TileF32Array inputB, @WO TileF32Array output, @Constant int tile_size) {
         var pid = tc.bid(0);
-        var aTile = tc.load(inputA, pid, tile_size);
+        var aTile = tc.load(inputA, pid, tc.shape(tile_size));
         var bTile = tc.load(inputB, pid, tile_size);
-        var tileResult = TileOp.add(aTile, bTile);
+        var tileResult = TileOp.add(aTile, bTile);  // TODO: we need to infer the shape of the resulting tile based on the operands
         tc.store(output, pid, tileResult);
     }
 
