@@ -27,6 +27,8 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.foreign.Arena;
@@ -54,8 +56,23 @@ public abstract class BackendAdaptor extends Backend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, NDRange ndRange, Object... args) {
       //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
+        // We need to use NDRANGE here?
+     /*   for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
+            try {
+                args[0] = kernelContext;
+                kernelCallGraph.callDag.entryPoint.method().invoke(null, args);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+        } */
+    }
+    @Override
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, DispatchContext dispatchContext, NDRange ndRange,Object... args) {
+        //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         // We need to use NDRANGE here?
      /*   for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {

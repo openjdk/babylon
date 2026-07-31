@@ -26,13 +26,15 @@
 package hat.backend.java;
 
 import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.reflect.InvocationTargetException;
 
 public class JavaSequentialBackend extends JavaBackend {
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, NDRange ndRange, Object... args) {
       //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         throw new RuntimeException("We need NDRange");
        /* for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
@@ -44,5 +46,9 @@ public class JavaSequentialBackend extends JavaBackend {
             }
 
         }*/
+    }
+    @Override
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, DispatchContext dispatchContext, NDRange ndRange,Object... args) {
+        throw new RuntimeException("We need NDRange");
     }
 }

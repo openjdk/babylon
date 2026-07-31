@@ -24,6 +24,7 @@
  */
 package hat;
 
+import hat.buffer.DispatchContext;
 import optkl.OpHelper;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
@@ -183,9 +184,10 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
             });
         }
-        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
-        args[0] = accelerator.range(ndRange);
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, (KernelContext) args[0], args);
+        var method =  kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
+        var lambda = lambda(lookup(),kernelCallSite.lambdaOp);
+        Object[] args = lambda.getQuotedCapturedValues(kernelCallSite.quoted,method);
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, accelerator.dispatchContext(ndRange),ndRange, args);
     }
 
     public void dispatchKernel(NDRange ndRange, Kernel kernel) {
@@ -209,8 +211,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             });
         }
         Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
-        args[0] = accelerator.range(ndRange);
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, (KernelContext) args[0], args);
+        args[0] = accelerator.kernelContext(ndRange);
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, (KernelContext) args[0],ndRange, args);
     }
 
 

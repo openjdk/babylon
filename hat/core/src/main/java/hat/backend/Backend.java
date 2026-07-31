@@ -31,6 +31,8 @@ import hat.Config;
 import hat.KernelContext;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -104,8 +106,8 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
 
     public abstract void dispatchCompute(ComputeContext computeContext, Object... args);
 
-    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
-
+    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, NDRange ndRange, Object... args);
+    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, DispatchContext dispatchContext, NDRange ndRange,Object... args);
 
     public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         var transformer = Trxfmr.of(lookup,funcOp);

@@ -277,7 +277,7 @@ Log::Log(char *text)
 
 long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (compilationUnit->backend->config->traceCalls) {
-        std::cout << "kernelContext(\"" << name << "\"){" << std::endl;
+        std::cout << "dispatchContext(\"" << name << "\"){" << std::endl;
     }
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     auto *profilableQueue = dynamic_cast<ProfilableQueue *>(compilationUnit->backend->queue);
@@ -287,14 +287,14 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (compilationUnit->backend->config->trace) {
         Sled::show(std::cout, argArray);
     }
-    KernelContext *kernelContext = nullptr;
+    DispatchContext *dispatchContext = nullptr;
     for (int i = 0; i < argSled.argc(); i++) {
         KernelArg *arg = argSled.arg(i);
         switch (arg->variant) {
             case '&': {
                 if (arg->idx == 0) {
                     // This does not have to be the case all the time. We should be able to pass the kernel context in any argument we want.
-                    kernelContext = static_cast<KernelContext *>(arg->value.buffer.memorySegment);
+                    dispatchContext = static_cast<DispatchContext *>(arg->value.buffer.memorySegment);
                 }
                 bool readAccessor  = arg->value.buffer.access == RO_BYTE || arg->value.buffer.access == RW_BYTE || arg->value.buffer.access == UNKNOWN_BYTE;
                 if (compilationUnit->backend->config->trace) {
@@ -366,26 +366,26 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 break;
             }
             default: {
-                std::cerr << "unexpected variant setting args in OpenCLkernel::kernelContext " << (char) arg->variant <<
+                std::cerr << "unexpected variant setting args in OpenCLKernel::dispatchContext " << (char) arg->variant <<
                         std::endl;
                 exit(1);
             }
         }
     }
 
-    if (kernelContext == nullptr) {
-        std::cerr << "Looks like we recieved a kernel dispatch with xero args kernel='" << name << "'" << std::endl;
+    if (dispatchContext == nullptr) {
+        std::cerr << "Looks like we received a kernel dispatch with xero args kernel='" << name << "'" << std::endl;
         exit(1);
     }
 
     if (compilationUnit->backend->config->trace) {
-        std::cout << "kernelContext = <" << kernelContext->gsx << "," << kernelContext->gsy << "," << kernelContext->gsz << ">" << std::endl;
+        std::cout << "dispatchContext = <" << dispatchContext->gsx << "," << dispatchContext->gsy << "," << dispatchContext->gsz << ">" << std::endl;
     }
 
-    compilationUnit->backend->queue->dispatch(kernelContext, this);
+    compilationUnit->backend->queue->dispatch(dispatchContext, this);
 
     for (int i = 0; i < argSled.argc(); i++) {
-        // note i = 1... we never need to copy back the KernelContext
+        // note i = 1... we never need to copy back the KernelContext fix this for DispatchContext
         KernelArg *arg = argSled.arg(i);
         if (arg->variant == '&') {
             BufferState *bufferState = BufferState::of(arg);

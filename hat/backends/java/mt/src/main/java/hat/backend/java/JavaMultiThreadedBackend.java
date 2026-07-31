@@ -26,6 +26,8 @@
 package hat.backend.java;
 
 import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.reflect.InvocationTargetException;
@@ -33,10 +35,25 @@ import java.util.Arrays;
 
 public class JavaMultiThreadedBackend extends JavaBackend {
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, NDRange ndRange, Object... args) {
 
        // KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         instance().forEachInRange(kernelContext, (kc) -> {
+            Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
+            try {
+                a[0] = kc;
+                kernelCallGraph.callDag.entryPoint.method().invoke(null, a);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new RuntimeException(e);
+            }
+
+        });
+    }
+    @Override
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, DispatchContext dispatchContext, NDRange ndRange,Object... args) {
+      //  throw new RuntimeException("We need a kernel context");
+        // KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
+        instance().forEachInRange(dispatchContext, (kc) -> {
             Object[] a = Arrays.copyOf(args, args.length); // Annoying.  we need to replace the args[0] but don't want to race other threads.
             try {
                 a[0] = kc;

@@ -27,6 +27,7 @@ package hat.backend.java;
 
 import hat.KernelContext;
 import hat.NDRange;
+import hat.buffer.DispatchContext;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -120,6 +121,24 @@ public class WorkStealer {
            // for (kernelContext.gix = 0; kernelContext.gix < range; kernelContext.gix++) {
              //   rangeConsumer.accept(kernelContext);
            // }
+        }
+    }
+    public void forEachInRange(DispatchContext dispatchContext, Consumer<DispatchContext> rangeConsumer) {
+        if (threadCount > 1) {
+            rendezvous(setupBarrier);
+            this.taskCount.set(0);
+            throw new RuntimeException("We need NDRANGE");
+            //this.range = kernelContext.gsx;
+            // this.rangeConsumer = rangeConsumer;
+
+            // rendezvous(startBarrier);
+            // This should start all threads
+            //rendezvous(doneBarrier);
+        } else {
+            throw new RuntimeException("We need NDRANGE");
+            // for (kernelContext.gix = 0; kernelContext.gix < range; kernelContext.gix++) {
+            //   rangeConsumer.accept(kernelContext);
+            // }
         }
     }
 

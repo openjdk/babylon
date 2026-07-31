@@ -394,7 +394,7 @@ public:
     int wsy;
     int wsz;
 };
-
+/*
 class KernelContext {
 public:
     int type;
@@ -432,7 +432,7 @@ public:
     int bix;
     int biy;
     int biz;
-};
+}; */
 
 class Backend {
 public:
@@ -518,7 +518,7 @@ public:
 
         virtual void copyFromDevice(Buffer *buffer) =0;
 
-        virtual void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) = 0;
+        virtual void dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) = 0;
 
         virtual ~Queue();
     };

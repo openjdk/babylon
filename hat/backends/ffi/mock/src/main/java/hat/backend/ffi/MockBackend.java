@@ -28,6 +28,8 @@ package hat.backend.ffi;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 import optkl.VarTable;
 
@@ -48,7 +50,16 @@ public class MockBackend extends FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, NDRange ndRange, Object... args) {
+        System.out.println("Mock dispatch kernel");
+        // Here we receive a callgraph from the kernel entrypoint
+        // The first time we see this we need to convert the kernel entrypoint
+        // and rechable methods to a form that our mock backend can execute.
+        kernelCallGraph.callDag.rankOrdered.forEach(f -> {
+        });
+    }
+    @Override
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, DispatchContext dispatchContext, NDRange ndRange, Object... args) {
         System.out.println("Mock dispatch kernel");
         // Here we receive a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint
