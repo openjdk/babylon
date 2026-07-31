@@ -52,7 +52,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph,  NDRange ndRange, Object... args) {
 
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createC99(kernelCallGraph, args);
@@ -70,26 +70,7 @@ public class OpenCLBackend extends C99FFIBackend {
         });
         compiledKernel.dispatch(ndRange, args);
     }
-    @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, DispatchContext dispatchContext, NDRange ndRange,Object... args) {
 
-        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createC99(kernelCallGraph, args);
-            if (config().showCode()) {
-                System.out.println(code);
-            }
-            var compilationUnit = backendBridge.compile(code);
-            if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
-                return new CompiledKernel(this, kernelCallGraph, kernel, args);
-            } else {
-                // TODO: We should capture the log from OpenCL and provide as exception message
-                throw new IllegalStateException("OpenCL program failed to compile");
-            }
-        });
-       // throw new RuntimeException("we need a kernelcontext");
-        compiledKernel.dispatch(ndRange, args);
-    }
 
     String createC99(KernelCallGraph kernelCallGraph, Object[] args) {
         return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp())), args);

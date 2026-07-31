@@ -380,7 +380,7 @@ public class CudaBackend extends C99FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, NDRange ndRange, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code =config().ptx() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
             if (config().showCode()) {
@@ -397,23 +397,6 @@ public class CudaBackend extends C99FFIBackend {
         compiledKernel.dispatch(ndRange, args);
     }
 
-    @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, DispatchContext dispatchContext,NDRange ndRange, Object... args) {
-        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code =config().ptx() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
-            if (config().showCode()) {
-                System.out.println(code);
-            }
-            var compilationUnit = backendBridge.compile(code);
-            if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
-                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
-            } else {
-                throw new IllegalStateException("cuda failed to compile ");
-            }
-        });
-        compiledKernel.dispatch(ndRange, args);
-    }
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
         return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), args);
     }

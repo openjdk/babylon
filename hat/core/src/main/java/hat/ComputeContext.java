@@ -187,7 +187,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         var method =  kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
         var lambda = lambda(lookup(),kernelCallSite.lambdaOp);
         Object[] args = lambda.getQuotedCapturedValues(kernelCallSite.quoted,method);
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, accelerator.dispatchContext(ndRange),ndRange, args);
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, ndRange, args);
     }
 
     public void dispatchKernel(NDRange ndRange, Kernel kernel) {
@@ -212,7 +212,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         }
         Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
         args[0] = accelerator.kernelContext(ndRange);
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, (KernelContext) args[0],ndRange, args);
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, ndRange, args);
     }
 
 

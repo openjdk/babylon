@@ -105,12 +105,12 @@ public class WorkStealer {
         return WorkStealer.of(Runtime.getRuntime().availableProcessors());
     }
 
-    public void forEachInRange(KernelContext kernelContext, Consumer<KernelContext> rangeConsumer) {
+    public void forEachInRange(NDRange ndRange, Consumer<NDRange> rangeConsumer) {
         if (threadCount > 1) {
             rendezvous(setupBarrier);
             this.taskCount.set(0);
             throw new RuntimeException("We need NDRANGE");
-            //this.range = kernelContext.gsx;
+            //this.range = ndRange.global() instanceof NDRange.Global global?global.
            // this.rangeConsumer = rangeConsumer;
 
            // rendezvous(startBarrier);
@@ -123,24 +123,7 @@ public class WorkStealer {
            // }
         }
     }
-    public void forEachInRange(DispatchContext dispatchContext, Consumer<DispatchContext> rangeConsumer) {
-        if (threadCount > 1) {
-            rendezvous(setupBarrier);
-            this.taskCount.set(0);
-            throw new RuntimeException("We need NDRANGE");
-            //this.range = kernelContext.gsx;
-            // this.rangeConsumer = rangeConsumer;
 
-            // rendezvous(startBarrier);
-            // This should start all threads
-            //rendezvous(doneBarrier);
-        } else {
-            throw new RuntimeException("We need NDRANGE");
-            // for (kernelContext.gix = 0; kernelContext.gix < range; kernelContext.gix++) {
-            //   rangeConsumer.accept(kernelContext);
-            // }
-        }
-    }
 
     void rendezvous(CyclicBarrier barrier) {
         try {
