@@ -177,11 +177,12 @@ private:
 public:
     void shortDeviceInfo() override;
     void showDeviceInfo() override;
+    std::string obtainSMVersion();
     CudaModule * compile(const CudaSource *cudaSource);
     CudaModule * compile(const CudaSource &cudaSource);
     CudaModule * compile(const PtxSource *ptxSource);
     CudaModule * compile(const PtxSource &ptxSource);
-    static PtxSource *nvcc(const CudaSource *cudaSource);
+    PtxSource *nvcc(const CudaSource *cudaSource);
     CompilationUnit * compile(int len, char *source, int typeModel) override;
     void computeStart() override;
     void computeEnd() override;

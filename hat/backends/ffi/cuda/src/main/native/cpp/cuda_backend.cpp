@@ -154,6 +154,13 @@ void CudaBackend::showDeviceInfo() {
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
+std::string CudaBackend::obtainSMVersion() {
+    int major = 0, minor = 0;
+    CUDA_CHECK(cuDeviceGetAttribute(&major,CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device), "cuDeviceGetAttribute");
+    CUDA_CHECK(cuDeviceGetAttribute(&minor,CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device), "cuDeviceGetAttribute");
+    return std::string("sm_").append(std::to_string(major)).append(std::to_string(minor));
+}
+
 PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
 
     // create var/cuda directory
@@ -168,6 +175,9 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     const std::string ptxPath = tmpFileName(time, localDirectory, suffix);
     const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
 
+    // Obtain the compute capability and SM version
+    std::string smVersion = obtainSMVersion();
+
     // compile the generated code
     int pid;
     cudaSource->write(cudaPath);
@@ -181,7 +191,7 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
             command.push_back("--std=c++20");
             command.push_back("--enable-tile");
             command.push_back("-arch");
-            command.push_back("sm_120");
+            command.push_back(smVersion);
         } else {
             command.push_back("-ptx");
             command.push_back("-Wno-deprecated-gpu-targets");
