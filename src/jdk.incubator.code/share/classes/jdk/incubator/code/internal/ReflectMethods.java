@@ -2901,7 +2901,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     MethodRef symbolToMethodRef(Symbol s) {
         Type erasedType = s.erasure(types);
         return MethodRef.method(
-                typeToCodeType(s.owner.erasure(types)),
+                s.owner.name == names.Array ? typeToCodeType(s.owner.type) : typeToCodeType(s.owner.erasure(types)),
                 s.name.toString(),
                 typeToCodeType(erasedType.getReturnType()),
                 erasedType.getParameterTypes().stream().map(this::typeToCodeType).toArray(CodeType[]::new));
