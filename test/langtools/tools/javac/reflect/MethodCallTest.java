@@ -293,4 +293,18 @@ public class MethodCallTest {
         List<String> l = al;
         s = l.get(0);
     }
+
+    @Reflect
+    @IR("""
+            func @"test11" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object[]" -> {
+                  %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"values";
+                  %2 : java.type:"java.lang.Object[]" = var.load %1;
+                  %3 : java.type:"java.lang.Object" = invoke %2 @java.ref:"java.lang.Object[]::clone():java.lang.Object";
+                  %4 : java.type:"java.lang.Object[]" = cast %3 @java.type:"java.lang.Object[]";
+                  return %4;
+            };
+            """)
+    static Object[] test11(Object[] values) {
+        return values.clone();
+    }
 }
