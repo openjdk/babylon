@@ -742,9 +742,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (sourceType.isReference() && targetType.isReference() &&
-                    !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
-                return append(JavaOp.cast(typeToCodeType(targetType), sourceValue));
+            if (sourceType.isReference() && targetType.isReference()) {
+                if (!types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
+                    return append(JavaOp.cast(typeToCodeType(targetType), sourceValue));
+                }
+                Type sourceValueType = codeTypeToType(sourceValue.type());
+                if (sourceValueType != Type.noType
+                        && !types.isSubtype(types.erasure(sourceValueType), types.erasure(targetType))) {
+                    return append(JavaOp.cast(typeToCodeType(targetType), sourceValue));
+                }
             }
             return convert(sourceValue, targetType);
         }
