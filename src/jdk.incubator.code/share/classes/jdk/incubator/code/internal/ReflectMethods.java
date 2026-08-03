@@ -1340,7 +1340,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Find nearest ancestor body stack element associated with a statement tree
             // @@@ Strengthen check of tree?
             BodyStack _variablesStack = stack;
-            while (_variablesStack.parent != null && !(_variablesStack.tree instanceof JCTree.JCStatement)) {
+            while (!(_variablesStack.tree instanceof JCLambda)
+                    && !(_variablesStack.tree instanceof JCTree.JCStatement)) {
                 _variablesStack = _variablesStack.parent;
             }
             BodyStack variablesStack = _variablesStack;
@@ -1474,7 +1475,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // Push lambda body
-            pushBody(tree.body, lambdaType);
+            pushBody(tree, lambdaType);
 
             // Map lambda parameters to varOp values
             for (int i = 0; i < tree.params.size(); i++) {
@@ -2155,7 +2156,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitBlock(JCTree.JCBlock tree) {
-            if (stack.tree == tree) {
+            if (stack.tree == tree || stack.tree instanceof JCLambda jcl && jcl.body == tree) {
                 // Block is associated with the visit of a parent structure
                 scan(tree.stats);
             } else {
