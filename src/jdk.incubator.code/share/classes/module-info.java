@@ -34,7 +34,7 @@ import jdk.internal.javac.ParticipatesInPreview;
 /// {@incubating}
 ///
 /// @moduleGraph
-@ParticipatesInPreview
+@ParticipatesInPreview // Uses LazyConstant
 module jdk.incubator.code {
     requires transitive jdk.compiler;
 

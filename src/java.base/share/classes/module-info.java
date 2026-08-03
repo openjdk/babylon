@@ -155,7 +155,7 @@ module java.base {
     exports jdk.internal.javac to
         java.compiler,
         jdk.compiler,
-        jdk.incubator.code;
+        jdk.incubator.code; // Uses LazyConstant
     exports jdk.internal.access to
         java.desktop,
         java.logging,
