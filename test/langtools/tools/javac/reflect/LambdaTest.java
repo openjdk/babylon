@@ -217,7 +217,6 @@ public class LambdaTest {
               };
             """)
     Predicate<Object> test7() {
-        // lambda that has pattern variable, this was crashing the compiler
         return v -> v instanceof String s && !s.isEmpty();
     }
 
