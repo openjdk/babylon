@@ -1472,10 +1472,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             final FunctionType lambdaType = typeToFunctionType(types.findDescriptorType(tree.target));
 
             // Push quoted body
-            // We can either be explicitly quoted or a structural quoted expression
-            // within some larger reflected code
 
-            // a reflectable lambda is going to have its model wrapped in QuotedOp
+            // A reflectable lambda is going to have its model wrapped in QuotedOp
             // only when we are producing the model of the lambda, thus the condition (isReflectable ...)
             // also, a lambda contained in a reflectable lambda, will not have its model wrapped in QuotedOp,
             // thus the condition (... body == tree)
