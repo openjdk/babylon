@@ -1471,7 +1471,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public void visitLambda(JCTree.JCLambda tree) {
             final FunctionType lambdaType = typeToFunctionType(types.findDescriptorType(tree.target));
 
-            // Push quoted body
+            // Push quoted body for a reflectable lambda
 
             // A reflectable lambda is going to have its model wrapped in QuotedOp
             // only when we are producing the model of the lambda, thus the condition (isReflectable ...)
