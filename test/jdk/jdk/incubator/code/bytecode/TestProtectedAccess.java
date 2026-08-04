@@ -29,6 +29,11 @@ import java.lang.reflect.Method;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.CoreType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -72,5 +77,19 @@ public class TestProtectedAccess extends PrintWriter {
                                                          Op.ofMethod(accessMethod).orElseThrow());
         Assertions.assertEquals(new TestProtectedAccess().accessProtectedMethod(),
                                 (boolean) handle.invoke(new TestProtectedAccess()));
+    }
+
+    @Test
+    public void testArrayCloneAccess() throws Throwable {
+        var handle = BytecodeGenerator.generate(MethodHandles.lookup(), CoreOp.func("arrayCloneTest",
+                CoreType.functionType(JavaType.J_L_OBJECT, JavaType.array(JavaType.J_L_STRING))).body(bb ->
+                        bb.add(CoreOp.return_(
+                                bb.add(JavaOp.invoke(
+                                        MethodRef.method(JavaType.array(JavaType.J_L_STRING),
+                                                         "clone",
+                                                         JavaType.J_L_OBJECT),
+                                        bb.parameters().getFirst()))))));
+        String[] input = { "a", "b" };
+        Assertions.assertArrayEquals(input, (String[])handle.invoke(input));
     }
 }

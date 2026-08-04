@@ -796,12 +796,14 @@ public final class BytecodeGenerator {
                                               "findSpecial",
                                               MTD_FIND_SPECIAL);
                         } else {
-                            try {
-                                var info = lookup.revealDirect(md.resolveToHandle(lookup, op.invokeKind()));
-                                protectedAccess = Modifier.isProtected(info.getModifiers())
-                                        && !info.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
-                            } catch (ReflectiveOperationException | IllegalArgumentException _) {
-                                // @@@ protected access detection failed
+                            if (!(refType instanceof ArrayType)) { // array methods (e.g. clone) are excluded
+                                try {
+                                    var info = lookup.revealDirect(md.resolveToHandle(lookup, op.invokeKind()));
+                                    protectedAccess = Modifier.isProtected(info.getModifiers())
+                                            && !info.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
+                                } catch (ReflectiveOperationException | IllegalArgumentException _) {
+                                    // @@@ protected access detection failed
+                                }
                             }
                             if (protectedAccess) {
                                 lookupHandle(specialCaller, md.name(), mDesc,
