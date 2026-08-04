@@ -1259,9 +1259,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
         @Override
         public void visitTypeTest(JCTree.JCInstanceOf tree) {
             Value target = toValue(tree.expr);
-
-            if (tree.pattern.getTag() != Tag.IDENT) {
-                result = scanPattern(tree.getPattern(), target);
+            JCTree.JCPattern pattern = tree.getPattern();
+            if (pattern != null) {
+                result = scanPattern(pattern, target);
             } else {
                 result = append(JavaOp.instanceOf(typeToCodeType(tree.pattern.type), target));
             }
