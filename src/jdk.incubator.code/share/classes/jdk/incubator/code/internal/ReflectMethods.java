@@ -1475,7 +1475,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // Push lambda body
-            pushBody(tree, lambdaType);
+            // for expression lambda, the body stack need to be mapped to the JCLambda tree
+            // this ensures the logic for computing pattern variable stack, works correctly
+            pushBody(tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION ? tree : tree.body, lambdaType);
 
             // Map lambda parameters to varOp values
             for (int i = 0; i < tree.params.size(); i++) {
@@ -2156,7 +2158,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitBlock(JCTree.JCBlock tree) {
-            if (stack.tree == tree || stack.tree instanceof JCLambda jcl && jcl.body == tree) {
+            if (stack.tree == tree) {
                 // Block is associated with the visit of a parent structure
                 scan(tree.stats);
             } else {
