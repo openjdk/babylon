@@ -32,7 +32,7 @@ import hat.TileModel;
 import hat.TileOp;
 import hat.TileRange;
 import hat.backend.Backend;
-import hat.buffer.TileF32Array;
+import hat.buffer.TensorF32;
 
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -103,11 +103,10 @@ public class TestTileAPI {
 //                auto tileResult = aTile + bTile;
 //                ct::partition_view{ct::tensor_span{output->array, ct::extents{1024}}, ct::shape{ 16_ic }}.store_masked(tileResult, pid);
 //                return;
-//            }
-//
+//            }∂
 //            """)
-    public static void helloTile(@RO TileContext tc, @RO TileF32Array inputA, @RO TileF32Array inputB, @WO TileF32Array output, @Constant int tile_size) {
-        var pid = tc.bid(0);
+    public static void helloTile(@RO TileContext tc, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
+        final var pid = tc.bid(0);
         var aTile = tc.load(inputA, pid, tc.shape(tile_size));
         var bTile = tc.load(inputB, pid, tile_size);
         var tileResult = TileOp.add(aTile, bTile);  // TODO: we need to infer the shape of the resulting tile based on the operands
@@ -115,7 +114,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TileF32Array inputA, @RO TileF32Array inputB, @WO TileF32Array output, @Constant int tile_size) {
+    public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
                 tileContext -> helloTile(tileContext, inputA, inputB, output, tile_size));
     }
@@ -126,8 +125,8 @@ public class TestTileAPI {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
         final int tile_size = 16;
-        TileF32Array inputA = TileF32Array.create(accelerator, size);
-        TileF32Array inputB = TileF32Array.create(accelerator, size);
+        TensorF32 inputA = TensorF32.create(accelerator, size);
+        TensorF32 inputB = TensorF32.create(accelerator, size);
 
         // Fill data
         Random r = new Random();
@@ -136,7 +135,7 @@ public class TestTileAPI {
             inputB.array(i, r.nextFloat());
         }
 
-        TileF32Array result = TileF32Array.create(accelerator, size);
+        TensorF32 result = TensorF32.create(accelerator, size);
         accelerator.compute( computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tile_size));
 
         for (int i = 0; i < size; i++) {
@@ -187,7 +186,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void vector_add(TileContext tc, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tile_size) {
+    public static void vector_add(TileContext tc, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
 
         // Program id: get tile-id for 1D
         var pid = tc.bid(0);
@@ -203,7 +202,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tile_size) {
+    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
                 tileContext -> vector_add(tileContext, inputA, inputB, output, tile_size));
     }
@@ -218,9 +217,9 @@ public class TestTileAPI {
         final int size = Math.powExact(2, 12);
         final int tile_size = 64;
 
-        TileF32Array inputA = TileF32Array.create(accelerator, size);
-        TileF32Array inputB = TileF32Array.create(accelerator, size);
-        TileF32Array result = TileF32Array.create(accelerator, size);
+        TensorF32 inputA = TensorF32.create(accelerator, size);
+        TensorF32 inputB = TensorF32.create(accelerator, size);
+        TensorF32 result = TensorF32.create(accelerator, size);
 
         accelerator.compute( computeContext ->
             myComputeWithTile_vector_add(computeContext, inputA, inputB, result, tile_size));
@@ -360,7 +359,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void matmul(TileContext tc, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void matmul(TileContext tc, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
 
         // Calculate bidx and bidy using swizzle
         int bid = tc.bid(0);
@@ -391,7 +390,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tile_matmul(ComputeContext computeContext, TileF32Array inputA, TileF32Array inputB, TileF32Array output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void tile_matmul(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
         computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
                 tileContext -> matmul(tileContext, inputA, inputB, output, tm, tn, tk, M, N));
     }
@@ -404,9 +403,9 @@ public class TestTileAPI {
 
         final int size = 1024;
 
-        TileF32Array matrixA = TileF32Array.create(accelerator, size * size);
-        TileF32Array matrixB = TileF32Array.create(accelerator, size * size);
-        TileF32Array matrixC = TileF32Array.create(accelerator, size * size);
+        TensorF32 matrixA = TensorF32.create(accelerator, size * size);
+        TensorF32 matrixB = TensorF32.create(accelerator, size * size);
+        TensorF32 matrixC = TensorF32.create(accelerator, size * size);
 
         int tm = 64;
         int tn = 64;
@@ -510,7 +509,7 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void tile_reduction(TileContext tileContext, TileF32Array input, TileF32Array output, @Constant int tile_size) {
+    public static void tile_reduction(TileContext tileContext, TensorF32 input, TensorF32 output, @Constant int tile_size) {
 
         // Obtain the tile-id
         int pid = tileContext.bid(0);
@@ -536,7 +535,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computetile_reduction(ComputeContext computeContext, TileF32Array input, TileF32Array output, @Constant int tileSize) {
+    public static void computetile_reduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
         computeContext.dispatchTile(TileRange.of1D(input.length(), tileSize),
                 tileContext -> tile_reduction(tileContext, input, output, tileSize));
     }
@@ -549,8 +548,8 @@ public class TestTileAPI {
         final int size = Math.powExact(2, 12);
         final int tileSize = 64;
 
-        TileF32Array input = TileF32Array.create(accelerator, size);
-        TileF32Array result = TileF32Array.create(accelerator, size);
+        TensorF32 input = TensorF32.create(accelerator, size);
+        TensorF32 result = TensorF32.create(accelerator, size);
 
         accelerator.compute( computeContext ->
                 computetile_reduction(computeContext, input, result, tileSize));
@@ -600,7 +599,7 @@ public class TestTileAPI {
                 return @loc="454:5";
             };
             """)
-    public static void transposeKernel(TileContext tileContext, TileF32Array inputMatrix, TileF32Array transposedMatrix, @Constant int tm, @Constant int tn) {
+    public static void transposeKernel(TileContext tileContext, TensorF32 inputMatrix, TensorF32 transposedMatrix, @Constant int tm, @Constant int tn) {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
@@ -619,7 +618,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeTransposeKernel(ComputeContext computeContext, TileF32Array input, TileF32Array output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
+    public static void computeTransposeKernel(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
         computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
                 tileContext -> transposeKernel(tileContext, input, output, tm, tn));
     }
@@ -633,8 +632,8 @@ public class TestTileAPI {
         final int N = 512;
         final int tileSize = 128;
 
-        TileF32Array input = TileF32Array.create(accelerator, M * N);
-        TileF32Array result = TileF32Array.create(accelerator, M * N);
+        TensorF32 input = TensorF32.create(accelerator, M * N);
+        TensorF32 result = TensorF32.create(accelerator, M * N);
 
         accelerator.compute( computeContext ->
                 computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));

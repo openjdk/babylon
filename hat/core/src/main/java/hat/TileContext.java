@@ -1,7 +1,7 @@
 
 package hat;
 
-import hat.buffer.TileF32Array;
+import hat.buffer.TensorF32;
 import optkl.ifacemapper.Buffer;
 
 public interface TileContext {
@@ -46,7 +46,7 @@ public interface TileContext {
         return new TileShape(tm);
     }
 
-    int num_tiles(TileF32Array inputA, int i, TileShape shape);
+    int num_tiles(TensorF32 inputA, int i, TileShape shape);
 
     Tile zeros(int tm, int tk);
 

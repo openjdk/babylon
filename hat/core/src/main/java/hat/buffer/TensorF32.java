@@ -36,7 +36,7 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface TileF32Array extends Buffer {
+public interface TensorF32 extends Buffer {
 
     @Reflect
     default void schema() {
@@ -49,25 +49,25 @@ public interface TileF32Array extends Buffer {
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<TileF32Array> schema = Schema.of(TileF32Array.class, $ -> $
+    Schema<TensorF32> schema = Schema.of(TensorF32.class, $ -> $
             .arrayLen("length")
             .pad(12)
             .array("array"));
 
-    static TileF32Array create(ArenaAndLookupCarrier cc, int length) {
+    static TensorF32 create(ArenaAndLookupCarrier cc, int length) {
         return BoundSchema.of(cc ,schema, length).allocate();
     }
 
-    default TileF32Array copyFrom(float[] floats) {
+    default TensorF32 copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, length());
         return this;
     }
 
-    static TileF32Array createFrom(ArenaAndLookupCarrier cc, float[] arr) {
+    static TensorF32 createFrom(ArenaAndLookupCarrier cc, float[] arr) {
         return create(cc, arr.length).copyFrom(arr);
     }
 
-    default TileF32Array copyTo(float[] floats) {
+    default TensorF32 copyTo(float[] floats) {
         MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, length());
         return this;
     }
