@@ -87,7 +87,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
 
             Builder(Body.Builder connectedAncestorBody, String funcName, FunctionType signature) {
                 this.connectedAncestorBody = connectedAncestorBody;
-                this.source = fakeSource(funcName, signature);
+                this.source = syntheticSourceRef(funcName, signature);
             }
 
             Builder(Body.Builder connectedAncestorBody, MethodRef source) {
@@ -132,7 +132,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
             MethodRef source;
             if (optSource.isEmpty()) {
                 String fn = requireAttribute(def, ATTRIBUTE_FUNC_NAME, true, String.class);
-                source = fakeSource(fn, body.bodySignature());
+                source = syntheticSourceRef(fn, body.bodySignature());
             } else {
                 source = optSource.get();
             }
@@ -183,7 +183,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
         FuncOp(String funcName, Body.Builder bodyBuilder) {
             super(List.of());
 
-            this.source = fakeSource(funcName, bodyBuilder.bodySignature());
+            this.source = syntheticSourceRef(funcName, bodyBuilder.bodySignature());
             this.body = bodyBuilder.build(this);
         }
 
@@ -270,7 +270,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
             return source.refType().equals(JavaType.VOID);
         }
 
-        static MethodRef fakeSource(String fn, FunctionType ft) {
+        static MethodRef syntheticSourceRef(String fn, FunctionType ft) {
             return MethodRef.method(JavaType.VOID, fn, ft);
         }
     }
