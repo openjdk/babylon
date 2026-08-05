@@ -5283,27 +5283,25 @@ public sealed abstract class JavaOp extends Op {
             List<Block.Builder> catchers = catchBodies().stream()
                     .map(catcher -> b.block())
                     .toList();
+            List<Block.Reference> exitHandlers = new ArrayList<>();
+            for (int i = 0; i < catchers.size(); i++) {
+                Value arg = b.add(constant(catchBodies.get(i).bodySignature().parameterTypes().getFirst(), null));
+                exitHandlers.add(catchers.get(i).reference(arg));
+            }
             Block.Builder catcherFinally;
+            Op.Result nullThrowable;
             if (finallyBody == null) {
                 catcherFinally = null;
+                nullThrowable = null;
             } else {
                 catcherFinally = b.block();
                 catchers = new ArrayList<>(catchers);
                 catchers.add(catcherFinally);
+                nullThrowable = b.add(constant(type(Throwable.class), null));
+                exitHandlers.add(catcherFinally.reference(nullThrowable));
             }
 
             // Enter the try exception region
-            Op.Result nullThrowable = b.add(constant(type(Throwable.class), null));
-            List<Block.Reference> exitHandlers = new ArrayList<>();
-            for (int i = 0; i < catchers.size(); i++) {
-                Value arg;
-                if (i > catchBodies.size() - 1 || catchBodies.get(i).bodySignature().parameterTypes().isEmpty()) {
-                    arg = nullThrowable;
-                } else {
-                    arg = b.add(constant(catchBodies.get(i).bodySignature().parameterTypes().getFirst(), null));
-                }
-                exitHandlers.add(catchers.get(i).reference(arg));
-            }
             Op.Result enter = b.add(exceptionRegionEnter(tryRegionEnter.reference(), exitHandlers.reversed()));
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
