@@ -1010,6 +1010,8 @@ public final class BytecodeGenerator {
                     assignBlockArguments(op.endReference());
                     cob.goto_(getLabel(op.endReference()));
                 }
+                case UnreachableOp _ ->
+                    cob.aconst_null().athrow();
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
