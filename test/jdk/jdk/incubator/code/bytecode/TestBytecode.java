@@ -520,6 +520,14 @@ public class TestBytecode {
         return ret;
     }
 
+    record Box<T>(T value) {}
+
+    @Reflect
+    static int genericFieldCast(String s) {
+        Box<String> box = new Box(s);
+        return box.value.length();
+    }
+
     @Reflect
     static String stringConcat(String a, String b) {
         return "a"+ a +"\u0001" + a + "b\u0002c" + b + "\u0001\u0002" + b + "dd";

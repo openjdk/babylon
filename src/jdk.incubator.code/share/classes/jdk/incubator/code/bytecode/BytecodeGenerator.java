@@ -1069,6 +1069,11 @@ public final class BytecodeGenerator {
                             fieldType);
         }
         if (!store) {
+            ClassDesc ret = toClassDesc(op.resultType());
+            if (!ret.isPrimitive() && !ret.equals(fieldType)) {
+                // Explicit cast if field type differs
+                cob.checkcast(ret);
+            }
             push(op.result());
         }
     }
