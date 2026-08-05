@@ -209,7 +209,6 @@ public interface ArgArray extends Buffer {
 
     int argc();
 
-
     Arg arg(long idx);
 
     int schemaLen();
@@ -217,7 +216,6 @@ public interface ArgArray extends Buffer {
     byte schemaBytes(long idx);
 
     void schemaBytes(long idx, byte b);
-
 
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s -> s
             .arrayLen("argc")
@@ -236,7 +234,6 @@ public interface ArgArray extends Buffer {
             .arrayLen("schemaLen")
             .array("schemaBytes")
     );
-
 
     static ArgArray create(ArenaAndLookupCarrier cc, KernelCallGraph kernelCallGraph, Object... args) {
         String[] schemas = new String[args.length];
@@ -273,13 +270,24 @@ public interface ArgArray extends Buffer {
         return argArray;
     }
 
+    private static void checkAnnotationArg(KernelCallGraph kernelCallGraph, AccessType accessType, Annotation annotation, int argIndex) {
+        if (accessType != AccessType.NA && !isKernelAnnotationPresent(kernelCallGraph)) {
+            // print warning to remove the I/O annotation from the arg parameter
+            IO.println("[WARNING]: Annotation " + annotation + " can be removed from the input parameter " + argIndex);
+        }
+    }
+
+    private static boolean isKernelAnnotationPresent(KernelCallGraph kernelCallGraph) {
+        return kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class) != null;
+    }
+
     static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
         Annotation[][] parameterAnnotations = kernelCallGraph.callDag.entryPoint.method().getParameterAnnotations();
         var bufferAccessList = kernelCallGraph.bufferAccessList;
-        for (int i = 0; i < args.length; i++) {
-            Object argObject = args[i];
-            Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
-            arg.idx(i);
+        for (int argIndex = 0; argIndex < args.length; argIndex++) {
+            Object argObject = args[argIndex];
+            Arg arg = argArray.arg(argIndex); // this should be invariant, but if we are called from create it will be 0 for all
+            arg.idx(argIndex);
             switch (argObject) {
                 case Boolean z1 -> arg.z1(z1);
                 case Byte s8 -> arg.s8(s8);
@@ -290,10 +298,11 @@ public interface ArgArray extends Buffer {
                 case Long s64 -> arg.s64(s64);
                 case Double f64 -> arg.f64(f64);
                 case Buffer buffer -> {
-                    Annotation[] annotations = parameterAnnotations[i];
+                    Annotation[] annotations = parameterAnnotations[argIndex];
                     AccessType accessType = AccessType.NA;
                     for (Annotation annotation : annotations) {
                         accessType = AccessType.of(annotation);
+                        checkAnnotationArg(kernelCallGraph, accessType, annotation, argIndex);
                     }
                     MemorySegment segment = getMemorySegment(buffer);
                     arg.variant((byte) '&');
@@ -302,12 +311,12 @@ public interface ArgArray extends Buffer {
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
 
-                    if (kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class) != null) {
+                    if (isKernelAnnotationPresent(kernelCallGraph)) {
                         // If the annotation is present, then we keep the accessor defined for each parameter
                         buf.access(accessType.value);
                     } else {
                         // otherwise, we rely on the buffer-tagger to set the accessor
-                        buf.access(bufferAccessList.get(i).value);
+                        buf.access(bufferAccessList.get(argIndex).value);
                     }
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + argObject);

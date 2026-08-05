@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.buffer.F32Array;
 
 import java.lang.invoke.MethodHandles;
@@ -40,8 +41,8 @@ public class ForTests {
 
         @Reflect
         static void breakAndContinue(KernelContext kc, F32Array a) {
-            long i = kc.gix;
-            long size = kc.gsx;
+            long i = GIX();
+            long size = GSX();
             outer:
             for (long j = 0; j < size; j++) {
                 float sum = 0f;

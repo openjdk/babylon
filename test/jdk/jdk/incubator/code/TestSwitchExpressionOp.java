@@ -21,8 +21,9 @@
  * questions.
  */
 
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
@@ -589,6 +590,6 @@ public class TestSwitchExpressionOp {
                 .filter(m -> m.getName().equals(methodName))
                 .findFirst();
 
-        return CoreOp.ofMethod(om.get()).get();
+        return Op.ofMethod(om.get()).get();
     }
 }

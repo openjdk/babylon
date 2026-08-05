@@ -25,8 +25,10 @@ import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
+import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
@@ -35,6 +37,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -43,23 +46,57 @@ public class JavaLowInterpreter extends Interpreter {
     public JavaLowInterpreter() {
     }
 
+    record CatchHandler(CodeType catchType, Block block) {
+
+        static List<CatchHandler> of(JavaOp.ExceptionRegionEnter op) {
+            List<Block.Reference> references = op.catchReferences();
+            List<CodeType> types = op.catchTypes();
+            return IntStream.range(0, references.size())
+                    .mapToObj(i -> new CatchHandler(types.get(i), references.get(i).targetBlock()))
+                    .toList().reversed();
+        }
+
+        boolean matches(MethodHandles.Lookup l, Throwable t) throws ReflectiveOperationException {
+            return matches(l, catchType, t);
+        }
+
+        private static boolean matches(MethodHandles.Lookup l, CodeType catchType, Throwable t)
+                throws ReflectiveOperationException {
+            return switch (catchType) {
+                case TupleType tt -> {
+                    boolean matched = false;
+                    for (CodeType componentType : tt.componentTypes()) {
+                        if (matches(l, componentType, t)) {
+                            matched = true;
+                            break;
+                        }
+                    }
+                    yield matched;
+                }
+                case ClassType ct -> resolveToClass(l, ct).isInstance(t);
+                case PrimitiveType pt when pt.equals(JavaType.VOID) -> true;
+                default -> throw new InterpreterException("Unexpected catch type: " + catchType);
+            };
+        }
+    }
+
     static class JavaEnv implements Env {
         final Map<Value, Object> bindings;
         final MethodHandles.Lookup l;
-        final Deque<List<Block>> catchBlocks;
+        final Deque<List<CatchHandler>> catchHandlers;
 
-        protected JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
+        protected JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
             this.bindings = bindings;
             this.l = l;
-            this.catchBlocks = catchBlocks;
+            this.catchHandlers = catchHandlers;
         }
 
         protected Env newEnv(Map<Value, Object> m) {
-            return new JavaEnv(m, l, catchBlocks);
+            return new JavaEnv(m, l, catchHandlers);
         }
 
-        protected JavaEnv newEnv(Deque<List<Block>> catchBlocks) {
-            return new JavaEnv(bindings, l, catchBlocks);
+        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchHandlers) {
+            return new JavaEnv(bindings, l, catchHandlers);
         }
 
         Map<Value, Object> newBindings() {
@@ -101,16 +138,15 @@ public class JavaLowInterpreter extends Interpreter {
             return bindings.get(symbolicValue);
         }
 
-        public JavaEnv registerCatchBlocks(List<Block> catchBlocks) {
-            var stack = new ArrayDeque<>(this.catchBlocks);
-            stack.addFirst(catchBlocks);
+        public JavaEnv registerCatchHandlers(List<CatchHandler> handlers) {
+            var stack = new ArrayDeque<>(catchHandlers);
+            stack.addFirst(handlers);
             return newEnv(stack);
         }
 
-        public JavaEnv removeCatchBlocks(List<Block> catchBlocks) {
-            var stack = new ArrayDeque<>(this.catchBlocks);
-            List<Block> l = stack.removeFirst();
-            if (!l.equals(catchBlocks)) {
+        public JavaEnv removeCatchHandlers(List<CatchHandler> handlers) {
+            var stack = new ArrayDeque<>(catchHandlers);
+            if (!stack.removeFirst().equals(handlers)) {
                 throw new InternalError();
             }
             return newEnv(stack);
@@ -130,24 +166,23 @@ public class JavaLowInterpreter extends Interpreter {
         // @@@ review this area and improve the code
         private Optional<SuccessorEffect> findCatchBlock(Block executedBlock, Throwable t) {
             Block cb = null;
-            int blockListToRemove = 0;
+            int handlerListsToRemove = 0;
             l:
-            for (List<Block> blocks : catchBlocks) {
-                blockListToRemove++;
-                for (Block block : blocks) {
+            for (List<CatchHandler> handlers : catchHandlers) {
+                handlerListsToRemove++;
+                for (CatchHandler handler : handlers) {
+                    Block block = handler.block();
                     // make sure we are searching for catch block within the same body
                     if (block.parent() != executedBlock.parent()) {
                         break l;
                     }
-                    Class<?> c;
                     try {
-                        c = resolveToClass(l, block.parameters().getFirst().type());
+                        if (handler.matches(l, t)) {
+                            cb = block;
+                            break l;
+                        }
                     } catch (ReflectiveOperationException ex) {
                         throw new InterpreterException(ex);
-                    }
-                    if (c.isInstance(t)) {
-                        cb = block;
-                        break l;
                     }
                 }
             }
@@ -156,13 +191,12 @@ public class JavaLowInterpreter extends Interpreter {
                 return Optional.empty();
             }
 
-            var cbs = new ArrayDeque<>(catchBlocks);
-            while (blockListToRemove > 0) {
-                cbs.removeFirst();
-                blockListToRemove--;
+            var rhs = new ArrayDeque<>(catchHandlers);
+            while (handlerListsToRemove-- > 0) {
+                rhs.removeFirst();
             }
 
-            return Optional.of(new SuccessorEffect(cb, List.of(t), new JavaEnv(bindings, l, cbs)));
+            return Optional.of(new SuccessorEffect(cb, List.of(t), new JavaEnv(bindings, l, rhs)));
         }
 
         private JavaEnv removeAllCatchBlocks() {
@@ -239,7 +273,7 @@ public class JavaLowInterpreter extends Interpreter {
             }
             case JavaOp.ArithmeticOperation _ -> {
                 JavaEnv je = (JavaEnv) e;
-                MethodHandle mh = opHandle(je.l, op.externalizeOpName(), op.opSignature());
+                MethodHandle mh = opHandle(je.l, externalizeOpName(op), op.opSignature());
                 List<Object> operands = e.valuesOf(op.operands());
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
@@ -249,7 +283,7 @@ public class JavaLowInterpreter extends Interpreter {
             }
             case JavaOp.ConvOp _ -> {
                 JavaEnv je = (JavaEnv) e;
-                MethodHandle mh = opHandle(je.l, op.externalizeOpName() + "_" + op.opSignature().returnType(), op.opSignature());
+                MethodHandle mh = opHandle(je.l, externalizeOpName(op) + "_" + op.opSignature().returnType(), op.opSignature());
                 List<Object> operands = e.valuesOf(op.operands());
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
@@ -509,7 +543,7 @@ public class JavaLowInterpreter extends Interpreter {
     }
 
     @Override
-    public <O extends Op & Op.Terminating> BlockEffect executeTerminatingOp(O op, Env e) {
+    public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
         return switch (op) {
             case CoreOp.BranchOp o -> {
                 Block.Reference r = o.successors().getFirst();
@@ -536,14 +570,14 @@ public class JavaLowInterpreter extends Interpreter {
             }
             case JavaOp.ExceptionRegionEnter o -> {
                 JavaEnv je = (JavaEnv) e;
-                List<Block> catchBlocks = o.catchReferences().stream().map(Block.Reference::targetBlock).toList();
-                je = je.registerCatchBlocks(catchBlocks.reversed()); // store catch block from specific to general
+                List<CatchHandler> handlers = CatchHandler.of(o);
+                je = je.registerCatchHandlers(handlers);
                 yield new SuccessorEffect(o.startReference().targetBlock(), je.valuesOf(o.startReference().arguments()), je);
             }
             case JavaOp.ExceptionRegionExit o -> {
                 JavaEnv je = (JavaEnv) e;
-                List<Block> catchBlocks = o.enterOp().catchReferences().stream().map(Block.Reference::targetBlock).toList();
-                je = je.removeCatchBlocks(catchBlocks.reversed());
+                List<CatchHandler> handlers = CatchHandler.of(o.enterOp());
+                je = je.removeCatchHandlers(handlers);
                 yield new SuccessorEffect(o.endReference().targetBlock(), je.valuesOf(o.endReference().arguments()), je);
             }
             default -> throw new UnsupportedOperationException(op.toString());
@@ -654,6 +688,12 @@ public class JavaLowInterpreter extends Interpreter {
 
     static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
         return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
+    }
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
     }
 
     static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {

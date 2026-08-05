@@ -34,7 +34,8 @@ public class JavaSequentialBackend extends JavaBackend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
       //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
+        throw new RuntimeException("We need NDRange");
+       /* for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
                 args[0] = kernelContext;
                 kernelCallGraph.callDag.entryPoint.method().invoke(null, args);
@@ -42,6 +43,6 @@ public class JavaSequentialBackend extends JavaBackend {
                 throw new RuntimeException(e);
             }
 
-        }
+        }*/
     }
 }

@@ -117,7 +117,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                 removeUnusedBlockParameters(b, ere.endReference());
                 b.add(op);
             }
-            case Op.BlockTerminating _ -> {
+            case Op.Terminating _ -> {
                 for (Block.Reference successor : op.successors()) {
                     removeUnusedBlockParameters(b, successor);
                 }

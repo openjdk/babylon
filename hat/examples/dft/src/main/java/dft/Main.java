@@ -30,6 +30,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.HATMath;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -37,9 +38,6 @@ import hat.examples.common.ParseArgs;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 import optkl.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
@@ -59,14 +57,14 @@ import static hat.examples.common.StatUtils.printCheckResult;
  * <p>
  * With the OpenCL Backend:
  * <code>
- *     java -cp hat/job.jar hat.java run ffi-opencl dft --size=<size> --iterations=<iterations> --verbose
+ *     java @.ffi-opencl-example dft.Main --size=<size> --iterations=<iterations> --verbose
  * </code>
  * </p>
  *
  * <p>
  * With the CUDA Backend:
  * <code>
- *      java -cp hat/job.jar hat.java run ffi-cuda dft --size=<size> --iterations=<iterations> --verbose
+ *      java @.ffi-cuda-example dft.Main --size=<size> --iterations=<iterations> --verbose
  * </code>
  *
  * <p>
@@ -105,8 +103,8 @@ public class Main {
     @Reflect
     private static void dftKernel(KernelContext kc, ComplexArray input, ComplexArray output) {
         int size = input.length();
-        int idx = kc.gix;
-        if (idx < kc.gsx) {
+        int idx = GIX();
+        if (idx < GSX()) {
             float sumReal = 0.0f;
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -124,7 +122,7 @@ public class Main {
     }
 
     @Reflect
-    private static void dftCompute(@RW ComputeContext cc, @RO ComplexArray input, @WO ComplexArray output) {
+    private static void dftCompute(ComputeContext cc, ComplexArray input, ComplexArray output) {
         var range = NDRange.of1D(input.length(), 256);
         cc.dispatchKernel(range, kernelContext -> dftKernel(kernelContext, input, output));
     }
@@ -132,8 +130,8 @@ public class Main {
     @Reflect
     private static void dftPlainKernel(KernelContext kc, F32Array inReal, F32Array inImag, F32Array outReal, F32Array outImag) {
         int size = inReal.length();
-        int idx = kc.gix;
-        if (idx < kc.gsx) {
+        int idx = GIX();
+        if (idx < GSX()) {
             float sumReal = 0.0f;
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -149,7 +147,7 @@ public class Main {
     }
 
     @Reflect
-    private static void dftPlainCompute(@RW ComputeContext cc, @RO F32Array inReal, @RO F32Array inImag, @WO F32Array outReal, @WO F32Array outImag) {
+    private static void dftPlainCompute(ComputeContext cc, F32Array inReal, F32Array inImag, F32Array outReal, F32Array outImag) {
         var range = NDRange.of1D(inReal.length(), 256);
         cc.dispatchKernel(range, kernelContext -> dftPlainKernel(kernelContext, inReal, inImag, outReal, outImag));
     }

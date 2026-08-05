@@ -26,6 +26,7 @@ package experiments;
 
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.buffer.S32Array;
 import jdk.incubator.code.Op;
@@ -100,8 +101,8 @@ public class InjectBufferTracking {
 
     @Reflect
     public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
-        if (kc.gix < kc.gsx) {
-            s32Array.array(kc.gix, s32Array.array(kc.gix) + 1);
+        if (GIX() < GSX()) {
+            s32Array.array(GIX(), s32Array.array(GIX()) + 1);
         }
     }
 
@@ -119,7 +120,8 @@ public class InjectBufferTracking {
             System.out.println("Weird "+s32Array.array(0)+s32Array.length());
         }
     }
-    public static void main(String[] args) throws NoSuchMethodException {
+
+    static void main(String[] args) throws NoSuchMethodException {
         var lookup = MethodHandles.lookup();
         var func = func(lookup, InjectBufferTracking.class, "add", ComputeContext.class, S32Array.class, int.class, int.class);
 

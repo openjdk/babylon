@@ -605,4 +605,56 @@ public class ImplicitConversionTest {
         }
         return j;
     }
+
+    @Reflect
+    @IR("""
+            func @"byteIndexArrayRead" (%0 : java.type:"int[]", %1 : java.type:"byte")java.type:"int" -> {
+                %2 : Var<java.type:"int[]"> = var %0 @"arr";
+                %3 : Var<java.type:"byte"> = var %1 @"index";
+                %4 : java.type:"int[]" = var.load %2;
+                %5 : java.type:"byte" = var.load %3;
+                %6 : java.type:"int" = conv %5;
+                %7 : java.type:"int" = array.load %4 %6;
+                return %7;
+            };
+            """)
+    public static int byteIndexArrayRead(int[] arr, byte index) {
+        return arr[index];
+    }
+
+    @Reflect
+    @IR("""
+            func @"byteIndexArrayWrite" (%0 : java.type:"int[]", %1 : java.type:"byte")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %0 @"arr";
+                %3 : Var<java.type:"byte"> = var %1 @"index";
+                %4 : java.type:"int[]" = var.load %2;
+                %5 : java.type:"byte" = var.load %3;
+                %6 : java.type:"int" = conv %5;
+                %7 : java.type:"int" = constant @1;
+                array.store %4 %6 %7;
+                return;
+            };
+            """)
+    static void byteIndexArrayWrite(int[] arr, byte index) {
+        arr[index] = 1;
+    }
+
+    @Reflect
+    @IR("""
+            func @"byteIndexArrayWriteCompound" (%0 : java.type:"int[]", %1 : java.type:"byte")java.type:"void" -> {
+                %2 : Var<java.type:"int[]"> = var %0 @"arr";
+                %3 : Var<java.type:"byte"> = var %1 @"index";
+                %4 : java.type:"int[]" = var.load %2;
+                %5 : java.type:"byte" = var.load %3;
+                %6 : java.type:"int" = conv %5;
+                %7 : java.type:"int" = array.load %4 %6;
+                %8 : java.type:"int" = constant @1;
+                %9 : java.type:"int" = add %7 %8;
+                array.store %4 %6 %9;
+                return;
+            };
+            """)
+    static void byteIndexArrayWriteCompound(int[] arr, byte index) {
+        arr[index] += 1;
+    }
 }

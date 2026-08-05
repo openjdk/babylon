@@ -28,6 +28,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.classfile.components.ClassPrinter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -48,7 +49,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -281,6 +284,29 @@ public class TestBytecode {
         return i;
     }
 
+    @Reflect
+    static int tryWithConditionalResourceFinallyInLoopWithBreakAndContinue(int i) {
+        for (int j = -5; j < 5; j++) {
+            try (var _ = i % 2 == 1 ? Stream.empty(): Stream.empty()) {
+                if (i == j) continue;
+                i++;
+            } finally {
+                if (i == -j) break;
+                i = i + j;
+            }
+        }
+        return i;
+    }
+
+    @Reflect
+    static int definitiveAssignment(int i) {
+        int assigned;
+        if (i > 0 && (assigned = i) > 1) {
+            return assigned;
+        }
+        return -1;
+    }
+
     public record A(String s) {}
 
     @Reflect
@@ -400,6 +426,27 @@ public class TestBytecode {
         return consumeLambda(i, a -> consumeLambda(a, b -> a + b + j - s.length()) + s.length());
     }
 
+    static String lambdaModelText(Object f) {
+        return OpWriter.toText(Op.ofLambda(f).orElseThrow().op(), OpWriter.LocationOption.DROP_LOCATION);
+    }
+
+    @Reflect
+    static String nestedLambdaModels(boolean b) {
+        Supplier<IntSupplier> outer = () -> () -> {
+            if (b) {
+                return 1;
+            }
+            return 2;
+        };
+        return """
+               outer lambda model:
+               %s
+               inner lambda model:
+               %s
+               """.formatted(lambdaModelText(outer),
+                             lambdaModelText(outer.get()));
+    }
+
     @Reflect
     static int methodHandle(int i) {
         return consumeLambda(i, Math::negateExact);
@@ -473,6 +520,14 @@ public class TestBytecode {
         return ret;
     }
 
+    record Box<T>(T value) {}
+
+    @Reflect
+    static int genericFieldCast(String s) {
+        Box<String> box = new Box(s);
+        return box.value.length();
+    }
+
     @Reflect
     static String stringConcat(String a, String b) {
         return "a"+ a +"\u0001" + a + "b\u0002c" + b + "\u0001\u0002" + b + "dd";
@@ -528,6 +583,18 @@ public class TestBytecode {
     }
 
     @Reflect
+    static boolean finallyPassingThrough(boolean flag) {
+        try {
+            if (flag) {
+                return flag;
+            }
+        } finally {
+            flag = !flag;
+        }
+        return flag;
+    }
+
+    @Reflect
     static long doubleUseOfOperand(int x) {
         long piece = x;
         return piece * piece;
@@ -550,6 +617,13 @@ public class TestBytecode {
             return ss.length();
         }
         return -1;
+    }
+
+    @Reflect
+    static int unreachable(int i) {
+        while (true) {
+            if (i-- <= 0) return i;
+        }
     }
 
     record TestData(Method testMethod) {

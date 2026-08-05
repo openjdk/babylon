@@ -440,7 +440,9 @@ public final class OpWriter {
                 write(" = ");
             }
         }
-        write(op.externalizeOpName());
+        write((op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName());
 
         if (!op.operands().isEmpty()) {
             write(" ");
@@ -459,7 +461,9 @@ public final class OpWriter {
                 writeLocation(location);
             }
         }
-        Map<String, Object> attributes = op.externalize();
+        Map<String, Object> attributes = (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalize()
+                : Map.of();
         if (!attributes.isEmpty()) {
             write(" ");
             writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));

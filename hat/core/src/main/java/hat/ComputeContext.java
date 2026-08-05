@@ -68,7 +68,6 @@ import static optkl.OpHelper.Lambda.lambda;
  */
 public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
-
     @Override
     public Arena arena() {
         return accelerator.arena();
@@ -86,13 +85,12 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     public void invokeWithArgs(Object[] args) {
         computeCallGraph.invokeWithArgs(args);
-
     }
 
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");
-        final public MethodRef pre;
-        final public MethodRef post;
+        public final MethodRef pre;
+        public final MethodRef post;
 
         WRAPPER(String name) {
             this.pre = MethodRef.method(ComputeContext.class, "pre" + name, void.class, MappableIface.class);
@@ -101,16 +99,16 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     }
 
     private  final Accelerator accelerator;
-    final  public  Accelerator accelerator(){
+
+    public final  Accelerator accelerator(){
         return accelerator;
     }
 
     private  final ComputeCallGraph computeCallGraph;
-    final  public  ComputeCallGraph computeCallGraph(){
+
+    public final  ComputeCallGraph computeCallGraph(){
         return computeCallGraph;
     }
-
-
 
     /**
      * Called by the Accelerator when the accelerator is passed a compute entrypoint.
@@ -173,9 +171,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             });
         }
         Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
-        KernelContext kernelContext = accelerator.range(ndRange);
-        args[0] = kernelContext;
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, kernelContext, args);
+        args[0] = accelerator.range(ndRange);
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, (KernelContext) args[0], args);
     }
 
 

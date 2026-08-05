@@ -28,9 +28,9 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -45,7 +45,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / (TN * TF);
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
@@ -54,7 +54,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / ((TN * TF) / (TN * TN));
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
@@ -63,21 +63,21 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX * (TF + 2) / ((TN * TF) / (TN * TN));
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
-    public static void compute(@RO ComputeContext cc, @WO S32Array data) {
+    public static void compute(ComputeContext cc, S32Array data) {
         cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute(kc, data));
     }
 
     @Reflect
-    public static void compute2(@RO ComputeContext cc, @WO S32Array data) {
+    public static void compute2(ComputeContext cc, S32Array data) {
         cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute2(kc, data));
     }
 
     @Reflect
-    public static void compute3(@RO ComputeContext cc, @WO S32Array data) {
+    public static void compute3(ComputeContext cc, S32Array data) {
         cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute3(kc, data));
     }
 

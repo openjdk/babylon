@@ -663,7 +663,7 @@ public final class Body implements CodeElement<Body, Block> {
                         throw new IllegalStateException("Descendant body builder is not built");
                     }
 
-                    Op.Result grandchild = greatgrandchild.target().parentOp.result;
+                    Op.Result grandchild = greatgrandchild.target().parentOp.result();
                     if (grandchild == null) {
                         throw new IllegalStateException("Parent operation of descendant body is unplaced");
                     }
@@ -771,7 +771,7 @@ public final class Body implements CodeElement<Body, Block> {
                 b.elements().forEach(ce -> {
                     switch (ce) {
                         case Op op -> {
-                            Op.Result use = op.result;
+                            Op.Result use = op.result();
                             for (Value v : op.operands()) {
                                 v.uses.remove(use);
                             }
@@ -796,7 +796,7 @@ public final class Body implements CodeElement<Body, Block> {
                 b.elements().forEach(ce -> {
                     switch (ce) {
                         case Op op -> {
-                            Op.Result use = op.result;
+                            Op.Result use = op.result();
                             if (!use.uses.isEmpty()) {
                                 throw new IllegalStateException("Use of an operation result is not dominated by the result");
                             }

@@ -28,11 +28,11 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -58,18 +58,18 @@ public class TestLocal {
     }
 
     @Reflect
-    private static void compute(KernelContext kernelContext, F32Array data) {
+    private static void compute(KernelContext unused, F32Array data) {
         MySharedArray mySharedArray = MySharedArray.createLocal();
-        int lix = kernelContext.lix;
-        int blockId = kernelContext.bix;
-        int blockSize = kernelContext.lsx;
+        int lix = LIX();
+        int blockId = BIX();
+        int blockSize = LSX();
         mySharedArray.array(lix, lix);
-        kernelContext.barrier();
+        barrier();
         data.array(lix + (long) blockId * blockSize, mySharedArray.array(lix));
     }
 
     @Reflect
-    private static void myCompute(@MappableIface.RO ComputeContext computeContext, @MappableIface.WO F32Array data) {
+    private static void myCompute(ComputeContext computeContext, F32Array data) {
         computeContext.dispatchKernel(NDRange.of1D(32,16),
                 kernelContext -> compute(kernelContext, data)
         );

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,15 +25,12 @@
 
 package oracle.code.onnx.ir;
 
-import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.*;
 
-public abstract class OnnxOp extends Op {
+public abstract class OnnxOp extends AbstractOp implements ExternalizedOp.Externalizable {
 
     public interface OnnxAttribute {
         String name();
@@ -205,9 +202,7 @@ public abstract class OnnxOp extends Op {
             switch (operand) {
                 case Value v -> l.add(v);
                 case Optional<?> ov -> {
-                    if (ov.isPresent()) {
-                        l.add((Value) ov.get());
-                    }
+                    ov.ifPresent(o -> l.add((Value) o));
                 }
                 case List<?> vs -> {
                     for (Object v : vs) {

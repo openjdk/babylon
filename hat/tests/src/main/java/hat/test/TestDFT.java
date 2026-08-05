@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.HATMath;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.device.DeviceSchema;
@@ -38,9 +39,6 @@ import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 import optkl.ifacemapper.Schema;
 
 import java.lang.invoke.MethodHandles;
@@ -78,8 +76,8 @@ public class TestDFT {
                                   ArrayComplex input,
                                   ArrayComplex output) {
         int size = input.length();
-        int idx = kc.gix;
-        if (idx < kc.gsx) {
+        int idx = GIX();
+        if (idx < GSX()) {
             float sumReal = 0.0f;
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -118,9 +116,7 @@ public class TestDFT {
     }
 
     @Reflect
-    private static void dftCompute(@RO ComputeContext cc,
-                                   @RO ArrayComplex input,
-                                   @WO ArrayComplex output) {
+    private static void dftCompute(ComputeContext cc, ArrayComplex input, ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
         cc.dispatchKernel(range, kernelContext -> dftKernel(kernelContext, input, output));
     }
@@ -165,7 +161,7 @@ public class TestDFT {
     public static void testPrivateDS(KernelContext kc,
                                       ArrayComplex input,
                                       ArrayComplex output) {
-        int idx = kc.gix;
+        int idx = GIX();
         ArrayComplexPrivate priv = ArrayComplexPrivate.createPrivate();
         ArrayComplexPrivate.PrivateComplex complex = priv.complex(0);
         complex.real(1.0f);
@@ -177,9 +173,7 @@ public class TestDFT {
 
 
     @Reflect
-    private static void complexNumbersInPrivate(@RW ComputeContext cc,
-                                   @RO ArrayComplex input,
-                                   @WO ArrayComplex output) {
+    private static void complexNumbersInPrivate(ComputeContext cc, ArrayComplex input, ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
         cc.dispatchKernel(range, kernelContext -> testPrivateDS(kernelContext, input, output));
     }

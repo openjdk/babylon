@@ -110,6 +110,7 @@ public final class BytecodeLift {
     private final Deque<ClassDesc> newStack;
     // Bytecode index for each exception table handler
     private final List<Integer> handlerBcis;
+    private final List<CodeType> catchTypes;
     // Converts classfile labels to bytecode indexes
     private final ToIntFunction<Label> label2Bci;
     // Current entered region result stack
@@ -135,11 +136,13 @@ public final class BytecodeLift {
                         smfi -> label2Bci.applyAsInt(smfi.target()),
                         smfi -> entryBlock.block(toBlockParams(smfi.stack()))))).orElseGet(Map::of);
         this.handlerBcis = new ArrayList<>();
+        this.catchTypes = new ArrayList<>();
         record RegionKey(int start, int end) {}
         Map<RegionKey, List<Integer>> grouped = new LinkedHashMap<>();
         for (ExceptionCatch ec : codeModel.exceptionHandlers()) {
             int handler = handlerBcis.size();
             handlerBcis.add(label2Bci.applyAsInt(ec.handler()));
+            catchTypes.add(ec.catchType().map(ct -> JavaType.type(ct.asSymbol())).orElse(JavaType.VOID));
             grouped.computeIfAbsent(new RegionKey(label2Bci.applyAsInt(ec.tryStart()), label2Bci.applyAsInt(ec.tryEnd())), _ -> new ArrayList<>())
                     .add(handler);
         }
@@ -179,8 +182,9 @@ public final class BytecodeLift {
 
     // Cache key for a handler reached from a concrete region stack
     record CatchTargetKey(int handler, List<Op.Result> enteredRegions) {}
-    // Find where the active region stack changes in bytecode
 
+    // Handlers block references with related catch types
+    record CatchEntries(List<CodeType> types, List<Block.Reference> references) {}
 
     private List<CodeType> toBlockParams(List<StackMapFrameInfo.VerificationTypeInfo> vtis) {
         ArrayList<CodeType> params = new ArrayList<>(vtis.size());
@@ -902,7 +906,9 @@ public final class BytecodeLift {
                 Block.Builder nextBlock = last ? targetBlock : newBlock(targetBlock.parameters());
                 Block.Reference nextReference = nextBlock.reference(currentBlock.parameters());
                 ExceptionRegion entered = targetEreStack.get(i);
-                Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(nextReference, catchReferences(ereStack, entered, currentBlock)));
+                CatchEntries catches = catchReferences(ereStack, entered, currentBlock);
+                Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(catches.types(), nextReference,
+                        catches.references()));
                 enteredRegionMap.put(enter, entered);
                 ereStack.add(enter);
                 currentBlock = nextBlock;
@@ -955,7 +961,8 @@ public final class BytecodeLift {
                 block.add(JavaOp.exceptionRegionExit(ereStack.removeLast(), nextReference));
             } else {
                 ExceptionRegion entered = targetEreStack.get(common + t - exits);
-                Op.Result enter = block.add(JavaOp.exceptionRegionEnter(nextReference, catchReferences(ereStack, entered, block)));
+                CatchEntries catches = catchReferences(ereStack, entered, block);
+                Op.Result enter = block.add(JavaOp.exceptionRegionEnter(catches.types(), nextReference, catches.references()));
                 enteredRegionMap.put(enter, entered);
                 ereStack.add(enter);
             }
@@ -966,22 +973,39 @@ public final class BytecodeLift {
     }
 
     // Build catch targets for one enter op
-    private List<Block.Reference> catchReferences(List<Op.Result> initialEreStack, ExceptionRegion enteredRegion,
-                                                  Block.Builder b) {
-        List<Block.Reference> catchReferences = new ArrayList<>();
-        List<Op.Result> enteredRegions = List.copyOf(initialEreStack);
-        for (int handler : enteredRegion.handlers().reversed()) {
+    private CatchEntries catchReferences(List<Op.Result> initialEreStack, ExceptionRegion enteredRegion,
+                                         Block.Builder b) {
+        record Group(int firstHandler, int handlerBci, List<CodeType> catchTypes) {}
+
+        List<Group> groups = new ArrayList<>();
+        for (int handler : enteredRegion.handlers()) {
             int handlerBci = handlerBcis.get(handler);
-            CatchTargetKey key = new CatchTargetKey(handler, enteredRegions);
+            CodeType catchType = catchTypes.get(handler);
+            Group last = groups.isEmpty() ? null : groups.getLast();
+            if (last != null && last.handlerBci() == handlerBci) {
+                last.catchTypes().add(catchType);
+            } else {
+                groups.add(new Group(handler, handlerBci, new ArrayList<>(List.of(catchType))));
+            }
+        }
+
+        List<Block.Reference> references = new ArrayList<>();
+        List<CodeType> types = new ArrayList<>();
+        List<Op.Result> enteredRegions = List.copyOf(initialEreStack);
+        for (Group group : groups.reversed()) {
+            CatchTargetKey key = new CatchTargetKey(group.firstHandler(), enteredRegions);
             Block.Builder target = exceptionHandlerBlocks.get(key);
             if (target == null) { // Avoid ConcurrentModificationException
-                target = transitionBlockForTarget(enteredRegions, handlerBci);
+                target = transitionBlockForTarget(enteredRegions, group.handlerBci());
                 exceptionHandlerBlocks.put(key, target);
             }
             Op.Result arg = b.add(constant(target.parameters().getFirst().type(), null));
-            catchReferences.add(target.reference(arg));
+            references.add(target.reference(arg));
+            types.add(group.catchTypes().size() == 1
+                    ? group.catchTypes().getFirst()
+                    : CoreType.tupleType(group.catchTypes()));
         }
-        return catchReferences;
+        return new CatchEntries(types, references);
     }
 
     Block.Reference successorWithStack(Block.Builder next) {

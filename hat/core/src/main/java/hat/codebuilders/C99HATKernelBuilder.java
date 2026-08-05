@@ -147,7 +147,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected boolean useThreadConstruct(String construct) {
-        return kernelCallGraph.accessedKernelContextFields.contains(construct);
+        return// kernelCallGraph.accessedKernelContextFields.contains(construct)||
+                 kernelCallGraph.accessedKernelContextMethods.contains(construct.toUpperCase());
     }
 
     protected boolean useAtomic() {
@@ -991,7 +992,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         MethodHandles.Lookup lookup = scopedCodeBuilderContext().lookup();
         var invoke = invoke(lookup, invokeOp);
-        if (isVecInvoke(invoke)) { // hacked for vec op calls.
+        if (invoke instanceof Invoke.Static staticInvoke && staticInvoke.refIs(KernelContext.class) && invoke.nameMatchesRegex(KernelContext.threadAccessRegex)){
+            id("HAT_"+invoke.name().toUpperCase()); // toUppercase is for barrier()
+        }else if (isVecInvoke(invoke)) { // hacked for vec op calls.
             handleInvoke(self(), invoke);
         } else if (isVectorOperation(lookup, invokeOp)) {
             handleVectorOperations(invoke);
@@ -1136,7 +1139,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                         List<Boolean> referenceList = invoke.op()
                                 .operands()
                                 .stream()
-                                .map(value -> isArrayReference(scopedCodeBuilderContext.lookup(), value))
+                                .map(v -> isArrayReference(scopedCodeBuilderContext.lookup(), v))
                                 .toList();
                         paren(_ -> {
                             int[] counter = {0};

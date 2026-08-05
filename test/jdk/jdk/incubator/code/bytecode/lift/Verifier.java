@@ -27,6 +27,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpWriter;
 
 import java.util.ArrayList;
@@ -136,14 +137,20 @@ public final class Verifier {
                 case CoreOp.ConditionalBranchOp cbr ->
                         verifyBlockReferences(op, cbr.successors());
                 case JavaOp.ArithmeticOperation _ ->
-                        verifyOpHandleExists(op, op.externalizeOpName());
+                        verifyOpHandleExists(op, externalizeOpName(op));
                 case JavaOp.ConvOp _ -> {
-                    verifyOpHandleExists(op, op.externalizeOpName() + "_" + op.opSignature().returnType());
+                    verifyOpHandleExists(op, externalizeOpName(op) + "_" + op.opSignature().returnType());
                 }
                 default -> {}
 
             }
         });
+    }
+
+    static String externalizeOpName(Op op) {
+        return (op instanceof ExternalizedOp.Externalizable eop)
+                ? eop.externalizeOpName()
+                : op.getClass().getName();
     }
 
     private void verifyBlockReferences(Op op, List<Block.Reference> references) {

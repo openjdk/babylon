@@ -36,7 +36,8 @@ public final class AnfDialect {
     private AnfDialect() {
     }
 
-    public static final class AnfLetOp extends Op implements Op.Terminating, Op.Nested {
+    public static final class AnfLetOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.let";
 
         public static class Builder {
@@ -93,7 +94,8 @@ public final class AnfDialect {
     }
 
 
-    public static final class AnfLetRecOp extends Op implements Op.Terminating, Op.Nested {
+    public static final class AnfLetRecOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.letrec";
 
         public static class Builder {
@@ -159,7 +161,8 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfIfOp extends Op implements Op.Terminating, Op.Nested {
+    public static final class AnfIfOp extends AbstractOp.Terminating
+            implements Op.Nested, ExternalizedOp.Externalizable {
         public static final String NAME = "anf.if";
 
         public static class ThenBuilder {
@@ -250,7 +253,8 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfFuncOp extends Op implements Op.Nested {
+    public static final class AnfFuncOp extends AbstractOp
+            implements Op.Nested, ExternalizedOp.Externalizable {
 
         public static class Builder {
             final Body.Builder ancestorBody;
@@ -340,7 +344,8 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfApply extends Op implements Op.Terminating {
+    public static final class AnfApply extends AbstractOp.Terminating
+            implements ExternalizedOp.Externalizable {
         public static final String NAME = "anf.apply";
 
         public AnfApply(ExternalizedOp def) {
@@ -375,7 +380,8 @@ public final class AnfDialect {
         }
     }
 
-    public static final class AnfApplyStub extends Op implements Op.Terminating {
+    public static final class AnfApplyStub extends AbstractOp.Terminating
+            implements ExternalizedOp.Externalizable {
         public static final String NAME = "anf.apply.stub";
         public static final String ATTRIBUTE_RESULT_TYPE = ".resultType";
         public static final String ATTRIBUTE_CALLSITE_NAME = ".callsiteName";

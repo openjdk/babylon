@@ -26,6 +26,7 @@ package experiments;
 
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
@@ -42,11 +43,11 @@ public class TestFuncOpViewer {
     static class Compute {
         @Reflect
         public static void mandel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array2D s32Array2D, @MappableIface.RO S32Array pallette, float offsetx, float offsety, float scale) {
-            if (kc.gix < kc.gsx) {
+            if (GIX() < GSX()) {
                 float width = s32Array2D.width();
                 float height = s32Array2D.height();
-                float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-                float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+                float x = ((GIX() % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+                float y = ((GIX() / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
                 float zx = x;
                 float zy = y;
                 float new_zx;
@@ -58,7 +59,7 @@ public class TestFuncOpViewer {
                     colorIdx++;
                 }
                 int color = colorIdx < pallette.length() ? pallette.array(colorIdx) : 0;
-                s32Array2D.array(kc.gix, color);
+                s32Array2D.array(GIX(), color);
             }
         }
 

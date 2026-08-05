@@ -28,6 +28,7 @@ package experiments;
 
 import hat.ComputeContext;
 import hat.buffer.S32Array;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -55,7 +56,7 @@ public class AddArbitraryBlock {
     static void main() throws Throwable {
         var hackMeMethodRef= MethodRef.method(AddArbitraryBlock.class, "hackMe", void.class, ComputeContext.class, S32Array.class);
         var lookup = MethodHandles.lookup();
-        var hackMeFuncOp = CoreOp.FuncOp.ofMethod(hackMeMethodRef.resolveToMethod(lookup)).get();
+        var hackMeFuncOp = Op.ofMethod(hackMeMethodRef.resolveToMethod(lookup)).get();
         MethodRef Println = MethodRef.method(IO.class, "println", void.class, Object.class);
         VarTable varTable = new VarTable(hackMeFuncOp.funcName());
         Trxfmr.of(lookup,hackMeFuncOp)
