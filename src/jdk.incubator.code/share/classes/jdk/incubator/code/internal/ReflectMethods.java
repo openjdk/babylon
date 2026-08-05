@@ -2769,10 +2769,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
                 // inject InnerClassesAttribute and NestHostAttribute
                 var clm = ClassFile.of().parse(data);
-                boolean preview = clm.minorVersion() == ClassFile.PREVIEW_MINOR_VERSION;
-                int classInnerFlag = ClassFile.ACC_STATIC | (preview ? ClassFile.ACC_IDENTITY : 0);
                 data = ClassFile.of().transformClass(clm, ClassTransform.endHandler(clb ->
-                        clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), classInnerFlag)))
+                        clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
                            .with(NestHostAttribute.of(hostClass))));
                 try (OutputStream out = outFile.openOutputStream()) {
                     out.write(data);
