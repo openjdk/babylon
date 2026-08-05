@@ -611,6 +611,13 @@ public class TestBytecode {
         return -1;
     }
 
+    @Reflect
+    static int unreachable(int i) {
+        while (true) {
+            if (i-- <= 0) return i;
+        }
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
