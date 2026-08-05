@@ -473,7 +473,7 @@ public final class SegmentInterfaceMapper<T>
             this.boundSchema =boundSchema;
             this.layout = layout;
             this.toMapper = toMapper;
-            MethodHandle toMh = findVirtual("mapTo").bindTo(this);
+            MethodHandle toMh = findVirtual("mapTo");
             this.getHandle = MethodHandles.filterReturnValue(getHandle, toMh);
         }
 
