@@ -30,6 +30,7 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.annotations.Kernel;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
@@ -171,36 +172,36 @@ public class PrefixSum {
         // int[] scratch=scratchBuf.arrayView();
         int[] data = dataBuf.arrayView();
 
-        scratchBuf.array(kc.lix, data[kc.gix]); // scratch[kc.lix]=data[kc.gix];
-        kc.barrier();
+        scratchBuf.array(LIX(), data[GIX()]); // scratch[LIX()]=data[GIX()];
+        barrier();
 
-        for (int step = 2; step <= kc.lsx; step <<= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + scratchBuf.array(kc.lix - (step >> 1))); // scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
+        for (int step = 2; step <= LSX(); step <<= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + scratchBuf.array(LIX() - (step >> 1))); // scratch[LIX()]+=scratch[LIX()-(step>>1)];
             }
-            kc.barrier();
+            barrier();
         }
         int sum = 0;
-        if ((kc.lix + 1) == kc.lsx) {
-            sum = scratchBuf.array(kc.lix);    // sum = scratch[kc.lix];
-            scratchBuf.array(kc.lix, 0); // scratch[kc.lix]=0;
+        if ((LIX() + 1) == LSX()) {
+            sum = scratchBuf.array(LIX());    // sum = scratch[LIX()];
+            scratchBuf.array(LIX(), 0); // scratch[LIX()]=0;
         }
-        kc.barrier();
-        for (int step = kc.lsx; step > 1; step >>= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                int prev = scratchBuf.array(kc.lix - (step >> 1));                // int prev = scratch[kc.lix-(step>>1)];
-                scratchBuf.array(kc.lix - (step >> 1), scratchBuf.array(kc.lix)); // scratch[kc.lix-(step>>1)]=scratch[kc.lix];
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + prev);        //  scratch[kc.lix]+= prev;
+        barrier();
+        for (int step = LSX(); step > 1; step >>= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                int prev = scratchBuf.array(LIX() - (step >> 1));                // int prev = scratch[LIX()-(step>>1)];
+                scratchBuf.array(LIX() - (step >> 1), scratchBuf.array(LIX())); // scratch[LIX()-(step>>1)]=scratch[LIX()];
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + prev);        //  scratch[LIX()]+= prev;
             }
-            kc.barrier();
+            barrier();
         }
 
-        if ((kc.lix + 1) == kc.lsx) {
-            data[kc.gix] = sum;
+        if ((LIX() + 1) == LSX()) {
+            data[GIX()] = sum;
         } else {
-            data[kc.gix] = scratchBuf.array(kc.lix + 1);  // data[ kc.gix] = scratch[kc.lix+1];
+            data[GIX()] = scratchBuf.array(LIX() + 1);  // data[ GIX()] = scratch[LIX()+1];
         }
-        kc.barrier();
+        barrier();
 
     }
 
@@ -260,35 +261,35 @@ public class PrefixSum {
         var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();  // int[] scratch=scratchBuf.arrayView();
 
-        int gid = (kc.gix * (kc.gsx)) - 1; // 0-> -1?  hence the >0 checks below.
+        int gid = (GIX() * (GSX())) - 1; // 0-> -1?  hence the >0 checks below.
 
-        scratchBuf.array(kc.lix, (gid > 0) ? data[gid] : 0);   // scratch[kc.lix]= (gid>0)?data[gid]:0;
+        scratchBuf.array(LIX(), (gid > 0) ? data[gid] : 0);   // scratch[LIX()]= (gid>0)?data[gid]:0;
         kc.barrier();
-        for (int step = 2; step <= kc.gsx; step <<= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + scratchBuf.array(kc.lix - (step >> 1))); // scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
+        for (int step = 2; step <= GSX(); step <<= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + scratchBuf.array(LIX() - (step >> 1))); // scratch[LIX()]+=scratch[LIX()-(step>>1)];
             }
             kc.barrier();
         }
         int sum = 0;
-        if ((kc.lix + 1) == kc.gsx) {
-            sum = scratchBuf.array(kc.lix);     // sum = scratch[kc.lix];
-            scratchBuf.array(kc.lix, 0);  // scratch[kc.lix]=0;
+        if ((LIX() + 1) == GSX()) {
+            sum = scratchBuf.array(LIX());     // sum = scratch[LIX()];
+            scratchBuf.array(LIX(), 0);  // scratch[LIX()]=0;
         }
         kc.barrier();
-        for (int step = kc.gsx; step > 1; step >>= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                int swap = scratchBuf.array(kc.lix - (step >> 1));                // int swap = scratch[kc.lix-(step>>1)];
-                scratchBuf.array(kc.lix - (step >> 1), scratchBuf.array(kc.lix)); // scratch[kc.lix-(step>>1)]=scratch[kc.lix];
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + swap);        // scratch[kc.lix]+= swap;
+        for (int step = GSX(); step > 1; step >>= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                int swap = scratchBuf.array(LIX() - (step >> 1));                // int swap = scratch[LIX()-(step>>1)];
+                scratchBuf.array(LIX() - (step >> 1), scratchBuf.array(LIX())); // scratch[LIX()-(step>>1)]=scratch[LIX()];
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + swap);        // scratch[LIX()]+= swap;
             }
             kc.barrier();
         }
 
-        if ((kc.lix + 1) == kc.gsx) {
+        if ((LIX() + 1) == GSX()) {
             data[gid] = sum;
         } else if (gid > 0) {
-            data[gid] = scratchBuf.array(kc.lix + 1); //  data[ gid] = scratch[kc.lix+1];
+            data[gid] = scratchBuf.array(LIX() + 1); //  data[ gid] = scratch[LIX()+1];
         }
         kc.barrier(); */
     }
@@ -307,13 +308,13 @@ public class PrefixSum {
         int[] data = dataBuf.arrayView();
         //  int[] scratch=scratchBuf.arrayView();
 
-        scratchBuf.array(kc.lix, data[kc.gix]); // scratch[kc.lix] = data[kc.gix];
+        scratchBuf.array(LIX(), data[GIX()]); // scratch[LIX()] = data[GIX()];
         kc.barrier();
-        if ((kc.lix + 1) != kc.gsx && kc.gix > 0) {// don't do this for last in group
-            scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + data[(kc.gix * kc.gsx) - 1]); // scratch[kc.lix]+= data[(kc.gix*kc.gsx)-1];
+        if ((LIX() + 1) != GSX() && GIX() > 0) {// don't do this for last in group
+            scratchBuf.array(LIX(), scratchBuf.array(LIX()) + data[(GIX() * GSX()) - 1]); // scratch[LIX()]+= data[(GIX()*GSX())-1];
         }
         kc.barrier();
-        data[kc.gix] = scratchBuf.array(kc.lix); // data[kc.gix]=scratch[kc.lix];
+        data[GIX()] = scratchBuf.array(LIX()); // data[GIX()]=scratch[LIX()];
     }
     static String view(int[] data){
         StringBuilder sb = new StringBuilder();

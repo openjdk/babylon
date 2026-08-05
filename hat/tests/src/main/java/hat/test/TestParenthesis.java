@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import jdk.incubator.code.Reflect;
@@ -44,7 +45,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / (TN * TF);
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
@@ -53,7 +54,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / ((TN * TF) / (TN * TN));
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
@@ -62,7 +63,7 @@ public class TestParenthesis {
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX * (TF + 2) / ((TN * TF) / (TN * TN));
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect

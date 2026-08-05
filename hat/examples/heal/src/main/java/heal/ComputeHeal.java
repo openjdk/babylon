@@ -50,6 +50,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.buffer.F32Array;
 import hat.buffer.S32Array2D;
 
@@ -238,7 +239,7 @@ public class ComputeHeal {
                                      Box selectionBox,
                                      XYRGBList xyrgbList,
                                      F32Array sumArray) {
-        bestFitCore(kc.gix, s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
+        bestFitCore(GIX(), s32Array2D, searchArea, selectionBox, xyrgbList, sumArray);
     }
 
     @Reflect

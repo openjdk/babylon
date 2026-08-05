@@ -69,9 +69,10 @@ public abstract class C99JExtractedBackend extends JExtractedBackend {
         }
 
         public void dispatch(KernelContext kernelContext, Object[] args) {
-            this.kernelContext.gsx(kernelContext.gsx);
-            args[0] = this.kernelContext;
-            ArgArray.update(argArray, kernelCallGraph, args);
+            throw new RuntimeException("We need NDRANGE");
+           // this.kernelContext.gsx(kernelContext.gsx);
+           // args[0] = this.kernelContext;
+          //  ArgArray.update(argArray, kernelCallGraph, args);
             //kernelBridge.ndRange(this.argArray);
         }
     }

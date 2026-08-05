@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.types.BF16;
 import hat.buffer.BF16Array;
@@ -52,43 +53,43 @@ public class TestMatMul {
     private static final int SIZE = 256;
 
     @Reflect
-    public static void matrixMultiplyKernel2D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
+    public static void matrixMultiplyKernel2D(KernelContext unused, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+        if (GIX() < GSX()) {
+            if (GIY() < GSY()) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + kc.giy));
+                    acc += (matrixA.array(GIX() * size + k) * matrixB.array(k * size + GIY()));
                 }
-                matrixC.array(kc.gix * size + kc.giy, acc);
+                matrixC.array(GIX() * size + GIY(), acc);
             }
         }
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DLI(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
+    public static void matrixMultiplyKernel2DLI(KernelContext unused, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+        if (GIX() < GSX()) {
+            if (GIY() < GSY()) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.giy * size + k) * matrixB.array(k * size + kc.gix));
+                    acc += (matrixA.array(GIY() * size + k) * matrixB.array(k * size + GIX()));
                 }
-                matrixC.array(kc.giy * size + kc.gix, acc);
+                matrixC.array(GIY() * size + GIX(), acc);
             }
         }
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DLIF16(KernelContext kc, F16Array matrixA, F16Array matrixB, F16Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
-            if (kc.giy < kc.gsy) {
+    public static void matrixMultiplyKernel2DLIF16(KernelContext unused, F16Array matrixA, F16Array matrixB, F16Array matrixC, int size) {
+        if (GIX() < GSX()) {
+            if (GIY() < GSY()) {
                 F16 acc = F16.of(0.0f);
                 for (int k = 0; k < size; k++) {
-                    F16 valA = matrixA.array(kc.giy * size + k);
-                    F16 valB = matrixB.array(k * size + kc.gix);
+                    F16 valA = matrixA.array(GIY() * size + k);
+                    F16 valB = matrixB.array(k * size + GIX());
                     F16 valc = F16.mul(valA, valB);
                     acc = F16.add(acc, valc);
                 }
-                F16 resultC = matrixC.array(kc.giy * size + kc.gix);
+                F16 resultC = matrixC.array(GIY() * size + GIX());
                 resultC.value(acc.value());
             }
         }
@@ -113,16 +114,16 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static void matrixMultiplyKernel2DTiling(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    public static void matrixMultiplyKernel2DTiling(KernelContext unused, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
 
         final int tileSize = 16;
         MyLocalArrayFixedSize tileA = MyLocalArrayFixedSize.createLocal();
         MyLocalArrayFixedSize tileB = MyLocalArrayFixedSize.createLocal();
 
-        int groupIndexX = kc.bix;
-        int groupIndexY = kc.biy;
-        int localIdx = kc.lix;
-        int localIdy = kc.liy;
+        int groupIndexX = BIX();
+        int groupIndexY = BIY();
+        int localIdx = LIX();
+        int localIdy = LIY();
 
         // we identify the row and column
         int row = groupIndexY * tileSize + localIdy;
@@ -137,7 +138,7 @@ public class TestMatMul {
 
             // Apply a barrier for the local group: we need to guarantee that all threads that belong
             // to the same group reach this point before doing the partial reduction
-            kc.barrier();
+            barrier();
 
             // compute partial reductions over the tile
             for (int k = 0; k < tileSize; k++) {
@@ -147,7 +148,7 @@ public class TestMatMul {
             // A new local barrier for all threads that belong to the same group before loading a new tile into
             // share memory. With the following barrier, we can ensure that all threads within the same workgroup
             // finished the compute for the partial reduction
-            kc.barrier();
+            barrier();
         }
 
         // copy result from shared memory to global memory
@@ -155,33 +156,33 @@ public class TestMatMul {
     }
 
     @Reflect
-    public static float compute(KernelContext kc, F32Array matrixA, F32Array matrixB, int size, int j) {
+    public static float compute(KernelContext unused, F32Array matrixA, F32Array matrixB, int size, int j) {
         float acc = 0.0f;
         for (int k = 0; k < size; k++) {
-            acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
+            acc += (matrixA.array(GIX() * size + k) * matrixB.array(k * size + j));
         }
         return acc;
     }
 
     @Reflect
     public static void matrixMultiplyKernel1D(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
+        if (GIX() < GSX()) {
             for (int j = 0; j < size; j++) {
                 float acc = 0.0f;
                 for (int k = 0; k < size; k++) {
-                    acc += (matrixA.array(kc.gix * size + k) * matrixB.array(k * size + j));
+                    acc += (matrixA.array(GIX() * size + k) * matrixB.array(k * size + j));
                 }
-                matrixC.array(kc.gix * size + j, acc);
+                matrixC.array(GIX() * size + j, acc);
             }
         }
     }
 
     @Reflect
     public static void matrixMultiplyKernel1DWithFunctionCalls(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
-        if (kc.gix < kc.gsx) {
+        if (GIX() < GSX()) {
             for (int j = 0; j < size; j++) {
                 float acc = compute(kc, matrixA, matrixB, size, j);
-                matrixC.array(kc.gix * size + j, acc);
+                matrixC.array(GIX() * size + j, acc);
             }
         }
     }
@@ -570,15 +571,15 @@ public class TestMatMul {
         final int TM = 4;
         final int TN = 4;
 
-        int bx = kc.bix;
-        int by = kc.biy;
+        int bx = BIX();
+        int by = BIY();
 
         int totalResultsBlockTile = BM * BN;
         final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
 
-        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
-        final int threadCol = kc.lix;
-        final int threadRow = kc.liy;
+        final int linearLocalId = LIY() * LSX() + LIX();
+        final int threadCol = LIX();
+        final int threadRow = LIY();
 
         SharedMemory tileA = SharedMemory.createLocal();
         SharedMemory tileB = SharedMemory.createLocal();
@@ -621,7 +622,7 @@ public class TestMatMul {
                 tileB.array((innerRowB + loadOffset) * BN + innerColB,
                         matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom));
             }
-            kc.barrier();
+            barrier();
 
             aFrom += (BK);
             int f = BK * size;
@@ -647,7 +648,7 @@ public class TestMatMul {
                     }
                 }
             }
-            kc.barrier();
+            barrier();
         }
 
         // Finally, we store the results of the reductions for the whole 2D register block into global memory.
@@ -675,12 +676,12 @@ public class TestMatMul {
         final int TM = 4;
         final int TN = 4;
 
-        int bx = kc.bix;
-        int by = kc.biy;
+        int bx = BIX();
+        int by = BIY();
 
-        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
-        final int threadCol = kc.lix;
-        final int threadRow = kc.liy;
+        final int linearLocalId = LIY() * LSX() + LIX();
+        final int threadCol = LIX();
+        final int threadRow = LIY();
 
         SharedMemory tileA = SharedMemory.createLocal();
         SharedMemory tileB = SharedMemory.createLocal();
@@ -722,7 +723,7 @@ public class TestMatMul {
             tileB.array(innerRowB * (BN + extraCols) + innerColB * 4 + 2, loadB.z());
             tileB.array(innerRowB * (BN + extraCols) + innerColB * 4 + 3, loadB.w());
 
-            kc.barrier();
+            barrier();
 
             aFrom += (BK);
             int f = BK * size;
@@ -748,7 +749,7 @@ public class TestMatMul {
                     }
                 }
             }
-            kc.barrier();
+            barrier();
         }
 
         // Finally, we store the results of the reductions for the whole 2D register block into global memory.
@@ -902,15 +903,15 @@ public class TestMatMul {
         final int TM = 4;
         final int TN = 4;
 
-        int bx = kc.bix;
-        int by = kc.biy;
+        int bx = BIX();
+        int by = BIY();
 
         int totalResultsBlockTile = BM * BN;
         final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
 
-        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
-        final int threadCol = kc.lix;
-        final int threadRow = kc.liy;
+        final int linearLocalId = LIY() * LSX() + LIX();
+        final int threadCol = LIX();
+        final int threadRow = LIY();
 
         SharedMemoryHalf tileA = SharedMemoryHalf.createLocal();
         SharedMemoryHalf tileB = SharedMemoryHalf.createLocal();
@@ -947,7 +948,7 @@ public class TestMatMul {
                 F16 hb = matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom);
                 tileB.array((innerRowB + loadOffset) * BN + innerColB).value(hb.value());
             }
-            kc.barrier();
+            barrier();
 
             aFrom += (BK);
             int f = BK * size;
@@ -973,7 +974,7 @@ public class TestMatMul {
                     }
                 }
             }
-            kc.barrier();
+            barrier();
         }
         for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
             for (int resIdxN = 0; resIdxN < TN; resIdxN++) {
@@ -1039,15 +1040,15 @@ public class TestMatMul {
         final int TM = 4;
         final int TN = 4;
 
-        int bx = kc.bix;
-        int by = kc.biy;
+        int bx = BIX();
+        int by = BIY();
 
         int totalResultsBlockTile = BM * BN;
         final int numThreadsBlockTile = totalResultsBlockTile / (TM * TN);
 
-        final int linearLocalId = kc.liy * kc.lsx + kc.lix;
-        final int threadCol = kc.lix;
-        final int threadRow = kc.liy;
+        final int linearLocalId = LIY() * LSX() + LIX();
+        final int threadCol = LIX();
+        final int threadRow = LIY();
 
         SharedMemoryBfloat16 tileA = SharedMemoryBfloat16.createLocal();
         SharedMemoryBfloat16 tileB = SharedMemoryBfloat16.createLocal();
@@ -1084,7 +1085,7 @@ public class TestMatMul {
                 BF16 hb = matrixB.array(((innerRowB + loadOffset) * size + innerColB) + bFrom);
                 tileB.array((innerRowB + loadOffset) * BN + innerColB).value(hb.value());
             }
-            kc.barrier();
+            barrier();
 
             aFrom += (BK);
             int f = BK * size;
@@ -1110,7 +1111,7 @@ public class TestMatMul {
                     }
                 }
             }
-            kc.barrier();
+            barrier();
         }
         for (int resIdxM = 0; resIdxM < TM; resIdxM++) {
             for (int resIdxN = 0; resIdxN < TN; resIdxN++) {

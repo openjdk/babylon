@@ -28,6 +28,7 @@ import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
@@ -58,11 +59,11 @@ public class TestPrivate {
     }
 
     @Reflect
-    private static void compute(KernelContext kernelContext, F32Array data) {
+    private static void compute(KernelContext unused, F32Array data) {
         PrivateArray privateArray = PrivateArray.createPrivate();
-        int lix = kernelContext.lix;
-        int blockId = kernelContext.bix;
-        int blockSize = kernelContext.lsx;
+        int lix = LIX();
+        int blockId = BIX();
+        int blockSize = LSX();
         privateArray.array(0, lix);
         data.array(lix + (long) blockId * blockSize, privateArray.array(0));
     }

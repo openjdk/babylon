@@ -46,9 +46,12 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.StringConcatFactory;
+import java.lang.reflect.Member;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static java.lang.classfile.Opcode.*;
 import static java.lang.constant.ConstantDescs.*;
 import static jdk.incubator.code.dialect.java.JavaOp.*;
 
@@ -61,6 +64,13 @@ public final class BytecodeGenerator {
             StringConcatFactory.class.describeConstable().orElseThrow(),
             "makeConcat",
             CD_CallSite);
+
+    private static final MethodTypeDesc MTD_FIND_FIELD =
+            MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_Class);
+    private static final MethodTypeDesc MTD_FIND_METHOD =
+            MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType);
+    private static final MethodTypeDesc MTD_FIND_SPECIAL =
+            MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType, CD_Class);
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -340,11 +350,19 @@ public final class BytecodeGenerator {
         return !op.resultType().equals(JavaType.J_L_CLASS);
     }
 
-    // Single-use var or var with a single-use entry block parameter operand can be deferred
     private static boolean canDefer(VarOp op) {
-        return op.isUninitialized()
-            || !moreThanOneUse(op.result())
-            || op.initOperand() instanceof Block.Parameter bp && bp.declaringBlock().isEntryBlock() && !moreThanOneUse(bp);
+        if (op.isUninitialized()) {
+            // Uninitialized var with single store dominating to all its uses can be deferred
+            var uses = op.result().uses();
+            var storeUses = uses.stream().filter(u -> u.op() instanceof VarAccessOp.VarStoreOp).toList();
+            return storeUses.size() == 1 && uses.stream().allMatch(u -> u.isDominatedBy(storeUses.getFirst()));
+        } else {
+            // Initialized var used only for loads or var with a single-use entry block parameter operand can be deferred
+            return op.result().uses().stream().allMatch(u -> u.op() instanceof VarAccessOp.VarLoadOp)
+                    || op.initOperand() instanceof Block.Parameter bp
+                        && bp.declaringBlock().isEntryBlock()
+                        && !moreThanOneUse(bp);
+        }
     }
 
     // Var load can be deferred when not used as immediate operand
@@ -506,7 +524,17 @@ public final class BytecodeGenerator {
                         }
                     }
                     case VarOp op when op.isUninitialized() -> {
-                        // Do nothing
+                        if (!canDefer(op)) {
+                            switch (toTypeKind(op.resultType()).asLoadable()) {
+                                case INT -> cob.iconst_0();
+                                case LONG -> cob.lconst_0();
+                                case FLOAT -> cob.fconst_0();
+                                case DOUBLE -> cob.dconst_0();
+                                case REFERENCE -> cob.aconst_null();
+                                default -> throw new IllegalArgumentException("Bad variable type: " + toTypeKind(op.resultType()));
+                            }
+                            storeIfUsed(op.result());
+                        }
                     }
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
@@ -753,6 +781,7 @@ public final class BytecodeGenerator {
                         JavaType refType = (JavaType)md.refType();
                         ClassDesc specialCaller = lookup.lookupClass().describeConstable().get();
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.signature());
+                        boolean protectedAccess = false;
                         if (op.invokeKind() == InvokeOp.InvokeKind.SUPER) {
                             // constructs method handle via lookup.findSpecial using the lookup's class as the specialCaller
                             // original lookup is stored in class data
@@ -765,7 +794,21 @@ public final class BytecodeGenerator {
                                .ldc(specialCaller)
                                .invokevirtual(CD_MethodHandles_Lookup,
                                               "findSpecial",
-                                              MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType, CD_Class));
+                                              MTD_FIND_SPECIAL);
+                        } else {
+                            if (!(refType instanceof ArrayType)) { // array methods (e.g. clone) are excluded
+                                try {
+                                    var info = lookup.revealDirect(md.resolveToHandle(lookup, op.invokeKind()));
+                                    protectedAccess = Modifier.isProtected(info.getModifiers())
+                                            && !info.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
+                                } catch (ReflectiveOperationException | IllegalArgumentException _) {
+                                    // @@@ protected access detection failed
+                                }
+                            }
+                            if (protectedAccess) {
+                                lookupHandle(specialCaller, md.name(), mDesc,
+                                             op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
+                            }
                         }
                         if (op.isVarArgs()) {
                             processOperands(op.argOperands());
@@ -781,19 +824,23 @@ public final class BytecodeGenerator {
                         } catch (ReflectiveOperationException e) {
                             throw new IllegalArgumentException(e);
                         }
-                        boolean isInterface =  refClass.isInterface();
+                        boolean isInterface = refClass.isInterface();
                         switch (op.invokeKind()) {
-                            case STATIC ->
-                                    cob.invokestatic(refType.toNominalDescriptor(),
-                                                     md.name(),
-                                                     mDesc,
-                                                     isInterface);
-                            case INSTANCE ->
-                                    cob.invoke(isInterface ? Opcode.INVOKEINTERFACE : Opcode.INVOKEVIRTUAL,
-                                               refType.toNominalDescriptor(),
-                                               md.name(),
-                                               mDesc,
-                                               isInterface);
+                            case STATIC -> {
+                                if (protectedAccess) {
+                                    cob.invokevirtual(CD_MethodHandle, "invokeExact", mDesc);
+                                } else {
+                                    cob.invokestatic(refType.toNominalDescriptor(), md.name(), mDesc, isInterface);
+                                }
+                            }
+                            case INSTANCE -> {
+                                if (protectedAccess) {
+                                    cob.invokevirtual(CD_MethodHandle, "invokeExact", mDesc.insertParameterTypes(0, specialCaller));
+                                } else {
+                                    cob.invoke(isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL,
+                                               refType.toNominalDescriptor(), md.name(), mDesc, isInterface);
+                                }
+                            }
                             case SUPER ->
                                     cob.invokevirtual(CD_MethodHandle,
                                                       "invokeExact",
@@ -814,7 +861,7 @@ public final class BytecodeGenerator {
                         processOperands(op);
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(fop.invokableSignature());
                         cob.invoke(
-                                Opcode.INVOKESTATIC,
+                                INVOKESTATIC,
                                 className,
                                 op.funcName(),
                                 mDesc,
@@ -826,37 +873,8 @@ public final class BytecodeGenerator {
                         }
                         push(op.result());
                     }
-                    case FieldAccessOp.FieldLoadOp op -> {
-                        processOperands(op);
-                        FieldRef fd = op.fieldReference();
-                        if (op.operands().isEmpty()) {
-                            cob.getstatic(
-                                    ((JavaType) fd.refType()).toNominalDescriptor(),
-                                    fd.name(),
-                                    ((JavaType) fd.type()).toNominalDescriptor());
-                        } else {
-                            cob.getfield(
-                                    ((JavaType) fd.refType()).toNominalDescriptor(),
-                                    fd.name(),
-                                    ((JavaType) fd.type()).toNominalDescriptor());
-                        }
-                        push(op.result());
-                    }
-                    case FieldAccessOp.FieldStoreOp op -> {
-                        processOperands(op);
-                        FieldRef fd = op.fieldReference();
-                        if (op.operands().size() == 1) {
-                            cob.putstatic(
-                                    ((JavaType) fd.refType()).toNominalDescriptor(),
-                                    fd.name(),
-                                    ((JavaType) fd.type()).toNominalDescriptor());
-                        } else {
-                            cob.putfield(
-                                    ((JavaType) fd.refType()).toNominalDescriptor(),
-                                    fd.name(),
-                                    ((JavaType) fd.type()).toNominalDescriptor());
-                        }
-                    }
+                    case FieldAccessOp.FieldLoadOp op -> fieldAccess(op);
+                    case FieldAccessOp.FieldStoreOp op -> fieldAccess(op);
                     case InstanceOfOp op -> {
                         processFirstOperand(op);
                         cob.instanceOf(((JavaType) op.targetType()).toNominalDescriptor());
@@ -932,7 +950,7 @@ public final class BytecodeGenerator {
                         conditionalBranch(prepareConditionalBranch(cop), op.trueBranch(), op.falseBranch());
                     } else {
                         processFirstOperand(op);
-                        conditionalBranch(Opcode.IFEQ, op.trueBranch(), op.falseBranch());
+                        conditionalBranch(IFEQ, op.trueBranch(), op.falseBranch());
                     }
                 }
                 case ConstantLabelSwitchOp op -> {
@@ -992,11 +1010,72 @@ public final class BytecodeGenerator {
                     assignBlockArguments(op.endReference());
                     cob.goto_(getLabel(op.endReference()));
                 }
+                case UnreachableOp _ ->
+                    cob.aconst_null().athrow();
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
         }
         exceptionRegionsChange(new Block[0]);
+    }
+
+    private void lookupHandle(ClassDesc owner, String name, ConstantDesc type, String finder) {
+        // handle must precede any operand
+        if (oprOnStack != null) {
+            storeIfUsed(oprOnStack);
+            oprOnStack = null;
+        }
+        cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
+           .checkcast(CD_MethodHandles_Lookup)
+           .ldc(owner)
+           .ldc(name)
+           .ldc(type)
+           .invokevirtual(CD_MethodHandles_Lookup,
+                          finder,
+                          type instanceof MethodTypeDesc ? MTD_FIND_METHOD : MTD_FIND_FIELD);
+    }
+
+    private void fieldAccess(FieldAccessOp op) {
+        FieldRef ref = op.fieldReference();
+        JavaType refType = (JavaType) ref.refType();
+        ClassDesc fieldType = ((JavaType) ref.type()).toNominalDescriptor();
+        boolean store = op instanceof FieldAccessOp.FieldStoreOp;
+        boolean isStatic = op.operands().size() == (store ? 1 : 0);
+        boolean protectedAccess = false;
+        try {
+            Member m = ref.resolveToField(lookup);
+            protectedAccess = Modifier.isProtected(m.getModifiers())
+                    && !m.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
+        } catch (ReflectiveOperationException | IllegalArgumentException _) {
+            // @@@ protected access detection failed
+        }
+        ClassDesc caller = lookup.lookupClass().describeConstable().orElseThrow();
+        if (protectedAccess) {
+            lookupHandle(caller, ref.name(), fieldType, "find" + (isStatic ? "Static" : "") + (store ? "Setter" : "Getter"));
+        }
+        processOperands(op);
+        if (protectedAccess) {
+            cob.invokevirtual(CD_MethodHandle,
+                              "invokeExact",
+                              isStatic ? (store ? MethodTypeDesc.of(CD_void, fieldType)
+                                                : MethodTypeDesc.of(fieldType))
+                                       : (store ? MethodTypeDesc.of(CD_void, caller, fieldType)
+                                                : MethodTypeDesc.of(fieldType, caller)));
+        } else {
+            cob.fieldAccess(isStatic ? (store ? PUTSTATIC : GETSTATIC)
+                                     : (store ? PUTFIELD : GETFIELD),
+                            refType.toNominalDescriptor(),
+                            ref.name(),
+                            fieldType);
+        }
+        if (!store) {
+            ClassDesc ret = toClassDesc(op.resultType());
+            if (!ret.isPrimitive() && !ret.equals(fieldType)) {
+                // Explicit cast if field type differs
+                cob.checkcast(ret);
+            }
+            push(op.result());
+        }
     }
 
     private void loadArray(JavaType compType, List<Value> array) {
@@ -1145,19 +1224,19 @@ public final class BytecodeGenerator {
             return switch (typeKind) {
                 case INT, BOOLEAN, BYTE, SHORT, CHAR ->
                     switch (op) {
-                        case EqOp _ -> Opcode.IFNE;
-                        case NeqOp _ -> Opcode.IFEQ;
-                        case GtOp _ -> Opcode.IFLE;
-                        case GeOp _ -> Opcode.IFLT;
-                        case LtOp _ -> Opcode.IFGE;
-                        case LeOp _ -> Opcode.IFGT;
+                        case EqOp _ -> IFNE;
+                        case NeqOp _ -> IFEQ;
+                        case GtOp _ -> IFLE;
+                        case GeOp _ -> IFLT;
+                        case LtOp _ -> IFGE;
+                        case LeOp _ -> IFGT;
                         default ->
                             throw new UnsupportedOperationException(op + " on int");
                     };
                 case REFERENCE ->
                     switch (op) {
-                        case EqOp _ -> Opcode.IFNONNULL;
-                        case NeqOp _ -> Opcode.IFNULL;
+                        case EqOp _ -> IFNONNULL;
+                        case NeqOp _ -> IFNULL;
                         default ->
                             throw new UnsupportedOperationException(op + " on Object");
                     };
@@ -1169,19 +1248,19 @@ public final class BytecodeGenerator {
         return switch (typeKind) {
             case INT, BOOLEAN, BYTE, SHORT, CHAR ->
                 switch (op) {
-                    case EqOp _ -> Opcode.IF_ICMPNE;
-                    case NeqOp _ -> Opcode.IF_ICMPEQ;
-                    case GtOp _ -> Opcode.IF_ICMPLE;
-                    case GeOp _ -> Opcode.IF_ICMPLT;
-                    case LtOp _ -> Opcode.IF_ICMPGE;
-                    case LeOp _ -> Opcode.IF_ICMPGT;
+                    case EqOp _ -> IF_ICMPNE;
+                    case NeqOp _ -> IF_ICMPEQ;
+                    case GtOp _ -> IF_ICMPLE;
+                    case GeOp _ -> IF_ICMPLT;
+                    case LtOp _ -> IF_ICMPGE;
+                    case LeOp _ -> IF_ICMPGT;
                     default ->
                         throw new UnsupportedOperationException(op + " on int");
                 };
             case REFERENCE ->
                 switch (op) {
-                    case EqOp _ -> Opcode.IF_ACMPNE;
-                    case NeqOp _ -> Opcode.IF_ACMPEQ;
+                    case EqOp _ -> IF_ACMPNE;
+                    case NeqOp _ -> IF_ACMPEQ;
                     default ->
                         throw new UnsupportedOperationException(op + " on Object");
                 };
@@ -1218,12 +1297,12 @@ public final class BytecodeGenerator {
 
     private static Opcode reverseIfOpcode(CompareOp op) {
         return switch (op) {
-            case EqOp _ -> Opcode.IFNE;
-            case NeqOp _ -> Opcode.IFEQ;
-            case GtOp _ -> Opcode.IFLE;
-            case GeOp _ -> Opcode.IFLT;
-            case LtOp _ -> Opcode.IFGE;
-            case LeOp _ -> Opcode.IFGT;
+            case EqOp _ -> IFNE;
+            case NeqOp _ -> IFEQ;
+            case GtOp _ -> IFLE;
+            case GeOp _ -> IFLT;
+            case LtOp _ -> IFGE;
+            case LeOp _ -> IFGT;
             default ->
                 throw new UnsupportedOperationException(op.toString());
         };

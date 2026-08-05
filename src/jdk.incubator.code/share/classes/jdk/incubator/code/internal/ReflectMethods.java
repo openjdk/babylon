@@ -255,7 +255,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             lambdaCount = 0;
             currentClassSym = tree.sym;
             opMethodDecls = new ListBuffer<>();
-            codeModelsClassSym = new ClassSymbol(0, names.fromString("$CM"), currentClassSym);
+            // The flags are usually filled by Check::checkFlags, which we don't run
+            codeModelsClassSym = new ClassSymbol(IDENTITY_TYPE | STATIC, names.fromString("$CM"), currentClassSym);
             ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
             if (!ops.isEmpty()) {
@@ -1259,9 +1260,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
         @Override
         public void visitTypeTest(JCTree.JCInstanceOf tree) {
             Value target = toValue(tree.expr);
-
-            if (tree.pattern.getTag() != Tag.IDENT) {
-                result = scanPattern(tree.getPattern(), target);
+            JCTree.JCPattern pattern = tree.getPattern();
+            if (pattern != null) {
+                result = scanPattern(pattern, target);
             } else {
                 result = append(JavaOp.instanceOf(typeToCodeType(tree.pattern.type), target));
             }
@@ -1470,11 +1471,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public void visitLambda(JCTree.JCLambda tree) {
             final FunctionType lambdaType = typeToFunctionType(types.findDescriptorType(tree.target));
 
-            // Push quoted body
-            // We can either be explicitly quoted or a structural quoted expression
-            // within some larger reflected code
+            // Push quoted body for a reflectable lambda
 
-            // a reflectable lambda is going to have its model wrapped in QuotedOp
+            // A reflectable lambda is going to have its model wrapped in QuotedOp
             // only when we are producing the model of the lambda, thus the condition (isReflectable ...)
             // also, a lambda contained in a reflectable lambda, will not have its model wrapped in QuotedOp,
             // thus the condition (... body == tree)

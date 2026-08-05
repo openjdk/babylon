@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
@@ -45,8 +46,8 @@ public class MinBufferTest {
     public static class ComputeApp {
         @Reflect
         public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
-            if (kc.gix < kc.gsx) {
-                s32Array.array(kc.gix, s32Array.array(kc.gix) + 1);
+            if (GIX() < GSX()) {
+                s32Array.array(GIX(), s32Array.array(GIX()) + 1);
             }
         }
 

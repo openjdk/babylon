@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.KernelContext;
 import hat.dialect.HATBarrierOp;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -41,17 +42,13 @@ import static optkl.OpHelper.Invoke.invoke;
 public record HATBarrierPhase() implements HATPhase {
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-         Set<CodeElement<?,?>> removeMe = new HashSet<>();
          return Trxfmr.of(lookup,funcOp).transform(ce->ce instanceof JavaOp.InvokeOp, c-> {
-                         if (invoke(lookup, c.op()) instanceof OpHelper.Invoke.Virtual  virtual &&
-                                  virtual.isInstanceAccessedViaVarAccess()                  // we are called via var kc such as kc->XX()
-                              && virtual.named(HATBarrierOp.NAME)){
-                             removeMe.add(virtual.instanceVarAccess().op());
+                         if (invoke(lookup, c.op()) instanceof OpHelper.Invoke.Static  staticInvoke &&
+                                  staticInvoke.refIs(KernelContext.class)                 // we are called via var kc such as kc->XX()
+                              && staticInvoke.named(HATBarrierOp.NAME)){
                              c.replace(new HATBarrierOp());
                          }
                     }, varTable)
-                 .remap(removeMe) // replaced varOps with new identities
-                 .remove(removeMe::contains, varTable)
                  .funcOp();
     }
 }

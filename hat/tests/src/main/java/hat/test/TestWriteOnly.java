@@ -59,7 +59,7 @@ public class TestWriteOnly {
     }
 
     @Reflect
-    public static void life(KernelContext kc, CellGrid cellGrid, CellGrid cellGridRes) {
+    public static void life(KernelContext unused, CellGrid cellGrid, CellGrid cellGridRes) {
     }
 
     @Reflect

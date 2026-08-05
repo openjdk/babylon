@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -36,7 +37,7 @@ import optkl.ifacemapper.Schema;
 import io.github.robertograham.rleparser.RleParser;
 import io.github.robertograham.rleparser.domain.PatternData;
 import jdk.incubator.code.Reflect;
-import java.lang.foreign.Arena;
+
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandles;
@@ -200,8 +201,8 @@ public class Main {
 
         @Reflect
         public static void life(KernelContext kc, Control control, CellGrid cellGrid) {
-            if (kc.gix < kc.gsx) {
-                ComputeLife.lifePerIdx(kc.gix, control, cellGrid);
+            if (GIX() < GSX()) {
+                ComputeLife.lifePerIdx(GIX(), control, cellGrid);
             }
         }
 

@@ -56,7 +56,8 @@ public abstract class BackendAdaptor extends Backend {
     @Override
     public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
       //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
-        for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
+        // We need to use NDRANGE here?
+     /*   for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
             try {
                 args[0] = kernelContext;
                 kernelCallGraph.callDag.entryPoint.method().invoke(null, args);
@@ -65,7 +66,7 @@ public abstract class BackendAdaptor extends Backend {
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
-        }
+        } */
     }
 
 

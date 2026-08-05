@@ -27,6 +27,7 @@ package violajones;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.buffer.F32Array2D;
 import hat.buffer.S08x3RGBImage;
 import violajones.ifaces.Cascade;
@@ -71,8 +72,8 @@ public class ViolaJonesCoreCompute {
 
     @Reflect
     public static void rgbToGreyKernel(KernelContext kc, S08x3RGBImage rgbImage, F32Array2D greyImage) {
-        if (kc.gix < kc.gsx){
-           rgbToGrey(kc.gix, rgbImage, greyImage);
+        if (GIX() < GSX()){
+           rgbToGrey(GIX(), rgbImage, greyImage);
         }
     }
 
@@ -86,9 +87,9 @@ public class ViolaJonesCoreCompute {
 
     @Reflect
     public static void integralColKernel(KernelContext kc, F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
-        if (kc.gix <kc.gsx){  // kc.gsx = imageWidth
-           int x = kc.gix;
-           int width = kc.gsx;
+        if (GIX() <GSX()){  // GSX() = imageWidth
+           int x = GIX();
+           int width = GSX();
            int height = greyImage.height();
            for (int y = 1; y < height; y++) {
                int id =(y * width) + x;
@@ -116,8 +117,8 @@ public class ViolaJonesCoreCompute {
 
     @Reflect
     public static void integralRowKernel(KernelContext kc, F32Array2D integral, F32Array2D integralSq) {
-        if (kc.gix <kc.gsx){  // kc.gsx == imageHeight
-           int y = kc.gix;
+        if (GIX() <GSX()){  // GSX() == imageHeight
+           int y = GIX();
            int width = integral.width();
            for (int x = 1; x < width; x++) {
                int id =(y * width) + x;
@@ -239,7 +240,7 @@ public class ViolaJonesCoreCompute {
 
     ) {
 
-        if (kc.gix < kc.gsx){//;scaleTable.multiScaleAccumulativeRange()) {
+        if (GIX() < GSX()){//;scaleTable.multiScaleAccumulativeRange()) {
             // We need to determine the scale information for a given gid.
             // we check each scale in the scale table and check if our gid is
             // covered by the scale.
@@ -248,7 +249,7 @@ public class ViolaJonesCoreCompute {
           //  var offset=scale.offset();
            // System.out.println("scale offset "+offset);
             scalc++;
-            while (kc.gix >= scale.accumGridSizeMax() && scalc<scaleTable.length()) {
+            while (GIX() >= scale.accumGridSizeMax() && scalc<scaleTable.length()) {
                 scale = scaleTable.scale(scalc);
              //   var layout =scale.layout();
               //  offset=scale.offset();
@@ -257,7 +258,7 @@ public class ViolaJonesCoreCompute {
             }
 
             // Now we need to convert our scale relative git to an x,y,w,h
-            int scaleGid = kc.gix - scale.accumGridSizeMin();
+            int scaleGid = GIX() - scale.accumGridSizeMin();
 
             int x = (int) ((scaleGid % scale.gridWidth()) * scale.scaledXInc());
             int y = (int) ((scaleGid / scale.gridWidth()) * scale.scaledYInc());
@@ -285,7 +286,7 @@ public class ViolaJonesCoreCompute {
                 Cascade.Stage stage = cascade.stage(stagec);
               //  Class stageClass = stage.getClass();
                // long stageOffset = stage.offset();
-                stillLooksLikeAFace = isAFaceStage(kc.gix, scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
+                stillLooksLikeAFace = isAFaceStage(GIX(), scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
             }
 
             if (stillLooksLikeAFace) {
