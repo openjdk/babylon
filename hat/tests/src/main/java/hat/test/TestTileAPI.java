@@ -110,8 +110,8 @@ public class TestTileAPI {
 //            """)
     public static void helloTile(@RO TileContext tc, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
         final var pid = tc.bid(0);
-        var aTile = tc.load(inputA, pid, tc.shape(tile_size));
-        var bTile = tc.load(inputB, pid, tile_size);
+        var aTile = tc.load(inputA, pid, 16);
+        var bTile = tc.load(inputB, pid, 16);
         var tileResult = TileOp.add(aTile, bTile);  // TODO: we need to infer the shape of the resulting tile based on the operands
         tc.store(output, pid, tileResult);
     }

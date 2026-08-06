@@ -1074,6 +1074,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    private CudaHATKernelBuilder genTileConstantShape(Value value) {
+        if (value.declaringElement() instanceof CoreOp.ConstantOp constant) {
+            Object value1 = constant.value();
+            if (value1 instanceof Integer i) {
+                id("ct::shape{" + i + "_ic}");
+            } else {
+                throw new IllegalStateException("Expected a integer value to specify a tile shape");
+            }
+        } else {
+            throw new IllegalStateException("Expected a ConstantOp for obtaining the Tile Shape, but found: " + value.declaringElement().getClass());
+        }
+        return self();
+    }
+
     @Override
     protected CudaHATKernelBuilder hatTileLoadOperation(Invoke invoke) {
         List<Value> operands = invoke.op().operands();
@@ -1089,17 +1103,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         // If it is 1D, then the length is taken from the "length" field.
         int dimensions = obtainShapeDimensions(shape);
         if (dimensions == 1) {
-            //recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
             getLengthInput(inputReference);
         } else {
             throw new UnsupportedOperationException("Tile dimensions not controlled");
         }
-        id("}}, ct::shape{ 16_ic");
-
-        // We can't use a shape that is not a constant value
-        //recurseResultOrThrow(shape);
-
-        id(" }}.load_masked(");
+        id("}}").comma();
+        genTileConstantShape(shape);
+        id(" }.load_masked(");
         recurseResultOrThrow(blockId);
         id(")");
         return self();
@@ -1116,9 +1126,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
         getLengthInput(inputReference);
-        id("}}, ct::shape{ 16_ic");
+        id("}},");
+        id("ct::shape{ 16_ic }");
 
-        id(" }}.store_masked(");
+        id(" }.store_masked(");
         recurseResultOrThrow(tensor)
                 .comma()
                 .sp()
