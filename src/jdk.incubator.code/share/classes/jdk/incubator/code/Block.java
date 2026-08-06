@@ -47,6 +47,8 @@ public final class Block implements CodeElement<Block, Op> {
      */
     public static final class Parameter extends Value {
         Parameter(Block block, CodeType type) {
+            Objects.requireNonNull(type);
+
             super(block, type);
         }
 
@@ -500,6 +502,9 @@ public final class Block implements CodeElement<Block, Op> {
         final CodeTransformer ct;
 
         Builder(Body.Builder parentBody, CodeContext cc, CodeTransformer ct) {
+            Objects.requireNonNull(cc);
+            Objects.requireNonNull(ct);
+
             this.parentBody = parentBody;
             this.cc = cc;
             this.ct = ct;
@@ -571,8 +576,6 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Block.Builder withContextAndTransformer(CodeContext cc, CodeTransformer ct) {
             check();
-            Objects.requireNonNull(cc);
-            Objects.requireNonNull(ct);
             return this.cc == cc && this.ct == ct
                     ? this
                     : this.target().new Builder(parentBody(), cc, ct);
@@ -588,7 +591,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @return the new block builder
          */
         public Block.Builder block(CodeType... params) {
-            check();
+            check(); // needs to be here to make sure finished building check precede null check
             return block(List.of(params));
         }
 
@@ -603,10 +606,6 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Block.Builder block(List<CodeType> params) {
             check();
-            Objects.requireNonNull(params);
-            if (params.stream().anyMatch(Objects::isNull)) {
-                throw new NullPointerException();
-            }
             return parentBody.block(params, cc, ct);
         }
 
@@ -628,7 +627,6 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Parameter parameter(CodeType p) {
             check();
-            Objects.requireNonNull(p);
             return appendBlockParameter(p);
         }
 
@@ -643,7 +641,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @throws IllegalArgumentException if any argument's declaring block is built.
          */
         public Reference reference(Value... args) {
-            check();
+            check(); // needs to be here to make sure finished building check precede null check
             return reference(List.of(args));
         }
 
@@ -659,8 +657,6 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Reference reference(List<? extends Value> args) {
             check();
-            Objects.requireNonNull(args);
-            args.forEach(Objects::requireNonNull);
 
             if (isEntryBlock()) {
                 throw new IllegalStateException("Entry block cannot be referenced and targeted as a successor");
@@ -725,11 +721,6 @@ public final class Block implements CodeElement<Block, Op> {
         public void transformBody(Body body, List<? extends Value> entryValues,
                                   CodeContext cc, CodeTransformer ct) {
             check();
-            Objects.requireNonNull(body);
-            Objects.requireNonNull(entryValues);
-            entryValues.forEach(Objects::requireNonNull);
-            Objects.requireNonNull(cc);
-            Objects.requireNonNull(ct);
 
             ct.acceptBody(withContextAndTransformer(cc, ct), body, entryValues);
         }
