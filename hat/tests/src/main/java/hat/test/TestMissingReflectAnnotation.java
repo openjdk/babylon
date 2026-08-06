@@ -27,7 +27,6 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
 import hat.backend.Backend;
 import static hat.KernelContext.*;
 import hat.buffer.S32Array;
@@ -47,14 +46,14 @@ public class TestMissingReflectAnnotation {
     }
 
     @Reflect
-    public static void squareKernel(KernelContext unused, S32Array array) {
+    public static void squareKernel(S32Array array) {
         if (GIX() < GSX()){
             int value = array.array(GIX());
             array.array(GIX(), squareit(value));
         }
     }
 
-    public static void squareKernelWithoutReflectAnnotation(KernelContext unused, S32Array array) {
+    public static void squareKernelWithoutReflectAnnotation( S32Array array) {
         if (GIX() < GSX()){
             int value = array.array(GIX());
             array.array(GIX(), squareit(value));
@@ -64,13 +63,13 @@ public class TestMissingReflectAnnotation {
     @Reflect
     public static void square(ComputeContext cc, S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
-                kc -> squareKernelWithoutReflectAnnotation(kc, array)
+                () -> squareKernelWithoutReflectAnnotation( array)
         );
     }
 
     public static void squareWithoutReflectAnnotation(ComputeContext cc, S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
-                kc -> squareKernel(kc, array)
+                () -> squareKernel( array)
         );
     }
 

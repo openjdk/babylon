@@ -54,17 +54,11 @@ public class OpenCLBackend extends C99FFIBackend {
 
     @Override
     final public void dispatchKernel(KernelCallGraph kernelCallGraph,  NDRange ndRange, Object... dispatchContextAndArgs) {
-        // We get passed an empty slot for the dispatchContext... but this is irrelavent for code get
-        if (dispatchContextAndArgs[0] instanceof DispatchContext dispatchContext){
-             // what if the first arg is null ?
-        }else {
+        if (!(dispatchContextAndArgs[0] instanceof DispatchContext )){
             throw new RuntimeException("No dispatch context");
         }
-        Object[] justArgs = Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length-1);
+        Object[] justArgs = Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            // We get passed an empty slot for the dispatchContext... but this is irrelavent for code get
-
-
             String code = createC99(kernelCallGraph, justArgs);
             if (config().showCode()) {
                 System.out.println(code);

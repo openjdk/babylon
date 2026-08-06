@@ -26,14 +26,12 @@
 package hat.backend.ffi;
 
 import hat.Config;
-import hat.KernelContext;
 import hat.NDRange;
 import hat.annotations.Kernel;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.buffer.ArgArray;
 import hat.buffer.DispatchContext;
-import hat.buffer.KernelBufferContext;
 import hat.callgraph.IfaceDataDag;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.MethodCallDag;

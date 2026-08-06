@@ -27,7 +27,6 @@ package mandel;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.Backend;
 import static hat.KernelContext.*;
@@ -67,7 +66,7 @@ public class Main {
 
     @Reflect
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
-        computeContext.newDispatchKernel(
+        computeContext.dispatchKernel(
                 NDRange.of1D(s32Array2D.width()*s32Array2D.height()),               //0..S32Array2D.size()
                 () -> Main.mandel( s32Array2D, pallete, x, y, scale));
     }

@@ -27,7 +27,7 @@ package flashattention;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.HATMath;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -92,7 +92,6 @@ public class Main {
      * - Final matmul: attention ^ V
      * In a single kernel. But it does not apply the techniques for the self-attention using tiling and shared-memory.
      *
-     * @param kernelContext
      * @param Q
      * @param K
      * @param V
@@ -103,10 +102,10 @@ public class Main {
      * @param softMaxScale
      */
     @Reflect
-    public static void selfAttentionV2HAT(KernelContext unused,
-                                          F32Array Q, F32Array K, F32Array V,
-                                          F32Array attentionMatrix, F32Array O,
-                                          final int N, final int d, final float softMaxScale) {
+    public static void selfAttentionV2HAT(
+            F32Array Q, F32Array K, F32Array V,
+            F32Array attentionMatrix, F32Array O,
+            final int N, final int d, final float softMaxScale) {
         int idx = GIX();
         if (idx < N) {
             // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
@@ -317,7 +316,7 @@ public class Main {
                                              F32Array attentionMatrix,  F32Array O,
                                             final int N, final int d, final float softmaxScale) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(256));
-        computeContext.dispatchKernel(ndRange, kernelContext -> selfAttentionV2HAT(kernelContext, Q, K, V, attentionMatrix, O, N, d, softmaxScale));
+        computeContext.dispatchKernel(ndRange, () -> selfAttentionV2HAT( Q, K, V, attentionMatrix, O, N, d, softmaxScale));
     }
 
     // Express a float array in shared memory with HAT
@@ -368,7 +367,6 @@ public class Main {
      * a naive version of flash-attention using tiling, private and shared memory on the GPU
      * with HAT.</p>
      *
-     * @param kernelContext
      * @param Q
      * @param K
      * @param V
@@ -380,10 +378,10 @@ public class Main {
      * @param softmaxScale
      */
     @Reflect
-    public static void flashAttention(KernelContext unused,
-                                      F32Array Q, F32Array K, F32Array V,
-                                      F32Array O, F32Array m, F32Array l,
-                                      final int N, final int d, final float softmaxScale) {
+    public static void flashAttention(
+            F32Array Q, F32Array K, F32Array V,
+            F32Array O, F32Array m, F32Array l,
+            final int N, final int d, final float softmaxScale) {
         int bx = BIX();
         int tid = LIX();
 
@@ -489,7 +487,7 @@ public class Main {
                                               F32Array O,  F32Array m,  F32Array l,
                                              final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> flashAttention(kernelContext, Q, K, V, O, m, l, N, d, scale));
+        computeContext.dispatchKernel(ndRange, () -> flashAttention( Q, K, V, O, m, l, N, d, scale));
     }
 
     private interface SharedF16Array extends NonMappableIface {
@@ -521,10 +519,10 @@ public class Main {
     }
 
     @Reflect
-    public static void flashAttentionF16(KernelContext __,
-                                      F16Array Q, F16Array K, F16Array V,
-                                      F16Array O, F16Array m, F16Array l,
-                                      final int N, final int d, final float softmaxScale) {
+    public static void flashAttentionF16(
+            F16Array Q, F16Array K, F16Array V,
+            F16Array O, F16Array m, F16Array l,
+            final int N, final int d, final float softmaxScale) {
         int bx = BIX();
         int tid = LIX();
 
@@ -655,7 +653,7 @@ public class Main {
                                                  F16Array O,  F16Array m,  F16Array l,
                                                 final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> flashAttentionF16(kernelContext, Q, K, V, O, m, l, N, d, scale));
+        computeContext.dispatchKernel(ndRange, () -> flashAttentionF16( Q, K, V, O, m, l, N, d, scale));
     }
 
     public static boolean checkResult(F32Array O_reference, F32Array O, final int matrixSize) {

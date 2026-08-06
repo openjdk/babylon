@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -42,7 +42,7 @@ public class TestConstants {
     public static final int CONSTANT = 100;
 
     @Reflect
-    public static void vectorWithConstants(KernelContext unused, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
+    public static void vectorWithConstants( S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         final int BM = 100;
         if (GIX() < GSX()) {
             final int valueA = arrayA.array(GIX());
@@ -53,7 +53,7 @@ public class TestConstants {
 
     @Reflect
     public static void vectorWithConstants(ComputeContext cc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
-        cc.dispatchKernel(NDRange.of1D(arrayA.length()), kc -> vectorWithConstants(kc, arrayA, arrayB, arrayC));
+        cc.dispatchKernel(NDRange.of1D(arrayA.length()), () -> vectorWithConstants( arrayA, arrayB, arrayC));
     }
 
     /**
@@ -92,7 +92,7 @@ public class TestConstants {
     }
 
     @Reflect
-    public static void vectorWithConstants2(KernelContext unused, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
+    public static void vectorWithConstants2( S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         if (GIX() < GSX()) {
             final int valueA = arrayA.array(GIX());
             final int valueB = arrayB.array(GIX());
@@ -103,7 +103,7 @@ public class TestConstants {
 
     @Reflect
     public static void vectorWithConstants2(ComputeContext cc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
-        cc.dispatchKernel(NDRange.of1D(arrayA.length()), kc -> vectorWithConstants2(kc, arrayA, arrayB, arrayC));
+        cc.dispatchKernel(NDRange.of1D(arrayA.length()), () -> vectorWithConstants2( arrayA, arrayB, arrayC));
     }
 
     /**

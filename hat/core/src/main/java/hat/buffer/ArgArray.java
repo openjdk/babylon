@@ -319,7 +319,7 @@ public interface ArgArray extends Buffer {
                         buf.access(accessType.value);
                     } else {
                         // otherwise, we rely on the buffer-tagger to set the accessor
-                        buf.access(bufferAccessList.get(finalArgIndex).value);
+                        buf.access(bufferAccessList.get(finalArgIndex-1).value);
                     }
                 }
                 case Buffer buffer -> {
