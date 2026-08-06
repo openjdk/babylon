@@ -1199,11 +1199,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatTileOp(HATTileOp hatTileOp) {
-        id("ct::bid().x;").nl();
-//        id("auto a = ct::assume_aligned(inputA->array, 16_ic);").nl();
-//        id("auto b = ct::assume_aligned(inputB->array, 16_ic);").nl();
-//        id("auto c = ct::assume_aligned(output->array, 16_ic);").nl();
-        return self();
+        return id("ct::bid().x;");
     }
 
     public CudaHATKernelBuilder restrict() {
