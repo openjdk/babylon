@@ -1,18 +1,94 @@
 package hat.phases;
 
+import hat.Tile;
 import hat.TileContext;
 import hat.TileOp;
+import hat.buffer.TensorF32;
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.Trxfmr;
 import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public record HATTilesPhase() implements HATPhase {
+
+    private CoreOp.FuncOp appendAlignment(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+        Set<Op> opsToProcess = new HashSet<>();
+        boolean isTileUsed = OpHelper.Invoke.stream(lookup, funcOp)
+                .filter(invoke -> !invoke.returnsVoid())
+                .anyMatch(invoke -> invoke.refIs(TileContext.class));
+        if (isTileUsed) {
+            // We need to transform the code tree to insert a Invoke for the alignment associated with a new var
+            // to carry for all loads/store operations after the alignment.
+            List<Block.Parameter> parameters = funcOp.body().entryBlock().parameters();
+            Op firstOp = funcOp.bodies().getFirst().blocks().getFirst().firstOp();
+            // analyze each parameter
+            List<CoreOp.VarOp> tileArgs = new ArrayList<>();
+            for (Block.Parameter p : parameters) {
+                Op.Result paramUsage = p.uses().getFirst();
+                if (paramUsage.declaringElement() instanceof CoreOp.VarOp varOp) {
+                    var s = varOp.resultType().valueType();
+                    if (s.toString().equals(TensorF32.class.getCanonicalName())) {
+                        tileArgs.add(varOp);
+                        opsToProcess.add(varOp);
+                    }
+                    firstOp = varOp;
+                }
+            }
+            Map<Op, Op.Result> paramMap = new HashMap<>();
+            Op finalFirstOp = firstOp;
+            Map<Op, Op.Result> useVarOps = new HashMap<>();
+            CoreOp.FuncOp finalFuncOp = funcOp;
+            funcOp = funcOp.transform((builder, op) -> {
+                if (opsToProcess.contains(op) && op instanceof CoreOp.VarOp varOp) {
+                    Op.Result newVarOpResult = builder.add(op);
+                    paramMap.put(op, newVarOpResult);
+                    SequencedSet<Op.Result> uses = varOp.result().uses();
+                } else if (op == finalFirstOp) {
+                    builder.add(finalFirstOp);
+                    // place new invoke ops here
+                    // do this for all parameters
+                    for (CoreOp.VarOp varTile : tileArgs) {
+                        CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);
+                        Op.Result constantValue = builder.add(constantOp);
+                        JavaOp.InvokeOp invoke = JavaOp.invoke(TILE_ARRAY_ALIGN, List.of(paramMap.get(varTile), constantValue));
+                        Op.Result invokeResult = builder.add(invoke);
+                        CoreOp.VarOp varOp = CoreOp.var(varTile.varName().concat("_"), invokeResult);
+                        Op.Result varOpResult = builder.add(varOp);
+                        for (Op.Result u: varTile.result().uses()) {
+                            useVarOps.put(u.op(), varOpResult);
+                            opsToProcess.add(u.op());
+                        }
+                        varTable.addIfNeededOrThrow(finalFuncOp.funcName(), varOp, VarTable.HATOpAttribute.TILE);
+                    }
+                } else if (opsToProcess.contains(op) && op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                    CoreOp.VarAccessOp.VarLoadOp v = CoreOp.varLoad(useVarOps.get(varLoadOp));
+                    Op.Result newVarLoad = builder.add(v);
+                    builder.context().mapValue(varLoadOp.result(), newVarLoad);
+
+                } else {
+                    builder.add(op);
+                }
+               return builder;
+            });
+        }
+        return funcOp;
+    }
+
+    private static final MethodRef TILE_ARRAY_ALIGN = MethodRef.method(TileAlign.class, "align", Tile.class, Object.class, int.class);
+
+    public static class TileAlign {
+        public static Tile align(Object inputRef, int alignment) {
+            return null;
+        }
+    }
 
     private CoreOp.FuncOp classifyTileVarOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         // process Tile-Vars to insert into the VarTable
@@ -66,9 +142,14 @@ public record HATTilesPhase() implements HATPhase {
 
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        funcOp = classifyTileVarOp(lookup, funcOp, varTable);
-        funcOp = classifyArithmeticTileVarOp(lookup, funcOp, varTable);
-        return funcOp;
+        List<ActionTransformer> transformers = List.of(
+                this::appendAlignment,
+                this::classifyTileVarOp,
+                this::classifyArithmeticTileVarOp
+        );
+        CoreOp.FuncOp[] f = new CoreOp.FuncOp[] {funcOp};
+        transformers.forEach(action -> f[0] = action.apply(lookup, f[0], varTable));
+        return f[0];
     }
 
 }

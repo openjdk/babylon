@@ -1031,6 +1031,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     }
 
+    @Override
+    protected CudaHATKernelBuilder hatTileAlignOperation(Invoke invoke) {
+        return id("ct::assume_aligned").paren( _ ->
+                recurseResultOrThrow(invoke.op().operands().getFirst()).rarrow().id(ARRAY)
+                .comma().sp()
+                .recurseResultOrThrow(invoke.op().operands().get(1)).id("_ic"));
+    }
+
     private int obtainShapeDimensions(Value value) {
         int dimensions;
         if (value.asResult().op().resultType().equals(JavaType.INT)) {
@@ -1057,14 +1065,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value shape = operands.get(3);
 
         id("ct::partition_view{ct::tensor_span{");
-        recurseResultOrThrow(inputReference).rarrow().id(ARRAY);
+        recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
 
         // We assume the input is TileF32Array for the TileAPI.
         // If it is 1D, then the length is taken from the "length" field.
         int dimensions = obtainShapeDimensions(shape);
         if (dimensions == 1) {
-            recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
+            //recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
+            intConst(1024);
         } else {
             throw new UnsupportedOperationException("Tile dimensions not controlled");
         }
@@ -1087,9 +1096,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value tensor = operands.get(3);
 
         id("ct::partition_view{ct::tensor_span{");
-        recurseResultOrThrow(inputReference).rarrow().id(ARRAY);
+        recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
-        recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
+        //recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
+        intConst(1024);
         id("}}, ct::shape{ 16_ic");
 
         id(" }}.store_masked(");

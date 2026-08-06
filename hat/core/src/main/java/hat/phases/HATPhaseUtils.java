@@ -226,7 +226,7 @@ public class HATPhaseUtils {
     }
 
     public static boolean isTileOperation(OpHelper.Invoke invoke) {
-        return isTileLoad(invoke) || isTileStore(invoke) || isTileMath(invoke);
+        return isTileLoad(invoke) || isTileStore(invoke) || isTileMath(invoke) || isAlignOperation(invoke);
     }
 
     public static boolean isTileLoad(OpHelper.Invoke invoke) {
@@ -239,6 +239,10 @@ public class HATPhaseUtils {
 
     public static boolean isTileMath(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && invoke.refIs(TileOp.class) && invoke.nameMatchesRegex("add|mma");
+    }
+
+    public static boolean isAlignOperation(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(HATTilesPhase.TileAlign.class);
     }
 
     public static boolean isTensorCreate(OpHelper.Invoke invoke) {

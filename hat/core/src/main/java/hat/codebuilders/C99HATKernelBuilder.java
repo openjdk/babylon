@@ -901,6 +901,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void handleTileOperation(Invoke invoke) {
         switch (invoke.name()) {
+            case "align" -> hatTileAlignOperation(invoke);
             case "load" -> hatTileLoadOperation(invoke);
             case "store" -> hatTileStoreOperation(invoke);
             case "add","sub","mul","div"  -> hatTileBinaryArithmeticOperation(invoke);
@@ -1593,6 +1594,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T hatTensorLoad(Invoke invoke);
 
+    protected abstract T hatTileAlignOperation(Invoke invoke);
+    
     protected abstract T hatTileLoadOperation(Invoke invoke);
 
     protected abstract T hatTileStoreOperation(Invoke invoke);

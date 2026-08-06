@@ -937,6 +937,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    protected OpenCLHATKernelBuilder hatTileAlignOperation(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("Align Tile operation not supported yet for the OpenCL backend");
+    }
+
+    @Override
     protected OpenCLHATKernelBuilder hatTileLoadOperation(OpHelper.Invoke invoke) {
         throw new UnsupportedOperationException("HAT Tile Load Operation not supported for the OpenCL backend");
     }
