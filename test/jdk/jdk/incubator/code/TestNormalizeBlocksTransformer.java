@@ -384,6 +384,47 @@ public class TestNormalizeBlocksTransformer {
                 return %14;
             };
             """;
+    static final String TEST7_INPUT = """
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                cbranch %0 ^block_1 ^block_2(%0);
+
+              ^block_1:
+                %1 : java.type:"boolean" = constant @true;
+                branch ^block_2(%1);
+
+              ^block_2(%2 : java.type:"boolean"):
+                cbranch %2 ^block_3 ^block_4;
+
+              ^block_3:
+                branch ^block_5;
+
+              ^block_4:
+                branch ^block_5;
+
+              ^block_5:
+                return;
+            };
+            """;
+    static final String TEST7_EXPECTED = """
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                cbranch %0 ^block_1 ^block_2(%0);
+
+              ^block_1:
+                branch ^block_3;
+
+              ^block_2(%1 : java.type:"boolean"):
+                cbranch %1 ^block_3 ^block_4;
+
+              ^block_3:
+                branch ^block_5;
+
+              ^block_4:
+                branch ^block_5;
+
+              ^block_5:
+                return;
+            };
+            """;
     static Object[][] testModels() {
         return new Object[][]{
                 parse(TEST1_INPUT, TEST1_EXPECTED),
@@ -392,6 +433,7 @@ public class TestNormalizeBlocksTransformer {
                 parse(TEST4_INPUT, TEST4_EXPECTED),
                 parse(TEST5_INPUT, TEST5_EXPECTED),
                 parse(TEST6_INPUT, TEST6_EXPECTED),
+                parse(TEST7_INPUT, TEST7_EXPECTED),
         };
     }
 

@@ -83,18 +83,17 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                 // directly to the true or false branch, based on the constant value.
                 CoreOp.ConditionalBranchOp cbo = (CoreOp.ConditionalBranchOp)bop.branch().targetBlock().terminatingOp();
                 Block.Reference br = (Boolean)cop.value() ? cbo.trueBranch() : cbo.falseBranch();
-                if (br.targetBlock().predecessors().size() == 1) {
-                    // Merge the successor's target block with this block
-                    mergeBlock(b, br.targetBlock());
-                } else {
-                    b.add(CoreOp.branch(b.context().getReferenceOrCreate(br)));
-                }
-
                 // Remove the conditional dispatching block if all predecessor reference args are constants
                 if (bop.branch().targetBlock().predecessorReferences().stream()
                         .allMatch(r -> r.arguments().getFirst() instanceof Op.Result orr && orr.op() instanceof CoreOp.ConstantOp)) {
                     mergedBlocks.add(bop.branch().targetBlock());
+                    if (br.targetBlock().predecessors().size() == 1) {
+                        // Merge the successor's target block with this block
+                        mergeBlock(b, br.targetBlock());
+                        break;
+                    }
                 }
+                b.add(CoreOp.branch(b.context().getReferenceOrCreate(br)));
             }
             case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
                 // Merge the successor's target block with this block, and so on

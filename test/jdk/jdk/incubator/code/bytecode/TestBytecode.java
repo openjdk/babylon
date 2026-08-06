@@ -626,6 +626,11 @@ public class TestBytecode {
         }
     }
 
+    @Reflect
+    static int constantMerge(boolean value) {
+        return (value && true) ? 1 : 0;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
