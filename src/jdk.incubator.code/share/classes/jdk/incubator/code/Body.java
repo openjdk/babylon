@@ -717,9 +717,11 @@ public final class Body implements CodeElement<Body, Block> {
 
                         // Check successor arity
                         if (s.arguments().size() > target.parameters().size()) {
-                            String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
-                                    target, s.arguments().size(), target.parameters().size());
-                            throw new IllegalStateException(m);
+                            String m = String.format("Block reference argument count is %d but target block parameter count is %d",
+                                    s.arguments().size(), target.parameters().size());
+                            throw new IllegalStateException(m + "\n"
+                                    + n.diagnosticText(n.ops.getLast(), "reference with wrong arity")
+                                    + target.diagnosticText("target block"));
                         }
 
                         // Update target's predecessors with n
@@ -752,7 +754,8 @@ public final class Body implements CodeElement<Body, Block> {
 
         private static void checkBlock(Block b) {
             if (b.ops.isEmpty() || !(b.ops.getLast() instanceof Op.Terminating)) {
-                throw new IllegalStateException("Block has no terminating operation as the last operation");
+                throw new IllegalStateException("Block has no terminating operation as the last operation\n"
+                        + b.diagnosticText("missing terminal op"));
             }
         }
 
@@ -798,13 +801,17 @@ public final class Body implements CodeElement<Body, Block> {
                         case Op op -> {
                             Op.Result use = op.result();
                             if (!use.uses.isEmpty()) {
-                                throw new IllegalStateException("Use of an operation result is not dominated by the result");
+                                throw new IllegalStateException("Use of an operation result is not dominated by the result\n"
+                                        + use.block.diagnosticText(use, "declaration")
+                                        + use.uses.getFirst().block.diagnosticText(use.uses.getFirst(), "invalid use"));
                             }
                         }
                         case Block bb -> {
                             for (Block.Parameter p : bb.parameters()) {
                                 if (!p.uses.isEmpty()) {
-                                    throw new IllegalStateException("Use of block parameter is not dominated by the parameter");
+                                    throw new IllegalStateException("Use of block parameter is not dominated by the parameter\n"
+                                            + p.block.diagnosticText(p, "value declared here")
+                                            + p.uses.getFirst().block.diagnosticText(p.uses.getFirst(), "invalid use"));
                                 }
                             }
                         }
@@ -835,7 +842,9 @@ public final class Body implements CodeElement<Body, Block> {
                     for (Block.Parameter p : block.parameters()) {
                         for (Op.Result use : p.uses()) {
                             if (!use.declaringBlock().isDominatedBy(block)) {
-                                throw new IllegalStateException("Use of value is not dominated by value");
+                                throw new IllegalStateException("Use of value is not dominated by value\n"
+                                        + p.block.diagnosticText(p, "value declared here")
+                                        + use.block.diagnosticText(use, "invalid use"));
                             }
                         }
                     }
@@ -844,7 +853,9 @@ public final class Body implements CodeElement<Body, Block> {
                         Op.Result r = o.result();
                         for (Op.Result use : r.uses()) {
                             if (!use.declaringBlock().isDominatedBy(block)) {
-                                throw new IllegalStateException("Use of value is not dominated by value");
+                                throw new IllegalStateException("Use of value is not dominated by value\n"
+                                        + r.block.diagnosticText(r, "value declared here")
+                                        + use.block.diagnosticText(use, "invalid use"));
                             }
                         }
                     }

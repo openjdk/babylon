@@ -58,19 +58,20 @@ public final class Quoted<T extends Op> {
     public Quoted(T op, Map<Value, Object> operandsAndCapturedValues) {
         SequencedMap<Value, Object> m = new LinkedHashMap<>();
         for (Value value : op.operands()) {
-            m.put(value, runtimeValue(operandsAndCapturedValues, value));
+            m.put(value, runtimeValue(operandsAndCapturedValues, value, "operand"));
         }
         for (Value value : op.capturedValues()) {
-            m.put(value, runtimeValue(operandsAndCapturedValues, value));
+            m.put(value, runtimeValue(operandsAndCapturedValues, value, "captured value"));
         }
 
         this.op = op;
         this.operandsAndCapturedValues = Collections.unmodifiableSequencedMap(m);
     }
 
-    static Object runtimeValue(Map<Value, Object> operandsAndCapturedValues, Value value) {
+    static Object runtimeValue(Map<Value, Object> operandsAndCapturedValues, Value value, String role) {
         if (!operandsAndCapturedValues.containsKey(value)) {
-            throw new IllegalArgumentException("Value is not present as a key in the map of values");
+            throw new IllegalArgumentException("Cannot create a quoted value because no runtime value was provided for this "
+                    + role + "\n" + value.block.diagnosticText(value, role + " without runtime value"));
         }
         return operandsAndCapturedValues.get(value);
     }
