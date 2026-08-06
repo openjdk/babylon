@@ -1226,7 +1226,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder hatTileOp(HATTileOp hatTileOp) {
-        return id("ct::bid().x;");
+        return id("ct::bid()").dot().id("x").semicolon();
     }
 
     public CudaHATKernelBuilder restrict() {
