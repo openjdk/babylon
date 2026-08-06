@@ -112,4 +112,55 @@ public class TestLoop {
         }
         return sum;
     }
+
+    @Reflect
+    @LoweredModel(value = """
+            func @"testLoopWithSwitchAndContinue" (%0 : java.type:"boolean", %1 : java.type:"int")java.type:"void" -> {
+                %2 : Var<java.type:"boolean"> = var %0 @"repeat";
+                %3 : Var<java.type:"int"> = var %1 @"value";
+                branch ^block_1;
+
+              ^block_1:
+                %4 : java.type:"boolean" = var.load %2;
+                cbranch %4 ^block_2 ^block_8;
+
+              ^block_2:
+                %5 : java.type:"int" = var.load %3;
+                %6 : java.type:"int" = constant @0;
+                %7 : java.type:"boolean" = eq %5 %6;
+                cbranch %7 ^block_3 ^block_4;
+
+              ^block_3:
+                branch ^block_1;
+
+              ^block_4:
+                %8 : java.type:"int" = constant @1;
+                %9 : java.type:"boolean" = eq %5 %8;
+                cbranch %9 ^block_5 ^block_7;
+
+              ^block_5:
+                branch ^block_6;
+
+              ^block_6:
+                branch ^block_1;
+
+              ^block_7:
+                return;
+
+              ^block_8:
+                return;
+            };
+            """, ssa = false)
+    static void testLoopWithSwitchAndContinue(boolean repeat, int value) {
+        while (repeat) {
+            switch (value) {
+                case 0:
+                    continue;
+                case 1:
+                    break;
+                default:
+                    return;
+            }
+        }
+    }
 }

@@ -2522,21 +2522,23 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
              */
 
             // No label
-            // Get innermost enclosing loop operation
+            // For a break statement get the innermost enclosing loop operation or switch statement operation
+            // For a continue statement get the innermost enclosing loop operation
+
+            Predicate<Op> targetPred = this instanceof BreakOp
+                    ? op -> op instanceof Loop || op instanceof SwitchStatementOp
+                    : op -> op instanceof Loop;
             Op op = this;
-            Body b;
+            Body body;
             do {
-                b = op.ancestorBody();
-                op = b.ancestorOp();
-                if (op == null) {
-                    throw new IllegalStateException("No enclosing loop");
-                }
-            } while (!(op instanceof Op.Loop || op instanceof SwitchStatementOp));
+                body = op.ancestorBody();
+                op = body.ancestorOp();
+            } while (op != null && !targetPred.test(op));
 
             return switch (op) {
-                case Op.Loop lop -> lop.loopBody() == b ? op : null;
-                case SwitchStatementOp swStat -> swStat.bodies().contains(b) ? op : null;
-                default -> throw new IllegalStateException();
+                case Loop lop -> lop.loopBody() == body ? op : null;
+                case SwitchStatementOp _ -> op; // all bodies for switch op are valid
+                case null, default -> throw new IllegalStateException("No enclosing loop or switch statement");
             };
         }
 
