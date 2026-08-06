@@ -1010,6 +1010,8 @@ public final class BytecodeGenerator {
                     assignBlockArguments(op.endReference());
                     cob.goto_(getLabel(op.endReference()));
                 }
+                case UnreachableOp _ ->
+                    cob.aconst_null().athrow();
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
@@ -1067,6 +1069,11 @@ public final class BytecodeGenerator {
                             fieldType);
         }
         if (!store) {
+            ClassDesc ret = toClassDesc(op.resultType());
+            if (!ret.isPrimitive() && !ret.equals(fieldType)) {
+                // Explicit cast if field type differs
+                cob.checkcast(ret);
+            }
             push(op.result());
         }
     }
