@@ -842,7 +842,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     Symbol sym = assign.sym;
                     switch (sym.getKind()) {
-                        case LOCAL_VARIABLE, PARAMETER, EXCEPTION_PARAMETER -> {
+                        case LOCAL_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER -> {
                             Value varOp = varOpValue(sym);
                             append(CoreOp.varStore(varOp, result));
                         }
@@ -951,7 +951,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     Symbol sym = assign.sym;
                     switch (sym.getKind()) {
-                        case LOCAL_VARIABLE, PARAMETER -> { // exception parameters not valid here!
+                        case LOCAL_VARIABLE, BINDING_VARIABLE, PARAMETER -> { // exception parameters not valid here!
                             Value varOp = varOpValue(sym);
 
                             Op.Result lhsOpValue = append(CoreOp.varLoad(varOp));
