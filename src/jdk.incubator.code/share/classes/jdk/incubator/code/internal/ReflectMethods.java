@@ -1349,7 +1349,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Find nearest ancestor body stack element associated with a statement tree
             // @@@ Strengthen check of tree?
             BodyStack _variablesStack = stack;
-            while (!(_variablesStack.tree instanceof JCTree.JCStatement)) {
+            while (!(_variablesStack.tree instanceof JCLambda)
+                    && !(_variablesStack.tree instanceof JCTree.JCStatement)) {
                 _variablesStack = _variablesStack.parent;
             }
             BodyStack variablesStack = _variablesStack;
@@ -1483,7 +1484,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // Push lambda body
-            pushBody(tree.body, lambdaType);
+            // for expression lambda, the body stack need to be mapped to the JCLambda tree
+            // this ensures the logic for computing pattern variable stack, works correctly
+            pushBody(tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION ? tree : tree.body, lambdaType);
 
             // Map lambda parameters to varOp values
             for (int i = 0; i < tree.params.size(); i++) {
