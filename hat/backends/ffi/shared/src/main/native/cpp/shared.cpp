@@ -287,15 +287,15 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (compilationUnit->backend->config->trace) {
         Sled::show(std::cout, argArray);
     }
-    DispatchContext *dispatchContext = nullptr;
-    for (int i = 0; i < argSled.argc(); i++) {
+      KernelArg *argDispatchContext  = argSled.arg(0);
+    DispatchContext *dispatchContext =  static_cast<DispatchContext *>(argDispatchContext->value.buffer.memorySegment);
+    // Now arg[0] is the dispatchContext so we will extract it immediately
+    for (int i = 1; i < argSled.argc(); i++) {
+
         KernelArg *arg = argSled.arg(i);
+   //      std::cout << "in argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
         switch (arg->variant) {
             case '&': {
-                if (arg->idx == 0) {
-                    // This does not have to be the case all the time. We should be able to pass the kernel context in any argument we want.
-                    dispatchContext = static_cast<DispatchContext *>(arg->value.buffer.memorySegment);
-                }
                 bool readAccessor  = arg->value.buffer.access == RO_BYTE || arg->value.buffer.access == RW_BYTE || arg->value.buffer.access == UNKNOWN_BYTE;
                 if (compilationUnit->backend->config->trace) {
                     std::cout << "arg[" << i << "] = " << std::hex << (int) (arg->value.buffer.access);
@@ -339,16 +339,16 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                     compilationUnit->backend->queue->copyToDevice(buffer);
                     bufferState->state = BufferState::DEVICE_OWNED;
                     if (compilationUnit->backend->config->traceCopies) {
-                        std::cout << "copying arg " << arg->idx << " host->device " << std::endl;
+                        std::cout << "copying arg " << arg->idx-1 << " host->device " << std::endl;
                     }
                 } else {
                     if (compilationUnit->backend->config->traceSkippedCopies) {
-                        std::cout << "NOT copying arg " << arg->idx << " host->device " << std::endl;
+                        std::cout << "NOT copying arg " << arg->idx-1 << " host->device " << std::endl;
                     }
                 }
                 setArg(arg, buffer);
                 if (compilationUnit->backend->config->trace) {
-                    std::cout << "set buffer arg " << arg->idx << std::endl;
+                    std::cout << "set buffer arg " << arg->idx-1 << std::endl;
                 }
                 break;
             }
@@ -361,7 +361,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
             case 'D': {
                 setArg(arg);
                 if (compilationUnit->backend->config->trace) {
-                    std::cerr << "set " << arg->variant << " " << arg->idx << std::endl;
+                    std::cerr << "set " << arg->variant << " " << arg->idx-1 << std::endl;
                 }
                 break;
             }
@@ -374,7 +374,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     }
 
     if (dispatchContext == nullptr) {
-        std::cerr << "Looks like we received a kernel dispatch with xero args kernel='" << name << "'" << std::endl;
+        std::cerr << "Looks like we received a kernel dispatch with zero args kernel='" << name << "'" << std::endl;
         exit(1);
     }
 
@@ -384,9 +384,10 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
 
     compilationUnit->backend->queue->dispatch(dispatchContext, this);
 
-    for (int i = 0; i < argSled.argc(); i++) {
-        // note i = 1... we never need to copy back the KernelContext fix this for DispatchContext
+    for (int i = 1; i < argSled.argc(); i++) {
+        // note i above = 1... we never need to copy back the KernelContext fix this for DispatchContext
         KernelArg *arg = argSled.arg(i);
+    //       std::cout << "out argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
         if (arg->variant == '&') {
             BufferState *bufferState = BufferState::of(arg);
 
@@ -407,11 +408,11 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 compilationUnit->backend->queue->copyFromDevice(buffer);
                 bufferState->state = BufferState::HOST_OWNED;
                 if (compilationUnit->backend->config->traceCopies || compilationUnit->backend->config->traceEnqueues) {
-                    std::cout << "copying arg " << arg->idx << " device->host " << std::endl;
+                    std::cout << "copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
             } else {
                 if (compilationUnit->backend->config->traceSkippedCopies) {
-                    std::cout << "NOT copying arg " << arg->idx << " device->host " << std::endl;
+                    std::cout << "NOT copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
             }
         }

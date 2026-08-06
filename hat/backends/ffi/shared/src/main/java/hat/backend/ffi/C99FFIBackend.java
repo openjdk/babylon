@@ -71,50 +71,30 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
         public final KernelCallGraph kernelCallGraph;
         public final BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge;
         public final ArgArray argArray;
-        public final KernelBufferContext kernelBufferContext;
         public final DispatchContext dispatchContext;
 
-        public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge, Object[] ndRangeAndArgs) {
+        public CompiledKernel(C99FFIBackend c99FFIBackend, KernelCallGraph kernelCallGraph, BackendBridge.CompilationUnitBridge.KernelBridge kernelBridge, Object[] dispatchContextAndArgs) {
             this.c99FFIBackend = c99FFIBackend;
             this.kernelCallGraph = kernelCallGraph;
             this.kernelBridge = kernelBridge;
-            this.kernelBufferContext = KernelBufferContext.createDefault(kernelCallGraph.computeCallGraph.computeContext.accelerator());
-            this.dispatchContext = DispatchContext.createDefault(kernelCallGraph.computeCallGraph.computeContext.accelerator());
-            // ndRangeAndArgs[0] = this.kernelBufferContext;
-            ndRangeAndArgs[0] = this.dispatchContext;
-            this.argArray = ArgArray.create(kernelCallGraph.computeCallGraph.computeContext.accelerator(), kernelCallGraph, ndRangeAndArgs);
+            this.dispatchContext = (DispatchContext) dispatchContextAndArgs[0];
+            this.argArray = ArgArray.create(kernelCallGraph.computeCallGraph.computeContext.accelerator(), kernelCallGraph, dispatchContextAndArgs);
         }
 
-        public void dispatch( NDRange ndRange, Object[] args) {
-            // Do we really need this?  We never actually read these
-            kernelBufferContext.gsy(1);
-            kernelBufferContext.gsz(1);
+        public void dispatch( NDRange ndRange, Object[] dispatchContextAndArgs) {
             dispatchContext.gsy(1);
             dispatchContext.gsz(1);
             switch (ndRange.global()) {
                 case NDRange.Global1D global1D -> {
-                    kernelBufferContext.gsx(global1D.x());
-                    kernelBufferContext.dimensions(global1D.dimension());
-
                     dispatchContext.gsx(global1D.x());
                     dispatchContext.gsx(global1D.x());
                 }
                 case NDRange.Global2D global2D -> {
-                    kernelBufferContext.gsx(global2D.x());
-                    kernelBufferContext.gsy(global2D.y());
-                    kernelBufferContext.dimensions(global2D.dimension());
-
                     dispatchContext.gsx(global2D.x());
                     dispatchContext.gsy(global2D.y());
                     dispatchContext.dimensions(global2D.dimension());
-
                 }
                 case NDRange.Global3D global3D -> {
-                    kernelBufferContext.gsx(global3D.x());
-                    kernelBufferContext.gsy(global3D.y());
-                    kernelBufferContext.gsz(global3D.z());
-                    kernelBufferContext.dimensions(global3D.dimension());
-
                     dispatchContext.gsx(global3D.x());
                     dispatchContext.gsy(global3D.y());
                     dispatchContext.gsz(global3D.z());
@@ -125,31 +105,19 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             }
 
             if (ndRange.hasLocal()) {
-                kernelBufferContext.lsy(1);
-                kernelBufferContext.lsz(1);
                 dispatchContext.lsy(1);
                 dispatchContext.lsz(1);
                 switch (ndRange.local()) {
                     case NDRange.Local1D local1D -> {
-                        kernelBufferContext.lsx(local1D.x());
-                        kernelBufferContext.dimensions(local1D.dimension());
                         dispatchContext.lsx(local1D.x());
                         dispatchContext.dimensions(local1D.dimension());
                     }
                     case NDRange.Local2D local2D -> {
-                        kernelBufferContext.lsx(local2D.x());
-                        kernelBufferContext.lsy(local2D.y());
-                        kernelBufferContext.dimensions(local2D.dimension());
                         dispatchContext.lsx(local2D.x());
                         dispatchContext.lsy(local2D.y());
                         dispatchContext.dimensions(local2D.dimension());
                     }
                     case NDRange.Local3D local3D -> {
-                        kernelBufferContext.lsx(local3D.x());
-                        kernelBufferContext.lsy(local3D.y());
-                        kernelBufferContext.lsz(local3D.z());
-                        kernelBufferContext.dimensions(local3D.dimension());
-
                         dispatchContext.lsx(local3D.x());
                         dispatchContext.lsy(local3D.y());
                         dispatchContext.lsz(local3D.z());
@@ -159,19 +127,12 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                             throw new IllegalArgumentException("Unknown global range " + ndRange.local().getClass());
                 }
             } else {
-                kernelBufferContext.lsx(0);
-                kernelBufferContext.lsy(0);
-                kernelBufferContext.lsz(0);
-
                 dispatchContext.lsx(0);
                 dispatchContext.lsy(0);
                 dispatchContext.lsz(0);
             }
 
             // Set Tile
-            kernelBufferContext.tlx(0);
-            kernelBufferContext.tly(0);
-            kernelBufferContext.tlz(0);
 
             dispatchContext.tlx(0);
             dispatchContext.tly(0);
@@ -179,19 +140,13 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             if (ndRange.hasTile()) {
                 switch (ndRange.tile()) {
                     case NDRange.Tile1D tile1D -> {
-                        kernelBufferContext.tlx(tile1D.x());
                         dispatchContext.tlx(tile1D.x());
                     }
                     case NDRange.Tile2D tile2D -> {
-                        kernelBufferContext.tlx(tile2D.x());
-                        kernelBufferContext.tly(tile2D.y());
                         dispatchContext.tlx(tile2D.x());
                         dispatchContext.tly(tile2D.y());
                     }
                     case NDRange.Tile3D tile3D -> {
-                        kernelBufferContext.tlx(tile3D.x());
-                        kernelBufferContext.tly(tile3D.y());
-                        kernelBufferContext.tlz(tile3D.z());
                         dispatchContext.tlx(tile3D.x());
                         dispatchContext.tly(tile3D.y());
                         dispatchContext.tlz(tile3D.z());
@@ -202,28 +157,19 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
             }
 
             // Set warp
-            kernelBufferContext.wsx(0);
-            kernelBufferContext.wsy(0);
-            kernelBufferContext.wsz(0);
             dispatchContext.wsx(0);
             dispatchContext.wsy(0);
             dispatchContext.wsz(0);
             if (ndRange.hasWarp()) {
                 switch (ndRange.warp()) {
                     case NDRange.Warp1D warp1D -> {
-                        kernelBufferContext.wsx(warp1D.x() ? 1 : 0);
                         dispatchContext.wsx(warp1D.x() ? 1 : 0);
                     }
                     case NDRange.Warp2D warp2D -> {
-                        kernelBufferContext.wsx(warp2D.x() ? 1 : 0);
-                        kernelBufferContext.wsy(warp2D.y() ? 1 : 0);
                         dispatchContext.wsx(warp2D.x() ? 1 : 0);
                         dispatchContext.wsy(warp2D.y() ? 1 : 0);
                     }
                     case NDRange.Warp3D warp3D -> {
-                        kernelBufferContext.wsx(warp3D.x() ? 1 : 0);
-                        kernelBufferContext.wsy(warp3D.y() ? 1 : 0);
-                        kernelBufferContext.wsz(warp3D.z() ? 1 : 0);
                         dispatchContext.wsx(warp3D.x() ? 1 : 0);
                         dispatchContext.wsy(warp3D.y() ? 1 : 0);
                         dispatchContext.wsz(warp3D.z() ? 1 : 0);
@@ -232,10 +178,8 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
                             throw new IllegalArgumentException("Unknown global range " + ndRange.warp().getClass());
                 }
             }
-
-            //     args[0] = this.kernelBufferContext;
-            args[0] = this.dispatchContext;
-            ArgArray.update(argArray, kernelCallGraph, args);
+            dispatchContextAndArgs[0] = this.dispatchContext;
+            ArgArray.update(argArray, kernelCallGraph, dispatchContextAndArgs);
             kernelBridge.ndRange(this.argArray);
         }
     }

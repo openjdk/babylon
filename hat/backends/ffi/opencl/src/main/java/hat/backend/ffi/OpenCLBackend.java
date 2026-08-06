@@ -35,6 +35,7 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
 
 public class OpenCLBackend extends C99FFIBackend {
     public OpenCLBackend(Config config) {
@@ -52,23 +53,32 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph,  NDRange ndRange, Object... args) {
-
+    final public void dispatchKernel(KernelCallGraph kernelCallGraph,  NDRange ndRange, Object... dispatchContextAndArgs) {
+        // We get passed an empty slot for the dispatchContext... but this is irrelavent for code get
+        if (dispatchContextAndArgs[0] instanceof DispatchContext dispatchContext){
+             // what if the first arg is null ?
+        }else {
+            throw new RuntimeException("No dispatch context");
+        }
+        Object[] justArgs = Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length-1);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createC99(kernelCallGraph, args);
+            // We get passed an empty slot for the dispatchContext... but this is irrelavent for code get
+
+
+            String code = createC99(kernelCallGraph, justArgs);
             if (config().showCode()) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
                 var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
-                return new CompiledKernel(this, kernelCallGraph, kernel, args);
+                return new CompiledKernel(this, kernelCallGraph, kernel, dispatchContextAndArgs);
             } else {
                 // TODO: We should capture the log from OpenCL and provide as exception message
                 throw new IllegalStateException("OpenCL program failed to compile");
             }
         });
-        compiledKernel.dispatch(ndRange, args);
+        compiledKernel.dispatch(ndRange, dispatchContextAndArgs);
     }
 
 
