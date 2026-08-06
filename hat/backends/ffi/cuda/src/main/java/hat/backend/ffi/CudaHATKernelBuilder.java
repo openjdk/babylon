@@ -68,6 +68,7 @@ import static hat.phases.HATPhaseUtils.mapLane;
 import static hat.phases.HATPhaseUtils.reduceFloatType;
 import static hat.phases.HATPhaseUtils.reduceFloatTypeFromReturnType;
 import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
+import static jdk.incubator.code.dialect.core.CoreOp.var;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
@@ -1057,6 +1058,22 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return dimensions;
     }
 
+    private CudaHATKernelBuilder getLengthInput(Value value) {
+        switch (value.declaringElement()) {
+            case VarOp varOp -> {
+                Value alignValue = varOp.operands().getFirst();
+                getLengthInput(alignValue);
+            }
+            case JavaOp.InvokeOp invokeOp -> {
+                recurseResultOrThrow(invokeOp.operands().getFirst()).rarrow().id(LENGTH);
+                return self();
+            }
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> getLengthInput(varLoadOp.operands().getFirst());
+            case null, default -> throw new IllegalStateException("Expected a VarOp");
+        }
+        return self();
+    }
+
     @Override
     protected CudaHATKernelBuilder hatTileLoadOperation(Invoke invoke) {
         List<Value> operands = invoke.op().operands();
@@ -1073,7 +1090,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         int dimensions = obtainShapeDimensions(shape);
         if (dimensions == 1) {
             //recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
-            intConst(1024);
+            getLengthInput(inputReference);
         } else {
             throw new UnsupportedOperationException("Tile dimensions not controlled");
         }
@@ -1098,8 +1115,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
-        //recurseResultOrThrow(inputReference).rarrow().id(LENGTH);
-        intConst(1024);
+        getLengthInput(inputReference);
         id("}}, ct::shape{ 16_ic");
 
         id(" }}.store_masked(");
