@@ -31,6 +31,7 @@ import hat.TileContext;
 import hat.TileModel;
 import hat.TileOp;
 import hat.TileRange;
+import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.TensorF32;
 
@@ -48,7 +49,7 @@ import static optkl.ifacemapper.MappableIface.WO;
  * How to run?
  *
  * <p>
- *     Empty Tile Kernel
+ *     Hello Tile Kernel
  *     <code>
  *         java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_00
  *     </code>
@@ -87,23 +88,25 @@ public class TestTileAPI {
     @Reflect
 //    @Kernel("""
 //            HAT_KERNEL void helloTile(
-//                HAT_GLOBAL_MEM TileContext_t* tc,
-//                HAT_GLOBAL_MEM F32Array_t* inputA,
-//                HAT_GLOBAL_MEM F32Array_t* inputB,
-//                HAT_GLOBAL_MEM F32Array_t* output,
+//                HAT_GLOBAL_MEM TileContext_t* __restrict__ tc,
+//                HAT_GLOBAL_MEM TensorF32_t* __restrict__ inputA,
+//                HAT_GLOBAL_MEM TensorF32_t* __restrict__ inputB,
+//                HAT_GLOBAL_MEM TensorF32_t* __restrict__ output,
 //                int tile_size
 //            ){
 //                int pid = ct::bid().x;
-////                auto a = ct::assume_aligned(inputA->array, 16_ic);
-////                auto b = ct::assume_aligned(inputB->array, 16_ic);
-////                auto c = ct::assume_aligned(output->array, 16_ic);
+//                auto a = ct::assume_aligned(inputA->array, 16_ic);
+//                auto b = ct::assume_aligned(inputB->array, 16_ic);
+//                auto c = ct::assume_aligned(output->array, 16_ic);
 //
-//                auto aTile = ct::partition_view{ct::tensor_span{inputA->array, ct::extents{1024}}, ct::shape{ 16_ic }}.load_masked(pid);
+////                auto aTile = ct::partition_view{ct::tensor_span{inputA->array, ct::extents{1024}}, ct::shape{ 16_ic }}.load_masked(pid);
+//                auto aTile = ct::partition_view{ct::tensor_span{a, ct::extents{1024}}, ct::shape{ 16_ic }}.load_masked(pid);
+////                auto bTile = ct::partition_view{ct::tensor_span{b, ct::extents{1024}}, ct::shape{ 16_ic }}.load_masked(pid);
 //                auto bTile = ct::partition_view{ct::tensor_span{inputB->array, ct::extents{1024}}, ct::shape{ 16_ic }}.load_masked(pid);
 //                auto tileResult = aTile + bTile;
-//                ct::partition_view{ct::tensor_span{output->array, ct::extents{1024}}, ct::shape{ 16_ic }}.store_masked(tileResult, pid);
-//                return;
-//            }∂
+////                ct::partition_view{ct::tensor_span{output->array, ct::extents{1024}}, ct::shape{ 16_ic }}.store_masked(tileResult, pid);
+//                ct::partition_view{ct::tensor_span{c, ct::extents{1024}}, ct::shape{ 16_ic }}.store_masked(tileResult, pid);
+//            }
 //            """)
     public static void helloTile(@RO TileContext tc, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
         final var pid = tc.bid(0);

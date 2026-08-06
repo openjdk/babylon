@@ -449,8 +449,8 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return self();
     }
 
-    public final  T declareParam( FuncOpParams.Info param){
-        return  type((JavaType) param.parameter.type()).sp().varName(param.varOp);
+    public T declareParam(FuncOpParams.Info param) {
+        return type((JavaType) param.parameter.type()).sp().varName(param.varOp);
     }
 
     @Override

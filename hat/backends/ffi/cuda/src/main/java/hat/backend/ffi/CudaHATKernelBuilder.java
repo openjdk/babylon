@@ -24,7 +24,6 @@
  */
 package hat.backend.ffi;
 
-import hat.TileShape;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
@@ -32,13 +31,13 @@ import hat.dialect.HATTileOp;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
-import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
+import optkl.FuncOpParams;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.OpHelper.Invoke;
@@ -47,7 +46,14 @@ import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.SequencedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
@@ -1188,5 +1194,22 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 //        id("auto b = ct::assume_aligned(inputB->array, 16_ic);").nl();
 //        id("auto c = ct::assume_aligned(output->array, 16_ic);").nl();
         return self();
+    }
+
+    public CudaHATKernelBuilder restrict() {
+        return typeModifier("__restrict__");
+    }
+
+    public CudaHATKernelBuilder declareParam(FuncOpParams.Info param) {
+        if (this.isTile) {
+            // inspect type of parameter
+            JavaType type = (JavaType) param.parameter.type();
+            type(type).sp();
+            if (!(type instanceof PrimitiveType)) {
+                restrict().sp();
+            }
+            return varName(param.varOp);
+        }
+        return type((JavaType) param.parameter.type()).sp().varName(param.varOp);
     }
 }

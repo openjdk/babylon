@@ -694,6 +694,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return emitText(text);
     }
 
+    final public T typeModifier(String text) {
+        return emitText(text);
+    }
 
     @Override
     final public T reserved(String text) {
