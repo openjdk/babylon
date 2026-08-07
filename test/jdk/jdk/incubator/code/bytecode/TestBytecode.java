@@ -637,6 +637,8 @@ public class TestBytecode {
         try {
             while (i++ < value) {
                 try (var resource = Stream.empty()) {
+                    for (int ignored : new int[] { 1 }) {
+                    }
                     continue;
                 }
             }
