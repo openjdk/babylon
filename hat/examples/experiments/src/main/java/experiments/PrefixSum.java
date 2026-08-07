@@ -38,7 +38,6 @@ import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface.RW;
@@ -374,9 +373,7 @@ public class PrefixSum {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var methodRef= MethodRef.method(PrefixSum.class, "compute", void.class, ComputeContext.class,S32Array.class);
         var funcOp = Op.ofMethod(methodRef.resolveToMethod(MethodHandles.lookup())).get();
-
-        VarTable varTable = new VarTable(funcOp.funcName());
-        Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(), funcOp, varTable);
+        Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(), funcOp);
         JavaCodeBuilder jc = new JavaCodeBuilder(accelerator.lookup(),funcOp);
         System.out.println(jc.toText());
         S32Array input = S32Array.create(accelerator, GROUP_SIZE * GROUP_SIZE);

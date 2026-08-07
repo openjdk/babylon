@@ -188,7 +188,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
                 // Tensor Macros
                 .when(useTensors(), _ -> defineMacroCond(MACRO_COND))
-                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
+                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
                 .when(useTensors(), _ -> defineMacroTensorLoad(MACRO_FRAGMENT_LOAD_F16))
@@ -685,7 +685,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             default -> throw new IllegalStateException("Unexpected value: " + ordering);
         };
 
-        id(MACRO_FRAMGMENT_CREATE).paren( _ -> {
+        id(MACRO_FRAGMENT_CREATE).paren( _ -> {
             switch (klass) {
                 case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) ->
                         f16Type();

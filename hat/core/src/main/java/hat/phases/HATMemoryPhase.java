@@ -32,7 +32,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
