@@ -39,7 +39,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.VarTable;
 import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
@@ -54,11 +53,11 @@ import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.VarAccess.varAccess;
 import static optkl.OpHelper.resultFromFirstOperandOrNull;
 
-public class HATPhaseUtils {
+public interface HATPhaseUtils {
 
-    public static final Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
+    Set<String> NON_MAPPABLE_IFACE = Set.of("createshared", "createlocal", "createprivate");
 
-    public static Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?>... classes) {
+   static Op findOpInResultFromFirstOperandsOrNull(Op op, Class<?>... classes) {
         Set<Class<?>> set = Set.of(classes);
         while (!set.contains(op.getClass())) {
             if (resultFromFirstOperandOrNull(op) instanceof Op.Result result) {
@@ -70,23 +69,23 @@ public class HATPhaseUtils {
         return op;
     }
 
-    public static Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
+   static Class<?> reduceFloatType(Optional<OpHelper.Invoke> invoke) {
         if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().refType()) instanceof Class<? extends S16ImplOfF16> category) {
             return category;
         }
         return null;
     }
 
-    public static Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
+   static Class<?> reduceFloatTypeFromReturnType(Optional<OpHelper.Invoke> invoke) {
         if (invoke.isPresent() && S16ImplOfF16.codeTypeToFloatClassOrNull(invoke.orElse(null), (ClassType) invoke.get().returnType()) instanceof Class<? extends S16ImplOfF16> category) {
             return category;
         }
         return null;
     }
 
-    public record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+   record InvokeVar(JavaOp.InvokeOp invokeOp, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         // recursive
-        public static String vectorNameOrThrow(Value v) {
+       static String vectorNameOrThrow(Value v) {
             return switch (OpHelper.asOpFromResultOrNull(v)) {
                 case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
                         vectorNameOrThrow(varLoadOp.operands().getFirst()); // recurse
@@ -128,16 +127,16 @@ public class HATPhaseUtils {
         }
     }
 
-    public static boolean isVectorOperation(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+   static boolean isVectorOperation(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         OpHelper.Invoke invoke = invoke(lookup, invokeOp);
         return invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex(OpHelper.RESERVED_METHOD_VECTORS);
     }
 
-    public static boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Op op) {
+   static boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Op op) {
         return isSharedOrPrivate(lookup, op.operands().getFirst());
     }
 
-    public static boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Value v) {
+   static boolean isSharedOrPrivate(MethodHandles.Lookup lookup, Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isSharedOrPrivate(lookup, varLoadOp); //recurse
             case CoreOp.VarOp varOp -> {
@@ -173,12 +172,12 @@ public class HATPhaseUtils {
     }
 
     // recursive
-    public static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+   static String findVectorVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findVectorVarNameOrNull(varLoadOp.operands().getFirst());
     }
 
     // recursive
-    public static String findVectorVarNameOrNull(Value v) {
+   static String findVectorVarNameOrNull(Value v) {
         switch (v) {
             case Op.Result r when r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp -> {
                 return findVectorVarNameOrNull(varLoadOp);
@@ -192,7 +191,7 @@ public class HATPhaseUtils {
         }
     }
 
-    public static String findVarNameOrNull(Value v) {
+   static String findVarNameOrNull(Value v) {
         return (v instanceof Op.Result r) ? switch (r.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> findVarNameOrNull(varLoadOp); //recurse
             case CoreOp.VarOp varOp -> varOp.varName();
@@ -200,11 +199,11 @@ public class HATPhaseUtils {
         } : null;
     }
 
-    public static String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+   static String findVarNameOrNull(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return findVarNameOrNull(varLoadOp.operands().getFirst());
     }
 
-    public static boolean isMathOperation(OpHelper.Invoke invoke) {
+   static boolean isMathOperation(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && invoke.refIs(HATMath.class);
     }
 
@@ -212,56 +211,56 @@ public class HATPhaseUtils {
         return invoke.refIs(S16ImplOfF16.class) && invoke.nameMatchesRegex(methodName);
     }
 
-    public static boolean isS16BinaryOp(OpHelper.Invoke invoke) {
+   static boolean isS16BinaryOp(OpHelper.Invoke invoke) {
         return is16BitFloat(invoke, Regex.of("(add|sub|mul|div)")) && !invoke.returnsVoid();
     }
 
-    public static boolean isTensorOperation(OpHelper.Invoke invoke) {
+   static boolean isTensorOperation(OpHelper.Invoke invoke) {
         if (isTensorCreate(invoke) || isTensorFillOperation(invoke) || isTensorShape(invoke) || isTensorStore(invoke)) {
             return true;
         }
         return isReturnTensorValueOperation(invoke);
     }
 
-    public static boolean isTensorCreate(OpHelper.Invoke invoke) {
+   static boolean isTensorCreate(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && invoke.refIs(HATTensorsPhase.TensorMarkers.class) && invoke.nameMatchesRegex("create|of");
     }
 
-    public static boolean isTensorFillOperation(OpHelper.Invoke invoke) {
+   static boolean isTensorFillOperation(OpHelper.Invoke invoke) {
         return invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("fill");
     }
 
-    public static boolean isTensorShape(OpHelper.Invoke invoke) {
+   static boolean isTensorShape(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && invoke.refIs(Tensor.Shape.class) && invoke.nameMatchesRegex("shape");
     }
 
-    public static boolean isTensorStore(OpHelper.Invoke invoke) {
+   static boolean isTensorStore(OpHelper.Invoke invoke) {
         return invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("store");
     }
 
-    public static boolean isReturnTensorValueOperation(OpHelper.Invoke invoke) {
+   static boolean isReturnTensorValueOperation(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && invoke.refIs(Tensor.class) && invoke.nameMatchesRegex("create|zeros|shape|load|loadF16|mma");
     }
 
-    public static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {
+   static boolean isVectorSelectOperation(OpHelper.Invoke invoke) {
         return invoke.nameMatchesRegex("[xyzw]") && invoke.refIs(IfaceValue.Vector.class) && invoke.opFromFirstOperandOrThrow() instanceof CoreOp.VarAccessOp.VarLoadOp;
     }
 
-    public static boolean isS16Conversion(OpHelper.Invoke invoke) {
+   static boolean isS16Conversion(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && is16BitFloat(invoke, Regex.of("(of|floatToF16|float2bfloat16)")) && invoke.opFromOnlyUseOrNull() instanceof CoreOp.VarOp;
     }
 
-    public static boolean isS16ToFloatConversion(OpHelper.Invoke invoke) {
+   static boolean isS16ToFloatConversion(OpHelper.Invoke invoke) {
         return invoke instanceof OpHelper.Invoke.Static && invoke.nameMatchesRegex("(f16ToFloat|bfloat162float)") && invoke.returnsFloat();
     }
 
-    public static boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute, OpHelper.Invoke invoke) {
+   static boolean isAttributeSharedOrPrivate(VarTable.HATOpAttribute attribute, OpHelper.Invoke invoke) {
         if (attribute == VarTable.HATOpAttribute.INIT_SHARED || attribute == VarTable.HATOpAttribute.PRIVATE || attribute == VarTable.HATOpAttribute.SHARED) {
             return true;
         } else return attribute == VarTable.HATOpAttribute.NARROW && !invoke.returnsVoid();
     }
 
-    public static boolean isInvokeLoadingFromOnChipMemory(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+   static boolean isInvokeLoadingFromOnChipMemory(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         OpHelper.Invoke invoke = invoke(lookup, invokeOp);
         if (invoke.refIs(NonMappableIface.class) && invoke.returnsClassType() && !invoke.nameMatchesRegex(OpHelper.RESERVED_METHODS_MEMORY_REGIONS)) {
             SequencedSet<Op.Result> uses = invoke.op().result().uses();
@@ -271,14 +270,14 @@ public class HATPhaseUtils {
         return false;
     }
 
-    public static boolean isVectorView(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
+   static boolean isVectorView(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp) {
         var invoke = invoke(lookup, invokeOp);
         return (invoke.named("storeFloat4View") || invoke.named("storeFloat2View"))
                 && varAccess(lookup, invoke.opFromOperandNOrNull(1)) instanceof OpHelper.VarAccess varAccess
                 && varAccess.isLoad() && varAccess.isTypeAssignable(IfaceValue.Vector.class);
     }
 
-    public static IfaceValue.Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
+   static IfaceValue.Vector.Shape getVectorShapeFromOperandN(MethodHandles.Lookup lookup, JavaOp.InvokeOp invokeOp, int idx) {
         if (invokeOp.operands().get(idx) instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             if (varLoadOp.resultType() instanceof VarType varType) {
                 return getVectorShape(lookup, varType.valueType());
@@ -289,7 +288,7 @@ public class HATPhaseUtils {
         return null;
     }
 
-    public static boolean findIsSharedOrPrivateSpace(Value v) {
+   static boolean findIsSharedOrPrivateSpace(Value v) {
         if (v instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
             return findIsSharedOrPrivateSpace(varLoadOp.operands().getFirst());
         } else if (v.declaringElement() instanceof CoreOp.VarOp varOp) {
@@ -299,7 +298,7 @@ public class HATPhaseUtils {
         }
     }
 
-    public static String mapLane(int lane) {
+   static String mapLane(int lane) {
         return switch (lane) {
             case 0 -> "x";
             case 1 -> "y";
@@ -309,7 +308,7 @@ public class HATPhaseUtils {
         };
     }
 
-    public static boolean isOperandF32(Value v) {
+   static boolean isOperandF32(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
             case CoreOp.VarAccessOp varLoadOp -> varLoadOp.varType().valueType() == JavaType.FLOAT; //recurse
             case CoreOp.VarOp varOp -> varOp.resultType().valueType() == JavaType.FLOAT;
@@ -318,7 +317,7 @@ public class HATPhaseUtils {
     }
 
     //recursive
-    public static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
+   static boolean isArrayReference(MethodHandles.Lookup lookup, Value v) {
         return v instanceof Op.Result result && switch (result.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isArrayReference(lookup, varLoadOp); // recurse
             case CoreOp.VarOp varOp -> varOp.operands().getFirst() instanceof Op.Result varOpResult
@@ -330,15 +329,15 @@ public class HATPhaseUtils {
     }
 
     //recursive
-    public static boolean isArrayReference(MethodHandles.Lookup lookup, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+   static boolean isArrayReference(MethodHandles.Lookup lookup, CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isArrayReference(lookup, varLoadOp.operands().getFirst());
     }
 
-    public static boolean isVectorBinaryOperation(OpHelper.Invoke invoke) {
+   static boolean isVectorBinaryOperation(OpHelper.Invoke invoke) {
         return (invoke.returns(IfaceValue.Vector.class) && invoke.nameMatchesRegex("(add|sub|mul|div)"));
     }
 
-    public static boolean isF16Local(Value v) {
+   static boolean isF16Local(Value v) {
         return v instanceof Op.Result r && switch (r.op()) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> isF16Local(varLoadOp); //recurse
             case CoreOp.VarOp varOp ->
@@ -349,11 +348,11 @@ public class HATPhaseUtils {
     }
 
     //recursive
-    public static boolean isF16Local(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+    static boolean isF16Local(CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
         return isF16Local(varLoadOp.operands().getFirst());
     }
 
-    public static boolean isInvokeFromNarrowTypeConversion(MethodHandles.Lookup lookup, JavaOp.InvokeOp invoke) {
+     static boolean isInvokeFromNarrowTypeConversion(MethodHandles.Lookup lookup, JavaOp.InvokeOp invoke) {
         SequencedSet<Op.Result> uses = invoke.result().uses();
         boolean[] result = new boolean[1];
         uses.forEach(usage -> {
@@ -367,11 +366,8 @@ public class HATPhaseUtils {
         return result[0];
     }
 
-    public static boolean isMathLib(Optional<OpHelper.Invoke> invoke) {
+     static boolean isMathLib(Optional<OpHelper.Invoke> invoke) {
         return invoke.isPresent() && !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
     }
 
-    private HATPhaseUtils() {
-        /* This utility class should not be instantiated */
-    }
 }

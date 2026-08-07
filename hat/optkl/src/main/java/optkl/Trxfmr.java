@@ -69,8 +69,8 @@ public class Trxfmr implements LookupCarrier{
         return of(lookupCarrier.lookup(),null, funcOp);
     }
 
-    public Trxfmr remove(Predicate<CodeElement<?,?>> codeElementPredicate, VarTable varTable) {
-        return transform(codeElementPredicate, c-> c.remove(), varTable);
+    public Trxfmr remove(Predicate<CodeElement<?,?>> codeElementPredicate, Listener listener) {
+        return transform(codeElementPredicate, c-> c.remove(), listener);
     }
 
     public Trxfmr remap(Set<CodeElement<?,?>> set) {
@@ -366,18 +366,19 @@ public class Trxfmr implements LookupCarrier{
         biMap.add(from,result.op());
         return result;
     }
-
-    public void update(String functionName, Op oldOp, Op newOp, VarTable varTable) {
-        if (varTable != null) {
-            varTable.passthrough(functionName, oldOp, newOp);
-        }
+    public interface Listener{
+        void remap(CoreOp.FuncOp funcOp,Op oldOp, Op newOp);
     }
 
-    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer, VarTable varTable) {
-        return transform(funcOp.funcName(), varTable, predicate, cursorConsumer);
+    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer) {
+        return transform(funcOp.funcName(),  predicate, cursorConsumer,null);
     }
 
-    public Trxfmr transform(String name, VarTable varTable, Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer) {
+    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer, Listener listener) {
+        return transform(funcOp.funcName(),  predicate, cursorConsumer,listener);
+    }
+
+    public Trxfmr transform(String name,  Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer, Listener listener) {
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
@@ -388,14 +389,17 @@ public class Trxfmr implements LookupCarrier{
                 if (!cursor.handled()){
                     var result = blockBuilder.add(cursorOp);
                     var opFromResult = result.op();
-                    update(funcOp().funcName(), cursorOp, opFromResult, varTable);
+                    listener.remap(funcOp,cursorOp,opFromResult);
                     biMap.add(cursorOp, opFromResult);
                 }
             } else {
                 try {
                     var result = blockBuilder.add(cursorOp);
                     var opFromResult = result.op();
-                    update(funcOp().funcName(), cursorOp, opFromResult, varTable);
+                    if (listener!= null) {
+                        listener.remap(funcOp, cursorOp, opFromResult);
+                    }
+                   // update(funcOp().funcName(), cursorOp, opFromResult, varTable);
                     biMap.add(cursorOp, opFromResult);
                 }catch (Throwable t){
                     throw new RuntimeException(t);
@@ -408,11 +412,11 @@ public class Trxfmr implements LookupCarrier{
         return this;
     }
 
-    public Trxfmr transform(Consumer<Cursor> transformer, VarTable varTable) {
-        return transform(_-> true, transformer, varTable);
+    public Trxfmr transform(Consumer<Cursor> transformer, Listener listener) {
+        return transform(_-> true, transformer, listener);
     }
 
-    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, CodeTransformer codeTransformer, VarTable varTable) {
+    public Trxfmr transform(Predicate<CodeElement<?,?>> predicate, CodeTransformer codeTransformer, Listener listener) {
         if (callSite != null && callSite.tracing()) {
             System.out.println(callSite);
         }
@@ -422,7 +426,10 @@ public class Trxfmr implements LookupCarrier{
             } else {
                 var newOp = blockBuilder.add(op).op();
                 // We propagate the existing op into the new tree
-                update(funcOp().funcName(), op, newOp, varTable);
+                if (listener != null) {
+                    listener.remap(funcOp, op, newOp);
+                }
+                //update(funcOp().funcName(), op, newOp, varTable);
                 biMap.add(op, newOp);
             }
             return blockBuilder;

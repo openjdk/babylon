@@ -38,7 +38,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.MappableIface.RW;
 import optkl.util.Mutable;

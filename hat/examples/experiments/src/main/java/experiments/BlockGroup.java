@@ -30,7 +30,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 
 

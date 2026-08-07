@@ -27,16 +27,14 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.KernelContext;
 import hat.NDRange;
 import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.MethodCallDag;
 import jdk.incubator.code.CodeTransformer;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;
@@ -376,8 +374,7 @@ public class CudaBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        VarTable varTable = new VarTable(computeContext.computeCallGraph().callDag.entryPoint.funcOp().funcName());
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp(), varTable));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
 
     @Override

@@ -24,7 +24,6 @@
  */
 package hat.phases;
 
-import optkl.VarTable;
 import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
@@ -33,20 +32,11 @@ import java.util.List;
 public class HATTransformer {
 
     public static final List<HATPhase> KernelPhases = List.of(
-            // barriers
-          //  new HATBarrierPhase(),
-
             // array views
             new HATArrayViewPhase(),
 
             // Memory Regions (private/shared)
             new HATMemoryPhase(),
-
-            // ID's /thread access
-           // new HATThreadsPhase(),
-
-            // Warp size
-           // new HATWarpSizePhase(),
 
             // MathLib phase
             new HATMathLibPhase(),
