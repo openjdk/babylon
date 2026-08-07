@@ -43,6 +43,7 @@ import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessFlag;
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -629,6 +630,18 @@ public class TestBytecode {
     @Reflect
     static int constantMerge(boolean value) {
         return (value && true) ? 1 : 0;
+    }
+
+    @Reflect
+    static int largeLambda(int x, int y) {
+        Supplier<int[][][][][][][][]> lambda = () -> new int[][][][][][][][] {
+                {{{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}},
+                {{{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}},
+                {{{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}},
+                {{{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}},
+                {{{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}},
+                {{{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}}};
+        return lambda.get()[y][x][0][0][0][0][0][0];
     }
 
     record TestData(Method testMethod) {
