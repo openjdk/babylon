@@ -64,6 +64,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.lang.classfile.attribute.StackMapFrameInfo.SimpleVerificationTypeInfo.*;
+import static jdk.incubator.code.dialect.core.CoreOp.constant;
+import static jdk.incubator.code.dialect.java.JavaType.type;
 
 public final class BytecodeLift {
 
@@ -904,8 +906,9 @@ public final class BytecodeLift {
                 Block.Builder nextBlock = last ? targetBlock : newBlock(targetBlock.parameters());
                 Block.Reference nextReference = nextBlock.reference(currentBlock.parameters());
                 ExceptionRegion entered = targetEreStack.get(i);
-                CatchEntries catches = catchReferences(ereStack, entered);
-                Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(catches.types(), nextReference, catches.references()));
+                CatchEntries catches = catchReferences(ereStack, entered, currentBlock);
+                Op.Result enter = currentBlock.add(JavaOp.exceptionRegionEnter(catches.types(), nextReference,
+                        catches.references()));
                 enteredRegionMap.put(enter, entered);
                 ereStack.add(enter);
                 currentBlock = nextBlock;
@@ -958,7 +961,7 @@ public final class BytecodeLift {
                 block.add(JavaOp.exceptionRegionExit(ereStack.removeLast(), nextReference));
             } else {
                 ExceptionRegion entered = targetEreStack.get(common + t - exits);
-                CatchEntries catches = catchReferences(ereStack, entered);
+                CatchEntries catches = catchReferences(ereStack, entered, block);
                 Op.Result enter = block.add(JavaOp.exceptionRegionEnter(catches.types(), nextReference, catches.references()));
                 enteredRegionMap.put(enter, entered);
                 ereStack.add(enter);
@@ -970,7 +973,8 @@ public final class BytecodeLift {
     }
 
     // Build catch targets for one enter op
-    private CatchEntries catchReferences(List<Op.Result> initialEreStack, ExceptionRegion enteredRegion) {
+    private CatchEntries catchReferences(List<Op.Result> initialEreStack, ExceptionRegion enteredRegion,
+                                         Block.Builder b) {
         record Group(int firstHandler, int handlerBci, List<CodeType> catchTypes) {}
 
         List<Group> groups = new ArrayList<>();
@@ -995,7 +999,8 @@ public final class BytecodeLift {
                 target = transitionBlockForTarget(enteredRegions, group.handlerBci());
                 exceptionHandlerBlocks.put(key, target);
             }
-            references.add(target.reference());
+            Op.Result arg = b.add(constant(target.parameters().getFirst().type(), null));
+            references.add(target.reference(arg));
             types.add(group.catchTypes().size() == 1
                     ? group.catchTypes().getFirst()
                     : CoreType.tupleType(group.catchTypes()));

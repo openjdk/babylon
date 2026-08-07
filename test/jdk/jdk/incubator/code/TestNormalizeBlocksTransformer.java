@@ -72,7 +72,8 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_INPUT = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_8 ^block_3;
+                %10 : java.type:"java.lang.RuntimeException" = constant @null;
+                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_8(%10) ^block_3(%10);
 
               ^block_1:
                 %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
@@ -82,7 +83,8 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.exit %2 ^block_6;
 
               ^block_3(%4 : java.type:"java.lang.RuntimeException"):
-                %5 : java.type:"void" = exception.region.enter ^block_4 ^block_8;
+                %11 : java.type:"java.lang.Throwable" = constant @null;
+                %5 : java.type:"void" = exception.region.enter ^block_4 ^block_8(%11);
 
               ^block_4:
                 %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
@@ -106,14 +108,16 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_EXPECTED = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_5 ^block_2;
+                %10 : java.type:"java.lang.RuntimeException" = constant @null;
+                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_5(%10) ^block_2(%10);
 
               ^block_1:
                 %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
                 exception.region.exit %2 ^block_4;
 
               ^block_2(%4 : java.type:"java.lang.RuntimeException"):
-                %5 : java.type:"void" = exception.region.enter ^block_3 ^block_5;
+                %11 : java.type:"java.lang.Throwable" = constant @null;
+                %5 : java.type:"void" = exception.region.enter ^block_3 ^block_5(%11);
 
               ^block_3:
                 %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
@@ -214,7 +218,8 @@ public class TestNormalizeBlocksTransformer {
 
     static final String TEST5_INPUT = """
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_4;
+                %2 : java.type:"java.lang.Throwable" = constant @null;
+                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_4(%2);
 
               ^block_1:
                 invoke @java.ref:"A::m():void";
@@ -235,7 +240,8 @@ public class TestNormalizeBlocksTransformer {
             """;
     static final String TEST5_EXPECTED = """
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3;
+                %1 : java.type:"java.lang.Throwable" = constant @null;
+                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3(%1);
 
               ^block_1:
                 invoke @java.ref:"A::m():void";

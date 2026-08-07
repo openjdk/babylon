@@ -1592,6 +1592,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * <p>
      * An exception region start operation is a block terminating operation whose first successor is the starting
      * block of the exception region, and whose remaining successors are the catch blocks for that region.
+     * Each successor argument corresponding to a catch block's parameter,
+     * modeling exceptions that are caught by the catch block, is ignored and is never assigned to the parameter.
      */
     @OpDeclaration(ExceptionRegionEnter.NAME)
     public static final class ExceptionRegionEnter extends AbstractOp.Terminating
@@ -2884,7 +2886,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder syncRegionEnter = b.block();
             Block.Builder catcherFinally = b.block();
             Op.Result enter = b.add(exceptionRegionEnter(
-                    syncRegionEnter.reference(), catcherFinally.reference()));
+                    syncRegionEnter.reference(), catcherFinally.reference(b.add(constant(type(Throwable.class), null)))));
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
@@ -2915,7 +2917,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // The catcher, with an exception region back branching to itself
             Block.Builder catcherFinallyRegionEnter = b.block();
             Op.Result catcherEnter = catcherFinally.add(exceptionRegionEnter(
-                    catcherFinallyRegionEnter.reference(), catcherFinally.reference()));
+                    catcherFinallyRegionEnter.reference(),
+                    catcherFinally.reference(catcherFinally.add(constant(type(Throwable.class), null)))));
 
             // Monitor exit
             catcherFinallyRegionEnter.add(monitorExit(monitorTarget));
@@ -5213,22 +5216,28 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             List<Block.Builder> catchers = catchBodies().stream()
                     .map(catcher -> b.block())
                     .toList();
+            List<Block.Reference> exitHandlers = new ArrayList<>();
+            for (int i = 0; i < catchers.size(); i++) {
+                Value arg = b.add(constant(catchBodies().get(i).bodySignature().parameterTypes().getFirst(), null));
+                exitHandlers.add(catchers.get(i).reference(arg));
+            }
             List<CodeType> catchTypes = catchTypes();
             Block.Builder catcherFinally;
+            Op.Result nullThrowable;
             if (finallyBody == null) {
                 catcherFinally = null;
+                nullThrowable = null;
             } else {
                 catcherFinally = b.block();
                 catchers = new ArrayList<>(catchers);
                 catchers.add(catcherFinally);
+                nullThrowable = b.add(constant(type(Throwable.class), null));
+                exitHandlers.add(catcherFinally.reference(nullThrowable));
                 catchTypes = new ArrayList<>(catchTypes());
                 catchTypes.add(VOID);
             }
 
             // Enter the try exception region
-            List<Block.Reference> exitHandlers = catchers.stream()
-                    .map(Block.Builder::reference)
-                    .toList();
             Op.Result enter = b.add(exceptionRegionEnter(
                     catchTypes.reversed(), tryRegionEnter.reference(), exitHandlers.reversed()));
 
@@ -5291,7 +5300,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     // Enter the catch exception region
                     Result catchExceptionRegion = catcher.add(
-                            exceptionRegionEnter(catchRegionEnter.reference(), catcherFinally.reference()));
+                            exceptionRegionEnter(catchRegionEnter.reference(),
+                                    catcherFinally.reference(nullThrowable)));
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
