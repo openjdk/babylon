@@ -26,6 +26,8 @@ import java.lang.annotation.*;
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LoweredModel {
+    enum Transform { NORMALIZE_BLOCKS, SSA }
+
     String value();
-    boolean ssa() default false;
+    Transform[] transform() default {};
 }

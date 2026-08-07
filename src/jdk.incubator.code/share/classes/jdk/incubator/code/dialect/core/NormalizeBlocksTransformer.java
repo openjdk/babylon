@@ -81,11 +81,12 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                     && or.op() instanceof CoreOp.ConstantOp cop -> {
                 // Skip intermediate conditional branch with constant boolean argument and re-target
                 // directly to the true or false branch, based on the constant value.
-                CoreOp.ConditionalBranchOp cbo = (CoreOp.ConditionalBranchOp)bop.branch().targetBlock().terminatingOp();
-                Block.Reference br = (Boolean)cop.value() ? cbo.trueBranch() : cbo.falseBranch();
+                CoreOp.ConditionalBranchOp cbo = (CoreOp.ConditionalBranchOp) bop.branch().targetBlock().terminatingOp();
+                Block.Reference br = (boolean) cop.value() ? cbo.trueBranch() : cbo.falseBranch();
                 // Remove the conditional dispatching block if all predecessor reference args are constants
                 if (bop.branch().targetBlock().predecessorReferences().stream()
-                        .allMatch(r -> r.arguments().getFirst() instanceof Op.Result orr && orr.op() instanceof CoreOp.ConstantOp)) {
+                        .allMatch(r -> r.arguments().getFirst() instanceof Op.Result orr &&
+                                orr.op() instanceof CoreOp.ConstantOp)) {
                     mergedBlocks.add(bop.branch().targetBlock());
                     if (br.targetBlock().predecessors().size() == 1) {
                         // Merge the successor's target block with this block
@@ -95,16 +96,16 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                 }
                 b.add(CoreOp.branch(b.context().getReferenceOrCreate(br)));
             }
+            case CoreOp.ConditionalBranchOp cbo -> {
+                replaceConditionalBranchTarget(b, cbo, cbo.trueBranch());
+                replaceConditionalBranchTarget(b, cbo, cbo.falseBranch());
+                b.add(op);
+            }
             case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
                 // Merge the successor's target block with this block, and so on
                 // The terminal branch operation is replaced with the operations in the
                 // successor's target block
                 mergeBlock(b, bop);
-            }
-            case CoreOp.ConstantOp cop when cop.resultType().equals(JavaType.BOOLEAN)
-                && cop.result().uses().stream().allMatch(cr -> cr.op() instanceof CoreOp.BranchOp bop
-                        && isPureConditionalDispatchingBlock(bop.branch().targetBlock())) -> {
-                // Remove boolean ConstantOp used purelly as BranchOp successor arguments to a conditional dispatching block
             }
             case JavaOp.ExceptionRegionEnter ere -> {
                 // Cannot remove block parameters from exception handlers
@@ -129,6 +130,87 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
         return b;
     }
 
+    private void replaceConditionalBranchTarget(Block.Builder b,
+                                                CoreOp.ConditionalBranchOp cbo,
+                                                Block.Reference successor) {
+        assert cbo.successors().contains(successor);
+
+        /*
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                cbranch %0 ^block_1 ^block_2(%0);
+                ->
+                cbranch %0 ^block_1 ^block_3;
+
+              ^block_1:
+                branch ^block_3;
+
+              ^block_2(%1 : java.type:"boolean"):
+                cbranch %1 ^block_3 ^block_4;
+
+              ^block_3:
+                branch ^block_5;
+
+
+         */
+
+        Block target = successor.targetBlock();
+        if (isPureConditionalDispatchingBlock(target)) {
+            if (successor.arguments().getFirst() == cbo.predicateOperand()) {
+                /*
+                    func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                        cbranch %0 ^block_1 ^block_2(%0);
+                        ->
+                        cbranch %0 ^block_1 ^block_3;
+
+                      ^block_1:
+                        branch ^block_3;
+
+                      ^block_2(%1 : java.type:"boolean"):
+                        cbranch %1 ^block_3 ^block_4;
+
+                      ^block_3:
+                        branch ^block_5;
+                 */
+                CoreOp.ConditionalBranchOp targetCbo = (CoreOp.ConditionalBranchOp) target.terminatingOp();
+                Block.Reference replacementSuccessor = cbo.trueBranch() == successor
+                        ? targetCbo.trueBranch()
+                        : targetCbo.falseBranch();
+                b.context().mapReference(successor,
+                        b.context().getReferenceOrCreate(replacementSuccessor));
+            } else if (successor.arguments().getFirst() instanceof Op.Result or
+                    && or.op() instanceof CoreOp.ConstantOp cop) {
+                /*
+                    func @"m" ()java.type:"void" -> {
+                        %false : java.type:"boolean" = constant @false;
+                        cbranch %0 ^block_1 ^block_2(%false);
+                        ->
+                        cbranch %0 ^block_1 ^block_3;
+
+                      ^block_1:
+                        branch ^block_3;
+
+                      ^block_2(%1 : java.type:"boolean"):
+                        cbranch %1 ^block_3 ^block_4;
+
+                      ^block_3:
+                        branch ^block_5;
+                 */
+
+                CoreOp.ConditionalBranchOp targetCbo = (CoreOp.ConditionalBranchOp) target.terminatingOp();
+                Block.Reference replacementSuccessor = (boolean) cop.value()
+                        ? targetCbo.trueBranch()
+                        : targetCbo.falseBranch();
+                b.context().mapReference(successor,
+                        b.context().getReferenceOrCreate(replacementSuccessor));
+
+            }
+        }
+    }
+
+    /*
+        ^b(%pred : java.type:"boolean"):
+          cbranch %pred ^true ^false;
+     */
     private static boolean isPureConditionalDispatchingBlock(Block b) {
         return b.parameters().size() == 1
                 && b.parameters().getFirst().type().equals(JavaType.BOOLEAN)
