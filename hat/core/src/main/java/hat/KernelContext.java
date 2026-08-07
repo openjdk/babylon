@@ -41,39 +41,6 @@ import optkl.util.Regex;
  * @author Gary Frost
  */
 public class KernelContext {
-    // Global accesses
-  //  public int gix;
-   // public int giy;
-   // public int giz;
-
-   // public final int gsx;
-   // public final int gsy;
-   // public final int gsz;
-
-    // Local accesses within a group
-   // public int lix;
-   // public int liy;
-   // public int liz;
-
-    // Specify sizes for the local group sizes
-   // public int lsx;
- //   public int lsy;
- //   public int lsz;
-
-    // Specify group/block index
-  //  public int bix;
-  //  public int biy;
-  //  public int biz;
-
-    // Specify the number of blocks
-  //  public int bsx;
-  //  public int bsy;
-  //  public int bsz;
-
-    // Warp size
-   // public int wrs;
-
-   // final int dimensions;
 
     public final NDRange ndRange;
 
@@ -83,31 +50,8 @@ public class KernelContext {
         }
 
         this.ndRange = ndRange;
-      /*  switch (ndRange) {
-            case NDRange.NDRange1D ndRange1D -> {
-                this.gsx = ((NDRange.M1D)(ndRange1D.global())).x();
-                this.gsy = 1;
-                this.gsz = 1;
-                this.dimensions = ((NDRange.M1D)(ndRange1D.global())).dimension();
-            }
-            case NDRange.NDRange2D ndRange2D -> {
-                this.gsx = ((NDRange.M2D)(ndRange2D.global())).x();
-                this.gsy = ((NDRange.M2D)(ndRange2D.global())).y();
-                this.gsz = 1;
-                this.dimensions = ((NDRange.M2D)(ndRange2D.global())).dimension();
-            }
-            case NDRange.NDRange3D ndRange3D -> {
-                this.gsx = ((NDRange.M3D)(ndRange3D.global())).x();
-                this.gsy = ((NDRange.M3D)(ndRange3D.global())).y();
-                this.gsz = ((NDRange.M3D)(ndRange3D.global())).z();
-                this.dimensions = ((NDRange.M3D)(ndRange3D.global())).dimension();
-            }
-            default -> throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
 
-        }*/
     }
-
-
 
     public final static Regex threadAccessRegex = Regex.of("(([GLB][SI][XYZ])|WRS|barrier)");
 

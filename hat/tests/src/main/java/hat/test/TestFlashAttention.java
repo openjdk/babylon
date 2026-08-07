@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.HATMath;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -79,7 +79,7 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttentionF16(KernelContext unused,
+    public static void flashAttentionF16(
                                          F16Array Q, F16Array K, F16Array V,
                                          F16Array O, F16Array m, F16Array l,
                                          final int N, final int d, final float softmaxScale) {
@@ -213,7 +213,7 @@ public class TestFlashAttention {
                                                 F16Array O, F16Array m, F16Array l,
                                                 final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> flashAttentionF16(kernelContext, Q, K, V, O, m, l, N, d, scale));
+        computeContext.dispatchKernel(ndRange, () -> flashAttentionF16( Q, K, V, O, m, l, N, d, scale));
     }
 
     // Express a float array in shared memory with HAT
@@ -252,10 +252,10 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttention(KernelContext __,
-                                      F32Array Q, F32Array K, F32Array V,
-                                      F32Array O, F32Array m, F32Array l,
-                                      final int N, final int d, final float softmaxScale) {
+    public static void flashAttention(
+            F32Array Q, F32Array K, F32Array V,
+            F32Array O, F32Array m, F32Array l,
+            final int N, final int d, final float softmaxScale) {
         int bx = BIX();
         int tid = LIX();
 
@@ -361,7 +361,7 @@ public class TestFlashAttention {
                                              F32Array O, F32Array m, F32Array l,
                                              final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> flashAttention(kernelContext, Q, K, V, O, m, l, N, d, scale));
+        computeContext.dispatchKernel(ndRange, () -> flashAttention( Q, K, V, O, m, l, N, d, scale));
     }
 
     @HatTest

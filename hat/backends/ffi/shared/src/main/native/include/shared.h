@@ -369,52 +369,70 @@ public:
     static void show(std::ostream &out, void *argArray);
 };
 
-class KernelContext {
+class DispatchContext {
 public:
-
-    // Dimensions of the kernel (1D, 2D or 3D)
+    int type;
     int dimensions;
-
-    // global index
-    int gix;
-    int giy;
-    int giz;
-
     // global sizes
     int gsx;
     int gsy;
     int gsz;
-
-    // local index
-    int lix;
-    int liy;
-    int liz;
-
     // local size
     int lsx;
     int lsy;
     int lsz;
-
-    // Group index
-    int bix;
-    int biy;
-    int biz;
-
     // Block sizes
     int bsx;
     int bsy;
     int bsz;
-
     // Tile Size
     int tlx;
     int tly;
     int tlz;
-
     // Warp sizes
-    bool wsx;
-    bool wsy;
-    bool wsz;
+    int wsx;
+    int wsy;
+    int wsz;
 };
+/*
+class KernelContext {
+public:
+    int type;
+    // Dimensions of the kernel (1D, 2D or 3D)
+    int dimensions;
+    // global sizes
+    int gsx;
+    int gsy;
+    int gsz;
+    // local size
+    int lsx;
+    int lsy;
+    int lsz;
+    // Block sizes
+    int bsx;
+    int bsy;
+    int bsz;
+    // Tile Size
+    int tlx;
+    int tly;
+    int tlz;
+    // Warp sizes
+    int wsx;
+    int wsy;
+    int wsz;
+    // global index
+    int gix;
+    int giy;
+    int giz;
+    // local index
+    int lix;
+    int liy;
+    int liz;
+    // Group index
+    int bix;
+    int biy;
+    int biz;
+}; */
 
 class Backend {
 public:
@@ -500,7 +518,7 @@ public:
 
         virtual void copyFromDevice(Buffer *buffer) =0;
 
-        virtual void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) = 0;
+        virtual void dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) = 0;
 
         virtual ~Queue();
     };

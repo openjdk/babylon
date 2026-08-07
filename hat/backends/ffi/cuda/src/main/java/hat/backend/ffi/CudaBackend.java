@@ -28,6 +28,8 @@ package hat.backend.ffi;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.MethodCallDag;
 import jdk.incubator.code.CodeTransformer;
@@ -48,6 +50,7 @@ import jdk.incubator.code.dialect.core.SSA;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -378,22 +381,27 @@ public class CudaBackend extends C99FFIBackend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... dispatchContextAndArgs) {
+        if (!(dispatchContextAndArgs[0] instanceof DispatchContext )){
+            throw new RuntimeException("No dispatch context");
+        }
+        Object[] justArgs = Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code =config().ptx() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
+            String code =config().ptx() ? createPTX(kernelCallGraph,  justArgs) : createC99(kernelCallGraph, justArgs);
             if (config().showCode()) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code);
             if (compilationUnit.ok()) {
                 var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
-                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
+                return new CompiledKernel(this, kernelCallGraph,  kernel, dispatchContextAndArgs);
             } else {
                 throw new IllegalStateException("cuda failed to compile ");
             }
         });
-        compiledKernel.dispatch(kernelContext, args);
+        compiledKernel.dispatch(ndRange, dispatchContextAndArgs);
     }
+
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
         return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), args);
     }

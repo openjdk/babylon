@@ -24,7 +24,7 @@
  */
 
 #include "opencl_backend.h"
-class KernelContextWithBufferState {
+class DispatchContextWithBufferState {
 public:
     int x;
     int maxX;
@@ -70,10 +70,10 @@ int main(int argc, char **argv) {
  typedef float f32_t;
  typedef long s64_t;
  typedef unsigned long u64_t;
- typedef struct KernelContext_s{
+ typedef struct DispatchContext_s{
      int x;
      int maxX;
- }KernelContext_t;
+ }DispatchContext_t;
  typedef struct S32Array_s{
      int length;
      int array[1];
@@ -89,10 +89,10 @@ int squareit(
 
 
  __kernel void squareKernel(
-     __global KernelContext_t *global_kc, __global S32Array_t* s32Array
+     __global DispatchContext_t *global_kc, __global S32Array_t* s32Array
  ){
-     KernelContext_t mine;
-     KernelContext_t* kc=&mine;
+     DispatchContext_t mine;
+     DispatchContext_t* kc=&mine;
      kc->x=get_global_id(0);
      kc->maxX=global_kc->maxX;
      if(kc->x<kc->maxX){
@@ -105,9 +105,9 @@ int squareit(
 
     auto *program =openclBackend.compileProgram(openclSource);
     const int maxX = 32;
-    auto *kernelContextWithBufferState = bufferOf<KernelContextWithBufferState>("kernelContext");
-    kernelContextWithBufferState->x=0;
-    kernelContextWithBufferState->maxX=maxX;
+    auto *dispatchContextWithBufferState = bufferOf<DispatchContextWithBufferState>("dispatchContext");
+    dispatchContextWithBufferState->x=0;
+    dispatchContextWithBufferState->maxX=maxX;
 
     auto *s32Array1024WithBufferState = bufferOf<S32Array1024WithBufferState>("s32ArrayX1024");
 
@@ -118,7 +118,7 @@ int squareit(
     }
 
     ArgArray_2 args2Array{.argc = 2, .argv={
-            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(kernelContextWithBufferState), .sizeInBytes = sizeof(KernelContextWithBufferState), .access = RO_BYTE}}},
+            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(dispatchContextWithBufferState), .sizeInBytes = sizeof(DispatchContextWithBufferState), .access = RO_BYTE}}},
             {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(s32Array1024WithBufferState), .sizeInBytes = sizeof(S32Array1024WithBufferState), .access = RW_BYTE}}}
     }};
 
