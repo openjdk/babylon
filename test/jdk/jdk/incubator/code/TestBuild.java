@@ -410,14 +410,10 @@ public class TestBuild {
         blockBuilder.add(return_());
         entryBlockBuilder.add(branch(blockBuilder.reference()));
 
-        for (int j = 0; j < 2; j++) {
-            Class<?> expectedExceptionClass;
-            if (j == 1) {
+        for (Class<?> expectedExceptionClass : List.of(NullPointerException.class, IllegalStateException.class)) {
+            if (expectedExceptionClass == IllegalStateException.class) {
                 // test with built body and block
                 func("f", bodyBuilder);
-                expectedExceptionClass = IllegalStateException.class;
-            } else {
-                expectedExceptionClass = NullPointerException.class;
             }
             for (Object r : List.of(bodyBuilder, blockBuilder)) {
                 for (Method m : r.getClass().getDeclaredMethods()) {
