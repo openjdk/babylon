@@ -28,43 +28,41 @@
  */
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+
 public class TestSuccessorValidation {
+
     @Test
-    void testInvalid() {
-        Assertions.assertThrows(IllegalStateException.class, TestSuccessorValidation::numArgsGtNumParams);
+    void testNumArgsLtNumParams() {
+        Assertions.assertThrows(IllegalStateException.class, () -> generateModel(0));
     }
 
-    private static CoreOp.FuncOp numArgsGtNumParams() {
-        return CoreOp.func("invalid", CoreType.functionType(JavaType.INT, JavaType.INT)).body(eb -> {
-            Block.Builder b1 = eb.block(JavaType.INT);
-            b1.add(CoreOp.return_(b1.parameters().get(0)));
+    @Test
+    void testNumArgsGtNumParams() {
+        Assertions.assertThrows(IllegalStateException.class, () -> generateModel(2));
+    }
 
-            eb.add(CoreOp.branch(b1.reference(eb.parameters().get(0), eb.parameters().get(0))));
+    @Test
+    void testNumArgsEqNumParams() {
+        Assertions.assertDoesNotThrow(() -> generateModel(1));
+    }
+
+    private static CoreOp.FuncOp generateModel(int numOfArgs) {
+        // generates a model with two blocks, entry block and another block with one param
+        // in the entry block we branch to the other block with the specified number of args
+        return CoreOp.func("m", CoreType.FUNCTION_TYPE_VOID).body(eb -> {
+            Block.Builder b2 = eb.block(JavaType.INT);
+            Op.Result v = eb.add(CoreOp.constant(JavaType.INT, 1));
+            eb.add(CoreOp.branch(b2.reference(Collections.nCopies(numOfArgs, v))));
+
+            b2.add(CoreOp.return_());
         });
-    }
-
-    @Test
-    void testValid() {
-        numArgsLeqNumParams();
-    }
-
-    private static CoreOp.FuncOp numArgsLeqNumParams() {
-        return CoreOp.func("valid", CoreType.functionType(JavaType.INT, JavaType.INT, JavaType.BOOLEAN))
-                .body(eb -> {
-                    Block.Builder b1 = eb.block(JavaType.INT);
-                    b1.add(CoreOp.return_(b1.parameters().get(0)));
-
-                    eb.add(CoreOp.conditionalBranch(
-                            eb.parameters().get(1),
-                            b1.reference(eb.parameters().get(0)),
-                            b1.reference()
-                    ));
-                });
     }
 }
