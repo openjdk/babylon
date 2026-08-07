@@ -26,7 +26,6 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.KernelContext;
 import hat.NDRange;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -59,13 +58,13 @@ public class TestWriteOnly {
     }
 
     @Reflect
-    public static void life(KernelContext unused, CellGrid cellGrid, CellGrid cellGridRes) {
+    public static void life( CellGrid cellGrid, CellGrid cellGridRes) {
     }
 
     @Reflect
     public static void compute(final ComputeContext cc, CellGrid grid, CellGrid gridRes) {
         int range = grid.width() * grid.height();
-        cc.dispatchKernel(NDRange.of1D(range), kc -> life(kc, grid, gridRes));
+        cc.dispatchKernel(NDRange.of1D(range), () -> life( grid, gridRes));
     }
 
     @HatTest

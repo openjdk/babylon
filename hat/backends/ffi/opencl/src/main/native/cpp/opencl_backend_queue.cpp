@@ -244,10 +244,10 @@ void printWarningLocalGroupResized(const size_t local_work_size[]) {
     std::cout << "[Warning] Thread-Block size got automatically resized: [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
 }
 
-void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelContext, const size_t global_work_size[], size_t *local_work_size) {
+void checkThreadBlockFits(OpenCLBackend *backend, const DispatchContext *dispatchContext, const size_t global_work_size[], size_t *local_work_size) {
     const PlatformInfo platformInfo(backend);
     size_t max_group_size = platformInfo.deviceInfo.maxWorkGroupSize;
-    size_t totalThreads = kernelContext->lsx * kernelContext->lsy * kernelContext->lsz;
+    size_t totalThreads = dispatchContext->lsx * dispatchContext->lsy * dispatchContext->lsz;
 
     // Adjust depending on the total number of threads in the local-work-group
     while (totalThreads > max_group_size) {
@@ -277,29 +277,29 @@ void checkThreadBlockFits(OpenCLBackend *backend, const KernelContext *kernelCon
     }
 }
 
-void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
-    size_t numDimensions = kernelContext->dimensions;
+void OpenCLBackend::OpenCLQueue::dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) {
+    size_t numDimensions = dispatchContext->dimensions;
 
     size_t global_work_size[] {
-        static_cast<size_t>(kernelContext->gsx),
-        static_cast<size_t>(kernelContext->gsy),
-        static_cast<size_t>(kernelContext->gsz)
+        static_cast<size_t>(dispatchContext->gsx),
+        static_cast<size_t>(dispatchContext->gsy),
+        static_cast<size_t>(dispatchContext->gsz)
     };
 
     size_t local_work_size[] = {
-        static_cast<size_t>(kernelContext->lsx),
-        static_cast<size_t>(kernelContext->lsy),
-        static_cast<size_t>(kernelContext->lsz),
+        static_cast<size_t>(dispatchContext->lsx),
+        static_cast<size_t>(dispatchContext->lsy),
+        static_cast<size_t>(dispatchContext->lsz),
     };
 
-    if (kernelContext->tlx > 0) {
-        global_work_size[0] = ceil_div(global_work_size[0], kernelContext->tlx);
+    if (dispatchContext->tlx > 0) {
+        global_work_size[0] = ceil_div(global_work_size[0], dispatchContext->tlx);
     }
-    if (kernelContext->tly > 0) {
-        global_work_size[1] = ceil_div(global_work_size[1], kernelContext->tly);
+    if (dispatchContext->tly > 0) {
+        global_work_size[1] = ceil_div(global_work_size[1], dispatchContext->tly);
     }
-    if (kernelContext->tlz > 0) {
-        global_work_size[2] = ceil_div(global_work_size[2], kernelContext->tlz);
+    if (dispatchContext->tlz > 0) {
+        global_work_size[2] = ceil_div(global_work_size[2], dispatchContext->tlz);
     }
 
     // In the OpenCL backend, we don't currently support warp-sizes to be able to run with OpenCL 1.2 (Apple)
@@ -307,14 +307,14 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
 
     // Check the local-sizes fit
     auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
-    checkThreadBlockFits(backendInstance, kernelContext, global_work_size, local_work_size);
+    checkThreadBlockFits(backendInstance, dispatchContext, global_work_size, local_work_size);
 
     if (backend->config->info) {
         backend->shortDeviceInfo();
         std::cout << "[INFO] OpenCLBackend::OpenCLQueue::dispatch" << std::endl;
         std::cout << "[INFO] numDimensions: " << numDimensions << std::endl;
         std::cout << "[INFO] GLOBAL [" << global_work_size[0] << "," << global_work_size[1] << "," << global_work_size[2] << "]" << std::endl;
-        if (kernelContext->lsx > 0) {
+        if (dispatchContext->lsx > 0) {
             std::cout << "[INFO] LOCAL  [" << local_work_size[0] << "," << local_work_size[1] << "," << local_work_size[2] << "]" << std::endl;
         } else {
             std::cout << "[INFO] LOCAL  [ nullptr ] // The driver will setup a default value" << std::endl;
@@ -327,7 +327,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
         numDimensions,
         nullptr,
         global_work_size,
-        kernelContext->lsx > 0 ? local_work_size : nullptr,
+        dispatchContext->lsx > 0 ? local_work_size : nullptr,
         eventc,
         eventListPtr(),
         nextEventPtr());
@@ -337,7 +337,7 @@ void OpenCLBackend::OpenCLQueue::dispatch(KernelContext *kernelContext, Compilat
 
     OPENCL_CHECK(status, "clEnqueueNDRangeKernel");
     if (backend->config->trace | backend->config->traceEnqueues) {
-        std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->gsx <<
+        std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << dispatchContext->gsx <<
                 std::endl;
     }
 }

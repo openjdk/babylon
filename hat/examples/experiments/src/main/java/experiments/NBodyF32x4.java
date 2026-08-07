@@ -97,7 +97,7 @@ public class NBodyF32x4 {
     }
 
     @Reflect
-    static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernel( @RW Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
@@ -128,7 +128,7 @@ public class NBodyF32x4 {
     @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
         var ndrange = NDRange.of1D((int)universe.length());
-        cc.dispatchKernel(ndrange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
+        cc.dispatchKernel(ndrange, () -> nbodyKernel( universe, mass, delT, espSqr));
     }
 
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {

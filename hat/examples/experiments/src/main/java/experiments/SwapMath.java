@@ -26,7 +26,7 @@
 package experiments;
 
 
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 import optkl.Trxfmr;
 import static optkl.OpHelper.Invoke;
@@ -39,7 +39,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.util.Regex;
 
 import java.lang.invoke.MethodHandles;
 
@@ -95,12 +94,13 @@ public class SwapMath {
         System.out.println("Now using txfmr--------------------------");
         VarTable varTable = new VarTable(rsqrt.funcName());
         var newAbs =Trxfmr.of(lookup, rsqrt)
-                .transform("usingAbs", varTable, ce-> invoke(lookup,ce) instanceof Invoke.Static $
+                .transform("usingAbs",  ce-> invoke(lookup,ce) instanceof Invoke.Static $
                                 && $.named("sqrt")
                                 && $.returns(double.class)
                                 && $.receives(double.class)
                         , c->
-                        c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand( 0)))
+                        c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand( 0))
+                        ),varTable
                 )
                 .funcOp();
 

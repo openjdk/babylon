@@ -25,7 +25,7 @@
 package experiments;
 
 import hat.ComputeContext;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.buffer.S32Array;
@@ -38,9 +38,8 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.ifacemapper.MappableIface;
-import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
 import optkl.util.Mutable;
 
@@ -100,7 +99,7 @@ public class InjectBufferTracking {
 
 
     @Reflect
-    public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
+    public static void inc( @RW S32Array s32Array, int len) {
         if (GIX() < GSX()) {
             s32Array.array(GIX(), s32Array.array(GIX()) + 1);
         }
@@ -112,10 +111,9 @@ public class InjectBufferTracking {
         int[] arr  = new int[2 * s32Array.length()];
         System.out.println("l = " + l);
         s32Array.array(0, s32Array.array(0) + 1);
-        KernelContext kcNull = null;
-        inc(kcNull,s32Array,20);
+        inc(s32Array,20);
         for (int i = 0; i < n; i++) {
-            cc.dispatchKernel(NDRange.of1D(len), kc -> inc(kc, s32Array, len));
+            cc.dispatchKernel(NDRange.of1D(len), () -> inc( s32Array, len));
             s32Array.array(0,1);
             System.out.println("Weird "+s32Array.array(0)+s32Array.length());
         }

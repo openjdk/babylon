@@ -27,7 +27,7 @@
 
 int main(int argc, char **argv) {
     const char *rgbToGrey = R"(3
-       (!:32#KernelContext:{
+       (!:32#DispatchContext:{
           x:s32,
           maxX:s32
        }),
@@ -36,14 +36,14 @@ int main(int argc, char **argv) {
        (?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})
     )";
     const char *gradientRow =
-            "4(!:32#KernelContext:{x:s32,maxX:s32}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})";
+            "4(!:32#DispatchContext:{x:s32,maxX:s32}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})";
     const char *gradientCol =
-            "3(!:32#KernelContext:{x:s32,maxX:s32}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})";
+            "3(!:32#DispatchContext:{x:s32,maxX:s32}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]}),(?:8+F32Array2D:{width:s32,height:s32,array:[*:?:f32]})";
     const char *squares = "2(!:32#KernelContext:{x:s32,maxX:s32}),(?:4+S32Array:{length:s32,array:[*:?:s32]})";
     const char *suaresadd =
-            "3(!:32#KernelContext:{x:s32,maxX:s32}),(?:4+S32Array:{length:s32,array:[*:?:s32]}),(?:s32)";
+            "3(!:32#DispatchContext:{x:s32,maxX:s32}),(?:4+S32Array:{length:s32,array:[*:?:s32]}),(?:s32)";
     const char *cascadeSchema = R"(6
-        (!:32#KernelContext:{x:s32,maxX:s32}),
+        (!:32#DispatchContext:{x:s32,maxX:s32}),
         (!:163472#Cascade:{
             width:s32,
             height:s32,

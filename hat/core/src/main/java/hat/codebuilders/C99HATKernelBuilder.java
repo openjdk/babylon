@@ -47,7 +47,7 @@ import hat.types.S16ImplOfF16;
 import optkl.IfaceValue;
 import jdk.incubator.code.Value;
 import optkl.OpHelper;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Schema;
@@ -123,7 +123,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String F16_TO_FLOAT_1 = "F16_TO_FLOAT_1";
     public static final String BF16_TO_FLOAT_0 = "BF16_TO_FLOAT_0";
     public static final String BF16_TO_FLOAT_1 = "BF16_TO_FLOAT_1";
-    public static final String MACRO_FRAMGMENT_CREATE = "FRAGMENT_CREATE";
+    public static final String MACRO_FRAGMENT_CREATE = "FRAGMENT_CREATE";
     public static final String MACRO_FRAGMENT_FILL = "FRAGMENT_FILL";
     public static final String MACRO_FRAGMENT_MMA = "FRAGMENT_MMA";
     public static final String MACRO_FRAGMENT_LOAD_F16 = "FRAGMENT_LOAD_F16";

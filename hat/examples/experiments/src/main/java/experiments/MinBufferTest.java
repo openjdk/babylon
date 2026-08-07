@@ -28,12 +28,11 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
+
 import static hat.backend.Backend.FIRST;
 
 import jdk.incubator.code.Reflect;
@@ -45,7 +44,7 @@ public class MinBufferTest {
 
     public static class ComputeApp {
         @Reflect
-        public static void inc(@RO KernelContext kc, @RW S32Array s32Array, int len) {
+        public static void inc( @RW S32Array s32Array, int len) {
             if (GIX() < GSX()) {
                 s32Array.array(GIX(), s32Array.array(GIX()) + 1);
             }
@@ -54,8 +53,8 @@ public class MinBufferTest {
         @Reflect
         public static void add(ComputeContext cc, @RW S32Array s32Array, int len, int n) {
             for (int i = 0; i < n; i++) {
-                cc.dispatchKernel(NDRange.of1D(len), kc -> inc(kc, s32Array, len));
-                System.out.println(i);//s32Array.array(0));
+                cc.dispatchKernel(NDRange.of1D(len), () -> inc( s32Array, len));
+                System.out.println(i);
             }
         }
     }

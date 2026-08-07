@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -50,7 +50,7 @@ public class LocalIds {
     private static boolean PRINT_RESULTS = false;
 
     @Reflect
-    private static void assign(@RO KernelContext __, @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
+    private static void assign(  S32Array arrayA, S32Array arrayB, S32Array arrayC) {
         int gx = GIX();
         int lx = LIX();
         int lsx = LSX();
@@ -64,7 +64,7 @@ public class LocalIds {
 
     @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array arrayA, @RW S32Array arrayB, @RW S32Array arrayC) {
-        cc.dispatchKernel(NDRange.of1D(32,BLOCK_SIZE), kc -> assign(kc, arrayA, arrayB, arrayC));
+        cc.dispatchKernel(NDRange.of1D(32,BLOCK_SIZE), () -> assign( arrayA, arrayB, arrayC));
     }
 
     public static void main(String[] args) {

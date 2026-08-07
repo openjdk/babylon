@@ -29,7 +29,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.HATMath;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
@@ -101,7 +101,7 @@ public class Main {
     }
 
     @Reflect
-    private static void dftKernel(KernelContext kc, ComplexArray input, ComplexArray output) {
+    private static void dftKernel(ComplexArray input, ComplexArray output) {
         int size = input.length();
         int idx = GIX();
         if (idx < GSX()) {
@@ -124,11 +124,11 @@ public class Main {
     @Reflect
     private static void dftCompute(ComputeContext cc, ComplexArray input, ComplexArray output) {
         var range = NDRange.of1D(input.length(), 256);
-        cc.dispatchKernel(range, kernelContext -> dftKernel(kernelContext, input, output));
+        cc.dispatchKernel(range, () -> dftKernel( input, output));
     }
 
     @Reflect
-    private static void dftPlainKernel(KernelContext kc, F32Array inReal, F32Array inImag, F32Array outReal, F32Array outImag) {
+    private static void dftPlainKernel( F32Array inReal, F32Array inImag, F32Array outReal, F32Array outImag) {
         int size = inReal.length();
         int idx = GIX();
         if (idx < GSX()) {
@@ -149,7 +149,7 @@ public class Main {
     @Reflect
     private static void dftPlainCompute(ComputeContext cc, F32Array inReal, F32Array inImag, F32Array outReal, F32Array outImag) {
         var range = NDRange.of1D(inReal.length(), 256);
-        cc.dispatchKernel(range, kernelContext -> dftPlainKernel(kernelContext, inReal, inImag, outReal, outImag));
+        cc.dispatchKernel(range, ()-> dftPlainKernel( inReal, inImag, outReal, outImag));
     }
 
     private static void dftJava(ComplexArray input, ComplexArray output) {
