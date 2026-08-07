@@ -631,6 +631,34 @@ public class TestBytecode {
         return (value && true) ? 1 : 0;
     }
 
+    @Reflect
+    static int continueFromTryWhileTWR(int value) {
+        int i = 0;
+        try {
+            while (i++ < value) {
+                try (var resource = Stream.empty()) {
+                    continue;
+                }
+            }
+        } finally {
+            i++;
+        }
+        return i;
+    }
+
+    @Reflect
+    static int continueFromSynchronizedWhileTWR(int value) {
+        int i = 0;
+        synchronized (TestBytecode.class) {
+            while (i++ < value) {
+                try (var resource = Stream.empty()) {
+                    continue;
+                }
+            }
+        }
+        return i;
+    }
+
     record TestData(Method testMethod) {
         @Override
         public String toString() {
