@@ -2948,7 +2948,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         boolean ifExitFromSynchronized(StatementTargetOp lop) {
-            return lop instanceof StatementTargetOp.ResolvedStatementTarget || lop.target() == this || lop.target().isAncestorOf(this);
+            Op target = lop.target();
+            return target == this
+                    || target.isAncestorOf(this)
+                    || (lop instanceof StatementTargetOp.ResolvedStatementTarget && !isAncestorOf(target));
         }
 
         @Override
@@ -5621,7 +5624,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         boolean ifExitFromTry(StatementTargetOp lop) {
-            return lop instanceof StatementTargetOp.ResolvedStatementTarget || lop.target() == this || lop.target().isAncestorOf(this);
+            Op target = lop.target();
+            return target == this
+                    || target.isAncestorOf(this)
+                    || (lop instanceof StatementTargetOp.ResolvedStatementTarget && !isAncestorOf(target));
         }
 
         Block.Builder inlineFinalizer(Block.Builder block1, Value enter, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
