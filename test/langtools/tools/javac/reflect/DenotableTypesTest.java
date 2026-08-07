@@ -422,4 +422,30 @@ public class DenotableTypesTest {
         var snd = pickI((C)null, (D)null);
         pickSup(fst, snd);
     }
+
+    @Reflect
+    @IR("""
+            func @"test20" (%0 : java.type:"DenotableTypesTest$Box<? extends java.lang.Number>")java.type:"java.lang.Number" -> {
+                %1 : Var<java.type:"DenotableTypesTest$Box<? extends java.lang.Number>"> = var %0 @"box";
+                %2 : java.type:"DenotableTypesTest$Box<? extends java.lang.Number>" = var.load %1;
+                %3 : java.type:"java.lang.Number" = field.load %2 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
+                return %3;
+            };
+            """)
+    static Number test20(Box<? extends Number> box) {
+        return box.x;
+    }
+
+    @Reflect
+    @IR("""
+            func @"test21" (%0 : java.type:"DenotableTypesTest$Box<? super java.lang.Number>")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"DenotableTypesTest$Box<? super java.lang.Number>"> = var %0 @"box";
+                %2 : java.type:"DenotableTypesTest$Box<? super java.lang.Number>" = var.load %1;
+                %3 : java.type:"java.lang.Object" = field.load %2 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
+                return %3;
+            };
+            """)
+    static Object test21(Box<? super Number> box) {
+        return box.x;
+    }
 }
