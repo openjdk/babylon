@@ -517,7 +517,7 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
         try {
             mh = SharedSecrets.getJavaLangInvokeAccess().findVirtual(oq.getClass(), "__internal_quoted",
                     MethodType.methodType(Quoted.class));
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException e) { // @@@ when this is thrown and what to do about it ?
             throw new RuntimeException(e);
         }
         if (mh == null) {
@@ -527,9 +527,10 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
         try {
             q = (Quoted<?>) mh.invoke(oq);
         } catch (Throwable e) {
+            // @@@ revisit this
             // op method may throw UOE in case java compile time version doesn't match runtime version
-            if (e instanceof UnsupportedOperationException uoe) {
-                throw uoe;
+            if (e instanceof RuntimeException re) {
+                throw re;
             }
             throw new RuntimeException(e);
         }
@@ -575,7 +576,7 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
         try {
             mh = SharedSecrets.getJavaLangInvokeAccess().findStatic(method.getDeclaringClass(), opMethodName,
                     MethodType.methodType(Op.class));
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException e) { // @@@ when this is thrown and what to do about it ?
             throw new RuntimeException(e);
         }
         if (mh == null) {
@@ -585,9 +586,10 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
             FuncOp funcOp = (FuncOp) mh.invoke();
             return Optional.of(funcOp);
         } catch (Throwable e) {
+            // @@@ revisit this
             // op method may throw UOE in case java compile time version doesn't match runtime version
-            if (e instanceof UnsupportedOperationException uoe) {
-                throw uoe;
+            if (e instanceof RuntimeException re) {
+                throw re;
             }
             throw new RuntimeException(e);
         }
