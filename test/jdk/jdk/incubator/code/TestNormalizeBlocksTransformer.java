@@ -35,9 +35,29 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.stream.Stream;
 
 public class TestNormalizeBlocksTransformer {
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    @interface NormalizedModel {
+        String value();
+    }
+
+    @NormalizedModel("""
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = invoke @java.ref:"C::m():int";
+                %2 : java.type:"int" = invoke %1 @java.ref:"C::m(int):int";
+                %3 : java.type:"int" = invoke %2 %2 @java.ref:"C::m(int, int):int";
+                %4 : java.type:"int" = invoke %3 %2 %2 @java.ref:"C::m(int, int, int):int";
+                return %4;
+            };
+            """)
     static final String TEST1_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = invoke @java.ref:"C::m():int";
@@ -59,16 +79,34 @@ public class TestNormalizeBlocksTransformer {
                 return %6;
             };
             """;
-    static final String TEST1_EXPECTED = """
-            func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = invoke @java.ref:"C::m():int";
-                %2 : java.type:"int" = invoke %1 @java.ref:"C::m(int):int";
-                %3 : java.type:"int" = invoke %2 %2 @java.ref:"C::m(int, int):int";
-                %4 : java.type:"int" = invoke %3 %2 %2 @java.ref:"C::m(int, int, int):int";
-                return %4;
-            };
-            """;
 
+    @NormalizedModel("""
+            func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %10 : java.type:"java.lang.RuntimeException" = constant @null;
+                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_5(%10) ^block_2(%10);
+
+              ^block_1:
+                %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
+                exception.region.exit %2 ^block_4;
+
+              ^block_2(%4 : java.type:"java.lang.RuntimeException"):
+                %11 : java.type:"java.lang.Throwable" = constant @null;
+                %5 : java.type:"void" = exception.region.enter ^block_3 ^block_5(%11);
+
+              ^block_3:
+                %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
+                exception.region.exit %5 ^block_4;
+
+              ^block_4:
+                %7 : java.type:"int" = invoke @java.ref:"A::finally_():int";
+                return;
+
+              ^block_5(%8 : java.type:"java.lang.Throwable"):
+                %9 : java.type:"int" = invoke @java.ref:"A::finally_():int";
+                throw %8;
+            };
+            """)
     static final String TEST2_INPUT = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
@@ -105,33 +143,25 @@ public class TestNormalizeBlocksTransformer {
                 throw %8;
             };
             """;
-    static final String TEST2_EXPECTED = """
-            func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
-                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %10 : java.type:"java.lang.RuntimeException" = constant @null;
-                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_5(%10) ^block_2(%10);
+
+    @NormalizedModel("""
+            func @"f" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @0;
+                %2 : java.type:"boolean" = gt %0 %1;
+                cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
-                exception.region.exit %2 ^block_4;
+                %3 : java.type:"int" = constant @1;
+                branch ^block_3(%3);
 
-              ^block_2(%4 : java.type:"java.lang.RuntimeException"):
-                %11 : java.type:"java.lang.Throwable" = constant @null;
-                %5 : java.type:"void" = exception.region.enter ^block_3 ^block_5(%11);
+              ^block_2:
+                %4 : java.type:"int" = constant @-1;
+                branch ^block_3(%4);
 
-              ^block_3:
-                %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
-                exception.region.exit %5 ^block_4;
-
-              ^block_4:
-                %7 : java.type:"int" = invoke @java.ref:"A::finally_():int";
-                return;
-
-              ^block_5(%8 : java.type:"java.lang.Throwable"):
-                %9 : java.type:"int" = invoke @java.ref:"A::finally_():int";
-                throw %8;
-            };""";
-
+              ^block_3(%5 : java.type:"int"):
+                return %5;
+            };
+            """)
     static final String TEST3_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = constant @0;
@@ -155,7 +185,8 @@ public class TestNormalizeBlocksTransformer {
               ^block_3(%5 : java.type:"int"):
                 return %5;
             };""";
-    static final String TEST3_EXPECTED = """
+
+    @NormalizedModel("""
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = constant @0;
                 %2 : java.type:"boolean" = gt %0 %1;
@@ -172,8 +203,7 @@ public class TestNormalizeBlocksTransformer {
               ^block_3(%5 : java.type:"int"):
                 return %5;
             };
-            """;
-
+            """)
     static final String TEST4_INPUT = """
             func @"f" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : java.type:"int" = constant @0;
@@ -197,25 +227,26 @@ public class TestNormalizeBlocksTransformer {
               ^block_3(%unused_1 : java.type:"int", %5 : java.type:"int", %unused_2 : java.type:"int"):
                 return %5;
             };""";
-    static final String TEST4_EXPECTED = """
-            func @"f" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @0;
-                %2 : java.type:"boolean" = gt %0 %1;
-                cbranch %2 ^block_1 ^block_2;
+
+    @NormalizedModel("""
+            func @"f" ()java.type:"void" -> {
+                %1 : java.type:"java.lang.Throwable" = constant @null;
+                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3(%1);
 
               ^block_1:
-                %3 : java.type:"int" = constant @1;
-                branch ^block_3(%3);
+                invoke @java.ref:"A::m():void";
+                exception.region.exit %0 ^block_2;
 
               ^block_2:
-                %4 : java.type:"int" = constant @-1;
-                branch ^block_3(%4);
+                branch ^block_4;
 
-              ^block_3(%5 : java.type:"int"):
-                return %5;
+              ^block_3(%1 : java.type:"java.lang.Throwable"):
+                branch ^block_4;
+
+              ^block_4:
+                return;
             };
-            """;
-
+            """)
     static final String TEST5_INPUT = """
             func @"f" ()java.type:"void" -> {
                 %2 : java.type:"java.lang.Throwable" = constant @null;
@@ -238,26 +269,58 @@ public class TestNormalizeBlocksTransformer {
                 return;
             };
             """;
-    static final String TEST5_EXPECTED = """
-            func @"f" ()java.type:"void" -> {
-                %1 : java.type:"java.lang.Throwable" = constant @null;
-                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3(%1);
+
+    @NormalizedModel("""
+            func @"m" (%0 : java.type:"java.lang.Object")java.type:"int" -> {
+                %1 : java.type:"java.lang.Object" = constant @null;
+                %2 : java.type:"boolean" = invoke %0 %1 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                cbranch %2 ^block_1 ^block_2;
 
               ^block_1:
-                invoke @java.ref:"A::m():void";
-                exception.region.exit %0 ^block_2;
+                %3 : java.type:"java.lang.NullPointerException" = new @java.ref:"java.lang.NullPointerException::()";
+                throw %3;
 
               ^block_2:
-                branch ^block_4;
+                %4 : java.type:"boolean" = instanceof %0 @java.type:"java.util.List";
+                cbranch %4 ^block_3 ^block_4;
 
-              ^block_3(%1 : java.type:"java.lang.Throwable"):
-                branch ^block_4;
+              ^block_3:
+                %5 : java.type:"java.util.List" = cast %0 @java.type:"java.util.List";
+                %6 : java.type:"boolean" = constant @true;
+                %7 : java.type:"int" = constant @1;
+                branch ^block_9(%7);
 
               ^block_4:
-                return;
-            };
-            """;
+                %8 : java.type:"boolean" = constant @false;
+                %9 : java.type:"boolean" = instanceof %0 @java.type:"java.lang.String";
+                cbranch %9 ^block_5 ^block_6;
 
+              ^block_5:
+                %10 : java.type:"java.lang.String" = cast %0 @java.type:"java.lang.String";
+                %11 : java.type:"boolean" = constant @true;
+                %12 : java.type:"int" = constant @2;
+                branch ^block_9(%12);
+
+              ^block_6:
+                %13 : java.type:"boolean" = constant @false;
+                %14 : java.type:"boolean" = instanceof %0 @java.type:"java.util.Map";
+                cbranch %14 ^block_7 ^block_8;
+
+              ^block_7:
+                %15 : java.type:"java.util.Map" = cast %0 @java.type:"java.util.Map";
+                %16 : java.type:"boolean" = constant @true;
+                %17 : java.type:"int" = constant @3;
+                branch ^block_9(%17);
+
+              ^block_8:
+                %18 : java.type:"boolean" = constant @false;
+                %19 : java.type:"int" = constant @-1;
+                branch ^block_9(%19);
+
+              ^block_9(%20 : java.type:"int"):
+                return %20;
+            };
+            """)
     static final String TEST6_INPUT = """
             func @"m" (%0 : java.type:"java.lang.Object")java.type:"int" -> {
                 %1 : java.type:"java.lang.Object" = constant @null;
@@ -345,51 +408,27 @@ public class TestNormalizeBlocksTransformer {
                 return %23;
             };
             """;
-    static final String TEST6_EXPECTED = """
-            func @"m" (%0 : java.type:"java.lang.Object")java.type:"int" -> {
-                %1 : java.type:"java.lang.Object" = constant @null;
-                %2 : java.type:"boolean" = invoke %0 %1 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
-                cbranch %2 ^block_1 ^block_2;
+
+    @NormalizedModel("""
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                cbranch %0 ^block_1 ^block_3;
 
               ^block_1:
-                %3 : java.type:"java.lang.NullPointerException" = new @java.ref:"java.lang.NullPointerException::()";
-                throw %3;
+                %1 : java.type:"boolean" = constant @true;
+                branch ^block_2;
 
               ^block_2:
-                %4 : java.type:"boolean" = instanceof %0 @java.type:"java.util.List";
-                cbranch %4 ^block_3 ^block_4;
+                %2 : java.type:"int" = constant @1;
+                branch ^block_4;
 
               ^block_3:
-                %5 : java.type:"java.util.List" = cast %0 @java.type:"java.util.List";
-                %6 : java.type:"int" = constant @1;
-                branch ^block_9(%6);
+                %3 : java.type:"int" = constant @2;
+                branch ^block_4;
 
               ^block_4:
-                %7 : java.type:"boolean" = instanceof %0 @java.type:"java.lang.String";
-                cbranch %7 ^block_5 ^block_6;
-
-              ^block_5:
-                %8 : java.type:"java.lang.String" = cast %0 @java.type:"java.lang.String";
-                %9 : java.type:"int" = constant @2;
-                branch ^block_9(%9);
-
-              ^block_6:
-                %10 : java.type:"boolean" = instanceof %0 @java.type:"java.util.Map";
-                cbranch %10 ^block_7 ^block_8;
-
-              ^block_7:
-                %11 : java.type:"java.util.Map" = cast %0 @java.type:"java.util.Map";
-                %12 : java.type:"int" = constant @3;
-                branch ^block_9(%12);
-
-              ^block_8:
-                %13 : java.type:"int" = constant @-1;
-                branch ^block_9(%13);
-
-              ^block_9(%14 : java.type:"int"):
-                return %14;
+                return;
             };
-            """;
+            """)
     static final String TEST7_INPUT = """
             func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
                 cbranch %0 ^block_1 ^block_2(%0);
@@ -402,45 +441,162 @@ public class TestNormalizeBlocksTransformer {
                 cbranch %2 ^block_3 ^block_4;
 
               ^block_3:
+                %one : java.type:"int" = constant @1;
                 branch ^block_5;
 
               ^block_4:
+                %two : java.type:"int" = constant @2;
                 branch ^block_5;
 
               ^block_5:
                 return;
             };
             """;
-    static final String TEST7_EXPECTED = """
+
+    @NormalizedModel("""
             func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
-                cbranch %0 ^block_1 ^block_2(%0);
+                cbranch %0 ^block_1 ^block_2;
 
               ^block_1:
+                %1 : java.type:"int" = constant @1;
+                branch ^block_4;
+
+              ^block_2:
+                %2 : java.type:"boolean" = constant @false;
                 branch ^block_3;
 
-              ^block_2(%1 : java.type:"boolean"):
-                cbranch %1 ^block_3 ^block_4;
+              ^block_3:
+                %3 : java.type:"int" = constant @2;
+                branch ^block_4;
+
+              ^block_4:
+                return;
+            };
+            """)
+    static final String TEST8_INPUT = """
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                cbranch %0 ^block_2(%0) ^block_1;
+
+              ^block_1:
+                %1 : java.type:"boolean" = constant @false;
+                branch ^block_2(%1);
+
+              ^block_2(%2 : java.type:"boolean"):
+                cbranch %2 ^block_3 ^block_4;
 
               ^block_3:
+                %one : java.type:"int" = constant @1;
                 branch ^block_5;
 
               ^block_4:
+                %two : java.type:"int" = constant @2;
                 branch ^block_5;
 
               ^block_5:
                 return;
             };
             """;
+
+    @NormalizedModel("""
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                %1 : java.type:"boolean" = constant @false;
+                cbranch %0 ^block_1 ^block_2;
+
+              ^block_1:
+                %2 : java.type:"boolean" = constant @true;
+                %3 : java.type:"int" = constant @1;
+                branch ^block_3;
+
+              ^block_2:
+                %4 : java.type:"int" = constant @2;
+                branch ^block_3;
+
+              ^block_3:
+                return;
+            };
+            """)
+    static final String TEST9_INPUT = """
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                %false : java.type:"boolean" = constant @false;
+                cbranch %0 ^block_1 ^block_2(%false);
+
+              ^block_1:
+                %1 : java.type:"boolean" = constant @true;
+                branch ^block_2(%1);
+
+              ^block_2(%2 : java.type:"boolean"):
+                cbranch %2 ^block_3 ^block_4;
+
+              ^block_3:
+                %one : java.type:"int" = constant @1;
+                branch ^block_5;
+
+              ^block_4:
+                %two : java.type:"int" = constant @2;
+                branch ^block_5;
+
+              ^block_5:
+                return;
+            };
+            """;
+
+    @NormalizedModel("""
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                %1 : java.type:"boolean" = constant @true;
+                cbranch %0 ^block_1 ^block_2;
+
+              ^block_1:
+                %2 : java.type:"int" = constant @1;
+                branch ^block_3;
+
+              ^block_2:
+                %3 : java.type:"boolean" = constant @false;
+                %4 : java.type:"int" = constant @2;
+                branch ^block_3;
+
+              ^block_3:
+                return;
+            };
+            """)
+    static final String TEST10_INPUT = """
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                %true : java.type:"boolean" = constant @true;
+                cbranch %0 ^block_2(%true) ^block_1;
+
+              ^block_1:
+                %1 : java.type:"boolean" = constant @false;
+                branch ^block_2(%1);
+
+              ^block_2(%2 : java.type:"boolean"):
+                cbranch %2 ^block_3 ^block_4;
+
+              ^block_3:
+                %one : java.type:"int" = constant @1;
+                branch ^block_5;
+
+              ^block_4:
+                %two : java.type:"int" = constant @2;
+                branch ^block_5;
+
+              ^block_5:
+                return;
+            };
+            """;
+
     static Object[][] testModels() {
-        return new Object[][]{
-                parse(TEST1_INPUT, TEST1_EXPECTED),
-                parse(TEST2_INPUT, TEST2_EXPECTED),
-                parse(TEST3_INPUT, TEST3_EXPECTED),
-                parse(TEST4_INPUT, TEST4_EXPECTED),
-                parse(TEST5_INPUT, TEST5_EXPECTED),
-                parse(TEST6_INPUT, TEST6_EXPECTED),
-                parse(TEST7_INPUT, TEST7_EXPECTED),
-        };
+        return Stream.of(TestNormalizeBlocksTransformer.class.getDeclaredFields())
+                .mapMulti((field, downstream) -> {
+                    NormalizedModel normalizedModel = field.getAnnotation(NormalizedModel.class);
+                    String model = null;
+                    try {
+                        model = (String) field.get(null);
+                    } catch (ReflectiveOperationException e) {
+                        throw new AssertionError(e);
+                    }
+                    if (normalizedModel != null) {
+                        downstream.accept(parse(model, normalizedModel.value()));
+                    }
+                }).toArray(Object[][]::new);
     }
 
     static Object[] parse(String... models) {

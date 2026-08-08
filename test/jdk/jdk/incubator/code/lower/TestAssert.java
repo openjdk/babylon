@@ -52,7 +52,7 @@ public class TestAssert {
                 %7 : java.type:"java.lang.AssertionError" = new %6 @java.ref:"java.lang.AssertionError::(java.lang.Object)";
                 throw %7;
             };
-            """, ssa = false)
+            """)
     static int test1(int i) {
         assert i >= 0 : "Failed";
         return i;
@@ -75,7 +75,7 @@ public class TestAssert {
                 %6 : java.type:"java.lang.AssertionError" = new @java.ref:"java.lang.AssertionError::()";
                 throw %6;
             };
-            """, ssa = false)
+            """)
     static int test2(int i) {
         assert i >= 0;
         return i;

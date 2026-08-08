@@ -70,7 +70,7 @@ public class TestLoop {
                 %18 : java.type:"int" = var.load %3;
                 return %18;
             };
-            """, ssa = false)
+            """)
     static int testFor(int[] a) {
         int sum = 0;
         for (int i = 0; i < a.length; i++) {
@@ -104,7 +104,7 @@ public class TestLoop {
               ^block_4:
                 return %4;
             };
-            """, ssa = true)
+            """, transform = LoweredModel.Transform.SSA)
     static int testForSSA(int[] a) {
         int sum = 0;
         for (int i = 0; i < a.length; i++) {
@@ -150,7 +150,7 @@ public class TestLoop {
               ^block_8:
                 return;
             };
-            """, ssa = false)
+            """)
     static void testLoopWithSwitchAndContinue(boolean repeat, int value) {
         while (repeat) {
             switch (value) {

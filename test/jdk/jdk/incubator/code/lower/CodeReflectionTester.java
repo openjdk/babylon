@@ -24,9 +24,12 @@
 import java.io.StringWriter;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.EnumSet;
 
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -61,7 +64,7 @@ public class CodeReflectionTester {
 
         CoreOp.FuncOp f = Op.ofMethod(method).orElseThrow(() ->
                 new AssertionError("No code model for reflective method"));
-        f = lower(f, lma.ssa());
+        f = lower(f, lma.transform());
 
         // we remove the source attribute, to avoid updating the tests, which we will do later
         String actual = canonicalizeModel(method, removeSourceAttribute(f));
@@ -71,15 +74,19 @@ public class CodeReflectionTester {
         }
     }
 
-    static CoreOp.FuncOp lower(CoreOp.FuncOp f, boolean ssa) {
+    static CoreOp.FuncOp lower(CoreOp.FuncOp f, LoweredModel.Transform[] transforms) {
         f = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(f.toText());
 
-        if (ssa) {
+        EnumSet<LoweredModel.Transform> transformSet = transforms.length == 0 ? EnumSet.noneOf(LoweredModel.Transform.class) : EnumSet.copyOf(Arrays.asList(transforms));
+        if (transformSet.contains(LoweredModel.Transform.NORMALIZE_BLOCKS)) {
+            f = NormalizeBlocksTransformer.transform(f);
+            System.out.println(f.toText());
+        }
+        if (transformSet.contains(LoweredModel.Transform.SSA)) {
             f = SSA.transform(f);
             System.out.println(f.toText());
         }
-
         return f;
     }
 
