@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@
  */
 
 package optkl.ifacemapper;
-
 
 import optkl.ifacemapper.accessor.AccessorInfo;
 import optkl.ifacemapper.accessor.Accessors;
@@ -63,16 +62,16 @@ public final class SegmentInterfaceMapper<T>
 
     private static final MethodHandles.Lookup LOCAL_LOOKUP = MethodHandles.lookup();
 
-   // @Stable
+    // @Stable
     private final Class<T> implClass;
-   // @Stable
+    // @Stable
     private final MethodHandle getHandle;
-   // @Stable
+    // @Stable
     private final MethodHandle setHandle;
-   // @Stable
+    // @Stable
     // Capability to extract the segment from an instance of the generated implClass
     private final MethodHandle segmentGetHandle;
-   // @Stable
+    // @Stable
     // Capability to extract the offset from an instance of the generated implClass
     private final MethodHandle offsetGetHandle;
     private final List<AffectedMemory> affectedMemories;
@@ -84,7 +83,7 @@ public final class SegmentInterfaceMapper<T>
                                    BoundSchema<?> boundSchema,
                                    boolean leaf,
                                    List<AffectedMemory> affectedMemories) {
-        super(arena,lookup, type, layout, boundSchema,leaf,
+        super(arena, lookup, type, layout, boundSchema, leaf,
                 MapperUtil::requireImplementableInterfaceType, Accessors::ofInterface);
         this.affectedMemories = affectedMemories;
 
@@ -144,22 +143,15 @@ public final class SegmentInterfaceMapper<T>
 
     @Override
     public <R> SegmentMapper<R> map(Class<R> newType, Function<? super T, ? extends R> toMapper) {
-        return new Mapped<>(arena(),lookup(), newType ,layout(),boundSchema(), getHandle(), toMapper);
+        throw new UnsupportedOperationException("Map operation not supported yet");
     }
-
-    // @Override
-    //  public <R> SegmentMapper<R> map(Class<R> newType,
-    //Function<? super T, ? extends R> toMapper,
-    // Function<? super R, ? extends T> fromMapper) {
-    //  throw twoWayMappersUnsupported();
-    //  }
 
     @Override
     protected MethodHandle computeGetHandle() {
         try {
             // (MemorySegment, long)void
             var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, GroupLayout.class, BoundSchema.class,
-            long.class));
+                    long.class));
 
             // try? var ctor = lookup().findConstructor(implClass, MethodType.methodType(void.class, MemorySegment.class, long.class));
             // -> (MemorySegment, long)Object
@@ -419,100 +411,11 @@ public final class SegmentInterfaceMapper<T>
 
     }
 
-    public static <T> SegmentInterfaceMapper<T> create(Arena arena,MethodHandles.Lookup lookup,
+    public static <T> SegmentInterfaceMapper<T> create(Arena arena, MethodHandles.Lookup lookup,
                                                        Class<T> type,
                                                        GroupLayout layout,
                                                        BoundSchema<?> boundSchema) {
-        return new SegmentInterfaceMapper<>(arena,lookup, type,  layout, boundSchema, false, new ArrayList<>());
+        return new SegmentInterfaceMapper<>(arena, lookup, type, layout, boundSchema, false, new ArrayList<>());
     }
-
-    // Mapping
-
-    /**
-     * This class models composed record mappers.
-     *
-     * @param lookup    to use for reflective operations
-     * @param type      new type to map to/from
-     * @param layout    original layout
-     * @param getHandle for get operations
-     * @param toMapper  a function that goes from T to R
-     * @param <T>       original mapper type
-     * @param <R>       composed mapper type
-     */
-    record Mapped<T, R>(
-            Arena arena,
-            MethodHandles.Lookup lookup,
-            @Override Class<R> type,
-            @Override GroupLayout layout,
-            @Override BoundSchema<?> boundSchema,
-            @Override MethodHandle getHandle,
-            Function<? super T, ? extends R> toMapper
-    ) implements SegmentMapper<R> {
-
-        static final MethodHandle SET_OPERATIONS_UNSUPPORTED;
-
-        static {
-            try {
-                MethodType methodType = MethodType.methodType(void.class, MemorySegment.class, long.class, Object.class);
-                SET_OPERATIONS_UNSUPPORTED = LOCAL_LOOKUP.findStatic(Mapped.class, "setOperationsUnsupported", methodType);
-            } catch (ReflectiveOperationException e) {
-                throw new ExceptionInInitializerError(e);
-            }
-        }
-
-        Mapped(Arena arena,MethodHandles.Lookup lookup,
-               Class<R> type,
-               GroupLayout layout,
-               BoundSchema<?> boundSchema,
-               MethodHandle getHandle,
-               Function<? super T, ? extends R> toMapper
-        ) {
-            this.arena =arena;
-            this.lookup = lookup;
-            this.type = type;
-            this.boundSchema =boundSchema;
-            this.layout = layout;
-            this.toMapper = toMapper;
-            MethodHandle toMh = findVirtual("mapTo").bindTo(this);
-            this.getHandle = MethodHandles.filterReturnValue(getHandle, toMh);
-        }
-
-        @Override
-        public MethodHandle setHandle() {
-            return SET_OPERATIONS_UNSUPPORTED;
-        }
-
-        @Override
-        public <R1> SegmentMapper<R1> map(Class<R1> newType,
-                                          Function<? super R, ? extends R1> toMapper) {
-            return new Mapped<>(arena(),lookup, newType,  layout(), boundSchema(), getHandle(), toMapper);
-        }
-
-        // Used reflective when obtaining a MethodHandle
-        R mapTo(T t) {
-            return toMapper.apply(t);
-        }
-
-        // Used reflective when obtaining a MethodHandle
-        /*T mapFrom(R r) {
-            return fromMapper.apply(r);
-        }*/
-
-        private static MethodHandle findVirtual(String name) {
-            try {
-                var mt = MethodType.methodType(Object.class, Object.class);
-                return LOCAL_LOOKUP.findVirtual(Mapped.class, name, mt);
-            } catch (ReflectiveOperationException e) {
-                // Should not happen
-                throw new InternalError(e);
-            }
-        }
-
-        private static void setOperationsUnsupported(MemorySegment s, long o, Object t) {
-            throw new UnsupportedOperationException("SegmentMapper::set operations are not supported for mapped interface mappers");
-        }
-
-    }
-
 
 }
