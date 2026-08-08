@@ -205,7 +205,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_CUDA")
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())//.keyword("inline"))
+                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().keyword("__global__"))
 
                 // threads
