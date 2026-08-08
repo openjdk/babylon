@@ -298,7 +298,7 @@ public interface ArgArray extends Buffer {
                 case Integer s32 -> arg.s32(s32);
                 case Long s64 -> arg.s64(s64);
                 case Double f64 -> arg.f64(f64);
-                case Buffer buffer when finalArgIndex >1-> {
+                case Buffer buffer when finalArgIndex >0-> {
 
                         Annotation[] annotations = parameterAnnotations[finalArgIndex-1];
                         AccessType accessType = AccessType.NA;
