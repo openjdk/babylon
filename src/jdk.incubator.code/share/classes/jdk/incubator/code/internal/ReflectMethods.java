@@ -725,24 +725,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 pt = targetType;
                 scan(expression);
                 return (result == null || targetType.hasTag(TypeTag.VOID) || targetType.hasTag(NONE)) ?
-                        result : coerce(result, getSourceType(expression), targetType);
+                        result : coerce(result, expression.type, targetType);
             } finally {
                 pt = prevPt;
             }
-        }
-
-        private Type getSourceType(JCExpression expr) {
-            Symbol ms;
-            // for array.clone the expr.type will be the type of the array (because of Attr)
-            // this will prevent necessary cast from being added to model
-            // so we make sure the sourceType passed to coerece is Object which is the return type of the clone method
-            if (expr instanceof JCMethodInvocation mi &&
-                    (ms = TreeInfo.symbol(mi.meth)) != null &&
-                    ms.owner == syms.arrayClass &&
-                    ms.name == names.clone)
-                return syms.objectType;
-            else
-                return expr.type;
         }
 
         public Value toValue(JCExpression expression) {
@@ -1199,6 +1185,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             returnType, mr, args);
                     Value res = append(iop);
+                    if (sym.owner == syms.arrayClass && sym.name == names.clone) {
+                        // for array.clone, cast res (whose type is Object) to the array's type
+                        // we align the res.type with the tree.type
+                        res = append(JavaOp.cast(receiver.type(), res));
+                    }
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
