@@ -1186,6 +1186,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             returnType, mr, args);
                     Value res = append(iop);
+                    if (sym.owner == syms.arrayClass && sym.name == names.clone) {
+                        // for array.clone, cast res (whose type is Object) to the array's type
+                        // we align the res.type with the tree.type
+                        res = append(JavaOp.cast(receiver.type(), res));
+                    }
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -2903,8 +2908,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
     MethodRef symbolToErasedMethodRef(Symbol s) {
         Type erasedType = s.erasure(types);
+        Type ownerType = s.owner.type.hasTag(TypeTag.ARRAY) && s.name == names.clone ?
+                s.owner.type : s.owner.erasure(types);
         return MethodRef.method(
-                typeToCodeType(s.owner.erasure(types)),
+                typeToCodeType(ownerType),
                 s.name.toString(),
                 typeToCodeType(erasedType.getReturnType()),
                 erasedType.getParameterTypes().stream().map(this::typeToCodeType).toArray(CodeType[]::new));
