@@ -1052,7 +1052,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     throw new IllegalStateException("Unexpected value: " + value.asResult().op());
                 }
             }
-            dimensions = invokeOp.operands().size() - 1; // (this, ...)
+            dimensions = invokeOp.operands().size();
         }
         return dimensions;
     }
