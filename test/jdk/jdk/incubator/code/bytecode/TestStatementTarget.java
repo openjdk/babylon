@@ -177,6 +177,35 @@ public final class TestStatementTarget {
     }
 
     @Reflect
+    public static void nestedTwrContinueWithinOuterTwr(int mode, List<Ev> log) throws Exception {
+        try (var _ = open(log, mode == 2 || mode == 3, false, Ev.L1_TWR_R0_OPEN, Ev.L1_TWR_R0_CLOSE);
+             var _ = open(log, false, mode == 4, Ev.L1_TWR_R1_OPEN, Ev.L1_TWR_R1_CLOSE)) {
+            log.add(Ev.L1_TWR_BODY_ENTER);
+            loop: for (int i_loop = 0; i_loop < 2; i_loop++) {
+                log.add(Ev.L2_LOOP_ENTER);
+                try (var _ = open(log, mode == 5 || mode == 6, false, Ev.L3_TWR_R0_OPEN, Ev.L3_TWR_R0_CLOSE)) {
+                    log.add(Ev.L3_TWR_BODY_ENTER);
+                    log.add(Ev.ENTER);
+                    if (mode == 1 && i_loop == 0) {
+                        log.add(Ev.CONTINUE);
+                        continue loop;
+                    }
+                    if (mode == 6) {
+                        log.add(Ev.THROW);
+                        throw new IllegalStateException("inner TWR body");
+                    }
+                    log.add(Ev.EXIT);
+                }
+            }
+            if (mode == 3) {
+                log.add(Ev.THROW);
+                throw new IllegalStateException("outer TWR body");
+            }
+        }
+        log.add(Ev.METHOD_EXIT);
+    }
+
+    @Reflect
     public static void nestedFinallyTwrBreakExternal(int mode, List<Ev> log) throws Exception {
         outer: for (int i_outer = 0; i_outer < 2; i_outer++) {
             log.add(Ev.L0_LOOP_ENTER);
