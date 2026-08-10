@@ -225,7 +225,11 @@ public interface HATPhaseUtils {
     }
 
     static boolean isTileOperation(OpHelper.Invoke invoke) {
-        return isTileLoad(invoke) || isTileStore(invoke) || isTileMath(invoke) || isAlignOperation(invoke);
+        return isTileThreadId(invoke) || isTileLoad(invoke) || isTileStore(invoke) || isTileMath(invoke) || isAlignOperation(invoke);
+    }
+
+    static boolean isTileThreadId(OpHelper.Invoke invoke) {
+       return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("bid");
     }
 
     static boolean isTileLoad(OpHelper.Invoke invoke) {

@@ -28,7 +28,6 @@ import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATTileOp;
 import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.Value;
@@ -956,6 +955,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         throw new UnsupportedOperationException("HAT Tile Arithmetic Operation not supported for the OpenCL backend");
     }
 
+    @Override
+    protected OpenCLHATKernelBuilder hatTileId(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
+    }
+
     /**
      * Code example being generated via the {@code MACRO_FRAGMENT_STORE} macro.
      *
@@ -1012,10 +1016,5 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .recurseResultOrThrow(reference).comma().sp()
                         .id(tensorVarOp.varName()).comma().sp()
                         .id(ZERO));
-    }
-
-    @Override
-    public OpenCLHATKernelBuilder hatTileOp(HATTileOp hatTileOp) {
-        throw new UnsupportedOperationException("");
     }
 }

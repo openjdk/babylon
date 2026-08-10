@@ -27,7 +27,6 @@ package hat.backend.ffi;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.dialect.BinaryOpEnum;
-import hat.dialect.HATTileOp;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
@@ -1155,6 +1154,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    @Override
+    protected CudaHATKernelBuilder hatTileId(Invoke invoke) {
+        // TODO: depending on the dimension, we call different builtin
+        return id("ct::bid()").dot().id("x");
+    }
+
     /**
      * Example of code being generated:
      *
@@ -1222,11 +1227,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     protected static final String ARRAY = "array";
     protected static final String LENGTH = "length";
-
-    @Override
-    public CudaHATKernelBuilder hatTileOp(HATTileOp hatTileOp) {
-        return id("ct::bid()").dot().id("x").semicolon();
-    }
 
     public CudaHATKernelBuilder restrict() {
         return typeModifier("__restrict__");

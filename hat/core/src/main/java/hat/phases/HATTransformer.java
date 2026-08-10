@@ -38,9 +38,6 @@ public interface HATTransformer {
             // Memory Regions (private/shared)
             new HATMemoryPhase(),
 
-            // Handle the Block-Ids for the Tile Programming Model
-            new HATTileIDsPhase(),
-
             // MathLib phase
             new HATMathLibPhase(),
 

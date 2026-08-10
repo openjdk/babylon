@@ -869,6 +869,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void handleTileOperation(Invoke invoke) {
         switch (invoke.name()) {
+            case "bid" -> hatTileId(invoke);
             case "align" -> hatTileAlignOperation(invoke);
             case "load" -> hatTileLoadOperation(invoke);
             case "store" -> hatTileStoreOperation(invoke);
@@ -953,9 +954,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         MethodHandles.Lookup lookup = scopedCodeBuilderContext().lookup();
         var invoke = invoke(lookup, invokeOp);
-        if (invoke instanceof Invoke.Static staticInvoke && staticInvoke.refIs(KernelContext.class) && invoke.nameMatchesRegex(KernelContext.threadAccessRegex)){
-            id("HAT_"+invoke.name().toUpperCase()); // toUppercase is for barrier()
-        }else if (isVecInvoke(invoke)) { // hacked for vec op calls.
+        if (invoke instanceof Invoke.Static staticInvoke && staticInvoke.refIs(KernelContext.class) && invoke.nameMatchesRegex(KernelContext.threadAccessRegex)) {
+            id("HAT_" + invoke.name().toUpperCase()); // toUppercase is for barrier()
+        } else if (isVecInvoke(invoke)) { // hacked for vec op calls.
             handleInvoke(self(), invoke);
         } else if (isVectorOperation(lookup, invokeOp)) {
             handleVectorOperations(invoke);
@@ -1565,12 +1566,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T hatTensorLoad(Invoke invoke);
 
     protected abstract T hatTileAlignOperation(Invoke invoke);
-    
+
     protected abstract T hatTileLoadOperation(Invoke invoke);
 
     protected abstract T hatTileStoreOperation(Invoke invoke);
 
     protected abstract T hatTileBinaryArithmeticOperation(Invoke invoke);
+
+    protected abstract T hatTileId(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 

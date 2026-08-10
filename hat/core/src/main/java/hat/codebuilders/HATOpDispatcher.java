@@ -25,7 +25,6 @@
 package hat.codebuilders;
 
 import hat.dialect.HATOp;
-import hat.dialect.HATTileOp;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
@@ -44,8 +43,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp(HATPtrLengthOp hatPtrLengthOp);
 
-    T hatTileOp(HATTileOp hatTileOp);
-
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -53,7 +50,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrLoadOp hatPtrLoadOp -> hatPtrLoadOp(hatPtrLoadOp);
                 case HATPtrStoreOp hatPtrStoreOp -> hatPtrStoreOp(hatPtrStoreOp);
                 case HATPtrLengthOp hatPtrLengthOp -> hatPtrLengthOp(hatPtrLengthOp);
-                case HATTileOp hatTileOp -> hatTileOp(hatTileOp);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
         } else {
