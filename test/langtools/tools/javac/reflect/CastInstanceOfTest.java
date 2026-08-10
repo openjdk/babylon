@@ -132,4 +132,18 @@ public class CastInstanceOfTest {
     void test6(List<Object> l) {
         boolean b = l.get(0) instanceof String;
     }
+
+    @Reflect
+    @IR("""
+            func @"test7" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
+                %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
+                %3 : java.type:"java.lang.Object" = var.load %2;
+                %4 : java.type:"boolean" = instanceof %3 @java.type:"java.lang.String";
+                %5 : Var<java.type:"boolean"> = var %4 @"b";
+                return;
+            };
+            """)
+    void test7(Object o) {
+        boolean b = o instanceof java.lang.String;
+    }
 }

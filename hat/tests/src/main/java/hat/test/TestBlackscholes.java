@@ -27,7 +27,8 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import jdk.incubator.code.Reflect;
@@ -40,21 +41,22 @@ import java.util.Random;
 public class TestBlackscholes {
 
     @Reflect
-    public static void blackScholesKernel(KernelContext kc, F32Array call, F32Array put,
-                                          F32Array sArray, F32Array xArray, F32Array tArray,
-                                          float r, float v) {
-        if (kc.gix < kc.gsx) {
-            float S = sArray.array(kc.gix);
-            float X = xArray.array(kc.gix);
-            float T = tArray.array(kc.gix);
+    public static void blackScholesKernel(
+            F32Array call, F32Array put,
+            F32Array sArray, F32Array xArray, F32Array tArray,
+            float r, float v) {
+        if (GIX() < GSX()) {
+            float S = sArray.array(GIX());
+            float X = xArray.array(GIX());
+            float T = tArray.array(GIX());
             float expNegRt = (float) Math.exp(-r * T);
             float d1 = (float) ((Math.log(S / X) + (r + v * v * .5f) * T) / (v * Math.sqrt(T)));
             float d2 = (float) (d1 - v * Math.sqrt(T));
             float cnd1 = CND(d1);
             float cnd2 = CND(d2);
             float value = S * cnd1 - expNegRt * X * cnd2;
-            call.array(kc.gix, value);
-            put.array(kc.gix, expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
+            call.array(GIX(), value);
+            put.array(GIX(), expNegRt * X * (1 - cnd2) - S * (1 - cnd1));
         }
     }
 
@@ -83,9 +85,7 @@ public class TestBlackscholes {
 
     @Reflect
     public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
-        cc.dispatchKernel(NDRange.of1D(call.length()),
-                kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
-        );
+        cc.dispatchKernel(NDRange.of1D(call.length()),()-> blackScholesKernel( call, put, S, X, T, r, v));
     }
 
     static F32Array floatArray(Accelerator accelerator, int size, float low, float high) {

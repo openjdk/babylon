@@ -27,6 +27,7 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
+import hat.KernelContext;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -43,7 +44,12 @@ public abstract class FFIBackend extends FFIBackendDriver {
         // if (config().interpret()) {
         //   computeContext.interpretWithArgs(args);
         // } else {
-        computeContext.invokeWithArgs(args);
+        if (args[0].equals(KernelContext.class)) {
+            computeContext.invokeWithArgs(args);
+        }else{
+            computeContext.newInvokeWithArgs(args);
+        }
+
         //}
         backendBridge.computeEnd();
     }

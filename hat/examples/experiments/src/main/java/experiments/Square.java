@@ -27,12 +27,11 @@ package experiments;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.buffer.S32Array;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
 
 import java.lang.invoke.MethodHandles;
 
@@ -47,17 +46,16 @@ public class Square {
     }
 
     @Reflect
-    public static void squareKernel(@RO KernelContext kc, @RW S32Array a) {
-        int id = kc.gix;
-        if (id < kc.gsx) {
-            int value = a.array(id);
-            a.array(id, square(value));
+    public static void squareKernel(S32Array a) {
+        if (GIX() < GSX()) {
+            int value = a.array(GIX());
+            a.array(GIX(), square(value));
         }
     }
 
     @Reflect
-    public static void squareCompute(ComputeContext cc, @RW S32Array s32Array) {
-        cc.dispatchKernel(NDRange.of1D(s32Array.length()), kc -> squareKernel(kc, s32Array));
+    public static void squareCompute(ComputeContext cc, S32Array s32Array) {
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()), () -> squareKernel( s32Array));
     }
 
      static void main(String[] args) {
@@ -65,8 +63,7 @@ public class Square {
 
         S32Array s32Array = S32Array.create(accelerator, 20);
         s32Array.fill(i -> i); // fill arrays with unity a[0] = 0, a[1] = 1 ....
-        accelerator.compute((@Reflect Compute)
-                cc -> Square.squareCompute(cc, s32Array));
+        accelerator.compute((@Reflect Compute) cc -> Square.squareCompute(cc, s32Array));
 
         for (int i = 0; i < 20; i++) {
             System.out.println(i + "=" + s32Array.array(i));

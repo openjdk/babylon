@@ -47,6 +47,8 @@ public final class Block implements CodeElement<Block, Op> {
      */
     public static final class Parameter extends Value {
         Parameter(Block block, CodeType type) {
+            Objects.requireNonNull(type);
+
             super(block, type);
         }
 
@@ -500,6 +502,9 @@ public final class Block implements CodeElement<Block, Op> {
         final CodeTransformer ct;
 
         Builder(Body.Builder parentBody, CodeContext cc, CodeTransformer ct) {
+            Objects.requireNonNull(cc);
+            Objects.requireNonNull(ct);
+
             this.parentBody = parentBody;
             this.cc = cc;
             this.ct = ct;
@@ -586,6 +591,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @return the new block builder
          */
         public Block.Builder block(CodeType... params) {
+            check(); // needs to be here to make sure finished building check precede null check
             return block(List.of(params));
         }
 
@@ -635,6 +641,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @throws IllegalArgumentException if any argument's declaring block is built.
          */
         public Reference reference(Value... args) {
+            check(); // needs to be here to make sure finished building check precede null check
             return reference(List.of(args));
         }
 
@@ -680,8 +687,6 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public void transformBody(Body body, List<? extends Value> entryValues,
                                   CodeTransformer ct) {
-            check();
-
             transformBody(body, entryValues, CodeContext.create(cc), ct);
         }
 
@@ -763,6 +768,7 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Result add(Op op) {
             check();
+            Objects.requireNonNull(op);
 
             // Perform transform-on-append for a placed operation
             Op outputOp = op.isPlacedInBlock() || op.isRoot()

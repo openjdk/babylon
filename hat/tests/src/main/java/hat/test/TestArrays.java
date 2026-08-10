@@ -26,7 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -47,50 +48,45 @@ public class TestArrays {
     }
 
     @Reflect
-    public static void squareKernel(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx) {
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+    public static void squareKernel( S32Array array) {
+        if (GIX() < GSX()) {
+            int value = array.array(GIX());
+            array.array(GIX(), squareit(value));
         }
     }
 
     @Reflect
     public static void square(ComputeContext cc, S32Array array) {
-        cc.dispatchKernel(NDRange.of1D(array.length()),
-                kc -> squareKernel(kc, array)
-        );
+        cc.dispatchKernel(NDRange.of1D(array.length()),()-> squareKernel( array));
     }
 
     @Reflect
-    public static void vectorAddition(KernelContext kc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
-        if (kc.gix < kc.gsx) {
-            int valueA = arrayA.array(kc.gix);
-            int valueB = arrayB.array(kc.gix);
-            arrayC.array(kc.gix, (valueA + valueB));
+    public static void vectorAddition( S32Array arrayA, S32Array arrayB, S32Array arrayC) {
+        if (GIX() < GSX()) {
+            int valueA = arrayA.array(GIX());
+            int valueB = arrayB.array(GIX());
+            arrayC.array(GIX(), (valueA + valueB));
         }
     }
 
     @Reflect
     public static void vectorAdd(ComputeContext cc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
-        cc.dispatchKernel(NDRange.of1D(arrayA.length()),
-                kc -> vectorAddition(kc, arrayA, arrayB, arrayC)
-        );
+        cc.dispatchKernel(NDRange.of1D(arrayA.length()),() -> vectorAddition( arrayA, arrayB, arrayC));
     }
 
     @Reflect
-    public static void saxpy(KernelContext kc, F32Array arrayA, F32Array arrayB, F32Array arrayC, float alpha) {
-        if (kc.gix < kc.gsx) {
-            float valueA = arrayA.array(kc.gix);
-            float valueB = arrayB.array(kc.gix);
+    public static void saxpy( F32Array arrayA, F32Array arrayB, F32Array arrayC, float alpha) {
+        if (GIX() < GSX()) {
+            float valueA = arrayA.array(GIX());
+            float valueB = arrayB.array(GIX());
             float result = alpha * valueA + valueB;
-            arrayC.array(kc.gix, result);
+            arrayC.array(GIX(), result);
         }
     }
 
     @Reflect
     public static void computeSaxpy(ComputeContext cc, F32Array arrayA, F32Array arrayB, F32Array arrayC, float alpha) {
-        cc.dispatchKernel(NDRange.of1D(arrayA.length()),
-                kc -> saxpy(kc, arrayA, arrayB, arrayC, alpha)
+        cc.dispatchKernel(NDRange.of1D(arrayA.length()),()-> saxpy(arrayA, arrayB, arrayC, alpha)
         );
     }
 

@@ -25,7 +25,6 @@
 package hat.phases;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 

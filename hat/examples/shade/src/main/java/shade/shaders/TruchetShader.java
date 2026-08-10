@@ -28,8 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 
-import hat.ComputeContext.Kernel;
-import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -209,18 +208,18 @@ public class TruchetShader  {
         return createPixel(vec2(uniforms.iResolution().x(),uniforms.iResolution().y()),uniforms.iTime(),vec2(uniforms.iMouse().x(),uniforms.iMouse().y()),fragCoord);
     }
     @Reflect
-    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+    public static void penumbra( @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
         int width = (int) uniforms.iResolution().x();
         int height = (int) uniforms.iResolution().y();
-        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(kc.gix % width), (float)(height-(kc.gix / width))));
-        f32Array.array(kc.gix * 3, fragColor.x());
-        f32Array.array(kc.gix * 3+1, fragColor.y());
-        f32Array.array(kc.gix * 3+2, fragColor.z());
+        var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(GIX() % width), (float)(height-(GIX() / width))));
+        f32Array.array(GIX() * 3, fragColor.x());
+        f32Array.array(GIX() * 3+1, fragColor.y());
+        f32Array.array(GIX() * 3+2, fragColor.z());
     }
 
     @Reflect
     static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
-        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+        computeContext.dispatchKernel(NDRange.of1D(width * height), () -> penumbra( uniforms, image));
     }
 
     private static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {

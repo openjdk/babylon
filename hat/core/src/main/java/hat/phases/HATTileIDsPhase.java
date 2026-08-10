@@ -33,7 +33,6 @@ import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;

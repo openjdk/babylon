@@ -26,7 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange.Tile2D;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -68,13 +69,13 @@ import static hat.NDRange.Warp2D;
 public class TestTensors {
 
     @Reflect
-    public static void mxmTensorsColumnMajor(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
+    public static void mxmTensorsColumnMajor( F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         final int SHAPE = 16;
         final int WMMA_M = SHAPE;
         final int WMMA_N = SHAPE;
         final int WMMA_K = SHAPE;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -125,17 +126,17 @@ public class TestTensors {
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
 
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsColumnMajor(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange,() -> mxmTensorsColumnMajor( matrixA, matrixB, matrixC, globalSize));
     }
 
     @Reflect
-    public static void mxmTensorsRowColumnMajor(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
+    public static void mxmTensorsRowColumnMajor( F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
 
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -177,16 +178,16 @@ public class TestTensors {
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
 
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsRowColumnMajor(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, () -> mxmTensorsRowColumnMajor( matrixA, matrixB, matrixC, globalSize));
     }
 
     @Reflect
-    public static void mxmTensorsRowMajor(KernelContext kc, F16Array matrixA, F16Array matrixB, F32ArrayPadded matrixC, int size) {
+    public static void mxmTensorsRowMajor( F16Array matrixA, F16Array matrixB, F32ArrayPadded matrixC, int size) {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -226,17 +227,17 @@ public class TestTensors {
                 Local2D.of(128, 4),
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsRowMajor(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, () -> mxmTensorsRowMajor( matrixA, matrixB, matrixC, globalSize));
     }
 
     @Reflect
-    public static void mxmTensorsDefaultAccess( KernelContext kc,  F16Array matrixA,  F16Array matrixB,  F32ArrayPadded matrixC, int size) {
+    public static void mxmTensorsDefaultAccess(   F16Array matrixA,  F16Array matrixB,  F32ArrayPadded matrixC, int size) {
         final int sizeShape = 16;
         final int WMMA_M = sizeShape;
         final int WMMA_N = sizeShape;
         final int WMMA_K = sizeShape;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -266,7 +267,7 @@ public class TestTensors {
                 Local2D.of(128, 4),
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsDefaultAccess(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, () -> mxmTensorsDefaultAccess( matrixA, matrixB, matrixC, globalSize));
     }
 
     private static void runSequentialColMajor(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {

@@ -24,32 +24,22 @@
  */
 package hat.phases;
 
-import optkl.VarTable;
 import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
-public class HATTransformer {
+public interface HATTransformer {
 
-    public static final List<HATPhase> KernelPhases = List.of(
-            // barriers
-            new HATBarrierPhase(),
-
+     List<HATPhase> KernelPhases = List.of(
             // array views
             new HATArrayViewPhase(),
 
             // Memory Regions (private/shared)
             new HATMemoryPhase(),
 
-            // ID's /thread access
-            new HATThreadsPhase(),
-
             // Handle the Block-Ids for the Tile Programming Model
             new HATTileIDsPhase(),
-
-            // Warp size
-            new HATWarpSizePhase(),
 
             // MathLib phase
             new HATMathLibPhase(),
@@ -67,19 +57,15 @@ public class HATTransformer {
             new HATTilesPhase()
     );
 
-    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases) {
+    static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
         phases.forEach(phase -> {
             if (showCompilationPhases) {
                 IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
-            funcOpCarrier.funcOp(phase.transform(lookup, funcOpCarrier.funcOp(), varTable));
+            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp(), varTable));
             if (showCompilationPhases) {
                 IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
         });
-    }
-
-    private HATTransformer() {
-        /* This utility class should not be instantiated */
     }
 }

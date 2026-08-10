@@ -29,7 +29,7 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;

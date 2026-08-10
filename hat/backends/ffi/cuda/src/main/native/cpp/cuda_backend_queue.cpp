@@ -144,7 +144,7 @@ int CudaBackend::CudaQueue::estimateThreadsPerBlock(int dimensions, int globalSi
     return threadsPerBlock;
 }
 
-void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) {
+void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) {
 
     const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
@@ -154,41 +154,41 @@ void CudaBackend::CudaQueue::dispatch(KernelContext *kernelContext, CompilationU
     int blocksPerGridX = 1;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
-    if (kernelContext->tile_model) {
-        blocksPerGridX = ceil_div(kernelContext->gsx, kernelContext->lsx);
-        blocksPerGridY = ceil_div(kernelContext->gsy, kernelContext->lsy);
-        blocksPerGridZ = ceil_div(kernelContext->gsz, kernelContext->lsz);
+    if (kernelContext->type > 0) {
+        blocksPerGridX = ceil_div(dispatchContext->gsx, dispatchContext->lsx);
+        blocksPerGridY = ceil_div(dispatchContext->gsy, dispatchContext->lsy);
+        blocksPerGridZ = ceil_div(dispatchContext->gsz, dispatchContext->lsz);
     } else  {
-        threadsPerBlockX = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsx, kernelContext->lsx);
-        threadsPerBlockY = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsy, kernelContext->lsy);
-        threadsPerBlockZ = estimateThreadsPerBlock(kernelContext->dimensions, kernelContext->gsz, kernelContext->lsz);
+    threadsPerBlockX = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsx, dispatchContext->lsx);
+    threadsPerBlockY = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsy, dispatchContext->lsy);
+    threadsPerBlockZ = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsz, dispatchContext->lsz);
 
-        int warpFactor[3] = { 1, 1, 1 };
-        if (kernelContext->wsx) {
-            warpFactor[0] = 32;
-        }
-        if (kernelContext->wsy) {
-            warpFactor[1] = 32;
-        }
-        if (kernelContext->wsz) {
-            warpFactor[2] = 32;
-        }
-
-        int globalSize[3] = { kernelContext->gsx, kernelContext->gsy, kernelContext->gsz };
-        globalSize[0] = kernelContext->tlx? ceil_div(kernelContext->gsx, kernelContext->tlx) * warpFactor[0]: kernelContext->gsx;
-        globalSize[1] = kernelContext->tly? ceil_div(kernelContext->gsy, kernelContext->tly) * warpFactor[1]: kernelContext->gsy;
-        globalSize[2] = kernelContext->tlz? ceil_div(kernelContext->gsz, kernelContext->tlz) * warpFactor[2]: kernelContext->gsz;
-
-        blocksPerGridX = ceil_div(globalSize[0], threadsPerBlockX);
-        blocksPerGridY = 1;
-        blocksPerGridZ = 1;
-        if (kernelContext->dimensions > 1) {
-            blocksPerGridY = ceil_div(globalSize[1], threadsPerBlockY);
-        }
-        if (kernelContext->dimensions > 2) {
-            blocksPerGridZ = ceil_div(globalSize[2], threadsPerBlockZ);
-        }
+    int warpFactor[3] = { 1, 1, 1 };
+    if (dispatchContext->wsx != 0) {
+        warpFactor[0] = 32;
     }
+    if (dispatchContext->wsy != 0) {
+        warpFactor[1] = 32;
+    }
+    if (dispatchContext->wsz != 0) {
+        warpFactor[2] = 32;
+    }
+
+    int globalSize[3] = { dispatchContext->gsx, dispatchContext->gsy, dispatchContext->gsz };
+    globalSize[0] = dispatchContext->tlx? ceil_div(dispatchContext->gsx, dispatchContext->tlx) * warpFactor[0]: dispatchContext->gsx;
+    globalSize[1] = dispatchContext->tly? ceil_div(dispatchContext->gsy, dispatchContext->tly) * warpFactor[1]: dispatchContext->gsy;
+    globalSize[2] = dispatchContext->tlz? ceil_div(dispatchContext->gsz, dispatchContext->tlz) * warpFactor[2]: dispatchContext->gsz;
+
+    int blocksPerGridX = ceil_div(globalSize[0], threadsPerBlockX);
+    int blocksPerGridY = 1;
+    int blocksPerGridZ = 1;
+    if (dispatchContext->dimensions > 1) {
+        blocksPerGridY = ceil_div(globalSize[1], threadsPerBlockY);
+    }
+    if (dispatchContext->dimensions > 2) {
+        blocksPerGridZ = ceil_div(globalSize[2], threadsPerBlockZ);
+    }
+}
 
     // Enable debug information with info: HAT=INFO
     if (backend->config->info) {

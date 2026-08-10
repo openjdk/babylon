@@ -278,6 +278,7 @@ public abstract class BaseFileManager implements JavaFileManager {
     }
 
     protected String multiReleaseValue;
+    protected boolean previewMode;
 
     /**
      * Common back end for OptionHelper handleFileManagerOption.
@@ -294,6 +295,11 @@ public abstract class BaseFileManager implements JavaFileManager {
             case MULTIRELEASE:
                 multiReleaseValue = value;
                 locations.setMultiReleaseValue(value);
+                return true;
+
+            case PREVIEWMODE:
+                previewMode = Boolean.parseBoolean(value);
+                locations.setPreviewMode(previewMode);
                 return true;
 
             default:

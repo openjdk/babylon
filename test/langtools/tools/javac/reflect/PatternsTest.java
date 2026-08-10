@@ -446,7 +446,7 @@ public class PatternsTest {
     }
 
     @IR("""
-            func @"m" (%0 : java.type:"int")java.type:"void" -> {
+            func @"test12" (%0 : java.type:"int")java.type:"void" -> {
                   %1 : Var<java.type:"int"> = var %0 @"i";
                   %2 : java.type:"int" = constant @0;
                   %3 : java.type:"byte" = conv %2;
@@ -475,8 +475,161 @@ public class PatternsTest {
               };
             """)
     @Reflect
-    static void m(int i) {
+    static void test12(int i) {
         if (i instanceof byte b) {
         }
     }
+
+    @IR("""
+            func @"test13" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %2 : java.type:"java.lang.String" = constant @null;
+                %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
+                java.if
+                    ()java.type:"boolean" -> {
+                        %4 : java.type:"java.lang.Object" = var.load %1;
+                        %5 : java.type:"boolean" = pattern.match %4
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                yield %6;
+                            }
+                            (%7 : java.type:"java.lang.String")java.type:"void" -> {
+                                var.store %3 %7;
+                                yield;
+                            };
+                        yield %5;
+                    }
+                    ()java.type:"void" -> {
+                        %8 : java.type:"java.lang.String" = constant @"";
+                        var.store %3 %8;
+                        yield;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                return;
+            };
+            """)
+    @Reflect
+    static void test13(Object o) {
+        if (o instanceof String s) {
+            s = "";
+        }
+    }
+
+    @IR("""
+            func @"test14" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"i";
+                java.if
+                    ()java.type:"boolean" -> {
+                        %4 : java.type:"java.lang.Object" = var.load %1;
+                        %5 : java.type:"boolean" = pattern.match %4
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" -> {
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
+                                yield %6;
+                            }
+                            (%7 : java.type:"int")java.type:"void" -> {
+                                var.store %3 %7;
+                                yield;
+                            };
+                        yield %5;
+                    }
+                    ()java.type:"void" -> {
+                        %8 : java.type:"int" = constant @1;
+                        var.store %3 %8;
+                        yield;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                return;
+            };
+            """)
+    @Reflect
+    static void test14(Object o) {
+        if (o instanceof int i) {
+            i = 1;
+        }
+    }
+
+    @IR("""
+            func @"test15" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"i";
+                java.if
+                    ()java.type:"boolean" -> {
+                        %4 : java.type:"java.lang.Object" = var.load %1;
+                        %5 : java.type:"boolean" = pattern.match %4
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" -> {
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
+                                yield %6;
+                            }
+                            (%7 : java.type:"int")java.type:"void" -> {
+                                var.store %3 %7;
+                                yield;
+                            };
+                        yield %5;
+                    }
+                    ()java.type:"void" -> {
+                        %8 : java.type:"int" = var.load %3;
+                        %9 : java.type:"int" = constant @1;
+                        %10 : java.type:"int" = add %8 %9;
+                        var.store %3 %10;
+                        yield;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                return;
+            };
+            """)
+    @Reflect
+    static void test15(Object o) {
+        if (o instanceof int i) {
+            i++;
+        }
+    }
+
+    @IR("""
+            func @"test16" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
+                %2 : java.type:"int" = constant @0;
+                %3 : Var<java.type:"int"> = var %2 @"i";
+                java.if
+                    ()java.type:"boolean" -> {
+                        %4 : java.type:"java.lang.Object" = var.load %1;
+                        %5 : java.type:"boolean" = pattern.match %4
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" -> {
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
+                                yield %6;
+                            }
+                            (%7 : java.type:"int")java.type:"void" -> {
+                                var.store %3 %7;
+                                yield;
+                            };
+                        yield %5;
+                    }
+                    ()java.type:"void" -> {
+                        %8 : java.type:"int" = var.load %3;
+                        %9 : java.type:"int" = constant @1;
+                        %10 : java.type:"int" = add %8 %9;
+                        var.store %3 %10;
+                        yield;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                return;
+            };
+            """)
+    @Reflect
+    static void test16(Object o) {
+        if (o instanceof int i) {
+            i += 1;
+        }
+    }
+
 }

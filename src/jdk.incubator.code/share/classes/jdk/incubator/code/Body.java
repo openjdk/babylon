@@ -592,6 +592,7 @@ public final class Body implements CodeElement<Body, Block> {
 
         Builder(Builder connectedAncestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
+
             // Structural check
             // The connected ancestor body should not be built before this body is built
             if (connectedAncestorBody != null) {
@@ -639,7 +640,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @throws IllegalStateException if any connected body builder finishes successfully and its body's parent
          * operation is unplaced
          * @throws IllegalStateException if a reachable block has no terminating operation
-         * @throws IllegalStateException if a reachable block has a successor whose number of arguments is greater than
+         * @throws IllegalStateException if a reachable block has a successor whose number of arguments is not equal to
          * the number of parameters of the successor's target block
          * @throws IllegalStateException if an operation result or block parameter declared in an unreachable block is
          * used by an operation in a reachable block or a descendant block of a reachable block.
@@ -647,11 +648,10 @@ public final class Body implements CodeElement<Body, Block> {
          * not {@link Value#isDominatedBy(Value) dominate} a use of that value
          */
         public Body build(Op op) {
-            Objects.requireNonNull(op);
-
             // Structural check
             // This body builder should not be finished
             check();
+            Objects.requireNonNull(op);
             finished = true;
 
             // Structural check
@@ -716,7 +716,7 @@ public final class Body implements CodeElement<Body, Block> {
                         Block target = s.target;
 
                         // Check successor arity
-                        if (s.arguments().size() > target.parameters().size()) {
+                        if (s.arguments().size() != target.parameters().size()) {
                             String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
                                     target, s.arguments().size(), target.parameters().size());
                             throw new IllegalStateException(m);
@@ -909,7 +909,6 @@ public final class Body implements CodeElement<Body, Block> {
 
         // Build new block in body
         Block.Builder block(List<CodeType> params, CodeContext cc, CodeTransformer ct) {
-            check();
             Block block = Body.this.createBlock(params);
 
             return block.new Builder(this, cc, ct);

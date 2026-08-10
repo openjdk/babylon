@@ -327,7 +327,8 @@ public class ViolaJones {
 */
 
         if (true) {
-            long start = System.currentTimeMillis();
+            throw new RuntimeException("Refactor violajones. It Seems to always use workstealer?");
+        /*    long start = System.currentTimeMillis();
             WorkStealer.usingAllProcessors()
                     .forEachInRange(accelerator.range(NDRange.of1D(scaleTable.multiScaleAccumulativeRange())), kc -> {
                         ReferenceJavaViolaJones.findFeatures(
@@ -340,7 +341,7 @@ public class ViolaJones {
                     });
             long ms = (System.currentTimeMillis() - start);
             System.out.println("done " + ms + "ms");
-            harViz.showResults(resultTable, null, null, ms);
+            harViz.showResults(resultTable, null, null, ms); */
         }
         //   } else if (mode.equals("javaSegments")) {
 

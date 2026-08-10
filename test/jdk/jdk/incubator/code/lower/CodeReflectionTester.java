@@ -34,6 +34,8 @@ import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
 import jdk.incubator.code.Reflect;
 
+import static jdk.incubator.code.dialect.core.CoreOp.func;
+
 public class CodeReflectionTester {
 
     public static void main(String[] args) throws ReflectiveOperationException {
@@ -61,7 +63,8 @@ public class CodeReflectionTester {
                 new AssertionError("No code model for reflective method"));
         f = lower(f, lma.ssa());
 
-        String actual = canonicalizeModel(method, f);
+        // we remove the source attribute, to avoid updating the tests, which we will do later
+        String actual = canonicalizeModel(method, removeSourceAttribute(f));
         String expected = canonicalizeModel(method, lma.value());
         if (!actual.equals(expected)) {
             throw new AssertionError(String.format("Bad code model\nFound:\n%s\n\nExpected:\n%s", actual, expected));
@@ -101,5 +104,11 @@ public class CodeReflectionTester {
         StringWriter w = new StringWriter();
         OpWriter.writeTo(w, o, OpWriter.LocationOption.DROP_LOCATION);
         return w.toString();
+    }
+
+    static CoreOp.FuncOp removeSourceAttribute(CoreOp.FuncOp fop) {
+        return func(fop.funcName(), fop.invokableSignature()).body(b -> {
+            b.transformBody(fop.body(), b.parameters(), CodeTransformer.COPYING_TRANSFORMER);
+        });
     }
 }

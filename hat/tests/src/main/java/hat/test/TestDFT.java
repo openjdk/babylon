@@ -28,7 +28,8 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.HATMath;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.device.DeviceSchema;
@@ -71,12 +72,12 @@ public class TestDFT {
     }
 
     @Reflect
-    public static void dftKernel(KernelContext kc,
-                                  ArrayComplex input,
-                                  ArrayComplex output) {
+    public static void dftKernel(
+            ArrayComplex input,
+            ArrayComplex output) {
         int size = input.length();
-        int idx = kc.gix;
-        if (idx < kc.gsx) {
+        int idx = GIX();
+        if (idx < GSX()) {
             float sumReal = 0.0f;
             float sumImag = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -117,7 +118,7 @@ public class TestDFT {
     @Reflect
     private static void dftCompute(ComputeContext cc, ArrayComplex input, ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
-        cc.dispatchKernel(range, kernelContext -> dftKernel(kernelContext, input, output));
+        cc.dispatchKernel(range, () -> dftKernel( input, output));
     }
 
     @HatTest
@@ -157,10 +158,10 @@ public class TestDFT {
     }
 
     @Reflect
-    public static void testPrivateDS(KernelContext kc,
-                                      ArrayComplex input,
-                                      ArrayComplex output) {
-        int idx = kc.gix;
+    public static void testPrivateDS(
+            ArrayComplex input, // HOW come this is unused?
+            ArrayComplex output) {
+        int idx = GIX();
         ArrayComplexPrivate priv = ArrayComplexPrivate.createPrivate();
         ArrayComplexPrivate.PrivateComplex complex = priv.complex(0);
         complex.real(1.0f);
@@ -174,7 +175,7 @@ public class TestDFT {
     @Reflect
     private static void complexNumbersInPrivate(ComputeContext cc, ArrayComplex input, ArrayComplex output) {
         var range = NDRange.of1D(input.length(), 128);
-        cc.dispatchKernel(range, kernelContext -> testPrivateDS(kernelContext, input, output));
+        cc.dispatchKernel(range, () -> testPrivateDS( input, output));
     }
 
     @HatTest

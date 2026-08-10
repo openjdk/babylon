@@ -114,6 +114,7 @@ public class Names {
     public final Name java_lang_Cloneable;
     public final Name java_lang_Enum;
     public final Name java_lang_Object;
+    public final Name java_lang_System;
 
     // names of builtin classes
     public final Name Array;
@@ -152,6 +153,7 @@ public class Names {
     public final Name ModuleResolution;
     public final Name NestHost;
     public final Name NestMembers;
+    public final Name LoadableDescriptors;
     public final Name Record;
     public final Name RuntimeInvisibleAnnotations;
     public final Name RuntimeInvisibleParameterAnnotations;
@@ -205,6 +207,10 @@ public class Names {
     // string concat
     public final Name makeConcat;
     public final Name makeConcatWithConstants;
+
+    // values
+    public final Name dollarValue;
+
 
     // record related
     // members of java.lang.runtime.ObjectMethods
@@ -309,6 +315,7 @@ public class Names {
         java_lang_Cloneable = fromString("java.lang.Cloneable");
         java_lang_Enum = fromString("java.lang.Enum");
         java_lang_Object = fromString("java.lang.Object");
+        java_lang_System = fromString("java.lang.System");
 
         // names of builtin classes
         Array = fromString("Array");
@@ -347,6 +354,7 @@ public class Names {
         ModuleResolution = fromString("ModuleResolution");
         NestHost = fromString("NestHost");
         NestMembers = fromString("NestMembers");
+        LoadableDescriptors = fromString("LoadableDescriptors");
         Record = fromString("Record");
         RuntimeInvisibleAnnotations = fromString("RuntimeInvisibleAnnotations");
         RuntimeInvisibleParameterAnnotations = fromString("RuntimeInvisibleParameterAnnotations");
@@ -400,6 +408,8 @@ public class Names {
         makeConcat = fromString("makeConcat");
         makeConcatWithConstants = fromString("makeConcatWithConstants");
 
+        dollarValue = fromString("$value");
+
         bootstrap = fromString("bootstrap");
         record = fromString("record");
         non = fromString("non");
@@ -447,6 +457,10 @@ public class Names {
 
     public UnsharedNameTable newUnsharedNameTable() {
         return UnsharedNameTable.create(this);
+    }
+
+    public boolean isInit(Name name) {
+        return name == init;
     }
 
     public void dispose() {

@@ -31,9 +31,7 @@ import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.util.List;
 
-public abstract sealed class HATOp extends AbstractOp
-        implements ExternalizedOp.Externalizable
-        permits HATBarrierOp, HATPtrOp, HATThreadOp, HATTileOp {
+public abstract sealed class HATOp extends AbstractOp implements ExternalizedOp.Externalizable permits HATPtrOp, HATTileOp {
     protected HATOp(List<Value> operands) {
         super(operands);
     }

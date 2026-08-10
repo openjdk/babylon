@@ -24,6 +24,8 @@
  */
 package hat;
 
+import optkl.util.Regex;
+
 /**
  * Created by a dispatch call to a kernel from within a Compute method and 'conceptually' passed to a kernel.
  * <p>
@@ -39,39 +41,6 @@ package hat;
  * @author Gary Frost
  */
 public class KernelContext {
-    // Global accesses
-    public int gix;
-    public int giy;
-    public int giz;
-
-    public final int gsx;
-    public final int gsy;
-    public final int gsz;
-
-    // Local accesses within a group
-    public int lix;
-    public int liy;
-    public int liz;
-
-    // Specify sizes for the local group sizes
-    public int lsx;
-    public int lsy;
-    public int lsz;
-
-    // Specify group/block index
-    public int bix;
-    public int biy;
-    public int biz;
-
-    // Specify the number of blocks
-    public int bsx;
-    public int bsy;
-    public int bsz;
-
-    // Warp size
-    public int wrs;
-
-    final int dimensions;
 
     public final NDRange ndRange;
 
@@ -84,29 +53,10 @@ public class KernelContext {
 
         this.ndRange = ndRange;
         this.tileModel = false;
-        switch (ndRange) {
-            case NDRange.NDRange1D ndRange1D -> {
-                this.gsx = ((NDRange.M1D)(ndRange1D.global())).x();
-                this.gsy = 1;
-                this.gsz = 1;
-                this.dimensions = ((NDRange.M1D)(ndRange1D.global())).dimension();
-            }
-            case NDRange.NDRange2D ndRange2D -> {
-                this.gsx = ((NDRange.M2D)(ndRange2D.global())).x();
-                this.gsy = ((NDRange.M2D)(ndRange2D.global())).y();
-                this.gsz = 1;
-                this.dimensions = ((NDRange.M2D)(ndRange2D.global())).dimension();
-            }
-            case NDRange.NDRange3D ndRange3D -> {
-                this.gsx = ((NDRange.M3D)(ndRange3D.global())).x();
-                this.gsy = ((NDRange.M3D)(ndRange3D.global())).y();
-                this.gsz = ((NDRange.M3D)(ndRange3D.global())).z();
-                this.dimensions = ((NDRange.M3D)(ndRange3D.global())).dimension();
-            }
-            default -> throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
 
-        }
     }
+
+    public final static Regex threadAccessRegex = Regex.of("(([GLB][SI][XYZ])|WRS|barrier)");
 
     public KernelContext(TileRange tileRange) {
         if (tileRange == null) {
@@ -116,34 +66,40 @@ public class KernelContext {
         NDRange.Global global = tileRange.global();
         NDRange.Local local = tileRange.local();
         switch (global) {
-            case NDRange.Global1D global1D -> {
-                this.ndRange = NDRange.of1D(global1D.x(), ((NDRange.Local1D)local).x());
-                this.dimensions = 1;
-            }
-            case NDRange.Global2D global2D -> {
-                this.ndRange = NDRange.of2D(global2D.x(), global2D.y(), ((NDRange.Local2D)local).x(), ((NDRange.Local2D)local).y());
-                this.dimensions = 2;
-            }
-            case NDRange.Global3D global3D -> {
-                this.ndRange = NDRange.of3D(global3D.x(), global3D.y(), global3D.z(),
-                    ((NDRange.Local3D)local).x(),
-                    ((NDRange.Local3D)local).y(),
-                    ((NDRange.Local3D)local).z());
-                this.dimensions = 3;
-            }
+            case NDRange.Global1D global1D -> this.ndRange = NDRange.of1D(global1D.x(), ((NDRange.Local1D)local).x());
+            case NDRange.Global2D global2D -> this.ndRange = NDRange.of2D(global2D.x(), global2D.y(), ((NDRange.Local2D)local).x(), ((NDRange.Local2D)local).y());
+            case NDRange.Global3D global3D -> this.ndRange = NDRange.of3D(global3D.x(), global3D.y(), global3D.z(),
+                ((NDRange.Local3D)local).x(),
+                ((NDRange.Local3D)local).y(),
+                ((NDRange.Local3D)local).z());
         }
 
-        this.gsx = 0;
-        this.gsy = 0;
-        this.gsz = 0;
         this.tileModel = true;
     }
 
     /**
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.
      */
-    public void barrier() {
+    public static void barrier() {
         // empty method - this is just a marker for the HAT Kernels
     }
-
+    public static int GIX(){return 0;};
+    public static int GIY(){return 0;};
+    public static int GIZ(){return 0;};
+    public static int GSX(){return 0;};
+    public static int GSY(){return 0;};
+    public static int GSZ(){return 0;};
+    public static int BIX(){return 0;};
+    public static int BIY(){return 0;};
+    public static int BIZ(){return 0;};
+    public static int BSX(){return 0;};
+    public static int BSY(){return 0;};
+    public static int BSZ(){return 0;};
+    public static int LIX(){return 0;};
+    public static int LIY(){return 0;};
+    public static int LIZ(){return 0;};
+    public static int LSX(){return 0;};
+    public static int LSY(){return 0;};
+    public static int LSZ(){return 0;};
+    public static int WRS(){return 0;};
 }

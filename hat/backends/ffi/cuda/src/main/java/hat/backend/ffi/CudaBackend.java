@@ -27,14 +27,14 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.MethodCallDag;
 import jdk.incubator.code.CodeTransformer;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;
@@ -48,6 +48,7 @@ import jdk.incubator.code.dialect.core.SSA;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -373,26 +374,29 @@ public class CudaBackend extends C99FFIBackend {
     }
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        VarTable varTable = new VarTable(computeContext.computeCallGraph().callDag.entryPoint.funcOp().funcName());
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp(), varTable));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... dispatchContextAndArgs) {
+        if (!(dispatchContextAndArgs[0] instanceof DispatchContext )){
+            throw new RuntimeException("No dispatch context");
+        }
+        Object[] justArgs = Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length);
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code =config().ptx() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
+            String code =config().ptx() ? createPTX(kernelCallGraph,  justArgs) : createC99(kernelCallGraph, justArgs);
             if (config().showCode()) {
                 System.out.println(code);
             }
             var compilationUnit = backendBridge.compile(code, 0);
             if (compilationUnit.ok()) {
                 var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
-                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
+                return new CompiledKernel(this, kernelCallGraph,  kernel, dispatchContextAndArgs);
             } else {
                 throw new IllegalStateException("cuda failed to compile ");
             }
         });
-        compiledKernel.dispatch(kernelContext, args);
+        compiledKernel.dispatch(ndRange, dispatchContextAndArgs);
     }
 
     String createC99(KernelCallGraph kernelCallGraph, Object... args){
@@ -497,7 +501,7 @@ public class CudaBackend extends C99FFIBackend {
     }
 
     @Override
-    public void dispatchTile(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchTile(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             if (config().ptx()) {
                 throw new UnsupportedOperationException("tile for PTX not supported");
@@ -514,7 +518,7 @@ public class CudaBackend extends C99FFIBackend {
                 throw new IllegalStateException("cuda failed to compile ");
             }
         });
-        compiledKernel.dispatch(kernelContext, args);
+        compiledKernel.dispatch(ndRange, args);
     }
 
     String createC99Tile(KernelCallGraph kernelCallGraph, Object... args){

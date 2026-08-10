@@ -27,6 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Constant;
+import hat.NDRange;
 import hat.TileContext;
 import hat.TileModel;
 import hat.TileOp;
@@ -118,7 +119,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
-        computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
+        computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
                 tileContext -> helloTile(tileContext, inputA, inputB, output, tile_size));
     }
 
@@ -206,7 +207,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
-        computeContext.dispatchTile(TileRange.of1D(inputA.length(), tile_size),
+        computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
                 tileContext -> vector_add(tileContext, inputA, inputB, output, tile_size));
     }
 
@@ -394,7 +395,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void tile_matmul(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
-        computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
+        computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 tileContext -> matmul(tileContext, inputA, inputB, output, tm, tn, tk, M, N));
     }
 
@@ -539,7 +540,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void computetile_reduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
-        computeContext.dispatchTile(TileRange.of1D(input.length(), tileSize),
+        computeContext.dispatchTile(NDRange.of1D(input.length(), tileSize),
                 tileContext -> tile_reduction(tileContext, input, output, tileSize));
     }
 
@@ -622,7 +623,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void computeTransposeKernel(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
-        computeContext.dispatchTile(TileRange.of2D(M, N, tm, tn),
+        computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 tileContext -> transposeKernel(tileContext, input, output, tm, tn));
     }
 

@@ -105,10 +105,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         MATH_FUNCTIONS.put("sqrtd", "sqrt");
     }
 
-    protected final Map<Op, String> mapVectorName;
-    protected final Deque<String> stack;
-    protected static final int CUDA_WARP_SIZE = 32;
-    protected final boolean isTile;
+    private final Map<Op, String> mapVectorName;
+    private final Deque<String> stack;
+    private static final int CUDA_WARP_SIZE = 32;
+    private final boolean isTile;
 
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext, boolean isTile) {
         super(kernelCallGraph, scopedCodeBuilderContext);
@@ -117,87 +117,87 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         this.isTile = isTile;
     }
 
-    protected CudaHATKernelBuilder half2float() {
+    private CudaHATKernelBuilder half2float() {
         return id("__half2float");
     }
 
-    protected CudaHATKernelBuilder float2half() {
+    private CudaHATKernelBuilder float2half() {
         return id("__float2half");
     }
 
-    protected CudaHATKernelBuilder nvBFloat16() {
+    private CudaHATKernelBuilder nvBFloat16() {
         return id("__nv_bfloat16");
     }
 
-    protected CudaHATKernelBuilder bfloat162float() {
+    private CudaHATKernelBuilder bfloat162float() {
         return id("__bfloat162float");
     }
 
-    protected CudaHATKernelBuilder reinterpretCast() {
+    private CudaHATKernelBuilder reinterpretCast() {
         return keyword("reinterpret_cast");
     }
 
-    protected CudaHATKernelBuilder threadIdx() {
+    private CudaHATKernelBuilder threadIdx() {
         return keyword("threadIdx");
     }
 
-    protected CudaHATKernelBuilder threadIdxX() {
+    private CudaHATKernelBuilder threadIdxX() {
         return threadIdx().dot().id("x");
     }
 
-    protected CudaHATKernelBuilder threadIdxY() {
+    private CudaHATKernelBuilder threadIdxY() {
         return threadIdx().dot().id("y");
     }
 
-    protected CudaHATKernelBuilder threadIdxZ() {
+    private CudaHATKernelBuilder threadIdxZ() {
         return threadIdx().dot().id("z");
     }
 
-    protected CudaHATKernelBuilder gridDim() {
+    private CudaHATKernelBuilder gridDim() {
         return keyword("gridDim");
     }
 
-    protected CudaHATKernelBuilder gridDimX() {
+    private CudaHATKernelBuilder gridDimX() {
         return gridDim().dot().id("x");
     }
 
-    protected CudaHATKernelBuilder gridDimY() {
+    private CudaHATKernelBuilder gridDimY() {
         return gridDim().dot().id("y");
     }
 
-    protected CudaHATKernelBuilder gridDimZ() {
+    private CudaHATKernelBuilder gridDimZ() {
         return gridDim().dot().id("z");
     }
 
-    protected CudaHATKernelBuilder blockDim() {
+    private CudaHATKernelBuilder blockDim() {
         return keyword("blockDim");
     }
 
-    protected CudaHATKernelBuilder blockDimX() {
+    private CudaHATKernelBuilder blockDimX() {
         return blockDim().dot().id("x");
     }
 
-    protected CudaHATKernelBuilder blockDimY() {
+    private CudaHATKernelBuilder blockDimY() {
         return blockDim().dot().id("y");
     }
 
-    protected CudaHATKernelBuilder blockDimZ() {
+    private CudaHATKernelBuilder blockDimZ() {
         return blockDim().dot().id("z");
     }
 
-    protected CudaHATKernelBuilder blockIdx() {
+    private CudaHATKernelBuilder blockIdx() {
         return keyword("blockIdx");
     }
 
-    protected CudaHATKernelBuilder blockIdxX() {
+    private CudaHATKernelBuilder blockIdxX() {
         return blockIdx().dot().id("x");
     }
 
-    protected CudaHATKernelBuilder blockIdxY() {
+    private CudaHATKernelBuilder blockIdxY() {
         return blockIdx().dot().id("y");
     }
 
-    protected CudaHATKernelBuilder blockIdxZ() {
+    private CudaHATKernelBuilder blockIdxZ() {
         return blockIdx().dot().id("z");
     }
 
@@ -212,7 +212,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_CUDA")
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())//.keyword("inline"))
+                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().either(!isTile, _ -> keyword("__global__"), _ -> keyword("__tile_global__")))
 
                 // threads
@@ -241,11 +241,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
                 // Math
                 .when(useS16Types(), _ -> maxMacro("MAX_HAT"))
-                .when(useS16Types(), _ ->minMacro("MIN_HAT"))
+                .when(useS16Types(), _ -> minMacro("MIN_HAT"))
 
                 // General Macros
-                .when(useVectors() || useVectors(), _ -> concatMacro())
-                .when(useVectors() || useVectors(), _ -> prefixMacro())
+                .when(useVectors(), _ -> concatMacro().prefixMacro())
 
                 // Vectors
                 .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_0",false))
@@ -272,7 +271,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
                 // Tensor Macros
                 .when(useTensors(), _ -> includeSys("mma.h"))
-                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
+                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
                 .when(useTensors(), _ -> defineMacroTensorLoadF16(MACRO_FRAGMENT_LOAD_F16))
@@ -296,7 +295,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroVLoadN() {
+    private CudaHATKernelBuilder defineMacroVLoadN() {
         List<String> params = getMacroVectorParamsLoad();
         return macroNoParenthesis(VLOADN, params, _ ->
                 reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
@@ -312,7 +311,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroVStoreN() {
+    private CudaHATKernelBuilder defineMacroVStoreN() {
         List<String> params = getMacroVectorParamsStore();
         return macroNoParenthesis(VSTOREN, params, _ ->
                 reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
@@ -332,7 +331,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
+    private CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
         List<String> params = new ArrayList<>();
         params.add(ELEMENT_TYPE);
         IntStream.range(0, lanes).mapToObj(i -> "p" + i).forEach(params::add);
@@ -348,7 +347,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         });
     }
 
-    protected CudaHATKernelBuilder defineS16macro(String name, Consumer<CudaHATKernelBuilder> type, Consumer<CudaHATKernelBuilder> buildFunction) {
+    private CudaHATKernelBuilder defineS16macro(String name, Consumer<CudaHATKernelBuilder> type, Consumer<CudaHATKernelBuilder> buildFunction) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
                 paren(_ -> type.accept(self()))
@@ -366,7 +365,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *     Name of the CUDA Macro
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroF16Of(String name) {
+    private CudaHATKernelBuilder defineMacroF16Of(String name) {
         return defineS16macro(name, _ -> f16Type(), _ -> float2half());
     }
 
@@ -378,11 +377,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *    Name of the CUDA Macro
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroBF16Of(String name) {
+    private CudaHATKernelBuilder defineMacroBF16Of(String name) {
         return defineS16macro(name, _ -> bf16Type(), _ -> nvBFloat16());
     }
 
-    protected CudaHATKernelBuilder defineMacroS16Conversion(String name, Consumer<CudaHATKernelBuilder> type, boolean isLocal) {
+    private CudaHATKernelBuilder defineMacroS16Conversion(String name, Consumer<CudaHATKernelBuilder> type, boolean isLocal) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
                 paren(_ -> type.accept(self()))
@@ -399,10 +398,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @param name
      *    Name of the CUDA Macro
      * @param isLocal
-     *    Flag to indicate if the parameter corresponds to a variable in protected/shared or global region.
+     *    Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
+    private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
         return defineMacroS16Conversion(name, _ -> half2float(), isLocal);
     }
 
@@ -414,14 +413,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @param name
      *     Name of the CUDA Macro
      * @param isLocal
-     *     Flag to indicate if the parameter corresponds to a variable in protected/shared or global region.
+     *     Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
+    private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
         return defineMacroS16Conversion(name, _ -> bfloat162float(), isLocal);
     }
 
-    protected static final String INVALID = "INVALID";
+    private static final String INVALID = "INVALID";
 
     /**
      * List of macros using __VA_ARGS__:
@@ -502,7 +501,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroTensorFill(String name) {
+    private CudaHATKernelBuilder defineMacroTensorFill(String name) {
         List<String> params = paramsOfTensorFillMacro();
         return macroNoParenthesis(name, params, _ ->
                 paren( _ ->
@@ -519,7 +518,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * @return {@link CudaHATKernelBuilder}
      */
-    protected CudaHATKernelBuilder defineMacroTensorMMA(String macroName) {
+    private CudaHATKernelBuilder defineMacroTensorMMA(String macroName) {
         // Args: "i", "j", "k", "acc", "tensorA", "tensorB", "tensorC", "tensorResult", "M", "N", "K";
         List<String> params = paramsOfTensorMMAMacro();
         List<String> cudaMMAArgs = new ArrayList<>();
@@ -585,7 +584,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         .id("memAccessLayout")));
     }
 
-    protected void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
+    private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
         Invoke invoke = invoke(scopedCodeBuilderContext.lookup(), invokeOp);
         IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
         String type = vectorShape.codeType().toString() + vectorShape.lanes();
@@ -596,7 +595,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         recurse(invokeOp);
     }
 
-    protected CudaHATKernelBuilder generateHATBinaryVectorOperation(OpHelper.Invoke invoke, String nameVector) {
+    private CudaHATKernelBuilder generateHATBinaryVectorOperation(OpHelper.Invoke invoke, String nameVector) {
         Value op1 = invoke.op().operands().get(0);
         Value op2 = invoke.op().operands().get(1);
         IfaceValue.Vector.Shape vectorShape = getVectorShape(invoke.lookup(), invoke.returnType());
@@ -726,7 +725,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    protected CudaHATKernelBuilder s16ToFloat(Class<?> float16Class) {
+    private CudaHATKernelBuilder s16ToFloat(Class<?> float16Class) {
         if (F16.class.isAssignableFrom(float16Class)) {
             return half2float();
         } else if (BF16.class.isAssignableFrom(float16Class)) {
@@ -835,10 +834,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment";
     public static final String WMMA_PREFIX = "nvcuda::wmma::";
 
-    protected CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access, String tensorVar) {
+    private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access, String tensorVar) {
         // Params: "kind", "size", "m", "n", "k", "type", "layout", "name";
         // call the macro with the right args
-        id(MACRO_FRAMGMENT_CREATE).paren(_ -> {
+        id(MACRO_FRAGMENT_CREATE).paren(_ -> {
             id(matrixOrder).comma()
                     .id(ZERO).comma().sp()           // For the CUDA backend, this value is not used
                     .intValue(shape.getFirst()).comma().sp()
@@ -868,14 +867,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
 
-    protected static final Map<String, String> tensorTypeTable = new HashMap<>();
+    private static final Map<String, String> tensorTypeTable = new HashMap<>();
     static {
         tensorTypeTable.put("loadF16", "half");
         tensorTypeTable.put("load",    "float");
         tensorTypeTable.put("loadF32", "float");
     }
 
-    protected CudaHATKernelBuilder generateTensorAccumulateCreate(Invoke tensorCreate) {
+    private CudaHATKernelBuilder generateTensorAccumulateCreate(Invoke tensorCreate) {
         // tensor declaration for the accumulator
         Value shapeValue = tensorCreate.op().operands().getFirst();
         List<Integer> shape = obtainShapeTensor(shapeValue);
@@ -903,7 +902,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return generateCreateTensor(shape, TENSOR_ACC, tensorType, valueAccessLayout, tensorVarOp.varName());
     }
 
-    protected CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreate) {
+    private CudaHATKernelBuilder generateTensorCreate(Invoke tensorCreate) {
         Value v = tensorCreate.op().result().uses().getFirst();
         // Find the declaration value of the tensor
         // otherwise, we have to inspect the shape from the TensorLoadOp
