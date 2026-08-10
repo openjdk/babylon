@@ -2493,6 +2493,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             @Override
             boolean exits(Op scope) {
+                // Within a detached synthetic model the target is necessarily external
                 return root(scope) != root || super.exits(scope);
             }
 
@@ -2580,6 +2581,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         boolean exits(Op scope) {
             Op target = target();
+            // Whether the transfer exits a try or synchronized scope is determined from the target hierarchy
             return target == scope || target.isAncestorOf(scope);
         }
 
@@ -5618,6 +5620,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return new NormalizedBody(syntheticBody.build(unreachable()), captures);
         }
 
+        // Resolved statement target preserves the original break or continue target through try-with-resources lowering
+        // and it is used to resolve the actual branch when the synthetic body is attached back to the original context
         private Block.Builder resolveStatementTarget(Block.Builder block, Op op) {
             block.add(switch (op) {
                 case StatementTargetOp.ResolvedStatementTarget _ -> op;
