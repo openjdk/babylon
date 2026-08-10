@@ -874,6 +874,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             case "load" -> hatTileLoadOperation(invoke);
             case "store" -> hatTileStoreOperation(invoke);
             case "add","sub","mul","div"  -> hatTileBinaryArithmeticOperation(invoke);
+            case "mma" -> hatTileMMAOperation(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
     }
@@ -1572,6 +1573,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T hatTileStoreOperation(Invoke invoke);
 
     protected abstract T hatTileBinaryArithmeticOperation(Invoke invoke);
+
+    protected abstract T hatTileMMAOperation(Invoke invoke);
 
     protected abstract T hatTileId(Invoke invoke);
 

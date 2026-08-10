@@ -1039,9 +1039,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     private int obtainShapeDimensions(Value value) {
-        int dimensions;
+        int shapeValues;
         if (value.asResult().op().resultType().equals(JavaType.INT)) {
-            dimensions = 1;
+            shapeValues = 1;
         } else {
             // we expect an invoke that describes the shape.
             while (!(value.declaringElement() instanceof JavaOp.InvokeOp invokeOp)) {
@@ -1051,32 +1051,34 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     throw new IllegalStateException("Unexpected value: " + value.asResult().op());
                 }
             }
-            dimensions = invokeOp.operands().size();
+            shapeValues = invokeOp.operands().size();
         }
-        return dimensions;
+        return shapeValues;
     }
 
-    private CudaHATKernelBuilder getLengthInput(Value value) {
+    private CudaHATKernelBuilder genExtentSize(Value value) {
         switch (value.declaringElement()) {
             case VarOp varOp -> {
                 Value alignValue = varOp.operands().getFirst();
-                getLengthInput(alignValue);
+                genExtentSize(alignValue);
             }
             case JavaOp.InvokeOp invokeOp -> {
                 recurseResultOrThrow(invokeOp.operands().getFirst()).rarrow().id(LENGTH);
                 return self();
             }
-            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> getLengthInput(varLoadOp.operands().getFirst());
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> genExtentSize(varLoadOp.operands().getFirst());
             case null, default -> throw new IllegalStateException("Expected a VarOp");
         }
         return self();
     }
 
-    private CudaHATKernelBuilder genTileConstantShape(Value value) {
-        if (value.declaringElement() instanceof CoreOp.ConstantOp constant) {
+    private CudaHATKernelBuilder genTileConstantShape(Value value, int argIndex) {
+        if (value.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("shape")) {
+            return genTileConstantShape(invokeOp.operands().get(argIndex), argIndex);
+        } else if (value.declaringElement() instanceof CoreOp.ConstantOp constant) {
             Object value1 = constant.value();
             if (value1 instanceof Integer i) {
-                id("ct::shape{" + i + "_ic}");
+                id(i + "_ic");
             } else {
                 throw new IllegalStateException("Expected a integer value to specify a tile shape");
             }
@@ -1096,17 +1098,25 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
-
-        // We assume the input is TileF32Array for the TileAPI.
-        // If it is 1D, then the length is taken from the "length" field.
-        int dimensions = obtainShapeDimensions(shape);
-        if (dimensions == 1) {
-            getLengthInput(inputReference);
-        } else {
-            throw new UnsupportedOperationException("Tile dimensions not controlled");
+        int numDimensions = obtainShapeDimensions(shape);
+        if (numDimensions < 0 || numDimensions  > 2) {
+            throw new IllegalStateException("[Error][CodeGen] Expected a number of dimensions between 0 and 2");
         }
+        genExtentSize(inputReference);
         id("}}").comma();
-        genTileConstantShape(shape);
+
+        // Process shapes: We assume shapes are constants.
+        // TODO: when we integrate type attribution, we can simplify the generation for shapes.
+        // and allow more expressiveness from the API
+        id("ct::shape").brace( _ -> {
+            for (int i = 0; i < numDimensions; i++) {
+                // generate the constant shape per dimension
+                genTileConstantShape(shape, i);
+                if (i < numDimensions - 1) {
+                    comma();
+                }
+            }
+        });
         id(" }.load_masked(");
         recurseResultOrThrow(blockId);
         id(")");
@@ -1123,8 +1133,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
-        getLengthInput(inputReference);
+        genExtentSize(inputReference);
         id("}},");
+        // TODO: assume a shape until we include the PoC using type attribution.
+        // In this way, we can simplify codegen by having the right shapes available
+        // in the same invokeOp as the store.
         id("ct::shape{ 16_ic }");
 
         id(" }.store_masked(");
@@ -1152,6 +1165,18 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
         recurseResultOrThrow(right);
         return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTileMMAOperation(Invoke invoke) {
+        return id("ct::mma").paren(_ -> {
+            for (int i = 0; i < invoke.op().operands().size(); i++) {
+                recurseResultOrThrow(invoke.op().operands().get(i));
+                if (i < invoke.op().operands().size() - 1) {
+                    comma();
+                }
+            }
+        });
     }
 
     @Override
