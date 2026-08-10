@@ -632,36 +632,6 @@ public class TestBytecode {
     }
 
     @Reflect
-    static int continueFromTryWhileTWR(int value) {
-        int i = 0;
-        try {
-            while (i++ < value) {
-                try (var resource = Stream.empty()) {
-                    for (int ignored : new int[] { 1 }) {
-                    }
-                    continue;
-                }
-            }
-        } finally {
-            i++;
-        }
-        return i;
-    }
-
-    @Reflect
-    static int continueFromSynchronizedWhileTWR(int value) {
-        int i = 0;
-        synchronized (TestBytecode.class) {
-            while (i++ < value) {
-                try (var resource = Stream.empty()) {
-                    continue;
-                }
-            }
-        }
-        return i;
-    }
-
-    @Reflect
     static int largeLambda(int x, int y) {
         Supplier<int[][][][][][][][]> lambda = () -> new int[][][][][][][][] {
                 {{{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}},

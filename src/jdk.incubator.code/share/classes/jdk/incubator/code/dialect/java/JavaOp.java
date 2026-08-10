@@ -2468,11 +2468,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         @OpDeclaration("java.resolvedControlTransfer")
         private static final class ResolvedStatementTarget extends StatementTargetOp {
+            private final Op root;
             private final Op target;
             private final boolean continues;
 
             ResolvedStatementTarget(StatementTargetOp source, Op target) {
                 super((Value) null);
+                this.root = source instanceof ResolvedStatementTarget resolved ? resolved.root : root(source);
                 this.target = target;
                 this.continues = source instanceof ContinueOp
                         || source instanceof ResolvedStatementTarget resolved && resolved.continues;
@@ -2481,12 +2483,25 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             @Override
             public ResolvedStatementTarget transform(CodeContext cc, CodeTransformer ct) {
-                return new ResolvedStatementTarget(this, this.target);
+                return new ResolvedStatementTarget(this, target);
             }
 
             @Override
             Op target() {
                 return target;
+            }
+
+            @Override
+            boolean exits(Op scope) {
+                return root(scope) != root || super.exits(scope);
+            }
+
+            private static Op root(Op op) {
+                Op ancestor;
+                while ((ancestor = op.ancestorOp()) != null) {
+                    op = ancestor;
+                }
+                return op;
             }
 
             @Override
@@ -2561,6 +2576,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             } else {
                 throw new IllegalStateException("Bad label value: " + value + " " + ((Result) value).op());
             }
+        }
+
+        boolean exits(Op scope) {
+            Op target = target();
+            return target == scope || target.isAncestorOf(scope);
         }
 
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
@@ -2890,7 +2910,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof StatementTargetOp lop && ifExitFromSynchronized(lop))) {
+                    (op instanceof StatementTargetOp lop && lop.exits(this))) {
                     // Monitor exit
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -2945,13 +2965,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 }
             }));
             return exprExit;
-        }
-
-        boolean ifExitFromSynchronized(StatementTargetOp lop) {
-            Op target = lop.target();
-            return target == this
-                    || target.isAncestorOf(this)
-                    || (lop instanceof StatementTargetOp.ResolvedStatementTarget && !isAncestorOf(target));
         }
 
         @Override
@@ -5248,7 +5261,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             if (finallyBody != null) {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
+                            (op instanceof StatementTargetOp lop && lop.exits(this))) {
                         return inlineFinalizer(block, enter, inherited);
                     } else {
                         return block;
@@ -5257,7 +5270,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             } else {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof StatementTargetOp lop && ifExitFromTry(lop))) {
+                            (op instanceof StatementTargetOp lop && lop.exits(this))) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.add(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
                         return tryRegionReturnExit;
@@ -5309,7 +5322,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp) {
                             return inlineFinalizer(block, catchExceptionRegion, inherited);
-                        } else if (op instanceof StatementTargetOp lop && ifExitFromTry(lop)) {
+                        } else if (op instanceof StatementTargetOp lop && lop.exits(this)) {
                             return inlineFinalizer(block, catchExceptionRegion, inherited);
                         } else {
                             return block;
@@ -5621,13 +5634,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             && result.op().ancestorOp() instanceof LabeledOp labeled
                             && labeled.labelIdentifier() == result))
                     .toList();
-        }
-
-        boolean ifExitFromTry(StatementTargetOp lop) {
-            Op target = lop.target();
-            return target == this
-                    || target.isAncestorOf(this)
-                    || (lop instanceof StatementTargetOp.ResolvedStatementTarget && !isAncestorOf(target));
         }
 
         Block.Builder inlineFinalizer(Block.Builder block1, Value enter, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
