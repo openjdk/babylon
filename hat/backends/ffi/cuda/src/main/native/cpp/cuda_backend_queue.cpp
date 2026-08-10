@@ -154,7 +154,7 @@ void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, Compilat
     int blocksPerGridX = 1;
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
-    if (kernelContext->type > 0) {
+    if (dispatchContext->type > 0) {
         blocksPerGridX = ceil_div(dispatchContext->gsx, dispatchContext->lsx);
         blocksPerGridY = ceil_div(dispatchContext->gsy, dispatchContext->lsy);
         blocksPerGridZ = ceil_div(dispatchContext->gsz, dispatchContext->lsz);

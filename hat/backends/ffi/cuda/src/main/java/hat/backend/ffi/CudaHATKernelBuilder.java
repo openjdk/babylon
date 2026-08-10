@@ -1090,9 +1090,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     protected CudaHATKernelBuilder hatTileLoadOperation(Invoke invoke) {
         List<Value> operands = invoke.op().operands();
-        Value inputReference = operands.get(1);
-        Value blockId = operands.get(2);
-        Value shape = operands.get(3);
+        Value inputReference = operands.get(0);
+        Value blockId = operands.get(1);
+        Value shape = operands.get(2);
 
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
@@ -1117,9 +1117,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     protected CudaHATKernelBuilder hatTileStoreOperation(Invoke invoke) {
         List<Value> operands = invoke.op().operands();
-        Value inputReference = operands.get(1);
-        Value blockId = operands.get(2);
-        Value tensor = operands.get(3);
+        Value inputReference = operands.get(0);
+        Value blockId = operands.get(1);
+        Value tensor = operands.get(2);
 
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);

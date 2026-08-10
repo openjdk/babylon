@@ -199,10 +199,9 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     /**
      * Function to dispatch a TileKernel in HAT. The dispatch takes the following parameters:
-     * @param ndRange
-     *  A Tile Range that specified the total number of tiles and the tile-size
-     * @param tileKernel
-     *  The tile kernel of offload and run on the hardware accelerator
+     *
+     * @param ndRange    A Tile Range that specified the total number of tiles and the tile-size
+     * @param tileKernel The tile kernel of offload and run on the hardware accelerator
      */
     public void dispatchTile(NDRange ndRange, Tile tileKernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(tileKernel).orElseThrow();
@@ -214,9 +213,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             var oldKernelCallSite = kernelCallSiteCache.get(location);
             kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
         } else {
-            kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
+            kernelCallSite = kernelCallSiteCache.compute(location, (_, _) -> {
                 JavaOp.LambdaOp lambdaOp = quoted.op();
-
 
                 MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp).op().invokeReference();
 
@@ -232,12 +230,12 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             });
         }
 
-        var method =  kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
-        var lambda = lambda(lookup(),kernelCallSite.lambdaOp);
-        Object[] capturedArgs = lambda.getQuotedCapturedValues(kernelCallSite.quoted,method);
-        Object[] dispatchContextAndArgs = new Object[capturedArgs.length+1];
-        System.arraycopy(capturedArgs,0,dispatchContextAndArgs,1,capturedArgs.length);
-        dispatchContextAndArgs[0]=DispatchContext.createDefault(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
+        var method = kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
+        var lambda = lambda(lookup(), kernelCallSite.lambdaOp);
+        Object[] capturedArgs = lambda.getQuotedCapturedValues(kernelCallSite.quoted, method);
+        Object[] dispatchContextAndArgs = new Object[capturedArgs.length + 1];
+        System.arraycopy(capturedArgs, 0, dispatchContextAndArgs, 1, capturedArgs.length);
+        dispatchContextAndArgs[0] = DispatchContext.createTile(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
         accelerator.backend.dispatchTile(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
 
 //        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();

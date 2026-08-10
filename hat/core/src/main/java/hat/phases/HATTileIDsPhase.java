@@ -48,7 +48,7 @@ public record HATTileIDsPhase() implements HATPhase {
                     if (c.op() instanceof JavaOp.InvokeOp invokeOp && (OpHelper.Invoke.invoke(lookup, invokeOp)).refIs(TileContext.class) && invokeOp.invokeReference().name().equals("bid")) {
                         // Add HAT Tile Op
                         List<Value> operands = invokeOp.operands();
-                        if (operands.size() != 2) {
+                        if (operands.size() != 1) {
                             throw new IllegalStateException("[Error] Expected one argument for the TileContext#bid method");
                         }
 

@@ -109,18 +109,18 @@ public class TestTileAPI {
 //                ct::partition_view{ct::tensor_span{c, ct::extents{1024}}, ct::shape{ 16_ic }}.store_masked(tileResult, pid);
 //            }
 //            """)
-    public static void helloTile(@RO TileContext tc, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
-        final var pid = tc.bid(0);
-        var aTile = tc.load(inputA, pid, 16);
-        var bTile = tc.load(inputB, pid, 16);
+    public static void helloTile(@RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
+        final var pid = TileContext.bid(0);
+        var aTile = TileContext.load(inputA, pid, 16);
+        var bTile = TileContext.load(inputB, pid, 16);
         var tileResult = TileOp.add(aTile, bTile);  // TODO: we need to infer the shape of the resulting tile based on the operands
-        tc.store(output, pid, tileResult);
+        TileContext.store(output, pid, tileResult);
     }
 
     @Reflect
     public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
-                tileContext -> helloTile(tileContext, inputA, inputB, output, tile_size));
+                tileContext -> helloTile(inputA, inputB, output, tile_size));
     }
 
     @Reflect
@@ -190,25 +190,25 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void vector_add(TileContext tc, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
+    public static void vector_add( TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
 
         // Program id: get tile-id for 1D
-        var pid = tc.bid(0);
+        var pid = TileContext.bid(0);
 
-        var a_tile = tc.load(inputA, pid, tile_size);
-        var b_tile = tc.load(inputB, pid, tile_size);
+        var a_tile = TileContext.load(inputA, pid, tile_size);
+        var b_tile = TileContext.load(inputB, pid, tile_size);
 
         // This could be a tensor as well
         // var result = Tensor.add(a_tile, b_tile);
         var result = TileOp.add(a_tile, b_tile);
 
-        tc.store(output, pid, result);
+        TileContext.store(output, pid, result);
     }
 
     @Reflect
     public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
-                tileContext -> vector_add(tileContext, inputA, inputB, output, tile_size));
+                tileContext -> vector_add(inputA, inputB, output, tile_size));
     }
 
     @Reflect
@@ -363,10 +363,10 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void matmul(TileContext tc, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void matmul(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
 
         // Calculate bidx and bidy using swizzle
-        int bid = tc.bid(0);
+        int bid = TileContext.bid(0);
         int num_bid_m = Math.ceilDiv(M, tm);
         int num_bid_n = Math.ceilDiv(N, tn);
         int num_bid_in_group = GROUP_SIZE_M * num_bid_n;    // IDEA: to get the constants in, we can do a pass over to transform this GROUP_SIZE_M (field access) into a Constant into the tree!
@@ -379,24 +379,24 @@ public class TestTileAPI {
         int bidy = (bid % num_bid_in_group) / num_bid_in_group;
 
         // Calculate the total number of tiles
-        int num_tiles = tc.num_tiles(inputA, 1, tc.shape(tm,tk));
+        int num_tiles = TileContext.num_tiles(inputA, 1, TileContext.shape(tm,tk));
 
         // Return type should be a TileData
-        var accumulator = tc.zeros(tm, tk);
+        var accumulator = TileContext.zeros(tm, tk);
 
         for (int k = 0; k < num_tiles; k++) {
-            var tileA = tc.load(inputA, tc.index(bidx, k), tc.shape(tm, tk));
-            var tileB = tc.load(inputB, tc.index(k, bidy), tc.shape(tk, tn));
+            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
+            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
         }
 
-        tc.store(output, tc.index(bidx, bidy), accumulator);
+        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
     }
 
     @Reflect
     public static void tile_matmul(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                tileContext -> matmul(tileContext, inputA, inputB, output, tm, tn, tk, M, N));
+                tileContext -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
     }
 
     @Reflect
@@ -513,35 +513,35 @@ public class TestTileAPI {
             };
             """)
     @Reflect
-    public static void tile_reduction(TileContext tileContext, TensorF32 input, TensorF32 output, @Constant int tile_size) {
+    public static void tile_reduction(TensorF32 input, TensorF32 output, @Constant int tile_size) {
 
         // Obtain the tile-id
-        int pid = tileContext.bid(0);
+        int pid = TileContext.bid(0);
 
         // Obtain the number of tiles
-        int numTiles = tileContext.num_tiles(input, 0, tileContext.shape(tile_size));
+        int numTiles = TileContext.num_tiles(input, 0, TileContext.shape(tile_size));
 
         // Initialize a tile
-        var acc = tileContext.full(tileContext.shape(1), 0);
+        var acc = TileContext.full(TileContext.shape(1), 0);
 
         // Perform the sum for all blocks of tiles
         for (int i = 0; i < numTiles; i++) {
             // load tile
-            var tileA = tileContext.load(input, tileContext.index(pid), tileContext.shape(tile_size));
+            var tileA = TileContext.load(input, TileContext.index(pid), TileContext.shape(tile_size));
             // Perform a sum over the tile
-            var res = tileContext.sum(tileA, 0);
+            var res = TileContext.sum(tileA, 0);
             // Store the result into the accumulator
             acc = TileOp.add(acc, res);
         }
 
         // Store the final result into global memory
-        tileContext.store(output, tileContext.index(0), acc);
+        TileContext.store(output, TileContext.index(0), acc);
     }
 
     @Reflect
     public static void computetile_reduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
         computeContext.dispatchTile(NDRange.of1D(input.length(), tileSize),
-                tileContext -> tile_reduction(tileContext, input, output, tileSize));
+                tileContext -> tile_reduction(input, output, tileSize));
     }
 
     @Reflect
@@ -603,28 +603,28 @@ public class TestTileAPI {
                 return @loc="454:5";
             };
             """)
-    public static void transposeKernel(TileContext tileContext, TensorF32 inputMatrix, TensorF32 transposedMatrix, @Constant int tm, @Constant int tn) {
+    public static void transposeKernel(TensorF32 inputMatrix, TensorF32 transposedMatrix, @Constant int tm, @Constant int tn) {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
-        int bidx = tileContext.bid(0);
-        int bidy = tileContext.bid(1);
+        int bidx = TileContext.bid(0);
+        int bidy = TileContext.bid(1);
 
         // Load the tile with shape tm x tn into memory (e.g., registers, shared memory, or tensor memory)_
-        var inputTile = tileContext.load(inputMatrix, tileContext.index(bidx, bidy), tileContext.shape(tm, tn));
+        var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(tm, tn));
 
         // compute the transpose function.
-        var transposedTile = tileContext.transpose(inputTile);
+        var transposedTile = TileContext.transpose(inputTile);
 
         // store the resulting transposedTile into global memory.
         // Note that the index used are swapped.
-        tileContext.store(transposedMatrix, tileContext.index(bidy, bidx), transposedTile);
+        TileContext.store(transposedMatrix, TileContext.index(bidy, bidx), transposedTile);
     }
 
     @Reflect
     public static void computeTransposeKernel(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                tileContext -> transposeKernel(tileContext, input, output, tm, tn));
+                (_) -> transposeKernel(input, output, tm, tn));
     }
 
     @Reflect

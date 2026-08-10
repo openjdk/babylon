@@ -6,59 +6,82 @@ import optkl.ifacemapper.Buffer;
 
 public interface TileContext {
 
-    int bid(int tileDim);
+    static int bid(int tileDim) {
+        return 0;
+    }
 
-    Tile load(Buffer buffer, int pid, int tileSize);
+    static Tile load(Buffer buffer, int pid, int tileSize) {
+        return null;
+    }
 
-    Tile load(Buffer buffer, int pid, TileShape tileShape);
+    static Tile load(Buffer buffer, int pid, TileShape tileShape) {
+        return null;
+    }
 
-    Tile load(Buffer buffer, TileIndex1D pid, TileShape tileShape);
+    static Tile load(Buffer buffer, TileIndex1D pid, TileShape tileShape) {
+        return null;
+    }
 
-    Tile load(Buffer buffer, TileIndex2D pid, TileShape tileShape);
+    static Tile load(Buffer buffer, TileIndex2D pid, TileShape tileShape) {
+        return null;
+    }
 
-    Tile load(Buffer buffer, TileIndex3D pid, TileShape tileShape);
+    static Tile load(Buffer buffer, TileIndex3D pid, TileShape tileShape) {
+        return null;
+    }
 
-    void store(Buffer buffer, int pid, Tile result);
+    static void store(Buffer buffer, int pid, Tile result) {
+    }
 
-    void store(Buffer buffer, TileIndex1D tileIndex1D, Tile result);
+    static void store(Buffer buffer, TileIndex1D tileIndex1D, Tile result) {}
 
-    void store(Buffer buffer, TileIndex2D tileIndex2D, Tile result);
+    static void store(Buffer buffer, TileIndex2D tileIndex2D, Tile result) {}
 
-    void store(Buffer buffer, TileIndex3D tileIndex3D, Tile result);
+    static void store(Buffer buffer, TileIndex3D tileIndex3D, Tile result) {}
 
-    default TileIndex2D index(int bidx, int bidy) {
+    static TileIndex2D index(int bidx, int bidy) {
         return new TileIndex2D(bidx, bidy);
     }
 
-    default TileIndex1D index(int bidx) {
+    static TileIndex1D index(int bidx) {
         return new TileIndex1D(bidx);
     }
 
-    default TileIndex3D index(int bidx, int bidy, int bidz) {
+    static TileIndex3D index(int bidx, int bidy, int bidz) {
         return new TileIndex3D(bidx, bidy, bidz);
     }
 
-    default TileShape shape(int tm, int tk) {
+    static TileShape shape(int tm, int tk) {
         return new TileShape(tm, tk);
     }
 
-    default TileShape shape(int tm) {
+    static  TileShape shape(int tm) {
         return new TileShape(tm);
     }
 
-    int num_tiles(TensorF32 inputA, int i, TileShape shape);
+    static int num_tiles(TensorF32 inputA, int i, TileShape shape) {
+        return 0;
+    }
 
-    Tile zeros(int tm, int tk);
+    static Tile zeros(int tm, int tk) {
+        return null;
+    }
 
-    Tile sum(Tile tileA, int index);
+    static Tile sum(Tile tileA, int index) {
+        return null;
+    }
 
-    void sum(Tile tileA, TileIndex1D index);
+    static void sum(Tile tileA, TileIndex1D index) {}
 
-    void sum(Tile tileA, TileIndex2D index);
+    static void sum(Tile tileA, TileIndex2D index){}
 
-    void sum(Tile tileA, TileIndex3D index);
+    static void sum(Tile tileA, TileIndex3D index) {}
 
-    Tile full(TileShape shape, int index);
+    static Tile full(TileShape shape, int index) {
+        return null;
+    }
 
-    Tile transpose(Tile inputTile);
+    static Tile transpose(Tile inputTile) {
+        return null;
+    }
 }
