@@ -118,7 +118,7 @@ public class TestTileAPI {
     @Reflect
     public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
-                tileContext -> helloTile(inputA, inputB, output, tile_size));
+                () -> helloTile(inputA, inputB, output, tile_size));
     }
 
     @Reflect
@@ -206,7 +206,7 @@ public class TestTileAPI {
     @Reflect
     public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
-                tileContext -> vector_add(inputA, inputB, output, tile_size));
+                () -> vector_add(inputA, inputB, output, tile_size));
     }
 
     @Reflect
@@ -394,7 +394,7 @@ public class TestTileAPI {
     @Reflect
     public static void tile_matmul(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                tileContext -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
+                () -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
     }
 
     @Reflect
@@ -539,7 +539,7 @@ public class TestTileAPI {
     @Reflect
     public static void computetile_reduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
         computeContext.dispatchTile(NDRange.of1D(input.length(), tileSize),
-                tileContext -> tile_reduction(input, output, tileSize));
+                () -> tile_reduction(input, output, tileSize));
     }
 
     @Reflect
@@ -622,7 +622,7 @@ public class TestTileAPI {
     @Reflect
     public static void computeTransposeKernel(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                (_) -> transposeKernel(input, output, tm, tn));
+                () -> transposeKernel(input, output, tm, tn));
     }
 
     @Reflect
@@ -637,7 +637,6 @@ public class TestTileAPI {
         TensorF32 input = TensorF32.create(accelerator, M * N);
         TensorF32 result = TensorF32.create(accelerator, M * N);
 
-        accelerator.compute( computeContext ->
-                computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
+        accelerator.compute( computeContext -> computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
     }
 }

@@ -24,10 +24,6 @@
  */
 package hat;
 
-import jdk.incubator.code.CodeType;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 import hat.buffer.DispatchContext;
 import optkl.OpHelper;
 import optkl.util.carriers.ArenaAndLookupCarrier;
@@ -44,7 +40,6 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -203,7 +198,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
      * @param ndRange    A Tile Range that specified the total number of tiles and the tile-size
      * @param tileKernel The tile kernel of offload and run on the hardware accelerator
      */
-    public void dispatchTile(NDRange ndRange, Tile tileKernel) {
+    public void dispatchTile(NDRange ndRange, TileKernel tileKernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(tileKernel).orElseThrow();
 
         var location = quoted.op().location();
@@ -324,11 +319,11 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     @Reflect
     @FunctionalInterface
     public interface Kernel extends Consumer<KernelContext> { }
+
     @Reflect
     public interface NewKernel extends Runnable { }
 
     @Reflect
-    @FunctionalInterface
-    public interface Tile extends Consumer<TileContext> { }
+    public interface TileKernel extends Runnable { }
 
 }
