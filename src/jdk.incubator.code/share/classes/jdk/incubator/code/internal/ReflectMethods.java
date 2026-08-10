@@ -1099,7 +1099,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         } else {
                             FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
-                            CodeType resultType = typeToCodeType(types.memberType(tree.selected.type, sym));
+                            CodeType resultType = typeToCodeType(tree.type);
                             if (sym.isStatic()) {
                                 result = append(JavaOp.fieldLoad(resultType, fr));
                             } else {

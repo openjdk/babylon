@@ -134,7 +134,7 @@ public:
         void copyFromDevice(Buffer *buffer) override;
 
 
-        void dispatch(KernelContext *kernelContext, CompilationUnit::Kernel *kernel) override;
+        void dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) override;
 
         ~OpenCLQueue() override;
     };

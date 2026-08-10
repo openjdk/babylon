@@ -26,6 +26,7 @@ package hat;
 
 import hat.backend.Backend;
 
+import hat.buffer.DispatchContext;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
@@ -84,8 +85,13 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public KernelContext range(NDRange ndRange) {
+    public KernelContext kernelContext(NDRange ndRange) {
         return new KernelContext(ndRange);
+    }
+    public DispatchContext dispatchContext(NDRange ndRange) {
+        var dispatchContext =  DispatchContext.createDefault(this);
+        throw new RuntimeException("fill me");
+      //  return dispatchContext;
     }
 
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {

@@ -40,7 +40,7 @@ import jdk.incubator.code.dialect.java.JavaOp.InvokeOp.InvokeKind;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.util.OpCodeBuilder;
 
 import java.lang.invoke.MethodHandles;
@@ -170,7 +170,7 @@ public class CreateFuncOp {
         System.out.println(" 1/sqrt(100) = " + BytecodeGenerator.generate(lookup, rsqrtFuncOp).invoke(100));
         VarTable varTable = new VarTable(rsqrtFuncOp.funcName());
         Trxfmr.of(lookup, rsqrtFuncOp)
-                .transform("usingAbs", varTable, ce -> invoke(lookup,ce) instanceof Invoke.Static $
+                .transform("usingAbs",  ce -> invoke(lookup,ce) instanceof Invoke.Static $
                         && $.named("sqrt")
                         && $.returns(double.class)
                         && $.receives(double.class), c -> {
@@ -194,7 +194,7 @@ public class CreateFuncOp {
                     c.add(new Pre(List.of()));
                     c.replace(JavaOp.invoke(InvokeKind.STATIC, false, JavaType.DOUBLE, MathAbs, c.mappedOperand(0)));
                     c.add(new Post(List.of()));
-                })
+                },varTable)
                 .toText()
                 // We need to remove our injected ops from the model to execute
                 .transform(ce -> ce instanceof Inject, c -> c.remove(), varTable)

@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.buffer.F32Array;
 
@@ -40,7 +40,7 @@ public class ForTests {
     public static class ComputeApp {
 
         @Reflect
-        static void breakAndContinue(KernelContext kc, F32Array a) {
+        static void breakAndContinue( F32Array a) {
             long i = GIX();
             long size = GSX();
             outer:
@@ -64,14 +64,14 @@ public class ForTests {
         }
 
         @Reflect
-        static void counted(KernelContext kc, F32Array a) {
+        static void counted( F32Array a) {
             for (int j = 0; j < a.length(); j = j + 1) {
                 float sum = j;
             }
         }
 
         @Reflect
-        static void tuple(KernelContext kc, F32Array a) {
+        static void tuple( F32Array a) {
             for (int j = 1, i = 2, k = 3; j < a.length(); k += 1, i += 2, j += 3) {
                 float sum = k + i + j;
             }
@@ -79,9 +79,9 @@ public class ForTests {
 
         @Reflect
         static void compute(ComputeContext computeContext, F32Array a) {
-            computeContext.dispatchKernel(NDRange.of1D(a.length()), (kc) -> counted(kc, a));
-            computeContext.dispatchKernel(NDRange.of1D(a.length()), (kc) -> tuple(kc, a));
-            computeContext.dispatchKernel(NDRange.of1D(a.length()), (kc) -> breakAndContinue(kc, a));
+            computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> counted( a));
+            computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> tuple( a));
+            computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> breakAndContinue( a));
         }
 
     }

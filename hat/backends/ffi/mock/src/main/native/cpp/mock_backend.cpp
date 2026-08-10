@@ -70,11 +70,11 @@ public:
         void computeEnd() override {
         };
 
-        void dispatch(KernelContext *kernelContext, Backend::CompilationUnit::Kernel *kernel) override {
+        void dispatch(DispatchContext *dispatchContext, Backend::CompilationUnit::Kernel *kernel) override {
             std::cout << "mock dispatch() " << std::endl;
             size_t dims = 1;
             if (backend->config->trace | backend->config->traceEnqueues) {
-                std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << kernelContext->gsx <<
+                std::cout << "enqueued kernel dispatch \"" << kernel->name << "\" globalSize=" << dispatchContext->gsx <<
                         std::endl;
             }
         }

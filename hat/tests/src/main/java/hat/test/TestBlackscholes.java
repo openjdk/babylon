@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -41,9 +41,10 @@ import java.util.Random;
 public class TestBlackscholes {
 
     @Reflect
-    public static void blackScholesKernel(KernelContext unused, F32Array call, F32Array put,
-                                          F32Array sArray, F32Array xArray, F32Array tArray,
-                                          float r, float v) {
+    public static void blackScholesKernel(
+            F32Array call, F32Array put,
+            F32Array sArray, F32Array xArray, F32Array tArray,
+            float r, float v) {
         if (GIX() < GSX()) {
             float S = sArray.array(GIX());
             float X = xArray.array(GIX());
@@ -84,9 +85,7 @@ public class TestBlackscholes {
 
     @Reflect
     public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
-        cc.dispatchKernel(NDRange.of1D(call.length()),
-                kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
-        );
+        cc.dispatchKernel(NDRange.of1D(call.length()),()-> blackScholesKernel( call, put, S, X, T, r, v));
     }
 
     static F32Array floatArray(Accelerator accelerator, int size, float low, float high) {

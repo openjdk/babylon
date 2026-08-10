@@ -27,9 +27,8 @@ package hat.backend.ffi;
 
 import hat.ComputeContext;
 import hat.Config;
-import hat.KernelContext;
+import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
-import optkl.VarTable;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -43,12 +42,11 @@ public class MockBackend extends FFIBackend {
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
         System.out.println("Mock backend received closed closure");
-        VarTable varTable = new VarTable(computeContext.computeCallGraph().callDag.entryPoint.funcOp().funcName());
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp((injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp(), varTable)));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp((injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp())));
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph,  NDRange ndRange, Object... args) {
         System.out.println("Mock dispatch kernel");
         // Here we receive a callgraph from the kernel entrypoint
         // The first time we see this we need to convert the kernel entrypoint

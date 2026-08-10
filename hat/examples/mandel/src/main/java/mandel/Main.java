@@ -27,7 +27,6 @@ package mandel;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.KernelContext;
 import hat.NDRange;
 import hat.backend.Backend;
 import static hat.KernelContext.*;
@@ -43,7 +42,7 @@ import jdk.incubator.code.Reflect;
 
 public class Main {
     @Reflect
-    public static void mandel(KernelContext unused, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
+    public static void mandel( S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
         if (GIX() < GSX()) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();
@@ -69,7 +68,7 @@ public class Main {
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
         computeContext.dispatchKernel(
                 NDRange.of1D(s32Array2D.width()*s32Array2D.height()),               //0..S32Array2D.size()
-                kc -> Main.mandel( kc,s32Array2D, pallete, x, y, scale));
+                () -> Main.mandel( s32Array2D, pallete, x, y, scale));
     }
 
     static void main(String[] args) {

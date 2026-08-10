@@ -24,6 +24,8 @@
  */
 package hat;
 
+import hat.buffer.DispatchContext;
+import optkl.OpHelper;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
@@ -44,7 +46,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.Optional;
 
-import static optkl.OpHelper.Invoke.getTargetInvoke;
+import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.Lambda.lambda;
 
 /**
@@ -85,6 +87,9 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     public void invokeWithArgs(Object[] args) {
         computeCallGraph.invokeWithArgs(args);
+    }
+    public void newInvokeWithArgs(Object[] args) {
+        computeCallGraph.newInvokeWithArgs(args);
     }
 
     public enum WRAPPER {
@@ -145,12 +150,20 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
 
+    static OpHelper.Invoke getTargetInvoke(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp) {
+        return lambdaOp.body().entryBlock().ops().stream()
+                .filter(ce -> ce instanceof JavaOp.InvokeOp)
+                .map(ce -> (OpHelper.Invoke)invoke(lookup, ce))
+                .filter(i->!i.refIs(ComputeContext.class))
+                .findFirst()
+                .orElseThrow();
+    }
     /** Creating the kernel callsite involves
          walking the code model of the lambda
-         analysing the callgraph and trsnsforming to HATDielect
+         analysing the callgraph and transforming to HATDialect
      So we cache the callsite against the location from the lambdaop.
      */
-    public void dispatchKernel(NDRange ndRange, Kernel kernel) {
+    public void dispatchKernel(NDRange ndRange, NewKernel kernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
@@ -162,7 +175,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         } else {
             kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
                 JavaOp.LambdaOp lambdaOp = quoted.op();
-                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, KernelContext.class).op().invokeReference();
+                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp).op().invokeReference();
                 KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
                 if (kernelCallGraph == null) {
                     throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
@@ -170,12 +183,14 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
             });
         }
-        Object[] args = lambda(lookup(),kernelCallSite.lambdaOp).getQuotedCapturedValues(kernelCallSite.quoted, kernelCallSite.kernelCallGraph.callDag.entryPoint.method());
-        args[0] = accelerator.range(ndRange);
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, (KernelContext) args[0], args);
+        var method =  kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
+        var lambda = lambda(lookup(),kernelCallSite.lambdaOp);
+        Object[] capturedArgs = lambda.getQuotedCapturedValues(kernelCallSite.quoted,method);
+        Object[] dispatchContextAndArgs = new Object[capturedArgs.length+1];
+        System.arraycopy(capturedArgs,0,dispatchContextAndArgs,1,capturedArgs.length);
+        dispatchContextAndArgs[0]=DispatchContext.createDefault(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
+        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
     }
-
-
     @Override
     public void preMutate(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
@@ -209,5 +224,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     @Reflect
     @FunctionalInterface
     public interface Kernel extends Consumer<KernelContext> { }
+    @Reflect
+    public interface NewKernel extends Runnable { }
 
 }
