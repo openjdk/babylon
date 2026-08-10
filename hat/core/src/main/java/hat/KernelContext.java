@@ -44,38 +44,15 @@ public class KernelContext {
 
     public final NDRange ndRange;
 
-    public final boolean tileModel;
-
     public KernelContext(NDRange ndRange) {
         if (ndRange == null) {
             throw new NullPointerException("ndRange is null");
         }
 
         this.ndRange = ndRange;
-        this.tileModel = false;
-
     }
 
     public final static Regex threadAccessRegex = Regex.of("(([GLB][SI][XYZ])|WRS|barrier)");
-
-    public KernelContext(TileRange tileRange) {
-        if (tileRange == null) {
-            throw new NullPointerException("tileRange is null");
-        }
-        // We do not need the following values
-        NDRange.Global global = tileRange.global();
-        NDRange.Local local = tileRange.local();
-        switch (global) {
-            case NDRange.Global1D global1D -> this.ndRange = NDRange.of1D(global1D.x(), ((NDRange.Local1D)local).x());
-            case NDRange.Global2D global2D -> this.ndRange = NDRange.of2D(global2D.x(), global2D.y(), ((NDRange.Local2D)local).x(), ((NDRange.Local2D)local).y());
-            case NDRange.Global3D global3D -> this.ndRange = NDRange.of3D(global3D.x(), global3D.y(), global3D.z(),
-                ((NDRange.Local3D)local).x(),
-                ((NDRange.Local3D)local).y(),
-                ((NDRange.Local3D)local).z());
-        }
-
-        this.tileModel = true;
-    }
 
     /**
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.

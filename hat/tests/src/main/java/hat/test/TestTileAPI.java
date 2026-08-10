@@ -31,8 +31,6 @@ import hat.NDRange;
 import hat.TileContext;
 import hat.TileModel;
 import hat.TileOp;
-import hat.TileRange;
-import hat.annotations.Kernel;
 import hat.backend.Backend;
 import hat.buffer.TensorF32;
 
