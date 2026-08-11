@@ -1180,8 +1180,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
+                    boolean isArrayClone = sym.owner == syms.arrayClass && sym.name == names.clone;
                     MethodRef mr;
-                    if (sym.owner == syms.arrayClass && sym.name == names.clone) {
+                    if (isArrayClone) {
                         // For array.clone use the erased selected type as the reference type,
                         // which will be an array
                         mr = MethodRef.method(
@@ -1198,7 +1199,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             returnType, mr, args);
                     Value res = append(iop);
 
-                    if (sym.owner == syms.arrayClass && sym.name == names.clone) {
+                    if (isArrayClone) {
                         // For array.clone, cast res (whose type is Object) to the array's type
                         // we align the res.type with the tree.type
                         res = append(JavaOp.cast(receiver.type(), res));
