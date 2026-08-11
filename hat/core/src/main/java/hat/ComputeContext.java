@@ -32,7 +32,6 @@ import hat.callgraph.ComputeCallGraph;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -121,12 +120,12 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
      * So given a ComputeClass such as..
      * <pre>
      *  public class MyComputeClass {
-     *    @ Reflect
+     *    @Reflect
      *    public static void addDeltaKernel(KernelContext kc, S32Array arrayOfInt, int delta) {
      *        arrayOfInt.array(kc.x, arrayOfInt.array(kc.x)+delta);
      *    }
      *
-     *    @ Reflect
+     *    @Reflect
      *    static public void doSomeWork(final ComputeContext cc, S32Array arrayOfInt) {
      *        cc.dispatchKernel(KernelContext kc -> addDeltaKernel(kc,arrayOfInt.length(), 5, arrayOfInt);
      *    }
@@ -221,10 +220,9 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         }
     }
 
-    @Reflect
     @FunctionalInterface
     public interface Kernel extends Consumer<KernelContext> { }
-    @Reflect
+    @FunctionalInterface
     public interface NewKernel extends Runnable { }
 
 }
