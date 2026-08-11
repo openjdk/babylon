@@ -9,4 +9,8 @@ public interface TileOp {
     static Tile mma(Tile tileA, Tile tileB, Tile accumulator) {
         return null;
     }
+
+    static Tile transpose(Tile inputTile) {
+        return null;
+    }
 }

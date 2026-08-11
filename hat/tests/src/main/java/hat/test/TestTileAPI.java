@@ -85,7 +85,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void helloTile(@RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
-        final var pid = TileContext.bid(0);
+        final var pid = TileContext.BIDX();
         var aTile = TileContext.load(inputA, pid, 16);
         var bTile = TileContext.load(inputB, pid, 16);
         var tileResult = TileOp.add(aTile, bTile);  // TODO: we need to infer the shape of the resulting tile based on the operands
@@ -126,10 +126,10 @@ public class TestTileAPI {
     // Expressing Vector Addition
     // ================================================================================================================
     @Reflect
-    public static void vector_add( TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
+    public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
 
         // Program id: get tile-id for 1D
-        var pid = TileContext.bid(0);
+        var pid = TileContext.BIDX();
 
         var a_tile = TileContext.load(inputA, pid, tile_size);
         var b_tile = TileContext.load(inputB, pid, tile_size);
@@ -144,7 +144,7 @@ public class TestTileAPI {
     @Reflect
     public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
-                () -> vector_add(inputA, inputB, output, tile_size));
+                () -> vectorAddTile(inputA, inputB, output, tile_size));
     }
 
     @Reflect
@@ -174,7 +174,7 @@ public class TestTileAPI {
     public static void matmul(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
 
         // Calculate bidx and bidy using swizzle
-        int bid = TileContext.bid(0);
+        int bid = TileContext.BIDX();
         int num_bid_m = Math.ceilDiv(M, tm);
         int num_bid_n = Math.ceilDiv(N, tn);
         int num_bid_in_group = GROUP_SIZE_M * num_bid_n;    // IDEA: to get the constants in, we can do a pass over to transform this GROUP_SIZE_M (field access) into a Constant into the tree!
@@ -202,7 +202,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tile_matmul(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void tileMatmul(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 () -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
     }
@@ -224,31 +224,18 @@ public class TestTileAPI {
         int tk = 64;
 
         accelerator.compute( computeContext -> {
-            tile_matmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
+            tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
         });
     }
-
-    // -----------------------------------------------------------------------------------------------------
-    // To continue, I need to see the mapping into the C++ binding and the C++ runtime to launch the kernel
-    // Probably we need:
-    // 1. Access to the device/s (CUDA device)
-    // 2. Creation of a CUDA Stream
-    // 3. Allocation of device buffers on the target device
-    // 4. Primitives to copy data in and out
-    // 5. API to launch the tile-kernel and setup the grids (as in block grids)
-    // 6. Synchronization primitives
-    // 7. Release device objects
-    // -----------------------------------------------------------------------------------------------------
-
 
     // ================================================================================================================
     // Expressing Reductions
     // ================================================================================================================
     @Reflect
-    public static void tile_reduction(TensorF32 input, TensorF32 output, @Constant int tile_size) {
+    public static void tileReduction(TensorF32 input, TensorF32 output, @Constant int tile_size) {
 
         // Obtain the tile-id
-        int pid = TileContext.bid(0);
+        int pid = TileContext.BIDX();
 
         // Obtain the number of tiles
         int numTiles = TileContext.num_tiles(input, 0, TileContext.shape(tile_size));
@@ -271,9 +258,9 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computetile_reduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
+    public static void tileReduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
         computeContext.dispatchTile(NDRange.of1D(input.length(), tileSize),
-                () -> tile_reduction(input, output, tileSize));
+                () -> tileReduction(input, output, tileSize));
     }
 
     @Reflect
@@ -288,7 +275,7 @@ public class TestTileAPI {
         TensorF32 result = TensorF32.create(accelerator, size);
 
         accelerator.compute( computeContext ->
-                computetile_reduction(computeContext, input, result, tileSize));
+                tileReduction(computeContext, input, result, tileSize));
     }
 
     // Matrix transpose example
@@ -297,14 +284,14 @@ public class TestTileAPI {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
-        int bidx = TileContext.bid(0);
-        int bidy = TileContext.bid(1);
+        int bidx = TileContext.BIDX();
+        int bidy = TileContext.BIDY();
 
         // Load the tile with shape tm x tn into memory (e.g., registers, shared memory, or tensor memory)_
-        var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(tm, tn));
+        var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(128, 128));
 
         // compute the transpose function.
-        var transposedTile = TileContext.transpose(inputTile);
+        var transposedTile = TileOp.transpose(inputTile);
 
         // store the resulting transposedTile into global memory.
         // Note that the index used are swapped.

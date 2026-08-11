@@ -6,7 +6,11 @@ import optkl.ifacemapper.Buffer;
 
 public interface TileContext {
 
-    static int bid(int tileDim) {
+    static int BIDX() {
+        return 0;
+    }
+
+    static int BIDY() {
         return 0;
     }
 
@@ -81,7 +85,4 @@ public interface TileContext {
         return null;
     }
 
-    static Tile transpose(Tile inputTile) {
-        return null;
-    }
 }

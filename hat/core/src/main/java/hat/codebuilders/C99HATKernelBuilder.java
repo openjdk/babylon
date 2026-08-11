@@ -869,12 +869,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     private void handleTileOperation(Invoke invoke) {
         switch (invoke.name()) {
-            case "bid" -> hatTileId(invoke);
+            case "BIDX" -> hatTileIdx(invoke);
+            case "BIDY" -> hatTileIdy(invoke);
             case "align" -> hatTileAlignOperation(invoke);
             case "load" -> hatTileLoadOperation(invoke);
             case "store" -> hatTileStoreOperation(invoke);
             case "add","sub","mul","div"  -> hatTileBinaryArithmeticOperation(invoke);
             case "mma" -> hatTileMMAOperation(invoke);
+            case "transpose" -> hatTileTransposeOperation(invoke);
+            case "index" -> hatTileIndexOperation(invoke);
             default -> throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
         }
     }
@@ -1576,7 +1579,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T hatTileMMAOperation(Invoke invoke);
 
-    protected abstract T hatTileId(Invoke invoke);
+    protected abstract T hatTileTransposeOperation(Invoke invoke);
+
+    protected abstract T hatTileIndexOperation(Invoke invoke);
+
+    protected abstract T hatTileIdx(Invoke invoke);
+
+    protected abstract T hatTileIdy(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 

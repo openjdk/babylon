@@ -225,15 +225,15 @@ public interface HATPhaseUtils {
     }
 
     static boolean isTileOperation(OpHelper.Invoke invoke) {
-        return isTileThreadId(invoke) || isTileLoad(invoke) || isTileStore(invoke) || isTileMath(invoke) || isAlignOperation(invoke);
+        return isTileThreadId(invoke) || isTileContextOp(invoke) || isTileStore(invoke) || isTileMath(invoke) || isAlignOperation(invoke);
     }
 
     static boolean isTileThreadId(OpHelper.Invoke invoke) {
-       return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("bid");
+       return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("BID[XYZ]");
     }
 
-    static boolean isTileLoad(OpHelper.Invoke invoke) {
-        return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("load");
+    static boolean isTileContextOp(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("load|index");
     }
 
     static boolean isTileStore(OpHelper.Invoke invoke) {
@@ -241,7 +241,7 @@ public interface HATPhaseUtils {
     }
 
     static boolean isTileMath(OpHelper.Invoke invoke) {
-        return !invoke.returnsVoid() && invoke.refIs(TileOp.class) && invoke.nameMatchesRegex("add|mma");
+        return !invoke.returnsVoid() && invoke.refIs(TileOp.class) && invoke.nameMatchesRegex("add|mma|transpose");
     }
 
     static boolean isAlignOperation(OpHelper.Invoke invoke) {

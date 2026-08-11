@@ -1096,18 +1096,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value shape = operands.get(2);
 
         id("ct::partition_view{ct::tensor_span{");
-        recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
+        recurseResultOrThrow(inputReference);
+        // Note: we do not need to add the reference "-> array" at this point because alignment is performed using
+        // the input references. Then we carry the aligned pointer.
+
         id(", ct::extents{");
         int numDimensions = obtainShapeDimensions(shape);
         if (numDimensions < 0 || numDimensions  > 2) {
             throw new IllegalStateException("[Error][CodeGen] Expected a number of dimensions between 0 and 2");
         }
+        // TODO: We need to obtain input as Tensors, so we generate the correct extent
         genExtentSize(inputReference);
         id("}}").comma();
 
         // Process shapes: We assume shapes are constants.
-        // TODO: when we integrate type attribution, we can simplify the generation for shapes.
-        // and allow more expressiveness from the API
+        // TODO: when we integrate type attribution, we can simplify the generation for shapes and allow more expressiveness from the API
         id("ct::shape").brace( _ -> {
             for (int i = 0; i < numDimensions; i++) {
                 // generate the constant shape per dimension
@@ -1133,6 +1136,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
+        // TODO: We need to obtain input as Tensors, so we generate the correct extent
         genExtentSize(inputReference);
         id("}},");
         // TODO: assume a shape until we include the PoC using type attribution.
@@ -1180,9 +1184,28 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    protected CudaHATKernelBuilder hatTileId(Invoke invoke) {
-        // TODO: depending on the dimension, we call different builtin
-        return id("ct::bid()").dot().id("x");
+    protected CudaHATKernelBuilder hatTileTransposeOperation(Invoke invoke) {
+        return id("ct::transpose").paren(_ -> recurseResultOrThrow(invoke.op().operands().getFirst()));
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTileIndexOperation(Invoke invoke) {
+        List<Value> operands = invoke.op().operands();
+        return commaSpaceSeparated(operands, this::recurseResultOrThrow);
+    }
+
+    private CudaHATKernelBuilder tileBlockId() {
+        return id("ct::bid()").dot();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTileIdx(Invoke invoke) {
+        return tileBlockId().id("x");
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTileIdy(Invoke invoke) {
+        return tileBlockId().id("y");
     }
 
     /**

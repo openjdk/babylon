@@ -961,7 +961,22 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    protected OpenCLHATKernelBuilder hatTileId(OpHelper.Invoke invoke) {
+    protected OpenCLHATKernelBuilder hatTileTransposeOperation(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("HAT Tile Transpose Operation not supported for the OpenCL backend");
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileIndexOperation(OpHelper.Invoke invoke) {
+        throw new  UnsupportedOperationException("HAT Tile Index Operation not supported for the OpenCL backend");
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileIdx(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileIdy(OpHelper.Invoke invoke) {
         throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
     }
 

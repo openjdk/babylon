@@ -127,7 +127,6 @@ public record HATTilesPhase() implements HATPhase {
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(TileOp.class))
-                .filter(invoke -> invoke.named("add", "mma"))
                 .forEach(invoke ->
                         invoke.op().result().uses().stream()
                         .filter(result -> (result.op() instanceof CoreOp.VarOp))
