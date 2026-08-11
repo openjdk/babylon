@@ -871,6 +871,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (invoke.name()) {
             case "BIDX" -> hatTileIdx(invoke);
             case "BIDY" -> hatTileIdy(invoke);
+            case "BDYZ" -> hatTileIdz(invoke);
             case "align" -> hatTileAlignOperation(invoke);
             case "load" -> hatTileLoadOperation(invoke);
             case "store" -> hatTileStoreOperation(invoke);
@@ -1586,6 +1587,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     protected abstract T hatTileIdx(Invoke invoke);
 
     protected abstract T hatTileIdy(Invoke invoke);
+
+    protected abstract T hatTileIdz(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 

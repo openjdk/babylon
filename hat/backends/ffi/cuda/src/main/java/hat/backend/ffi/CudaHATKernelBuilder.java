@@ -1195,17 +1195,22 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     private CudaHATKernelBuilder tileBlockId() {
-        return id("ct::bid()").dot();
+        return id("ct::bid()");
     }
 
     @Override
     protected CudaHATKernelBuilder hatTileIdx(Invoke invoke) {
-        return tileBlockId().id("x");
+        return tileBlockId().dot().id("x");
     }
 
     @Override
     protected CudaHATKernelBuilder hatTileIdy(Invoke invoke) {
-        return tileBlockId().id("y");
+        return tileBlockId().dot().id("y");
+    }
+
+    @Override
+    protected CudaHATKernelBuilder hatTileIdz(Invoke invoke) {
+        return tileBlockId().dot().id("z");
     }
 
     /**

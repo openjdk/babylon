@@ -980,6 +980,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
     }
 
+    @Override
+    protected OpenCLHATKernelBuilder hatTileIdz(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
+    }
+
     /**
      * Code example being generated via the {@code MACRO_FRAGMENT_STORE} macro.
      *
