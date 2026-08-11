@@ -391,6 +391,39 @@ public final class TestStatementTarget {
         log.add(Ev.METHOD_EXIT);
     }
 
+    @Reflect
+    public static void sequentialSiblingTwrs(int mode, List<Ev> log) throws Exception {
+        try (var _ = open(log, mode == 1, mode == 2, Ev.L1_TWR_R0_OPEN, Ev.L1_TWR_R0_CLOSE)) {
+            log.add(Ev.L1_TWR_BODY_ENTER);
+        }
+        try (var _ = open(log, mode == 3, mode == 4, Ev.L2_TWR_R0_OPEN, Ev.L2_TWR_R0_CLOSE)) {
+            log.add(Ev.L2_TWR_BODY_ENTER);
+        }
+        log.add(Ev.METHOD_EXIT);
+    }
+
+    @Reflect
+    public static void breakWithinOuterTry(int mode, List<Ev> log) throws Exception {
+        try {
+            inner: {
+                try (var _ = open(log, mode == 2, false, Ev.L2_TWR_R0_OPEN, Ev.L2_TWR_R0_CLOSE)) {
+                    log.add(Ev.L2_TWR_BODY_ENTER);
+                    if (mode == 1) {
+                        log.add(Ev.BREAK);
+                        break inner;
+                    }
+                }
+            }
+            log.add(Ev.L0_TRY_ENTER);
+            if (mode == 1) {
+                throw new IllegalStateException("caught by outer try");
+            }
+        } catch (IllegalStateException ex) {
+            log.add(Ev.L0_CATCH_ENTER);
+        }
+        log.add(Ev.METHOD_EXIT);
+    }
+
     static Stream<Method> reflectMethods() {
         return Stream.of(TestStatementTarget.class.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(Reflect.class))
