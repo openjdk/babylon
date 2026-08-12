@@ -1150,8 +1150,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
-                    Value res = append(JavaOp.invoke(ik, tree.varargsElement != null,
-                            typeToCodeType(meth.type.getReturnType()), mr, args));
+
+                    // @@@ change to tree.type
+                    JavaType resultType = typeToCodeType(meth.type.getReturnType());
+                    JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
+                            resultType, mr, args);
+                    Value res = append(iop);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1196,7 +1200,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // Use the actual type of the expression, tree.type, rather than meth.type.getReturnType()
                     // This ensures invocation expressions to clone on arrays and getClass are modeled
                     // with the correct result type
-                    JavaType resultType = typeToCodeType(tree.type);//meth.type.getReturnType());
+                    JavaType resultType = typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
                     Value res = append(iop);

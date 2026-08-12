@@ -373,4 +373,16 @@ public class MethodCallTest {
     static Class<? extends Comparable[]> test16(Comparable<String>[] values) {
         return values.getClass();
     }
+
+
+//    @Reflect
+//    @IR("""
+//            func @"test16" (%0 : java.type:"MethodCallTest")java.type:"java.lang.Class<? extends MethodCallTest>" -> {
+//                %1 : java.type:"java.lang.Class<? extends MethodCallTest>" = invoke %0 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+//                return %1;
+//            };
+//            """)
+//    Class<? extends MethodCallTest> test16() {
+//        return getClass();
+//    }
 }
