@@ -1151,7 +1151,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
 
-                    // @@@ change to tree.type
+                    // @@@ change to tree.type when type conversion bug is fixed
+                    // see DenotableTypesTest.test12
                     JavaType resultType = typeToCodeType(meth.type.getReturnType());
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);

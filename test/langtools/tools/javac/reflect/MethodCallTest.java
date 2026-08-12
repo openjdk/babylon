@@ -374,7 +374,8 @@ public class MethodCallTest {
         return values.getClass();
     }
 
-
+    // @@@ Uncomment when type conversion bug is fixed
+    // see DenotableTypesTest.test12
 //    @Reflect
 //    @IR("""
 //            func @"test16" (%0 : java.type:"MethodCallTest")java.type:"java.lang.Class<? extends MethodCallTest>" -> {
