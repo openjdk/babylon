@@ -1180,9 +1180,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
-                    boolean isArrayClone = sym.owner == syms.arrayClass && sym.name == names.clone;
                     MethodRef mr;
-                    if (isArrayClone) {
+                    if (sym.owner == syms.arrayClass && sym.name == names.clone) {
                         // For array.clone use the erased selected type as the reference type,
                         // which will be an array
                         mr = MethodRef.method(
@@ -1194,16 +1193,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
                                 access.selected.type : qualifierTarget);
                     }
 
-                    JavaType returnType = typeToCodeType(meth.type.getReturnType());
+                    // Use the actual type of the expression, tree.type, rather than meth.type.getReturnType()
+                    // This ensures invocation expressions to clone on arrays and getClass are modeled
+                    // with the correct result type
+                    JavaType returnType = typeToCodeType(tree.type);//meth.type.getReturnType());
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             returnType, mr, args);
                     Value res = append(iop);
-
-                    if (isArrayClone) {
-                        // For array.clone, cast res (whose type is Object) to the array's type
-                        // we align the res.type with the tree.type
-                        res = append(JavaOp.cast(receiver.type(), res));
-                    }
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
