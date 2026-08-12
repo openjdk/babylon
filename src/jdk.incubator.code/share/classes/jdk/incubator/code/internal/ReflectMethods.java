@@ -1150,8 +1150,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
                     MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
-                    Value res = append(JavaOp.invoke(ik, tree.varargsElement != null,
-                            typeToCodeType(meth.type.getReturnType()), mr, args));
+
+                    // @@@ change to tree.type when type conversion bug is fixed
+                    // see DenotableTypesTest.test12
+                    JavaType resultType = typeToCodeType(meth.type.getReturnType());
+                    JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
+                            resultType, mr, args);
+                    Value res = append(iop);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1180,11 +1185,25 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     args.addAll(scanMethodArguments(tree.args, tree.meth.type, tree.varargsElement));
 
-                    MethodRef mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
-                            access.selected.type : qualifierTarget);
-                    JavaType returnType = typeToCodeType(meth.type.getReturnType());
+                    MethodRef mr;
+                    if (sym.owner == syms.arrayClass && sym.name == names.clone) {
+                        // For array.clone use the erased selected type as the reference type,
+                        // which will be an array
+                        mr = MethodRef.method(
+                                typeToCodeType(types.erasure(access.selected.type)),
+                                names.clone.toString(),
+                                JavaType.J_L_OBJECT);
+                    } else {
+                        mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
+                                access.selected.type : qualifierTarget);
+                    }
+
+                    // Use the actual type of the expression, tree.type, rather than meth.type.getReturnType()
+                    // This ensures invocation expressions to clone on arrays and getClass are modeled
+                    // with the correct result type
+                    JavaType resultType = typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
-                            returnType, mr, args);
+                            resultType, mr, args);
                     Value res = append(iop);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;

@@ -83,9 +83,9 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public KernelContext kernelContext(NDRange ndRange) {
-        return new KernelContext(ndRange);
-    }
+  //  public KernelContext kernelContext(NDRange ndRange) {
+    //    return new KernelContext(ndRange);
+   // }
     public DispatchContext dispatchContext(NDRange ndRange) {
         var dispatchContext =  DispatchContext.createDefault(this);
         throw new RuntimeException("fill me");
