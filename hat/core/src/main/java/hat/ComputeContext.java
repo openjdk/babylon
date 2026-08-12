@@ -43,7 +43,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.Optional;
 
 import static optkl.OpHelper.Invoke.invoke;
@@ -163,7 +162,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
          analysing the callgraph and transforming to HATDialect
      So we cache the callsite against the location from the lambdaop.
      */
-    public void dispatchKernel(NDRange ndRange, NewKernel kernel) {
+    public void dispatchKernel(NDRange ndRange, Kernel kernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
 
         var location = quoted.op().location();
@@ -223,8 +222,6 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     @Reflect
     @FunctionalInterface
-    public interface Kernel extends Consumer<KernelContext> { }
-    @Reflect
-    public interface NewKernel extends Runnable { }
+    public interface Kernel extends Runnable { }
 
 }
