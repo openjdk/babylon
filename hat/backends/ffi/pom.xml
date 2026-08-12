@@ -45,7 +45,6 @@ questions.
     </dependency>
   </dependencies>
   <modules>
-    <module>mock</module>
     <module>shared</module>
     <module>opencl</module>
     <module>cuda</module>
