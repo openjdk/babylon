@@ -323,7 +323,6 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     @Reflect
     public interface NewKernel extends Runnable { }
 
-    @Reflect
     public interface TileKernel extends Runnable { }
 
 }

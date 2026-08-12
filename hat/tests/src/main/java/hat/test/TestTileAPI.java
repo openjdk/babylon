@@ -25,6 +25,7 @@
 package hat.test;
 
 import hat.Accelerator;
+import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.Constant;
 import hat.NDRange;
@@ -97,7 +98,6 @@ public class TestTileAPI {
         computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size), () -> helloTile(inputA, inputB, output, tile_size));
     }
 
-    @Reflect
     @HatTest
     public void test_hat_tile_00() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -114,7 +114,7 @@ public class TestTileAPI {
         }
 
         TensorF32 result = TensorF32.create(accelerator, size);
-        accelerator.compute( computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tile_size));
+        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tile_size));
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
@@ -147,7 +147,6 @@ public class TestTileAPI {
                 () -> vectorAddTile(inputA, inputB, output, tile_size));
     }
 
-    @Reflect
     @HatTest
     public void test_hat_tile_01() {
         // Prototyping vector addition version for tile programming in HAT
@@ -161,7 +160,7 @@ public class TestTileAPI {
         TensorF32 inputB = TensorF32.create(accelerator, size);
         TensorF32 result = TensorF32.create(accelerator, size);
 
-        accelerator.compute( computeContext ->
+        accelerator.compute( (@Reflect Compute)computeContext ->
             myComputeWithTile_vector_add(computeContext, inputA, inputB, result, tile_size));
     }
 
@@ -207,7 +206,6 @@ public class TestTileAPI {
                 () -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
     }
 
-    @Reflect
     @HatTest
     public void test_hat_tile_02() {
 
@@ -223,7 +221,7 @@ public class TestTileAPI {
         int tn = 64;
         int tk = 64;
 
-        accelerator.compute( computeContext -> {
+        accelerator.compute( (@Reflect Compute)computeContext -> {
             tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
         });
     }
@@ -263,7 +261,6 @@ public class TestTileAPI {
                 () -> tileReduction(input, output, tileSize));
     }
 
-    @Reflect
     @HatTest
     public void test_hat_tile_03() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -274,7 +271,7 @@ public class TestTileAPI {
         TensorF32 input = TensorF32.create(accelerator, size);
         TensorF32 result = TensorF32.create(accelerator, size);
 
-        accelerator.compute( computeContext ->
+        accelerator.compute( (@Reflect Compute)computeContext ->
                 tileReduction(computeContext, input, result, tileSize));
     }
 
@@ -304,7 +301,6 @@ public class TestTileAPI {
                 () -> transposeKernel(input, output, tm, tn));
     }
 
-    @Reflect
     @HatTest
     public void test_hat_tile_04() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -316,6 +312,6 @@ public class TestTileAPI {
         TensorF32 input = TensorF32.create(accelerator, M * N);
         TensorF32 result = TensorF32.create(accelerator, M * N);
 
-        accelerator.compute( computeContext -> computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
+        accelerator.compute( (@Reflect Compute) computeContext -> computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
     }
 }

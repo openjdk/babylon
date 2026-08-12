@@ -1056,20 +1056,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return shapeValues;
     }
 
-    private CudaHATKernelBuilder genExtentSize(Value value) {
+    private void genExtentSize(Value value) {
         switch (value.declaringElement()) {
-            case VarOp varOp -> {
-                Value alignValue = varOp.operands().getFirst();
-                genExtentSize(alignValue);
-            }
-            case JavaOp.InvokeOp invokeOp -> {
-                recurseResultOrThrow(invokeOp.operands().getFirst()).rarrow().id(LENGTH);
-                return self();
-            }
+            case VarOp varOp -> genExtentSize(varOp.operands().getFirst());
+            case JavaOp.InvokeOp invokeOp -> recurseResultOrThrow(invokeOp.operands().getFirst()).rarrow().id(LENGTH);
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp -> genExtentSize(varLoadOp.operands().getFirst());
             case null, default -> throw new IllegalStateException("Expected a VarOp");
         }
-        return self();
     }
 
     private CudaHATKernelBuilder genTileConstantShape(Value value, int argIndex) {
