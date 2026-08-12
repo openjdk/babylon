@@ -132,7 +132,6 @@ public class CodeReflectionTester {
         try {
             o = OpParser.fromText(JavaOp.JAVA_DIALECT_FACTORY, d).get(0);
         } catch (Exception e) {
-            System.out.println(d);
             throw new IllegalStateException(m.toString(), e);
         }
         return serialize(o);
