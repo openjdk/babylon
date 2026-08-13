@@ -2177,7 +2177,7 @@ public class SwitchStatementTest {
                             }
                             ()java.type:"boolean" -> {
                                 %31 : java.type:"java.lang.Number" = var.load %8;
-                                %32 : java.type:"java.lang.Class<?>" = invoke %31 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                                %32 : java.type:"java.lang.Class<? extends java.lang.Number>" = invoke %31 @java.ref:"java.lang.Object::getClass():java.lang.Class";
                                 %33 : java.type:"java.lang.Class" = constant @java.type:"java.lang.Double";
                                 %34 : java.type:"boolean" = invoke %32 %33 @java.ref:"java.lang.Object::equals(java.lang.Object):boolean";
                                 yield %34;
