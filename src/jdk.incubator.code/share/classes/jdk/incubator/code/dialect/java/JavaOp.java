@@ -5319,8 +5319,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     // Inline the catch body
                     AtomicBoolean hasCatchRegionExit = new AtomicBoolean();
-                    catchRegionEnter.transformBody(catcherBody, List.of(t),
-                            loweringTransformer(catchExitTransformer, (block, op) -> {
+                    catchRegionEnter.transformBody(catcherBody, List.of(t), loweringTransformer(catchExitTransformer, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp) {
                             hasCatchRegionExit.set(true);
                             block.add(branch(catchRegionExit.reference()));
@@ -5593,8 +5592,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             block1.add(exceptionRegionExit(enter, finallyEnter.reference()));
 
             // Inline the finally body
-            finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block2, op) -> {
-                if (op instanceof CoreOp.YieldOp) {
+            finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block2, op2) -> {
+                if (op2 instanceof CoreOp.YieldOp) {
                     block2.add(branch(finallyExit.reference()));
                     return block2;
                 } else {
