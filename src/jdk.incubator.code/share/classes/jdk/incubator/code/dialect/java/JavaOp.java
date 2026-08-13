@@ -5384,7 +5384,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// ```
         /// extended TWR -> basic TWR -> try/catch/finally
         /// ```
-        private Op normalize(List<Value> captures) {
+        Op normalize(List<Value> captures) {
             Body.Builder body = Body.Builder.of(null, CoreType.functionType(VOID, captures.stream().map(Value::type).toList()));
             Block.Builder entry = body.entryBlock();
             entry.context().mapValues(captures, entry.parameters());
@@ -5399,7 +5399,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return root.body().entryBlock().ops().getFirst();
         }
 
-        private static CoreOp.FuncOp normalize(CoreOp.FuncOp root,
+        static CoreOp.FuncOp normalize(CoreOp.FuncOp root,
                                                Predicate<TryOp> requiresNormalization,
                                                BiFunction<TryOp, Block.Builder, Op.Result> normalizer) {
             // normalization repeats until no operations left to normalize
@@ -5416,11 +5416,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return root;
         }
 
-        private boolean isExtendedTryWithResources() {
+        boolean isExtendedTryWithResources() {
             return !resourcesBodies.isEmpty() && (resourcesBodies.size() != 1 || !handlers.isEmpty() || finallyBody != null);
         }
 
-        private boolean isBasicTryWithResources() {
+        boolean isBasicTryWithResources() {
             return resourcesBodies.size() == 1 && handlers.isEmpty() && finallyBody == null;
         }
 
@@ -5446,7 +5446,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         ///
         /// @jls 14.20.3 try-with-resources
         /// @jls 14.20.3.2 Extended try-with-resources
-        private Op.Result normalizeExtendedTryWithResources(Block.Builder b) {
+        Op.Result normalizeExtendedTryWithResources(Block.Builder b) {
             CodeTransformer ct = b.transformer();
             if (handlers.isEmpty() && finallyBody == null) {
                 return b.add(normalizeExtendedTryWithResources(b.parentBody(), b.context(), ct, new ArrayList<>()));
@@ -5473,7 +5473,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// The next resource becomes the current outer basic try-with-resources.
         ///
         /// @jls 14.20.3.2 Extended try-with-resources
-        private TryOp normalizeExtendedTryWithResources(Body.Builder anc, CodeContext ctx, CodeTransformer ct, List<Value> res) {
+        TryOp normalizeExtendedTryWithResources(Body.Builder anc, CodeContext ctx, CodeTransformer ct, List<Value> res) {
             Body resource = resourcesBodies.get(res.size());
             Body.Builder resourceBody = Body.Builder.of(anc, CoreType.functionType(resource.yieldType()), ctx, ct);
             resourceBody.entryBlock().transformBody(resource, res, ctx, ct);
@@ -5512,7 +5512,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// ```
         ///
         /// @jls 14.20.3.1 Basic try-with-resources
-        private Op.Result normalizeBasicTryWithResources(Block.Builder b) {
+        Op.Result normalizeBasicTryWithResources(Block.Builder b) {
             assert resourcesBodies.size() == 1;
             Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID), b.context(), b.transformer());
             Block.Builder entryBlock = normalizedBody.entryBlock();
@@ -5586,17 +5586,17 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     .toList();
         }
 
-        private Block.Builder inlineFinalizer(Block.Builder block1, Value enter, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+        Block.Builder inlineFinalizer(Block.Builder block1, Value enter, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder finallyEnter = block1.block();
             Block.Builder finallyExit = block1.block();
 
             block1.add(exceptionRegionExit(enter, finallyEnter.reference()));
 
             // Inline the finally body
-            finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (current, op) -> {
+            finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block2, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
-                    current.add(branch(finallyExit.reference()));
-                    return current;
+                    block2.add(branch(finallyExit.reference()));
+                    return block2;
                 } else {
                     return null;
                 }
