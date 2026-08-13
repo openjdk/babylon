@@ -4921,6 +4921,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class TryOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
+        private static final boolean SHARED_FINALIZER_DISPATCH = "sharedDispatch".equalsIgnoreCase(System.getProperty("babylon.tryFinally"));
+
         /**
          * Builder for the resource bodies and the try body of a try operation.
          */
@@ -5190,7 +5192,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
-            if (!resourcesBodies.isEmpty()) {
+            if (!resourcesBodies.isEmpty() || SHARED_FINALIZER_DISPATCH && finallyBody != null) {
                 List<Value> captures = normalizationCaptures();
                 Op normalized = normalize(captures);
                 CodeContext ctx = CodeContext.create(b.context());
@@ -5394,6 +5396,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             CoreOp.FuncOp root = func("$", body);
             root = normalize(root, TryOp::isExtendedTryWithResources, TryOp::normalizeExtendedTryWithResources);
             root = normalize(root, TryOp::isBasicTryWithResources, TryOp::normalizeBasicTryWithResources);
+            if (SHARED_FINALIZER_DISPATCH) {
+                root = normalize(root, tryOp -> tryOp.finallyBody != null, TryOp::normalizeFinalizer);
+            }
 
             return root.body().entryBlock().ops().getFirst();
         }
@@ -5563,6 +5568,140 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }));
             afterAcquire.add(core_yield());
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
+        }
+
+        private record FinallyExit(Op op, Value valueVar) {
+        }
+
+        /// Normalize `try / catch / finally` to elemental `try / catch`
+        ///
+        /// ```
+        /// completion = normal
+        /// pending = null
+        /// finalizerExit: {
+        ///     try {
+        ///         try { body } catch (...) { catches }
+        ///         record normal, return, break, or continue
+        ///         break finalizerExit
+        ///     } catch (t) {
+        ///         pending = t
+        ///         completion = throw
+        ///         break finalizerExit
+        ///     }
+        /// }
+        /// finalizer
+        /// replay(completion, pending)
+        /// ```
+        ///
+        /// @jls 14.20.2 Execution of try-finally and try-catch-finally
+        private Op.Result normalizeFinalizer(Block.Builder b) {
+            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID), b.context());
+            Block.Builder output = normalizedBody.entryBlock();
+            Value completionVar = output.add(var(output.add(constant(INT, 0))));
+            Value exceptionVar = output.add(var(output.add(constant(type(Throwable.class), null))));
+            List<FinallyExit> exits = new ArrayList<>();
+
+            Body.Builder labeledBody = Body.Builder.of(output.parentBody(), CoreType.functionType(VOID));
+            Block.Builder labeledBlock = labeledBody.entryBlock();
+            Value exitLabel = labeledBlock.add(constant(J_L_STRING, "$finally"));
+
+            CatchBuilder protectedTry = try_(labeledBody, tryBlock -> {
+                if (handlers.isEmpty()) {
+                    tryBlock.transformBody(body, List.of(), output.context(),
+                            finalizerExitTransformer(body, exitLabel, completionVar, exits, output));
+                } else {
+                    CatchBuilder innerTry = try_(tryBlock.parentBody(), innerBlock ->
+                            innerBlock.transformBody(body, List.of(), output.context(),
+                                    finalizerExitTransformer(body, exitLabel, completionVar, exits, output)));
+                    List<CodeType> catchTypes = catchTypes();
+                    for (int i = 0; i < handlers.size(); i++) {
+                        Body catcher = handlers.get(i);
+                        innerTry.catch_(catchTypes.get(i), catcher.bodySignature().parameterTypes().getFirst(),
+                                catchBlock -> catchBlock.transformBody(
+                                        catcher, catchBlock.parameters(), output.context(),
+                                        finalizerExitTransformer(catcher, exitLabel, completionVar, exits, output)));
+                    }
+                    tryBlock.add(innerTry.noFinalizer());
+                    tryBlock.add(core_yield());
+                }
+            });
+            labeledBlock.add(protectedTry.catch_(type(Throwable.class), catchBlock -> {
+                catchBlock.add(varStore(exceptionVar, catchBlock.parameters().getFirst()));
+                completeFinalizer(catchBlock, exitLabel, completionVar, 1);
+            }).noFinalizer());
+            labeledBlock.add(core_yield());
+            output.add(labeled(labeledBody));
+
+            Block.Builder afterFinalizer = output.block();
+            output.transformBody(finallyBody, List.of(), (current, op) -> {
+                if (op instanceof CoreOp.YieldOp && op.ancestorBody() == finallyBody) {
+                    current.add(branch(afterFinalizer.reference()));
+                    return current;
+                }
+                current.add(op);
+                return current;
+            });
+
+            for (int i = 0; i < exits.size(); i++) {
+                FinallyExit exit = exits.get(i);
+                int completion = i + 2;
+                afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
+                    Value value = predicate.add(varLoad(completionVar));
+                    predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, completion))))));
+                }).then(action -> {
+                    if (exit.op() instanceof CoreOp.ReturnOp) {
+                        action.add(exit.valueVar() == null
+                                ? return_()
+                                : return_(action.add(varLoad(exit.valueVar()))));
+                    } else {
+                        action.add(exit.op());
+                    }
+                }).else_());
+            }
+            afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
+                Value value = predicate.add(varLoad(completionVar));
+                predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, 1))))));
+            }).then(action -> action.add(throw_(action.add(varLoad(exceptionVar))))).else_());
+            afterFinalizer.add(core_yield());
+            return b.add(try_(List.of(), normalizedBody, List.of(), null));
+        }
+
+        private CodeTransformer finalizerExitTransformer(Body sourceBody, Value exitLabel, Value completionVar,
+                                                         List<FinallyExit> exits, Block.Builder output) {
+            return (b, op) -> {
+                if (op instanceof CoreOp.YieldOp && op.ancestorBody() == sourceBody) {
+                    completeFinalizer(b, exitLabel, completionVar, 0);
+                    return b;
+                }
+                if (op instanceof CoreOp.ReturnOp returnOp && nearestInvokable(returnOp) == nearestInvokable(this)) {
+                    Value valueVar = null;
+                    if (returnOp.returnValue() != null) {
+                        Value returnValue = b.context().getValue(returnOp.returnValue());
+                        valueVar = output.add(var(returnValue.type()));
+                        b.add(varStore(valueVar, returnValue));
+                    }
+                    exits.add(new FinallyExit(returnOp, valueVar));
+                    completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
+                    return b;
+                }
+                if (op instanceof StatementTargetOp targetOp && targetOp.exits(this)) {
+                    exits.add(new FinallyExit(targetOp.transform(b.context(), CodeTransformer.COPYING_TRANSFORMER), null));
+                    completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
+                    return b;
+                }
+                b.add(op);
+                return b;
+            };
+        }
+
+        private static Op nearestInvokable(Op op) {
+            while (!(op instanceof Op.Invokable)) op = op.ancestorOp();
+            return op;
+        }
+
+        private static void completeFinalizer(Block.Builder b, Value exitLabel, Value completionVar, int completion) {
+            b.add(varStore(completionVar, b.add(constant(INT, completion))));
+            b.add(break_(exitLabel));
         }
 
         // Resolved statement target preserves the original break or continue target through try-with-resources lowering

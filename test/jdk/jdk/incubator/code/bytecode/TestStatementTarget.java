@@ -44,8 +44,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @enablePreview
  * @library ../
  * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestStatementTarget
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestStatementTarget
  * @run main Unreflect TestStatementTarget
  * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestStatementTarget
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestStatementTarget
  */
 public final class TestStatementTarget {
 
