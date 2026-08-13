@@ -23,12 +23,90 @@
  * questions.
  */
 #include <fstream>
+#include <functional>
 #define shared_cpp
 
 #include "shared.h"
 
 #define INFO 0
 
+#include <cstring>
+
+void Hex::ascii(std::ostream &s, char c) {
+    if (::iscntrl(c)) {
+        if (c == '\a') {
+            s << "\\a ";
+        } else if (c == '\r') {
+            s << "\\r ";
+        } else if (c == '\n') {
+            s << "\\n ";
+        } else if (c == '\t') {
+            s << "\\t ";
+        } else {
+            s << "?? ";
+        }
+    } else {
+        s << c << "  ";
+    }
+}
+
+void Hex::hex(std::ostream &s, char c) {
+    s << std::hex << std::setw(2) << std::setfill('0') << std::uppercase << (c & 0xff) << " ";
+}
+
+void Hex::bytes(std::ostream &s, char *p, size_t len, std::function<void(std::ostream &)> prefix) {
+    for (int i = 0; i < len; i++) {
+        if ((i % 16) == 0) {
+            if (i > 0) {
+                s << "  ";
+                for (int c = i - 16; c < i; c++) {
+                    ascii(s, p[c]);
+                }
+            }
+            s << std::endl;
+            prefix(s);
+            s << std::hex << std::setw(6) << std::setfill('0') << i << " ";
+        }
+        hex(s, p[i]);
+    }
+
+    if ((len % 16) == 0) {
+        s << "  ";
+        for (int c = len - 16; c < len; c++) {
+            ascii(s, p[c]);
+        }
+    } else {
+        for (int v = len % 16; v < 16; v++) {
+            s << "   ";
+        }
+        s << "  ";
+        for (int c = len - (len % 16); c < len; c++) {
+            ascii(s, p[c]);
+        }
+    }
+}
+
+void strutil::replaceInPlace(std::string &subject, const std::string &search,
+                             const std::string &replace) {
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
+}
+
+
+bool strutil::endsWith(const std::string &str, const std::string &suffix) {
+    return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+}
+
+char *strutil::clone(char *name) {
+    size_t len = ::strlen(name);
+    char *buf = new char[len + 1];
+    memcpy(buf, name, len);
+    buf[len] = '\0';
+    return buf;
+}
 
 void hexdump(void *ptr, int buflen) {
     auto *buf = static_cast<unsigned char *>(ptr);

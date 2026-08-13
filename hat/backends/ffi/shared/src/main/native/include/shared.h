@@ -37,7 +37,7 @@
 #include <bitset>
 #include <stack>
 
-#include "strutil.h"
+//#include "strutil.h"
 #include "config.h"
 
 #ifdef __APPLE__
@@ -53,6 +53,22 @@
 #endif
 
 #define ceil_div(x, y) ((x + y - 1) / y)
+namespace strutil {
+    void replaceInPlace(std::string &subject, const std::string &search, const std::string &replace);
+
+    bool endsWith(const std::string &str, const std::string &suffix);
+
+    char *clone(char *name);
+};
+
+class Hex {
+public:
+    static void ascii(std::ostream &s, char c);
+
+    static void hex(std::ostream &s, char c);
+
+    static void bytes(std::ostream &s, char *p, size_t len, std::function<void(std::ostream &)> prefix);
+};
 
 typedef char s8_t;
 typedef char byte;
