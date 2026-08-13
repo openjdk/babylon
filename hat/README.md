@@ -183,7 +183,7 @@ public class ExampleHAT {
             array.array(i, i);
         }
 
-        // Offload and dispatch of the compute-graph on the target accelerator.
+        // Dispatch the set of kernels defined in the compute-layer on the target accelerator.
         // This is a blocking call. Once this call finalizes, the results (outputs)
         // will be available to consume by the current Java thread.
         accelerator.compute((@Reflect Compute) cc -> ExampleHAT.square(cc, array));
