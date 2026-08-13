@@ -374,16 +374,40 @@ public class MethodCallTest {
         return values.getClass();
     }
 
-    // @@@ Uncomment when type conversion bug is fixed
-    // see DenotableTypesTest.test12
-//    @Reflect
-//    @IR("""
-//            func @"test16" (%0 : java.type:"MethodCallTest")java.type:"java.lang.Class<? extends MethodCallTest>" -> {
-//                %1 : java.type:"java.lang.Class<? extends MethodCallTest>" = invoke %0 @java.ref:"java.lang.Object::getClass():java.lang.Class";
-//                return %1;
-//            };
-//            """)
-//    Class<? extends MethodCallTest> test16() {
-//        return getClass();
-//    }
+    @Reflect
+    @IR("""
+            func @"test17" (%0 : java.type:"MethodCallTest")java.type:"java.lang.Class<? extends MethodCallTest>" -> {
+                %1 : java.type:"java.lang.Class<? extends MethodCallTest>" = invoke %0 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                return %1;
+            };
+            """)
+    Class<? extends MethodCallTest> test17() {
+        return getClass();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test18" (%0 : java.type:"MethodCallTest")java.type:"java.lang.Class<? extends MethodCallTest>" -> {
+                %1 : Var<java.type:"MethodCallTest"> = var %0 @"rec";
+                %2 : java.type:"MethodCallTest" = var.load %1;
+                %3 : java.type:"java.lang.Class<? extends MethodCallTest>" = invoke %2 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                return %3;
+            };
+            """)
+    static Class<? extends MethodCallTest> test18(MethodCallTest rec) {
+        return rec.getClass();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test19" (%0 : java.type:"java.lang.Enum<?>")java.type:"java.lang.Class<?>" -> {
+                %1 : Var<java.type:"java.lang.Enum<?>"> = var %0 @"value";
+                %2 : java.type:"java.lang.Enum<?>" = var.load %1;
+                %3 : java.type:"java.lang.Class<? extends java.lang.Enum<?>>" = invoke %2 @java.ref:"java.lang.Enum::getDeclaringClass():java.lang.Class";
+                return %3;
+            };
+            """)
+    static Class<?> test19(Enum<?> value) {
+        return value.getDeclaringClass(); // check no stack overflow when normalizing recursive capture type
+    }
 }
