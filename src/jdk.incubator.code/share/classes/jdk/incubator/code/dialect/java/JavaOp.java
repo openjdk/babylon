@@ -2465,35 +2465,43 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public sealed static abstract class StatementTargetOp extends AbstractOp.Terminating
             implements JavaOp, Op.Lowerable, JavaStatement {
 
-        @OpDeclaration("java.resolvedControlTransfer")
-        private static final class ResolvedStatementTarget extends StatementTargetOp {
-            private final Op root;
-            private final Op target;
-            private final boolean continues;
+        @OpDeclaration("java.statementTargetProxy")
+        private static final class StatementTargetProxy extends StatementTargetOp {
+            // ContinueOp | BreakOp
+            // This operation and the source operation will be in different models
+            private final StatementTargetOp source;
 
-            ResolvedStatementTarget(StatementTargetOp source, Op target) {
+            StatementTargetProxy(StatementTargetOp source) {
+                assert source instanceof ContinueOp || source instanceof BreakOp;
+
                 super((Value) null);
-                this.root = source instanceof ResolvedStatementTarget resolved ? resolved.root : root(source);
-                this.target = target;
-                this.continues = source instanceof ContinueOp
-                        || source instanceof ResolvedStatementTarget resolved && resolved.continues;
+
+                this.source = source;
                 setLocation(source.location());
             }
 
+            StatementTargetProxy(StatementTargetProxy that) {
+                this(that.source);
+            }
+
             @Override
-            public ResolvedStatementTarget transform(CodeContext cc, CodeTransformer ct) {
-                return new ResolvedStatementTarget(this, target);
+            public StatementTargetProxy transform(CodeContext cc, CodeTransformer ct) {
+                return new StatementTargetProxy(this);
             }
 
             @Override
             Op target() {
-                return target;
+                return source.target();
             }
 
             @Override
             boolean exits(Op scope) {
-                // Within a detached synthetic model the target is necessarily external
-                return root(scope) != root || super.exits(scope);
+                // The source and its target belong to the same model
+                // If the scope and source belong in different models then source exits the scope, since that check
+                // performed when this operation was created.
+                // Otherwise, the scope and source belong in the same model we need to check if the source statement
+                // exits the scope
+                return root(scope) != root(source) || source.exits(scope);
             }
 
             private static Op root(Op op) {
@@ -2506,7 +2514,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             @Override
             public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-                return lower(b, continues ? BranchTarget::continueBlock : BranchTarget::breakBlock);
+                return lower(b, source instanceof ContinueOp ? BranchTarget::continueBlock : BranchTarget::breakBlock);
             }
         }
 
@@ -5531,17 +5539,27 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 }
                 return block;
             });
-            Value resource = afterAcquire.parameters().getFirst();
+            // resource may be a var value if a resource declaration such as
+            //   try (AutoCloseable resource = open())  { ... }
+            // or a value if an existing resource such as
+            //   AutoCloseable resource = open()
+            //   try (resource) { ... }
+            // Operations in the resource need to distinguish between them and require
+            // a load operation for the former
+            Value resourceArgument = afterAcquire.parameters().getFirst();
             Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
             // @@@ following builder code may be refactored into a reflected template method transformation
             afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
-                tryEntry.transformBody(body, List.of(resource), afterAcquire.context(), b.transformer());
+                tryEntry.transformBody(body, List.of(resourceArgument), afterAcquire.context(), b.transformer());
             }).catch_(type(Throwable.class), catchB -> {
                 Block.Parameter thrown = catchB.parameters().getFirst();
                 catchB.add(varStore(primaryExceptionVar, thrown));
                 catchB.add(throw_(thrown));
             }).finally_(finB -> {
                 Value nullObj = finB.add(constant(J_L_OBJECT, null));
+                Value resource = resourceArgument.type() instanceof VarType
+                        ? finB.add(varLoad(resourceArgument))
+                        : resourceArgument;
                 finB.add(if_(finB.parentBody()).if_(predB -> {
                             predB.add(core_yield(predB.add(neq(resource, nullObj))));
                 }).then(closeB -> {
@@ -5704,13 +5722,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             b.add(break_(exitLabel));
         }
 
-        // Resolved statement target preserves the original break or continue target through try-with-resources lowering
+        // Statement target proxy preserves the original break or continue through try-with-resources lowering,
         // and it is used to resolve the actual branch when the synthetic body is attached back to the original context
         private Block.Builder resolveStatementTarget(Block.Builder block, Op op) {
             block.add(switch (op) {
-                case StatementTargetOp.ResolvedStatementTarget _ -> op;
-                case StatementTargetOp st when st.target() == this || st.target().isAncestorOf(this) ->
-                        new StatementTargetOp.ResolvedStatementTarget(st, st.target());
+                case StatementTargetOp.StatementTargetProxy _ -> op;
+                case StatementTargetOp st when st.exits(this) ->
+                        new StatementTargetOp.StatementTargetProxy(st);
                 default -> op;
             });
             return block;
