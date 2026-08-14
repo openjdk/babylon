@@ -5206,6 +5206,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 CodeContext ctx = CodeContext.create(b.context());
                 ctx.mapValues(normalized.ancestorBody().entryBlock().parameters(), b.context().getValues(captures));
                 CodeTransformer lowering = loweringTransformer(inherited, (_, _) -> null);
+                // acceptOp invokes TryOp.lower, but only with normalized try ops so it should never enter here again
                 lowering.acceptOp(b.withContextAndTransformer(ctx, lowering), normalized)
                         .add(branch(exit.reference()));
                 return exit;
