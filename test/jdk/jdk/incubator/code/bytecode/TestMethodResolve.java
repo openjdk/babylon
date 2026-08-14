@@ -25,13 +25,12 @@
  * @test
  * @bug 8390112
  * @summary Method resolution test
- * @library lib
- * @library ../../
- * @library ../../lib
+ * @library ../lib/
+ * @library ../
  * @modules jdk.incubator.code
- * @run junit ResolveTest
- * @run main Unreflect ResolveTest
- * @run junit ResolveTest
+ * @run junit TestMethodResolve
+ * @run main Unreflect TestMethodResolve
+ * @run junit TestMethodResolve
  */
 
 import java.lang.invoke.MethodHandles;
@@ -41,11 +40,11 @@ import java.util.stream.Stream;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
-import lib.Parent;
+import resolve.Parent;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class ResolveTest extends Parent {
+public class TestMethodResolve extends Parent {
 
     @Reflect
     public static boolean test(Object value) {
@@ -54,8 +53,8 @@ public class ResolveTest extends Parent {
 
     @Test
     public void testResolveProtectedMethod() throws Throwable {
-        CoreOp.FuncOp f = getFuncOp(ResolveTest.class, "test");
-        Assertions.assertEquals(ResolveTest.test(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
+        CoreOp.FuncOp f = getFuncOp(TestMethodResolve.class, "test");
+        Assertions.assertEquals(TestMethodResolve.test(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
     }
 
     static CoreOp.FuncOp getFuncOp(Class<?> c, String name) {
