@@ -86,9 +86,6 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     public void invokeWithArgs(Object[] args) {
         computeCallGraph.invokeWithArgs(args);
     }
-    public void newInvokeWithArgs(Object[] args) {
-        computeCallGraph.newInvokeWithArgs(args);
-    }
 
     public enum WRAPPER {
         MUTATE("Mutate"), ACCESS("Access");

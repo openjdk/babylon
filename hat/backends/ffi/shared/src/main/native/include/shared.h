@@ -36,8 +36,8 @@
 #include <iomanip>
 #include <bitset>
 #include <stack>
+#include <functional>
 
-//#include "strutil.h"
 #include "config.h"
 
 #ifdef __APPLE__
