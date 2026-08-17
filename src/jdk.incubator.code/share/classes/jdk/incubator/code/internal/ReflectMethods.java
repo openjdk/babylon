@@ -31,15 +31,14 @@ import com.sun.tools.javac.code.Kinds.Kind;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
-import com.sun.tools.javac.code.Symbol.TypeVariableSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
+import com.sun.tools.javac.code.Type.CapturedType;
 import com.sun.tools.javac.code.Type.IntersectionClassType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Type.StructuralTypeMapping;
-import com.sun.tools.javac.code.Type.TypeVar;
 import com.sun.tools.javac.code.Type.UnionClassType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
@@ -1151,9 +1150,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
 
-                    // @@@ change to tree.type when type conversion bug is fixed
-                    // see DenotableTypesTest.test12
-                    JavaType resultType = typeToCodeType(meth.type.getReturnType());
+                    JavaType resultType = typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
                     Value res = append(iop);
@@ -2966,6 +2963,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         // CodeType API.
         class DenotableProjection extends StructuralTypeMapping<Void> {
             final ListBuffer<Type> tvars = new ListBuffer<>();
+            final Map<CapturedType, CapturedType> pendingCaptures = new HashMap<>();
             final Type t;
 
             DenotableProjection(Type t) {
@@ -2978,23 +2976,38 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             @Override
+            public Type visitCapturedType(CapturedType t, Void _unused) {
+                CapturedType newVar = pendingCaptures.get(t);
+                if (newVar == null) {
+                    newVar = addTypeVar(t.getUpperBound(), t.getLowerBound(), t.tsym.owner);
+                    try {
+                        pendingCaptures.put(t, newVar);
+                        newVar.setUpperBound(apply(newVar.getUpperBound()));
+                    } finally {
+                        pendingCaptures.remove(t);
+                    }
+                    newVar.lower = apply(newVar.lower);
+                }
+                return newVar;
+            }
+
+            @Override
             public Type visitClassType(Type.ClassType t, Void unused) {
                 if (t.isIntersection()) {
                     Type bound = visit(((IntersectionClassType) t).getExplicitComponents().head, null);
-                    return addTypeVar(bound, t.tsym);
+                    return addTypeVar(bound, syms.botType, t.tsym);
                 } else if (t.isUnion()) {
                     Type bound = visit(((UnionClassType)t).getLub(), null);
-                    return addTypeVar(bound, t.tsym);
+                    return addTypeVar(bound, syms.botType, t.tsym);
                 } else {
                     return super.visitClassType(t, null);
                 }
             }
 
-            Type addTypeVar(Type bound, Symbol owner) {
-                var tvsym = new TypeVariableSymbol(0, names.empty, null, owner);
-                tvsym.type = new TypeVar(tvsym, bound, syms.botType);
-                tvars.append(tvsym.type);
-                return tvsym.type;
+            CapturedType addTypeVar(Type upper, Type lower, Symbol owner) {
+                CapturedType newTvar = new CapturedType(names.empty, owner, upper, lower, null);
+                tvars.append(newTvar);
+                return newTvar;
             }
         }
 
