@@ -25,6 +25,7 @@
 
 package hat.backend.ffi;
 
+import hat.ComputeContext;
 import hat.Config;
 import hat.NDRange;
 import hat.annotations.Kernel;
@@ -58,7 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class C99FFIBackend extends FFIBackend implements BufferTracker {
+public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTracker {
 
     protected C99FFIBackend(Arena arena, MethodHandles.Lookup lookup, String libName, Config config) {
         super(arena, lookup, libName, config);
@@ -185,6 +186,36 @@ public abstract class C99FFIBackend extends FFIBackend implements BufferTracker 
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
+
+    public abstract String createCode(KernelCallGraph kernelCallGraph,  Object... justArgs);
+
+    @Override
+    public void computeContextHandoff(ComputeContext computeContext) {
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
+    }
+    @Override
+    public void dispatchCompute(ComputeContext computeContext, Object... args) {
+        backendBridge.computeStart();
+        computeContext.invokeWithArgs(args);
+        backendBridge.computeEnd();
+    }
+    @Override
+    public final void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... dispatchContextAndArgs) {
+        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
+            String code = createCode(kernelCallGraph,Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length));
+            if (config().showCode()) {
+                System.out.println(code);
+            }
+            var compilationUnit = backendBridge.compile(code);
+            if (compilationUnit.ok()) {
+                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
+                return new CompiledKernel(this, kernelCallGraph,  kernel, dispatchContextAndArgs);
+            } else {
+                throw new IllegalStateException("backend failed to compile ");
+            }
+        });
+        compiledKernel.dispatch(ndRange, dispatchContextAndArgs);
+    }
 
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
