@@ -276,6 +276,7 @@ public class TestPrimitiveTypePatterns {
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, 1));
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1));
+        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Number) null));
     }
 
     @Reflect
@@ -293,6 +294,7 @@ public class TestPrimitiveTypePatterns {
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
+        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Integer) null));
     }
 
     @Reflect
@@ -310,6 +312,7 @@ public class TestPrimitiveTypePatterns {
 
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
+        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Integer) null));
     }
 
     @Reflect
@@ -346,6 +349,7 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.MIN_VALUE));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.POSITIVE_INFINITY));
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.NEGATIVE_INFINITY));
+        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Float) null));
     }
 
     @Reflect

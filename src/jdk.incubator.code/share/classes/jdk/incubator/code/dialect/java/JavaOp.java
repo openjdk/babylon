@@ -6239,7 +6239,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             // e.g. Float -> float, unboxing
                             // e.g. Integer -> long, unboxing + widening
                             box = cs;
-                            p = null;
+                            p = neq(target, currentBlock.add(constant(s, null)));
                         }
                         c = invoke(MethodRef.method(box, t + "Value", t), target);
                     } else {
@@ -6264,26 +6264,22 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     p = null;
                     ClassType box = ps.box().orElseThrow();
                     c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
-                } else if (!s.equals(t)) {
-                    // reference to reference, but not identity
+                } else {
+                    // reference to reference
+                    // e.g. Character -> Character
                     // e.g. Number -> Double, narrowing
                     // e.g. Short -> Object, widening
                     p = instanceOf(targetType, target);
-                    c = cast(targetType, target);
-                } else {
-                    // identity reference
-                    // e.g. Character -> Character
-                    p = null;
-                    c = null;
+                    c = s.equals(t) ? null : cast(targetType, target);
                 }
 
+                if (p != null) {
+                    // p != null, we need to perform type check at runtime
+                    Block.Builder nextBlock = currentBlock.block();
+                    currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), endNoMatchBlock.reference()));
+                    currentBlock = nextBlock;
+                }
                 if (c != null) {
-                    if (p != null) {
-                        // p != null, we need to perform type check at runtime
-                        Block.Builder nextBlock = currentBlock.block();
-                        currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), endNoMatchBlock.reference()));
-                        currentBlock = nextBlock;
-                    }
                     target = currentBlock.add(c);
                 }
 
