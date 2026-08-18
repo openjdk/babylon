@@ -583,6 +583,29 @@ public class TestNormalizeBlocksTransformer {
             };
             """;
 
+    @NormalizedModel("""
+            func @"m" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @1;
+                %2 : java.type:"int" = constant @2;
+                %3 : java.type:"boolean" = constant @false;
+                cbranch %3 ^block_2(%1) ^block_2(%1);
+
+              ^block_2(%5 : java.type:"int"):
+                return %5;
+            };
+            """)
+    static final String TEST11_INPUT = """
+            func @"m" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : java.type:"int" = constant @1;
+                %2 : java.type:"int" = constant @2;
+                %2 : java.type:"boolean" = constant @false;
+                cbranch %2 ^block_2(%0, %1, %2) ^block_2(%0, %1, %2);
+
+              ^block_2(%unused_1 : java.type:"int", %used : java.type:"int", %unused_2 : java.type:"int"):
+                return %used;
+            };
+            """;
+
     static Object[][] testModels() {
         return Stream.of(TestNormalizeBlocksTransformer.class.getDeclaredFields())
                 .mapMulti((field, downstream) -> {

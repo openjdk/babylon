@@ -97,8 +97,12 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                 b.add(CoreOp.branch(b.context().getReferenceOrCreate(br)));
             }
             case CoreOp.ConditionalBranchOp cbo -> {
-                replaceConditionalBranchTarget(b, cbo, cbo.trueBranch());
-                replaceConditionalBranchTarget(b, cbo, cbo.falseBranch());
+                if (!replaceConditionalBranchTarget(b, cbo, cbo.trueBranch())) {
+                    removeUnusedBlockParameters(b, cbo.trueBranch());
+                }
+                if (!replaceConditionalBranchTarget(b, cbo, cbo.falseBranch())) {
+                    removeUnusedBlockParameters(b, cbo.falseBranch());
+                }
                 b.add(op);
             }
             case CoreOp.BranchOp bop when bop.branch().targetBlock().predecessors().size() == 1 -> {
@@ -130,28 +134,10 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
         return b;
     }
 
-    private void replaceConditionalBranchTarget(Block.Builder b,
+    private boolean replaceConditionalBranchTarget(Block.Builder b,
                                                 CoreOp.ConditionalBranchOp cbo,
                                                 Block.Reference successor) {
         assert cbo.successors().contains(successor);
-
-        /*
-            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
-                cbranch %0 ^block_1 ^block_2(%0);
-                ->
-                cbranch %0 ^block_1 ^block_3;
-
-              ^block_1:
-                branch ^block_3;
-
-              ^block_2(%1 : java.type:"boolean"):
-                cbranch %1 ^block_3 ^block_4;
-
-              ^block_3:
-                branch ^block_5;
-
-
-         */
 
         Block target = successor.targetBlock();
         if (isPureConditionalDispatchingBlock(target)) {
@@ -177,6 +163,7 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                         : targetCbo.falseBranch();
                 b.context().mapReference(successor,
                         b.context().getReferenceOrCreate(replacementSuccessor));
+                return true;
             } else if (successor.arguments().getFirst() instanceof Op.Result or
                     && or.op() instanceof CoreOp.ConstantOp cop) {
                 /*
@@ -202,9 +189,10 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
                         : targetCbo.falseBranch();
                 b.context().mapReference(successor,
                         b.context().getReferenceOrCreate(replacementSuccessor));
-
+                return true;
             }
         }
+        return false;
     }
 
     /*
