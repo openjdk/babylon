@@ -121,14 +121,4 @@ public class ComputeCallGraph implements LookupCarrier {
             throw new RuntimeException(e);
         }
     }
-    public void newInvokeWithArgs(Object[] args) {
-        try {
-            if (bytecodeGeneratedMethodHandle == null) {
-                bytecodeGeneratedMethodHandle = BytecodeGenerator.generate(lookup(),lazyLower());
-            }
-            bytecodeGeneratedMethodHandle.invokeWithArguments(args);
-        }catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
 }

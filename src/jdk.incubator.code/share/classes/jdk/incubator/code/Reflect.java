@@ -71,8 +71,8 @@ import java.lang.reflect.Method;
  * <ol>
  * <li>
  * If the annotation appears in a cast expression of a lambda expression (or method reference), annotating the use of
- * the type in the cast operator of the cast expression, then the lambda expression is declared reflectable. For
- * example,
+ * the type in the cast operator of the cast expression, then the lambda expression (or method reference) and any lambda
+ * expressions (and method references) it contains are declared reflectable. For example,
  * {@snippet lang=java :
  *    method((@Reflect IntConsumer) i -> { ... });
  * }
@@ -90,8 +90,9 @@ import java.lang.reflect.Method;
  * }
  * </li>
  * <li>
- * Finally, if the annotation appears as a modifier for a non-abstract method declaration, annotating the method, then
- * the method and any lambda expressions (or method references) it contains are declared reflectable. For example,
+ * Finally, if the annotation appears as a modifier for a non-abstract and non-native method declaration, annotating the
+ * method, then the method and any lambda expressions (and method references) it contains are declared reflectable. For
+ * example,
  * {@snippet lang=java :
  *    @Reflect
  *    void reflectableMethod(int i) { ... }

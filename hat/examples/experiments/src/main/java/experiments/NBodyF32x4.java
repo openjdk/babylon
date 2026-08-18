@@ -134,7 +134,7 @@ public class NBodyF32x4 {
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {
 
         var ndrange = NDRange.of1D((int)universe.length());
-        KernelContext kernelContext = new KernelContext(ndrange);
+      //  KernelContext kernelContext = new KernelContext(ndrange);
         //We can't do this once we refactor to static KerneContext
         throw new RuntimeException("We need NDRANGE for this");
        // for (GIX() = 0; GIX() < GSX(); GIX()++) {

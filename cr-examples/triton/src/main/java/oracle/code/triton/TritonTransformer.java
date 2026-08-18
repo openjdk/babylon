@@ -531,7 +531,6 @@ public final class TritonTransformer {
 
                 s.add(d);
             }
-
             return s;
         }
 
