@@ -4597,6 +4597,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             CodeType oprType = cop.result().type();
             Block.Parameter arg = exit.parameter(oprType);
             startBlock.context().mapValue(cop.result(), arg);
+            // Short circuit exit reference, with false for && and true for ||
+            Block.Reference shortCircuitRef = exit.reference(startBlock.add(constant(BOOLEAN,
+                    cop instanceof ConditionalOrOp)));
 
             // Transform bodies in reverse order
             // This makes available the blocks to be referenced as successors in prior blocks
@@ -4621,9 +4624,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             if (cop instanceof ConditionalAndOp) {
-                                block.add(conditionalBranch(p, nextPred.reference(), exit.reference(p)));
+                                block.add(conditionalBranch(p, nextPred.reference(), shortCircuitRef));
                             } else {
-                                block.add(conditionalBranch(p, exit.reference(p), nextPred.reference()));
+                                block.add(conditionalBranch(p, shortCircuitRef, nextPred.reference()));
                             }
                             return block;
                         } else {
@@ -6138,34 +6141,25 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             @Override
-            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-                // No match block
-                Block.Builder endNoMatchBlock = b.block();
-                // Match block
-                Block.Builder endMatchBlock = b.block();
+            public Block.Builder lower(Block.Builder startBlock, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
                 // End block
-                Block.Builder endBlock = b.block();
+                Block.Builder endBlock = startBlock.block();
                 Block.Parameter matchResult = endBlock.parameter(resultType());
                 // Map match operation result
-                b.context().mapValue(result(), matchResult);
+                startBlock.context().mapValue(result(), matchResult);
+                Block.Reference noMatchRef = endBlock.reference(startBlock.add(constant(BOOLEAN, false)));
 
                 List<Value> patternValues = new ArrayList<>();
                 Op patternYieldOp = patternBody.entryBlock().terminatingOp();
                 Op.Result rootPatternValue = (Op.Result) patternYieldOp.operands().get(0);
-                Block.Builder currentBlock = lower(endNoMatchBlock, b,
+                Block.Builder matchedBlock = lower(noMatchRef, startBlock,
                         patternValues,
                         rootPatternValue.op(),
-                        b.context().getValue(targetOperand()));
-                currentBlock.add(branch(endMatchBlock.reference()));
-
-                // No match block
-                // Pass false
-                endNoMatchBlock.add(branch(endBlock.reference(
-                        endNoMatchBlock.add(constant(BOOLEAN, false)))));
+                        startBlock.context().getValue(targetOperand()));
 
                 // Match block
                 // Lower match body and pass true
-                endMatchBlock.transformBody(matchBody, patternValues, loweringTransformer(inherited, (block, op) -> {
+                matchedBlock.transformBody(matchBody, patternValues, loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
                         block.add(branch(endBlock.reference(
                                 block.add(constant(BOOLEAN, true)))));
@@ -6178,18 +6172,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 return endBlock;
             }
 
-            static Block.Builder lower(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+            static Block.Builder lower(Block.Reference noMatchRef, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        Op pattern, Value target) {
                 return switch (pattern) {
-                    case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                    case TypePatternOp tp -> lowerTypePattern(endNoMatchBlock, currentBlock, bindings, tp, target);
-                    case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
+                    case RecordPatternOp rp -> lowerRecordPattern(noMatchRef, currentBlock, bindings, rp, target);
+                    case TypePatternOp tp -> lowerTypePattern(noMatchRef, currentBlock, bindings, tp, target);
+                    case MatchAllPatternOp _ -> lowerMatchAllPattern(currentBlock);
                     case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
                 };
             }
 
-            static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+            static Block.Builder lowerRecordPattern(Block.Reference noMatchRef, Block.Builder currentBlock,
                                                     List<Value> bindings,
                                                     JavaOp.PatternOps.RecordPatternOp rpOp, Value target) {
                 CodeType targetType = rpOp.targetType();
@@ -6198,7 +6192,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                 // Check if instance of target type
                 Op.Result isInstance = currentBlock.add(instanceOf(targetType, target));
-                currentBlock.add(conditionalBranch(isInstance, nextBlock.reference(), endNoMatchBlock.reference()));
+                currentBlock.add(conditionalBranch(isInstance, nextBlock.reference(), noMatchRef));
 
                 currentBlock = nextBlock;
 
@@ -6209,15 +6203,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 for (int i = 0; i < dArgs.size(); i++) {
                     Op.Result nestedPattern = (Op.Result) dArgs.get(i);
                     // @@@ Handle exceptions?
-            Value nestedTarget = currentBlock.add(invoke(rpOp.recordReference().methodForComponent(i), target));
+                    Value nestedTarget = currentBlock.add(invoke(rpOp.recordReference().methodForComponent(i), target));
 
-                    currentBlock = lower(endNoMatchBlock, currentBlock, bindings, nestedPattern.op(), nestedTarget);
+                    currentBlock = lower(noMatchRef, currentBlock, bindings, nestedPattern.op(), nestedTarget);
                 }
 
                 return currentBlock;
             }
 
-            static Block.Builder lowerTypePattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+            static Block.Builder lowerTypePattern(Block.Reference noMatchRef, Block.Builder currentBlock,
                                                   List<Value> bindings,
                                                   TypePatternOp tpOp, Value target) {
                 CodeType targetType = tpOp.targetType();
@@ -6276,7 +6270,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 if (p != null) {
                     // p != null, we need to perform type check at runtime
                     Block.Builder nextBlock = currentBlock.block();
-                    currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), endNoMatchBlock.reference()));
+                    currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), noMatchRef));
                     currentBlock = nextBlock;
                 }
                 if (c != null) {

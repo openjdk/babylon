@@ -70,7 +70,7 @@ public class TestSynchronized {
               ^block_6:
                 throw %11;
             };
-            """, ssa = false)
+            """)
     static int test1(Object m, int i) {
         synchronized (m) {
             i++;
@@ -132,7 +132,7 @@ public class TestSynchronized {
               ^block_10:
                 throw %15;
             };
-            """, ssa = false)
+            """)
     static int test2(Object m, int i) {
         synchronized (m) {
             if (i > 0) {
