@@ -1,6 +1,6 @@
 package hat.phases;
 
-import hat.Tile;
+import hat.types.Tile;
 import hat.TileContext;
 import hat.TileOp;
 import hat.buffer.TensorF32;

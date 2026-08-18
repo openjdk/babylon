@@ -89,7 +89,7 @@ public class TestTileAPI {
         final var pid = TileContext.BIDX();
         var aTile = TileContext.load(inputA, pid, 16);
         var bTile = TileContext.load(inputB, pid, 16);
-        var tileResult = TileOp.add(aTile, bTile);  // TODO: we need to infer the shape of the resulting tile based on the operands
+        var tileResult = TileOp.add(aTile, bTile);
         TileContext.store(output, pid, tileResult);
     }
 
@@ -121,45 +121,31 @@ public class TestTileAPI {
         }
     }
 
-
     // ================================================================================================================
     // Expressing Vector Addition
     // ================================================================================================================
     @Reflect
-    public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
-
-        // Program id: get tile-id for 1D
-        var pid = TileContext.BIDX();
-
-        var a_tile = TileContext.load(inputA, pid, tile_size);
-        var b_tile = TileContext.load(inputB, pid, tile_size);
-
-        // This could be a tensor as well
-        // var result = Tensor.add(a_tile, b_tile);
-        var result = TileOp.add(a_tile, b_tile);
-
+    public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tileSize) {
+        final var pid = TileContext.BIDX();
+        var tileA = TileContext.load(inputA, pid, tileSize);
+        var tileB = TileContext.load(inputB, pid, tileSize);
+        var result = TileOp.add(tileA, tileB);
         TileContext.store(output, pid, result);
     }
 
     @Reflect
-    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
-        computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size),
-                () -> vectorAddTile(inputA, inputB, output, tile_size));
+    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(inputA.length(), tileSize), () -> vectorAddTile(inputA, inputB, output, tileSize));
     }
 
     @HatTest
     public void test_hat_tile_01() {
-        // Prototyping vector addition version for tile programming in HAT
-
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-
         final int size = Math.powExact(2, 12);
         final int tile_size = 64;
-
         TensorF32 inputA = TensorF32.create(accelerator, size);
         TensorF32 inputB = TensorF32.create(accelerator, size);
         TensorF32 result = TensorF32.create(accelerator, size);
-
         accelerator.compute( (@Reflect Compute)computeContext ->
             myComputeWithTile_vector_add(computeContext, inputA, inputB, result, tile_size));
     }
@@ -172,28 +158,29 @@ public class TestTileAPI {
     @Reflect
     public static void matmul(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
 
+        final int GROUP_SIZE_M = 8;
         // Calculate bidx and bidy using swizzle
-        int bid = TileContext.BIDX();
-        int num_bid_m = Math.ceilDiv(M, tm);
-        int num_bid_n = Math.ceilDiv(N, tn);
-        int num_bid_in_group = GROUP_SIZE_M * num_bid_n;    // IDEA: to get the constants in, we can do a pass over to transform this GROUP_SIZE_M (field access) into a Constant into the tree!
-                                                            // We can implement a similar idea into the main HAT (thread-kernel mode).
-        int group_id = bid / num_bid_in_group;
-        int first_bid_m = group_id * GROUP_SIZE_M;
-        int group_size_m = Math.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
+        final int bid = TileContext.BIDX();
+        final int num_bid_m = Math.ceilDiv(M, tm);
+        final int num_bid_n = Math.ceilDiv(N, tn);
+        final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
 
-        int bidx = first_bid_m + (bid % group_size_m);
-        int bidy = (bid % num_bid_in_group) / num_bid_in_group;
+        final int group_id = bid / num_bid_in_group;
+        final int first_bid_m = group_id * GROUP_SIZE_M;
+        final int group_size_m = Math.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
+
+        final int bidx = first_bid_m + (bid % group_size_m);
+        final int bidy = (bid % num_bid_in_group) / num_bid_in_group;
 
         // Calculate the total number of tiles
-        int num_tiles = TileContext.num_tiles(inputA, 1, TileContext.shape(16,16));
+        final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
 
-        // Return type should be a TileData
-        var accumulator = TileContext.zeros(tm, tk);
+        // declare the accumulator using the shapes describes as arguments
+        var accumulator = TileOp.zeros(tm, tn);
 
         for (int k = 0; k < num_tiles; k++) {
-            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(16, 16));
-            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(16, 16));
+            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
+            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
         }
 
@@ -230,29 +217,29 @@ public class TestTileAPI {
     // Expressing Reductions
     // ================================================================================================================
     @Reflect
-    public static void tileReduction(TensorF32 input, TensorF32 output, @Constant int tile_size) {
+    public static void tileReduction(TensorF32 input, TensorF32 output, @Constant int tileSize) {
 
         // Obtain the tile-id
-        int pid = TileContext.BIDX();
+        final int pid = TileContext.BIDX();
 
         // Obtain the number of tiles
-        int numTiles = TileContext.num_tiles(input, 0, TileContext.shape(tile_size));
+        final int numTiles = TileOp.numTiles(input, 0, tileSize);
 
         // Initialize a tile
-        var acc = TileContext.full(TileContext.shape(1), 0);
+        var acc = TileOp.full(TileContext.shape(1), 0.0f);
 
         // Perform the sum for all blocks of tiles
         for (int i = 0; i < numTiles; i++) {
             // load tile
-            var tileA = TileContext.load(input, TileContext.index(pid), TileContext.shape(tile_size));
+            var tileA = TileContext.load(input, pid, tileSize);
             // Perform a sum over the tile
-            var res = TileContext.sum(tileA, 0);
+            var res = TileOp.sum(tileA, 0);
             // Store the result into the accumulator
             acc = TileOp.add(acc, res);
         }
 
         // Store the final result into global memory
-        TileContext.store(output, TileContext.index(0), acc);
+        TileContext.store(output, 0, acc);
     }
 
     @Reflect

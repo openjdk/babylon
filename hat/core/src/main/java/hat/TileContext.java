@@ -2,87 +2,53 @@
 package hat;
 
 import hat.buffer.TensorF32;
+import hat.types.Tile;
 import optkl.ifacemapper.Buffer;
 
+/**
+ * Interface to represent common context operations to support the Tile Programming Model.
+ * Common operations are:
+ * - Obtaining the block index id.
+ * - Load tensors into tiles.
+ * - Store tensors into tiles.
+ * - Represent a shape for a tile.
+ */
 public interface TileContext {
 
-    static int BIDX() {
-        return 0;
-    }
+    static int BIDX() {return 0;}
+    static int BIDY() {return 0;}
+    static int BIDZ() {return 0;}
 
-    static int BIDY() {
-        return 0;
-    }
-
-    static Tile load(Buffer buffer, int pid, int tileSize) {
+    static Tile load(TensorF32 buffer, int pid, int tileSize) {
         return null;
     }
 
-    static Tile load(Buffer buffer, int pid, TileShape tileShape) {
+    static Tile load(TensorF32 buffer, TileIndex2D tileIndex2D, Shape shape) {
         return null;
     }
 
-    static Tile load(Buffer buffer, TileIndex1D pid, TileShape tileShape) {
-        return null;
+    static void store(TensorF32 buffer, int pid, Tile result) {
+
     }
 
-    static Tile load(Buffer buffer, TileIndex2D pid, TileShape tileShape) {
-        return null;
+    static void store(TensorF32 buffer, TileIndex2D tileIndex, Tile result) {
+
     }
-
-    static Tile load(Buffer buffer, TileIndex3D pid, TileShape tileShape) {
-        return null;
-    }
-
-    static void store(Buffer buffer, int pid, Tile result) {
-    }
-
-    static void store(Buffer buffer, TileIndex1D tileIndex1D, Tile result) {}
-
-    static void store(Buffer buffer, TileIndex2D tileIndex2D, Tile result) {}
-
-    static void store(Buffer buffer, TileIndex3D tileIndex3D, Tile result) {}
 
     static TileIndex2D index(int bidx, int bidy) {
         return new TileIndex2D(bidx, bidy);
     }
 
-    static TileIndex1D index(int bidx) {
-        return new TileIndex1D(bidx);
+    static Shape shape(int tm) {
+        return new Shape(tm, 1, 1);
     }
 
-    static TileIndex3D index(int bidx, int bidy, int bidz) {
-        return new TileIndex3D(bidx, bidy, bidz);
+    static Shape shape(int tm, int tn) {
+        return new Shape(tm, tn, 1);
     }
 
-    static TileShape shape(int tm, int tk) {
-        return new TileShape(tm, tk);
-    }
-
-    static  TileShape shape(int tm) {
-        return new TileShape(tm);
-    }
-
-    static int num_tiles(TensorF32 inputA, int i, TileShape shape) {
-        return 0;
-    }
-
-    static Tile zeros(int tm, int tk) {
-        return null;
-    }
-
-    static Tile sum(Tile tileA, int index) {
-        return null;
-    }
-
-    static void sum(Tile tileA, TileIndex1D index) {}
-
-    static void sum(Tile tileA, TileIndex2D index){}
-
-    static void sum(Tile tileA, TileIndex3D index) {}
-
-    static Tile full(TileShape shape, int index) {
-        return null;
+    static Shape shape(int tm, int tn, int tk) {
+        return new Shape(tm, tn, tk);
     }
 
 }
