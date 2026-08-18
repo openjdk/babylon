@@ -31,13 +31,3 @@ if ("${CUDA_BACKEND}EMPTY" STREQUAL "EMPTY")
     message("CUDA_BACKEND=${CUDA_BACKEND}")
 endif()
 add_subdirectory(cuda)
-
-
-if ("${MOCK_BACKEND}EMPTY" STREQUAL "EMPTY")
-    set (MOCK_BACKEND "${CMAKE_SOURCE_DIR}/mock")
-    message("MOCK_BACKEND=${MOCK_BACKEND}")
-endif()
-add_subdirectory(mock)
-
-
-

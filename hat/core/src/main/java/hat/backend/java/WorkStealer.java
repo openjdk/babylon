@@ -69,7 +69,7 @@ public class WorkStealer {
 
                         // The range should be initialised by now.
                         var ndRange1D = NDRange.of1D(range);
-                        hat.KernelContext kernelContext = new KernelContext(ndRange1D);
+                       // hat.KernelContext kernelContext = new KernelContext(ndRange1D);
                         try {
                             int myChunk;
                             while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {

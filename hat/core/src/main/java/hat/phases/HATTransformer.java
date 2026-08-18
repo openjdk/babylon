@@ -29,9 +29,9 @@ import optkl.util.carriers.FuncOpCarrier;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 
-public class HATTransformer {
+public interface HATTransformer {
 
-    public static final List<HATPhase> KernelPhases = List.of(
+     List<HATPhase> KernelPhases = List.of(
             // array views
             new HATArrayViewPhase(),
 
@@ -52,7 +52,7 @@ public class HATTransformer {
 
     );
 
-    public static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
+    static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
         phases.forEach(phase -> {
             if (showCompilationPhases) {
                 IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
@@ -62,9 +62,5 @@ public class HATTransformer {
                 IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
         });
-    }
-
-    private HATTransformer() {
-        /* This utility class should not be instantiated */
     }
 }

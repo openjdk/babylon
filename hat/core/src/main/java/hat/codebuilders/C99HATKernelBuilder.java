@@ -28,9 +28,7 @@ import hat.KernelContext;
 import hat.buffer.BF16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
-import hat.dialect.HATBarrierOp;
 import hat.dialect.HATPtrOp;
-import hat.dialect.HATThreadOp;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATFP16Phase;
 import hat.phases.HATPhaseUtils;
@@ -147,8 +145,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     }
 
     protected boolean useThreadConstruct(String construct) {
-        return// kernelCallGraph.accessedKernelContextFields.contains(construct)||
-                 kernelCallGraph.accessedKernelContextMethods.contains(construct.toUpperCase());
+        return kernelCallGraph.accessedKernelContextMethods.contains(construct);
     }
 
     protected boolean useAtomic() {
@@ -257,31 +254,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     public final T HAT_WARP_SIZE() {
         return hatWarpSize();
-    }
-
-    @Override
-    public final T hatThreadIdOp(HATThreadOp threadOp) {
-        return (switch (threadOp) {
-            case HATThreadOp.HAT_LI.HAT_LIX _ -> HAT_LIX();
-            case HATThreadOp.HAT_LI.HAT_LIY _ -> HAT_LIY();
-            case HATThreadOp.HAT_LI.HAT_LIZ _ -> HAT_LIZ();
-            case HATThreadOp.HAT_LS.HAT_LSX _ -> HAT_LSX();
-            case HATThreadOp.HAT_LS.HAT_LSY _ -> HAT_LSY();
-            case HATThreadOp.HAT_LS.HAT_LSZ _ -> HAT_LSZ();
-            case HATThreadOp.HAT_GI.HAT_GIX _ -> HAT_GIX();
-            case HATThreadOp.HAT_GI.HAT_GIY _ -> HAT_GIY();
-            case HATThreadOp.HAT_GI.HAT_GIZ _ -> HAT_GIZ();
-            case HATThreadOp.HAT_GS.HAT_GSX _ -> HAT_GSX();
-            case HATThreadOp.HAT_GS.HAT_GSY _ -> HAT_GSY();
-            case HATThreadOp.HAT_GS.HAT_GSZ _ -> HAT_GSZ();
-            case HATThreadOp.HAT_BI.HAT_BIX _ -> HAT_BIX();
-            case HATThreadOp.HAT_BI.HAT_BIY _ -> HAT_BIY();
-            case HATThreadOp.HAT_BI.HAT_BIZ _ -> HAT_BIZ();
-            case HATThreadOp.HAT_BS.HAT_BSX _ -> HAT_BSX();
-            case HATThreadOp.HAT_BS.HAT_BSY _ -> HAT_BSY();
-            case HATThreadOp.HAT_BS.HAT_BSZ _ -> HAT_BSZ();
-            case HATThreadOp.HAT_WARP_SIZE  _ -> HAT_WARP_SIZE();
-        });
     }
 
     public final T kernelDeclaration(CoreOp.FuncOp funcOp) {
@@ -397,11 +369,6 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 .forEach(sb::append);
         id(prefix + sb);
         return self();
-    }
-
-    @Override
-    public final T hatBarrierOp(HATBarrierOp barrierOp) {
-        return HAT_BARRIER();
     }
 
     public final T types() {

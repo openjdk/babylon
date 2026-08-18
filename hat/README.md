@@ -128,25 +128,26 @@ import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import java.lang.invoke.MethodHandles;
 
+import static hat.KernelContext.*;
+
 public class ExampleHAT {
 
     // Kernel Code: This is the function to be offloaded to the accelerator (e.g.,
     // a GPU). The kernel will be executed by many GPU threads, in this case,
     // as many threads as elements in `array`.
-    // The `kc` object can be used to obtain the thread identifier and map
-    // the data element to process.
     // HAT kernels follow the SIMT programming model (Single Instruction Multiple Thread)
     // mode.
     // Kernel code is reflectable. Thus, the HAT runtime and HAT compiler can build
     // and optimize the code model. Once the code model is optimized, HAT generates
     // OpenCL/CUDA C99 code.
     @Reflect
-    public static void squareKernel(@RO KernelContext kc, @RW S32Array array) {
+    public static void squareKernel(S32Array array) {
         // HAT kernels support a reduced set of Java.
         // Kernels express the work to be done per thread (GPU/accelerator thread).
-        if (kc.gix < array.length()) {
-            int value = array.array(kc.gix);
-            array.array(kc.gix, (value * value));
+        // Use GIX() to obtain the thread global id for the first dimension
+        if (GIX() < array.length()) {
+            int value = array.array(GIX());
+            array.array(GIX(), (value * value));
         }
     }
 
@@ -156,7 +157,7 @@ public class ExampleHAT {
     // In this example, we launch 1D-range with the number of threads equal to
     // the input array size.
     @Reflect
-    public static void square(@RO ComputeContext cc, @RW S32Array array) {
+    public static void square(ComputeContext cc, S32Array array) {
         var ndRange = NDRange.of1D(array.length());
 
         // Dispatch the kernel. The HAT runtime will offload the kernels
@@ -165,12 +166,11 @@ public class ExampleHAT {
         // Furthermore, HAT automatically transfers data to the accelerator.
         // This is a blocking call, and when it returns control to the main
         // Java thread, results (outputs) are available to be consumed.
-        cc.dispatchKernel(ndRange, kc -> squareKernel(kc, array));
+        cc.dispatchKernel(ndRange, () -> squareKernel(array));
     }
 
-    static void main(String[] args) {
+    static void main() {
         final int size = 4096;
-
         // Create a new accelerator object
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
@@ -183,7 +183,7 @@ public class ExampleHAT {
             array.array(i, i);
         }
 
-        // Offload and dispatch of the compute-graph on the target accelerator.
+        // Dispatch the set of kernels defined in the compute-layer on the target accelerator.
         // This is a blocking call. Once this call finalizes, the results (outputs)
         // will be available to consume by the current Java thread.
         accelerator.compute((@Reflect Compute) cc -> ExampleHAT.square(cc, array));
@@ -214,7 +214,7 @@ java --enable-preview \
    --enable-native-access=ALL-UNNAMED \
    --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar \
    -Djava.library.path=build \
-   mandel.Main
+   ExampleHAT.java
 ```
 
 If you run with `HAT=INFO` you can see which accelerator was used:
@@ -225,7 +225,7 @@ $ HAT=INFO java --enable-preview \
    --enable-native-access=ALL-UNNAMED \
    --class-path build/hat-optkl-1.0.jar:build/hat-core-1.0.jar:build/hat-backend-ffi-shared-1.0.jar:build/hat-backend-ffi-opencl-1.0.jar \
    -Djava.library.path=build \
-  mandel.Main
+  ExampleHAT.java
 
 [INFO] Config Bits = 8000
 [INFO] Platform :"Apple"
