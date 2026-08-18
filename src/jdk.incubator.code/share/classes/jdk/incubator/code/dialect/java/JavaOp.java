@@ -4597,6 +4597,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             CodeType oprType = cop.result().type();
             Block.Parameter arg = exit.parameter(oprType);
             startBlock.context().mapValue(cop.result(), arg);
+            // Short circuit exit reference, with false for && and true for ||
+            Block.Reference shortCircuitRef = exit.reference(startBlock.add(constant(BOOLEAN,
+                    cop instanceof ConditionalOrOp)));
 
             // Transform bodies in reverse order
             // This makes available the blocks to be referenced as successors in prior blocks
@@ -4621,9 +4624,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         if (op instanceof CoreOp.YieldOp yop) {
                             Value p = block.context().getValue(yop.yieldValue());
                             if (cop instanceof ConditionalAndOp) {
-                                block.add(conditionalBranch(p, nextPred.reference(), exit.reference(p)));
+                                block.add(conditionalBranch(p, nextPred.reference(), shortCircuitRef));
                             } else {
-                                block.add(conditionalBranch(p, exit.reference(p), nextPred.reference()));
+                                block.add(conditionalBranch(p, shortCircuitRef, nextPred.reference()));
                             }
                             return block;
                         } else {

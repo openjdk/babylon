@@ -39,31 +39,32 @@ public class TestUninitializedVariable {
             func @"definitiveAssignment1" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 %2 : Var<java.type:"int"> = var @"assigned";
-                %3 : java.type:"int" = var.load %1;
-                %4 : java.type:"int" = constant @0;
-                %5 : java.type:"boolean" = gt %3 %4;
-                cbranch %5 ^block_1 ^block_2(%5);
+                %3 : java.type:"boolean" = constant @false;
+                %4 : java.type:"int" = var.load %1;
+                %5 : java.type:"int" = constant @0;
+                %6 : java.type:"boolean" = gt %4 %5;
+                cbranch %6 ^block_1 ^block_2(%3);
 
               ^block_1:
-                %6 : java.type:"int" = var.load %1;
-                var.store %2 %6;
-                %7 : java.type:"int" = constant @1;
-                %8 : java.type:"boolean" = gt %6 %7;
-                branch ^block_2(%8);
+                %7 : java.type:"int" = var.load %1;
+                var.store %2 %7;
+                %8 : java.type:"int" = constant @1;
+                %9 : java.type:"boolean" = gt %7 %8;
+                branch ^block_2(%9);
 
-              ^block_2(%9 : java.type:"boolean"):
-                cbranch %9 ^block_3 ^block_4;
+              ^block_2(%10 : java.type:"boolean"):
+                cbranch %10 ^block_3 ^block_4;
 
               ^block_3:
-                %10 : java.type:"int" = var.load %2;
-                return %10;
+                %11 : java.type:"int" = var.load %2;
+                return %11;
 
               ^block_4:
                 branch ^block_5;
 
               ^block_5:
-                %11 : java.type:"int" = constant @-1;
-                return %11;
+                %12 : java.type:"int" = constant @-1;
+                return %12;
             };
             """)
     static int definitiveAssignment1(int i) {
@@ -78,24 +79,25 @@ public class TestUninitializedVariable {
     @Reflect
     @LoweredModel(value = """
             func @"definitiveAssignment2" (%0 : java.type:"int")java.type:"int" -> {
-                %1 : java.type:"int" = constant @0;
-                %2 : java.type:"boolean" = gt %0 %1;
-                cbranch %2 ^block_1 ^block_4;
+                %1 : java.type:"boolean" = constant @false;
+                %2 : java.type:"int" = constant @0;
+                %3 : java.type:"boolean" = gt %0 %2;
+                cbranch %3 ^block_1 ^block_4;
 
               ^block_1:
-                %3 : java.type:"int" = constant @1;
-                %4 : java.type:"boolean" = gt %0 %3;
-                branch ^block_2(%4);
+                %4 : java.type:"int" = constant @1;
+                %5 : java.type:"boolean" = gt %0 %4;
+                branch ^block_2(%5);
 
-              ^block_2(%5 : java.type:"boolean"):
-                cbranch %5 ^block_3 ^block_4;
+              ^block_2(%6 : java.type:"boolean"):
+                cbranch %6 ^block_3 ^block_4;
 
               ^block_3:
                 return %0;
 
               ^block_4:
-                %6 : java.type:"int" = constant @-1;
-                return %6;
+                %7 : java.type:"int" = constant @-1;
+                return %7;
             };
             """, transform = { LoweredModel.Transform.NORMALIZE_BLOCKS, LoweredModel.Transform.SSA})
     static int definitiveAssignment2(int i) {
