@@ -85,7 +85,7 @@ import static optkl.ifacemapper.MappableIface.WO;
 public class TestTileAPI {
 
     @Reflect
-    public static void helloTile(@RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
+    public static void helloTile(@RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tileSize) {
         final var pid = TileContext.BIDX();
         var aTile = TileContext.load(inputA, pid, 16);
         var bTile = TileContext.load(inputB, pid, 16);
@@ -102,7 +102,7 @@ public class TestTileAPI {
     public void test_hat_tile_00() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
-        final int tile_size = 16;
+        final int tileSize = 16;
         TensorF32 inputA = TensorF32.create(accelerator, size);
         TensorF32 inputB = TensorF32.create(accelerator, size);
 
@@ -114,7 +114,7 @@ public class TestTileAPI {
         }
 
         TensorF32 result = TensorF32.create(accelerator, size);
-        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tile_size));
+        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tileSize));
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);

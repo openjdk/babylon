@@ -40,6 +40,7 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -141,7 +142,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp.get());
         this.accelerator.backend.computeContextHandoff(this);
     }
-    record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
+    public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
     private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
 
@@ -195,7 +196,6 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
      */
     public void dispatchTile(NDRange ndRange, TileKernel tileKernel) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(tileKernel).orElseThrow();
-
         var location = quoted.op().location();
 
         KernelCallSite kernelCallSite;
@@ -205,14 +205,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         } else {
             kernelCallSite = kernelCallSiteCache.compute(location, (_, _) -> {
                 JavaOp.LambdaOp lambdaOp = quoted.op();
-
                 MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp).op().invokeReference();
-
-                IO.println("Lambda");
-                IO.println(lambdaOp.toText());
-
                 KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-
                 if (kernelCallGraph == null) {
                     throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
                 }
@@ -226,6 +220,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         Object[] dispatchContextAndArgs = new Object[capturedArgs.length + 1];
         System.arraycopy(capturedArgs, 0, dispatchContextAndArgs, 1, capturedArgs.length);
         dispatchContextAndArgs[0] = DispatchContext.createTile(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
+        IO.println("!!!!!!!!!!!! " + Arrays.toString(dispatchContextAndArgs));
         accelerator.backend.dispatchTile(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
 
 //        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();

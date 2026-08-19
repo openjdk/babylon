@@ -31,7 +31,7 @@ import java.util.List;
 
 public interface HATTransformer {
 
-     List<HATPhase> KernelPhases = List.of(
+    List<HATPhase> KernelPhases = List.of(
             // array views
             new HATArrayViewPhase(),
 
@@ -54,12 +54,12 @@ public interface HATTransformer {
             new HATTilesPhase()
     );
 
-    static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases){
+    static void transform(List<HATPhase> phases, MethodHandles.Lookup lookup, FuncOpCarrier funcOpCarrier, VarTable varTable, boolean showCompilationPhases) {
         phases.forEach(phase -> {
             if (showCompilationPhases) {
                 IO.println("Before PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }
-            funcOpCarrier.funcOp(phase.transform(lookup,funcOpCarrier.funcOp(), varTable));
+            funcOpCarrier.funcOp(phase.transform(lookup, funcOpCarrier.funcOp(), varTable));
             if (showCompilationPhases) {
                 IO.println("After PHASE" + phase.getClass().getSimpleName() + "\n" + funcOpCarrier.funcOp().toText());
             }

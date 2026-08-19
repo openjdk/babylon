@@ -25,19 +25,23 @@
 package hat.callgraph;
 
 import hat.BufferTagger;
+import hat.DType;
 import hat.KernelContext;
+import hat.buffer.TensorF32;
+import hat.codetypes.ConstantType;
+import hat.codetypes.PtrType;
 import hat.device.NonMappableIface;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATTransformer;
+import hat.phases.TileTransformer;
 import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.CodeType;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import hat.phases.VarTable;
@@ -49,15 +53,14 @@ import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static optkl.OpHelper.Invoke.invoke;
 
 public class KernelCallGraph implements LookupCarrier {
+
+    private static final boolean HAT_PROCESS_TILE_DIALECT = true;
 
     @Override public MethodHandles.Lookup lookup(){
         return computeCallGraph.lookup();
@@ -147,6 +150,38 @@ public class KernelCallGraph implements LookupCarrier {
         this.varTable = new VarTable();
         varTable.addFunction(entrypoint.funcOp().funcName());
 
+        if (HAT_PROCESS_TILE_DIALECT) {
+            // TODO: Before invoking the HAT Transformer, we need to process the input code tree
+            // to be able to dialectify to a tile code model. This only affects if the input
+            // is using the Tile API.
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            List<CodeType> codeTypes = new ArrayList<>();
+            for (Class<?> parameterType : parameterTypes) {
+                if (parameterType.isPrimitive()) {
+                    if (parameterType.equals(int.class)) {
+                        // TODO: I need to obtain runtime value for each constant
+                        codeTypes.add(new ConstantType(DType.Int, 16));
+                    } else {
+                        throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
+                    }
+                } else {
+                    // We need to inspect thge type
+                    if (parameterType.equals(TensorF32.class)) {
+                        codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE));
+                    } else {
+                        throw new UnsupportedOperationException("Unsupported parameter type: " + parameterType);
+                    }
+                }
+            }
+            // Validate and process shapes from the Tile programming model to build a tile code model
+            // The TileTransformer receives:
+            // 1. The input function
+            // 2. The return type
+            // 3. A list of CodeTypes for each input argument to the kernel.
+            CoreOp.FuncOp funcOp = TileTransformer.tileFunction(entrypoint.funcOp(), JavaType.VOID, codeTypes);
+            entrypoint = new FuncOpCarrier.Impl(funcOp);
+        }
+
         HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
         checkSSALowering(entrypoint.funcOp());
 
@@ -160,8 +195,9 @@ public class KernelCallGraph implements LookupCarrier {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
         }
 
+        final FuncOpCarrier.Impl finalEntrypoint = entrypoint;
         this.iFaceDag = new IfaceDataDag<>(dag->
-            entrypoint.funcOp().elements()
+            finalEntrypoint.funcOp().elements()
                     .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
                     .filter(ClassType.class::isInstance).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
                     .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
@@ -169,6 +205,7 @@ public class KernelCallGraph implements LookupCarrier {
                             .forEach(retType -> dag.addEdge(iface, retType))
                     )
         );
+
         if (SHOW_KERNEL_IFACE_DAG) {
             this.iFaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }

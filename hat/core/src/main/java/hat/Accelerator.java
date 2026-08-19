@@ -27,6 +27,7 @@ package hat;
 import hat.backend.Backend;
 
 import hat.buffer.DispatchContext;
+import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
@@ -42,6 +43,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -195,14 +197,14 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
     public void compute(Compute compute) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(compute).orElseThrow();
         JavaOp.LambdaOp lambda = quoted.op();
-        Method method = getTargetInvoke(this.lookup,lambda, ComputeContext.class).resolveMethodOrThrow();
+        Method method = getTargetInvoke(this.lookup, lambda, ComputeContext.class).resolveMethodOrThrow();
         // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
         ComputeContext computeContext = cache.computeIfAbsent(method, _ -> new ComputeContext(this, method));
         // Here we get the captured values from the lambda
-        Object[] args = lambda(lookup,lambda).getQuotedCapturedValues( quoted, method);
+        Object[] args = lambda(lookup, lambda).getQuotedCapturedValues(quoted, method);
         args[0] = computeContext;
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

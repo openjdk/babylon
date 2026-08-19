@@ -26,10 +26,16 @@ package hat.backend.ffi;
 
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.codetypes.ConstantType;
+import hat.codetypes.PtrType;
+import hat.codetypes.TensorType;
+import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
+import hat.dialect.TileOps;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -1281,7 +1287,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder declareParam(FuncOpParams.Info param) {
         if (this.isTile) {
             // inspect type of parameter
-            JavaType type = (JavaType) param.parameter.type();
+            CodeType type = param.parameter.type();
             type(type).sp();
             if (!(type instanceof PrimitiveType)) {
                 restrict().sp();
@@ -1289,5 +1295,126 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             return varName(param.varOp);
         }
         return type((JavaType) param.parameter.type()).sp().varName(param.varOp);
+    }
+
+    @Override
+    public CudaHATKernelBuilder type(CodeType codeType) {
+        if (codeType instanceof PtrType ptrType && ptrType.rType() instanceof JavaType javaType) {
+            return type(javaType);
+        } else {
+            return super.type(codeType);
+        }
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileConstantOp(ArithMathOps.ConstantOp constantOp) {
+        if (constantOp.value() instanceof Integer val) {
+            return intConst(val);
+        }
+        throw new UnsupportedOperationException("Constant type not supported: " + constantOp.value());
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileIdOp(TileOps.TileIDOp tileIdOp) {
+        switch (tileIdOp.dimension()) {
+            case 0 -> tileBlockId().dot().id("x");
+            case 1 -> tileBlockId().dot().id("y");
+            case 2 -> tileBlockId().dot().id("z");
+            default -> throw new UnsupportedOperationException("Tile ID Operation is not supported yet.");
+        }
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileLoadOp(TileOps.LoadOp tileLoadOp) {
+        List<Value> operands = tileLoadOp.operands();
+        Value ptr = operands.get(0);
+        Value dimension = operands.get(1);
+        Value shape = operands.get(2);
+
+        id("ct::partition_view{ct::tensor_span{");
+        recurseResultOrThrow(ptr);
+        // Note: we do not need to add the reference "-> array" at this point because alignment is performed using
+        // the input references. Then we carry the aligned pointer.
+
+        id(", ct::extents{");
+        int numDimensions = obtainShapeDimensions(shape);
+        if (numDimensions < 0 || numDimensions > 2) {
+            throw new IllegalStateException("[Error][CodeGen] Expected a number of dimensions between 0 and 2");
+        }
+        intConst(1024);   // FIXME
+        // TODO: We need to obtain input as Tensors, so we generate the correct extent
+        if (ptr.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp loadOp && loadOp.operands().getFirst().declaringElement() instanceof VarOp varOp) {
+            if (varOp.resultType().valueType() instanceof ConstantType constantType) {
+                if (constantType.value() instanceof  PtrType ptrType) {
+                    // emit sizes
+                    intConst(1024);
+                }
+            }
+        }
+        id("}}").comma();
+
+        // Process shapes: We assume shapes are constants.
+        id("ct::shape").brace(_ -> {
+            for (int i = 0; i < numDimensions; i++) {
+                // generate the constant shape per dimension
+                genTileConstantShape(shape, i);
+                if (i < numDimensions - 1) {
+                    comma();
+                }
+            }
+        });
+        id("}.load_masked(");
+        recurseResultOrThrow(dimension);
+        id(")");
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileAddOp(ArithMathOps.AddOp tileAddOp) {
+        return recurseResultOrThrow(tileAddOp.operands().getFirst())
+                .plus()
+                .recurseResultOrThrow(tileAddOp.operands().get(1));
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileStoreOp(TileOps.StoreOp tileStoreOp) {
+        List<Value> operands = tileStoreOp.operands();
+        Value inputReference = operands.get(0);
+        Value blockId = operands.get(1);
+        Value tensor = operands.get(2);
+
+        id("ct::partition_view{ct::tensor_span{");
+        recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
+        id(", ct::extents{");
+        // TODO: We need to obtain input as Tensors, so we generate the correct extent
+        //genExtentSize(inputReference);
+        intConst(1024);   // TODO
+        id("}},");
+        // TODO: assume a shape until we include the PoC using type attribution.
+        // In this way, we can simplify codegen by having the right shapes available
+        // in the same invokeOp as the store.
+
+        CodeType tensorType = tensor.type();
+        if (tensorType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
+            id("ct::shape").obrace();
+            List<Integer> shape = tt.shape();
+            intConst(shape.getFirst()).id("_ic");
+            for (int i = 1; i < shape.size(); i++) {
+                comma().intConst(shape.get(i)).id("_ic");
+            }
+            cbrace();
+        } else {
+            // At this point, since the Tile Dialect was built after the type check and shape propagation,
+            // we know this error can't occur. If something unexpected happens, we throw an error.
+            throw new UnsupportedOperationException("[codegen] tensor store shape not supported yet.");
+        }
+        id(" }.store_masked(");
+        recurseResultOrThrow(tensor)
+                .comma()
+                .sp()
+                .recurseResultOrThrow(blockId)
+                .id(")");
+        return self();
     }
 }

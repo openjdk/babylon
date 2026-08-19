@@ -94,14 +94,13 @@ public class ComputeCallGraph implements LookupCarrier {
             this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
         }
 
-        callDag.rankOrdered.stream()
+        callDag.rankOrdered
+                .stream()
                 .filter(m -> m instanceof MethodCallDag.OtherMethodCall &&
                         this.callDag.entryPoint.method().getDeclaringClass().equals(m.method().getDeclaringClass())
                         && isValidKernelDispatch(computeContext.lookup(), m.method(), m.funcOp()))
                 .forEach(m -> kernelCallGraphMap.computeIfAbsent(m.methodRef(), _ ->
-                                new KernelCallGraph(this, m.method(), m.funcOp())
-                        )
-                );
+                        new KernelCallGraph(this, m.method(), m.funcOp())));
     }
 
     public CoreOp.FuncOp lazyLower(){

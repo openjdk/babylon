@@ -24,7 +24,9 @@
  */
 package hat.codebuilders;
 
+import hat.dialect.ArithMathOps;
 import hat.dialect.HATOp;
+import hat.dialect.TileOps;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
@@ -43,6 +45,16 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLengthOp(HATPtrLengthOp hatPtrLengthOp);
 
+    T tileConstantOp(ArithMathOps.ConstantOp constantOp);
+
+    T tileIdOp(TileOps.TileIDOp tileIdOp);
+
+    T tileLoadOp(TileOps.LoadOp tileLoadOp);
+
+    T tileAddOp(ArithMathOps.AddOp tileAddOp);
+
+    T tileStoreOp(TileOps.StoreOp tileStoreOp);
+
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -52,6 +64,20 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrLengthOp hatPtrLengthOp -> hatPtrLengthOp(hatPtrLengthOp);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
+        } else if (op instanceof ArithMathOps.ArithMathOp arithMathOps) {
+            switch (arithMathOps) {
+                case ArithMathOps.ConstantOp constantOp -> tileConstantOp(constantOp);
+                case ArithMathOps.AddOp addOp -> tileAddOp(addOp);
+                default -> throw new IllegalStateException("handle nesting of Tile AritmeticMath op " + op);
+            }
+        } else if (op instanceof TileOps.TOp tileOps) {
+            switch (tileOps) {
+                case TileOps.TileIDOp idOp -> tileIdOp(idOp);
+                case TileOps.LoadOp loadOp -> tileLoadOp(loadOp);
+                case TileOps.StoreOp storeOp -> tileStoreOp(storeOp);
+                default -> throw new IllegalStateException("handle nesting of Tile TileOps.TOp " + op);
+            }
+
         } else {
             BabylonOpDispatcher.super.recurse(op);
         }

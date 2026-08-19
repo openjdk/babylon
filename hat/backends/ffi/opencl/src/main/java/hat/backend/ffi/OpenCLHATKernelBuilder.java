@@ -27,7 +27,9 @@ package hat.backend.ffi;
 import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
+import hat.dialect.TileOps;
 import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.Value;
@@ -55,7 +57,6 @@ import static hat.phases.HATPhaseUtils.isMathLib;
 import static optkl.IfaceValue.Vector.getVectorShape;
 
 public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelBuilder> {
-
 
     @FunctionalInterface
     private interface CodeGenAction {
@@ -1041,5 +1042,30 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .recurseResultOrThrow(reference).comma().sp()
                         .id(tensorVarOp.varName()).comma().sp()
                         .id(ZERO));
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileConstantOp(ArithMathOps.ConstantOp constantOp) {
+        throw new UnsupportedOperationException("ArithMathOps.ConstantOp is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileIdOp(TileOps.TileIDOp tileIdOp) {
+        throw new UnsupportedOperationException("Tile ID Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileLoadOp(TileOps.LoadOp tileLoadOp) {
+        throw new UnsupportedOperationException("Tile Load Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileAddOp(ArithMathOps.AddOp tileAddOp) {
+        throw new UnsupportedOperationException("Tile Add Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileStoreOp(TileOps.StoreOp tileStoreOp) {
+        throw  new UnsupportedOperationException("Tile Store Operation is not supported yet.");
     }
 }

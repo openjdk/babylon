@@ -38,6 +38,7 @@ import hat.types.BF16;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -1009,7 +1010,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
             constKeyword().sp();
         }
-        type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+        type(varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
         var first = varOp.operands().getFirst();
         switch (first) {
             case Op.Result result -> parenthesisIfNeeded(varOp, result.op());

@@ -1,10 +1,14 @@
 package hat.phases;
 
+import hat.codetypes.PtrType;
+import hat.dialect.ArithMathOps;
+import hat.dialect.TileOps;
 import hat.types.Tile;
 import hat.TileContext;
 import hat.TileOp;
 import hat.buffer.TensorF32;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -19,7 +23,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.SequencedSet;
 import java.util.Set;
 
 public record HATTilesPhase() implements HATPhase {
@@ -29,6 +32,12 @@ public record HATTilesPhase() implements HATPhase {
         boolean isTileUsed = OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .anyMatch(invoke -> invoke.refIs(TileContext.class));
+
+        // Also check the tile dialect was introduced
+        isTileUsed |= funcOp.elements()
+                .anyMatch(element -> element instanceof TileOps.TOp
+                        || element instanceof ArithMathOps.ArithMathOp);
+
         if (isTileUsed) {
             // We need to transform the code tree to insert a Invoke for the alignment associated with a new var
             // to carry for all loads/store operations after the alignment.
@@ -40,22 +49,38 @@ public record HATTilesPhase() implements HATPhase {
                 Op.Result paramUsage = p.uses().getFirst();
                 if (paramUsage.declaringElement() instanceof CoreOp.VarOp varOp) {
                     var s = varOp.resultType().valueType();
-                    if (s.toString().equals(TensorF32.class.getCanonicalName())) {
+                    if (s instanceof PtrType || s.toString().equals(TensorF32.class.getCanonicalName())) {
                         tileArgs.add(varOp);
                         opsToProcess.add(varOp);
                     }
                     firstOp = varOp;
                 }
             }
+
+            if (tileArgs.contains(firstOp)) {
+                // If this is the case, we need to move firstOp to next Op
+                // Otherwise, the subsequence transform phase will not expand
+                // with the new Ops for performing the alignment.
+                boolean wasFound = false;
+                for (CodeElement<?, ?> codeElement : funcOp.elements().sequential().toList()) {
+                    if (wasFound) {
+                        firstOp = (Op) codeElement;
+                        break;
+                    }
+                    if (codeElement == firstOp) {
+                        wasFound = true;
+                    }
+                }
+            }
+
             Map<Op, Op.Result> paramMap = new HashMap<>();
-            Op finalFirstOp = firstOp;
+            final Op finalFirstOp = firstOp;
             Map<Op, Op.Result> useVarOps = new HashMap<>();
             CoreOp.FuncOp finalFuncOp = funcOp;
             funcOp = funcOp.transform((builder, op) -> {
-                if (opsToProcess.contains(op) && op instanceof CoreOp.VarOp varOp) {
+                if (opsToProcess.contains(op) && op instanceof CoreOp.VarOp) {
                     Op.Result newVarOpResult = builder.add(op);
                     paramMap.put(op, newVarOpResult);
-                    SequencedSet<Op.Result> uses = varOp.result().uses();
                 } else if (op == finalFirstOp) {
                     builder.add(finalFirstOp);
                     // place new invoke ops here
@@ -67,7 +92,7 @@ public record HATTilesPhase() implements HATPhase {
                         Op.Result invokeResult = builder.add(invoke);
                         CoreOp.VarOp varOp = CoreOp.var(varTile.varName().concat("_"), invokeResult);
                         Op.Result varOpResult = builder.add(varOp);
-                        for (Op.Result u: varTile.result().uses()) {
+                        for (Op.Result u : varTile.result().uses()) {
                             useVarOps.put(u.op(), varOpResult);
                             opsToProcess.add(u.op());
                         }
@@ -81,7 +106,7 @@ public record HATTilesPhase() implements HATPhase {
                 } else {
                     builder.add(op);
                 }
-               return builder;
+                return builder;
             });
         }
         return funcOp;
@@ -97,18 +122,24 @@ public record HATTilesPhase() implements HATPhase {
 
     private CoreOp.FuncOp classifyTileVarOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         // process Tile-Vars to insert into the VarTable
-        // we create Tiles when we load
+        // Load operation returns a new Tile (view of the input data in a tile)
         Set<Op> opsToProcess = new HashSet<>();
         OpHelper.Invoke.stream(lookup, funcOp)
                 .filter(invoke -> !invoke.returnsVoid())
                 .filter(invoke -> invoke.refIs(TileContext.class))
                 .filter(invoke -> invoke.name().equals("load"))
-                .forEach(invoke -> {
-                    invoke.op().result().uses().stream()
-                            .filter(result -> (result.op() instanceof CoreOp.VarOp))
-                            .map(result -> (CoreOp.VarOp) result.op())
-                            .forEach(opsToProcess::add);
-                });
+                .forEach(invoke ->
+                        invoke.op().result().uses().stream()
+                                .filter(result -> (result.op() instanceof CoreOp.VarOp))
+                                .map(result -> (CoreOp.VarOp) result.op())
+                                .forEach(opsToProcess::add));
+
+        // Process nodes after Tile dialect
+        funcOp.elements().forEach(element -> {
+            if (element instanceof TileOps.LoadOp loadOp && loadOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo) {
+                opsToProcess.add(varOo);
+            }
+        });
 
         // We have identified the invoke and the varOp associated with it
         return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
@@ -129,9 +160,16 @@ public record HATTilesPhase() implements HATPhase {
                 .filter(invoke -> invoke.refIs(TileOp.class))
                 .forEach(invoke ->
                         invoke.op().result().uses().stream()
-                        .filter(result -> (result.op() instanceof CoreOp.VarOp))
-                        .map(result -> (CoreOp.VarOp) result.op())
-                        .forEach(opsToProcess::add));
+                                .filter(result -> (result.op() instanceof CoreOp.VarOp))
+                                .map(result -> (CoreOp.VarOp) result.op())
+                                .forEach(opsToProcess::add));
+
+        // Process nodes after Tile dialect
+        funcOp.elements().forEach(element -> {
+            if (element instanceof ArithMathOps.ArithMathOp arithMathOp && arithMathOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo) {
+                opsToProcess.add(varOo);
+            }
+        });
 
         // We have identified the invoke and the varOp associated with it
         return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
@@ -151,7 +189,7 @@ public record HATTilesPhase() implements HATPhase {
                 this::classifyTileVarOp,
                 this::classifyArithmeticTileVarOp
         );
-        CoreOp.FuncOp[] f = new CoreOp.FuncOp[] {funcOp};
+        CoreOp.FuncOp[] f = new CoreOp.FuncOp[]{funcOp};
         transformers.forEach(action -> f[0] = action.apply(lookup, f[0], varTable));
         return f[0];
     }
