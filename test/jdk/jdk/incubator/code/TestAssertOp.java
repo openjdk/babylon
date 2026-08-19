@@ -25,9 +25,9 @@
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit TestAssertOp
+ * @run junit/othervm -ea TestAssertOp
  * @run main Unreflect TestAssertOp
- * @run junit TestAssertOp
+ * @run junit/othervm -ea TestAssertOp
  */
 
 import java.lang.invoke.MethodHandles;
@@ -44,17 +44,46 @@ import org.junit.jupiter.api.Test;
 public class TestAssertOp {
 
     @Reflect
-    int check(int i) {
+    int checkStringDetail(int i) {
         assert i >= 0 : "Failed";
         return i;
     }
 
     @Test
-    public void test() {
-        CoreOp.FuncOp f = getFuncOp(TestAssertOp.class, "check");
+    public void testStringDetail() {
+        CoreOp.FuncOp f = getFuncOp(TestAssertOp.class, "checkStringDetail");
 
-        Assertions.assertEquals(new TestAssertOp().check(42), Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), 42));
+        Assertions.assertEquals(new TestAssertOp().checkStringDetail(42), Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), 42));
+        Assertions.assertThrows(AssertionError.class, () -> new TestAssertOp().checkStringDetail(-42));
         Assertions.assertThrows(AssertionError.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), -42));
+    }
+
+    @Reflect
+    int checkIntDetail(int i) {
+        assert i >= 0 : i;
+        return i;
+    }
+
+    @Test
+    public void testIntDetail() {
+        CoreOp.FuncOp f = getFuncOp(TestAssertOp.class, "checkIntDetail");
+
+        Assertions.assertThrows(AssertionError.class, () -> new TestAssertOp().checkIntDetail(-42));
+        Assertions.assertThrows(AssertionError.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), -42));
+    }
+
+    @Reflect
+    int checkShortDetail(short s) {
+        assert s >= 0 : s;
+        return s;
+    }
+
+    @Test
+    public void testShortDetail() {
+        CoreOp.FuncOp f = getFuncOp(TestAssertOp.class, "checkShortDetail");
+
+        Assertions.assertThrows(AssertionError.class, () -> new TestAssertOp().checkShortDetail((short) -42));
+        Assertions.assertThrows(AssertionError.class, () -> Interpreter.invoke(MethodHandles.lookup(), f, new TestAssertOp(), (short) -42));
     }
 
     static CoreOp.FuncOp getFuncOp(Class<?> c, String name) {

@@ -690,8 +690,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 throwBlock.transformBody(bodies.get(1), List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yo) {
                         block.add(throw_(
-                                block.add(new_(MethodRef.constructor(AssertionError.class, Object.class),
-                                        block.context().getValue(yo.yieldValue())))
+                                block.add(new_(MethodRef.constructor(JavaType.type(AssertionError.class), switch (yo.yieldValue().type()) {
+                                    case PrimitiveType pt -> pt == JavaType.BYTE || pt == JavaType.SHORT ? JavaType.INT : pt;
+                                    default -> JavaType.J_L_OBJECT;
+                                }), block.context().getValue(yo.yieldValue())))
                         ));
                         return block;
                     } else {
