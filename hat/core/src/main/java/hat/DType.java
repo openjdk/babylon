@@ -1,7 +1,6 @@
 package hat;
 
-
-import hat.buffer.F32Array;
+import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.types.F16;
 import jdk.incubator.code.CodeType;
@@ -16,6 +15,7 @@ public class DType {
     public static final CodeType F32_TYPE = JavaType.type(Float.class);
 
     public static final CodeType TENSOR_F32_TYPE = JavaType.type(TensorF32.class);
+    public static final CodeType TENSOR_2D_F32_TYPE = JavaType.type(Tensor2DF32.class);
 
     // DType for primitive types
     public static final CodeType Float = JavaType.FLOAT;

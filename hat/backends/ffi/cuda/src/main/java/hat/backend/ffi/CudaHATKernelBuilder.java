@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 
+import hat.DType;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codetypes.ConstantType;
@@ -1325,6 +1326,31 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    private CudaHATKernelBuilder generateAlignedReference(Value ref) {
+        if (ref.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("align")) {
+            return recurseResultOrThrow(invokeOp.operands().getFirst());
+        } else {
+            if (ref instanceof Op.Result r) {
+                return generateAlignedReference(r.op().operands().getFirst());
+            }
+        }
+        throw new IllegalStateException("Reference not supported: " + ref);
+    }
+
+    private CudaHATKernelBuilder genTileSize(CodeType resultType, Value ptr) {
+        if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tensorType) {
+            CodeType tt = tensorType.elementType();
+            if (tt.equals(DType.TENSOR_F32_TYPE)) {
+                generateAlignedReference(ptr).rarrow().id("m");
+            } else if (tt.equals(DType.TENSOR_2D_F32_TYPE)) {
+                generateAlignedReference(ptr).rarrow().id("m").comma().sp().generateAlignedReference(ptr).rarrow().id("n");
+            } else {
+                throw new UnsupportedOperationException("Tensor Type not supported yet.");
+            }
+        }
+        return self();
+    }
+
     @Override
     public CudaHATKernelBuilder tileLoadOp(TileOps.LoadOp tileLoadOp) {
         List<Value> operands = tileLoadOp.operands();
@@ -1334,25 +1360,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(ptr);
-        // Note: we do not need to add the reference "-> array" at this point because alignment is performed using
-        // the input references. Then we carry the aligned pointer.
-
         id(", ct::extents{");
-        intConst(1024);   // FIXME
-        // TODO: We need to obtain input as Tensors, so we generate the correct extent
-        if (ptr.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp loadOp && loadOp.operands().getFirst().declaringElement() instanceof VarOp varOp) {
-            if (varOp.resultType().valueType() instanceof ConstantType constantType) {
-                if (constantType.value() instanceof  PtrType ptrType) {
-                    // emit sizes
-                    intConst(1024);
-                }
-            }
-        }
+        CodeType resultType = tileLoadOp.resultType();
+        genTileSize(resultType, ptr);
         id("}}").comma();
 
         // Process shapes: We assume shapes are constants.
-        CodeType codeType = tileLoadOp.result().type();
-        if (codeType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
+        if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
             id("ct::shape").obrace();
             List<Integer> shapeList = tt.shape();
             intConst(shapeList.getFirst()).id("_ic");
@@ -1361,7 +1375,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }
             cbrace();
         }
-        
+
         id("}.load_masked(");
         recurseResultOrThrow(dimension);
         id(")");
@@ -1385,14 +1399,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
-        // TODO: We need to obtain input as Tensors, so we generate the correct extent
-        //genExtentSize(inputReference);
-        intConst(1024);   // TODO
+        genTileSize(tensor.type(), inputReference);
         id("}},");
-        // TODO: assume a shape until we include the PoC using type attribution.
-        // In this way, we can simplify codegen by having the right shapes available
-        // in the same invokeOp as the store.
-
         CodeType tensorType = tensor.type();
         if (tensorType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
             id("ct::shape").obrace();

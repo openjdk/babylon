@@ -95,7 +95,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
-        computeContext.dispatchTile(NDRange.of1D(inputA.length(), tile_size), () -> helloTile(inputA, inputB, output, tile_size));
+        computeContext.dispatchTile(NDRange.of1D(inputA.m(), tile_size), () -> helloTile(inputA, inputB, output, tile_size));
     }
 
     @HatTest
@@ -135,7 +135,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tileSize) {
-        computeContext.dispatchTile(NDRange.of1D(inputA.length(), tileSize), () -> vectorAddTile(inputA, inputB, output, tileSize));
+        computeContext.dispatchTile(NDRange.of1D(inputA.m(), tileSize), () -> vectorAddTile(inputA, inputB, output, tileSize));
     }
 
     @HatTest
@@ -244,7 +244,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void tileReduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
-        computeContext.dispatchTile(NDRange.of1D(input.length(), tileSize),
+        computeContext.dispatchTile(NDRange.of1D(input.m(), tileSize),
                 () -> tileReduction(input, output, tileSize));
     }
 

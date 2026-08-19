@@ -36,7 +36,7 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface TensorF32 extends Buffer {
+public interface Tensor2DF32 extends Buffer {
 
     @Reflect
     default void schema() {
@@ -44,36 +44,37 @@ public interface TensorF32 extends Buffer {
     }
 
     int m();
+    int n();
     float array(long idx);
     void array(long idx, float f);
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<TensorF32> schema = Schema.of(TensorF32.class, $ -> $
-            .arrayLen("m")
-            .pad(12)
+    Schema<Tensor2DF32> schema = Schema.of(Tensor2DF32.class, $ -> $
+            .arrayLen("m", "n")
+            .pad(8)
             .array("array"));
 
-    static TensorF32 create(ArenaAndLookupCarrier cc, int length) {
+    static Tensor2DF32 create(ArenaAndLookupCarrier cc, int length) {
         return BoundSchema.of(cc ,schema, length).allocate();
     }
 
-    default TensorF32 copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, m());
+    default Tensor2DF32 copyFrom(float[] floats) {
+        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, m() * n());
         return this;
     }
 
-    static TensorF32 createFrom(ArenaAndLookupCarrier cc, float[] arr) {
+    static Tensor2DF32 createFrom(ArenaAndLookupCarrier cc, float[] arr) {
         return create(cc, arr.length).copyFrom(arr);
     }
 
-    default TensorF32 copyTo(float[] floats) {
-        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, m());
+    default Tensor2DF32 copyTo(float[] floats) {
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, m() * n());
         return this;
     }
 
     default float[] arrayView() {
-        float[] arr = new float[this.m()];
+        float[] arr = new float[this.m() * this.n()];
         this.copyTo(arr);
         return arr;
     }
