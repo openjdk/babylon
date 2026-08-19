@@ -1338,10 +1338,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         // the input references. Then we carry the aligned pointer.
 
         id(", ct::extents{");
-        int numDimensions = obtainShapeDimensions(shape);
-        if (numDimensions < 0 || numDimensions > 2) {
-            throw new IllegalStateException("[Error][CodeGen] Expected a number of dimensions between 0 and 2");
-        }
         intConst(1024);   // FIXME
         // TODO: We need to obtain input as Tensors, so we generate the correct extent
         if (ptr.declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp loadOp && loadOp.operands().getFirst().declaringElement() instanceof VarOp varOp) {
@@ -1355,15 +1351,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         id("}}").comma();
 
         // Process shapes: We assume shapes are constants.
-        id("ct::shape").brace(_ -> {
-            for (int i = 0; i < numDimensions; i++) {
-                // generate the constant shape per dimension
-                genTileConstantShape(shape, i);
-                if (i < numDimensions - 1) {
-                    comma();
-                }
+        CodeType codeType = tileLoadOp.result().type();
+        if (codeType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
+            id("ct::shape").obrace();
+            List<Integer> shapeList = tt.shape();
+            intConst(shapeList.getFirst()).id("_ic");
+            for (int i = 1; i < shapeList.size(); i++) {
+                comma().intConst(shapeList.get(i)).id("_ic");
             }
-        });
+            cbrace();
+        }
+        
         id("}.load_masked(");
         recurseResultOrThrow(dimension);
         id(")");
