@@ -280,7 +280,7 @@ public class TileOps {
         }
     }
 
-    public static class TileZerosOp extends TOp implements Op.Pure {
+    public static class TileZerosOp extends TOp implements Op.Pure, Precedence.Invoke {
 
         protected TileZerosOp(CodeType type, Value... shapes) {
             super(type, Arrays.stream(shapes).toList());

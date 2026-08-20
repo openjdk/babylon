@@ -1,5 +1,6 @@
 package hat;
 
+import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.types.Tile;
 import jdk.incubator.code.CodeType;
@@ -118,6 +119,11 @@ public class TileOp {
     public static int numTiles(TensorF32 input, int dimension, Shape shape) {
         return 0;
     }
+
+    public static int numTiles(Tensor2DF32 input, int dimension, Shape shape) {
+        return 0;
+    }
+
 
     public static Tile full(Shape shape, float value) {
         return null;

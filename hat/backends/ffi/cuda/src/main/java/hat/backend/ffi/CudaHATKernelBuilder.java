@@ -250,6 +250,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 // Math
                 .when(useS16Types(), _ -> maxMacro("MAX_HAT"))
                 .when(useS16Types(), _ -> minMacro("MIN_HAT"))
+                .when(isTile, _ -> ceilDiv("ceilDiv"))
 
                 // General Macros
                 .when(useVectors(), _ -> concatMacro().prefixMacro())
@@ -1503,5 +1504,35 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp) {
         return id("ct::transpose").paren( _-> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileZerosOp(TileOps.TileZerosOp tileZerosOp) {
+        List<Value> operands = tileZerosOp.operands();
+        id("ct::zeros<ct::tile").lt();
+        if (tileZerosOp.resultType() instanceof ConstantType constantType &&  constantType.value() instanceof TensorType tt) {
+            if (tt.elementType().equals(DType.TENSOR_2D_F32_TYPE) || tt.elementType().equals(DType.TENSOR_F32_TYPE)) {
+                type("float");
+            } else {
+                type(tt.elementType().toString());
+            }
+        } else {
+            throw new  UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileZerosOp.resultType());
+        }
+        comma().sp().id("ct::shape").lt();
+        CodeType codeType = tileZerosOp.resultType();
+        if (codeType instanceof ConstantType constantType1 && constantType1.value() instanceof TensorType tensorType) {
+            List<Integer> shape = tensorType.shape();
+            commaSpaceSeparated(shape, this::intValue);
+        } else {
+            throw new IllegalStateException("[codegen] ct::zero shape not recognized");
+        }
+        gt().gt().gt().paren( _ ->{});
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
+        return id("ct::mma").paren(_ -> commaSpaceSeparated(tileMMAOp.operands(), this::recurseResultOrThrow));
     }
 }

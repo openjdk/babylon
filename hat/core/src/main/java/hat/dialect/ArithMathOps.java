@@ -249,7 +249,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class MMAOp extends ArithMathOp implements Op.Pure {
+    public static class MMAOp extends ArithMathOp implements Op.Pure, Precedence.Invoke {
         public static final String NAME = "arith.mma";
 
         public MMAOp(ExternalizedOp def) {

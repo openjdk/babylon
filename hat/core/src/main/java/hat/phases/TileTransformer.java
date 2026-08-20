@@ -1,6 +1,7 @@
 package hat.phases;
 
 import hat.DType;
+import hat.HATMath;
 import hat.TileContext;
 import hat.TileOp;
 import hat.codetypes.*;
@@ -769,7 +770,7 @@ public class TileTransformer {
         }
 
         public static CodeType zeros(ConstantType tileShapeA, ConstantType tileShapeB) {
-            return new TensorType(JavaType.FLOAT, List.of((Integer) tileShapeA.value(), (Integer) tileShapeB.value()));
+            return new TensorType(DType.TENSOR_2D_F32_TYPE, List.of((Integer) tileShapeA.value(), (Integer) tileShapeB.value()));
         }
 
         public static CodeType asType(CodeType tensor, CodeType toType) {

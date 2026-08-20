@@ -1098,4 +1098,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp) {
         throw new UnsupportedOperationException("Tile Transpose Operation is not supported yet.");
     }
+
+    @Override
+    public OpenCLHATKernelBuilder tileZerosOp(TileOps.TileZerosOp tileZerosOp) {
+        throw new UnsupportedOperationException("Tile Zeros Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
+        throw new UnsupportedOperationException("Tile MMA Operation is not supported yet.");
+    }
 }

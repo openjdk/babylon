@@ -24,13 +24,8 @@
  */
 package hat.test;
 
-import hat.Accelerator;
+import hat.*;
 import hat.Accelerator.Compute;
-import hat.ComputeContext;
-import hat.Constant;
-import hat.NDRange;
-import hat.TileContext;
-import hat.TileOp;
 import hat.backend.Backend;
 import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
@@ -161,13 +156,15 @@ public class TestTileAPI {
     public static final int GROUP_SIZE_M = 8;
 
     @Reflect
-    public static void matmul(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void matmul(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N, @Constant int num_tiles) {
 
         final int GROUP_SIZE_M = 8;
         // Calculate bidx and bidy using swizzle
         final int bid = TileContext.BIDX();
         final int num_bid_m = Math.ceilDiv(M, tm);
         final int num_bid_n = Math.ceilDiv(N, tn);
+        //final int num_bid_m = (M + tm -1) / tm; //Math.ceilDiv(M, tm);
+        //final int num_bid_n = (N + tn -1) / tn; //Math.ceilDiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
 
         final int group_id = bid / num_bid_in_group;
@@ -178,7 +175,7 @@ public class TestTileAPI {
         final int bidy = (bid % num_bid_in_group) / num_bid_in_group;
 
         // Calculate the total number of tiles
-        final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        //final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
         var accumulator = TileOp.zeros(tm, tn);
@@ -193,9 +190,9 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tileMatmul(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N) {
+    public static void tileMatmul(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N, @Constant int numTiles) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
+                () -> matmul(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
     }
 
     @HatTest
@@ -205,16 +202,18 @@ public class TestTileAPI {
 
         final int size = 1024;
 
-        TensorF32 matrixA = TensorF32.create(accelerator, size * size);
-        TensorF32 matrixB = TensorF32.create(accelerator, size * size);
-        TensorF32 matrixC = TensorF32.create(accelerator, size * size);
+        Tensor2DF32 matrixA = Tensor2DF32.create(accelerator, size, size);
+        Tensor2DF32 matrixB = Tensor2DF32.create(accelerator, size, size);
+        Tensor2DF32 matrixC = Tensor2DF32.create(accelerator, size, size);
 
         int tm = 64;
         int tn = 64;
         int tk = 64;
 
+        final int numTiles = (size + tk -1 ) / tk;
+
         accelerator.compute( (@Reflect Compute)computeContext -> {
-            tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
+            tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
     }
 

@@ -143,6 +143,8 @@ public record HATTilesPhase() implements HATPhase {
                         opsToProcess.add(varOo);
                 case TileOps.TileSumOp sumOp when sumOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
                         opsToProcess.add(varOo);
+                case TileOps.TileZerosOp zerosOp when zerosOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
+                        opsToProcess.add(varOo);
                 case null, default -> {
                 }
             }
