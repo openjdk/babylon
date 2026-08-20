@@ -153,10 +153,8 @@ public class KernelCallGraph implements LookupCarrier {
         this.varTable = new VarTable();
         varTable.addFunction(entrypoint.funcOp().funcName());
 
-        boolean canTransformToTile = OpHelper.isKlassUsed(lookup(), entrypoint.funcOp(), TileContext.class);
-
+        boolean canTransformToTile = OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class);
         if (HAT_PROCESS_TILE_DIALECT && canTransformToTile) {
-
             Class<?>[] parameterTypes = method.getParameterTypes();
             List<CodeType> codeTypes = new ArrayList<>();
             for (Class<?> parameterType : parameterTypes) {
@@ -183,6 +181,7 @@ public class KernelCallGraph implements LookupCarrier {
             // 3. A list of CodeTypes for each input argument to the kernel.
             CoreOp.FuncOp funcOp = TileTransformer.tileFunction(entrypoint.funcOp(), JavaType.VOID, codeTypes);
             entrypoint = new FuncOpCarrier.Impl(funcOp);
+            checkSSALowering(entrypoint.funcOp());
         }
 
         HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
