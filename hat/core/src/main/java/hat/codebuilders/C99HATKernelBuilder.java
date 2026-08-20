@@ -1010,7 +1010,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
             constKeyword().sp();
         }
-        type(varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+        if (varOp.varValueType() instanceof JavaType javaType) {
+            type(javaType);
+        } else {
+            type(varOp.varValueType());
+        }
+        sp().varName(varOp).sp().equals().sp();
         var first = varOp.operands().getFirst();
         switch (first) {
             case Op.Result result -> parenthesisIfNeeded(varOp, result.op());

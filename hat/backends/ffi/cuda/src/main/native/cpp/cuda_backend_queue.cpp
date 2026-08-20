@@ -145,7 +145,6 @@ int CudaBackend::CudaQueue::estimateThreadsPerBlock(int dimensions, int globalSi
 }
 
 void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) {
-
     const auto cudaKernel = dynamic_cast<CudaModule::CudaKernel *>(kernel);
 
     int threadsPerBlockX = 1;
@@ -158,37 +157,46 @@ void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, Compilat
         blocksPerGridX = ceil_div(dispatchContext->gsx, dispatchContext->lsx);
         blocksPerGridY = ceil_div(dispatchContext->gsy, dispatchContext->lsy);
         blocksPerGridZ = ceil_div(dispatchContext->gsz, dispatchContext->lsz);
-    } else  {
-    threadsPerBlockX = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsx, dispatchContext->lsx);
-    threadsPerBlockY = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsy, dispatchContext->lsy);
-    threadsPerBlockZ = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsz, dispatchContext->lsz);
+    } else {
+        threadsPerBlockX = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsx,
+                                                   dispatchContext->lsx);
+        threadsPerBlockY = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsy,
+                                                   dispatchContext->lsy);
+        threadsPerBlockZ = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsz,
+                                                   dispatchContext->lsz);
 
-    int warpFactor[3] = { 1, 1, 1 };
-    if (dispatchContext->wsx != 0) {
-        warpFactor[0] = 32;
-    }
-    if (dispatchContext->wsy != 0) {
-        warpFactor[1] = 32;
-    }
-    if (dispatchContext->wsz != 0) {
-        warpFactor[2] = 32;
-    }
+        int warpFactor[3] = {1, 1, 1};
+        if (dispatchContext->wsx != 0) {
+            warpFactor[0] = 32;
+        }
+        if (dispatchContext->wsy != 0) {
+            warpFactor[1] = 32;
+        }
+        if (dispatchContext->wsz != 0) {
+            warpFactor[2] = 32;
+        }
 
-    int globalSize[3] = { dispatchContext->gsx, dispatchContext->gsy, dispatchContext->gsz };
-    globalSize[0] = dispatchContext->tlx? ceil_div(dispatchContext->gsx, dispatchContext->tlx) * warpFactor[0]: dispatchContext->gsx;
-    globalSize[1] = dispatchContext->tly? ceil_div(dispatchContext->gsy, dispatchContext->tly) * warpFactor[1]: dispatchContext->gsy;
-    globalSize[2] = dispatchContext->tlz? ceil_div(dispatchContext->gsz, dispatchContext->tlz) * warpFactor[2]: dispatchContext->gsz;
+        int globalSize[3] = {dispatchContext->gsx, dispatchContext->gsy, dispatchContext->gsz};
+        globalSize[0] = dispatchContext->tlx
+                            ? ceil_div(dispatchContext->gsx, dispatchContext->tlx) * warpFactor[0]
+                            : dispatchContext->gsx;
+        globalSize[1] = dispatchContext->tly
+                            ? ceil_div(dispatchContext->gsy, dispatchContext->tly) * warpFactor[1]
+                            : dispatchContext->gsy;
+        globalSize[2] = dispatchContext->tlz
+                            ? ceil_div(dispatchContext->gsz, dispatchContext->tlz) * warpFactor[2]
+                            : dispatchContext->gsz;
 
-    int blocksPerGridX = ceil_div(globalSize[0], threadsPerBlockX);
-    int blocksPerGridY = 1;
-    int blocksPerGridZ = 1;
-    if (dispatchContext->dimensions > 1) {
-        blocksPerGridY = ceil_div(globalSize[1], threadsPerBlockY);
+        blocksPerGridX = ceil_div(globalSize[0], threadsPerBlockX);
+        blocksPerGridY = 1;
+        blocksPerGridZ = 1;
+        if (dispatchContext->dimensions > 1) {
+            blocksPerGridY = ceil_div(globalSize[1], threadsPerBlockY);
+        }
+        if (dispatchContext->dimensions > 2) {
+            blocksPerGridZ = ceil_div(globalSize[2], threadsPerBlockZ);
+        }
     }
-    if (dispatchContext->dimensions > 2) {
-        blocksPerGridZ = ceil_div(globalSize[2], threadsPerBlockZ);
-    }
-}
 
     // Enable debug information with info: HAT=INFO
     if (backend->config->info) {
@@ -200,27 +208,27 @@ void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, Compilat
 
     const std::thread::id thread_id = std::this_thread::get_id();
     if (thread_id != streamCreationThread) {
-        std::cout << "dispatch()  thread=" <<thread_id<< " != "<< streamCreationThread<< std::endl;
+        std::cout << "dispatch()  thread=" << thread_id << " != " << streamCreationThread << std::endl;
     }
 
-//     // CUDA events for timing
-//     cudaEvent_t start, stop;
-//     cuEventCreate(&start, cudaEventDefault);
-//     cuEventCreate(&stop, cudaEventDefault);
-//     cuEventRecord(start, 0);
+    //     // CUDA events for timing
+    //     cudaEvent_t start, stop;
+    //     cuEventCreate(&start, cudaEventDefault);
+    //     cuEventCreate(&stop, cudaEventDefault);
+    //     cuEventRecord(start, 0);
 
     const auto status = cuLaunchKernel(cudaKernel->function, //
-                                 blocksPerGridX, blocksPerGridY, blocksPerGridZ, //
-                                 threadsPerBlockX, threadsPerBlockY, threadsPerBlockZ, //
-                                 0, //
-                                 cuStream, //
-                                 cudaKernel->argslist, //
-                                 nullptr);
-//     cuEventRecord(stop, 0);
-//     cuEventSynchronize(stop);
-//     float elapsedTimeMs = 0.0f;
-//     cuEventElapsedTime(&elapsedTimeMs, start, stop);
-//     std::cout << "Kernel Elapsed Time: " << elapsedTimeMs << " ms\n";
+                                       blocksPerGridX, blocksPerGridY, blocksPerGridZ, //
+                                       threadsPerBlockX, threadsPerBlockY, threadsPerBlockZ, //
+                                       0, //
+                                       cuStream, //
+                                       cudaKernel->argslist, //
+                                       nullptr);
+    //     cuEventRecord(stop, 0);
+    //     cuEventSynchronize(stop);
+    //     float elapsedTimeMs = 0.0f;
+    //     cuEventElapsedTime(&elapsedTimeMs, start, stop);
+    //     std::cout << "Kernel Elapsed Time: " << elapsedTimeMs << " ms\n";
 
     CUDA_CHECK(status, "cuLaunchKernel");
 }
