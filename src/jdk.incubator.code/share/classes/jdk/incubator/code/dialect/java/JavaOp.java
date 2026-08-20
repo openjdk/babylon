@@ -97,7 +97,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             VarAccessOp.VarLoadOp,
             VarAccessOp.VarStoreOp,
             ConditionalExpressionOp,
-            JavaConditionalOp,
+            ConditionalAndOrOp,
             SwitchExpressionOp {
 
         /**
@@ -4574,22 +4574,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.23 Conditional-And Operator {@code &&}
      * @jls 15.24 Conditional-Or Operator {@code ||}
      */
-    public sealed static abstract class JavaConditionalOp extends AbstractOp
+    public sealed static abstract class ConditionalAndOrOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable, JavaExpression {
 
         static final FunctionType BODY_TYPE = CoreType.functionType(BOOLEAN);
 
+        // 2 or more bodies
+        // See use for modeling multi-label cases of switch statements/expressions
         final List<Body> bodies;
 
-        JavaConditionalOp(JavaConditionalOp that, CodeContext cc, CodeTransformer ct) {
+        ConditionalAndOrOp(ConditionalAndOrOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
-            // Copy body
             this.bodies = that.bodies.stream().map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
-        JavaConditionalOp(List<Body.Builder> bodyCs) {
+        ConditionalAndOrOp(List<Body.Builder> bodyCs) {
             super(List.of());
+
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
@@ -4598,56 +4600,40 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return bodies;
         }
 
-        static Block.Builder lower(Block.Builder startBlock, BiFunction<Block.Builder, Op, Block.Builder> before, JavaConditionalOp cop) {
-            List<Body> bodies = cop.bodies();
+        @Override
+        public Block.Builder lower(Block.Builder lhs, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+            Block.Builder exit = lhs.block();
+            lhs.context().mapValue(result(), exit.parameter(resultType()));
 
-            Block.Builder exit = startBlock.block();
-            CodeType oprType = cop.result().type();
-            Block.Parameter arg = exit.parameter(oprType);
-            startBlock.context().mapValue(cop.result(), arg);
-
-            // Transform bodies in reverse order
-            // This makes available the blocks to be referenced as successors in prior blocks
-
-            Block.Builder pred = null;
-            for (int i = bodies.size() - 1; i >= 0; i--) {
-                CodeTransformer bodyTransformer;
-                BiFunction<Block.Builder, Op, Block.Builder> lowering;
-                if (i == bodies.size() - 1) {
-                    bodyTransformer = loweringTransformer(before, (block, op) -> {
-                        if (op instanceof CoreOp.YieldOp yop) {
-                            Value p = block.context().getValue(yop.yieldValue());
-                            block.add(branch(exit.reference(p)));
-                            return block;
+            // Lower all but the last body
+            for (int i = 0; i < bodies().size() - 1; i++) {
+                Block.Builder rhs = lhs.block();
+                lhs.transformBody(bodies().get(i), List.of(), loweringTransformer(inherited, (block, op) -> {
+                    if (op instanceof CoreOp.YieldOp yop) {
+                        Value p = block.context().getValue(yop.yieldValue());
+                        if (this instanceof ConditionalAndOp) {
+                            block.add(conditionalBranch(p, rhs.reference(), exit.reference(p)));
                         } else {
-                            return null;
+                            block.add(conditionalBranch(p, exit.reference(p), rhs.reference()));
                         }
-                    });
-                } else {
-                    Block.Builder nextPred = pred;
-                    bodyTransformer = loweringTransformer(before, (block, op) -> {
-                        if (op instanceof CoreOp.YieldOp yop) {
-                            Value p = block.context().getValue(yop.yieldValue());
-                            if (cop instanceof ConditionalAndOp) {
-                                block.add(conditionalBranch(p, nextPred.reference(), exit.reference(p)));
-                            } else {
-                                block.add(conditionalBranch(p, exit.reference(p), nextPred.reference()));
-                            }
-                            return block;
-                        } else {
-                            return null;
-                        }
-                    });
-                }
-
-                Body fromPred = bodies.get(i);
-                if (i == 0) {
-                    startBlock.transformBody(fromPred, List.of(), bodyTransformer);
-                } else {
-                    pred = startBlock.block(fromPred.bodySignature().parameterTypes());
-                    pred.transformBody(fromPred, pred.parameters(), bodyTransformer);
-                }
+                        return block;
+                    } else {
+                        return null;
+                    }
+                }));
+                lhs = rhs;
             }
+
+            // Lower the last body
+            lhs.transformBody(bodies().getLast(), List.of(), loweringTransformer(inherited, (block, op) -> {
+                if (op instanceof CoreOp.YieldOp yop) {
+                    Value p = block.context().getValue(yop.yieldValue());
+                    block.add(branch(exit.reference(p)));
+                    return block;
+                } else {
+                    return null;
+                }
+            }));
 
             return exit;
         }
@@ -4664,7 +4650,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.23 Conditional-And Operator {@code &&}
      */
     @OpDeclaration(ConditionalAndOp.NAME)
-    public static final class ConditionalAndOp extends JavaConditionalOp {
+    public static final class ConditionalAndOp extends ConditionalAndOrOp {
 
         /**
          * Builder for conditional-and operations.
@@ -4721,11 +4707,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             bodyCs.forEach(b -> requireBodySignature(NAME, b, BODY_TYPE));
             super(requireMinBodies(NAME, bodyCs, 2));
         }
-
-        @Override
-        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-            return lower(b, inherited, this);
-        }
     }
 
     /**
@@ -4734,7 +4715,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.24 Conditional-Or Operator {@code ||}
      */
     @OpDeclaration(ConditionalOrOp.NAME)
-    public static final class ConditionalOrOp extends JavaConditionalOp {
+    public static final class ConditionalOrOp extends ConditionalAndOrOp {
 
         /**
          * Builder for conditional-or operations.
@@ -4790,11 +4771,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         ConditionalOrOp(List<Body.Builder> bodyCs) {
             bodyCs.forEach(b -> requireBodySignature(NAME, b, BODY_TYPE));
             super(requireMinBodies(NAME, bodyCs, 2));
-        }
-
-        @Override
-        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-            return lower(b, inherited, this);
         }
     }
 
