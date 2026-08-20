@@ -102,7 +102,7 @@ public interface DispatchContext extends Buffer {
     int wsz();
     void wsz(int wsz);
 
-    static DispatchContext createDefault(ArenaAndLookupCarrier cc) {
+    static DispatchContext createDefaultContext(ArenaAndLookupCarrier cc) {
         DispatchContext dispatchContext = BoundSchema.of(cc ,schema).allocate();
         dispatchContext.type(0); // default to kernel
         setDefault(dispatchContext);
@@ -133,7 +133,7 @@ public interface DispatchContext extends Buffer {
         dispatchContext.wsz(0);
     }
 
-    static DispatchContext createTile(ArenaAndLookupCarrier cc) {
+    static DispatchContext createTileContext(ArenaAndLookupCarrier cc) {
         DispatchContext dispatchContext = BoundSchema.of(cc ,schema).allocate();
         dispatchContext.type(1); // default to tile type
         setDefault(dispatchContext);

@@ -40,7 +40,6 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -187,7 +186,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
         Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs.length + 1];
         System.arraycopy(kernelCallSite.capturedArgs, 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs.length);
-        dispatchContextAndArgs[0] = DispatchContext.createDefault(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
+        dispatchContextAndArgs[0] = DispatchContext.createDefaultContext(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
         accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
     }
 
@@ -220,10 +219,9 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             });
         }
 
-
         Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs().length + 1];
         System.arraycopy(kernelCallSite.capturedArgs(), 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs().length);
-        dispatchContextAndArgs[0] = DispatchContext.createTile(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
+        dispatchContextAndArgs[0] = DispatchContext.createTileContext(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
         accelerator.backend.dispatchTile(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
 
 //        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();

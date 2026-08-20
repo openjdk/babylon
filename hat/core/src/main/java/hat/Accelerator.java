@@ -27,7 +27,6 @@ package hat;
 import hat.backend.Backend;
 
 import hat.buffer.DispatchContext;
-import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
@@ -43,7 +42,6 @@ import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -89,7 +87,7 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
     //    return new KernelContext(ndRange);
    // }
     public DispatchContext dispatchContext(NDRange ndRange) {
-        var dispatchContext =  DispatchContext.createDefault(this);
+        var dispatchContext =  DispatchContext.createDefaultContext(this);
         throw new RuntimeException("fill me");
       //  return dispatchContext;
     }
