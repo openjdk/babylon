@@ -28,6 +28,7 @@ import hat.BufferTagger;
 import hat.DType;
 import hat.KernelContext;
 import hat.TileContext;
+import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
@@ -186,6 +187,8 @@ public class KernelCallGraph implements LookupCarrier {
                     // We need to inspect thge type
                     if (parameterType.equals(TensorF32.class)) {
                         codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE));
+                    } else if (parameterType.equals(Tensor2DF32.class)) {
+                        codeTypes.add(new PtrType(DType.TENSOR_2D_F32_TYPE));
                     } else {
                         throw new UnsupportedOperationException("Unsupported parameter type: " + parameterType);
                     }

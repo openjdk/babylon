@@ -1494,4 +1494,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("ct::sum").paren(_ ->
                 recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(dimension).id("_ic"));
     }
+
+    @Override
+    public CudaHATKernelBuilder tileIndexOp(TileOps.TileIndexOp tileIndexOp) {
+        return commaSpaceSeparated(tileIndexOp.operands(), this::recurseResultOrThrow);
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp) {
+        return id("ct::transpose").paren( _-> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
+    }
 }
