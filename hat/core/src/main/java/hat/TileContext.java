@@ -1,6 +1,7 @@
 
 package hat;
 
+import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.types.Tile;
 import optkl.ifacemapper.Buffer;
@@ -23,6 +24,10 @@ public interface TileContext {
         return null;
     }
 
+    static Tile load(Tensor2DF32 buffer, TileIndex2D tileIndex2D, Shape tileSize) {
+        return null;
+    }
+
     static Tile load(TensorF32 buffer, TileIndex2D tileIndex2D, Shape shape) {
         return null;
     }
@@ -32,6 +37,10 @@ public interface TileContext {
     }
 
     static void store(TensorF32 buffer, TileIndex2D tileIndex, Tile result) {
+
+    }
+
+    static void store(Tensor2DF32 buffer, TileIndex2D tileIndex, Tile result) {
 
     }
 

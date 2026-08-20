@@ -50,22 +50,18 @@ public interface Tensor2DF32 extends Buffer {
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<Tensor2DF32> schema = Schema.of(Tensor2DF32.class, $ -> $
-            .arrayLen("m", "n")
-            .pad(8)
-            .array("array"));
+    Schema<Tensor2DF32> schema = Schema.of(Tensor2DF32.class, ifaceType ->
+            ifaceType.arrayLen("m", "n")
+                    .pad(8)
+                    .array("array"));
 
-    static Tensor2DF32 create(ArenaAndLookupCarrier cc, int length) {
-        return BoundSchema.of(cc ,schema, length).allocate();
+    static Tensor2DF32 create(ArenaAndLookupCarrier cc, int m, int n) {
+        return BoundSchema.of(cc ,schema, m, n).allocate();
     }
 
     default Tensor2DF32 copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, m() * n());
         return this;
-    }
-
-    static Tensor2DF32 createFrom(ArenaAndLookupCarrier cc, float[] arr) {
-        return create(cc, arr.length).copyFrom(arr);
     }
 
     default Tensor2DF32 copyTo(float[] floats) {

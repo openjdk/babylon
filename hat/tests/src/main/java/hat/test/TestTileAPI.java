@@ -32,6 +32,7 @@ import hat.NDRange;
 import hat.TileContext;
 import hat.TileOp;
 import hat.backend.Backend;
+import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 
 import hat.test.annotation.HatTest;
@@ -281,7 +282,7 @@ public class TestTileAPI {
 
     // Matrix transpose example
     @Reflect
-    public static void transposeKernel(TensorF32 inputMatrix, TensorF32 transposedMatrix, @Constant int tm, @Constant int tn) {
+    public static void transposeKernel(Tensor2DF32 inputMatrix, Tensor2DF32 transposedMatrix, @Constant int tm, @Constant int tn) {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
@@ -289,7 +290,7 @@ public class TestTileAPI {
         final int bidy = TileContext.BIDY();
 
         // Load the tile with shape tm x tn into memory (e.g., registers, shared memory, or tensor memory)_
-        var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(128, 128));
+        var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(tm, tn));
 
         // compute the transpose function.
         var transposedTile = TileOp.transpose(inputTile);
@@ -300,7 +301,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeTransposeKernel(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
+    public static void computeTransposeKernel(ComputeContext computeContext, Tensor2DF32 input, Tensor2DF32 output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 () -> transposeKernel(input, output, tm, tn));
     }
@@ -313,9 +314,18 @@ public class TestTileAPI {
         final int N = 512;
         final int tileSize = 128;
 
-        TensorF32 input = TensorF32.create(accelerator, M * N);
-        TensorF32 result = TensorF32.create(accelerator, M * N);
+        Tensor2DF32 input = Tensor2DF32.create(accelerator, M, N);
+        Tensor2DF32 result = Tensor2DF32.create(accelerator, M, N);
 
-        accelerator.compute( (@Reflect Compute) computeContext -> computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
+        // Launch kernel
+        accelerator.compute( (@Reflect Compute) computeContext ->
+                computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
+
+        // Check results
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++) {
+                HATAsserts.assertEquals(input.array(i * N + j), result.array(j * N + i), 0.01f);
+            }
+        }
     }
 }
