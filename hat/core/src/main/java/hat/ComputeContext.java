@@ -204,7 +204,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     /** Creating the kernel callsite involves
          walking the code model of the lambda
-         analysing the callgraph and transforming to HATDialect
+         analyzing the callgraph and transforming to HATDialect
      So we cache the callsite against the location from the lambdaop.
      */
     public void dispatchKernel(NDRange ndRange, Kernel kernel) {
@@ -221,56 +221,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     public void dispatchTile(NDRange ndRange, TileKernel tileKernel) {
         Dispatcher dispatcher = new Dispatcher(tileKernel);
         dispatcher.dispatch(kernelCallSiteCache, lookup(), computeCallGraph, accelerator, ndRange);
-//        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();
-//        try {
-//            Method method = methodRef.resolveToMethod(this.lookup());
-//            FuncOp funcOp = Op.ofMethod(method).get();
-//            IO.println("function: ");
-//            IO.println(funcOp.toText());
-//
-//            // Analysis of fields to transform into constants
-//            funcOp = funcOp.transform((blockBuilder, op) -> {
-//                if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp) {
-//                    boolean isStaticField = fieldLoadOp.operands().isEmpty();
-//                    if (isStaticField) {
-//                        blockBuilder.add(fieldLoadOp);
-//                        CodeType typeElement = fieldLoadOp.resultType();
-//                        if (typeElement instanceof PrimitiveType primitiveType) {
-//                            JavaType basicType = primitiveType.toBasicType();
-//                            if (basicType == JavaType.INT) {
-//                                // Found the int field. we can replace it with a constant value
-//                                try {
-//                                    Field field = fieldLoadOp.fieldReference().resolveToField(this.lookup());
-//                                    IO.println(field);
-//                                    // We can pass null because, at this point, we know it is a static field
-//                                    int anInt = field.getInt(null);
-//                                    CoreOp.ConstantOp c = CoreOp.constant(basicType, anInt);
-//                                    Op.Result op1 = blockBuilder.add(c);
-//                                    c.setLocation(fieldLoadOp.location());
-//                                    blockBuilder.context().mapValue(fieldLoadOp.result(), op1);
-//                                } catch (ReflectiveOperationException e) {
-//                                    throw new RuntimeException(e);
-//                                }
-//                            }
-//                        } else {
-//                            blockBuilder.add(fieldLoadOp);
-//                        }
-//                    } else {
-//                        blockBuilder.add(fieldLoadOp);
-//                    }
-//                } else {
-//                    blockBuilder.add(op);
-//                }
-//                return blockBuilder;
-//            });
-//
-//            IO.println("Transformed: " + funcOp.toText());
-//        } catch (ReflectiveOperationException e) {
-//            throw new RuntimeException(e);
-//        }
-
     }
-
 
     @Override
     public void preMutate(MappableIface b) {
