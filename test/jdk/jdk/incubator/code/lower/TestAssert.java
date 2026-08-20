@@ -145,8 +145,9 @@ public class TestAssert {
               ^block_2:
                 %6 : java.type:"int" = constant @10;
                 %7 : java.type:"byte" = conv %6;
-                %8 : java.type:"java.lang.AssertionError" = new %7 @java.ref:"java.lang.AssertionError::(int)";
-                throw %8;
+                %8 : java.type:"int" = conv %7;
+                %9 : java.type:"java.lang.AssertionError" = new %8 @java.ref:"java.lang.AssertionError::(int)";
+                throw %9;
             };
             """, ssa = false)
     static int testByteDetail(int i) {
@@ -170,8 +171,9 @@ public class TestAssert {
               ^block_2:
                 %6 : java.type:"int" = constant @10;
                 %7 : java.type:"short" = conv %6;
-                %8 : java.type:"java.lang.AssertionError" = new %7 @java.ref:"java.lang.AssertionError::(int)";
-                throw %8;
+                %8 : java.type:"int" = conv %7;
+                %9 : java.type:"java.lang.AssertionError" = new %8 @java.ref:"java.lang.AssertionError::(int)";
+                throw %9;
             };
             """, ssa = false)
     static int testShortDetail(int i) {
