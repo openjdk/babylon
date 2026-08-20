@@ -142,7 +142,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp.get());
         this.accelerator.backend.computeContextHandoff(this);
     }
-    public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
+
+    public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph, Object[] capturedArgs) {}
 
     private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
 
@@ -167,24 +168,26 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         KernelCallSite kernelCallSite;
         if (kernelCallSiteCache.containsKey(location)) {
             var oldKernelCallSite = kernelCallSiteCache.get(location);
-            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
+            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), oldKernelCallSite.capturedArgs());
         } else {
             kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
                 JavaOp.LambdaOp lambdaOp = quoted.op();
                 MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp).op().invokeReference();
                 KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
                 if (kernelCallGraph == null) {
-                    throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+                    throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
                 }
-                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
+                var lambda = lambda(lookup(), lambdaOp);
+                Object[] capturedArgs = lambda.getQuotedCapturedValues(quoted, kernelCallGraph.method());
+                // Compilation happens here!
+                kernelCallGraph.compile(capturedArgs);
+                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph, capturedArgs);
             });
         }
-        var method =  kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
-        var lambda = lambda(lookup(),kernelCallSite.lambdaOp);
-        Object[] capturedArgs = lambda.getQuotedCapturedValues(kernelCallSite.quoted,method);
-        Object[] dispatchContextAndArgs = new Object[capturedArgs.length+1];
-        System.arraycopy(capturedArgs,0,dispatchContextAndArgs,1,capturedArgs.length);
-        dispatchContextAndArgs[0]=DispatchContext.createDefault(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
+
+        Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs.length + 1];
+        System.arraycopy(kernelCallSite.capturedArgs, 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs.length);
+        dispatchContextAndArgs[0] = DispatchContext.createDefault(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
         accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
     }
 
@@ -201,7 +204,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         KernelCallSite kernelCallSite;
         if (kernelCallSiteCache.containsKey(location)) {
             var oldKernelCallSite = kernelCallSiteCache.get(location);
-            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
+            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), oldKernelCallSite.capturedArgs());
         } else {
             kernelCallSite = kernelCallSiteCache.compute(location, (_, _) -> {
                 JavaOp.LambdaOp lambdaOp = quoted.op();
@@ -210,17 +213,17 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 if (kernelCallGraph == null) {
                     throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
                 }
-                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
+                var lambda = lambda(lookup(), lambdaOp);
+                Object[] capturedArgs = lambda.getQuotedCapturedValues(quoted, kernelCallGraph.method());
+                kernelCallGraph.compile(capturedArgs);
+                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph, capturedArgs);
             });
         }
 
-        var method = kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
-        var lambda = lambda(lookup(), kernelCallSite.lambdaOp);
-        Object[] capturedArgs = lambda.getQuotedCapturedValues(kernelCallSite.quoted, method);
-        Object[] dispatchContextAndArgs = new Object[capturedArgs.length + 1];
-        System.arraycopy(capturedArgs, 0, dispatchContextAndArgs, 1, capturedArgs.length);
+
+        Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs().length + 1];
+        System.arraycopy(kernelCallSite.capturedArgs(), 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs().length);
         dispatchContextAndArgs[0] = DispatchContext.createTile(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
-        IO.println("!!!!!!!!!!!! " + Arrays.toString(dispatchContextAndArgs));
         accelerator.backend.dispatchTile(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
 
 //        MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp, TileContext.class).op().invokeReference();
@@ -270,8 +273,6 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 //        } catch (ReflectiveOperationException e) {
 //            throw new RuntimeException(e);
 //        }
-//
-//        // TODO: Dispatch the Tile-Range which include JIT Compilation + Execution
 
     }
 

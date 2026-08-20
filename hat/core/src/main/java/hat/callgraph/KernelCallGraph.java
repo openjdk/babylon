@@ -64,6 +64,9 @@ import static optkl.OpHelper.Invoke.invoke;
 public class KernelCallGraph implements LookupCarrier {
 
     private static final boolean HAT_PROCESS_TILE_DIALECT = true;
+    private final CoreOp.FuncOp inlinedEntryPoint;
+    private final Method method;
+    private FuncOpCarrier.Impl entrypoint;
 
     @Override public MethodHandles.Lookup lookup(){
         return computeCallGraph.lookup();
@@ -74,8 +77,8 @@ public class KernelCallGraph implements LookupCarrier {
     public static final boolean SHOW_KERNEL_IFACE_DAG_PROPOSED_TYPEDEFS = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
 
     public final ComputeCallGraph computeCallGraph;
-    public final MethodCallDag callDag;
-    public final IfaceDataDag<MappableIface> iFaceDag;
+    public MethodCallDag callDag;
+    public IfaceDataDag<MappableIface> iFaceDag;
     public final List<AccessType> bufferAccessList;
     public final Set<CodeType> accessedTypes;
     public final Set<Class<?>> accessedClasses;
@@ -93,8 +96,9 @@ public class KernelCallGraph implements LookupCarrier {
     private final boolean useTensors;
 
     KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
+        this.method = method;
         this.computeCallGraph = computeCallGraph;
-        var inlinedEntryPoint = inlineEntryPoint(kernelFunction);
+        this.inlinedEntryPoint = inlineEntryPoint(kernelFunction);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke instanceof OpHelper.Invoke.Static invokeStatic && invokeStatic.refIs(KernelContext.class) && invokeStatic.named("barrier"));
         // We should be able to remove these field access checks once we pivot to using direct access to KernelContext static calls.
@@ -149,19 +153,32 @@ public class KernelCallGraph implements LookupCarrier {
         this.useTensors = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke.returns(Tensor.class));
 
-        var entrypoint = new FuncOpCarrier.Impl(kernelFunction);
+        this.entrypoint = new FuncOpCarrier.Impl(kernelFunction);
         this.varTable = new VarTable();
-        varTable.addFunction(entrypoint.funcOp().funcName());
+    }
 
+    /**
+     * Compile a kernel into the target device-code. The input stage for compilation is the method represented in a code-tree from code reflection.
+     * Then the kernel is transformed and lowered to a OpenCL/CUDA kernel.
+     *
+     * @param args
+     *     Input I/O arguments. Arguments are used for code specialization (currently only for Tile code specialization).
+     */
+    public void compile(Object[] args) {
+        varTable.addFunction(entrypoint.funcOp().funcName());
         boolean canTransformToTile = OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class);
         if (HAT_PROCESS_TILE_DIALECT && canTransformToTile) {
             Class<?>[] parameterTypes = method.getParameterTypes();
             List<CodeType> codeTypes = new ArrayList<>();
-            for (Class<?> parameterType : parameterTypes) {
+            if (args.length != parameterTypes.length) {
+                throw new IllegalArgumentException(String.format("Expected %d arguments, got %d", parameterTypes.length, args.length));
+            }
+            for (int i = 0; i < parameterTypes.length; i++) {
+                Class<?> parameterType = parameterTypes[i];
+                Object arg = args[i];
                 if (parameterType.isPrimitive()) {
-                    if (parameterType.equals(int.class)) {
-                        // TODO: I need to obtain runtime value for each constant
-                        codeTypes.add(new ConstantType(DType.Int, 16));
+                    if (parameterType.equals(int.class) && arg instanceof Integer val) {
+                        codeTypes.add(new ConstantType(DType.Int, val));
                     } else {
                         throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
                     }
@@ -187,25 +204,26 @@ public class KernelCallGraph implements LookupCarrier {
         HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
         checkSSALowering(entrypoint.funcOp());
 
-        this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
+        callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
         callDag.rankOrdered.forEach(f -> {
             varTable.addFunction(f.funcOp().funcName());
             HATTransformer.transform(HATTransformer.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
             checkSSALowering(f.funcOp());
         });
+
         if (SHOW_KERNEL_CALL_DAG) {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
         }
 
         final FuncOpCarrier.Impl finalEntrypoint = entrypoint;
         this.iFaceDag = new IfaceDataDag<>(dag->
-            finalEntrypoint.funcOp().elements()
-                    .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
-                    .filter(ClassType.class::isInstance).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
-                    .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
-                    .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
-                            .forEach(retType -> dag.addEdge(iface, retType))
-                    )
+                finalEntrypoint.funcOp().elements()
+                        .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
+                        .filter(ClassType.class::isInstance).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
+                        .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
+                        .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
+                                .forEach(retType -> dag.addEdge(iface, retType))
+                        )
         );
 
         if (SHOW_KERNEL_IFACE_DAG) {
@@ -294,6 +312,10 @@ public class KernelCallGraph implements LookupCarrier {
 
     public VarTable getVarTable() {
         return varTable;
+    }
+
+    public Method method() {
+        return method;
     }
 
 }
