@@ -71,6 +71,10 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T tileMMAOp(ArithMathOps.MMAOp tileMMAOp);
 
+    T cDivOp(ArithMathOps.CDivOp cDivOp);
+
+    T minOp(ArithMathOps.MinOp minOp);
+
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -86,6 +90,8 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case ArithMathOps.AddOp addOp -> tileAddOp(addOp);
                 case ArithMathOps.TransposeOp tileTransposeOp -> tileTransposeOp(tileTransposeOp);
                 case ArithMathOps.MMAOp  tileMMAOp -> tileMMAOp(tileMMAOp);
+                case ArithMathOps.CDivOp cDivOp -> cDivOp(cDivOp);
+                case ArithMathOps.MinOp minOp -> minOp(minOp);
                 default -> throw new IllegalStateException("handle nesting of Tile AritmeticMath op " + op);
             }
         } else if (op instanceof TileOps.TOp tileOps) {

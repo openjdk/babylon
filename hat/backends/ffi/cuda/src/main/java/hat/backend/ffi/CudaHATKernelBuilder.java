@@ -1535,4 +1535,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
         return id("ct::mma").paren(_ -> commaSpaceSeparated(tileMMAOp.operands(), this::recurseResultOrThrow));
     }
+
+    @Override
+    public CudaHATKernelBuilder cDivOp(ArithMathOps.CDivOp cDivOp) {
+        return id("ct::ceildiv").paren(_ -> commaSpaceSeparated(cDivOp.operands(), this::recurseResultOrThrow));
+    }
+
+    @Override
+    public CudaHATKernelBuilder minOp(ArithMathOps.MinOp minOp) {
+        return id("ct::min").paren(_ -> commaSpaceSeparated(minOp.operands(), this::recurseResultOrThrow));
+    }
 }

@@ -1108,4 +1108,14 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
         throw new UnsupportedOperationException("Tile MMA Operation is not supported yet.");
     }
+
+    @Override
+    public OpenCLHATKernelBuilder cDivOp(ArithMathOps.CDivOp cDivOp) {
+        throw new UnsupportedOperationException("Division Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder minOp(ArithMathOps.MinOp minOp) {
+        throw new UnsupportedOperationException("Min Operation is not supported yet.");
+    }
 }

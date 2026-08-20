@@ -27,9 +27,11 @@ package hat.test;
 import hat.*;
 import hat.Accelerator.Compute;
 import hat.backend.Backend;
+import hat.buffer.F32Array;
 import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 
+import hat.dialect.TileOps;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
@@ -161,16 +163,15 @@ public class TestTileAPI {
         final int GROUP_SIZE_M = 8;
         // Calculate bidx and bidy using swizzle
         final int bid = TileContext.BIDX();
-        final int num_bid_m = Math.ceilDiv(M, tm);
-        final int num_bid_n = Math.ceilDiv(N, tn);
+        final int num_bid_m = TileOp.ceildiv(M, tm);
+        final int num_bid_n = TileOp.ceildiv(N, tn);
         //final int num_bid_m = (M + tm -1) / tm; //Math.ceilDiv(M, tm);
         //final int num_bid_n = (N + tn -1) / tn; //Math.ceilDiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
 
         final int group_id = bid / num_bid_in_group;
         final int first_bid_m = group_id * GROUP_SIZE_M;
-        final int group_size_m = Math.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
-
+        final int group_size_m = TileOp.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
         final int bidx = first_bid_m + (bid % group_size_m);
         final int bidy = (bid % num_bid_in_group) / num_bid_in_group;
 
@@ -195,6 +196,20 @@ public class TestTileAPI {
                 () -> matmul(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
     }
 
+    private static void runSequential(Tensor2DF32 matrixA, Tensor2DF32 matrixB, Tensor2DF32 matrixC, final int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                float sum = 0;
+                for (int k = 0; k < size; k++) {
+                    float a = matrixA.array((long) i * size + k);
+                    float b = matrixB.array((long) k * size + j);
+                    sum += a * b;
+                }
+                matrixC.array((long) i * size + j, sum);
+            }
+        }
+    }
+    
     @HatTest
     public void test_hat_tile_02() {
 
@@ -206,6 +221,13 @@ public class TestTileAPI {
         Tensor2DF32 matrixB = Tensor2DF32.create(accelerator, size, size);
         Tensor2DF32 matrixC = Tensor2DF32.create(accelerator, size, size);
 
+        // Initialize matrices (A and B have the same size)
+        Random r = new Random(19);
+        for (int j = 0; j < size * size; j++) {
+            matrixA.array(j, r.nextFloat());
+            matrixB.array(j, r.nextFloat());
+        }
+
         int tm = 64;
         int tn = 64;
         int tk = 64;
@@ -215,6 +237,14 @@ public class TestTileAPI {
         accelerator.compute( (@Reflect Compute)computeContext -> {
             tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
+
+        runSequential(matrixA, matrixB, matrixC, size);
+
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                HATAsserts.assertEquals(matrixC.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+            }
+        }
     }
 
     // ================================================================================================================

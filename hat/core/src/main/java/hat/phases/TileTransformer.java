@@ -371,6 +371,30 @@ public class TileTransformer {
             }
         }
 
+        public Value ceildiv(CodeType type, Op.Result result,
+                             CodeType typeA, Value valA,
+                             CodeType typeB, Value valB) {
+            valA = block.context().getValue(valA);
+            valB = block.context().getValue(valB);
+            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+                throw new IllegalStateException("Not supported yet");
+            } else {
+                return block.add(ArithMathOps.cdiv(type, valA, valB));
+            }
+        }
+
+        public Value min(CodeType type, Op.Result result,
+                         CodeType typeA, Value valA,
+                         CodeType typeB, Value valB) {
+            valA = block.context().getValue(valA);
+            valB = block.context().getValue(valB);
+            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+                throw new IllegalStateException("Not supported yet");
+            } else {
+                return block.add(ArithMathOps.min(type, valA, valB));
+            }
+        }
+
         public Value truediv(CodeType type, Op.Result result,
                              CodeType typeA, Value tensorA,
                              CodeType typeB, Value tensorB) {
@@ -754,6 +778,14 @@ public class TileTransformer {
 
         public static CodeType mod(CodeType t1, CodeType t2) {
             return binary(inferConstantType(t1), inferConstantType(t2));
+        }
+
+        public static JavaType ceildiv(CodeType t1, CodeType t2) {
+            return JavaType.INT;
+        }
+
+        public static JavaType min(CodeType t1, CodeType t2) {
+            return JavaType.INT;
         }
 
         public static JavaType numTiles(PtrType ptr, ConstantType dimension, ConstantType tileSize) {

@@ -340,6 +340,27 @@ public class ArithMathOps {
         }
     }
 
+    public static class MinOp extends ArithMathOp implements Op.Pure {
+        public static final String NAME = "arith.min";
+
+        public MinOp(ExternalizedOp def) {
+            super(def);
+        }
+
+        MinOp(MinOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public MinOp transform(CodeContext cc, CodeTransformer ot) {
+            return new MinOp(this, cc);
+        }
+
+        MinOp(CodeType type, Value a, Value b) {
+            super(NAME, type, List.of(a, b));
+        }
+    }
+
     public static class TrueDivOp extends ArithMathOp implements Op.Pure {
         public static final String NAME = "arith.truediv";
 
@@ -385,6 +406,10 @@ public class ArithMathOps {
 
     public static CDivOp cdiv(CodeType type, Value a, Value b) {
         return new CDivOp(type, a, b);
+    }
+
+    public static MinOp min(CodeType type, Value a, Value b) {
+        return new MinOp(type, a, b);
     }
 
     public static TrueDivOp truediv(CodeType type, Value a, Value b) {

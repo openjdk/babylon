@@ -85,6 +85,10 @@ public class TileOp {
         return null;
     }
 
+    public static int ceildiv(int a, int b) {
+        return 0;
+    }
+
     public static Tile transpose(Tile aTile) {
         return null;
     }
@@ -106,6 +110,10 @@ public class TileOp {
 
     public static Tile min(Tile aTile, int axis) {
         return null;
+    }
+
+    public static int min(final int a, final int b) {
+        return 0;
     }
 
     public static Tile max(Tile aTile, int axis) {
