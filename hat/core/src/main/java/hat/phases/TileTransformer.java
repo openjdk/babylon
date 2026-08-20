@@ -48,8 +48,8 @@ import java.util.stream.Stream;
  */
 public class TileTransformer {
 
-    private static final boolean PRINT_INTERNALS = Boolean.parseBoolean(System.getProperty("PRINT_INTERNALS", "FALSE"));
-    private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA", "FALSE"));
+    private static final boolean PRINT_INTERNALS = Boolean.parseBoolean(System.getProperty("PRINT_INTERNALS"));
+    private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA"));
     private static final boolean SIMPLE_SIGNATURE = Boolean.parseBoolean(System.getProperty("SIMPLE_SIGNATURE", "TRUE"));
 
     public static TileOps.ModuleOp dispatch(Class<?> klass, String methodName, List<? extends CodeType> argTypes) {

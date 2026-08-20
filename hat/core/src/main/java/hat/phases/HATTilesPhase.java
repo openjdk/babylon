@@ -29,9 +29,9 @@ public record HATTilesPhase() implements HATPhase {
 
     private CoreOp.FuncOp appendAlignment(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = new HashSet<>();
-        boolean isTileUsed = OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(invoke -> !invoke.returnsVoid())
-                .anyMatch(invoke -> invoke.refIs(TileContext.class));
+
+        // Check for static access to the TileContext class
+        boolean isTileUsed = OpHelper.isKlassUsed(lookup, funcOp, TileContext.class);
 
         // Also check the tile dialect was introduced
         isTileUsed |= funcOp.elements()

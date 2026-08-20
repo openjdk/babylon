@@ -27,6 +27,7 @@ package hat.callgraph;
 import hat.BufferTagger;
 import hat.DType;
 import hat.KernelContext;
+import hat.TileContext;
 import hat.buffer.TensorF32;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
@@ -36,7 +37,9 @@ import hat.phases.HATTransformer;
 import hat.phases.TileTransformer;
 import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
-import jdk.incubator.code.*;
+import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -150,10 +153,10 @@ public class KernelCallGraph implements LookupCarrier {
         this.varTable = new VarTable();
         varTable.addFunction(entrypoint.funcOp().funcName());
 
-        if (HAT_PROCESS_TILE_DIALECT) {
-            // TODO: Before invoking the HAT Transformer, we need to process the input code tree
-            // to be able to dialectify to a tile code model. This only affects if the input
-            // is using the Tile API.
+        boolean canTransformToTile = OpHelper.isKlassUsed(lookup(), entrypoint.funcOp(), TileContext.class);
+
+        if (HAT_PROCESS_TILE_DIALECT && canTransformToTile) {
+
             Class<?>[] parameterTypes = method.getParameterTypes();
             List<CodeType> codeTypes = new ArrayList<>();
             for (Class<?> parameterType : parameterTypes) {
