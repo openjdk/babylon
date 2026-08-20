@@ -136,8 +136,15 @@ public record HATTilesPhase() implements HATPhase {
 
         // Process nodes after Tile dialect
         funcOp.elements().forEach(element -> {
-            if (element instanceof TileOps.LoadOp loadOp && loadOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo) {
-                opsToProcess.add(varOo);
+            switch (element) {
+                case TileOps.LoadOp loadOp when loadOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
+                        opsToProcess.add(varOo);
+                case TileOps.TileFullOp fullOp when fullOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
+                        opsToProcess.add(varOo);
+                case TileOps.TileSumOp sumOp when sumOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
+                        opsToProcess.add(varOo);
+                case null, default -> {
+                }
             }
         });
 

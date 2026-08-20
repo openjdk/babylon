@@ -260,7 +260,7 @@ public class TileOps {
         }
     }
 
-    public static class TileFullOp extends TOp implements Op.Pure {
+    public static class TileFullOp extends TOp implements Op.Pure, Precedence.Invoke{
 
         protected TileFullOp(CodeType type, Value shapeValue, Value initValue) {
             super(type, List.of(shapeValue, initValue));
@@ -391,7 +391,7 @@ public class TileOps {
         }
     }
 
-    public static class TileNumOp extends TOp implements Op.Pure {
+    public static class TileNumOp extends TOp implements Op.Pure, Precedence.Invoke {
 
         public TileNumOp(ExternalizedOp def) {
             super(def);
@@ -416,7 +416,7 @@ public class TileOps {
         }
     }
 
-    public static class TileSumOp extends TOp implements Op.Pure {
+    public static class TileSumOp extends TOp implements Op.Pure, Precedence.Invoke {
 
         public TileSumOp(ExternalizedOp def) {
             super(def);

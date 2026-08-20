@@ -148,6 +148,10 @@ public class TestTileAPI {
         TensorF32 result = TensorF32.create(accelerator, size);
         accelerator.compute( (@Reflect Compute)computeContext ->
             myComputeWithTile_vector_add(computeContext, inputA, inputB, result, tile_size));
+
+        for (int i = 0; i < size; i++) {
+            HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
+        }
     }
 
     // ================================================================================================================
@@ -256,10 +260,23 @@ public class TestTileAPI {
         final int tileSize = 64;
 
         TensorF32 input = TensorF32.create(accelerator, size);
-        TensorF32 result = TensorF32.create(accelerator, size);
+        TensorF32 result = TensorF32.create(accelerator, 1);
+
+        // fill input
+        Random r = new Random();
+        for (int k = 0; k < size; k++) {
+            input.array(k, r.nextFloat(1));
+        }
 
         accelerator.compute( (@Reflect Compute)computeContext ->
                 tileReduction(computeContext, input, result, tileSize));
+
+        float acc = 0.0f;
+        for (int k = 0; k < size; k++) {
+            acc += input.array(k);
+        }
+
+        HATAsserts.assertEquals(acc, result.array(0), 0.01f);
     }
 
     // Matrix transpose example
@@ -268,8 +285,8 @@ public class TestTileAPI {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
-        int bidx = TileContext.BIDX();
-        int bidy = TileContext.BIDY();
+        final int bidx = TileContext.BIDX();
+        final int bidy = TileContext.BIDY();
 
         // Load the tile with shape tm x tn into memory (e.g., registers, shared memory, or tensor memory)_
         var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(128, 128));

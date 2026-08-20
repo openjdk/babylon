@@ -1,5 +1,6 @@
 package hat.phases;
 
+import hat.DType;
 import hat.TileContext;
 import hat.TileOp;
 import hat.codetypes.*;
@@ -946,6 +947,16 @@ public class TileTransformer {
                 throw new IllegalArgumentException("The pointer must be the first argument");
             } else if (t1 instanceof ConstantType || t2 instanceof ConstantType) {
                 return checkScalarTypes(reduceScalarType(t1), reduceScalarType(t2));
+            } else if (t1 instanceof PrimitiveType && t2 instanceof ClassType classType) {
+                // check for type equivalences
+                if (classType.equals(ClassType.J_L_FLOAT) && t1.equals(JavaType.FLOAT)) {
+                    return t1;
+                } else if (classType.equals(DType.TENSOR_F32_TYPE) && t1.equals(JavaType.FLOAT)) {
+                    return t1;
+                } else {
+                    throw new IllegalArgumentException("t1 vs t2 vs classType! " + t1 + " vs " + t2);
+                }
+
             } else if (!t1.equals(t2)) {
                 throw new IllegalArgumentException("t1 and t2 must be equal, but found `" + t1 + "` vs `" + t2 + "`");
             }

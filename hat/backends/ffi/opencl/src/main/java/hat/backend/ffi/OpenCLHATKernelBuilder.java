@@ -1066,6 +1066,26 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder tileStoreOp(TileOps.StoreOp tileStoreOp) {
-        throw  new UnsupportedOperationException("Tile Store Operation is not supported yet.");
+        throw new UnsupportedOperationException("Tile Store Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileNumOp(TileOps.TileNumOp tileNumOp) {
+        throw new UnsupportedOperationException("Tile Number Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileFullOp(TileOps.TileFullOp tileFullOp) {
+        throw new UnsupportedOperationException("Tile Full Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileShapeOp(TileOps.TileShapeOp tileShapeOp) {
+        throw new UnsupportedOperationException("Tile Shape Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileSumOp(TileOps.TileSumOp tileSumOp) {
+        throw new UnsupportedOperationException("Tile Sum Operation is not supported yet.");
     }
 }

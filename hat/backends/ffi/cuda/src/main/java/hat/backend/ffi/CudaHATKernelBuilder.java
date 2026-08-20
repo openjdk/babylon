@@ -29,6 +29,7 @@ import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
+import hat.codetypes.ShapeType;
 import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
@@ -51,6 +52,7 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import optkl.textmodel.JavaTextModel;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -1340,12 +1342,24 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder genTileSize(CodeType resultType, Value ptr) {
         if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tensorType) {
             CodeType tt = tensorType.elementType();
-            if (tt.equals(DType.TENSOR_F32_TYPE)) {
+            if (tt.equals(DType.TENSOR_F32_TYPE)
+                    || tt.equals(DType.Float)) { // this check is due to type equivalence
                 generateAlignedReference(ptr).rarrow().id("m");
             } else if (tt.equals(DType.TENSOR_2D_F32_TYPE)) {
                 generateAlignedReference(ptr).rarrow().id("m").comma().sp().generateAlignedReference(ptr).rarrow().id("n");
             } else {
-                throw new UnsupportedOperationException("Tensor Type not supported yet.");
+                throw new UnsupportedOperationException("Tensor Type not supported yet: " + tt);
+            }
+        }
+        return self();
+    }
+
+    private CudaHATKernelBuilder genTileSize(Value ptr) {
+        if (ptr.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("align")) {
+            return generateAlignedReference(ptr).rarrow().id("m");
+        } else {
+            if (ptr instanceof Op.Result r) {
+                return genTileSize(r.op().operands().getFirst());
             }
         }
         return self();
@@ -1422,5 +1436,62 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .recurseResultOrThrow(blockId)
                 .id(")");
         return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileNumOp(TileOps.TileNumOp tileNumOp) {
+        List<Value> operands = tileNumOp.operands();
+        Value ptr = operands.getFirst();
+        Value dimension = operands.get(1);
+        Value shape = operands.get(2);
+        return paren( _->
+                genTileSize(ptr) // This tileSize function might nt the the correct one in this case.
+                .sp()
+                .plus()
+                .recurseResultOrThrow(shape)
+                .sp()
+                .minus()
+                .intConst(1)
+        ).div().recurseResultOrThrow(shape);
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileFullOp(TileOps.TileFullOp tileFullOp) {
+        List<Value> operands = tileFullOp.operands();
+        Value shape = operands.getFirst();
+        Value initValue = operands.get(1);
+
+        id("ct::full<ct::tile").lt();
+        if (tileFullOp.resultType() instanceof ConstantType constantType &&  constantType.value() instanceof TensorType tt) {
+            type(tt.elementType().toString());
+        } else {
+            throw new  UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileFullOp.resultType());
+        }
+        comma().sp().id("ct::shape").lt();
+        recurseResultOrThrow(shape);
+        gt().gt().gt();
+        paren(_ -> {
+            recurseResultOrThrow(initValue);
+            if (initValue.type() instanceof PrimitiveType primitiveType && primitiveType.equals(JavaType.FLOAT)) {
+                id("f");
+            }
+        });
+        return self();
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileShapeOp(TileOps.TileShapeOp tileShapeOp) {
+        return commaSpaceSeparated(tileShapeOp.operands(), v -> {
+            recurseResultOrThrow(v).id("_ic");
+        });
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileSumOp(TileOps.TileSumOp tileSumOp) {
+        List<Value> operands = tileSumOp.operands();
+        Value tensor = operands.getFirst();
+        Value dimension = operands.get(1);
+        return id("ct::sum").paren(_ ->
+                recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(dimension).id("_ic"));
     }
 }
