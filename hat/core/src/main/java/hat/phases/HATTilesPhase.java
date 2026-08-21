@@ -34,9 +34,7 @@ public record HATTilesPhase() implements HATPhase {
         boolean isTileUsed = OpHelper.isKlassUsed(lookup, funcOp, TileContext.class);
 
         // Also check the tile dialect was introduced
-        isTileUsed |= funcOp.elements()
-                .anyMatch(element -> element instanceof TileOps.TOp
-                        || element instanceof ArithMathOps.ArithMathOp);
+        isTileUsed |= funcOp.elements().anyMatch(element -> element instanceof TileOps.TOp || element instanceof ArithMathOps.ArithMathOp);
 
         if (isTileUsed) {
             // We need to transform the code tree to insert a Invoke for the alignment associated with a new var

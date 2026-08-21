@@ -28,6 +28,7 @@ import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -54,15 +55,17 @@ public class TileTransformer {
     private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA"));
     private static final boolean SIMPLE_SIGNATURE = Boolean.parseBoolean(System.getProperty("SIMPLE_SIGNATURE", "TRUE"));
 
-    public static TileOps.ModuleOp dispatch(Class<?> klass, String methodName, List<? extends CodeType> argTypes) {
+    public static TileOps.ModuleOp dispatch(Class<?> klass, String methodName, List<? extends CodeType> argTypes, MethodHandles.Lookup lookup) {
         Optional<Method> method = Stream.of(klass.getDeclaredMethods())
                 .filter(m -> m.getName().equals(methodName))
                 .filter(m -> m.getAnnotation(Reflect.class) != null)
                 .findFirst();
 
-        CoreOp.FuncOp funcOp = Op.ofMethod(method.orElse(null)).get();
-
+        CoreOp.FuncOp funcOp = Op.ofMethod(method.orElseThrow()).get();
         IO.println("Input Code Model");
+        IO.println("\t" + funcOp.toText());
+        funcOp = processConstantFields(funcOp, lookup);
+        IO.println("After constant propagation");
         IO.println("\t" + funcOp.toText());
 
         // Verify types and shapes from the input Tile Kernel and generate a new code model (dialect for Tile)
@@ -93,6 +96,44 @@ public class TileTransformer {
         Map<String, CoreOp.FuncOp> symbolTable = new LinkedHashMap<>();
         return tileFunction(kernel, rType, argTypes, symbolTable);
     }
+
+    /**
+     * Process the code tree to find constants that are introduced via the scope of the function being analyzed.
+     * @param funcOp
+     *     Input function
+     * @param lookup
+     *     Method lookup
+     * @return
+     *     A new function with the replacement of FieldLoads/constant with its constant value.
+     */
+    public static CoreOp.FuncOp processConstantFields(CoreOp.FuncOp funcOp, MethodHandles.Lookup lookup) {
+        // Preprocessing constants
+        funcOp = funcOp.transform((blockBuilder, op) -> {
+            if (op instanceof JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp && fieldLoadOp.operands().isEmpty()) {
+                if (fieldLoadOp.resultType() instanceof PrimitiveType primitiveType && primitiveType.equals(PrimitiveType.INT)) {
+                    // Found the int field. we can replace it with a constant value
+                    try {
+                        VarHandle field = lookup.findStaticVarHandle(lookup.lookupClass(), fieldLoadOp.fieldReference().name(), int.class);
+                        // We can pass null because, at this point, we know it is a static field
+                        int intValue = (int) field.get();
+                        CoreOp.ConstantOp constantOp = CoreOp.constant(primitiveType, intValue);
+                        Op.Result constantValue = blockBuilder.add(constantOp);
+                        constantOp.setLocation(fieldLoadOp.location());
+                        blockBuilder.context().mapValue(fieldLoadOp.result(), constantValue);
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    blockBuilder.add(fieldLoadOp);
+                }
+            } else {
+                blockBuilder.add(op);
+            }
+            return blockBuilder;
+        });
+        return funcOp;
+    }
+
 
     /**
      * Process the tile function. It first checks all shapes and builds the code model with custom ops for supporting the Tile Programming Model.

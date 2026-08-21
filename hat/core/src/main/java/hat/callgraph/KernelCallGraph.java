@@ -199,7 +199,9 @@ public class KernelCallGraph implements LookupCarrier {
             // 1. The input function
             // 2. The return type
             // 3. A list of CodeTypes for each input argument to the kernel.
-            CoreOp.FuncOp funcOp = TileTransformer.tileFunction(entrypoint.funcOp(), JavaType.VOID, codeTypes);
+            CoreOp.FuncOp funcOp = entrypoint.funcOp();
+            funcOp = TileTransformer.processConstantFields(funcOp, lookup());
+            funcOp = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes);
             entrypoint = new FuncOpCarrier.Impl(funcOp);
             checkSSALowering(entrypoint.funcOp());
         }
@@ -254,6 +256,8 @@ public class KernelCallGraph implements LookupCarrier {
             CoreOp.FuncOp ssaCodeModel = SSA.transform(loweredCodeModel);
             if (ssaCodeModel == null) {
                 throw new IllegalStateException("SSA code model is null");
+            } else {
+                IO.println("SSA code model is " + ssaCodeModel.toText());
             }
         }
     }
