@@ -37,9 +37,21 @@ if(CUDAToolkit_FOUND)
             ${CUDA_BACKEND}/src/main/native/cpp/cuda_backend_queue.cpp
     )
 
+    # Pass the full CUDA Toolkit include list to the NVRTC path. Newer CUDA
+    # Toolkit layouts may report multiple include roots, for example the main
+    # include directory plus CCCL headers, while older toolkits may only report
+    # one. Keep all entries to avoid baking CUDA-version-specific include logic
+    # into the native backend.
+    string(REPLACE ";" "|" HAT_CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
+    target_compile_definitions(cuda_backend
+            PRIVATE HAT_CUDA_INCLUDE_DIRS="${HAT_CUDA_INCLUDE_DIRS}"
+                    HAT_CUDA_LIBRARY_DIR="${CUDAToolkit_LIBRARY_DIR}"
+    )
+
     target_link_libraries(cuda_backend
             shared_backend
             -lcuda
+            ${CMAKE_DL_LIBS}
     )
 
     add_executable(cuda_info
