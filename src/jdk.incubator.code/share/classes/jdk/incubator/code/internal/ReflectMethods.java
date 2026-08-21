@@ -1813,25 +1813,18 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType, boolean isLastCase) {
             Body.Builder body = null;
-            Type yieldType = tree.type != null ? adaptBottom(tree.type) : Type.noType;
 
-            JCTree.JCCaseLabel headCl = c.labels.head;
             switch (c.caseKind) {
                 case RULE -> {
                     pushBody(c.body, caseBodyType);
 
                     if (c.body instanceof JCTree.JCExpression e) {
+                        Type yieldType = adaptBottom(tree.type);
                         Value bodyVal = toValue(e, yieldType);
                         append(CoreOp.core_yield(bodyVal));
-                    } else if (c.body instanceof JCTree.JCStatement s){ // this includes Block
+                    } else if (c.body instanceof JCTree.JCStatement s) { // this includes Block
                         // Otherwise there is a yield statement
-                        Type prevBodyTarget = bodyTarget;
-                        try {
-                            bodyTarget = yieldType;
-                            toValue(s);
-                        } finally {
-                            bodyTarget = prevBodyTarget;
-                        }
+                        toValue(s);
                         appendTerminating(c.completesNormally ? CoreOp::core_yield : CoreOp::unreachable);
                     }
                     body = stack.body;
@@ -1846,8 +1839,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     scan(c.stats);
 
-                    appendTerminating(c.completesNormally ?
-                            isLastCase ? CoreOp::core_yield : JavaOp::switchFallthroughOp
+                    appendTerminating(c.completesNormally
+                            ? isLastCase ? CoreOp::core_yield : JavaOp::switchFallthroughOp
                             : CoreOp::unreachable);
 
                     body = stack.body;
@@ -1861,7 +1854,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitYield(JCTree.JCYield tree) {
-            Value retVal = toValue(tree.value, bodyTarget);
+            Type yieldType = adaptBottom(tree.target.type);
+            Value retVal = toValue(tree.value, yieldType);
             result = append(JavaOp.java_yield(retVal));
         }
 
