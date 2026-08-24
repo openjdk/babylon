@@ -27,7 +27,7 @@ package jdk.incubator.code.dialect.java;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.*;
-import jdk.incubator.code.dialect.java.JavaOp.JavaSwitchOp.SwitchNullHandling;
+import jdk.incubator.code.dialect.java.JavaOp.SwitchOp.SwitchNullHandling;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
@@ -3361,7 +3361,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.11 The switch Statement
      * @jls 15.28 {@code switch} Expressions
      */
-    public abstract static sealed class JavaSwitchOp extends AbstractOp
+    public abstract static sealed class SwitchOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable
             permits SwitchStatementOp, SwitchExpressionOp {
 
@@ -3389,7 +3389,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         static final String ATTRIBUTE_SWITCH_HANDLE_NULLS = "switch.handle.nulls";
 
-        JavaSwitchOp(JavaSwitchOp that, CodeContext cc, CodeTransformer ct) {
+        SwitchOp(SwitchOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
@@ -3462,7 +3462,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         null values are accepted for results of the selector expression.
          */
 
-        JavaSwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
+        SwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
             super(List.of(target));
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
@@ -3669,7 +3669,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.28 {@code switch} Expressions
      */
     @OpDeclaration(SwitchExpressionOp.NAME)
-    public static final class SwitchExpressionOp extends JavaSwitchOp
+    public static final class SwitchExpressionOp extends SwitchOp
             implements JavaExpression {
         static final String NAME = "java.switch.expression";
 
@@ -3711,7 +3711,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.11 The switch Statement
      */
     @OpDeclaration(SwitchStatementOp.NAME)
-    public static final class SwitchStatementOp extends JavaSwitchOp
+    public static final class SwitchStatementOp extends SwitchOp
             implements JavaStatement {
         static final String NAME = "java.switch.statement";
 
