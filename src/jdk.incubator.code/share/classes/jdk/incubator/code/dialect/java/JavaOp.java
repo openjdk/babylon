@@ -3455,7 +3455,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 if (predicateEntryBlock.parameters().isEmpty() &&
                         predicateEntryBlock.terminatingOp() instanceof CoreOp.YieldOp yop &&
                         yop.yieldValue().declaringElement() instanceof ConstantOp cop &&
-                        cop.resultType().equals(BOOLEAN)) {
+                        cop.resultType().equals(BOOLEAN) &&
+                        cop.value() instanceof Boolean trueValue && trueValue) {
                     defaultCaseIndex = i;
                     break;
                 }
