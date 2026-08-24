@@ -208,7 +208,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
 
     @Override
-    public final T conditionalOp( JavaOp.JavaConditionalOp logicalOp) {
+    public final T conditionalOp( JavaOp.ConditionalAndOp logicalOp) {
         OpHelper.lhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o ->  recurse( o));
         sp().symbol(logicalOp).sp();
         OpHelper.rhsOps(logicalOp).stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o-> recurse( o));

@@ -53,7 +53,7 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
 
     T binaryOp( JavaOp.BinaryOp binaryOp);
 
-    T conditionalOp( JavaOp.JavaConditionalOp conditionalOp);
+    T conditionalOp( JavaOp.ConditionalAndOp conditionalOp);
 
     T compareOp(JavaOp.CompareOp compareOp);
 
@@ -133,7 +133,7 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
             case JavaOp.ContinueOp $ -> continueOp( $);
             case JavaOp.CompareOp $ -> compareOp( $);
             case JavaOp.BinaryOp $ -> binaryOp( $);
-            case JavaOp.JavaConditionalOp $ -> conditionalOp( $);
+            case JavaOp.ConditionalAndOp $ -> conditionalOp( $);
             case JavaOp.UnaryOp $ -> unaryOp( $);
             case JavaOp.NewOp $ -> newOp( $);
             case JavaOp.ArrayAccessOp.ArrayStoreOp  $ ->  arrayStoreOp($);
