@@ -97,7 +97,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             VarAccessOp.VarLoadOp,
             VarAccessOp.VarStoreOp,
             ConditionalExpressionOp,
-            ConditionalAndOrOp,
+            ConditionalOp,
             SwitchExpressionOp {
 
         /**
@@ -4574,8 +4574,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.23 Conditional-And Operator {@code &&}
      * @jls 15.24 Conditional-Or Operator {@code ||}
      */
-    public sealed static abstract class ConditionalAndOrOp extends AbstractOp
-            implements JavaOp, Op.Nested, Op.Lowerable, JavaExpression {
+    public sealed static abstract class ConditionalOp extends AbstractOp
+            implements JavaOp, Op.Nested, Op.Lowerable, JavaExpression
+            permits ConditionalAndOp, ConditionalOrOp {
 
         static final FunctionType BODY_TYPE = CoreType.functionType(BOOLEAN);
 
@@ -4583,13 +4584,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         // See use for modeling multi-label cases of switch statements/expressions
         final List<Body> bodies;
 
-        ConditionalAndOrOp(ConditionalAndOrOp that, CodeContext cc, CodeTransformer ct) {
+        ConditionalOp(ConditionalOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             this.bodies = that.bodies.stream().map(b -> b.transform(cc, ct).build(this)).toList();
         }
 
-        ConditionalAndOrOp(List<Body.Builder> bodyCs) {
+        ConditionalOp(List<Body.Builder> bodyCs) {
             super(List.of());
 
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
@@ -4650,7 +4651,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.23 Conditional-And Operator {@code &&}
      */
     @OpDeclaration(ConditionalAndOp.NAME)
-    public static final class ConditionalAndOp extends ConditionalAndOrOp {
+    public static final class ConditionalAndOp extends ConditionalOp {
 
         /**
          * Builder for conditional-and operations.
@@ -4715,7 +4716,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.24 Conditional-Or Operator {@code ||}
      */
     @OpDeclaration(ConditionalOrOp.NAME)
-    public static final class ConditionalOrOp extends ConditionalAndOrOp {
+    public static final class ConditionalOrOp extends ConditionalOp {
 
         /**
          * Builder for conditional-or operations.
