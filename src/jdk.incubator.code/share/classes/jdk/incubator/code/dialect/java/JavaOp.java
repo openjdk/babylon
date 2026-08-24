@@ -3398,13 +3398,73 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             this.handleNulls = that.handleNulls;
         }
 
+        /*
+        Grammar for switch statements and expressions
+            SwitchStatement:
+                switch ( Expression ) SwitchBlock
+
+            SwitchExpression:
+                switch ( Expression ) SwitchBlock
+
+            SwitchBlock:
+                { SwitchRule {SwitchRule} }
+                { {SwitchBlockStatementGroup} {SwitchLabel :} }
+
+            SwitchRule:
+                SwitchLabel -> Expression ;
+                SwitchLabel -> Block
+                SwitchLabel -> ThrowStatement
+
+            SwitchBlockStatementGroup:
+                SwitchLabel : {SwitchLabel :} BlockStatements
+
+            SwitchLabel:
+                case CaseConstant {, CaseConstant}
+                case null [, default]
+                case CasePattern {, CasePattern} [Guard]
+                default
+
+            CaseConstant:
+                ConditionalExpression
+
+            CasePattern:
+                Pattern
+
+            Guard:
+                when Expression
+
+         A SwitchLabel is modeled as a body yielding a boolean value.
+
+         If the SwitchLabel is "default" or "case null, default" the predicate body is modeled as one that yields
+         true, and the body as no parameter. Otherwise, the body has one parameter that models the result of the switch
+         selector expression and its content models "case CaseConstant {, CaseConstant}" and
+         "case CasePattern {, CasePattern} [Guard]".
+
+         An Expression, Block, ThrowStatement, or BlockStatements, associated with a SwitchLabel is modeled as a body
+         yielding the result of the switch expression or void for a switch statement.
+
+         A SwitchBlock is modeled as a sequence of pairs of bodies, generally the first body in a pair, the predicate
+         body, models the SwitchLabel, and the second body, the action body, models the Expression, Block,
+         ThrowStatement, or BlockStatements.
+
+         For a switch statement containing a sequence of two or more SwitchLabel, each SwitchLabel up to but not
+         including the last SwitchLabel is modeled as a pair of bodies, the predicate body modeling the SwitchLabel
+         and a synthesized action body that models fall-through.
+
+         For a SwitchLabel containing a sequence of two or more CaseConstant or CasePattern, the predicate body
+         yields the result of the logical-or of all the predicate bodies modeling each CasePattern.
+
+         For SwitchLabel that is "default" or "case null, default" the predicate body is modeled as one that yields
+         true, and the body has no parameter. @@@ the corresponding pair of bodies should occur as the last pair
+         in the sequence of pairs modeling the SwitchBlock.
+
+        If the SwitchBlock contains a SwitchLabel of "case null [, default]" then switch operation indicates that
+        null values are accepted for results of the selector expression.
+         */
+
         JavaSwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
             super(List.of(target));
 
-            // Each case is modeled as a contiguous pair of bodies
-            // The first body models the case labels, and the second models the case statements
-            // The labels body has a parameter whose type is target operand's type and returns a boolean value
-            // The action body has no parameters and returns void
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             this.handleNulls = switch (nullHandling) {
                 case ALLOW_NULL -> true;
@@ -3430,7 +3490,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Value selectorExpression = b.context().getValue(operands().get(0));
 
             // @@@ Add this during model generation?
-            // if no case null, add one that throws NPE
+            // If no "case null [, default]" then perform null check on result of selector expression
             if (!(selectorExpression.type() instanceof PrimitiveType) && !handleNulls) {
                 Block.Builder continueBlock = b.block();
                 Block.Builder throwBlock = b.block();
@@ -3519,9 +3579,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     boolean isLastCaseWithDefault = defaultCaseIndex == i + 2;
                     Block.Builder noMatchBlock;
                     if (isLastCaseNoDefault) {
-                        // If switch expression the last predicate body should be unconditional
-                        // but to fully determine that we need to analyze the body
-                        // instead create a new block that terminates with unreachable
+                        // If switch expression, the last predicate body should be unconditional
+                        // and no conditional branch should be required. Rather than verifying
+                        // that create a no match block that terminates with unreachable
                         if (this instanceof SwitchExpressionOp) {
                             Block.Builder unreachableBlock = b.block();
                             unreachableBlock.add(unreachable());
