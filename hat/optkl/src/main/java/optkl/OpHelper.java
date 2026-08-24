@@ -284,11 +284,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         return (Op.Result) binaryOp.operands().get(1);
     }
 
-    static List<Op> lhsOps(JavaOp.JavaConditionalOp javaConditionalOp) {
+    static List<Op> lhsOps(JavaOp.ConditionalAndOrOp javaConditionalOp) {
         return javaConditionalOp.bodies().get(0).entryBlock().ops();
     }
 
-    static List<Op> rhsOps(JavaOp.JavaConditionalOp javaConditionalOp) {
+    static List<Op> rhsOps(JavaOp.ConditionalAndOrOp javaConditionalOp) {
         return javaConditionalOp.bodies().get(1).entryBlock().ops();
     }
 
