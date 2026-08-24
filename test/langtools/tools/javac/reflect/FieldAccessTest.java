@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -518,6 +518,25 @@ public class FieldAccessTest {
         void test3() {
             f++;
             s_f++;
+        }
+    }
+
+    static class Z<T extends X> {
+        T x;
+    }
+
+    static class ZZ extends Z<Y> {
+
+        @IR("""
+                func @"test1" (%0 : java.type:"FieldAccessTest$ZZ")java.type:"int" -> {
+                    %1 : java.type:"FieldAccessTest$Y" = field.load %0 @java.ref:"FieldAccessTest$ZZ::x:FieldAccessTest$X";
+                    %2 : java.type:"int" = field.load %1 @java.ref:"FieldAccessTest$Y::yf:int";
+                    return %2;
+                };
+                """)
+        @Reflect
+        int test1() {
+            return x.yf;
         }
     }
 

@@ -1042,7 +1042,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         result = loadVar(sym);
                     } else {
                         FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
-                        CodeType resultType = typeToCodeType(sym.type);
+                        CodeType resultType = typeToCodeType(tree.type);
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
                         } else {
