@@ -3436,7 +3436,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          A SwitchLabel is modeled as a body yielding a boolean value.
 
          If the SwitchLabel is "default" or "case null, default" the predicate body is modeled as one that yields
-         true, and the body as no parameter. Otherwise, the body has one parameter that models the result of the switch
+         true, and the body has no parameter. Otherwise, the body has one parameter that models the result of the switch
          selector expression and its content models "case CaseConstant {, CaseConstant}" and
          "case CasePattern {, CasePattern} [Guard]".
 
@@ -3453,13 +3453,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
          For a SwitchLabel containing a sequence of two or more CaseConstant or CasePattern, the predicate body
          yields the result of the logical-or of all the predicate bodies modeling each CasePattern.
+         For a SwitchLabel containing a CasePattern with a Guard, the predicate body yields the result of the
+         logical-and of the predicate body produced for the sequence of CasePattern and the boolean yielding body
+         modeling the Guard expression.
 
          For SwitchLabel that is "default" or "case null, default" the predicate body is modeled as one that yields
          true, and the body has no parameter. @@@ the corresponding pair of bodies should occur as the last pair
          in the sequence of pairs modeling the SwitchBlock.
 
-        If the SwitchBlock contains a SwitchLabel of "case null [, default]" then switch operation indicates that
-        null values are accepted for results of the selector expression.
+         If the SwitchBlock contains a SwitchLabel of "case null [, default]" then switch operation indicates that
+         null values are accepted for results of the selector expression.
          */
 
         SwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
