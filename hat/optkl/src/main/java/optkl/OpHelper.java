@@ -284,11 +284,11 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         return (Op.Result) binaryOp.operands().get(1);
     }
 
-    static List<Op> lhsOps(JavaOp.JavaConditionalOp javaConditionalOp) {
+    static List<Op> lhsOps(JavaOp.ConditionalAndOrOp javaConditionalOp) {
         return javaConditionalOp.bodies().get(0).entryBlock().ops();
     }
 
-    static List<Op> rhsOps(JavaOp.JavaConditionalOp javaConditionalOp) {
+    static List<Op> rhsOps(JavaOp.ConditionalAndOrOp javaConditionalOp) {
         return javaConditionalOp.bodies().get(1).entryBlock().ops();
     }
 
@@ -867,7 +867,7 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             if (args.length != varLoadNames.length) {
                 throw new IllegalStateException("Why don't we have enough captures.!! ");
             }
-            for (int i = 1; i < args.length; i++) {
+            for (int i = 0; i < args.length; i++) {
                 args[i] = nameValueMap.get(varLoadNames[i].toString());
                 if (args[i] instanceof CoreOp.Var<?> var) {
                     args[i] = var.value();

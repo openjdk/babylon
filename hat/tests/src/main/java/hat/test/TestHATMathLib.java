@@ -27,7 +27,8 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.HATMath;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -36,8 +37,6 @@ import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import hat.types.F16;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -46,175 +45,175 @@ import java.util.stream.IntStream;
 public class TestHATMathLib {
 
     @Reflect
-    private static void testMathLib01(KernelContext kc, F16Array a, F16Array b, F16Array c) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
+    private static void testMathLib01( F16Array a, F16Array b, F16Array c) {
+        if (GIX() < GSX()) {
+            F16 ha = a.array(GIX());
+            F16 hb = b.array(GIX());
             F16 result = HATMath.maxf16(ha, hb);
-            F16 hC = c.array(kc.gix);
+            F16 hC = c.array(GIX());
             hC.value(result.value());
         }
     }
 
     @Reflect
-    private static void computeMathLib01(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @WO F16Array c) {
+    private static void computeMathLib01( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib01(kernelContext, a, b, c));
+               ()-> TestHATMathLib.testMathLib01( a, b, c));
     }
 
     @Reflect
-    private static void testMathLib02(KernelContext kc, F32Array a, F32Array b, F32Array c) {
-        if (kc.gix < kc.gsx) {
-            float ha = a.array(kc.gix);
-            float hb = b.array(kc.gix);
+    private static void testMathLib02( F32Array a, F32Array b, F32Array c) {
+        if (GIX() < GSX()) {
+            float ha = a.array(GIX());
+            float hb = b.array(GIX());
             float result = HATMath.maxf(ha, hb);
-            c.array(kc.gix, result);
+            c.array(GIX(), result);
         }
     }
 
     @Reflect
-    private static void computeMathLib02(@RO ComputeContext computeContext, @RO F32Array a, @RO F32Array b, @WO F32Array c) {
+    private static void computeMathLib02( ComputeContext computeContext,  F32Array a,  F32Array b,  F32Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib02(kernelContext, a, b, c));
+               ()-> TestHATMathLib.testMathLib02( a, b, c));
     }
 
     @Reflect
-    private static void testMathLib03(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
-            F16 hC = c.array(kc.gix);
+    private static void testMathLib03( F16Array a, F16Array b, F16Array c, F16Array d) {
+        if (GIX() < GSX()) {
+            F16 ha = a.array(GIX());
+            F16 hb = b.array(GIX());
+            F16 hC = c.array(GIX());
 
             F16 result = HATMath.maxf16(ha, hb);
             result = HATMath.maxf16(result, hC);
 
-            F16 hD = d.array(kc.gix);
+            F16 hD = d.array(GIX());
             hD.value(result.value());
         }
     }
 
     @Reflect
-    private static void computeMathLib03(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void computeMathLib03( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c,  F16Array d) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib03(kernelContext, a, b, c, d));
+               ()-> TestHATMathLib.testMathLib03( a, b, c, d));
     }
 
     @Reflect
-    private static void testMathLib04(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
-            F16 hC = c.array(kc.gix);
+    private static void testMathLib04( F16Array a, F16Array b, F16Array c, F16Array d) {
+        if (GIX() < GSX()) {
+            F16 ha = a.array(GIX());
+            F16 hb = b.array(GIX());
+            F16 hC = c.array(GIX());
 
             F16 init = F16.of(2.0f);
             F16 result = HATMath.maxf16(F16.add(ha, hb), F16.mul(hC, init));
 
-            F16 hD = d.array(kc.gix);
+            F16 hD = d.array(GIX());
             hD.value(result.value());
         }
     }
 
     @Reflect
-    private static void computeMathLib04(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void computeMathLib04( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c,  F16Array d) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib04(kernelContext, a, b, c, d));
+               ()-> TestHATMathLib.testMathLib04( a, b, c, d));
     }
 
     @Reflect
-    private static void testMathLib05(KernelContext kc, F16Array a, F16Array b, F16Array c, F16Array d) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
-            F16 hb = b.array(kc.gix);
-            F16 hC = c.array(kc.gix);
+    private static void testMathLib05( F16Array a, F16Array b, F16Array c, F16Array d) {
+        if (GIX() < GSX()) {
+            F16 ha = a.array(GIX());
+            F16 hb = b.array(GIX());
+            F16 hC = c.array(GIX());
 
             F16 init = F16.of(2.0f);
             F16 result = HATMath.maxf16(HATMath.maxf16(ha, hb), HATMath.maxf16(hC, init));
 
-            F16 hD = d.array(kc.gix);
+            F16 hD = d.array(GIX());
             hD.value(result.value());
         }
     }
 
     @Reflect
-    private static void computeMathLib05(@RO ComputeContext computeContext, @RO F16Array a, @RO F16Array b, @RO F16Array c, @WO F16Array d) {
+    private static void computeMathLib05( ComputeContext computeContext,  F16Array a,  F16Array b,  F16Array c,  F16Array d) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib05(kernelContext, a, b, c, d));
+               ()-> TestHATMathLib.testMathLib05( a, b, c, d));
     }
 
     @Reflect
-    private static void testMathLib06(KernelContext kc, F16Array a, F16Array b) {
-        if (kc.gix < kc.gsx) {
-            F16 ha = a.array(kc.gix);
+    private static void testMathLib06( F16Array a, F16Array b) {
+        if (GIX() < GSX()) {
+            F16 ha = a.array(GIX());
             F16 result = HATMath.expf16(ha);
-            F16 hB = b.array(kc.gix);
+            F16 hB = b.array(GIX());
             hB.value(result.value());
         }
     }
 
     @Reflect
-    private static void computeMathLib06(@RO ComputeContext computeContext, @RO F16Array a, @WO F16Array b) {
+    private static void computeMathLib06( ComputeContext computeContext,  F16Array a,  F16Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib06(kernelContext, a, b));
+               ()-> TestHATMathLib.testMathLib06( a, b));
     }
 
     @Reflect
-    private static void testMathLib07(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+    private static void testMathLib07( F32Array a, F32Array b) {
+        if (GIX() < GSX()) {
+            float fa = a.array(GIX());
             float result = HATMath.cosf(fa);
-            b.array(kc.gix, result);
+            b.array(GIX(), result);
         }
     }
 
     @Reflect
-    private static void computeMathLib07(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib07( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib07(kernelContext, a, b));
+               ()-> TestHATMathLib.testMathLib07( a, b));
     }
 
     @Reflect
-    private static void testMathLib08(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+    private static void testMathLib08( F32Array a, F32Array b) {
+        if (GIX() < GSX()) {
+            float fa = a.array(GIX());
             float result = HATMath.sinf(fa);
-            b.array(kc.gix, result);
+            b.array(GIX(), result);
         }
     }
 
     @Reflect
-    private static void computeMathLib08(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib08( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib08(kernelContext, a, b));
+               ()-> TestHATMathLib.testMathLib08( a, b));
     }
 
     @Reflect
-    private static void testMathLib09(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+    private static void testMathLib09( F32Array a, F32Array b) {
+        if (GIX() < GSX()) {
+            float fa = a.array(GIX());
             float result = HATMath.tanf(fa);
-            b.array(kc.gix, result);
+            b.array(GIX(), result);
         }
     }
 
     @Reflect
-    private static void computeMathLib09(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib09( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib09(kernelContext, a, b));
+               ()-> TestHATMathLib.testMathLib09( a, b));
     }
 
     @Reflect
-    private static void testMathLib10(KernelContext kc, F32Array a, F32Array b) {
-        if (kc.gix < kc.gsx) {
-            float fa = a.array(kc.gix);
+    private static void testMathLib10( F32Array a, F32Array b) {
+        if (GIX() < GSX()) {
+            float fa = a.array(GIX());
             float result = HATMath.sqrtf(fa);
-            b.array(kc.gix, result);
+            b.array(GIX(), result);
         }
     }
 
     @Reflect
-    private static void computeMathLib10(@RO ComputeContext computeContext, @RO F32Array a, @WO F32Array b) {
+    private static void computeMathLib10( ComputeContext computeContext,  F32Array a,  F32Array b) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                kernelContext -> TestHATMathLib.testMathLib10(kernelContext, a, b));
+               ()-> TestHATMathLib.testMathLib10( a, b));
     }
 
 

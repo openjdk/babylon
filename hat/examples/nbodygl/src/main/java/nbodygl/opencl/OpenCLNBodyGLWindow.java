@@ -29,6 +29,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.types.Float4;
 import optkl.ifacemapper.BufferState;
 import hat.NDRange;
@@ -70,13 +71,13 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
 
     @Reflect
-    static public void nbodyKernel(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernel(Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
-        Universe.Body me = universe.body(kc.gix);
+        Universe.Body me = universe.body(GIX());
 
-        for (int i = 0; i < kc.gsx; i++) {
+        for (int i = 0; i < GSX(); i++) {
             Universe.Body otherBody = universe.body(i);
             float dx = otherBody.x() - me.x();
             float dy = otherBody.y() - me.y();
@@ -101,13 +102,13 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
 
     }
     @Reflect
-    static public void nbodyKernelf4(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernelf4(Universe universe, float mass, float delT, float espSqr) {
         var acc = Float4.of(0,0,0,0);
         var posArr = universe.posArrView();
         var velArr = universe.velArrView();
-        var pos = posArr[kc.gix];
-        var vel = velArr[kc.gix];
-        for (int i = 0; i < kc.gix; i++) {
+        var pos = posArr[GIX()];
+        var vel = velArr[GIX()];
+        for (int i = 0; i < GIX(); i++) {
             var delta = posArr[i].sub(pos);
             var delSqr = delta.sqr();
             var delSqrSum = delSqr.x() + delSqr.y() + delSqr.z();
@@ -118,8 +119,8 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         acc = acc.mul(delT);
         pos = pos.add(vel.mul(delT).add(acc.mul(.5f * delT)));
         vel = vel.add(acc);
-        posArr[kc.gix] = pos;
-        velArr[kc.gix] = vel;
+        posArr[GIX()] = pos;
+        velArr[GIX()] = vel;
     }
 
     @Reflect
@@ -128,7 +129,7 @@ public class OpenCLNBodyGLWindow extends NBodyGLWindow {
         float cdelT = delT;
         float cespSqr = espSqr;
 
-        cc.dispatchKernel(NDRange.of1D(universe.length()), kc -> nbodyKernel(kc, universe, cmass, cdelT, cespSqr));
+        cc.dispatchKernel(NDRange.of1D(universe.length()), () -> nbodyKernel(universe, cmass, cdelT, cespSqr));
     }
 
     final CLPlatform.CLDevice.CLContext.CLProgram.CLKernel kernel;

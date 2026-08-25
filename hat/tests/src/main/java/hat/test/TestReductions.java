@@ -27,12 +27,12 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -61,15 +61,14 @@ public class TestReductions {
      * Example of a simple reduction using accelerator's global memory. This is inefficient, but it shows
      * the constructs needed to support this case, such as accessing to local ids, sizes and blocks.
      *
-     * @param context
      * @param input
      * @param partialSums
      */
     @Reflect
-    private static void reduceGlobal(KernelContext context, S32Array input, S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+    private static void reduceGlobal( S32Array input, S32Array partialSums) {
+        int localId = LIX();
+        int localSize = LSX();
+        int blockId = BIX();
         int baseIndex = localSize * blockId + localId;
 
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
@@ -78,7 +77,7 @@ public class TestReductions {
                 val += input.array((baseIndex + offset));
                 input.array(baseIndex, val);
             }
-            context.barrier();
+            barrier();
         }
         if (localId == 0) {
             // copy from shared memory to global memory
@@ -95,20 +94,20 @@ public class TestReductions {
      * @param partialSums
      */
     @Reflect
-    private static void reduceLocal(KernelContext context, S32Array input, S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+    private static void reduceLocal( S32Array input, S32Array partialSums) {
+        int localId = LIX();
+        int localSize = LSX();
+        int blockId = BIX();
 
         // Prototype: allocate in shared memory an array of 16 ints
         MySharedArray sharedArray = MySharedArray.createLocal();
 
         // Copy from global to shared memory
-        sharedArray.array(localId, input.array(context.gix));
+        sharedArray.array(localId, input.array(GIX()));
 
         // Reduction using local memory
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
-            context.barrier();
+            barrier();
             if (localId < offset) {
                 sharedArray.array(localId,  sharedArray.array(localId) +  sharedArray.array(localId + offset));
             }
@@ -122,15 +121,15 @@ public class TestReductions {
     private static final int BLOCK_SIZE = 16;
 
     @Reflect
-    private static void reduceGlobal(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array input, @MappableIface.WO S32Array partialSums) {
+    private static void reduceGlobal(ComputeContext cc, S32Array input, S32Array partialSums) {
         // 2 groups of 16 threads each
-        cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceGlobal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32, 16), () -> reduceGlobal( input, partialSums));
     }
 
     @Reflect
-    private static void reduceLocal(@MappableIface.RO ComputeContext cc, @MappableIface.RO S32Array input, @MappableIface.WO S32Array partialSums) {
+    private static void reduceLocal(ComputeContext cc, S32Array input, S32Array partialSums) {
         // 2 groups of 16 threads each
-        cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceLocal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32, 16), () -> reduceLocal( input, partialSums));
     }
 
     @HatTest

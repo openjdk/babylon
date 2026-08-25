@@ -24,9 +24,7 @@
  */
 package hat.codebuilders;
 
-import hat.dialect.HATBarrierOp;
 import hat.dialect.HATOp;
-import hat.dialect.HATThreadOp;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
@@ -39,10 +37,6 @@ import static hat.dialect.HATPtrOp.HATPtrStoreOp;
 /* this should not be too C99 specific but can reference HAT ops.  */
 public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T>> extends BabylonOpDispatcher<T, ScopedCodeBuilderContext> {
 
-    T hatBarrierOp( HATBarrierOp barrierOp);
-
-    T hatThreadIdOp( HATThreadOp hatThreadOp);
-
     T hatPtrLoadOp(HATPtrLoadOp hatPtrLoadOp);
 
     T hatPtrStoreOp( HATPtrStoreOp hatPtrStoreOp);
@@ -53,8 +47,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
             switch (hatOp) {
-                case HATBarrierOp hatBarrierOp -> hatBarrierOp(hatBarrierOp);
-                case HATThreadOp hatThreadOp -> hatThreadIdOp(hatThreadOp);
                 case HATPtrLoadOp hatPtrLoadOp -> hatPtrLoadOp(hatPtrLoadOp);
                 case HATPtrStoreOp hatPtrStoreOp -> hatPtrStoreOp(hatPtrStoreOp);
                 case HATPtrLengthOp hatPtrLengthOp -> hatPtrLengthOp(hatPtrLengthOp);

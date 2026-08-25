@@ -32,7 +32,7 @@ import java.lang.invoke.MethodHandles;
 
 import static optkl.OpHelper.Invoke.invoke;
 import optkl.OpHelper.Invoke.Virtual;
-import optkl.VarTable;
+import hat.phases.VarTable;
 
 public class UnpackingFluentBinaryOps {
 

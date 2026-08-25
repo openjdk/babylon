@@ -24,92 +24,40 @@
  */
 package hat;
 
+import optkl.util.Regex;
+
 /**
- * Created by a dispatch call to a kernel from within a Compute method and 'conceptually' passed to a kernel.
+ * Used by kernels to extract thread information at runtime.
  * <p>
- * In reality the backend decides how to pass the information contained in the KernelContext.
- *
- * <pre>
- *     @ Reflect
- *      static public void doSomeWork(final ComputeContext cc, S32Array arrayOfInt) {
- *         cc.dispatchKernel(KernelContext kc -> addDeltaKernel(kc,arrayOfInt.length(), 5, arrayOfInt);
- *      }
- * </pre>
- *
+ * In reality these calls will be redirected to backend runtime equiv during code gen.
  * @author Gary Frost
  */
-public class KernelContext {
-    // Global accesses
-    public int gix;
-    public int giy;
-    public int giz;
-
-    public final int gsx;
-    public final int gsy;
-    public final int gsz;
-
-    // Local accesses within a group
-    public int lix;
-    public int liy;
-    public int liz;
-
-    // Specify sizes for the local group sizes
-    public int lsx;
-    public int lsy;
-    public int lsz;
-
-    // Specify group/block index
-    public int bix;
-    public int biy;
-    public int biz;
-
-    // Specify the number of blocks
-    public int bsx;
-    public int bsy;
-    public int bsz;
-
-    // Warp size
-    public int wrs;
-
-    final int dimensions;
-
-    public final NDRange ndRange;
-
-    public KernelContext(NDRange ndRange) {
-        if (ndRange == null) {
-            throw new NullPointerException("ndRange is null");
-        }
-
-        this.ndRange = ndRange;
-        switch (ndRange) {
-            case NDRange.NDRange1D ndRange1D -> {
-                this.gsx = ((NDRange.M1D)(ndRange1D.global())).x();
-                this.gsy = 1;
-                this.gsz = 1;
-                this.dimensions = ((NDRange.M1D)(ndRange1D.global())).dimension();
-            }
-            case NDRange.NDRange2D ndRange2D -> {
-                this.gsx = ((NDRange.M2D)(ndRange2D.global())).x();
-                this.gsy = ((NDRange.M2D)(ndRange2D.global())).y();
-                this.gsz = 1;
-                this.dimensions = ((NDRange.M2D)(ndRange2D.global())).dimension();
-            }
-            case NDRange.NDRange3D ndRange3D -> {
-                this.gsx = ((NDRange.M3D)(ndRange3D.global())).x();
-                this.gsy = ((NDRange.M3D)(ndRange3D.global())).y();
-                this.gsz = ((NDRange.M3D)(ndRange3D.global())).z();
-                this.dimensions = ((NDRange.M3D)(ndRange3D.global())).dimension();
-            }
-            default -> throw new IllegalArgumentException("Unknown NDRange type: "  + ndRange.getClass());
-
-        }
-    }
+public interface KernelContext {
+     Regex threadAccessRegex = Regex.of("(([GLB][SI][XYZ])|WRS|barrier)");
 
     /**
      * Marker called by kernel code which is mapped to a barrier implementation in the target language.
      */
-    public void barrier() {
+    static void barrier() {
         // empty method - this is just a marker for the HAT Kernels
     }
-
+    static int GIX(){return 0;};
+    static int GIY(){return 0;};
+    static int GIZ(){return 0;};
+    static int GSX(){return 0;};
+    static int GSY(){return 0;};
+    static int GSZ(){return 0;};
+    static int BIX(){return 0;};
+    static int BIY(){return 0;};
+    static int BIZ(){return 0;};
+    static int BSX(){return 0;};
+    static int BSY(){return 0;};
+    static int BSZ(){return 0;};
+    static int LIX(){return 0;};
+    static int LIY(){return 0;};
+    static int LIZ(){return 0;};
+    static int LSX(){return 0;};
+    static int LSY(){return 0;};
+    static int LSZ(){return 0;};
+    static int WRS(){return 0;};
 }

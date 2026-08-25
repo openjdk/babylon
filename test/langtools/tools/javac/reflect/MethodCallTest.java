@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -292,5 +292,122 @@ public class MethodCallTest {
         String s = al.get(0);
         List<String> l = al;
         s = l.get(0);
+    }
+
+    @Reflect
+    @IR("""
+            func @"test11" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object[]" -> {
+                  %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"values";
+                  %2 : java.type:"java.lang.Object[]" = var.load %1;
+                  %3 : java.type:"java.lang.Object[]" = invoke %2 @java.ref:"java.lang.Object[]::clone():java.lang.Object";
+                  return %3;
+            };
+            """)
+    static Object[] test11(Object[] values) {
+        return values.clone();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test12" (%0 : java.type:"int[]")java.type:"int[]" -> {
+                  %1 : Var<java.type:"int[]"> = var %0 @"values";
+                  %2 : java.type:"int[]" = var.load %1;
+                  %3 : java.type:"int[]" = invoke %2 @java.ref:"int[]::clone():java.lang.Object";
+                  return %3;
+            };
+            """)
+    static int[] test12(int[] values) {
+        return values.clone();
+    }
+
+
+    @Reflect
+    @IR("""
+            func @"test13" (%0 : java.type:"java.lang.Comparable<java.lang.String>[]")java.type:"java.lang.Comparable<java.lang.String>[]" -> {
+                %1 : Var<java.type:"java.lang.Comparable<java.lang.String>[]"> = var %0 @"values";
+                %2 : java.type:"java.lang.Comparable<java.lang.String>[]" = var.load %1;
+                %3 : java.type:"java.lang.Comparable<java.lang.String>[]" = invoke %2 @java.ref:"java.lang.Comparable[]::clone():java.lang.Object";
+                return %3;
+            };
+            """)
+    static Comparable<String>[] test13(Comparable<String>[] values) {
+        return values.clone();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test14" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Class<? extends java.lang.Object[]>" -> {
+                %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"values";
+                %2 : java.type:"java.lang.Object[]" = var.load %1;
+                %3 : java.type:"java.lang.Class<? extends java.lang.Object[]>" = invoke %2 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                return %3;
+            };
+            """)
+    static Class<? extends Object[]> test14(Object[] values) {
+        return values.getClass();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test15" (%0 : java.type:"int[]")java.type:"java.lang.Class<? extends int[]>" -> {
+                %1 : Var<java.type:"int[]"> = var %0 @"values";
+                %2 : java.type:"int[]" = var.load %1;
+                %3 : java.type:"java.lang.Class<? extends int[]>" = invoke %2 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                return %3;
+            };
+            """)
+    static Class<? extends int[]> test15(int[] values) {
+        return values.getClass();
+    }
+
+
+    @Reflect
+    @IR("""
+            func @"test16" (%0 : java.type:"java.lang.Comparable<java.lang.String>[]")java.type:"java.lang.Class<? extends java.lang.Comparable[]>" -> {
+                %1 : Var<java.type:"java.lang.Comparable<java.lang.String>[]"> = var %0 @"values";
+                %2 : java.type:"java.lang.Comparable<java.lang.String>[]" = var.load %1;
+                %3 : java.type:"java.lang.Class<? extends java.lang.Comparable[]>" = invoke %2 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                return %3;
+            };
+            """)
+    static Class<? extends Comparable[]> test16(Comparable<String>[] values) {
+        return values.getClass();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test17" (%0 : java.type:"MethodCallTest")java.type:"java.lang.Class<? extends MethodCallTest>" -> {
+                %1 : java.type:"java.lang.Class<? extends MethodCallTest>" = invoke %0 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                return %1;
+            };
+            """)
+    Class<? extends MethodCallTest> test17() {
+        return getClass();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test18" (%0 : java.type:"MethodCallTest")java.type:"java.lang.Class<? extends MethodCallTest>" -> {
+                %1 : Var<java.type:"MethodCallTest"> = var %0 @"rec";
+                %2 : java.type:"MethodCallTest" = var.load %1;
+                %3 : java.type:"java.lang.Class<? extends MethodCallTest>" = invoke %2 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                return %3;
+            };
+            """)
+    static Class<? extends MethodCallTest> test18(MethodCallTest rec) {
+        return rec.getClass();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test19" (%0 : java.type:"java.lang.Enum<?>")java.type:"java.lang.Class<?>" -> {
+                %1 : Var<java.type:"java.lang.Enum<?>"> = var %0 @"value";
+                %2 : java.type:"java.lang.Enum<?>" = var.load %1;
+                %3 : java.type:"java.lang.Class<? extends java.lang.Enum<?>>" = invoke %2 @java.ref:"java.lang.Enum::getDeclaringClass():java.lang.Class";
+                return %3;
+            };
+            """)
+    static Class<?> test19(Enum<?> value) {
+        return value.getDeclaringClass(); // check no stack overflow when normalizing recursive capture type
     }
 }

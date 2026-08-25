@@ -28,7 +28,8 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 
@@ -93,23 +94,23 @@ public class GetBackend {
 
          */
         @Reflect
-        static void kernel(KernelContext kid, F32Array a, F32Array b, F32Array c) {
-            for (int j = 0; j < kid.gsx; j++) {
+        static void kernel( F32Array a, F32Array b, F32Array c) {
+            for (int j = 0; j < GSX(); j++) {
                 float sum = 0f;
-                for (int k = 0; k < kid.gsx; k++) {
+                for (int k = 0; k < GSX(); k++) {
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
-                    sum += a.array(kid.gix * kid.gsx + k) * b.array(k * kid.gsx + j);
+                    sum += a.array(GIX() * GSX() + k) * b.array(k * GSX() + j);
                     //sum += a[kid.x * kid.max + k] * b[k * kid.max + j];
-                    sum += a.array(kid.gix * kid.gsx + k) * b.array(k * kid.gsx + j);
+                    sum += a.array(GIX() * GSX() + k) * b.array(k * GSX() + j);
                 }
                 //c[kid.x * kid.max + j] = sum;
-                c.array(kid.gix * kid.gsx + j, sum);
+                c.array(GIX() * GSX() + j, sum);
             }
         }
 
         @Reflect
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
-            computeContext.dispatchKernel(NDRange.of1D(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
+            computeContext.dispatchKernel(NDRange.of1D(size * size), () -> MatrixMultiply.kernel( a, b, c));
         }
 
     }

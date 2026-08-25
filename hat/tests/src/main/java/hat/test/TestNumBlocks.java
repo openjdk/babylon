@@ -27,14 +27,13 @@ package hat.test;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.WO;
 
 import java.lang.invoke.MethodHandles;
 
@@ -45,17 +44,17 @@ import static hat.NDRange.NDRange1D;
 public class TestNumBlocks {
 
     @Reflect
-    private static void kernel_numblocks_X(KernelContext kernelContext, F32Array output) {
-        int idx = kernelContext.gix;
-        int bsx = kernelContext.bsx;
+    private static void kernel_numblocks_X( F32Array output) {
+        int idx = GIX();
+        int bsx = BSX();
         // Write the number of blocks
         output.array(idx, bsx);
     }
 
     @Reflect
-    private static void numblocks_01(@RO ComputeContext computeContext, @WO F32Array output, int numThreads, int localBlockSize) {
+    private static void numblocks_01(ComputeContext computeContext, F32Array output, int numThreads, int localBlockSize) {
         var ndRange = NDRange1D.of(Global1D.of(numThreads), Local1D.of(localBlockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> kernel_numblocks_X(kernelContext, output));
+        computeContext.dispatchKernel(ndRange, () -> kernel_numblocks_X( output));
     }
 
     @HatTest

@@ -26,7 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange.Tile2D;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
@@ -47,8 +48,6 @@ import static hat.NDRange.Global2D;
 import static hat.NDRange.Local2D;
 import static hat.NDRange.NDRange2D;
 import static hat.NDRange.Warp2D;
-import static optkl.ifacemapper.MappableIface.RO;
-import static optkl.ifacemapper.MappableIface.WO;
 
 /**
  * Test tensor operations in HAT.
@@ -70,13 +69,13 @@ import static optkl.ifacemapper.MappableIface.WO;
 public class TestTensors {
 
     @Reflect
-    public static void mxmTensorsColumnMajor(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+    public static void mxmTensorsColumnMajor( F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         final int SHAPE = 16;
         final int WMMA_M = SHAPE;
         final int WMMA_N = SHAPE;
         final int WMMA_K = SHAPE;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -116,7 +115,7 @@ public class TestTensors {
     }
 
     @Reflect
-    public static void mxmTensorsColumnMajor(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void mxmTensorsColumnMajor(ComputeContext cc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int globalSize) {
         // The total number of threads is calculated as follows:
         // [ (size / tile), (size / tile) ]
         // If warpSize > 1, then each dimension using warp operations is multiplied by the value of the warp-size. This is architecture dependent, but the
@@ -127,17 +126,17 @@ public class TestTensors {
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
 
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsColumnMajor(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange,() -> mxmTensorsColumnMajor( matrixA, matrixB, matrixC, globalSize));
     }
 
     @Reflect
-    public static void mxmTensorsRowColumnMajor(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int size) {
+    public static void mxmTensorsRowColumnMajor( F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
 
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -168,7 +167,7 @@ public class TestTensors {
     }
 
     @Reflect
-    public static void mxmTensorsRowColumnMajor(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32Array matrixC, int globalSize) {
+    public static void mxmTensorsRowColumnMajor(ComputeContext cc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int globalSize) {
         // The total number of threads is calculated as follows:
         // [ (size / tile), (size / tile) ]
         // If warpSize > 1, then each dimension using warp operations is multiplied by the value of the warp-size. This is architecture dependent, but the
@@ -179,16 +178,16 @@ public class TestTensors {
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
 
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsRowColumnMajor(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, () -> mxmTensorsRowColumnMajor( matrixA, matrixB, matrixC, globalSize));
     }
 
     @Reflect
-    public static void mxmTensorsRowMajor(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32ArrayPadded matrixC, int size) {
+    public static void mxmTensorsRowMajor( F16Array matrixA, F16Array matrixB, F32ArrayPadded matrixC, int size) {
         final int WMMA_M = 16;
         final int WMMA_N = 16;
         final int WMMA_K = 16;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -222,23 +221,23 @@ public class TestTensors {
     }
 
     @Reflect
-    public static void mxmTensorsRowMajor(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32ArrayPadded matrixC, int globalSize) {
+    public static void mxmTensorsRowMajor( ComputeContext cc,  F16Array matrixA,  F16Array matrixB,  F32ArrayPadded matrixC, int globalSize) {
         var ndRange = NDRange2D.of(
                 Global2D.of(globalSize, globalSize),
                 Local2D.of(128, 4),
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsRowMajor(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, () -> mxmTensorsRowMajor( matrixA, matrixB, matrixC, globalSize));
     }
 
     @Reflect
-    public static void mxmTensorsDefaultAccess(@RO KernelContext kc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32ArrayPadded matrixC, int size) {
+    public static void mxmTensorsDefaultAccess(   F16Array matrixA,  F16Array matrixB,  F32ArrayPadded matrixC, int size) {
         final int sizeShape = 16;
         final int WMMA_M = sizeShape;
         final int WMMA_N = sizeShape;
         final int WMMA_K = sizeShape;
-        int warpM = kc.gix / kc.wrs;
-        int warpN = kc.giy;
+        int warpM = GIX() / WRS();
+        int warpN = GIY();
 
         final int lda = 1024;
         final int ldb = 1024;
@@ -263,12 +262,12 @@ public class TestTensors {
     }
 
     @Reflect
-    public static void mxmTensorsDefaultAccess(@RO ComputeContext cc, @RO F16Array matrixA, @RO F16Array matrixB, @WO F32ArrayPadded matrixC, int globalSize) {
+    public static void mxmTensorsDefaultAccess( ComputeContext cc,  F16Array matrixA,  F16Array matrixB,  F32ArrayPadded matrixC, int globalSize) {
         var ndRange = NDRange2D.of(Global2D.of(globalSize, globalSize),
                 Local2D.of(128, 4),
                 Tile2D.of(16, 16),
                 Warp2D.of(true, false));
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsDefaultAccess(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, () -> mxmTensorsDefaultAccess( matrixA, matrixB, matrixC, globalSize));
     }
 
     private static void runSequentialColMajor(F16Array matrixA, F16Array matrixB, F32Array matrixC, final int size) {

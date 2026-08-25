@@ -812,8 +812,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     /**
      * Common supertype for all functional expression trees (lambda and method references)
      */
-    public abstract static sealed class JCFunctionalExpression extends JCPolyExpression
-                                                               permits JCLambda, JCMemberReference {
+    public abstract static class JCFunctionalExpression extends JCPolyExpression {
 
         public JCFunctionalExpression() {
             //a functional expression is always a 'true' poly
@@ -2035,7 +2034,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     /**
      * A lambda expression.
      */
-    public static final class JCLambda extends JCFunctionalExpression implements LambdaExpressionTree {
+    public static class JCLambda extends JCFunctionalExpression implements LambdaExpressionTree {
 
         public enum ParameterKind {
             IMPLICIT,
@@ -2624,7 +2623,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
     /**
      * Selects a member expression.
      */
-    public static non-sealed class JCMemberReference extends JCFunctionalExpression implements MemberReferenceTree {
+    public static class JCMemberReference extends JCFunctionalExpression implements MemberReferenceTree {
 
         public ReferenceMode mode;
         public ReferenceKind kind;
@@ -3453,6 +3452,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public JCExpression expr;
         /**true if a expr should be run through Gen.genCond:*/
         public boolean needsCond;
+        public boolean needsLineNumberTableEntry;
         protected LetExpr(List<JCStatement> defs, JCExpression expr) {
             this.defs = defs;
             this.expr = expr;

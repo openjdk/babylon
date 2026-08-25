@@ -27,7 +27,8 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -41,8 +42,6 @@ import hat.test.exceptions.HATAsserts;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static optkl.ifacemapper.MappableIface.RO;
-import static optkl.ifacemapper.MappableIface.RW;
 import static hat.test.TestNbody.Universe.*;
 
 public class TestNbody {
@@ -78,11 +77,11 @@ public class TestNbody {
     }
 
     @Reflect
-    static public void nbodyKernel(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernel( Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
-        Body body = universe.body(kc.gix);
+        Body body = universe.body(GIX());
 
         for (int i = 0; i < universe.length(); i++) {
             Body otherBody = universe.body(i);
@@ -107,8 +106,8 @@ public class TestNbody {
     }
 
     @Reflect
-    public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
-        cc.dispatchKernel(NDRange.of1D(universe.length()), kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
+    public static void nbodyCompute(ComputeContext cc, Universe universe, final float mass, final float delT, final float espSqr) {
+        cc.dispatchKernel(NDRange.of1D(universe.length()), () -> nbodyKernel( universe, mass, delT, espSqr));
     }
 
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {

@@ -26,18 +26,14 @@ package violajones;
 
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.buffer.F32Array2D;
 import hat.buffer.S08x3RGBImage;
-import optkl.ifacemapper.MappableIface;
 import violajones.ifaces.Cascade;
 import violajones.ifaces.ResultTable;
 import violajones.ifaces.ScaleTable;
 
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.WO;
 
 public class ViolaJonesCoreCompute {
 
@@ -74,9 +70,9 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void rgbToGreyKernel(KernelContext kc, S08x3RGBImage rgbImage, F32Array2D greyImage) {
-        if (kc.gix < kc.gsx){
-           rgbToGrey(kc.gix, rgbImage, greyImage);
+    public static void rgbToGreyKernel( S08x3RGBImage rgbImage, F32Array2D greyImage) {
+        if (GIX() < GSX()){
+           rgbToGrey(GIX(), rgbImage, greyImage);
         }
     }
 
@@ -89,10 +85,10 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void integralColKernel(KernelContext kc, F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
-        if (kc.gix <kc.gsx){  // kc.gsx = imageWidth
-           int x = kc.gix;
-           int width = kc.gsx;
+    public static void integralColKernel( F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
+        if (GIX() <GSX()){  // GSX() = imageWidth
+           int x = GIX();
+           int width = GSX();
            int height = greyImage.height();
            for (int y = 1; y < height; y++) {
                int id =(y * width) + x;
@@ -119,9 +115,9 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void integralRowKernel(KernelContext kc, F32Array2D integral, F32Array2D integralSq) {
-        if (kc.gix <kc.gsx){  // kc.gsx == imageHeight
-           int y = kc.gix;
+    public static void integralRowKernel( F32Array2D integral, F32Array2D integralSq) {
+        if (GIX() <GSX()){  // GSX() == imageHeight
+           int y = GIX();
            int width = integral.width();
            for (int x = 1; x < width; x++) {
                int id =(y * width) + x;
@@ -234,16 +230,15 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void findFeaturesKernel(KernelContext kc,
-                                          Cascade cascade,
-                                          F32Array2D integral,
-                                          F32Array2D integralSq,
-                                          ScaleTable scaleTable,
-                                          ResultTable resultTable
-
+    public static void findFeaturesKernel(
+            Cascade cascade,
+            F32Array2D integral,
+            F32Array2D integralSq,
+            ScaleTable scaleTable,
+            ResultTable resultTable
     ) {
 
-        if (kc.gix < kc.gsx){//;scaleTable.multiScaleAccumulativeRange()) {
+        if (GIX() < GSX()){//;scaleTable.multiScaleAccumulativeRange()) {
             // We need to determine the scale information for a given gid.
             // we check each scale in the scale table and check if our gid is
             // covered by the scale.
@@ -252,7 +247,7 @@ public class ViolaJonesCoreCompute {
           //  var offset=scale.offset();
            // System.out.println("scale offset "+offset);
             scalc++;
-            while (kc.gix >= scale.accumGridSizeMax() && scalc<scaleTable.length()) {
+            while (GIX() >= scale.accumGridSizeMax() && scalc<scaleTable.length()) {
                 scale = scaleTable.scale(scalc);
              //   var layout =scale.layout();
               //  offset=scale.offset();
@@ -261,7 +256,7 @@ public class ViolaJonesCoreCompute {
             }
 
             // Now we need to convert our scale relative git to an x,y,w,h
-            int scaleGid = kc.gix - scale.accumGridSizeMin();
+            int scaleGid = GIX() - scale.accumGridSizeMin();
 
             int x = (int) ((scaleGid % scale.gridWidth()) * scale.scaledXInc());
             int y = (int) ((scaleGid / scale.gridWidth()) * scale.scaledYInc());
@@ -289,7 +284,7 @@ public class ViolaJonesCoreCompute {
                 Cascade.Stage stage = cascade.stage(stagec);
               //  Class stageClass = stage.getClass();
                // long stageOffset = stage.offset();
-                stillLooksLikeAFace = isAFaceStage(kc.gix, scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
+                stillLooksLikeAFace = isAFaceStage(GIX(), scale.scaleValue(), scale.invArea(), x, y, vnorm, integral, stage, cascade);
             }
 
             if (stillLooksLikeAFace) {
@@ -310,23 +305,23 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    static public void compute(@MappableIface.RO final ComputeContext cc, @MappableIface.RO Cascade cascade, @MappableIface.RO S08x3RGBImage s08X3RGBImage, @RW ResultTable resultTable, @MappableIface.RO ScaleTable scaleTable) {
+    public static void compute(final ComputeContext cc, Cascade cascade, S08x3RGBImage s08X3RGBImage, ResultTable resultTable, ScaleTable scaleTable) {
 
         int width = s08X3RGBImage.width();
         int height = s08X3RGBImage.height();
 
         F32Array2D greyImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(NDRange.of1D(width * height), kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
+        cc.dispatchKernel(NDRange.of1D(width * height), () -> rgbToGreyKernel( s08X3RGBImage, greyImage));
 
         F32Array2D integralImage = createF32Array2D(cc, width, height);
         F32Array2D integralSqImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(NDRange.of1D(width), kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
-        cc.dispatchKernel(NDRange.of1D(height), kc -> integralRowKernel(kc, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of1D(width), () -> integralColKernel( greyImage, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of1D(height), () -> integralRowKernel( integralImage, integralSqImage));
 
-        cc.dispatchKernel(NDRange.of1D(scaleTable.multiScaleAccumulativeRange()), kc ->
-                findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));
+        cc.dispatchKernel(NDRange.of1D(scaleTable.multiScaleAccumulativeRange()), () ->
+                findFeaturesKernel( cascade, integralImage, integralSqImage, scaleTable, resultTable));
 
     }
 

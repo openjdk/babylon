@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -560,6 +560,90 @@ public class SwitchExpressionTest {
         return switch (o) {
             case Object _ when B -> "match";
             default -> "no match";
+        };
+    }
+
+    @IR("""
+            func @"statementGroupsYieldingBoolean" (%0 : java.type:"int")java.type:"int" -> {
+                %1 : Var<java.type:"int"> = var %0 @"value";
+                java.if
+                    ()java.type:"boolean" -> {
+                        %2 : java.type:"int" = var.load %1;
+                        %3 : java.type:"boolean" = java.switch.expression %2
+                            (%4 : java.type:"int")java.type:"boolean" -> {
+                                %5 : java.type:"int" = constant @0;
+                                %6 : java.type:"boolean" = eq %4 %5;
+                                yield %6;
+                            }
+                            ()java.type:"boolean" -> {
+                                %7 : java.type:"boolean" = constant @false;
+                                java.yield %7;
+                            }
+                            ()java.type:"boolean" -> {
+                                %8 : java.type:"boolean" = constant @true;
+                                yield %8;
+                            }
+                            ()java.type:"boolean" -> {
+                                %9 : java.type:"int" = var.load %1;
+                                %10 : java.type:"int" = constant @0;
+                                %11 : java.type:"boolean" = gt %9 %10;
+                                java.yield %11;
+                            };
+                        yield %3;
+                    }
+                    ()java.type:"void" -> {
+                        %12 : java.type:"int" = constant @1;
+                        return %12;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                %13 : java.type:"int" = constant @0;
+                return %13;
+            };
+            """)
+    @Reflect
+    private static int statementGroupsYieldingBoolean(int value) {
+        if (switch (value) {
+            case 0: yield false;
+            default: yield value > 0;}) {
+            return 1;
+        }
+        return 0;
+    }
+
+    @IR("""
+            func @"statementGroupsYieldingObjects" (%0 : java.type:"int")java.type:"void" -> {
+                %1 : Var<java.type:"int"> = var %0 @"value";
+                %2 : java.type:"int" = var.load %1;
+                %3 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%4 : java.type:"int")java.type:"boolean" -> {
+                        %5 : java.type:"int" = constant @0;
+                        %6 : java.type:"boolean" = eq %4 %5;
+                        yield %6;
+                    }
+                    ()java.type:"java.lang.Object" -> {
+                        %7 : java.type:"int" = field.load @java.ref:"java.lang.Integer::MAX_VALUE:int";
+                        %8 : java.type:"java.lang.Integer" = invoke %7 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                        java.yield %8;
+                    }
+                    ()java.type:"boolean" -> {
+                        %9 : java.type:"boolean" = constant @true;
+                        yield %9;
+                    }
+                    ()java.type:"java.lang.Object" -> {
+                        %10 : java.type:"java.lang.String" = constant @"default";
+                        java.yield %10;
+                    };
+                %11 : Var<java.type:"java.lang.Object"> = var %3 @"r";
+                return;
+            };
+            """)
+    @Reflect
+    private static void statementGroupsYieldingObjects(int value) {
+        Object r = switch (value) {
+            case 0: yield Integer.MAX_VALUE;
+            default: yield "default";
         };
     }
 }

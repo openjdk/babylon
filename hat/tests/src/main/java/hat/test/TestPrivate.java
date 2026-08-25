@@ -27,12 +27,12 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
-import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -59,20 +59,18 @@ public class TestPrivate {
     }
 
     @Reflect
-    private static void compute(KernelContext kernelContext, F32Array data) {
+    private static void compute( F32Array data) {
         PrivateArray privateArray = PrivateArray.createPrivate();
-        int lix = kernelContext.lix;
-        int blockId = kernelContext.bix;
-        int blockSize = kernelContext.lsx;
+        int lix = LIX();
+        int blockId = BIX();
+        int blockSize = LSX();
         privateArray.array(0, lix);
         data.array(lix + (long) blockId * blockSize, privateArray.array(0));
     }
 
     @Reflect
-    private static void myCompute(@RO ComputeContext computeContext, @WO F32Array data) {
-        computeContext.dispatchKernel(NDRange.of1D(32),
-                kernelContext -> compute(kernelContext, data)
-        );
+    private static void myCompute(ComputeContext computeContext, F32Array data) {
+        computeContext.dispatchKernel(NDRange.of1D(32), () -> compute( data));
     }
 
     @HatTest
@@ -80,9 +78,7 @@ public class TestPrivate {
     public void testPrivate() {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         F32Array data = F32Array.create(accelerator, 32);
-        accelerator.compute(computeContext -> {
-            TestPrivate.myCompute(computeContext, data);
-        });
+        accelerator.compute(computeContext -> TestPrivate.myCompute(computeContext, data));
 
         // Check result
         boolean isCorrect = true;

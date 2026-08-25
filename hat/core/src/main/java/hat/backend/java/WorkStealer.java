@@ -27,6 +27,7 @@ package hat.backend.java;
 
 import hat.KernelContext;
 import hat.NDRange;
+import hat.buffer.DispatchContext;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
@@ -68,13 +69,14 @@ public class WorkStealer {
 
                         // The range should be initialised by now.
                         var ndRange1D = NDRange.of1D(range);
-                        hat.KernelContext kernelContext = new KernelContext(ndRange1D);
+                       // hat.KernelContext kernelContext = new KernelContext(ndRange1D);
                         try {
                             int myChunk;
                             while ((myChunk = taskCount.getAndIncrement()) < (range / chunkSize) + 1) {
-                                for (kernelContext.gix = myChunk * chunkSize; kernelContext.gix < (myChunk + 1) * chunkSize && kernelContext.gix < range; kernelContext.gix++) {
+                                throw new RuntimeException("We need NDRANGE fixed up here ");
+                              /*  for (kernelContext.gix = myChunk * chunkSize; kernelContext.gix < (myChunk + 1) * chunkSize && kernelContext.gix < range; kernelContext.gix++) {
                                     rangeConsumer.accept(kernelContext);
-                                }
+                                } */
                             }
                         } finally {
                             //  System.out.println("Thread #"+Thread.currentThread()+" done");
@@ -103,22 +105,25 @@ public class WorkStealer {
         return WorkStealer.of(Runtime.getRuntime().availableProcessors());
     }
 
-    public void forEachInRange(KernelContext kernelContext, Consumer<KernelContext> rangeConsumer) {
+    public void forEachInRange(NDRange ndRange, Consumer<NDRange> rangeConsumer) {
         if (threadCount > 1) {
             rendezvous(setupBarrier);
             this.taskCount.set(0);
-            this.range = kernelContext.gsx;
-            this.rangeConsumer = rangeConsumer;
+            throw new RuntimeException("We need NDRANGE");
+            //this.range = ndRange.global() instanceof NDRange.Global global?global.
+           // this.rangeConsumer = rangeConsumer;
 
-            rendezvous(startBarrier);
+           // rendezvous(startBarrier);
             // This should start all threads
-            rendezvous(doneBarrier);
+            //rendezvous(doneBarrier);
         } else {
-            for (kernelContext.gix = 0; kernelContext.gix < range; kernelContext.gix++) {
-                rangeConsumer.accept(kernelContext);
-            }
+            throw new RuntimeException("We need NDRANGE");
+           // for (kernelContext.gix = 0; kernelContext.gix < range; kernelContext.gix++) {
+             //   rangeConsumer.accept(kernelContext);
+           // }
         }
     }
+
 
     void rendezvous(CyclicBarrier barrier) {
         try {

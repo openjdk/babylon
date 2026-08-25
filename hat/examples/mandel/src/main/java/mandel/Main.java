@@ -28,8 +28,8 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
 import hat.backend.Backend;
+import static hat.KernelContext.*;
 import hat.buffer.S32Array;
 import hat.buffer.S32Array2D;
 
@@ -37,18 +37,17 @@ import java.awt.Color;
 import java.lang.invoke.MethodHandles;
 
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
-import optkl.ifacemapper.MappableIface.RW;
+
+
 
 public class Main {
     @Reflect
-    public static void mandel(KernelContext kc, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
-        if (kc.gix < kc.gsx) {
+    public static void mandel( S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
+        if (GIX() < GSX()) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();
-            float x = ((kc.gix % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
-            float y = ((kc.gix / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
+            float x = ((GIX() % s32Array2D.width()) * scale - (scale / 2f * width)) / width + offsetx;
+            float y = ((GIX() / s32Array2D.width()) * scale - (scale / 2f * height)) / height + offsety;
             float zx = x;
             float zy = y;
             float new_zx;
@@ -60,7 +59,7 @@ public class Main {
                 colorIdx++;
             }
             int color = colorIdx < pallette.length() ? pallette.array(colorIdx) : 0;
-            s32Array2D.array(kc.gix, color);
+            s32Array2D.array(GIX(), color);
         }
     }
 
@@ -69,10 +68,10 @@ public class Main {
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
         computeContext.dispatchKernel(
                 NDRange.of1D(s32Array2D.width()*s32Array2D.height()),               //0..S32Array2D.size()
-                kc -> Main.mandel(kc, s32Array2D, pallete, x, y, scale));
+                () -> Main.mandel( s32Array2D, pallete, x, y, scale));
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         final int width = 1024;
         final int height = 1024;
         final float defaultScale = 3f;

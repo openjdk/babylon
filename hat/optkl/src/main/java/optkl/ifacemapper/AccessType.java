@@ -46,36 +46,34 @@ public enum AccessType {
 
     public static AccessType of(byte i) {
         return switch (i) {
-            case (byte)0 -> NOT_BUFFER;
-            case (byte)1 -> NA;
-            case (byte)2 -> RO;
-            case (byte)4 -> WO;
-            case (byte)6 -> RO;
+            case (byte) 0 -> NOT_BUFFER;
+            case (byte) 1 -> NA;
+            case (byte) 2 -> RO;
+            case (byte) 4 -> WO;
+            case (byte) 6 -> RO;
             default -> throw new IllegalStateException("No access type for " + i);
         };
     }
 
     public static AccessType of(Annotation annotation) {
         return switch (annotation) {
-            case MappableIface.RO ro -> RO;
-            case MappableIface.RW rw -> RW;
-            case MappableIface.WO wo -> WO;
+            case MappableIface.RO _ -> RO;
+            case MappableIface.RW _ -> RW;
+            case MappableIface.WO _ -> WO;
             default -> NA;
         };
     }
-
-
 
     public record TypeAndAccess(Annotation[] annotations, Value value, JavaType javaType) {
         public static TypeAndAccess of(Annotation[] annotations, Value value) {
             return new TypeAndAccess(annotations, value, (JavaType) value.type());
         }
 
-      public  boolean isIface(MethodHandles.Lookup lookup) {
+        public boolean isIface(MethodHandles.Lookup lookup) {
             return OpHelper.isAssignable(lookup, javaType, MappableIface.class);
         }
 
-      public   boolean ro() {
+        public boolean ro() {
             for (Annotation annotation : annotations) {
                 if (annotation instanceof MappableIface.RO) {
                     return true;
@@ -83,11 +81,12 @@ public enum AccessType {
             }
             return false;
         }
-        public boolean mutatesBuffer(){
-            return rw()||wo();
+
+        public boolean mutatesBuffer() {
+            return rw() || wo();
         }
 
-       public boolean rw() {
+        public boolean rw() {
             for (Annotation annotation : annotations) {
                 if (annotation instanceof MappableIface.RW) {
                     return true;
@@ -96,7 +95,7 @@ public enum AccessType {
             return false;
         }
 
-       public boolean wo() {
+        public boolean wo() {
             for (Annotation annotation : annotations) {
                 if (annotation instanceof MappableIface.WO) {
                     return true;

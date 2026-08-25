@@ -23,12 +23,90 @@
  * questions.
  */
 #include <fstream>
+#include <functional>
 #define shared_cpp
 
 #include "shared.h"
 
 #define INFO 0
 
+#include <cstring>
+
+void Hex::ascii(std::ostream &s, char c) {
+    if (::iscntrl(c)) {
+        if (c == '\a') {
+            s << "\\a ";
+        } else if (c == '\r') {
+            s << "\\r ";
+        } else if (c == '\n') {
+            s << "\\n ";
+        } else if (c == '\t') {
+            s << "\\t ";
+        } else {
+            s << "?? ";
+        }
+    } else {
+        s << c << "  ";
+    }
+}
+
+void Hex::hex(std::ostream &s, char c) {
+    s << std::hex << std::setw(2) << std::setfill('0') << std::uppercase << (c & 0xff) << " ";
+}
+
+void Hex::bytes(std::ostream &s, char *p, size_t len, std::function<void(std::ostream &)> prefix) {
+    for (int i = 0; i < len; i++) {
+        if ((i % 16) == 0) {
+            if (i > 0) {
+                s << "  ";
+                for (int c = i - 16; c < i; c++) {
+                    ascii(s, p[c]);
+                }
+            }
+            s << std::endl;
+            prefix(s);
+            s << std::hex << std::setw(6) << std::setfill('0') << i << " ";
+        }
+        hex(s, p[i]);
+    }
+
+    if ((len % 16) == 0) {
+        s << "  ";
+        for (int c = len - 16; c < len; c++) {
+            ascii(s, p[c]);
+        }
+    } else {
+        for (int v = len % 16; v < 16; v++) {
+            s << "   ";
+        }
+        s << "  ";
+        for (int c = len - (len % 16); c < len; c++) {
+            ascii(s, p[c]);
+        }
+    }
+}
+
+void strutil::replaceInPlace(std::string &subject, const std::string &search,
+                             const std::string &replace) {
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
+}
+
+
+bool strutil::endsWith(const std::string &str, const std::string &suffix) {
+    return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
+}
+
+char *strutil::clone(char *name) {
+    size_t len = ::strlen(name);
+    char *buf = new char[len + 1];
+    memcpy(buf, name, len);
+    buf[len] = '\0';
+    return buf;
+}
 
 void hexdump(void *ptr, int buflen) {
     auto *buf = static_cast<unsigned char *>(ptr);
@@ -277,7 +355,7 @@ Log::Log(char *text)
 
 long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (compilationUnit->backend->config->traceCalls) {
-        std::cout << "kernelContext(\"" << name << "\"){" << std::endl;
+        std::cout << "dispatchContext(\"" << name << "\"){" << std::endl;
     }
     ArgSled argSled(static_cast<ArgArray_s *>(argArray));
     auto *profilableQueue = dynamic_cast<ProfilableQueue *>(compilationUnit->backend->queue);
@@ -287,15 +365,15 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (compilationUnit->backend->config->trace) {
         Sled::show(std::cout, argArray);
     }
-    KernelContext *kernelContext = nullptr;
-    for (int i = 0; i < argSled.argc(); i++) {
+      KernelArg *argDispatchContext  = argSled.arg(0);
+    DispatchContext *dispatchContext =  static_cast<DispatchContext *>(argDispatchContext->value.buffer.memorySegment);
+    // Now arg[0] is the dispatchContext so we will extract it immediately
+    for (int i = 1; i < argSled.argc(); i++) {
+
         KernelArg *arg = argSled.arg(i);
+   //      std::cout << "in argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
         switch (arg->variant) {
             case '&': {
-                if (arg->idx == 0) {
-                    // This does not have to be the case all the time. We should be able to pass the kernel context in any argument we want.
-                    kernelContext = static_cast<KernelContext *>(arg->value.buffer.memorySegment);
-                }
                 bool readAccessor  = arg->value.buffer.access == RO_BYTE || arg->value.buffer.access == RW_BYTE || arg->value.buffer.access == UNKNOWN_BYTE;
                 if (compilationUnit->backend->config->trace) {
                     std::cout << "arg[" << i << "] = " << std::hex << (int) (arg->value.buffer.access);
@@ -339,16 +417,16 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                     compilationUnit->backend->queue->copyToDevice(buffer);
                     bufferState->state = BufferState::DEVICE_OWNED;
                     if (compilationUnit->backend->config->traceCopies) {
-                        std::cout << "copying arg " << arg->idx << " host->device " << std::endl;
+                        std::cout << "copying arg " << arg->idx-1 << " host->device " << std::endl;
                     }
                 } else {
                     if (compilationUnit->backend->config->traceSkippedCopies) {
-                        std::cout << "NOT copying arg " << arg->idx << " host->device " << std::endl;
+                        std::cout << "NOT copying arg " << arg->idx-1 << " host->device " << std::endl;
                     }
                 }
                 setArg(arg, buffer);
                 if (compilationUnit->backend->config->trace) {
-                    std::cout << "set buffer arg " << arg->idx << std::endl;
+                    std::cout << "set buffer arg " << arg->idx-1 << std::endl;
                 }
                 break;
             }
@@ -361,32 +439,33 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
             case 'D': {
                 setArg(arg);
                 if (compilationUnit->backend->config->trace) {
-                    std::cerr << "set " << arg->variant << " " << arg->idx << std::endl;
+                    std::cerr << "set " << arg->variant << " " << arg->idx-1 << std::endl;
                 }
                 break;
             }
             default: {
-                std::cerr << "unexpected variant setting args in OpenCLkernel::kernelContext " << (char) arg->variant <<
+                std::cerr << "unexpected variant setting args in OpenCLKernel::dispatchContext " << (char) arg->variant <<
                         std::endl;
                 exit(1);
             }
         }
     }
 
-    if (kernelContext == nullptr) {
-        std::cerr << "Looks like we recieved a kernel dispatch with xero args kernel='" << name << "'" << std::endl;
+    if (dispatchContext == nullptr) {
+        std::cerr << "Looks like we received a kernel dispatch with zero args kernel='" << name << "'" << std::endl;
         exit(1);
     }
 
     if (compilationUnit->backend->config->trace) {
-        std::cout << "kernelContext = <" << kernelContext->gsx << "," << kernelContext->gsy << "," << kernelContext->gsz << ">" << std::endl;
+        std::cout << "dispatchContext = <" << dispatchContext->gsx << "," << dispatchContext->gsy << "," << dispatchContext->gsz << ">" << std::endl;
     }
 
-    compilationUnit->backend->queue->dispatch(kernelContext, this);
+    compilationUnit->backend->queue->dispatch(dispatchContext, this);
 
-    for (int i = 0; i < argSled.argc(); i++) {
-        // note i = 1... we never need to copy back the KernelContext
+    for (int i = 1; i < argSled.argc(); i++) {
+        // note i above = 1... we never need to copy back the KernelContext fix this for DispatchContext
         KernelArg *arg = argSled.arg(i);
+    //       std::cout << "out argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
         if (arg->variant == '&') {
             BufferState *bufferState = BufferState::of(arg);
 
@@ -407,11 +486,11 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 compilationUnit->backend->queue->copyFromDevice(buffer);
                 bufferState->state = BufferState::HOST_OWNED;
                 if (compilationUnit->backend->config->traceCopies || compilationUnit->backend->config->traceEnqueues) {
-                    std::cout << "copying arg " << arg->idx << " device->host " << std::endl;
+                    std::cout << "copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
             } else {
                 if (compilationUnit->backend->config->traceSkippedCopies) {
-                    std::cout << "NOT copying arg " << arg->idx << " device->host " << std::endl;
+                    std::cout << "NOT copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
             }
         }

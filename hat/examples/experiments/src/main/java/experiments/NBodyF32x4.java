@@ -27,6 +27,7 @@ package experiments;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import jdk.incubator.code.Reflect;
@@ -96,11 +97,11 @@ public class NBodyF32x4 {
     }
 
     @Reflect
-    static public void nbodyKernel(@RO KernelContext kc, @RW Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernel( @RW Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
-        Universe.Body body = universe.body(kc.gix);
+        Universe.Body body = universe.body(GIX());
 
         for (int i = 0; i < universe.length(); i++) {
             Universe.Body otherBody = universe.body(i);
@@ -127,15 +128,18 @@ public class NBodyF32x4 {
     @Reflect
     public static void nbodyCompute(@RO ComputeContext cc, @RW Universe universe, final float mass, final float delT, final float espSqr) {
         var ndrange = NDRange.of1D((int)universe.length());
-        cc.dispatchKernel(ndrange, kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
+        cc.dispatchKernel(ndrange, () -> nbodyKernel( universe, mass, delT, espSqr));
     }
 
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {
+
         var ndrange = NDRange.of1D((int)universe.length());
-        KernelContext kernelContext = new KernelContext(ndrange);
-        for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
-           nbodyKernel(kernelContext,universe,mass,delT,espSqr);
-        }
+      //  KernelContext kernelContext = new KernelContext(ndrange);
+        //We can't do this once we refactor to static KerneContext
+        throw new RuntimeException("We need NDRANGE for this");
+       // for (GIX() = 0; GIX() < GSX(); GIX()++) {
+          // nbodyKernel(kernelContext,universe,mass,delT,espSqr);
+       // }
     }
 
     @Reflect

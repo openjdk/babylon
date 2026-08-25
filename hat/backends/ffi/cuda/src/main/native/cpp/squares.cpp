@@ -26,7 +26,7 @@
 #include "cuda_backend.h"
 #include "../include/cuda_backend.h"
 
-class KernelContextWithBufferState{
+class DispatchContextWithBufferState{
 public:
 int x;
 int maxX;
@@ -64,10 +64,10 @@ int main(int argc, char **argv) {
        typedef float f32_t;
        typedef long s64_t;
        typedef unsigned long u64_t;
-       typedef struct KernelContext_s{
+       typedef struct DispatchContext_s{
          int x;
          int maxX;
-       }KernelContext_t;
+       }DispatchContext_t;
        typedef struct S32Array_s{
           int length;
           int array[1];
@@ -80,10 +80,10 @@ int main(int argc, char **argv) {
        }
 
        extern "C" __global__ void squareKernel(
-           KernelContext_t *global_kc,  S32Array_t* s32Array
+           DispatchContext_t *global_kc,  S32Array_t* s32Array
        ){
-         KernelContext_t mine;
-         KernelContext_t* kc=&mine;
+         DispatchContext_t mine;
+         DispatchContext_t* kc=&mine;
          kc->x=blockIdx.x*blockDim.x+threadIdx.x;
          kc->maxX=global_kc->maxX;
          if(kc->x<kc->maxX){
@@ -147,9 +147,9 @@ int main(int argc, char **argv) {
     auto *module =useCuda?cudaBackend.compile(cudaSource):cudaBackend.compile(ptxSource);
    //auto *module =cudaBackend.compile(ptxSource);
 
-     auto  *kernelContextWithBufferState = bufferOf<KernelContextWithBufferState>("kernelcontext");
-    kernelContextWithBufferState->x=0;
-    kernelContextWithBufferState->maxX=maxX;
+     auto  *dispatchContextWithBufferState = bufferOf<DispatchContextWithBufferState>("dispatchContext");
+    dispatchContextWithBufferState->x=0;
+    dispatchContextWithBufferState->maxX=maxX;
     auto *pS32Array1024WithBufferState = bufferOf<S32Array1024WithBufferState>("s32Arrayx1024");
     pS32Array1024WithBufferState->length=maxX;
     for (int i=0; i<pS32Array1024WithBufferState->length; i++){
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
     }
 
     ArgArray_2 args2Array{.argc = 2, .argv={
-            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(kernelContextWithBufferState), .sizeInBytes = sizeof(KernelContextWithBufferState), .access = RO_BYTE}}},
+            {.idx = 0, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(dispatchContextWithBufferState), .sizeInBytes = sizeof(DispatchContextWithBufferState), .access = RO_BYTE}}},
             {.idx = 1, .variant = '&',.value = {.buffer ={.memorySegment = static_cast<void *>(pS32Array1024WithBufferState), .sizeInBytes = sizeof(S32Array1024WithBufferState), .access = RW_BYTE}}}
     }};
     const auto kernel = module->getCudaKernel((char*)"squareKernel");

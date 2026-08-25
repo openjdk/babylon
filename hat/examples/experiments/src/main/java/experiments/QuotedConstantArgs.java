@@ -27,8 +27,8 @@ package experiments;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
+import static hat.KernelContext.*;
 import hat.NDRange;
-import hat.KernelContext;
 import hat.buffer.S32Array;
 import optkl.ifacemapper.MappableIface;
 import jdk.incubator.code.Reflect;
@@ -37,13 +37,13 @@ import java.lang.invoke.MethodHandles;
 
 public class QuotedConstantArgs {
     @Reflect
-    public static void addScalerKernel(@MappableIface.RO KernelContext kc, @MappableIface.RO S32Array in, @MappableIface.WO S32Array out, int scaler) {
-        out.array(kc.gix, in.array(kc.gix) + scaler);
+    public static void addScalerKernel( @MappableIface.RO S32Array in, @MappableIface.WO S32Array out, int scaler) {
+        out.array(GIX(), in.array(GIX()) + scaler);
     }
 
     @Reflect
     static public void addScalerCompute(final ComputeContext computeContext, S32Array in, S32Array out, int scaler) {
-        computeContext.dispatchKernel(NDRange.of1D(in.length()), kc -> QuotedConstantArgs.addScalerKernel(kc, in, out, scaler));
+        computeContext.dispatchKernel(NDRange.of1D(in.length()), ()-> QuotedConstantArgs.addScalerKernel( in, out, scaler));
     }
 
     public static void main(String[] args) {

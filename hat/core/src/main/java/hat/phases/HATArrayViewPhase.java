@@ -35,7 +35,6 @@ import optkl.Trxfmr;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
-import optkl.VarTable;
 import optkl.util.ops.VarLikeOp;
 
 import java.lang.invoke.MethodHandles;

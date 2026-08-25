@@ -27,11 +27,9 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
 import hat.backend.Backend;
+import static hat.KernelContext.*;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.RO;
-import optkl.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -48,30 +46,30 @@ public class TestMissingReflectAnnotation {
     }
 
     @Reflect
-    public static void squareKernel(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx){
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+    public static void squareKernel(S32Array array) {
+        if (GIX() < GSX()){
+            int value = array.array(GIX());
+            array.array(GIX(), squareit(value));
         }
     }
 
-    public static void squareKernelWithoutReflectAnnotation(KernelContext kc, S32Array array) {
-        if (kc.gix < kc.gsx){
-            int value = array.array(kc.gix);
-            array.array(kc.gix, squareit(value));
+    public static void squareKernelWithoutReflectAnnotation( S32Array array) {
+        if (GIX() < GSX()){
+            int value = array.array(GIX());
+            array.array(GIX(), squareit(value));
         }
     }
 
     @Reflect
-    public static void square(@RO ComputeContext cc, @RW S32Array array) {
+    public static void square(ComputeContext cc, S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
-                kc -> squareKernelWithoutReflectAnnotation(kc, array)
+                () -> squareKernelWithoutReflectAnnotation( array)
         );
     }
 
-    public static void squareWithoutReflectAnnotation(@RO ComputeContext cc, @RW S32Array array) {
+    public static void squareWithoutReflectAnnotation(ComputeContext cc, S32Array array) {
         cc.dispatchKernel(NDRange.of1D(array.length()),
-                kc -> squareKernel(kc, array)
+                () -> squareKernel( array)
         );
     }
 

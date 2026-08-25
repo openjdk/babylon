@@ -28,13 +28,13 @@ package nbody;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.buffer.F32Array;
 import hat.buffer.S32RGBAImage;
 
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -49,11 +49,17 @@ import java.lang.invoke.MethodHandles;
 import java.util.stream.IntStream;
 
 import  hat.types.vec3;
-import static hat.types.vec3.*;
-import hat.types.F32;
-import static hat.types.F32.*;
+import optkl.ifacemapper.MappableIface;
+
+import static hat.types.F32.inversesqrt;
+import static hat.types.F32.pow;
+import static hat.types.vec3.dot;
+import static hat.types.vec3.mul;
+import static hat.types.vec3.sub;
+import static hat.types.vec3.vec3;
 
 public class Main extends JFrame implements Runnable {
+
     public enum Mode {HAT, JavaMt, JavaSeq}
 
     public static class DirectRasterPanel extends JPanel {
@@ -132,7 +138,7 @@ public class Main extends JFrame implements Runnable {
     }
 
     @Reflect
-    public static void runSansVec(int bodyIdx, int bodies, @MappableIface.RW F32Array xyzPos, @MappableIface.RW F32Array xyzVel, @MappableIface.RW S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
+    public static void runSansVec(int bodyIdx, int bodies, F32Array xyzPos, F32Array xyzVel, S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
         final int FAR = 500;
         final int MID = 300;
         final int NEAR = 100;
@@ -203,7 +209,7 @@ public class Main extends JFrame implements Runnable {
     }
 
     @Reflect
-    public static void run(int bodyIdx, int bodies, @MappableIface.RW F32Array xyzPos, @MappableIface.RW F32Array xyzVel, @MappableIface.RW S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
+    public static void run(int bodyIdx, int bodies, F32Array xyzPos, F32Array xyzVel, S32RGBAImage image, int imageWidth, float mass, float delT, float espSqr) {
         final int FAR = 500;
         final int MID = 300;
         final int NEAR = 100;
@@ -260,49 +266,43 @@ public class Main extends JFrame implements Runnable {
     @Reflect
 
     static public void nbodyKernel(
-            @MappableIface.RO KernelContext kc,
             int bodies,
-            @MappableIface.RW F32Array xyzPos,
-            @MappableIface.RW F32Array xyzVel,
-            @MappableIface.RW S32RGBAImage image,
+            F32Array xyzPos,
+            F32Array xyzVel,
+            S32RGBAImage image,
             int imageWidth,
             float mass,
             float delT,
             float espSqr
     ) {
-        run(kc.gix, bodies, xyzPos, xyzVel, image, imageWidth, mass, delT, espSqr);
+        run(GIX(), bodies, xyzPos, xyzVel, image, imageWidth, mass, delT, espSqr);
     }
 
     @Reflect
-
-    static public void clearImage(
-            @MappableIface.RO KernelContext kc,
-            @MappableIface.RW S32RGBAImage image
-    ) {
-        image.data(kc.gix, 0);
+    public static void clearImage(S32RGBAImage image) {
+        image.data(GIX(), 0);
     }
 
     @Reflect
     public static void nbodyCompute(
-            @MappableIface.RO ComputeContext cc,
+            ComputeContext cc,
             int bodies,
-            @MappableIface.RW F32Array xyzPos,
-            @MappableIface.RW F32Array xyzVel,
-            @MappableIface.RW S32RGBAImage image,
+            F32Array xyzPos,
+            F32Array xyzVel,
+            S32RGBAImage image,
             int imageWidth,
             float mass,
             float delT,
-            float espSqr
-    ) {
+            float espSqr) {
         float cmass = mass;
         float cdelT = delT;
         float cespSqr = espSqr;
         int cbodies = bodies;
         int cimageWidth = imageWidth;
 
-        cc.dispatchKernel(NDRange.of1D(imageWidth * image.height()), kc -> clearImage(kc, image));
+        cc.dispatchKernel(NDRange.of1D(imageWidth * image.height()), () -> clearImage( image));
 
-        cc.dispatchKernel(NDRange.of1D(bodies), kc -> nbodyKernel(kc, cbodies, xyzPos, xyzVel, image, cimageWidth, cmass, cdelT, cespSqr));
+        cc.dispatchKernel(NDRange.of1D(bodies), () -> nbodyKernel( cbodies, xyzPos, xyzVel, image, cimageWidth, cmass, cdelT, cespSqr));
     }
 
 

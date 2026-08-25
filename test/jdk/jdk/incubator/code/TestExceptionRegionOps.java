@@ -79,7 +79,8 @@ public class TestExceptionRegionOps {
                     var c = fblock.parameters().get(0);
                     var enter = fblock.add(exceptionRegionEnter(
                             enterER1.reference(),
-                            catchER1IAE.reference(), catchER1ISE.reference()));
+                            catchER1IAE.reference(fblock.add(constant(type(IllegalArgumentException.class), null))),
+                            catchER1ISE.reference(fblock.add(constant(type(IllegalStateException.class), null)))));
 
                     // Start of exception region
                     enterER1.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.add(constant(INT, 0))));
@@ -160,7 +161,8 @@ public class TestExceptionRegionOps {
                     var c = fblock.parameters().get(0);
                     var enter = fblock.add(exceptionRegionEnter(
                             enterER1.reference(),
-                            catchER1T.reference(), catchER1ISE.reference()));
+                            catchER1T.reference(fblock.add(constant(type(Throwable.class), null))),
+                            catchER1ISE.reference(fblock.add(constant(type(IllegalStateException.class), null)))));
 
                     // Start of exception region
                     enterER1.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.add(constant(INT, 0))));
@@ -248,14 +250,14 @@ public class TestExceptionRegionOps {
                     var c = fblock.parameters().get(0);
                     var enter1 = fblock.add(exceptionRegionEnter(
                             enterER1.reference(),
-                            catchER1.reference()));
+                            catchER1.reference(fblock.add(constant(type(IllegalArgumentException.class), null)))));
 
                     // Start of first exception region
                     enterER1.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.add(constant(INT, 0))));
                     enterER1.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.add(constant(INT, -1))));
                     var enter2 = enterER1.add(exceptionRegionEnter(
                             enterER2.reference(),
-                            catchER2.reference()));
+                            catchER2.reference(enterER1.add(constant(type(IllegalStateException.class), null)))));
 
                     // Start of second exception region
                     enterER2.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER2.add(constant(INT, 1))));
@@ -358,7 +360,8 @@ public class TestExceptionRegionOps {
                     var c = fblock.parameters().get(0);
                     var enter1 = fblock.add(exceptionRegionEnter(
                             enterER1.reference(),
-                            catchAll.reference(), catchRE.reference()));
+                            catchAll.reference(fblock.add(constant(type(Throwable.class), null))),
+                            catchRE.reference(fblock.add(constant(type(IllegalStateException.class), null)))));
 
                     // Start of exception region
                     enterER1.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER1.add(constant(INT, 0))));
@@ -373,7 +376,7 @@ public class TestExceptionRegionOps {
                     // Catch block for RuntimeException
                     var enter2 = catchRE.add(exceptionRegionEnter(
                             enterER2.reference(),
-                            catchAll.reference()));
+                            catchAll.reference(catchRE.add(constant(type(Throwable.class), null)))));
                     // Start of exception region
                     enterER2.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER2.add(constant(INT, 1))));
                     enterER2.add(JavaOp.invoke(INT_CONSUMER_ACCEPT_METHOD, c, enterER2.add(constant(INT, -1))));
@@ -458,7 +461,8 @@ public class TestExceptionRegionOps {
             func @"test1" (%0 : java.type:"java.util.function.IntConsumer")java.type:"void" -> {
                 %6 : java.type:"int" = constant @0;
                 %5 : Var<java.type:"int"> = var %6 @loc="41:9" @"i";
-                %1 : java.type:"void" = exception.region.enter ^block_1 ^block_3;
+                %10 : java.type:"java.lang.Throwable" = constant @null;
+                %1 : java.type:"void" = exception.region.enter ^block_1 ^block_3(%10);
 
               ^block_1:
                 %4 : java.type:"int" = constant @0;
@@ -469,7 +473,8 @@ public class TestExceptionRegionOps {
                 return;
 
               ^block_3(%2 : java.type:"java.lang.Throwable"):
-                %3 : java.type:"void" = exception.region.enter ^block_4 ^block_3;
+                %11 : java.type:"java.lang.Throwable" = constant @null;
+                %3 : java.type:"void" = exception.region.enter ^block_4 ^block_3(%11);
 
               ^block_4:
                 %7 : java.type:"int" = var.load %5;

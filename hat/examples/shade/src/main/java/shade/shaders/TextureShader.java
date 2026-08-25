@@ -27,8 +27,8 @@ package shade.shaders;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.ComputeContext.Kernel;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -52,7 +52,6 @@ import static hat.types.vec2.add;
 import static hat.types.vec2.floor;
 import static hat.types.vec2.length;
 import static hat.types.vec2.mul;
-import static hat.types.vec4.normalize;
 
 
 public class TextureShader {
@@ -276,27 +275,26 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
         return vec4.vec4(r,g,b,1f);
     }
     @Reflect
-    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms,
+    public static void penumbra( @MappableIface.RO Uniforms uniforms,
                                 @MappableIface.RW F32Array f32Array,
-
                                 @MappableIface.RW F32Array tex,int tw, int th
     ) {
         int width = (int) uniforms.iResolution().x();
         int height = (int) uniforms.iResolution().y();
         var fragColor = mainImage(uniforms, vec4.vec4(0f),
-                vec2.vec2((float)(kc.gix % width),
-                        (float)(height-(kc.gix / width))),tex,tw,th
+                vec2.vec2((float)(GIX() % width),
+                        (float)(height-(GIX() / width))),tex,tw,th
         );
-        f32Array.array(kc.gix * 3, fragColor.x());
-        f32Array.array(kc.gix * 3+1, fragColor.y());
-        f32Array.array(kc.gix * 3+2, fragColor.z());
+        f32Array.array(GIX() * 3, fragColor.x());
+        f32Array.array(GIX() * 3+1, fragColor.y());
+        f32Array.array(GIX() * 3+2, fragColor.z());
     }
 
     @Reflect
     static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms,
                                @MappableIface.RO F32Array image, int width, int height
            ,F32Array t1, int t1w,int t1h) {
-        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image,t1,t1w,t1h));
+        computeContext.dispatchKernel(NDRange.of1D(width * height), ()-> penumbra( uniforms, image,t1,t1w,t1h));
     }
 
     private static void update(Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height, ShaderViewer.Texture texture) {
