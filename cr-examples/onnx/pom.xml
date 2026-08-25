@@ -42,13 +42,13 @@ questions.
         <dependency>
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
-            <version>1.26.0</version>
+            <version>1.29.0</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>4.29.3</version>
+            <version>4.36.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
