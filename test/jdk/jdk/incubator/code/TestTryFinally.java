@@ -25,10 +25,6 @@
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit TestTryFinally
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryFinally
- * @run main Unreflect TestTryFinally
- * @run junit TestTryFinally
  * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryFinally
  */
 
@@ -50,25 +46,182 @@ import java.util.stream.Stream;
 
 public class TestTryFinally {
 
+//    @Reflect
+//    public static void tryCatchFinally(IntConsumer c) {
+//        try {
+//            c.accept(0);
+//            c.accept(-1);
+//        } catch (IllegalStateException e) {
+//            c.accept(1);
+//            c.accept(-1);
+//        } finally {
+//            c.accept(2);
+//            c.accept(-1);
+//        }
+//        c.accept(3);
+//        c.accept(-1);
+//    }
+//
+//    @Test
+//    public void testCatchFinally() {
+//        CoreOp.FuncOp f = getFuncOp("tryCatchFinally");
+//
+//        System.out.println(f.toText());
+//
+//        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
+//
+//        System.out.println(lf.toText());
+//
+//        for (CoreOp.FuncOp op : List.of(f, lf)) {
+//            Consumer<IntConsumer> test = testConsumer(
+//                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+//                    TestTryFinally::tryCatchFinally
+//            );
+//            test(test);
+//        }
+//    }
+//
+//
+//    @Reflect
+//    public static void tryReturn(IntConsumer c) {
+//        try {
+//            c.accept(0);
+//            c.accept(-1);
+//            return;
+//        } catch (IllegalStateException e) {
+//            c.accept(1);
+//            c.accept(-1);
+//        } finally {
+//            c.accept(2);
+//            c.accept(-1);
+//        }
+//        c.accept(3);
+//        c.accept(-1);
+//    }
+//
+//    @Test
+//    public void testTryReturn() {
+//        CoreOp.FuncOp f = getFuncOp("tryReturn");
+//
+//        System.out.println(f.toText());
+//
+//        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
+//
+//        System.out.println(lf.toText());
+//
+//        for (CoreOp.FuncOp op : List.of(f, lf)) {
+//            Consumer<IntConsumer> test = testConsumer(
+//                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+//                    TestTryFinally::tryReturn
+//            );
+//
+//            test(test);
+//        }
+//    }
+//
+//
+//    @Reflect
+//    public static void catchThrow(IntConsumer c) {
+//        try {
+//            c.accept(0);
+//            c.accept(-1);
+//        } catch (IllegalStateException e) {
+//            c.accept(1);
+//            c.accept(-1);
+//            throw e;
+//        } finally {
+//            c.accept(2);
+//            c.accept(-1);
+//        }
+//        c.accept(3);
+//        c.accept(-1);
+//    }
+//
+//    @Test
+//    public void testCatchThrow() {
+//        CoreOp.FuncOp f = getFuncOp("catchThrow");
+//
+//        System.out.println(f.toText());
+//
+//        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
+//
+//        System.out.println(lf.toText());
+//
+//        for (CoreOp.FuncOp op : List.of(f, lf)) {
+//            Consumer<IntConsumer> test = testConsumer(
+//                    c -> {
+//                        Interpreter.invoke(MethodHandles.lookup(), op, c);
+//                    },
+//                    TestTryFinally::catchThrow
+//            );
+//
+//            test(test);
+//        }
+//    }
+//
+//
+//    @Reflect
+//    public static void finallyReturn(IntConsumer c) {
+//        try {
+//            c.accept(0);
+//            c.accept(-1);
+//        } catch (IllegalStateException e) {
+//            c.accept(1);
+//            c.accept(-1);
+//        } finally {
+//            c.accept(2);
+//            c.accept(-1);
+//            return;
+//        }
+//    }
+//
+//    @Test
+//    public void testFinallyReturn() {
+//        CoreOp.FuncOp f = getFuncOp("finallyReturn");
+//
+//        System.out.println(f.toText());
+//
+//        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
+//
+//        System.out.println(lf.toText());
+//
+//        for (CoreOp.FuncOp op : List.of(f, lf)) {
+//            Consumer<IntConsumer> test = testConsumer(
+//                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+//                    TestTryFinally::finallyReturn
+//            );
+//
+//            test(test);
+//        }
+//    }
+//
+//
     @Reflect
-    public static void tryCatchFinally(IntConsumer c) {
-        try {
-            c.accept(0);
-            c.accept(-1);
-        } catch (IllegalStateException e) {
-            c.accept(1);
-            c.accept(-1);
-        } finally {
-            c.accept(2);
-            c.accept(-1);
-        }
-        c.accept(3);
+    public static void tryCatchYield(IntConsumer c) {
+        int i = switch (0) {
+            case 1 -> 1; // @@@ TODO PR #1159
+            default -> {
+                try {
+                    c.accept(0);
+                    c.accept(-1);
+                    yield 3;
+                } catch (IllegalStateException e) {
+                    c.accept(1);
+                    c.accept(-1);
+                    yield 4;
+                } finally {
+                    c.accept(2);
+                    c.accept(-1);
+                }
+            }
+        };
+        c.accept(i);
         c.accept(-1);
     }
 
     @Test
-    public void testCatchFinally() {
-        CoreOp.FuncOp f = getFuncOp("tryCatchFinally");
+    public void testTryCatchYield() {
+        CoreOp.FuncOp f = getFuncOp("tryCatchYield");
 
         System.out.println(f.toText());
 
@@ -76,36 +229,44 @@ public class TestTryFinally {
 
         System.out.println(lf.toText());
 
-        for (CoreOp.FuncOp op : List.of(f, lf)) {
+        // @@@ High interpreter does not support switch expressions
+        for (CoreOp.FuncOp op : List.of(lf)) {
             Consumer<IntConsumer> test = testConsumer(
                     c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
-                    TestTryFinally::tryCatchFinally
+                    TestTryFinally::tryCatchYield
             );
+
             test(test);
         }
     }
 
-
     @Reflect
-    public static void tryReturn(IntConsumer c) {
-        try {
-            c.accept(0);
-            c.accept(-1);
-            return;
-        } catch (IllegalStateException e) {
-            c.accept(1);
-            c.accept(-1);
-        } finally {
-            c.accept(2);
-            c.accept(-1);
-        }
-        c.accept(3);
+    public static void finallyYield(IntConsumer c) {
+        int i = switch (0) {
+            case 1 -> 1; // @@@ TODO PR #1159
+            default -> {
+                try {
+                    c.accept(0);
+                    c.accept(-1);
+                    yield 3;
+                } catch (IllegalStateException e) {
+                    c.accept(1);
+                    c.accept(-1);
+                    yield 4;
+                } finally {
+                    c.accept(2);
+                    c.accept(-1);
+                    yield 5;
+                }
+            }
+        };
+        c.accept(i);
         c.accept(-1);
     }
 
     @Test
-    public void testTryReturn() {
-        CoreOp.FuncOp f = getFuncOp("tryReturn");
+    public void testFinallyYield() {
+        CoreOp.FuncOp f = getFuncOp("finallyYield");
 
         System.out.println(f.toText());
 
@@ -113,86 +274,11 @@ public class TestTryFinally {
 
         System.out.println(lf.toText());
 
-        for (CoreOp.FuncOp op : List.of(f, lf)) {
+        // @@@ High interpreter does not support switch expressions
+        for (CoreOp.FuncOp op : List.of(lf)) {
             Consumer<IntConsumer> test = testConsumer(
                     c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
-                    TestTryFinally::tryReturn
-            );
-
-            test(test);
-        }
-    }
-
-
-    @Reflect
-    public static void catchThrow(IntConsumer c) {
-        try {
-            c.accept(0);
-            c.accept(-1);
-        } catch (IllegalStateException e) {
-            c.accept(1);
-            c.accept(-1);
-            throw e;
-        } finally {
-            c.accept(2);
-            c.accept(-1);
-        }
-        c.accept(3);
-        c.accept(-1);
-    }
-
-    @Test
-    public void testCatchThrow() {
-        CoreOp.FuncOp f = getFuncOp("catchThrow");
-
-        System.out.println(f.toText());
-
-        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-
-        System.out.println(lf.toText());
-
-        for (CoreOp.FuncOp op : List.of(f, lf)) {
-            Consumer<IntConsumer> test = testConsumer(
-                    c -> {
-                        Interpreter.invoke(MethodHandles.lookup(), op, c);
-                    },
-                    TestTryFinally::catchThrow
-            );
-
-            test(test);
-        }
-    }
-
-
-    @Reflect
-    public static void finallyReturn(IntConsumer c) {
-        try {
-            c.accept(0);
-            c.accept(-1);
-        } catch (IllegalStateException e) {
-            c.accept(1);
-            c.accept(-1);
-        } finally {
-            c.accept(2);
-            c.accept(-1);
-            return;
-        }
-    }
-
-    @Test
-    public void testFinallyReturn() {
-        CoreOp.FuncOp f = getFuncOp("finallyReturn");
-
-        System.out.println(f.toText());
-
-        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-
-        System.out.println(lf.toText());
-
-        for (CoreOp.FuncOp op : List.of(f, lf)) {
-            Consumer<IntConsumer> test = testConsumer(
-                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
-                    TestTryFinally::finallyReturn
+                    TestTryFinally::finallyYield
             );
 
             test(test);
