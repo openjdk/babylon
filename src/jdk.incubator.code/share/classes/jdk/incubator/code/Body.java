@@ -505,8 +505,9 @@ public final class Body implements CodeElement<Body, Block> {
          * If {@code connectedAncestorBody} is {@code null} then the entry block builder has a
          * {@link CodeContext#create() new} code context and a {@link CodeTransformer#COPYING_TRANSFORMER copying}
          * code transformer.
-         * If {@code connectedAncestorBody} is {@code non-null} then the entry block builder has the same code context
-         * and code transformer as {@code connectedAncestorBody}'s entry block builder.
+         * If {@code connectedAncestorBody} is {@code non-null} then the entry block builder has a
+         * {@link CodeContext#create(CodeContext) child} of {@code connectedAncestorBody}'s entry block builder's code
+         * context and the same code transformer as {@code connectedAncestorBody}'s entry block builder.
          *
          * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
          * {@code null} if the created body builder is isolated
@@ -534,6 +535,10 @@ public final class Body implements CodeElement<Body, Block> {
          * <p>
          * If {@code connectedAncestorBody} is {@code null}, then the entry block builder has a
          * {@link CodeContext#create() new} code context.
+         * If {@code connectedAncestorBody} is {@code non-null} then the entry block builder has a
+         * {@link CodeContext#create(CodeContext) child} of {@code connectedAncestorBody}'s entry block builder's code
+         * context.
+         *
          * If {@code connectedAncestorBody} is {@code non-null}, then the entry block builder has the same code context
          * as {@code connectedAncestorBody}'s entry block builder.
          *
