@@ -37,34 +37,45 @@ import org.junit.jupiter.api.Test;
 
 public class TestGenericFieldReceiverCast {
 
-    static class Base {
-    }
+    static class Wrapper<T extends Number> {
+        T n;
 
-    static class Child extends Base {
-        int value = 42;
-    }
-
-    static class TestBase<B extends Base> {
-        final B b;
-
-        TestBase(B b) {
-            this.b = b;
+        Wrapper(T n) {
+            this.n = n;
         }
     }
 
-    static final class TestClass extends TestBase<Child> {
+    static final class TestClass extends Wrapper<Integer> {
         TestClass() {
-            super(new Child());
+            super(42);
         }
 
         @Reflect
-        int value() {
-            return b.value;
+        int test() {
+            return n.compareTo(0);
+        }
+
+        @Reflect
+        static int test(TestClass t) {
+            return t.n.compareTo(0);
+        }
+
+        @Reflect
+        int testCA() {
+            return (n++).compareTo(0);
+        }
+
+        @Reflect
+        static int testCA(TestClass t) {
+            return (t.n++).compareTo(0);
         }
     }
 
     @Test
     public void test() throws Throwable {
-        Assertions.assertEquals(42, new TestClass().value());
+        Assertions.assertTrue(new TestClass().test() > 0);
+        Assertions.assertTrue(TestClass.test(new TestClass()) > 0);
+        Assertions.assertTrue(new TestClass().testCA() > 0);
+        Assertions.assertTrue(TestClass.testCA(new TestClass()) > 0);
     }
 }

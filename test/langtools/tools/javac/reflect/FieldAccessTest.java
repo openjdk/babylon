@@ -538,6 +538,67 @@ public class FieldAccessTest {
         int test1() {
             return x.yf;
         }
+
+        @IR("""
+                func @"test2" (%0 : java.type:"FieldAccessTest$ZZ")java.type:"int" -> {
+                    %1 : Var<java.type:"FieldAccessTest$ZZ"> = var %0 @"zz";
+                    %2 : java.type:"FieldAccessTest$ZZ" = var.load %1;
+                    %3 : java.type:"FieldAccessTest$Y" = field.load %2 @java.ref:"FieldAccessTest$ZZ::x:FieldAccessTest$X";
+                    %4 : java.type:"int" = field.load %3 @java.ref:"FieldAccessTest$Y::yf:int";
+                    return %4;
+                };
+                """)
+        @Reflect
+        static int test2(ZZ zz) {
+            return zz.x.yf;
+        }
+    }
+
+    static class W<T extends Number> {
+        T n;
+    }
+
+    static class WW extends W<Integer> {
+
+        @IR("""
+                func @"test1" (%0 : java.type:"FieldAccessTest$WW")java.type:"int" -> {
+                    %1 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"FieldAccessTest$WW::n:java.lang.Number";
+                    %2 : java.type:"int" = invoke %1 @java.ref:"java.lang.Integer::intValue():int";
+                    %3 : java.type:"int" = constant @1;
+                    %4 : java.type:"int" = add %2 %3;
+                    %5 : java.type:"java.lang.Integer" = invoke %4 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                    field.store %0 %5 @java.ref:"FieldAccessTest$WW::n:java.lang.Number";
+                    %6 : java.type:"int" = constant @0;
+                    %7 : java.type:"java.lang.Integer" = invoke %6 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                    %8 : java.type:"int" = invoke %1 %7 @java.ref:"java.lang.Integer::compareTo(java.lang.Integer):int";
+                    return %8;
+                };
+                """)
+        @Reflect
+        int test1() {
+            return (n++).compareTo(0);
+        }
+
+        @IR("""
+                func @"test2" (%0 : java.type:"FieldAccessTest$WW")java.type:"int" -> {
+                    %1 : Var<java.type:"FieldAccessTest$WW"> = var %0 @"w";
+                    %2 : java.type:"FieldAccessTest$WW" = var.load %1;
+                    %3 : java.type:"java.lang.Integer" = field.load %2 @java.ref:"FieldAccessTest$WW::n:java.lang.Number";
+                    %4 : java.type:"int" = invoke %3 @java.ref:"java.lang.Integer::intValue():int";
+                    %5 : java.type:"int" = constant @1;
+                    %6 : java.type:"int" = add %4 %5;
+                    %7 : java.type:"java.lang.Integer" = invoke %6 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                    field.store %2 %7 @java.ref:"FieldAccessTest$WW::n:java.lang.Number";
+                    %8 : java.type:"int" = constant @0;
+                    %9 : java.type:"java.lang.Integer" = invoke %8 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                    %10 : java.type:"int" = invoke %3 %9 @java.ref:"java.lang.Integer::compareTo(java.lang.Integer):int";
+                    return %10;
+                };
+                """)
+        @Reflect
+        static int test2(WW w) {
+            return (w.n++).compareTo(0);
+        }
     }
 
     @Reflect
