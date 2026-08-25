@@ -169,8 +169,7 @@ public class OperatorGen {
         }
 
         for (String dl : s.doc().split("\\n")) {
-            String comment = (dl.equals(" ")) ? "///\n" : "/// " + dl + "\n";
-            w.write(comment);
+            w.write("/// " + dl + "\n");
         }
         w.write("public static ");
 

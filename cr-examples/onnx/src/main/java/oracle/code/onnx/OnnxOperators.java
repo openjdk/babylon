@@ -394,7 +394,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     ///  pad_shape[i] = (output_spatial_shape[i] - 1) * strides_spatial_shape[i] + ((kernel_spatial_shape[i] - 1) * dilations[i] + 1) - input_spatial_shape[i]
     ///  ```
     ///  The output of each pooling window is divided by the number of elements (exclude pad when attribute count_include_pad is zero).
-    ///
+    ///  
     public static <T> Tensor<T> AveragePool(Tensor<T> X, Optional<long[]> pads, Optional<long[]> dilations, Optional<String> auto_pad, Optional<Long> count_include_pad, Optional<Long> ceil_mode, Optional<long[]> strides, long[] kernel_shape) {
         Object result = OnnxInterpreter.interpret(OnnxOps.AveragePool.class, List.of(X), List.of(pads, dilations, auto_pad, count_include_pad, ceil_mode, strides, kernel_shape));
         return (Tensor<T>) result;
@@ -868,7 +868,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// reverse=1
     /// output = [6, 3, 1]
     /// ```
-    ///
+    ///  
     public static <T, T2> Tensor<T> CumProd(Tensor<T> x, Tensor<T2> axis, Optional<Long> exclusive, Optional<Long> reverse) {
         Object result = OnnxInterpreter.interpret(OnnxOps.CumProd.class, List.of(x, axis), List.of(exclusive, reverse));
         return (Tensor<T>) result;
@@ -894,7 +894,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     /// reverse=1
     /// output = [5, 3, 0]
     /// ```
-    ///
+    ///  
     public static <T, T2> Tensor<T> CumSum(Tensor<T> x, Tensor<T2> axis, Optional<Long> exclusive, Optional<Long> reverse) {
         Object result = OnnxInterpreter.interpret(OnnxOps.CumSum.class, List.of(x, axis), List.of(exclusive, reverse));
         return (Tensor<T>) result;
@@ -2180,7 +2180,7 @@ public final class OnnxOperators extends ExplicitOnnxOperators {
     ///  pad_shape[i] = (output_spatial_shape[i] - 1) * strides_spatial_shape[i] + ((kernel_spatial_shape[i] - 1) * dilations[i] + 1) - input_spatial_shape[i]
     ///  ```
     ///  The output of each pooling window is maximum number of elements exclude pad. 
-    ///
+    ///  
     public static <T> MaxPoolResult<T> MaxPool(Tensor<T> X, Optional<long[]> pads, Optional<long[]> dilations, Optional<String> auto_pad, Optional<Long> ceil_mode, Optional<Long> storage_order, Optional<long[]> strides, long[] kernel_shape) {
         Object result = OnnxInterpreter.interpret(OnnxOps.MaxPool.class, List.of(X), List.of(pads, dilations, auto_pad, ceil_mode, storage_order, strides, kernel_shape));
         Object[] resultArray = (Object[]) result;
