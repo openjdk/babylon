@@ -499,9 +499,14 @@ public final class Body implements CodeElement<Body, Block> {
      */
     public final class Builder {
         /**
-         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a code context and code
+         * transformer derived from {@code connectedAncestorBody}.
+         * <p>
+         * If {@code connectedAncestorBody} is {@code null} then the entry block builder has a
          * {@link CodeContext#create() new} code context and a {@link CodeTransformer#COPYING_TRANSFORMER copying}
          * code transformer.
+         * If {@code connectedAncestorBody} is {@code non-null} then the entry block builder has the same code context
+         * and code transformer as {@code connectedAncestorBody}'s entry block builder.
          *
          * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
          * {@code null} if the created body builder is isolated
@@ -511,29 +516,48 @@ public final class Body implements CodeElement<Body, Block> {
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
         public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature) {
-            // @@@ Creation of CodeContext
-            return of(connectedAncestorBody, bodySignature, CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
+            Block.Builder connectedEntryBlockBuilder = connectedAncestorBody != null
+                ? connectedAncestorBody.entryBlock()
+                : null;
+            CodeContext cc = connectedEntryBlockBuilder != null
+                    ? CodeContext.create(connectedEntryBlockBuilder.context())
+                    : CodeContext.create();
+            CodeTransformer ct = connectedEntryBlockBuilder != null
+                    ? connectedEntryBlockBuilder.transformer()
+                    : CodeTransformer.COPYING_TRANSFORMER;
+            return of(connectedAncestorBody, bodySignature, cc, ct);
         }
 
         /**
-         * Creates a body builder, with an entry block {@link #entryBlock builder} that has the given code context
-         * and a {@link CodeTransformer#COPYING_TRANSFORMER copying} code transformer.
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a code context derived
+         * from {@code connectedAncestorBody} and the given code transformer.
+         * <p>
+         * If {@code connectedAncestorBody} is {@code null}, then the entry block builder has a
+         * {@link CodeContext#create() new} code context.
+         * If {@code connectedAncestorBody} is {@code non-null}, then the entry block builder has the same code context
+         * as {@code connectedAncestorBody}'s entry block builder.
          *
          * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
          * {@code null} if the created body builder is isolated
          * @param bodySignature the initial body signature
-         * @param cc            the code context
+         * @param ct            the code transformer for the entry block builder
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is finished
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature, CodeContext cc) {
-            return of(connectedAncestorBody, bodySignature, cc, CodeTransformer.COPYING_TRANSFORMER);
+        public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature, CodeTransformer ct) {
+            Block.Builder connectedEntryBlockBuilder = connectedAncestorBody != null
+                    ? connectedAncestorBody.entryBlock()
+                    : null;
+            CodeContext cc = connectedEntryBlockBuilder != null
+                    ? CodeContext.create(connectedEntryBlockBuilder.context())
+                    : CodeContext.create();
+            return of(connectedAncestorBody, bodySignature, cc, ct);
         }
 
         /**
-         * Creates a body builder whose entry block {@link #entryBlock builder} uses the given code context and code
-         * transformer.
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has the given code context and
+         * code transformer.
          * <p>
          * If {@code connectedAncestorBody} is non-{@code null}, the created body builder is
          * <a id="connected-builder"><i>connected</i></a> to {@code connectedAncestorBody} as the

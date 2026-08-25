@@ -38,9 +38,9 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntBinaryOperator;
+import java.util.function.Supplier;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
 import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
@@ -400,6 +400,84 @@ public class TestBuild {
         block.add(constant(INT, 0));
 
         Assertions.assertThrows(IllegalStateException.class, () -> func("f", body));
+    }
+
+    @Test
+    public void testBodyBuilderContextAndTransformer() {
+        var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        Assertions.assertNull(body.entryBlock().context().parent());
+        Assertions.assertEquals(CodeTransformer.COPYING_TRANSFORMER, body.entryBlock().transformer());
+
+        {
+            var childBody = Body.Builder.of(body, FUNCTION_TYPE_VOID);
+            Assertions.assertEquals(body.entryBlock().context(), childBody.entryBlock().context().parent());
+            Assertions.assertEquals(body.entryBlock().transformer(), childBody.entryBlock().transformer());
+        }
+
+        {
+            CodeTransformer myTransformer = (b, o) -> b;
+            var childBody = Body.Builder.of(body, FUNCTION_TYPE_VOID, myTransformer);
+            Assertions.assertEquals(body.entryBlock().context(), childBody.entryBlock().context().parent());
+            Assertions.assertEquals(myTransformer, childBody.entryBlock().transformer());
+        }
+
+        {
+            var cc = CodeContext.create();
+            CodeTransformer ct = (b, o) -> b;
+            var childBody = Body.Builder.of(body, FUNCTION_TYPE_VOID, cc, ct);
+            Assertions.assertEquals(cc, childBody.entryBlock().context());
+            Assertions.assertEquals(ct, childBody.entryBlock().transformer());
+        }
+    }
+
+    @Test
+    public void testBlockBuilderContextAndTransformer() {
+        @Reflect
+        Runnable r = () -> IO.println("A");
+        var op = Op.ofLambda(r).orElseThrow().op();
+
+        record Pair(CodeContext cc, CodeTransformer ct) {
+        }
+        Pair[] holder = new Pair[1];
+        CodeTransformer ct = (b, o) -> {
+            holder[0] = new Pair(b.context(), b.transformer());
+            return b;
+        };
+
+        {
+            var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+            var cc = CodeContext.create();
+            var block = body.entryBlock().withContextAndTransformer(cc, ct);
+
+            block.transformBody(op.body(), List.of());
+
+            Assertions.assertEquals(cc, holder[0].cc.parent());
+            Assertions.assertEquals(ct, holder[0].ct);
+            holder[0] = null;
+        }
+
+        {
+            var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+            var block = body.entryBlock();
+
+            block.transformBody(op.body(), List.of(), ct);
+
+            Assertions.assertEquals(block.context(), holder[0].cc.parent());
+            Assertions.assertEquals(ct, holder[0].ct);
+            holder[0] = null;
+        }
+
+        {
+            var body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+            var cc = CodeContext.create();
+            var block = body.entryBlock();
+
+            block.transformBody(op.body(), List.of(), cc, ct);
+
+            Assertions.assertEquals(cc, holder[0].cc);
+            Assertions.assertEquals(ct, holder[0].ct);
+            holder[0] = null;
+        }
     }
 
     @Test

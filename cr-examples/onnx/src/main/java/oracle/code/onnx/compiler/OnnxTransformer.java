@@ -576,9 +576,9 @@ public final class OnnxTransformer {
         // @@@ create a Body.Builder structurally connected as a descendant of a Block.Builder
         // but not yet connected as the child of an operation
         Body.Builder bb = Body.Builder.of(ancestor.parentBody(),
-                outputType, ancestor.context()); // translate types
+                outputType); // translate types
 
-        bb.entryBlock().transformBody(iop.body(), bb.entryBlock().parameters(), ot);
+        bb.entryBlock().transformBody(iop.body(), bb.entryBlock().parameters(), ancestor.context(), ot);
         return bb;
     }
 
