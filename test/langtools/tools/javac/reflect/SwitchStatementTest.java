@@ -1106,11 +1106,13 @@ public class SwitchStatementTest {
                         yield %23;
                     }
                     ()java.type:"void" -> {
-                        %24 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %24;
+                        %24 : java.type:"java.lang.String" = constant @null;
+                        %25 : java.type:"java.lang.Throwable" = constant @null;
+                        %26 : java.type:"java.lang.MatchException" = new %24 %25 @java.ref:"java.lang.MatchException::(java.lang.String, java.lang.Throwable)";
+                        throw %26;
                     };
-                %25 : java.type:"java.lang.String" = var.load %3;
-                return %25;
+            %27 : java.type:"java.lang.String" = var.load %3;
+            return %27;
             };
             """)
     @Reflect
@@ -1181,11 +1183,13 @@ public class SwitchStatementTest {
                         yield %23;
                     }
                     ()java.type:"void" -> {
-                        %24 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %24;
+                        %24 : java.type:"java.lang.String" = constant @null;
+                        %25 : java.type:"java.lang.Throwable" = constant @null;
+                        %26 : java.type:"java.lang.MatchException" = new %24 %25 @java.ref:"java.lang.MatchException::(java.lang.String, java.lang.Throwable)";
+                        throw %26;
                     };
-                %25 : java.type:"java.lang.String" = var.load %3;
-                return %25;
+                %27 : java.type:"java.lang.String" = var.load %3;
+                return %27;
             };
             """)
     @Reflect

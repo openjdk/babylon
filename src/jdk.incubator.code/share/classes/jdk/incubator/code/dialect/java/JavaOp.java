@@ -27,7 +27,7 @@ package jdk.incubator.code.dialect.java;
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.*;
-import jdk.incubator.code.dialect.java.JavaOp.JavaSwitchOp.SwitchNullHandling;
+import jdk.incubator.code.dialect.java.JavaOp.SwitchOp.SwitchNullHandling;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
@@ -3361,7 +3361,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.11 The switch Statement
      * @jls 15.28 {@code switch} Expressions
      */
-    public abstract static sealed class JavaSwitchOp extends AbstractOp
+    public abstract static sealed class SwitchOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable
             permits SwitchStatementOp, SwitchExpressionOp {
 
@@ -3389,7 +3389,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         static final String ATTRIBUTE_SWITCH_HANDLE_NULLS = "switch.handle.nulls";
 
-        JavaSwitchOp(JavaSwitchOp that, CodeContext cc, CodeTransformer ct) {
+        SwitchOp(SwitchOp that, CodeContext cc, CodeTransformer ct) {
             super(that, cc);
 
             // Copy body
@@ -3398,13 +3398,76 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             this.handleNulls = that.handleNulls;
         }
 
-        JavaSwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
+        /*
+        Grammar for switch statements and expressions
+            SwitchStatement:
+                switch ( Expression ) SwitchBlock
+
+            SwitchExpression:
+                switch ( Expression ) SwitchBlock
+
+            SwitchBlock:
+                { SwitchRule {SwitchRule} }
+                { {SwitchBlockStatementGroup} {SwitchLabel :} }
+
+            SwitchRule:
+                SwitchLabel -> Expression ;
+                SwitchLabel -> Block
+                SwitchLabel -> ThrowStatement
+
+            SwitchBlockStatementGroup:
+                SwitchLabel : {SwitchLabel :} BlockStatements
+
+            SwitchLabel:
+                case CaseConstant {, CaseConstant}
+                case null [, default]
+                case CasePattern {, CasePattern} [Guard]
+                default
+
+            CaseConstant:
+                ConditionalExpression
+
+            CasePattern:
+                Pattern
+
+            Guard:
+                when Expression
+
+         A SwitchLabel is modeled as a body yielding a boolean value.
+
+         If the SwitchLabel is "default" or "case null, default" the predicate body is modeled as one that yields
+         true, and the body has no parameter. Otherwise, the body has one parameter that models the result of the switch
+         selector expression and its content models "case CaseConstant {, CaseConstant}" and
+         "case CasePattern {, CasePattern} [Guard]".
+
+         An Expression, Block, ThrowStatement, or BlockStatements, associated with a SwitchLabel is modeled as a body
+         yielding the result of the switch expression or void for a switch statement.
+
+         A SwitchBlock is modeled as a sequence of pairs of bodies, generally the first body in a pair, the predicate
+         body, models the SwitchLabel, and the second body, the action body, models the Expression, Block,
+         ThrowStatement, or BlockStatements.
+
+         For a switch statement containing a sequence of two or more SwitchLabel, each SwitchLabel up to but not
+         including the last SwitchLabel is modeled as a pair of bodies, the predicate body modeling the SwitchLabel
+         and a synthesized action body that models fall-through.
+
+         For a SwitchLabel containing a sequence of two or more CaseConstant or CasePattern, the predicate body
+         yields the result of the logical-or of all the predicate bodies modeling each CasePattern.
+         For a SwitchLabel containing a CasePattern with a Guard, the predicate body yields the result of the
+         logical-and of the predicate body produced for the sequence of CasePattern and the boolean yielding body
+         modeling the Guard expression.
+
+         For SwitchLabel that is "default" or "case null, default" the predicate body is modeled as one that yields
+         true, and the body has no parameter. @@@ the corresponding pair of bodies should occur as the last pair
+         in the sequence of pairs modeling the SwitchBlock.
+
+         If the SwitchBlock contains a SwitchLabel of "case null [, default]" then switch operation indicates that
+         null values are accepted for results of the selector expression.
+         */
+
+        SwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
             super(List.of(target));
 
-            // Each case is modeled as a contiguous pair of bodies
-            // The first body models the case labels, and the second models the case statements
-            // The labels body has a parameter whose type is target operand's type and returns a boolean value
-            // The action body has no parameters and returns void
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
             this.handleNulls = switch (nullHandling) {
                 case ALLOW_NULL -> true;
@@ -3429,118 +3492,132 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Value selectorExpression = b.context().getValue(operands().get(0));
 
-            // @@@ we can add this during model generation
-            // if no case null, add one that throws NPE
+            // @@@ Add this during model generation?
+            // If no "case null [, default]" then perform null check on result of selector expression
             if (!(selectorExpression.type() instanceof PrimitiveType) && !handleNulls) {
+                Block.Builder continueBlock = b.block();
                 Block.Builder throwBlock = b.block();
+
+                MethodRef equalsRef = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
+                Result p = b.add(invoke(equalsRef, selectorExpression, b.add(constant(J_L_OBJECT, null))));
+                b.add(conditionalBranch(p, throwBlock.reference(), continueBlock.reference()));
+
                 throwBlock.add(throw_(
                         throwBlock.add(new_(MethodRef.constructor(NullPointerException.class)))
                 ));
 
-                Block.Builder continueBlock = b.block();
-
-                Result p = b.add(invoke(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class),
-                        selectorExpression, b.add(constant(J_L_OBJECT, null))));
-                b.add(conditionalBranch(p, throwBlock.reference(), continueBlock.reference()));
-
                 b = continueBlock;
             }
 
-            int defLabelIndex = -1;
-            for (int i = 0; i < bodies().size(); i+=2) {
-                Block eb = bodies().get(i).entryBlock();
-                // @@@ confusing YieldOp with Core.YieldOp in checks
-                if (eb.terminatingOp() instanceof CoreOp.YieldOp yop && yop.yieldValue() instanceof Op.Result r
-                        && r.op() instanceof ConstantOp cop && cop.resultType().equals(BOOLEAN)) {
-                    defLabelIndex = i;
+            // Default case is modeled as predicateBody with no parameters
+            // that yields a constant boolean value of true
+            int defaultCaseIndex = -1;
+            for (int i = 0; i < bodies().size(); i += 2) {
+                Body predicateBody = bodies().get(i);
+                Block predicateEntryBlock = predicateBody.entryBlock();
+                if (predicateEntryBlock.parameters().isEmpty() &&
+                        predicateEntryBlock.terminatingOp() instanceof CoreOp.YieldOp yop &&
+                        yop.yieldValue().declaringElement() instanceof ConstantOp cop &&
+                        cop.resultType().equals(BOOLEAN) &&
+                        cop.value() instanceof Boolean trueValue && trueValue) {
+                    defaultCaseIndex = i;
                     break;
                 }
             }
-            if (defLabelIndex == -1 && this instanceof SwitchExpressionOp) {
-                // if it's a switch expression, it must have a default
-                // if not explicit, it's an unconditional pattern which is the last label
-                defLabelIndex = bodies().size() - 2;
-            }
 
-            List<Block.Builder> blocks = new ArrayList<>();
-            for (int i = 0; i < bodies().size(); i++) {
-                Block.Builder bb;
-                if (i == defLabelIndex) {
-                    // we don't need a block for default label
-                    bb = null;
-                } else {
-                    bb = b.block();
+            // Reorder bodies with default case at the end
+            // @@@ Model this as the last case
+            List<Body> reorderedBodies;
+            if (defaultCaseIndex != -1 && defaultCaseIndex != bodies().size() - 2) {
+                reorderedBodies = new ArrayList<>(bodies().size());
+                for (int i = 0; i < bodies().size(); i += 2) {
+                    if (i != defaultCaseIndex) {
+                        reorderedBodies.add(bodies().get(i));
+                        reorderedBodies.add(bodies().get(i + 1));
+                    }
                 }
-                blocks.add(bb);
-            }
-            // append ops of the first non default label to b
-            for (int i = 0; i < blocks.size(); i+=2) {
-                if (blocks.get(i) == null) {
-                    continue;
-                }
-                blocks.set(i, b);
-                break;
-            }
-
-            Block.Builder exit;
-            if (bodies().isEmpty()) {
-                exit = b;
+                reorderedBodies.add(bodies().get(defaultCaseIndex));
+                reorderedBodies.add(bodies().get(defaultCaseIndex + 1));
+                defaultCaseIndex = bodies().size() - 2;
             } else {
-                exit = resultType() == VOID ? b.block() : b.block(resultType());
-                if (!exit.parameters().isEmpty()) {
-                    exit.context().mapValue(result(), exit.parameters().get(0));
-                }
+                reorderedBodies = bodies();
             }
 
+            // Create predicate and action blocks
+            List<Block.Builder> blocks = new ArrayList<>(reorderedBodies.size());
+            blocks.add(b);
+            for (int i = 1; i < reorderedBodies.size(); i ++) {
+                blocks.add(b.block());
+            }
+
+            Block.Builder exit = b.block();
+            if (resultType() != VOID) {
+                Value r = exit.parameter(resultType());
+                exit.context().mapValue(result(), r);
+            }
+
+            // Set this body's break target to the exit block
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
-            // map statement body to nextExprBlock
-            // this mapping will be used for lowering SwitchFallThroughOp
-            for (int i = 1; i < bodies().size() - 2; i+=2) {
-                BranchTarget.setBranchTarget(b.context(), bodies().get(i), null, blocks.get(i + 2));
+            // Set action body's continue target to next action block for lowering of SwitchFallThroughOp
+            for (int i = 1; i < reorderedBodies.size() - 2; i += 2) {
+                Body actionBody = reorderedBodies.get(i);
+                Block.Builder nextActionBlock = blocks.get(i + 2);
+                BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
             }
 
-            for (int i = 0; i < bodies().size(); i+=2) {
-                if (i == defLabelIndex) {
-                    continue;
-                }
-                Block.Builder statement = blocks.get(i + 1);
-                boolean isLastLabel = i == blocks.size() - 2;
-                Block.Builder nextLabel = isLastLabel ? null : blocks.get(i + 2);
-                int finalDefLabelIndex = defLabelIndex;
-                blocks.get(i).transformBody(bodies().get(i), List.of(selectorExpression), loweringTransformer(inherited,
-                        (block, op) -> switch (op) {
-                            case CoreOp.YieldOp yop -> {
-                                Block.Reference falseTarget;
-                                if (nextLabel != null) {
-                                    falseTarget = nextLabel.reference();
-                                } else if (finalDefLabelIndex != -1) {
-                                    falseTarget = blocks.get(finalDefLabelIndex + 1).reference();
-                                } else {
-                                    falseTarget = exit.reference();
+            if (defaultCaseIndex == 0) {
+                // If there is only the default case branch to the action block
+                Block.Builder actionBlock = blocks.get(1);
+                b.add(branch(actionBlock.reference()));
+            }
+            for (int i = 0; i < reorderedBodies.size(); i += 2) {
+                Body predicateBody = reorderedBodies.get(i);
+                Block.Builder predicateBlock = blocks.get(i);
+                Body actionBody = reorderedBodies.get(i + 1);
+                Block.Builder actionBlock = blocks.get(i + 1);
+
+                // Lower predicate body for non-default cases
+                if (i != defaultCaseIndex) {
+                    boolean isLastCaseNoDefault = i == reorderedBodies.size() - 2;
+                    boolean isLastCaseWithDefault = defaultCaseIndex == i + 2;
+                    Block.Builder noMatchBlock;
+                    if (isLastCaseNoDefault) {
+                        // If switch expression, the last predicate body should be unconditional
+                        // and no conditional branch should be required. Rather than verifying
+                        // that create a no match block that terminates with unreachable
+                        if (this instanceof SwitchExpressionOp) {
+                            Block.Builder unreachableBlock = b.block();
+                            unreachableBlock.add(unreachable());
+                            noMatchBlock = unreachableBlock;
+                        } else {
+                            noMatchBlock = exit;
+                        }
+                    } else if (isLastCaseWithDefault) {
+                        Block.Builder defaultActionBlock = blocks.get(defaultCaseIndex + 1);
+                        noMatchBlock = defaultActionBlock;
+                    } else {
+                        Block.Builder nextPredicateBlock = blocks.get(i + 2);
+                        noMatchBlock = nextPredicateBlock;
+                    }
+
+                    predicateBlock.transformBody(predicateBody, List.of(selectorExpression), loweringTransformer(inherited,
+                            (block, op) -> switch (op) {
+                                case CoreOp.YieldOp yop -> {
+                                    block.add(conditionalBranch(block.context().getValue(yop.yieldValue()),
+                                            actionBlock.reference(), noMatchBlock.reference()));
+                                    yield block;
                                 }
-                                block.add(conditionalBranch(block.context().getValue(yop.yieldValue()),
-                                        statement.reference(), falseTarget));
-                                yield block;
-                            }
-                            default -> null;
-                        }));
+                                default -> null;
+                            }));
+                }
 
-                blocks.get(i + 1).transformBody(bodies().get(i + 1), List.of(), loweringTransformer(inherited,
+                // Lower action body for all cases
+                actionBlock.transformBody(actionBody, List.of(), loweringTransformer(inherited,
                         (block, op) -> switch (op) {
                             case CoreOp.YieldOp yop -> {
-                                List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
-                                block.add(branch(exit.reference(args)));
-                                yield block;
-                            }
-                            default -> null;
-                        }));
-            }
-
-            if (defLabelIndex != -1) {
-                blocks.get(defLabelIndex + 1).transformBody(bodies().get(defLabelIndex + 1), List.of(), loweringTransformer(inherited,
-                        (block, op) -> switch (op) {
-                            case CoreOp.YieldOp yop -> {
-                                List<Value> args = yop.yieldValue() == null ? List.of() : List.of(block.context().getValue(yop.yieldValue()));
+                                List<Value> args = yop.yieldValue() == null
+                                        ? List.of()
+                                        : List.of(block.context().getValue(yop.yieldValue()));
                                 block.add(branch(exit.reference(args)));
                                 yield block;
                             }
@@ -3595,7 +3672,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.28 {@code switch} Expressions
      */
     @OpDeclaration(SwitchExpressionOp.NAME)
-    public static final class SwitchExpressionOp extends JavaSwitchOp
+    public static final class SwitchExpressionOp extends SwitchOp
             implements JavaExpression {
         static final String NAME = "java.switch.expression";
 
@@ -3637,7 +3714,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.11 The switch Statement
      */
     @OpDeclaration(SwitchStatementOp.NAME)
-    public static final class SwitchStatementOp extends JavaSwitchOp
+    public static final class SwitchStatementOp extends SwitchOp
             implements JavaStatement {
         static final String NAME = "java.switch.statement";
 
