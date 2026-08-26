@@ -2884,7 +2884,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof TryOp.TargetingOp targetOp2 && targetOp2.exits(this))) {
+                    (op instanceof TryOp.TargetingOp targetOp && targetOp.exits(this))) {
                     // Monitor exit
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -5811,7 +5811,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, completion))))));
                 }).then(action -> {
                     Op exitOp = exit.op();
-                    if (exitOp instanceof TargetingOp && exit.valueVar() != null) {
+                    if ((exitOp instanceof ReturnOp || exitOp instanceof TargetingOp)
+                            && exit.valueVar() != null) {
                         assert exitOp.operands().size() == 1;
 
                         Value returnValue = action.add(varLoad(exit.valueVar()));
