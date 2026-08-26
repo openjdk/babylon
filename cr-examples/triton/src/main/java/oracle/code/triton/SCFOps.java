@@ -57,12 +57,6 @@ public class SCFOps {
                 c.accept(body.entryBlock());
                 return new ForOp(range, body);
             }
-
-            public ForOp body(CodeContext cc, Consumer<Block.Builder> c) {
-                Body.Builder body = Body.Builder.of(ancestorBody, loopType, cc);
-                c.accept(body.entryBlock());
-                return new ForOp(range, body);
-            }
         }
 
         public static final String NAME = "scf.for";

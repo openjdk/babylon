@@ -5522,25 +5522,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// @jls 14.20.3 try-with-resources
         /// @jls 14.20.3.2 Extended try-with-resources
         Op.Result normalizeExtendedTryWithResources(Block.Builder b) {
-            CodeTransformer ct = b.transformer();
             if (handlers.isEmpty() && finallyBody == null) {
-                return b.add(normalizeExtendedTryWithResources(b.parentBody(), b.context(), ct, new ArrayList<>()));
+                return b.add(normalizeExtendedTryWithResources(b.parentBody(), new ArrayList<>()));
             }
 
             CatchBuilder catchBuilder = try_(b.parentBody(), tryBlock -> {
-                tryBlock.add(normalizeExtendedTryWithResources(tryBlock.parentBody(), b.context(), ct, new ArrayList<>()));
+                tryBlock.add(normalizeExtendedTryWithResources(tryBlock.parentBody(), new ArrayList<>()));
                 tryBlock.add(core_yield());
             });
             List<CodeType> catchTypes = catchTypes();
             for (int i = 0; i < handlers.size(); i++) {
                 Body catcher = handlers.get(i);
                 catchBuilder.catch_(catchTypes.get(i), catcher.bodySignature().parameterTypes().getFirst(), catchBlock ->
-                        catchBlock.transformBody(catcher, catchBlock.parameters(), b.context(), ct));
+                        catchBlock.transformBody(catcher, catchBlock.parameters()));
             }
             return b.add(finallyBody == null
                     ? catchBuilder.noFinalizer()
                     : catchBuilder.finally_(finallyBlock ->
-                            finallyBlock.transformBody(finallyBody, List.of(), b.context(), ct)));
+                            finallyBlock.transformBody(finallyBody, List.of())));
         }
 
         /// Recursive step for extended try-with-resources.
@@ -5548,18 +5547,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// The next resource becomes the current outer basic try-with-resources.
         ///
         /// @jls 14.20.3.2 Extended try-with-resources
-        TryOp normalizeExtendedTryWithResources(Body.Builder anc, CodeContext ctx, CodeTransformer ct, List<Value> res) {
+        TryOp normalizeExtendedTryWithResources(Body.Builder anc, List<Value> res) {
             Body resource = resourcesBodies.get(res.size());
-            Body.Builder resourceBody = Body.Builder.of(anc, CoreType.functionType(resource.yieldType()), ctx, ct);
-            resourceBody.entryBlock().transformBody(resource, res, ctx, ct);
-            Body.Builder basicBody = Body.Builder.of(anc, CoreType.functionType(VOID, List.of(resource.yieldType())), ctx, ct);
+            Body.Builder resourceBody = Body.Builder.of(anc, CoreType.functionType(resource.yieldType()));
+            resourceBody.entryBlock().transformBody(resource, res);
+            Body.Builder basicBody = Body.Builder.of(anc, CoreType.functionType(VOID, List.of(resource.yieldType())));
             Block.Builder bodyBlock = basicBody.entryBlock();
             res.add(bodyBlock.parameters().getFirst());
             if (res.size() < resourcesBodies.size()) {
-                bodyBlock.add(normalizeExtendedTryWithResources(basicBody, ctx, ct, res));
+                bodyBlock.add(normalizeExtendedTryWithResources(basicBody, res));
                 bodyBlock.add(core_yield());
             } else {
-                bodyBlock.transformBody(body, res, ctx, ct);
+                bodyBlock.transformBody(body, res);
             }
             return try_(List.of(resourceBody), basicBody, List.of(), null);
         }
@@ -5589,7 +5588,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// @jls 14.20.3.1 Basic try-with-resources
         Op.Result normalizeBasicTryWithResources(Block.Builder b) {
             assert resourcesBodies.size() == 1;
-            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID), b.context(), b.transformer());
+            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
             Block.Builder entryBlock = normalizedBody.entryBlock();
             Body resourceBody = resourcesBodies.getFirst();
             CodeType resourceType = resourceBody.bodySignature().returnType();
@@ -5613,7 +5612,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
             // @@@ following builder code may be refactored into a reflected template method transformation
             afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
-                tryEntry.transformBody(body, List.of(resourceArgument), afterAcquire.context(), b.transformer());
+                tryEntry.transformBody(body, List.of(resourceArgument));
             }).catch_(type(Throwable.class), catchB -> {
                 Block.Parameter thrown = catchB.parameters().getFirst();
                 catchB.add(varStore(primaryExceptionVar, thrown));
@@ -5676,7 +5675,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         ///
         /// @jls 14.20.2 Execution of try-finally and try-catch-finally
         private Op.Result normalizeFinalizer(Block.Builder b) {
-            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID), b.context());
+            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
             Block.Builder output = normalizedBody.entryBlock();
             Value completionVar = output.add(var(output.add(constant(INT, 0))));
             Value exceptionVar = output.add(var(output.add(constant(type(Throwable.class), null))));
@@ -5688,18 +5687,17 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             CatchBuilder protectedTry = try_(labeledBody, tryBlock -> {
                 if (handlers.isEmpty()) {
-                    tryBlock.transformBody(body, List.of(), output.context(),
+                    tryBlock.transformBody(body, List.of(),
                             finalizerExitTransformer(body, exitLabel, completionVar, exits, output));
                 } else {
                     CatchBuilder innerTry = try_(tryBlock.parentBody(), innerBlock ->
-                            innerBlock.transformBody(body, List.of(), output.context(),
+                            innerBlock.transformBody(body, List.of(),
                                     finalizerExitTransformer(body, exitLabel, completionVar, exits, output)));
                     List<CodeType> catchTypes = catchTypes();
                     for (int i = 0; i < handlers.size(); i++) {
                         Body catcher = handlers.get(i);
                         innerTry.catch_(catchTypes.get(i), catcher.bodySignature().parameterTypes().getFirst(),
-                                catchBlock -> catchBlock.transformBody(
-                                        catcher, catchBlock.parameters(), output.context(),
+                                catchBlock -> catchBlock.transformBody(catcher, catchBlock.parameters(),
                                         finalizerExitTransformer(catcher, exitLabel, completionVar, exits, output)));
                     }
                     tryBlock.add(innerTry.noFinalizer());
@@ -5766,7 +5764,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     return b;
                 }
                 if (op instanceof StatementTargetOp targetOp && targetOp.exits(this)) {
-                    exits.add(new FinallyExit(targetOp.transform(b.context(), CodeTransformer.COPYING_TRANSFORMER), null));
+                    exits.add(new FinallyExit(targetOp, null));
                     completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
                     return b;
                 }
