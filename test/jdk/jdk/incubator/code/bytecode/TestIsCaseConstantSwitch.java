@@ -24,6 +24,7 @@
 import jdk.incubator.code.*;
 import jdk.incubator.code.bytecode.impl.LoweringTransformer;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -205,7 +206,7 @@ public class TestIsCaseConstantSwitch {
         expectedLabels.add(null); // null for default case
         var funcOp = Op.ofMethod(this.getClass().getDeclaredMethod("caseConstantSwitchExpressions")).get();
         System.out.println(funcOp.toText());
-        var swOp = (JavaSwitchOp) funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaSwitchOp).findFirst().get();
+        var swOp = (JavaOp.SwitchOp) funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.SwitchOp).findFirst().get();
         Optional<LoweringTransformer.LabelsAndTargets> opt = LoweringTransformer.isCaseConstantSwitchWithIntegralSelector(swOp, MethodHandles.lookup());
         Assertions.assertTrue(opt.isPresent());
         List<Integer> actualLabels = opt.get().labels();

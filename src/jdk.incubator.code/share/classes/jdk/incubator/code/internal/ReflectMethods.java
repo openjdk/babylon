@@ -963,7 +963,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
 
                             Op.Result lhsOpValue;
-                            CodeType resultType = typeToCodeType(sym.type);
+                            CodeType resultType = typeToCodeType(assign.type);
                             if (sym.isStatic()) {
                                 lhsOpValue = append(JavaOp.fieldLoad(resultType, fr));
                             } else {
@@ -990,7 +990,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     FieldRef fr = symbolToErasedFieldRef(sym, assign.selected.type);
 
                     Op.Result lhsOpValue;
-                    CodeType resultType = typeToCodeType(sym.type);
+                    CodeType resultType = typeToCodeType(assign.type);
                     if (sym.isStatic()) {
                         lhsOpValue = append(JavaOp.fieldLoad(resultType, fr));
                     } else {
@@ -1042,7 +1042,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         result = loadVar(sym);
                     } else {
                         FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
-                        CodeType resultType = typeToCodeType(sym.type);
+                        CodeType resultType = typeToCodeType(tree.type);
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
                         } else {
@@ -1669,8 +1669,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 // body
                 pushBody(tree, caseBodyType);
+                MethodRef matchException = MethodRef.constructor(MatchException.class, String.class, Throwable.class);
+                Value message = append(CoreOp.constant(JavaType.J_L_STRING, null));
+                Value cause = append(CoreOp.constant(JavaType.type(Throwable.class), null));
+                MethodRef.constructor(MatchException.class, String.class, Throwable.class);
                 append(JavaOp.throw_(
-                        append(JavaOp.new_(MethodRef.constructor(MatchException.class)))
+                        append(JavaOp.new_(matchException, message, cause))
                 ));
                 bodies.add(stack.body);
                 popBody();

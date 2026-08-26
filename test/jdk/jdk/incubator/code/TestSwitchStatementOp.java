@@ -258,6 +258,24 @@ public class TestSwitchStatementOp {
     }
 
     @Test
+    void testOnlyDefault() {
+        CoreOp.FuncOp lmodel = lower("onlyDefault");
+        String[] args = {"A", "X"};
+        for (String arg : args) {
+            Assertions.assertEquals(onlyDefault(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    static String onlyDefault(String s) {
+        String res = null;
+        switch (s) {
+            default : res = "A";
+        };
+        return res;
+    }
+
+    @Test
     void testCaseConstantEnum() {
         CoreOp.FuncOp lmodel = lower("caseConstantEnum");
         for (Day day : Day.values()) {
