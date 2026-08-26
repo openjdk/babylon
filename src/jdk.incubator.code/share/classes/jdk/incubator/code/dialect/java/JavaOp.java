@@ -5764,7 +5764,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     return b;
                 }
                 if (op instanceof StatementTargetOp targetOp && targetOp.exits(this)) {
-                    exits.add(new FinallyExit(targetOp.transform(b.context(), CodeTransformer.COPYING_TRANSFORMER), null));
+                    exits.add(new FinallyExit(targetOp, null));
                     completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
                     return b;
                 }
