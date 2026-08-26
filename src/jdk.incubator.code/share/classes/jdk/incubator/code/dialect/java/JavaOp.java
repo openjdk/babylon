@@ -218,7 +218,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * control flow behavior.
      */
     sealed interface TargetingOp
-            permits StatementTargetOp, YieldOp, ReturnOp, TryOp.AbstractTargetingOp {
+            permits StatementTargetOp, YieldOp, ReturnOp, TryOp.AbstractProxyTargetingOp {
         /**
          * {@return the target operation}
          */
@@ -4967,21 +4967,21 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class TryOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
-        private static abstract sealed class AbstractTargetingOp<T extends Op & TargetingOp> extends Terminating
+        private static abstract sealed class AbstractProxyTargetingOp<T extends Op & TargetingOp> extends Terminating
                 implements JavaOp, Lowerable, TargetingOp
-                permits YieldOpProxy, StatementTargetOpProxy {
-            // ContinueOp | BreakOp | YieldOp
+                permits ReturnOpProxy, YieldOpProxy, StatementTargetOpProxy {
+            // ReturnOp | YieldOp | ContinueOp | BreakOp
             // This operation and the source operation will be in different models
             protected final T source;
 
-            AbstractTargetingOp(T source, List<Value> operands) {
+            AbstractProxyTargetingOp(T source, List<Value> operands) {
                 super(operands);
 
-                assert source instanceof StatementTargetOp || source instanceof YieldOp;
+                assert source instanceof ReturnOp || source instanceof YieldOp || source instanceof StatementTargetOp;
                 this.source = source;
             }
 
-            AbstractTargetingOp(AbstractTargetingOp<T> that, CodeContext cc) {
+            AbstractProxyTargetingOp(AbstractProxyTargetingOp<T> that, CodeContext cc) {
                 super(that, cc);
 
                 this.source = that.source;
@@ -5016,9 +5016,34 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @OpDeclaration("java.yieldOp.proxy")
-        private static final class YieldOpProxy extends AbstractTargetingOp<YieldOp> {
+        @OpDeclaration("java.return.proxy")
+        private static final class ReturnOpProxy extends AbstractProxyTargetingOp<ReturnOp> {
+            ReturnOpProxy(ReturnOp source, Value returnValue) {
+                super(source, returnValue == null ? List.of() : List.of(returnValue));
+            }
 
+            ReturnOpProxy(ReturnOpProxy that, CodeContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public ReturnOpProxy transform(CodeContext cc, CodeTransformer ct) {
+                return new ReturnOpProxy(this, cc);
+            }
+
+            @Override
+            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+                if (operands().isEmpty()) {
+                    b.add(CoreOp.return_());
+                } else {
+                    b.add(CoreOp.return_(b.context().getValue(operands().getFirst())));
+                }
+                return b;
+            }
+        }
+
+        @OpDeclaration("java.yieldOp.proxy")
+        private static final class YieldOpProxy extends AbstractProxyTargetingOp<YieldOp> {
             YieldOpProxy(YieldOp source, Value operand) {
                 super(source, List.of(Objects.requireNonNull(operand)));
             }
@@ -5051,7 +5076,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         @OpDeclaration("java.statementTarget.proxy")
-        private static final class StatementTargetOpProxy extends AbstractTargetingOp<StatementTargetOp> {
+        private static final class StatementTargetOpProxy extends AbstractProxyTargetingOp<StatementTargetOp> {
             StatementTargetOpProxy(StatementTargetOp source) {
                 super(source, List.of());
             }
@@ -5837,7 +5862,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     case TargetingOp top when top.exits(this) -> {
                         Value valueVar = null;
                         switch (top) {
-                            case ReturnOp _ when op.operands().size() == 1 :
+                            case ReturnOp _, ReturnOpProxy _ when op.operands().size() == 1 :
                             case YieldOp _, YieldOpProxy _ : {
                                 Value yieldValue = b.context().getValue(op.operands().getFirst());
                                 valueVar = output.add(var(yieldValue.type()));
@@ -5873,6 +5898,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         new StatementTargetOpProxy(st);
                 case JavaOp.YieldOp yop when yop.exits(this) ->
                         new YieldOpProxy(yop, block.context().getValue(yop.yieldOperand()));
+                case CoreOp.ReturnOp rop when rop.exits(this) -> {
+                    Value returnValue = rop.returnValue() != null
+                        ? block.context().getValue(rop.returnValue())
+                        : null;
+                    yield new ReturnOpProxy(rop, returnValue);
+                }
                 default -> op;
             });
             return block;
