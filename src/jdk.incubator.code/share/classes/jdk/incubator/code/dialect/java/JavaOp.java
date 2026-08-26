@@ -2884,7 +2884,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
                 if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof TryOp.TargetingOp targetOp && targetOp.exits(this))) {
+                    (op instanceof TryOp.TargetingOp targetingOp && targetingOp.exits(this))) {
                     // Monitor exit
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -4959,8 +4959,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Op target();
 
             /**
-             * Returns true if the target is an ancestor of the scope operation and therefore the operation's control
-             * flow behavior may result in the target operation completing abruptly.
+             * Returns true if the target operation of this operation is an ancestor of the scope operation and
+             * therefore the operation's control flow behavior may result in the target operation completing abruptly.
              *
              * @param scope the operation
              * @return true if the target is an ancestor of the scope, otherwise false
@@ -5405,7 +5405,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             if (finallyBody != null) {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof TargetingOp targetOp && targetOp.exits(this))) {
+                            (op instanceof TargetingOp targetingOp && targetingOp.exits(this))) {
                         return inlineFinalizer(block, enter, inherited);
                     } else {
                         return block;
@@ -5414,7 +5414,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             } else {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof TargetingOp targetOp && targetOp.exits(this))) {
+                            (op instanceof TargetingOp targetingOp && targetingOp.exits(this))) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.add(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
                         return tryRegionReturnExit;
@@ -5465,7 +5465,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
                         if (op instanceof CoreOp.ReturnOp ||
-                                (op instanceof TargetingOp targetOp && targetOp.exits(this))) {
+                                (op instanceof TargetingOp targetingOp && targetingOp.exits(this))) {
                             return inlineFinalizer(block, catchExceptionRegion, inherited);
                         } else {
                             return block;
@@ -5852,7 +5852,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
                         yield b;
                     }
-                    case TargetingOp targetOp when targetOp.exits(this) -> {
+                    case TargetingOp targetingOp when targetingOp.exits(this) -> {
                         yield switch (op) {
                             case StatementTargetOp _, StatementTargetOpProxy _ -> {
                                 exits.add(new FinallyExit(op, null));
