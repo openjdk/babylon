@@ -213,6 +213,26 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         ArrayAccessOp {
     }
 
+    /**
+     * An operation characteristic for a terminating operation indicating that it targets another operation for its
+     * control flow behavior.
+     */
+    sealed interface TargetingOp
+            permits StatementTargetOp, YieldOp, ReturnOp, TryOp.AbstractTargetingOp {
+        /**
+         * {@return the target operation}
+         */
+        Op target();
+
+        /**
+         * Returns true if the target operation of this operation is an ancestor of the scope operation and
+         * therefore the operation's control flow behavior may result in the target operation completing abruptly.
+         *
+         * @param scope the operation
+         * @return true if the target is an ancestor of the scope, otherwise false
+         */
+        boolean exits(Op scope);
+    }
 
 
     /**
@@ -2471,7 +2491,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 14.16 The continue Statement
      */
     public sealed static abstract class StatementTargetOp extends AbstractOp.Terminating
-            implements JavaOp, Op.Lowerable, JavaStatement, TryOp.TargetingOp {
+            implements JavaOp, Op.Lowerable, JavaStatement, TargetingOp {
 
         StatementTargetOp(StatementTargetOp that, CodeContext cc) {
             super(that, cc);
@@ -2652,7 +2672,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends AbstractOp.Terminating
-            implements JavaOp, JavaStatement, Op.Lowerable, TryOp.TargetingOp {
+            implements JavaOp, JavaStatement, Op.Lowerable, TargetingOp {
         static final String NAME = "java.yield";
 
         YieldOp(ExternalizedOp def) {
@@ -2883,8 +2903,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     syncRegionEnter.reference(), catcherFinally.reference(b.add(constant(type(Throwable.class), null)))));
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
-                if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof TryOp.TargetingOp targetingOp && targetingOp.exits(this))) {
+                if (op instanceof TargetingOp top && top.exits(this)) {
                     // Monitor exit
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -4948,26 +4967,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class TryOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
-        /**
-         * An operation trait for a terminating operation that targets another operation for its control flow behavior.
-         */
-        sealed interface TargetingOp
-                permits StatementTargetOp, YieldOp, AbstractTargetingOp {
-            /**
-             * {@return the target operation}
-             */
-            Op target();
-
-            /**
-             * Returns true if the target operation of this operation is an ancestor of the scope operation and
-             * therefore the operation's control flow behavior may result in the target operation completing abruptly.
-             *
-             * @param scope the operation
-             * @return true if the target is an ancestor of the scope, otherwise false
-             */
-            boolean exits(Op scope);
-        }
-
         private static abstract sealed class AbstractTargetingOp<T extends Op & TargetingOp> extends Terminating
                 implements JavaOp, Lowerable, TargetingOp
                 permits YieldOpProxy, StatementTargetOpProxy {
@@ -5404,8 +5403,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
-                    if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof TargetingOp targetingOp && targetingOp.exits(this))) {
+                    if (op instanceof TargetingOp top && top.exits(this)) {
                         return inlineFinalizer(block, enter, inherited);
                     } else {
                         return block;
@@ -5413,8 +5411,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 });
             } else {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
-                    if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof TargetingOp targetingOp && targetingOp.exits(this))) {
+                    if (op instanceof TargetingOp top && top.exits(this)) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.add(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
                         return tryRegionReturnExit;
@@ -5464,8 +5461,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                                     catcherFinally.reference(nullThrowable)));
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
-                        if (op instanceof CoreOp.ReturnOp ||
-                                (op instanceof TargetingOp targetingOp && targetingOp.exits(this))) {
+                        if (op instanceof TargetingOp top && top.exits(this)) {
                             return inlineFinalizer(block, catchExceptionRegion, inherited);
                         } else {
                             return block;
@@ -5811,13 +5807,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, completion))))));
                 }).then(action -> {
                     Op exitOp = exit.op();
-                    if ((exitOp instanceof ReturnOp || exitOp instanceof TargetingOp)
-                            && exit.valueVar() != null) {
+                    if (exitOp instanceof TargetingOp && exit.valueVar() != null) {
                         assert exitOp.operands().size() == 1;
 
                         Value returnValue = action.add(varLoad(exit.valueVar()));
-                        action.context().mapValue(exitOp.operands().getFirst(),
-                                returnValue);
+                        action.context().mapValue(exitOp.operands().getFirst(), returnValue);
                     }
                     action.add(exitOp);
                 }).else_());
@@ -5832,57 +5826,36 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
         }
 
+        @SuppressWarnings("fallthrough")
         private CodeTransformer finalizerExitTransformer(Body sourceBody, Value exitLabel, Value completionVar,
                                                          List<FinallyExit> exits, Block.Builder output) {
             return (b, op) -> {
-                return switch (op) {
+                switch (op) {
                     case CoreOp.YieldOp _ when op.ancestorBody() == sourceBody -> {
                         completeFinalizer(b, exitLabel, completionVar, 0);
-                        yield  b;
                     }
-                    case ReturnOp returnOp when nearestInvokable(returnOp) == nearestInvokable(this) -> {
+                    case TargetingOp top when top.exits(this) -> {
                         Value valueVar = null;
-                        if (returnOp.returnValue() != null) {
-                            Value returnValue = b.context().getValue(returnOp.returnValue());
-                            valueVar = output.add(var(returnValue.type()));
-                            b.add(varStore(valueVar, returnValue));
-                        }
-
-                        exits.add(new FinallyExit(returnOp, valueVar));
-                        completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
-                        yield b;
-                    }
-                    case TargetingOp targetingOp when targetingOp.exits(this) -> {
-                        yield switch (op) {
-                            case StatementTargetOp _, StatementTargetOpProxy _ -> {
-                                exits.add(new FinallyExit(op, null));
-                                completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
-                                yield b;
-                            }
-                            default -> {
-                                assert op instanceof YieldOp || op instanceof YieldOpProxy;
-
+                        switch (top) {
+                            case ReturnOp _ when op.operands().size() == 1 :
+                            case YieldOp _, YieldOpProxy _ : {
                                 Value yieldValue = b.context().getValue(op.operands().getFirst());
-                                Value valueVar = output.add(var(yieldValue.type()));
+                                valueVar = output.add(var(yieldValue.type()));
                                 b.add(varStore(valueVar, yieldValue));
-
+                            }
+                            // Fallthrough for all targeting ops
+                            default: {
                                 exits.add(new FinallyExit(op, valueVar));
                                 completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
-                                yield b;
                             }
-                        };
+                        }
                     }
                     default -> {
                         b.add(op);
-                        yield b;
                     }
                 };
+                return b;
             };
-        }
-
-        private static Op nearestInvokable(Op op) {
-            while (!(op instanceof Op.Invokable)) op = op.ancestorOp();
-            return op;
         }
 
         private static void completeFinalizer(Block.Builder b, Value exitLabel, Value completionVar, int completion) {
