@@ -5679,7 +5679,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 if (op instanceof CoreOp.YieldOp yop && op.ancestorBody() == resourceBody) {
                     block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                 } else {
-                    return proxyTargetingOps(block, op);
+                    block.add(op);
                 }
                 return block;
             });
