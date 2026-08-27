@@ -5275,16 +5275,20 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             for (Body.Builder _resource : resourcesC) {
                 requireNonVoidReturnType(NAME + " resource", _resource, resourceTypes.size());
                 if (!_resource.bodySignature().parameterTypes().equals(resourceTypes)) {
-                    throw structuralException(NAME, "resource #%d requires %s parameter types, found %s".formatted(resourceTypes.size(), resourceTypes, _resource.bodySignature().parameterTypes()));
+                    throw structuralException(NAME, "resource #%d requires %s parameter types, found %s"
+                            .formatted(resourceTypes.size(), resourceTypes, _resource.bodySignature().parameterTypes()));
                 }
                 resourceTypes.add(_resource.bodySignature().returnType());
             }
             this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
-            this.body = requireBodySignature(NAME + " try", bodyC, CoreType.functionType(VOID, resourceTypes)).build(this);
+            this.body = requireBodySignature(NAME + " try",
+                    bodyC, CoreType.functionType(VOID, resourceTypes)).build(this);
             this.explicitCatchTypes = catchTypes == null ? null : List.copyOf(catchTypes);
-            this.handlers = handlersC.stream().map(c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
+            this.handlers = handlersC.stream().map(
+                    c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
             if (explicitCatchTypes != null && explicitCatchTypes.size() != handlers.size()) {
-                throw structuralException(NAME, "catch types %s require %d catch bodies, found %d".formatted(explicitCatchTypes, explicitCatchTypes.size(), handlers.size()));
+                throw structuralException(NAME, "catch types %s require %d catch bodies, found %d"
+                        .formatted(explicitCatchTypes, explicitCatchTypes.size(), handlers.size()));
             }
             if (finalizerC != null) {
                 this.finallyBody = requireVoidBodySignature(NAME + " finalizer", finalizerC).build(this);
@@ -5416,6 +5420,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof TargetingOp top && top.exits(this)) {
                         return inlineFinalizer(block, enter, inherited);
@@ -5448,6 +5454,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             Block.Builder finallyEnter = null;
             if (finallyBody != null) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
@@ -5466,6 +5474,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
                 if (finallyBody != null) {
+                    assert !SHARED_FINALIZER_DISPATCH;
+
                     Block.Builder catchRegionEnter = b.block();
                     Block.Builder catchRegionExit = b.block();
 
@@ -5514,6 +5524,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // Inline the finally body as a catcher of Throwable and adjusting to throw
             if (finallyBody != null && hasTryRegionExit.get()) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 // Inline the finally body for exceptional completion and rethrow
                 finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
@@ -5526,6 +5538,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             if (finallyBody != null) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 // Inline the finally body for exceptional completion and rethrow
                 Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
                 catcherFinally.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
