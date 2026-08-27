@@ -214,26 +214,50 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     }
 
     /**
-     * An operation characteristic for a terminating operation indicating that it targets another operation for its
-     * control flow behavior.
+     * An operation characteristic for a body terminating operation that targets an ancestor operation for its control
+     * flow behavior.
      */
-    sealed interface TargetingOp
+    public sealed interface TargetingOp
             permits StatementTargetingOp, YieldOp, ReturnOp, TryOp.AbstractTargetingOpProxy {
         /**
-         * {@return the target operation}
+         * {@return the target operation, which is an ancestor of this operation}
          */
         Op target();
 
         /**
-         * Returns true if the target operation of this operation is the same as or an ancestor of the scope operation
-         * and therefore the operation's control flow behavior may result in the target operation completing abruptly.
+         * Tests whether this operation targets or attempts to exit the given operation.
+         * <p>
+         * More specifically, this method tests whether the given operation is encountered when traversing this
+         * operation's ancestor operations up to and including the target operation.
          *
-         * @param scope the scope operation
-         * @return true if the target is an ancestor of the scope, otherwise false
+         * @apiNote
+         * A successful test may indicate that the given operation completes abruptly when control is passed from this
+         * operation to the target operation. For example, consider the following code, in which a {@code break}
+         * statement targets the labeled {@code for} statement in the middle of two other {@code for} statements:
+         * {@snippet lang = java:
+         * for (int i = 0; i < 10; i++) {
+         *     middle:
+         *     for (int j = 0; j < 10; j++) {
+         *         for (int k = 0; k < 10; k++) {
+         *             if (i * j * k < 200) {
+         *                 break middle;
+         *             }
+         *         }
+         *     }
+         * }
+         * }
+         * The Java code model for the above code contains a break operation modeling the {@code break} statement. Its
+         * target is the {@code for} operation modeling the labeled {@code for} statement.
+         * This method will return {@code true} if the operation to test is the operation modeling the innermost
+         * {@code for} statement, and will return {@code false} if the operation to test is the operation modeling the
+         * outermost {@code for} statement.
+         *
+         * @param op the operation to test
+         * @return {@code true} if this operation targets or attempts to exit the given operation.
          */
-        default boolean exits(Op scope) {
+        default boolean targetsOrAttemptsToExit(Op op) {
             Op target = target();
-            return target == scope || target.isAncestorOf(scope);
+            return target == op || (target.isAncestorOf(op) && op.isAncestorOf((Op) this));
         }
     }
 
@@ -2892,7 +2916,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     syncRegionEnter.reference(), catcherFinally.reference(b.add(constant(type(Throwable.class), null)))));
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
-                if (op instanceof TargetingOp top && top.exits(this)) {
+                if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                     // Monitor exit
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -4982,13 +5006,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             @Override
-            public final boolean exits(Op scope) {
+            public final boolean targetsOrAttemptsToExit(Op op) {
                 // The delegate and its target belong to the same model
                 // If the scope and delegate belong in different models then the delegate exits the scope, since that
                 // check was performed when this operation was created.
                 // Otherwise, the scope and delegate belong in the same model we need to check if the delegate exits the
                 // scope
-                return root(scope) != root(delegate) || delegate.exits(scope);
+                return root(op) != root(delegate) || delegate.targetsOrAttemptsToExit(op);
             }
 
             private static Op root(Op op) {
@@ -5423,7 +5447,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 assert !SHARED_FINALIZER_DISPATCH;
 
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
-                    if (op instanceof TargetingOp top && top.exits(this)) {
+                    if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                         return inlineFinalizer(block, enter, inherited);
                     } else {
                         return block;
@@ -5431,7 +5455,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 });
             } else {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
-                    if (op instanceof TargetingOp top && top.exits(this)) {
+                    if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.add(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
                         return tryRegionReturnExit;
@@ -5485,7 +5509,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                                     catcherFinally.reference(nullThrowable)));
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
-                        if (op instanceof TargetingOp top && top.exits(this)) {
+                        if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                             return inlineFinalizer(block, catchExceptionRegion, inherited);
                         } else {
                             return block;
@@ -5862,7 +5886,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     case CoreOp.YieldOp _ when op.ancestorBody() == sourceBody -> {
                         completeFinalizer(b, exitLabel, completionVar, 0);
                     }
-                    case TargetingOp top when top.exits(this) -> {
+                    case TargetingOp top when top.targetsOrAttemptsToExit(this) -> {
                         Value valueVar = null;
                         switch (top) {
                             case ReturnOp _, ReturnOpProxy _ when op.operands().size() == 1 :
@@ -5898,11 +5922,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         // that is then branched to
         private Block.Builder proxyTargetingOps(Block.Builder block, Op op) {
             block.add(switch (op) {
-                case StatementTargetingOp st when st.exits(this) ->
+                case StatementTargetingOp st when st.targetsOrAttemptsToExit(this) ->
                         new StatementTargetingOpProxy(st);
-                case JavaOp.YieldOp yop when yop.exits(this) ->
+                case JavaOp.YieldOp yop when yop.targetsOrAttemptsToExit(this) ->
                         new YieldOpProxy(yop, block.context().getValue(yop.yieldOperand()));
-                case CoreOp.ReturnOp rop when rop.exits(this) -> {
+                case CoreOp.ReturnOp rop when rop.targetsOrAttemptsToExit(this) -> {
                     Value returnValue = rop.returnValue() != null
                         ? block.context().getValue(rop.returnValue())
                         : null;
