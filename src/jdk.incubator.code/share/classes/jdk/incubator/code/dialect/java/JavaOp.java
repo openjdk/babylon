@@ -225,13 +225,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         Op target();
 
         /**
-         * Returns true if the target operation of this operation is an ancestor of the scope operation and
-         * therefore the operation's control flow behavior may result in the target operation completing abruptly.
+         * Returns true if the target operation of this operation is the same as or an ancestor of the scope operation
+         * and therefore the operation's control flow behavior may result in the target operation completing abruptly.
          *
-         * @param scope the operation
+         * @param scope the scope operation
          * @return true if the target is an ancestor of the scope, otherwise false
          */
-        boolean exits(Op scope);
+        default boolean exits(Op scope) {
+            Op target = target();
+            return target == scope || target.isAncestorOf(scope);
+        }
     }
 
 
@@ -2562,13 +2565,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @Override
-        public boolean exits(Op scope) {
-            Op target = target();
-            // Whether the transfer exits a try or synchronized scope is determined from the target hierarchy
-            return target == scope || target.isAncestorOf(scope);
-        }
-
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
             Op opt = target();
             BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
@@ -2719,13 +2715,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 throw new IllegalStateException("No branch target for operation: " + opt);
             }
             return b;
-        }
-
-        @Override
-        public boolean exits(Op scope) {
-            Op target = target();
-            // Whether the transfer exits a try or synchronized scope is determined from the target hierarchy
-            return target == scope || target.isAncestorOf(scope);
         }
 
         @Override

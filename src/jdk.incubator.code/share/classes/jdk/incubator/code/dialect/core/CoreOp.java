@@ -688,12 +688,6 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
         }
 
         @Override
-        public boolean exits(Op scope) {
-            Op target = target();
-            return target == scope || target.isAncestorOf(scope);
-        }
-
-        @Override
         public Op target() {
             return nearestInvokable(this);
         }
