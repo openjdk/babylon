@@ -186,7 +186,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             EnhancedForOp,
             ForOp,
             IfOp,
-            StatementTargetOp,
+            StatementTargetingOp,
             LabeledOp,
             SynchronizedOp,
             TryOp,
@@ -218,7 +218,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * control flow behavior.
      */
     sealed interface TargetingOp
-            permits StatementTargetOp, YieldOp, ReturnOp, TryOp.AbstractProxyTargetingOp {
+            permits StatementTargetingOp, YieldOp, ReturnOp, TryOp.AbstractTargetingOpProxy {
         /**
          * {@return the target operation}
          */
@@ -2480,28 +2480,28 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     }
 
     /**
-     * A statement target operation, that can model Java language statements associated with label identifiers.
+     * A statement targeting operation, that can model Java language statements associated with label identifiers.
      * <p>
-     * A statement target operation is a body terminating operation that features zero or one operand, the label
+     * A statement targeting operation is a body terminating operation that features zero or one operand, the label
      * identifier. If present, the label identifier is modeled as a {@link ConstantOp} value.
      * <p>
-     * The result type of a statement target operation is {@link JavaType#VOID}.
+     * The result type of a statement targeting operation is {@link JavaType#VOID}.
      *
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class StatementTargetOp extends AbstractOp.Terminating
+    public sealed static abstract class StatementTargetingOp extends AbstractOp.Terminating
             implements JavaOp, Op.Lowerable, JavaStatement, TargetingOp {
 
-        StatementTargetOp(StatementTargetOp that, CodeContext cc) {
+        StatementTargetingOp(StatementTargetingOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        StatementTargetOp(ExternalizedOp def) {
+        StatementTargetingOp(ExternalizedOp def) {
             super(requireOperands(def, 0, 1));
         }
 
-        StatementTargetOp(Value label) {
+        StatementTargetingOp(Value label) {
             super(checkLabel(label));
         }
 
@@ -2596,12 +2596,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     /**
      * The break operation, that can model Java language break statements.
      * <p>
-     * A break operation is a body-terminating statement target operation.
+     * A break operation is a body-terminating statement targeting operation.
      *
      * @jls 14.15 The break Statement
      */
     @OpDeclaration(BreakOp.NAME)
-    public static final class BreakOp extends StatementTargetOp {
+    public static final class BreakOp extends StatementTargetingOp {
         static final String NAME = "java.break";
 
         BreakOp(ExternalizedOp def) {
@@ -2630,12 +2630,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     /**
      * The continue operation, that can model Java language continue statements.
      * <p>
-     * A continue operation is a body-terminating statement target operation.
+     * A continue operation is a body-terminating statement targeting operation.
      *
      * @jls 14.16 The continue Statement
      */
     @OpDeclaration(ContinueOp.NAME)
-    public static final class ContinueOp extends StatementTargetOp {
+    public static final class ContinueOp extends StatementTargetingOp {
         static final String NAME = "java.continue";
 
         ContinueOp(ExternalizedOp def) {
@@ -4967,39 +4967,39 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class TryOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
-        private static abstract sealed class AbstractProxyTargetingOp<T extends Op & TargetingOp> extends Terminating
+        private static abstract sealed class AbstractTargetingOpProxy<T extends Op & TargetingOp> extends Terminating
                 implements JavaOp, Lowerable, TargetingOp
-                permits ReturnOpProxy, YieldOpProxy, StatementTargetOpProxy {
+                permits ReturnOpProxy, YieldOpProxy, StatementTargetingOpProxy {
             // ReturnOp | YieldOp | ContinueOp | BreakOp
             // This operation and the source operation will be in different models
-            protected final T source;
+            final T delegate;
 
-            AbstractProxyTargetingOp(T source, List<Value> operands) {
+            AbstractTargetingOpProxy(T delegate, List<Value> operands) {
                 super(operands);
 
-                assert source instanceof ReturnOp || source instanceof YieldOp || source instanceof StatementTargetOp;
-                this.source = source;
+                assert delegate instanceof ReturnOp || delegate instanceof YieldOp || delegate instanceof StatementTargetingOp;
+                this.delegate = delegate;
             }
 
-            AbstractProxyTargetingOp(AbstractProxyTargetingOp<T> that, CodeContext cc) {
+            AbstractTargetingOpProxy(AbstractTargetingOpProxy<T> that, CodeContext cc) {
                 super(that, cc);
 
-                this.source = that.source;
+                this.delegate = that.delegate;
             }
 
             @Override
             public final Op target() {
-                return source.target();
+                return delegate.target();
             }
 
             @Override
             public final boolean exits(Op scope) {
-                // The source and its target belong to the same model
-                // If the scope and source belong in different models then source exits the scope, since that check
-                // performed when this operation was created.
-                // Otherwise, the scope and source belong in the same model we need to check if the source statement
-                // exits the scope
-                return root(scope) != root(source) || source.exits(scope);
+                // The delegate and its target belong to the same model
+                // If the scope and delegate belong in different models then the delegate exits the scope, since that
+                // check was performed when this operation was created.
+                // Otherwise, the scope and delegate belong in the same model we need to check if the delegate exits the
+                // scope
+                return root(scope) != root(delegate) || delegate.exits(scope);
             }
 
             private static Op root(Op op) {
@@ -5016,10 +5016,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @OpDeclaration("java.return.proxy")
-        private static final class ReturnOpProxy extends AbstractProxyTargetingOp<ReturnOp> {
-            ReturnOpProxy(ReturnOp source, Value returnValue) {
-                super(source, returnValue == null ? List.of() : List.of(returnValue));
+        @OpDeclaration("return.proxy")
+        private static final class ReturnOpProxy extends AbstractTargetingOpProxy<ReturnOp> {
+            ReturnOpProxy(ReturnOp delegate, Value returnValue) {
+                super(delegate, returnValue == null ? List.of() : List.of(returnValue));
             }
 
             ReturnOpProxy(ReturnOpProxy that, CodeContext cc) {
@@ -5042,10 +5042,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @OpDeclaration("java.yieldOp.proxy")
-        private static final class YieldOpProxy extends AbstractProxyTargetingOp<YieldOp> {
-            YieldOpProxy(YieldOp source, Value operand) {
-                super(source, List.of(Objects.requireNonNull(operand)));
+        @OpDeclaration("java.yield.proxy")
+        private static final class YieldOpProxy extends AbstractTargetingOpProxy<YieldOp> {
+            YieldOpProxy(YieldOp delegate, Value operand) {
+                super(delegate, List.of(Objects.requireNonNull(operand)));
             }
 
             YieldOpProxy(YieldOpProxy that, CodeContext cc) {
@@ -5075,24 +5075,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @OpDeclaration("java.statementTarget.proxy")
-        private static final class StatementTargetOpProxy extends AbstractProxyTargetingOp<StatementTargetOp> {
-            StatementTargetOpProxy(StatementTargetOp source) {
-                super(source, List.of());
+        @OpDeclaration("java.statement.targeting.proxy")
+        private static final class StatementTargetingOpProxy extends AbstractTargetingOpProxy<StatementTargetingOp> {
+            StatementTargetingOpProxy(StatementTargetingOp delegate) {
+                super(delegate, List.of());
             }
 
-            StatementTargetOpProxy(StatementTargetOpProxy that, CodeContext cc) {
+            StatementTargetingOpProxy(StatementTargetingOpProxy that, CodeContext cc) {
                 super(that, cc);
             }
 
             @Override
-            public StatementTargetOpProxy transform(CodeContext cc, CodeTransformer ct) {
-                return new StatementTargetOpProxy(this, cc);
+            public StatementTargetingOpProxy transform(CodeContext cc, CodeTransformer ct) {
+                return new StatementTargetingOpProxy(this, cc);
             }
 
             @Override
             public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-                return source.lower(b, inherited);
+                return delegate.lower(b, inherited);
             }
         }
 
@@ -5869,6 +5869,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                                 b.add(varStore(valueVar, yieldValue));
                             }
                             // Fallthrough for all targeting ops
+                            // Including StatementTargetingOp which may have an unmapped operand for its label
                             default: {
                                 exits.add(new FinallyExit(op, valueVar));
                                 completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
@@ -5888,14 +5889,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             b.add(break_(exitLabel));
         }
 
-        // Replace StatementTargetOp and JavaOp.YieldOp with StatementTargetOpProxy and YieldOpProxy
+        // Replace StatementTargetingOp, YieldOp, and CoreOp.ReturnOp with {X}Proxy
         // The proxies preserve the underlying operation's target through try-with-resources lowering.
         // When lowering the underlying operation's target is used to obtain the block, associated with that target,
         // that is then branched to
         private Block.Builder proxyTargetingOps(Block.Builder block, Op op) {
             block.add(switch (op) {
-                case StatementTargetOp st when st.exits(this) ->
-                        new StatementTargetOpProxy(st);
+                case StatementTargetingOp st when st.exits(this) ->
+                        new StatementTargetingOpProxy(st);
                 case JavaOp.YieldOp yop when yop.exits(this) ->
                         new YieldOpProxy(yop, block.context().getValue(yop.yieldOperand()));
                 case CoreOp.ReturnOp rop when rop.exits(this) -> {
