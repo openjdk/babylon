@@ -218,7 +218,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * flow behavior.
      */
     public sealed interface TargetingOp
-            permits StatementTargetingOp, YieldOp, ReturnOp, TryOp.AbstractTargetingOpProxy {
+            permits StatementTargetingOp, YieldOp, ReturnOp, TryOp.AbstractStagedTargetingOp {
         /**
          * {@return the target operation, which is an ancestor of this operation}
          */
@@ -4980,47 +4980,47 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class TryOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
-        private static abstract sealed class AbstractTargetingOpProxy<T extends Op & TargetingOp> extends Terminating
+        // Represents a source targeting operation in a staged model, where the source targeting operation is not in
+        // the staged model.
+        // A staged model is a synthetic function operation that contains a normalized try operation extracted from a
+        // source model.
+        // The translation that produces the staged model translates a source targeting operation to a staged targeting
+        // operation when the source targeting operation attempts to exit the extracted try operation. Therefore, a
+        // staged targeting operation attempts to exit all of its ancestor operations.
+        private static abstract sealed class AbstractStagedTargetingOp<T extends Op & TargetingOp> extends Terminating
                 implements JavaOp, Lowerable, TargetingOp
-                permits ReturnOpProxy, YieldOpProxy, StatementTargetingOpProxy {
+                permits StagedReturnOp, StagedYieldOp, StagedStatementTargetingOp {
+            // The source targeting operation in the source model
             // ReturnOp | YieldOp | ContinueOp | BreakOp
-            // This operation and the source operation will be in different models
-            final T delegate;
+            final T source;
 
-            AbstractTargetingOpProxy(T delegate, List<Value> operands) {
+            AbstractStagedTargetingOp(T source, List<Value> operands) {
                 super(operands);
 
-                assert delegate instanceof ReturnOp || delegate instanceof YieldOp || delegate instanceof StatementTargetingOp;
-                this.delegate = delegate;
+                assert source instanceof ReturnOp || source instanceof YieldOp || source instanceof StatementTargetingOp;
+                this.source = source;
             }
 
-            AbstractTargetingOpProxy(AbstractTargetingOpProxy<T> that, CodeContext cc) {
+            AbstractStagedTargetingOp(AbstractStagedTargetingOp<T> that, CodeContext cc) {
                 super(that, cc);
 
-                this.delegate = that.delegate;
+                this.source = that.source;
             }
 
             @Override
             public final Op target() {
-                return delegate.target();
+                return source.target();
             }
 
             @Override
             public final boolean targetsOrAttemptsToExit(Op op) {
-                // The delegate and its target belong to the same model
-                // If the scope and delegate belong in different models then the delegate exits the scope, since that
-                // check was performed when this operation was created.
-                // Otherwise, the scope and delegate belong in the same model we need to check if the delegate exits the
-                // scope
-                return root(op) != root(delegate) || delegate.targetsOrAttemptsToExit(op);
-            }
-
-            private static Op root(Op op) {
-                Op ancestor;
-                while ((ancestor = op.ancestorOp()) != null) {
-                    op = ancestor;
-                }
-                return op;
+                // If the given operation is an ancestor of this staged targeting operation, then staged targeting
+                // operation attempts to exit the given operation
+                // Otherwise, the given operation is in the source model, so test the given operation against the
+                // source. This can occur for an ancestor try operation that is not normalized, or an ancestor
+                // synchronized operation. Specifically, when lowering such an operation all descendant targeted
+                // operations that attempt to exit the operation need to be processed
+                return op.isAncestorOf(this) || source.targetsOrAttemptsToExit(op);
             }
 
             @Override
@@ -5029,19 +5029,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @OpDeclaration("return.proxy")
-        private static final class ReturnOpProxy extends AbstractTargetingOpProxy<ReturnOp> {
-            ReturnOpProxy(ReturnOp delegate, Value returnValue) {
+        @OpDeclaration("staged.return")
+        private static final class StagedReturnOp extends AbstractStagedTargetingOp<ReturnOp> {
+            StagedReturnOp(ReturnOp delegate, Value returnValue) {
                 super(delegate, returnValue == null ? List.of() : List.of(returnValue));
             }
 
-            ReturnOpProxy(ReturnOpProxy that, CodeContext cc) {
+            StagedReturnOp(StagedReturnOp that, CodeContext cc) {
                 super(that, cc);
             }
 
             @Override
-            public ReturnOpProxy transform(CodeContext cc, CodeTransformer ct) {
-                return new ReturnOpProxy(this, cc);
+            public StagedReturnOp transform(CodeContext cc, CodeTransformer ct) {
+                return new StagedReturnOp(this, cc);
             }
 
             @Override
@@ -5055,19 +5055,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @OpDeclaration("java.yield.proxy")
-        private static final class YieldOpProxy extends AbstractTargetingOpProxy<YieldOp> {
-            YieldOpProxy(YieldOp delegate, Value operand) {
+        @OpDeclaration("staged.java.yield")
+        private static final class StagedYieldOp extends AbstractStagedTargetingOp<YieldOp> {
+            StagedYieldOp(YieldOp delegate, Value operand) {
                 super(delegate, List.of(Objects.requireNonNull(operand)));
             }
 
-            YieldOpProxy(YieldOpProxy that, CodeContext cc) {
+            StagedYieldOp(StagedYieldOp that, CodeContext cc) {
                 super(that, cc);
             }
 
             @Override
-            public YieldOpProxy transform(CodeContext cc, CodeTransformer ct) {
-                return new YieldOpProxy(this, cc);
+            public StagedYieldOp transform(CodeContext cc, CodeTransformer ct) {
+                return new StagedYieldOp(this, cc);
             }
 
             @Override
@@ -5088,24 +5088,24 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        @OpDeclaration("java.statement.targeting.proxy")
-        private static final class StatementTargetingOpProxy extends AbstractTargetingOpProxy<StatementTargetingOp> {
-            StatementTargetingOpProxy(StatementTargetingOp delegate) {
+        @OpDeclaration("staged.java.statement")
+        private static final class StagedStatementTargetingOp extends AbstractStagedTargetingOp<StatementTargetingOp> {
+            StagedStatementTargetingOp(StatementTargetingOp delegate) {
                 super(delegate, List.of());
             }
 
-            StatementTargetingOpProxy(StatementTargetingOpProxy that, CodeContext cc) {
+            StagedStatementTargetingOp(StagedStatementTargetingOp that, CodeContext cc) {
                 super(that, cc);
             }
 
             @Override
-            public StatementTargetingOpProxy transform(CodeContext cc, CodeTransformer ct) {
-                return new StatementTargetingOpProxy(this, cc);
+            public StagedStatementTargetingOp transform(CodeContext cc, CodeTransformer ct) {
+                return new StagedStatementTargetingOp(this, cc);
             }
 
             @Override
             public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-                return delegate.lower(b, inherited);
+                return source.lower(b, inherited);
             }
         }
 
@@ -5591,7 +5591,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder entry = body.entryBlock();
             entry.context().mapValues(captures, entry.parameters());
             entry.context().mapBlock(ancestorBody().entryBlock(), entry);
-            entry.withContextAndTransformer(entry.context(), this::proxyTargetingOps).add(this);
+            entry.withContextAndTransformer(entry.context(), this::stageTargetingOps).add(this);
             entry.add(return_());
 
             CoreOp.FuncOp root = func("$", body);
@@ -5889,8 +5889,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     case TargetingOp top when top.targetsOrAttemptsToExit(this) -> {
                         Value valueVar = null;
                         switch (top) {
-                            case ReturnOp _, ReturnOpProxy _ when op.operands().size() == 1 :
-                            case YieldOp _, YieldOpProxy _ : {
+                            case ReturnOp _, StagedReturnOp _ when op.operands().size() == 1 :
+                            case YieldOp _, StagedYieldOp _ : {
                                 Value yieldValue = b.context().getValue(op.operands().getFirst());
                                 valueVar = output.add(var(yieldValue.type()));
                                 b.add(varStore(valueVar, yieldValue));
@@ -5916,21 +5916,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             b.add(break_(exitLabel));
         }
 
-        // Replace StatementTargetingOp, YieldOp, and CoreOp.ReturnOp with {X}Proxy
-        // The proxies preserve the underlying operation's target through try-with-resources lowering.
-        // When lowering the underlying operation's target is used to obtain the block, associated with that target,
-        // that is then branched to
-        private Block.Builder proxyTargetingOps(Block.Builder block, Op op) {
+        // Replace targeting operations whose targets are outside the staged model with staged forms.
+        private Block.Builder stageTargetingOps(Block.Builder block, Op op) {
             block.add(switch (op) {
                 case StatementTargetingOp st when st.targetsOrAttemptsToExit(this) ->
-                        new StatementTargetingOpProxy(st);
+                        new StagedStatementTargetingOp(st);
                 case JavaOp.YieldOp yop when yop.targetsOrAttemptsToExit(this) ->
-                        new YieldOpProxy(yop, block.context().getValue(yop.yieldOperand()));
+                        new StagedYieldOp(yop, block.context().getValue(yop.yieldOperand()));
                 case CoreOp.ReturnOp rop when rop.targetsOrAttemptsToExit(this) -> {
                     Value returnValue = rop.returnValue() != null
                         ? block.context().getValue(rop.returnValue())
                         : null;
-                    yield new ReturnOpProxy(rop, returnValue);
+                    yield new StagedReturnOp(rop, returnValue);
                 }
                 default -> op;
             });
