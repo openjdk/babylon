@@ -5017,7 +5017,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             @Override
             public final boolean targetsOrAttemptsToExit(Op op) {
-                // If the given operation is an ancestor of this staged targeting operation, then staged targeting
+                // If the given operation is an ancestor of this staged targeting operation, then the staged targeting
                 // operation attempts to exit the given operation
                 // Otherwise, the given operation is in the source model, so test the given operation against the
                 // source. This can occur for an ancestor try operation that is not normalized, or an ancestor

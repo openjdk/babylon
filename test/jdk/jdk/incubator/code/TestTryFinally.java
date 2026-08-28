@@ -246,7 +246,6 @@ public class TestTryFinally {
     @Reflect
     public static void finallyYield(IntConsumer c) {
         int i = switch (0) {
-            case 1 -> 1; // @@@ TODO PR #1159
             default -> {
                 try {
                     c.accept(0);
