@@ -43,13 +43,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * @modules jdk.incubator.code
  * @enablePreview
  * @library ../
- * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestStatementTarget
- * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestStatementTarget
- * @run main Unreflect TestStatementTarget
- * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestStatementTarget
- * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestStatementTarget
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestTryWithStatementTarget
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestTryWithStatementTarget
+ * @run main Unreflect TestTryWithStatementTarget
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestTryWithStatementTarget
+ * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestTryWithStatementTarget
  */
-public final class TestStatementTarget {
+public final class TestTryWithStatementTarget {
 
     public enum Ev {
         ENTER, CONTINUE, BREAK, RETURN, THROW, EXIT, METHOD_EXIT,
@@ -248,6 +248,47 @@ public final class TestStatementTarget {
     }
 
     @Reflect
+    public static Ev nestedFinallyTwrBreakExternalWithReturnValue(int mode, List<Ev> log) throws Exception {
+        outer: for (int i_outer = 0; i_outer < 2; i_outer++) {
+            log.add(Ev.L0_LOOP_ENTER);
+            try {
+                log.add(Ev.L1_TRY_ENTER);
+                if (mode == 3) throw new IllegalArgumentException("f0");
+                if (mode == 4) return Ev.L1_TRY_ENTER;
+            } finally {
+                log.add(Ev.L1_FIN_ENTER);
+                try {
+                    log.add(Ev.L2_TRY_ENTER);
+                    if (mode == 3) throw new IllegalArgumentException("f1");
+                    if (mode == 4) return Ev.L2_TRY_ENTER;
+                } finally {
+                    log.add(Ev.L2_FIN_ENTER);
+                    try (var _ = open(log, mode == 2 || mode == 5, false, Ev.L3_TWR_R0_OPEN, Ev.L3_TWR_R0_CLOSE);
+                         var _ = open(log, false, mode == 6, Ev.L3_TWR_R1_OPEN, Ev.L3_TWR_R1_CLOSE)) {
+                        log.add(Ev.L3_TWR_BODY_ENTER);
+                        log.add(Ev.ENTER);
+                        if (mode == 1) {
+                            if (i_outer == 0) {
+                                log.add(Ev.BREAK);
+                                break outer;
+                            }
+                        }
+                        if (mode == 5) {
+                            log.add(Ev.THROW);
+                            throw new IllegalStateException("body");
+                        }
+                        log.add(Ev.EXIT);
+                    }
+                    log.add(Ev.L2_FIN_EXIT);
+                }
+                log.add(Ev.L1_FIN_EXIT);
+            }
+        }
+        log.add(Ev.METHOD_EXIT);
+        return Ev.METHOD_EXIT;
+    }
+
+    @Reflect
     public static void catchTwrContinueExternal(int mode, List<Ev> log) throws Exception {
         outer: for (int i_outer = 0; i_outer < 2; i_outer++) {
             log.add(Ev.L0_LOOP_ENTER);
@@ -314,7 +355,7 @@ public final class TestStatementTarget {
                 if (mode == 4) return;
             } finally {
                 log.add(Ev.L1_FIN_ENTER);
-                synchronized (TestStatementTarget.class) {
+                synchronized (TestTryWithStatementTarget.class) {
                     log.add(Ev.L2_SYNC_ENTER);
                     try (var _ = open(log, mode == 2 || mode == 5, false, Ev.L3_TWR_R0_OPEN, Ev.L3_TWR_R0_CLOSE)) {
                         log.add(Ev.L3_TWR_BODY_ENTER);
@@ -427,7 +468,7 @@ public final class TestStatementTarget {
     }
 
     static Stream<Method> reflectMethods() {
-        return Stream.of(TestStatementTarget.class.getDeclaredMethods())
+        return Stream.of(TestTryWithStatementTarget.class.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(Reflect.class))
                 .sorted((a, b) -> a.getName().compareTo(b.getName()));
     }
@@ -441,8 +482,9 @@ public final class TestStatementTarget {
             var expectedTrace = new ArrayList<Ev>();
             var actualTrace = new ArrayList<Ev>();
             try {
-                method.invoke(null, mode, expectedTrace);
-                generated.invoke(mode, actualTrace);
+                Object expectedResult = method.invoke(null, mode, expectedTrace);
+                Object actualResult = generated.invoke(mode, actualTrace);
+                assertEquals(expectedResult, actualResult);
             } catch (Throwable expectedThrowable) {
                 int fmode = mode;
                 var actualThrowable = assertThrows(Throwable.class, () -> generated.invoke(fmode, actualTrace));

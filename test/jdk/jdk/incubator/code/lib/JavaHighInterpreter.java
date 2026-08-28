@@ -21,7 +21,6 @@
  * questions.
  */
 
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 
@@ -104,7 +103,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
     @Override
     public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
         return switch (op) {
-            case JavaOp.StatementTargetOp _ -> {
+            case JavaOp.StatementTargetingOp _ -> {
                 List<Object> operands = e.valuesOf(op.operands());
                 yield new TerminatingOpEffect(op, operands, e);
             }

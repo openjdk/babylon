@@ -186,7 +186,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             EnhancedForOp,
             ForOp,
             IfOp,
-            StatementTargetOp,
+            StatementTargetingOp,
             LabeledOp,
             SynchronizedOp,
             TryOp,
@@ -213,6 +213,53 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         ArrayAccessOp {
     }
 
+    /**
+     * An operation characteristic for a body terminating operation that targets an ancestor operation for its control
+     * flow behavior.
+     */
+    public sealed interface TargetingOp
+            permits StatementTargetingOp, YieldOp, ReturnOp, TryOp.AbstractStagedTargetingOp {
+        /**
+         * {@return the target operation, which is an ancestor of this operation}
+         */
+        Op target();
+
+        /**
+         * Tests whether this operation targets or attempts to exit the given operation.
+         * <p>
+         * More specifically, this method tests whether the given operation is encountered when traversing this
+         * operation's ancestor operations up to and including the target operation.
+         *
+         * @apiNote
+         * A successful test may indicate that the given operation completes abruptly when control is passed from this
+         * operation to the target operation. For example, consider the following code, in which a {@code break}
+         * statement targets the labeled {@code for} statement in the middle of two other {@code for} statements:
+         * {@snippet lang = java:
+         * for (int i = 0; i < 10; i++) {
+         *     middle:
+         *     for (int j = 0; j < 10; j++) {
+         *         for (int k = 0; k < 10; k++) {
+         *             if (i * j * k < 200) {
+         *                 break middle;
+         *             }
+         *         }
+         *     }
+         * }
+         * }
+         * The Java code model for the above code contains a break operation modeling the {@code break} statement. Its
+         * target is the {@code for} operation modeling the labeled {@code for} statement.
+         * This method will return {@code true} if the operation to test is the operation modeling the innermost
+         * {@code for} statement, and will return {@code false} if the operation to test is the operation modeling the
+         * outermost {@code for} statement.
+         *
+         * @param op the operation to test
+         * @return {@code true} if this operation targets or attempts to exit the given operation.
+         */
+        default boolean targetsOrAttemptsToExit(Op op) {
+            Op target = target();
+            return target == op || (target.isAncestorOf(op) && op.isAncestorOf((Op) this));
+        }
+    }
 
 
     /**
@@ -2460,81 +2507,28 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     }
 
     /**
-     * A statement target operation, that can model Java language statements associated with label identifiers.
+     * A statement targeting operation, that can model Java language statements associated with label identifiers.
      * <p>
-     * A statement target operation is a body terminating operation that features zero or one operand, the label
+     * A statement targeting operation is a body terminating operation that features zero or one operand, the label
      * identifier. If present, the label identifier is modeled as a {@link ConstantOp} value.
      * <p>
-     * The result type of a statement target operation is {@link JavaType#VOID}.
+     * The result type of a statement targeting operation is {@link JavaType#VOID}.
      *
      * @jls 14.15 The break Statement
      * @jls 14.16 The continue Statement
      */
-    public sealed static abstract class StatementTargetOp extends AbstractOp.Terminating
-            implements JavaOp, Op.Lowerable, JavaStatement {
+    public sealed static abstract class StatementTargetingOp extends AbstractOp.Terminating
+            implements JavaOp, Op.Lowerable, JavaStatement, TargetingOp {
 
-        @OpDeclaration("java.statementTargetProxy")
-        private static final class StatementTargetProxy extends StatementTargetOp {
-            // ContinueOp | BreakOp
-            // This operation and the source operation will be in different models
-            private final StatementTargetOp source;
-
-            StatementTargetProxy(StatementTargetOp source) {
-                assert source instanceof ContinueOp || source instanceof BreakOp;
-
-                super((Value) null);
-
-                this.source = source;
-                setLocation(source.location());
-            }
-
-            StatementTargetProxy(StatementTargetProxy that) {
-                this(that.source);
-            }
-
-            @Override
-            public StatementTargetProxy transform(CodeContext cc, CodeTransformer ct) {
-                return new StatementTargetProxy(this);
-            }
-
-            @Override
-            Op target() {
-                return source.target();
-            }
-
-            @Override
-            boolean exits(Op scope) {
-                // The source and its target belong to the same model
-                // If the scope and source belong in different models then source exits the scope, since that check
-                // performed when this operation was created.
-                // Otherwise, the scope and source belong in the same model we need to check if the source statement
-                // exits the scope
-                return root(scope) != root(source) || source.exits(scope);
-            }
-
-            private static Op root(Op op) {
-                Op ancestor;
-                while ((ancestor = op.ancestorOp()) != null) {
-                    op = ancestor;
-                }
-                return op;
-            }
-
-            @Override
-            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-                return lower(b, source instanceof ContinueOp ? BranchTarget::continueBlock : BranchTarget::breakBlock);
-            }
-        }
-
-        StatementTargetOp(StatementTargetOp that, CodeContext cc) {
+        StatementTargetingOp(StatementTargetingOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        StatementTargetOp(ExternalizedOp def) {
+        StatementTargetingOp(ExternalizedOp def) {
             super(requireOperands(def, 0, 1));
         }
 
-        StatementTargetOp(Value label) {
+        StatementTargetingOp(Value label) {
             super(checkLabel(label));
         }
 
@@ -2579,7 +2573,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return operands().isEmpty();
         }
 
-        Op target() {
+        @Override
+        public Op target() {
             // If unlabeled then find the nearest enclosing op
             // Otherwise obtain the label target
             if (isUnlabeled()) {
@@ -2592,12 +2587,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             } else {
                 throw new IllegalStateException("Bad label value: " + value + " " + ((Result) value).op());
             }
-        }
-
-        boolean exits(Op scope) {
-            Op target = target();
-            // Whether the transfer exits a try or synchronized scope is determined from the target hierarchy
-            return target == scope || target.isAncestorOf(scope);
         }
 
         Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
@@ -2627,12 +2616,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     /**
      * The break operation, that can model Java language break statements.
      * <p>
-     * A break operation is a body-terminating statement target operation.
+     * A break operation is a body-terminating statement targeting operation.
      *
      * @jls 14.15 The break Statement
      */
     @OpDeclaration(BreakOp.NAME)
-    public static final class BreakOp extends StatementTargetOp {
+    public static final class BreakOp extends StatementTargetingOp {
         static final String NAME = "java.break";
 
         BreakOp(ExternalizedOp def) {
@@ -2661,12 +2650,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     /**
      * The continue operation, that can model Java language continue statements.
      * <p>
-     * A continue operation is a body-terminating statement target operation.
+     * A continue operation is a body-terminating statement targeting operation.
      *
      * @jls 14.16 The continue Statement
      */
     @OpDeclaration(ContinueOp.NAME)
-    public static final class ContinueOp extends StatementTargetOp {
+    public static final class ContinueOp extends StatementTargetingOp {
         static final String NAME = "java.continue";
 
         ContinueOp(ExternalizedOp def) {
@@ -2703,7 +2692,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(YieldOp.NAME)
     public static final class YieldOp extends AbstractOp.Terminating
-            implements JavaOp, JavaStatement, Op.Lowerable {
+            implements JavaOp, JavaStatement, Op.Lowerable, TargetingOp {
         static final String NAME = "java.yield";
 
         YieldOp(ExternalizedOp def) {
@@ -2752,7 +2741,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return b;
         }
 
-        Op target() {
+        @Override
+        public Op target() {
             return innerMostEnclosingTarget();
         }
 
@@ -2926,8 +2916,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     syncRegionEnter.reference(), catcherFinally.reference(b.add(constant(type(Throwable.class), null)))));
 
             BiFunction<Block.Builder, Op, Block.Builder> syncExitTransformer = composeFirst(inherited, (block, op) -> {
-                if (op instanceof CoreOp.ReturnOp ||
-                    (op instanceof StatementTargetOp lop && lop.exits(this))) {
+                if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                     // Monitor exit
                     block.add(monitorExit(monitorTarget));
                     // Exit the exception region
@@ -4991,7 +4980,141 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     public static final class TryOp extends AbstractOp
             implements JavaOp, Op.Nested, Op.Lowerable, JavaStatement {
 
-        private static final boolean SHARED_FINALIZER_DISPATCH = "sharedDispatch".equalsIgnoreCase(System.getProperty("babylon.tryFinally"));
+        // Represents a source targeting operation in a staged model, where the source targeting operation is not in
+        // the staged model.
+        // A staged model is a synthetic function operation that contains a normalized try operation extracted from a
+        // source model.
+        // The translation that produces the staged model translates a source targeting operation to a staged targeting
+        // operation when the source targeting operation attempts to exit the extracted try operation. Therefore, a
+        // staged targeting operation attempts to exit all of its ancestor operations.
+        // The lowering of a staged targeting operation behaves almost identically to the lowering of its source,
+        // except that where necessary the staged operation is unstaged to an equivalent source operation and the source
+        // target is used to obtain branch targets.
+        private static abstract sealed class AbstractStagedTargetingOp<T extends Op & TargetingOp> extends Terminating
+                implements JavaOp, Lowerable, TargetingOp
+                permits StagedReturnOp, StagedYieldOp, StagedStatementTargetingOp {
+            // The source targeting operation in the source model
+            // ReturnOp | YieldOp | ContinueOp | BreakOp
+            final T source;
+
+            AbstractStagedTargetingOp(T source, List<Value> operands) {
+                super(operands);
+
+                assert source instanceof ReturnOp || source instanceof YieldOp || source instanceof StatementTargetingOp;
+                this.source = source;
+            }
+
+            AbstractStagedTargetingOp(AbstractStagedTargetingOp<T> that, CodeContext cc) {
+                super(that, cc);
+
+                this.source = that.source;
+            }
+
+            @Override
+            public final Op target() {
+                return source.target();
+            }
+
+            @Override
+            public final boolean targetsOrAttemptsToExit(Op op) {
+                // If the given operation is an ancestor of this staged targeting operation, then the staged targeting
+                // operation attempts to exit the given operation
+                // Otherwise, the given operation is in the source model, so test the given operation against the
+                // source. This can occur for an ancestor try operation that is not normalized, or an ancestor
+                // synchronized operation. Specifically, when lowering such an operation all descendant targeting
+                // operations that attempt to exit the operation need to be processed. Some of those descendant
+                // targeting operations may be staged.
+                return op.isAncestorOf(this) || source.targetsOrAttemptsToExit(op);
+            }
+
+            @Override
+            public final CodeType resultType() {
+                return VOID;
+            }
+        }
+
+        @OpDeclaration("staged.return")
+        private static final class StagedReturnOp extends AbstractStagedTargetingOp<ReturnOp> {
+            StagedReturnOp(ReturnOp delegate, Value returnValue) {
+                super(delegate, returnValue == null ? List.of() : List.of(returnValue));
+            }
+
+            StagedReturnOp(StagedReturnOp that, CodeContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public StagedReturnOp transform(CodeContext cc, CodeTransformer ct) {
+                return new StagedReturnOp(this, cc);
+            }
+
+            @Override
+            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+                if (operands().isEmpty()) {
+                    b.add(CoreOp.return_());
+                } else {
+                    b.add(CoreOp.return_(b.context().getValue(operands().getFirst())));
+                }
+                return b;
+            }
+        }
+
+        @OpDeclaration("staged.java.yield")
+        private static final class StagedYieldOp extends AbstractStagedTargetingOp<YieldOp> {
+            StagedYieldOp(YieldOp delegate, Value operand) {
+                super(delegate, List.of(Objects.requireNonNull(operand)));
+            }
+
+            StagedYieldOp(StagedYieldOp that, CodeContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public StagedYieldOp transform(CodeContext cc, CodeTransformer ct) {
+                return new StagedYieldOp(this, cc);
+            }
+
+            @Override
+            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+                // for now, we will use breakBlock field to indicate java.yield target block
+                return lower(b, BranchTarget::breakBlock);
+            }
+
+            Block.Builder lower(Block.Builder b, Function<BranchTarget, Block.Builder> f) {
+                Op opt = target();
+                BranchTarget t = BranchTarget.getBranchTarget(b.context(), opt);
+                if (t != null) {
+                    b.add(branch(f.apply(t).reference(b.context().getValue(operands().getFirst()))));
+                } else {
+                    throw new IllegalStateException("No branch target for operation: " + opt);
+                }
+                return b;
+            }
+        }
+
+        @OpDeclaration("staged.java.statement")
+        private static final class StagedStatementTargetingOp extends AbstractStagedTargetingOp<StatementTargetingOp> {
+            StagedStatementTargetingOp(StatementTargetingOp delegate) {
+                super(delegate, List.of());
+            }
+
+            StagedStatementTargetingOp(StagedStatementTargetingOp that, CodeContext cc) {
+                super(that, cc);
+            }
+
+            @Override
+            public StagedStatementTargetingOp transform(CodeContext cc, CodeTransformer ct) {
+                return new StagedStatementTargetingOp(this, cc);
+            }
+
+            @Override
+            public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+                return source.lower(b, inherited);
+            }
+        }
+
+        private static final boolean SHARED_FINALIZER_DISPATCH =
+                "sharedDispatch".equalsIgnoreCase(System.getProperty("babylon.tryFinally"));
 
         /**
          * Builder for the resource bodies and the try body of a try operation.
@@ -5180,16 +5303,20 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             for (Body.Builder _resource : resourcesC) {
                 requireNonVoidReturnType(NAME + " resource", _resource, resourceTypes.size());
                 if (!_resource.bodySignature().parameterTypes().equals(resourceTypes)) {
-                    throw structuralException(NAME, "resource #%d requires %s parameter types, found %s".formatted(resourceTypes.size(), resourceTypes, _resource.bodySignature().parameterTypes()));
+                    throw structuralException(NAME, "resource #%d requires %s parameter types, found %s"
+                            .formatted(resourceTypes.size(), resourceTypes, _resource.bodySignature().parameterTypes()));
                 }
                 resourceTypes.add(_resource.bodySignature().returnType());
             }
             this.resourcesBodies = resourcesC.stream().map(r -> r.build(this)).toList();
-            this.body = requireBodySignature(NAME + " try", bodyC, CoreType.functionType(VOID, resourceTypes)).build(this);
+            this.body = requireBodySignature(NAME + " try",
+                    bodyC, CoreType.functionType(VOID, resourceTypes)).build(this);
             this.explicitCatchTypes = catchTypes == null ? null : List.copyOf(catchTypes);
-            this.handlers = handlersC.stream().map(c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
+            this.handlers = handlersC.stream().map(
+                    c -> requireVoidReturnType(NAME + " catch", c, 1).build(this)).toList();
             if (explicitCatchTypes != null && explicitCatchTypes.size() != handlers.size()) {
-                throw structuralException(NAME, "catch types %s require %d catch bodies, found %d".formatted(explicitCatchTypes, explicitCatchTypes.size(), handlers.size()));
+                throw structuralException(NAME, "catch types %s require %d catch bodies, found %d"
+                        .formatted(explicitCatchTypes, explicitCatchTypes.size(), handlers.size()));
             }
             if (finalizerC != null) {
                 this.finallyBody = requireVoidBodySignature(NAME + " finalizer", finalizerC).build(this);
@@ -5321,9 +5448,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
-                    if (op instanceof CoreOp.ReturnOp ||
-                            (op instanceof StatementTargetOp targetOp && targetOp.exits(this))) {
+                    if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                         return inlineFinalizer(block, enter, inherited);
                     } else {
                         return block;
@@ -5331,8 +5459,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 });
             } else {
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
-                    if (op instanceof CoreOp.ReturnOp ||
-                            op instanceof StatementTargetOp targetOp && targetOp.exits(this)) {
+                    if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                         Block.Builder tryRegionReturnExit = block.block();
                         block.add(exceptionRegionExit(enter, tryRegionReturnExit.reference()));
                         return tryRegionReturnExit;
@@ -5355,6 +5482,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             Block.Builder finallyEnter = null;
             if (finallyBody != null) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
@@ -5373,6 +5502,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
                 if (finallyBody != null) {
+                    assert !SHARED_FINALIZER_DISPATCH;
+
                     Block.Builder catchRegionEnter = b.block();
                     Block.Builder catchRegionExit = b.block();
 
@@ -5382,8 +5513,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                                     catcherFinally.reference(nullThrowable)));
 
                     BiFunction<Block.Builder, Op, Block.Builder> catchExitTransformer = composeFirst(inherited, (block, op) -> {
-                        if (op instanceof CoreOp.ReturnOp ||
-                                op instanceof StatementTargetOp targetOp && targetOp.exits(this)) {
+                        if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                             return inlineFinalizer(block, catchExceptionRegion, inherited);
                         } else {
                             return block;
@@ -5422,6 +5552,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // Inline the finally body as a catcher of Throwable and adjusting to throw
             if (finallyBody != null && hasTryRegionExit.get()) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 // Inline the finally body for exceptional completion and rethrow
                 finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
@@ -5434,6 +5566,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             if (finallyBody != null) {
+                assert !SHARED_FINALIZER_DISPATCH;
+
                 // Inline the finally body for exceptional completion and rethrow
                 Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
                 catcherFinally.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
@@ -5461,7 +5595,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder entry = body.entryBlock();
             entry.context().mapValues(captures, entry.parameters());
             entry.context().mapBlock(ancestorBody().entryBlock(), entry);
-            entry.withContextAndTransformer(entry.context(), this::resolveStatementTarget).add(this);
+            entry.withContextAndTransformer(entry.context(), this::stageTargetingOps).add(this);
             entry.add(return_());
 
             CoreOp.FuncOp root = func("$", body);
@@ -5597,7 +5731,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 if (op instanceof CoreOp.YieldOp yop && op.ancestorBody() == resourceBody) {
                     block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                 } else {
-                    return resolveStatementTarget(block, op);
+                    block.add(op);
                 }
                 return block;
             });
@@ -5661,7 +5795,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// finalizerExit: {
         ///     try {
         ///         try { body } catch (...) { catches }
-        ///         record normal, return, break, or continue
+        ///         record normal, return, break, continue, or yield
         ///         break finalizerExit
         ///     } catch (t) {
         ///         pending = t
@@ -5728,54 +5862,57 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     Value value = predicate.add(varLoad(completionVar));
                     predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, completion))))));
                 }).then(action -> {
-                    if (exit.op() instanceof CoreOp.ReturnOp) {
-                        action.add(exit.valueVar() == null
-                                ? return_()
-                                : return_(action.add(varLoad(exit.valueVar()))));
-                    } else {
-                        action.add(exit.op());
+                    Op exitOp = exit.op();
+                    if (exitOp instanceof TargetingOp && exit.valueVar() != null) {
+                        assert exitOp.operands().size() == 1;
+
+                        Value returnValue = action.add(varLoad(exit.valueVar()));
+                        action.context().mapValue(exitOp.operands().getFirst(), returnValue);
                     }
+                    action.add(exitOp);
                 }).else_());
             }
             afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
                 Value value = predicate.add(varLoad(completionVar));
                 predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, 1))))));
-            }).then(action -> action.add(throw_(action.add(varLoad(exceptionVar))))).else_());
+            }).then(action -> {
+                action.add(throw_(action.add(varLoad(exceptionVar))));
+            }).else_());
             afterFinalizer.add(core_yield());
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
         }
 
+        @SuppressWarnings("fallthrough")
         private CodeTransformer finalizerExitTransformer(Body sourceBody, Value exitLabel, Value completionVar,
                                                          List<FinallyExit> exits, Block.Builder output) {
             return (b, op) -> {
-                if (op instanceof CoreOp.YieldOp && op.ancestorBody() == sourceBody) {
-                    completeFinalizer(b, exitLabel, completionVar, 0);
-                    return b;
-                }
-                if (op instanceof CoreOp.ReturnOp returnOp && nearestInvokable(returnOp) == nearestInvokable(this)) {
-                    Value valueVar = null;
-                    if (returnOp.returnValue() != null) {
-                        Value returnValue = b.context().getValue(returnOp.returnValue());
-                        valueVar = output.add(var(returnValue.type()));
-                        b.add(varStore(valueVar, returnValue));
+                switch (op) {
+                    case CoreOp.YieldOp _ when op.ancestorBody() == sourceBody -> {
+                        completeFinalizer(b, exitLabel, completionVar, 0);
                     }
-                    exits.add(new FinallyExit(returnOp, valueVar));
-                    completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
-                    return b;
-                }
-                if (op instanceof StatementTargetOp targetOp && targetOp.exits(this)) {
-                    exits.add(new FinallyExit(targetOp, null));
-                    completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
-                    return b;
-                }
-                b.add(op);
+                    case TargetingOp top when top.targetsOrAttemptsToExit(this) -> {
+                        Value valueVar = null;
+                        switch (top) {
+                            case ReturnOp _, StagedReturnOp _ when op.operands().size() == 1 :
+                            case YieldOp _, StagedYieldOp _ : {
+                                Value yieldValue = b.context().getValue(op.operands().getFirst());
+                                valueVar = output.add(var(yieldValue.type()));
+                                b.add(varStore(valueVar, yieldValue));
+                            }
+                            // Fallthrough for all targeting ops
+                            // Including StatementTargetingOp which may have an unmapped operand for its label
+                            default: {
+                                exits.add(new FinallyExit(op, valueVar));
+                                completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
+                            }
+                        }
+                    }
+                    default -> {
+                        b.add(op);
+                    }
+                };
                 return b;
             };
-        }
-
-        private static Op nearestInvokable(Op op) {
-            while (!(op instanceof Op.Invokable)) op = op.ancestorOp();
-            return op;
         }
 
         private static void completeFinalizer(Block.Builder b, Value exitLabel, Value completionVar, int completion) {
@@ -5783,13 +5920,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             b.add(break_(exitLabel));
         }
 
-        // Statement target proxy preserves the original break or continue through try-with-resources lowering,
-        // and it is used to resolve the actual branch when the synthetic body is attached back to the original context
-        private Block.Builder resolveStatementTarget(Block.Builder block, Op op) {
+        // Replace targeting operations whose targets are outside the staged model with staged forms.
+        private Block.Builder stageTargetingOps(Block.Builder block, Op op) {
             block.add(switch (op) {
-                case StatementTargetOp.StatementTargetProxy _ -> op;
-                case StatementTargetOp st when st.exits(this) ->
-                        new StatementTargetOp.StatementTargetProxy(st);
+                case StatementTargetingOp st when st.targetsOrAttemptsToExit(this) ->
+                        new StagedStatementTargetingOp(st);
+                case JavaOp.YieldOp yop when yop.targetsOrAttemptsToExit(this) ->
+                        new StagedYieldOp(yop, block.context().getValue(yop.yieldOperand()));
+                case CoreOp.ReturnOp rop when rop.targetsOrAttemptsToExit(this) -> {
+                    Value returnValue = rop.returnValue() != null
+                        ? block.context().getValue(rop.returnValue())
+                        : null;
+                    yield new StagedReturnOp(rop, returnValue);
+                }
                 default -> op;
             });
             return block;
