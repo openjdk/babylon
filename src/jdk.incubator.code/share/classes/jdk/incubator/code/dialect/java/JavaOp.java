@@ -4987,6 +4987,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         // The translation that produces the staged model translates a source targeting operation to a staged targeting
         // operation when the source targeting operation attempts to exit the extracted try operation. Therefore, a
         // staged targeting operation attempts to exit all of its ancestor operations.
+        // The lowering of a staged targeting operation behaves almost identically to the lowering of its source,
+        // except that where necessary the staged operation is unstaged to an equivalent source operation and the source
+        // target is used to obtain branch targets.
         private static abstract sealed class AbstractStagedTargetingOp<T extends Op & TargetingOp> extends Terminating
                 implements JavaOp, Lowerable, TargetingOp
                 permits StagedReturnOp, StagedYieldOp, StagedStatementTargetingOp {
@@ -5018,8 +5021,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 // operation attempts to exit the given operation
                 // Otherwise, the given operation is in the source model, so test the given operation against the
                 // source. This can occur for an ancestor try operation that is not normalized, or an ancestor
-                // synchronized operation. Specifically, when lowering such an operation all descendant targeted
-                // operations that attempt to exit the operation need to be processed
+                // synchronized operation. Specifically, when lowering such an operation all descendant targeting
+                // operations that attempt to exit the operation need to be processed. Some of those descendant
+                // targeting operations may be staged.
                 return op.isAncestorOf(this) || source.targetsOrAttemptsToExit(op);
             }
 
