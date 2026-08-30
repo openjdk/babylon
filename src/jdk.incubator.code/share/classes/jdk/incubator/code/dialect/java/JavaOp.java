@@ -3273,23 +3273,37 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return bodies;
         }
 
+        static boolean isEmptyBodyAction(Body body) {
+            Block block = body.entryBlock();
+            return body.blocks().size() == 1
+                    && block.ops().size() == 1
+                    && block.terminatingOp() instanceof CoreOp.YieldOp;
+        }
+
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
+            boolean isEmptyElseActionBody = isEmptyBodyAction(bodies.getLast());
+
             // Create predicate and action blocks
             List<Block.Builder> builders = new ArrayList<>();
             for (int i = 0; i < bodies.size(); i += 2) {
                 if (i == bodies.size() - 1) {
-                    builders.add(b.block());
+                    if (isEmptyElseActionBody) {
+                        builders.add(exit);
+                    } else {
+                        builders.add(b.block());
+                    }
                 } else {
                     builders.add(i == 0 ? b : b.block());
                     builders.add(b.block());
                 }
             }
 
-            for (int i = 0; i < bodies.size(); i += 2) {
+            int nBodies = isEmptyElseActionBody ? bodies.size() - 1 : bodies().size();
+            for (int i = 0; i < nBodies; i += 2) {
                 Body actionBody;
                 Block.Builder action;
                 if (i == bodies.size() - 1) {
@@ -3301,10 +3315,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     Block.Builder pred = builders.get(i);
                     action = builders.get(i + 1);
-                    Block.Builder next = builders.get(i + 2);
+                    Block.Builder nextAction = builders.get(i + 2);
 
                     ControlFlowBooleanExpressionOp.lowerBooleanBody(pred, predBody, List.of(),
-                            new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(action.reference(), next.reference()),
+                            new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(action.reference(), nextAction.reference()),
                             inherited);
                 }
 
@@ -3530,9 +3544,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // Create predicate and action blocks
             List<Block.Builder> blocks = new ArrayList<>(reorderedBodies.size());
+            // The first predicate body can lower into b
             blocks.add(b);
-            for (int i = 1; i < reorderedBodies.size(); i ++) {
-                blocks.add(b.block());
+            if (defaultCaseIndex == 0) {
+                // If only the default case, the default action body can lower into b
+                // since the default predicate body is not lowered
+                blocks.add(b);
+            } else {
+                for (int i = 1; i < reorderedBodies.size(); i++) {
+                    blocks.add(b.block());
+                }
             }
 
             boolean hasYieldStatements = hasYieldStatements();
@@ -3574,11 +3595,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
             }
 
-            if (defaultCaseIndex == 0) {
-                // If there is only the default case branch to the action block
-                Block.Builder actionBlock = blocks.get(1);
-                b.add(branch(actionBlock.reference()));
-            }
             for (int i = 0; i < reorderedBodies.size(); i += 2) {
                 Body predicateBody = reorderedBodies.get(i);
                 Block.Builder predicateBlock = blocks.get(i);
