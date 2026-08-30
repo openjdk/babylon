@@ -35,7 +35,30 @@ import static jdk.incubator.code.Op.Lowerable.loweringTransformer;
 /**
  * An operation characteristic indicating that an operation can model a boolean expression whose evaluation contains
  * control flow. Such operations can lower themselves using a supplied continuation for its boolean result to produce
- * simpler control flow graphs
+ * simpler control flow graphs.
+ * <p>
+ * For example, consider the following code, in which a boolean expression is used by a {@code while} statement:
+ * {@snippet lang = java:
+ * while (a && (b || c)) {
+ *     ...
+ * }
+ * }
+ * The result of the {@code while} loop's boolean expression determines whether the loop body is executed or the loop
+ * finishes. If {@code a} is {@code true} and {@code b} or {@code c} is {@code true} then the loop body is executed.
+ * Conversely, if {@code a} is {@code false} or {@code b} and {@code c} is {@code false} then the loop finishes.
+ * <p>
+ * The code model for this code contains a while operation, modeling the {@code while} statement. When the while
+ * operation lowers itself it creates a boolean result continuation containing block references to the blocks associated
+ * with start of executing the loop body and the loop finishing, referred to respectively as true and false branch
+ * references.
+ * That boolean result continuation is used when lowering operation's predicate body, which models the boolean
+ * expression, the conditional-and operation modeling the conditional-and expression. The continuation is passed along
+ * when lowering the sub-expressions, and when needed the continuation is operated on to continue with a boolean result
+ * or to obtain block references for a statically known boolean result. Consequently, the lowering of the boolean
+ * expression will directly branch to the while operation's continuation's true and false branch references. This is far
+ * more preferable than creating localized control flow behavior that joins to blocks whose boolean block parameter
+ * represents an intermediate boolean result; a result that is then used by a conditional branch operations to continue
+ * towards the blocks of the lowered while operation.
  */
 interface ControlFlowBooleanExpressionOp extends Op.Lowerable {
 
@@ -54,11 +77,11 @@ interface ControlFlowBooleanExpressionOp extends Op.Lowerable {
             codeTransformer = loweringTransformer(inherited, (block, op) -> {
                 if (op == suffix.expression) {
                     // Process the boolean expression
-                    assert op instanceof ControlFlowBooleanExpressionOp;
                     isSuffixProcessed[0] = true;
 
-                    ConditionalBranchContinuation expressionContinuation = suffix.continuationForExpression(block, continuation);
-                    // Push expression continuation as implicit argument to lower method
+                    ConditionalBranchContinuation expressionContinuation =
+                            continuation.forExpression(block, suffix.negatesExpression);
+                    // Pass expression continuation as additional implicit argument
                     BOOLEAN_CONTINUATION_ARG.push(block.context(), expressionContinuation);
                     return suffix.expression.lower(block, inherited);
                 } else if (!isSuffixProcessed[0]) {
@@ -84,23 +107,54 @@ interface ControlFlowBooleanExpressionOp extends Op.Lowerable {
     }
 
     /**
-     * Represents the continuation of a boolean result
+     * Represents the continuation of a boolean result.
+     * <p>
+     * If the lowering of a boolean expression operation needs to continue with expression's boolean result value,
+     * then it can invoke {@link #continueWith(Block.Builder, Value) continueWith}. Otherwise, if lowering statically
+     * knows the value of the expression and requires a block reference targeting a continuing block corresponding to
+     * that known value , then it can invoke {@link #referenceFor(Block.Builder, boolean) referenceFor}.
      */
-    sealed interface BooleanResultContinuation {
+    sealed interface BooleanResultContinuation
+            permits ConditionalBranchContinuation, BranchWithArgumentContinuation {
         /**
+         * Continues with the result of a boolean expression.
+         *
          * @param block the block to add a block terminating operation
          * @param result the boolean result.
          */
         void continueWith(Block.Builder block, Value result);
 
         /**
+         * Creates a block reference to branch to continue the result of the boolean expression when the result is
+         * statically known.
+         *
          * @param block the block to add any necessary operations
          * @param result the static boolean result
-         * @return
+         * @return the block reference to continue the result
          */
         Block.Reference referenceFor(Block.Builder block, boolean result);
+
+        /**
+         * Creates a conditional branch continuation from this continuation to be used as the continuation of a boolean
+         * expression.
+         *
+         * @param negatesExpression true if the result of the expression is negated
+         * @return the conditional branch continuation
+         */
+        default ConditionalBranchContinuation forExpression(Block.Builder block, boolean negatesExpression) {
+            Block.Reference trueRef = referenceFor(block, !negatesExpression);
+            Block.Reference falseRef = referenceFor(block, negatesExpression);
+            return new ConditionalBranchContinuation(trueRef, falseRef);
+        }
     }
 
+    /**
+     * Represents a boolean result continuation as block references to blocks corresponding to continuing the
+     * {@code true} result and the {@code false} result. Both blocks have no parameters.
+     *
+     * @param trueRef the block reference to a block corresponding to continuing the {@code true} result
+     * @param falseRef the block reference to a block corresponding to continuing the {@code false} result
+     */
     record ConditionalBranchContinuation(
             Block.Reference trueRef,
             Block.Reference falseRef) implements BooleanResultContinuation {
@@ -121,8 +175,22 @@ interface ControlFlowBooleanExpressionOp extends Op.Lowerable {
         public Block.Reference referenceFor(Block.Builder block, boolean result) {
             return result ? trueRef : falseRef;
         }
+
+        @Override
+        public ConditionalBranchContinuation forExpression(Block.Builder block, boolean negatesExpression) {
+            return !negatesExpression
+                    ? this
+                    : new ConditionalBranchContinuation(falseRef, trueRef);
+        }
     }
 
+    /**
+     * Represents a boolean result continuation as result block with a boolean parameter, whose value corresponds to
+     * continuing the {@code true} result and the {@code false} result.
+     *
+     * @param resultBlock the result block with a boolean parameter corresponding to continuing the {@code true}
+     *                    and {@code false }result
+     */
     record BranchWithArgumentContinuation(Block.Builder resultBlock) implements BooleanResultContinuation {
         @Override
         public void continueWith(Block.Builder block, Value result) {
@@ -136,11 +204,6 @@ interface ControlFlowBooleanExpressionOp extends Op.Lowerable {
     }
 
     record BooleanExpressionSuffix(ControlFlowBooleanExpressionOp expression, boolean negatesExpression) {
-        ConditionalBranchContinuation continuationForExpression(Block.Builder block, BooleanResultContinuation continuation) {
-            Block.Reference trueRef = continuation.referenceFor(block, !negatesExpression);
-            Block.Reference falseRef = continuation.referenceFor(block, negatesExpression);
-            return new ConditionalBranchContinuation(trueRef, falseRef);
-        }
     }
 
     private static BooleanExpressionSuffix findBooleanExpressionSuffix(Body body) {
