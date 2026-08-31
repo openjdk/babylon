@@ -83,9 +83,11 @@ public record HATTilesPhase() implements HATPhase {
                     builder.add(finalFirstOp);
                     // place new invoke ops here
                     // do this for all parameters
+                    CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);  // Alignment is always to 16 bytes.
+                    Op.Result constantValue = builder.add(constantOp);
                     for (CoreOp.VarOp varTile : tileArgs) {
-                        CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);
-                        Op.Result constantValue = builder.add(constantOp);
+//                        CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);
+//                        Op.Result constantValue = builder.add(constantOp);
                         JavaOp.InvokeOp invoke = JavaOp.invoke(TILE_ARRAY_ALIGN, List.of(paramMap.get(varTile), constantValue));
                         Op.Result invokeResult = builder.add(invoke);
                         CoreOp.VarOp varOp = CoreOp.var(varTile.varName().concat("_"), invokeResult);
@@ -113,7 +115,7 @@ public record HATTilesPhase() implements HATPhase {
     private static final MethodRef TILE_ARRAY_ALIGN = MethodRef.method(TileAlign.class, "align", Tile.class, Object.class, int.class);
 
     public static class TileAlign {
-        public static Tile align(Object inputRef, int alignment) {
+        public static Tile align(Object inputRef, final int alignment) {
             return null;
         }
     }
