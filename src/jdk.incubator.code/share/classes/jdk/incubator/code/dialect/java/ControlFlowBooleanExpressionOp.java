@@ -150,7 +150,7 @@ interface ControlFlowBooleanExpressionOp extends Op.Lowerable {
 
     /**
      * Represents a boolean result continuation as block references to blocks corresponding to continuing the
-     * {@code true} result and the {@code false} result. Both blocks have no parameters.
+     * {@code true} result and the {@code false} result.
      *
      * @param trueRef the block reference to a block corresponding to continuing the {@code true} result
      * @param falseRef the block reference to a block corresponding to continuing the {@code false} result
@@ -185,11 +185,11 @@ interface ControlFlowBooleanExpressionOp extends Op.Lowerable {
     }
 
     /**
-     * Represents a boolean result continuation as result block with a boolean parameter, whose value corresponds to
+     * Represents a boolean result continuation as a result block with a boolean parameter, whose value corresponds to
      * continuing the {@code true} result and the {@code false} result.
      *
      * @param resultBlock the result block with a boolean parameter corresponding to continuing the {@code true}
-     *                    and {@code false }result
+     *                    and {@code false} result
      */
     record BranchWithArgumentContinuation(Block.Builder resultBlock) implements BooleanResultContinuation {
         @Override
