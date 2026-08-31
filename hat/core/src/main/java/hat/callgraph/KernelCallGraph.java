@@ -256,8 +256,9 @@ public class KernelCallGraph implements LookupCarrier {
             CoreOp.FuncOp ssaCodeModel = SSA.transform(loweredCodeModel);
             if (ssaCodeModel == null) {
                 throw new IllegalStateException("SSA code model is null");
-            } else {
-                IO.println("SSA code model is " + ssaCodeModel.toText());
+            }
+            if (computeCallGraph.computeContext.config().info()) {
+                IO.println("SSA Code Model: " + ssaCodeModel.toText());
             }
         }
     }
