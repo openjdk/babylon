@@ -1,12 +1,12 @@
 package hat.phases;
 
+import hat.TileContext;
+import hat.TileOp;
+import hat.buffer.TensorF32;
 import hat.codetypes.PtrType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.TileOps;
 import hat.types.Tile;
-import hat.TileContext;
-import hat.TileOp;
-import hat.buffer.TensorF32;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
@@ -86,10 +86,12 @@ public record HATTilesPhase() implements HATPhase {
                     CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);  // Alignment is always to 16 bytes.
                     Op.Result constantValue = builder.add(constantOp);
                     for (CoreOp.VarOp varTile : tileArgs) {
-//                        CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);
-//                        Op.Result constantValue = builder.add(constantOp);
-                        JavaOp.InvokeOp invoke = JavaOp.invoke(TILE_ARRAY_ALIGN, List.of(paramMap.get(varTile), constantValue));
+                        // Insert a varLoadOp
+                        Op.Result varLoadOp =  builder.add(CoreOp.varLoad(paramMap.get(varTile)));
+                        // Insert the invoke
+                        JavaOp.InvokeOp invoke = JavaOp.invoke(TILE_ARRAY_ALIGN, List.of(varLoadOp, constantValue));
                         Op.Result invokeResult = builder.add(invoke);
+                        // Insert the new varOp
                         CoreOp.VarOp varOp = CoreOp.var(varTile.varName().concat("_"), invokeResult);
                         Op.Result varOpResult = builder.add(varOp);
                         for (Op.Result u : varTile.result().uses()) {
