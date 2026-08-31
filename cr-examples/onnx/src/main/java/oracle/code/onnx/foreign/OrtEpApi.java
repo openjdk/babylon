@@ -88,6 +88,7 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  *     OrtStatusPtr (*ProfilingEvent_GetDurationUs)(const OrtProfilingEvent *, int64_t *);
  *     OrtStatusPtr (*ProfilingEvent_GetArgValue)(const OrtProfilingEvent *, const char *, const char **);
  *     OrtStatusPtr (*ProfilingEventsContainer_AddEvents)(OrtProfilingEventsContainer *, const OrtProfilingEvent *const *, size_t);
+ *     OrtStatusPtr (*SessionOptionsGetWeightlessSourceModelBuffer)(const OrtSessionOptions *, const void **, size_t *);
  * }
  * }
  */
@@ -170,7 +171,8 @@ public class OrtEpApi {
         onnxruntime_c_api_h.C_POINTER.withName("ProfilingEvent_GetTimestampUs"),
         onnxruntime_c_api_h.C_POINTER.withName("ProfilingEvent_GetDurationUs"),
         onnxruntime_c_api_h.C_POINTER.withName("ProfilingEvent_GetArgValue"),
-        onnxruntime_c_api_h.C_POINTER.withName("ProfilingEventsContainer_AddEvents")
+        onnxruntime_c_api_h.C_POINTER.withName("ProfilingEventsContainer_AddEvents"),
+        onnxruntime_c_api_h.C_POINTER.withName("SessionOptionsGetWeightlessSourceModelBuffer")
     ).withName("OrtEpApi");
 
     /**
@@ -7570,6 +7572,108 @@ public class OrtEpApi {
      */
     public static void ProfilingEventsContainer_AddEvents(MemorySegment struct, MemorySegment fieldValue) {
         struct.set(ProfilingEventsContainer_AddEvents$LAYOUT, ProfilingEventsContainer_AddEvents$OFFSET, fieldValue);
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SessionOptionsGetWeightlessSourceModelBuffer)(const OrtSessionOptions *, const void **, size_t *)
+     * }
+     */
+    public final static class SessionOptionsGetWeightlessSourceModelBuffer {
+
+        private SessionOptionsGetWeightlessSourceModelBuffer() {
+            // Should not be called directly
+        }
+
+        /**
+         * The function pointer signature, expressed as a functional interface
+         */
+        public interface Function {
+            MemorySegment apply(MemorySegment _x0, MemorySegment _x1, MemorySegment _x2);
+        }
+
+        private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER
+        );
+
+        /**
+         * The descriptor of this function pointer
+         */
+        public static FunctionDescriptor descriptor() {
+            return $DESC;
+        }
+
+        private static final MethodHandle UP$MH = onnxruntime_c_api_h.upcallHandle(SessionOptionsGetWeightlessSourceModelBuffer.Function.class, "apply", $DESC);
+
+        /**
+         * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
+         * The lifetime of the returned segment is managed by {@code arena}
+         */
+        public static MemorySegment allocate(SessionOptionsGetWeightlessSourceModelBuffer.Function fi, Arena arena) {
+            return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
+        }
+
+        private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
+
+        /**
+         * Invoke the upcall stub {@code funcPtr}, with given parameters
+         */
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2) {
+            try {
+                return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
+            } catch (Throwable ex$) {
+                throw new AssertionError("should not reach here", ex$);
+            }
+        }
+    }
+
+    private static final AddressLayout SessionOptionsGetWeightlessSourceModelBuffer$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("SessionOptionsGetWeightlessSourceModelBuffer"));
+
+    /**
+     * Layout for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SessionOptionsGetWeightlessSourceModelBuffer)(const OrtSessionOptions *, const void **, size_t *)
+     * }
+     */
+    public static final AddressLayout SessionOptionsGetWeightlessSourceModelBuffer$layout() {
+        return SessionOptionsGetWeightlessSourceModelBuffer$LAYOUT;
+    }
+
+    private static final long SessionOptionsGetWeightlessSourceModelBuffer$OFFSET = $LAYOUT.byteOffset(groupElement("SessionOptionsGetWeightlessSourceModelBuffer"));
+
+    /**
+     * Offset for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SessionOptionsGetWeightlessSourceModelBuffer)(const OrtSessionOptions *, const void **, size_t *)
+     * }
+     */
+    public static final long SessionOptionsGetWeightlessSourceModelBuffer$offset() {
+        return SessionOptionsGetWeightlessSourceModelBuffer$OFFSET;
+    }
+
+    /**
+     * Getter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SessionOptionsGetWeightlessSourceModelBuffer)(const OrtSessionOptions *, const void **, size_t *)
+     * }
+     */
+    public static MemorySegment SessionOptionsGetWeightlessSourceModelBuffer(MemorySegment struct) {
+        return struct.get(SessionOptionsGetWeightlessSourceModelBuffer$LAYOUT, SessionOptionsGetWeightlessSourceModelBuffer$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SessionOptionsGetWeightlessSourceModelBuffer)(const OrtSessionOptions *, const void **, size_t *)
+     * }
+     */
+    public static void SessionOptionsGetWeightlessSourceModelBuffer(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(SessionOptionsGetWeightlessSourceModelBuffer$LAYOUT, SessionOptionsGetWeightlessSourceModelBuffer$OFFSET, fieldValue);
     }
 
     /**

@@ -35,6 +35,7 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  *     OrtStatusPtr (*GetCustomOpDomains)(OrtEpFactory *, OrtCustomOpDomain **, size_t);
  *     OrtStatusPtr (*InitGraphicsInterop)(OrtEpFactory *, const OrtEpDevice *, const OrtGraphicsInteropConfig *);
  *     OrtStatusPtr (*DeinitGraphicsInterop)(OrtEpFactory *, const OrtEpDevice *);
+ *     OrtStatusPtr (*SelectBestModelCandidate)(OrtEpFactory *, const OrtHardwareDevice *, const OrtKeyValuePairs *const *, size_t, const OrtSessionOptions *, size_t *);
  * }
  * }
  */
@@ -65,7 +66,8 @@ public class OrtEpFactory {
         onnxruntime_c_api_h.C_POINTER.withName("GetNumCustomOpDomains"),
         onnxruntime_c_api_h.C_POINTER.withName("GetCustomOpDomains"),
         onnxruntime_c_api_h.C_POINTER.withName("InitGraphicsInterop"),
-        onnxruntime_c_api_h.C_POINTER.withName("DeinitGraphicsInterop")
+        onnxruntime_c_api_h.C_POINTER.withName("DeinitGraphicsInterop"),
+        onnxruntime_c_api_h.C_POINTER.withName("SelectBestModelCandidate")
     ).withName("OrtEpFactory");
 
     /**
@@ -2049,6 +2051,111 @@ public class OrtEpFactory {
      */
     public static void DeinitGraphicsInterop(MemorySegment struct, MemorySegment fieldValue) {
         struct.set(DeinitGraphicsInterop$LAYOUT, DeinitGraphicsInterop$OFFSET, fieldValue);
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SelectBestModelCandidate)(OrtEpFactory *, const OrtHardwareDevice *, const OrtKeyValuePairs *const *, size_t, const OrtSessionOptions *, size_t *)
+     * }
+     */
+    public final static class SelectBestModelCandidate {
+
+        private SelectBestModelCandidate() {
+            // Should not be called directly
+        }
+
+        /**
+         * The function pointer signature, expressed as a functional interface
+         */
+        public interface Function {
+            MemorySegment apply(MemorySegment _x0, MemorySegment _x1, MemorySegment _x2, long _x3, MemorySegment _x4, MemorySegment _x5);
+        }
+
+        private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_LONG,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER
+        );
+
+        /**
+         * The descriptor of this function pointer
+         */
+        public static FunctionDescriptor descriptor() {
+            return $DESC;
+        }
+
+        private static final MethodHandle UP$MH = onnxruntime_c_api_h.upcallHandle(SelectBestModelCandidate.Function.class, "apply", $DESC);
+
+        /**
+         * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
+         * The lifetime of the returned segment is managed by {@code arena}
+         */
+        public static MemorySegment allocate(SelectBestModelCandidate.Function fi, Arena arena) {
+            return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
+        }
+
+        private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
+
+        /**
+         * Invoke the upcall stub {@code funcPtr}, with given parameters
+         */
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, MemorySegment _x1, MemorySegment _x2, long _x3, MemorySegment _x4, MemorySegment _x5) {
+            try {
+                return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1, _x2, _x3, _x4, _x5);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
+            } catch (Throwable ex$) {
+                throw new AssertionError("should not reach here", ex$);
+            }
+        }
+    }
+
+    private static final AddressLayout SelectBestModelCandidate$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("SelectBestModelCandidate"));
+
+    /**
+     * Layout for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SelectBestModelCandidate)(OrtEpFactory *, const OrtHardwareDevice *, const OrtKeyValuePairs *const *, size_t, const OrtSessionOptions *, size_t *)
+     * }
+     */
+    public static final AddressLayout SelectBestModelCandidate$layout() {
+        return SelectBestModelCandidate$LAYOUT;
+    }
+
+    private static final long SelectBestModelCandidate$OFFSET = $LAYOUT.byteOffset(groupElement("SelectBestModelCandidate"));
+
+    /**
+     * Offset for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SelectBestModelCandidate)(OrtEpFactory *, const OrtHardwareDevice *, const OrtKeyValuePairs *const *, size_t, const OrtSessionOptions *, size_t *)
+     * }
+     */
+    public static final long SelectBestModelCandidate$offset() {
+        return SelectBestModelCandidate$OFFSET;
+    }
+
+    /**
+     * Getter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SelectBestModelCandidate)(OrtEpFactory *, const OrtHardwareDevice *, const OrtKeyValuePairs *const *, size_t, const OrtSessionOptions *, size_t *)
+     * }
+     */
+    public static MemorySegment SelectBestModelCandidate(MemorySegment struct) {
+        return struct.get(SelectBestModelCandidate$LAYOUT, SelectBestModelCandidate$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*SelectBestModelCandidate)(OrtEpFactory *, const OrtHardwareDevice *, const OrtKeyValuePairs *const *, size_t, const OrtSessionOptions *, size_t *)
+     * }
+     */
+    public static void SelectBestModelCandidate(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(SelectBestModelCandidate$LAYOUT, SelectBestModelCandidate$OFFSET, fieldValue);
     }
 
     /**

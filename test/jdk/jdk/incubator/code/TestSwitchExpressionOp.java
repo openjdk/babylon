@@ -466,6 +466,38 @@ public class TestSwitchExpressionOp {
         };
     }
 
+    @Test
+    void testUnconditionalPatternWithUsedBinding() {
+        CoreOp.FuncOp lmodel = lower("unconditionalPatternWithUsedBinding");
+        String[] args = {"A", "X"};
+        for (String arg : args) {
+            Assertions.assertEquals(unconditionalPatternWithUsedBinding(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    static String unconditionalPatternWithUsedBinding(String s) {
+        return switch (s) {
+            case "A" -> "A";
+            case Object o -> o.toString();
+        };
+    }
+
+    @Test
+    void testOnlyDefault() {
+        CoreOp.FuncOp lmodel = lower("onlyDefault");
+        String[] args = {"A", "X"};
+        for (String arg : args) {
+            Assertions.assertEquals(onlyDefault(arg), Interpreter.invoke(MethodHandles.lookup(), lmodel, arg));
+        }
+    }
+
+    @Reflect
+    static String onlyDefault(String s) {
+        return switch (s) {
+            default -> "A";
+        };
+    }
 
     @Test
     void testDefaultCaseNotTheLast() {
