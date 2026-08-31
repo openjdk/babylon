@@ -103,13 +103,13 @@ All setup! Now you can run HAT on NVIDIA GPUs.
 Run matrix-multiply example:
 
 ```bash
-docker run -it --rm --runtime=nvidia --gpus all babylon java @.ffi-cuda-example matmul.Main --size=1024 --kernel=2DREGISTERTILING_FP16```
+docker run -it --rm --runtime=nvidia --gpus all babylon java @.ffi-cuda-example matmul.Main --size=1024 --kernel=2DREGISTERTILING_FP16
 ```
 
 ## Enable debug info
 
 ```bash
-docker run -it --rm --runtime=nvidia --gpus all babylon java -DHAT=INFO @.ffi-cuda-example matmul.Main --size=1024 --kernel=2DREGISTERTILING_FP16```
+docker run -it --rm --runtime=nvidia --gpus all babylon java -DHAT=INFO @.ffi-cuda-example matmul.Main --size=1024 --kernel=2DREGISTERTILING_FP16
 
 Expected output:
 
