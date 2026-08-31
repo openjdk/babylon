@@ -95,9 +95,11 @@ public class KernelCallGraph implements LookupCarrier {
     private final VarTable varTable;
     private boolean useVectors;
     private final boolean useTensors;
+    private final CoreOp.FuncOp originalKernelFunction;
 
-    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
+    public KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
         this.method = method;
+        this.originalKernelFunction = kernelFunction;
         this.computeCallGraph = computeCallGraph;
         this.inlinedEntryPoint = inlineEntryPoint(kernelFunction);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
@@ -201,6 +203,7 @@ public class KernelCallGraph implements LookupCarrier {
             // 3. A list of CodeTypes for each input argument to the kernel.
             CoreOp.FuncOp funcOp = entrypoint.funcOp();
             funcOp = TileTransformer.processConstantFields(funcOp, lookup());
+            IO.println("INPUT MODEL: " + funcOp.toText());
             funcOp = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes);
             entrypoint = new FuncOpCarrier.Impl(funcOp);
             checkSSALowering(entrypoint.funcOp());
@@ -324,6 +327,10 @@ public class KernelCallGraph implements LookupCarrier {
 
     public Method method() {
         return method;
+    }
+
+    public CoreOp.FuncOp getOriginalKernelFunction() {
+        return originalKernelFunction;
     }
 
 }

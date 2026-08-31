@@ -179,12 +179,7 @@ public class TileTransformer {
 
         // Once we have verified the input code model to have the correct shapes and propagated those shapes for the new operations,
         // we generate a new code model. For the new code model, it uses the symbol table built in the previous process.
-        CoreOp.FuncOp funcOp = TileTransformer.transformToTileFunction(kernel, signature, rType, valueTypeMap, opData, symbolTable);
-
-        IO.println("[DEBUG] AFTER TRANSFORMATION");
-        IO.println("\t" + funcOp.toText());
-
-        return funcOp;
+        return TileTransformer.transformToTileFunction(kernel, signature, rType, valueTypeMap, opData, symbolTable);
     }
 
     private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature, CodeType rType, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable) {

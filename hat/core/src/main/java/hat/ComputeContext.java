@@ -39,10 +39,11 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.reflect.Parameter;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.Lambda.lambda;
@@ -144,7 +145,45 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph, Object[] capturedArgs) {}
 
-    private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+    private record ConstantArgument(int paramIndex, Class<?> type, Object value) {
+        public static ConstantArgument of(int i, Parameter parameter, Object quotedCapturedValue) {
+            Class<?> t = parameter.getType();
+            if (t == int.class && quotedCapturedValue instanceof Integer value) {
+                return new ConstantArgument(i, t, value);
+            }
+            throw new IllegalStateException("Input constant of type: " + t.getName() + " not supported");
+        }
+    }
+
+    private record SpecializationKey(List<ConstantArgument> arguments) {
+        public SpecializationKey {
+            arguments = List.copyOf(arguments);
+        }
+
+        public static SpecializationKey of(Method kernelMethod, Object[] quotedCapturedValues) {
+            Parameter[] parameters = kernelMethod.getParameters();
+            List<ConstantArgument> arguments = new ArrayList<>();
+            for (int i = 0; i < quotedCapturedValues.length; i++) {
+                Parameter parameter = parameters[i];
+                if (!parameter.isAnnotationPresent(Constant.class)) {
+                    // dont insert into the parameter list
+                    continue;
+                }
+                arguments.add(ConstantArgument.of(i, parameter, quotedCapturedValues[i]));
+            }
+            if (arguments.isEmpty()) {
+                return empty();
+            }
+            return new SpecializationKey(arguments);
+        }
+
+        public static SpecializationKey empty() {
+            return new SpecializationKey(List.of());
+        }
+    }
+//
+ //   private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+    private final Map<Op.Location, Map<SpecializationKey, KernelCallSite>> kernelCallSiteCache = new ConcurrentHashMap<>();
 
     static OpHelper.Invoke getTargetInvoke(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp) {
         return lambdaOp.body().entryBlock().ops().stream()
@@ -162,30 +201,64 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             this.kernelType = kernelType;
         }
 
-        private void dispatch(Map<Op.Location, KernelCallSite> kernelCallSiteCache, MethodHandles.Lookup lookup, ComputeCallGraph computeCallGraph, Accelerator accelerator, NDRange ndRange) {
+        private void dispatch(Map<Op.Location, Map<SpecializationKey, KernelCallSite>> kernelCallSiteCache, MethodHandles.Lookup lookup, ComputeCallGraph computeCallGraph, Accelerator accelerator, NDRange ndRange) {
             Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernelType).orElseThrow();
-
+            JavaOp.LambdaOp lambdaOp = quoted.op();
             var location = quoted.op().location();
 
+            MethodRef method = getTargetInvoke(lookup, lambdaOp).op().invokeReference();
+            OpHelper.Lambda lambda1 = lambda(lookup, lambdaOp);
             KernelCallSite kernelCallSite;
-            if (kernelCallSiteCache.containsKey(location)) {
-                var oldKernelCallSite = kernelCallSiteCache.get(location);
-                kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), oldKernelCallSite.capturedArgs());
-            } else {
-                kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
-                    JavaOp.LambdaOp lambdaOp = quoted.op();
-                    MethodRef methodRef = getTargetInvoke(lookup, lambdaOp).op().invokeReference();
-                    KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-                    if (kernelCallGraph == null) {
-                        throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
-                    }
-                    var lambda = lambda(lookup, lambdaOp);
-                    Object[] capturedArgs = lambda.getQuotedCapturedValues(quoted, kernelCallGraph.method());
-                    // Compilation happens here!
-                    kernelCallGraph.compile(capturedArgs);
-                    return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph, capturedArgs);
-                });
+
+            try {
+                Object[] quotedCapturedValues = lambda1.getQuotedCapturedValues(quoted, method.resolveToMethod(lookup));
+                SpecializationKey key = SpecializationKey.of(method.resolveToMethod(lookup), quotedCapturedValues);
+                var m = method.resolveToMethod(lookup);
+                if (kernelCallSiteCache.containsKey(location) && kernelCallSiteCache.get(location).containsKey(key)) {
+                    var oldKernelCallSite = kernelCallSiteCache.get(location).get(key);
+                    kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), oldKernelCallSite.capturedArgs());
+                } else {
+                    kernelCallSite = kernelCallSiteCache.computeIfAbsent(location, k -> new ConcurrentHashMap<>())
+                            .computeIfAbsent(key, _ -> {
+                                MethodRef methodRef = getTargetInvoke(lookup, lambdaOp).op().invokeReference();
+                                KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+                                if (kernelCallGraph == null) {
+                                    throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+                                }
+                                // Create a new KernelCallGraph starting from the original method
+                                KernelCallGraph kcg = new KernelCallGraph(kernelCallGraph.computeCallGraph, m, kernelCallGraph.getOriginalKernelFunction());
+
+                                var lambda = lambda(lookup, lambdaOp);
+                                Object[] capturedArgs = lambda.getQuotedCapturedValues(quoted, kcg.method());
+
+                                // Compilation happens here!
+                                kcg.compile(capturedArgs);
+                                return new KernelCallSite(quoted, lambdaOp, method, kcg, capturedArgs);
+                            });
+                }
+
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
             }
+
+//            if (kernelCallSiteCache.containsKey(location)) {
+//                var oldKernelCallSite = kernelCallSiteCache.get(location);
+//                kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), oldKernelCallSite.capturedArgs());
+//            } else {
+//                kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
+////                    JavaOp.LambdaOp lambdaOp = quoted.op();
+//                    MethodRef methodRef = getTargetInvoke(lookup, lambdaOp).op().invokeReference();
+//                    KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+//                    if (kernelCallGraph == null) {
+//                        throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+//                    }
+//                    var lambda = lambda(lookup, lambdaOp);
+//                    Object[] capturedArgs = lambda.getQuotedCapturedValues(quoted, kernelCallGraph.method());
+//                    // Compilation happens here!
+//                    kernelCallGraph.compile(capturedArgs);
+//                    return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph, capturedArgs);
+//                });
+//            }
 
             Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs.length + 1];
             System.arraycopy(kernelCallSite.capturedArgs(), 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs().length);
