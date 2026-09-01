@@ -1855,7 +1855,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     pushBody(c, caseBodyType);
 
                     for (JCVariableDecl var : assignedIn(prevCaseVars, c.stats)) {
-                        result = append(CoreOp.var(var.name.toString(), typeToCodeType(var.type)));
+                        result = append(CoreOp.var(var.name.toString(), typeToCodeType(var.type)), generateLocation(var, false));
                         stack.localToOp.put(var.sym, result);
                     }
 
