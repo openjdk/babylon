@@ -24,23 +24,23 @@
  */
 package hat.test;
 
-import hat.*;
+import hat.Accelerator;
 import hat.Accelerator.Compute;
+import hat.ComputeContext;
+import hat.Constant;
+import hat.NDRange;
+import hat.TileContext;
+import hat.TileOp;
 import hat.backend.Backend;
-import hat.buffer.F32Array;
 import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 
-import hat.dialect.TileOps;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
-
-import static optkl.ifacemapper.MappableIface.RO;
-import static optkl.ifacemapper.MappableIface.WO;
 
 /**
  * How to run?
@@ -83,7 +83,7 @@ import static optkl.ifacemapper.MappableIface.WO;
 public class TestTileAPI {
 
     @Reflect
-    public static void helloTile(@RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tileSize) {
+    public static void helloTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tileSize) {
         final var pid = TileContext.BIDX();
         var aTile = TileContext.load(inputA, pid, tileSize);
         var bTile = TileContext.load(inputB, pid, tileSize);
@@ -92,7 +92,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeEmptyTile(@RO ComputeContext computeContext, @RO TensorF32 inputA, @RO TensorF32 inputB, @WO TensorF32 output, @Constant int tile_size) {
+    public static void computeEmptyTile(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
         computeContext.dispatchTile(NDRange.of1D(inputA.m(), tile_size), () -> helloTile(inputA, inputB, output, tile_size));
     }
 
@@ -112,15 +112,18 @@ public class TestTileAPI {
         }
 
         TensorF32 result = TensorF32.create(accelerator, size);
+
+        // Invoking the kernel multiple times to check the code cache
         accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tileSize));
         accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tileSize));
+
+        // change the tile size
         final int newTileSize = 16;
         accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, newTileSize));
 
+        // Alternate the tile size
         accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tileSize));
         accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, newTileSize));
-
-
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
