@@ -27,7 +27,6 @@ package hat.test;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.Constant;
 import hat.NDRange;
 import hat.TileContext;
 import hat.TileOp;
@@ -83,7 +82,7 @@ import java.util.Random;
 public class TestTileAPI {
 
     @Reflect
-    public static void helloTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tileSize) {
+    public static void helloTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
         final var pid = TileContext.BIDX();
         var aTile = TileContext.load(inputA, pid, tileSize);
         var bTile = TileContext.load(inputB, pid, tileSize);
@@ -92,7 +91,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeEmptyTile(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tile_size) {
+    public static void computeEmptyTile(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tile_size) {
         computeContext.dispatchTile(NDRange.of1D(inputA.m(), tile_size), () -> helloTile(inputA, inputB, output, tile_size));
     }
 
@@ -134,7 +133,7 @@ public class TestTileAPI {
     // Expressing Vector Addition
     // ================================================================================================================
     @Reflect
-    public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tileSize) {
+    public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
         final var pid = TileContext.BIDX();
         var tileA = TileContext.load(inputA, pid, tileSize);
         var tileB = TileContext.load(inputB, pid, tileSize);
@@ -143,7 +142,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, @Constant int tileSize) {
+    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
         computeContext.dispatchTile(NDRange.of1D(inputA.m(), tileSize), () -> vectorAddTile(inputA, inputB, output, tileSize));
     }
 
@@ -169,7 +168,7 @@ public class TestTileAPI {
     public static final int GROUP_SIZE_M = 8;
 
     @Reflect
-    public static void matmul(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N, @Constant int num_tiles) {
+    public static void matmul(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
 
         final int GROUP_SIZE_M = 8;
         // Calculate bidx and bidy using swizzle
@@ -202,7 +201,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tileMatmul(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, @Constant int tm, @Constant int tn, @Constant int tk, @Constant int M, @Constant int N, @Constant int numTiles) {
+    public static void tileMatmul(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 () -> matmul(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
     }
@@ -262,7 +261,7 @@ public class TestTileAPI {
     // Expressing Reductions
     // ================================================================================================================
     @Reflect
-    public static void tileReduction(TensorF32 input, TensorF32 output, @Constant int tileSize) {
+    public static void tileReduction(TensorF32 input, TensorF32 output, final int tileSize) {
 
         // Obtain the tile-id
         final int pid = TileContext.BIDX();
@@ -288,7 +287,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tileReduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, @Constant int tileSize) {
+    public static void tileReduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, final int tileSize) {
         computeContext.dispatchTile(NDRange.of1D(input.m(), tileSize),
                 () -> tileReduction(input, output, tileSize));
     }
@@ -322,7 +321,7 @@ public class TestTileAPI {
 
     // Matrix transpose example
     @Reflect
-    public static void transposeKernel(Tensor2DF32 inputMatrix, Tensor2DF32 transposedMatrix, @Constant int tm, @Constant int tn) {
+    public static void transposeKernel(Tensor2DF32 inputMatrix, Tensor2DF32 transposedMatrix, final int tm, final int tn) {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
@@ -341,7 +340,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void computeTransposeKernel(ComputeContext computeContext, Tensor2DF32 input, Tensor2DF32 output, @Constant int M, @Constant int N, @Constant int tm, @Constant int tn) {
+    public static void computeTransposeKernel(ComputeContext computeContext, Tensor2DF32 input, Tensor2DF32 output, final int M, final int N, final int tm, final int tn) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 () -> transposeKernel(input, output, tm, tn));
     }

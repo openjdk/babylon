@@ -39,7 +39,6 @@ import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
