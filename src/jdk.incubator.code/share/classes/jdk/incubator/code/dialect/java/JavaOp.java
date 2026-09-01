@@ -5722,7 +5722,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// @jls 14.20.3.1 Basic try-with-resources
         Op.Result normalizeBasicTryWithResources(Block.Builder b) {
             assert resourcesBodies.size() == 1;
-            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
+            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID), b.context(), b.transformer());
             Block.Builder entryBlock = normalizedBody.entryBlock();
             Body resourceBody = resourcesBodies.getFirst();
             CodeType resourceType = resourceBody.bodySignature().returnType();
