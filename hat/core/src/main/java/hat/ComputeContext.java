@@ -146,12 +146,11 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
     public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph, Object[] capturedArgs) {}
 
     private record ConstantArgument(int paramIndex, Class<?> type, Object value) {
-        public static ConstantArgument of(int i, Parameter parameter, Object quotedCapturedValue) {
-            Class<?> t = parameter.getType();
-            if (t == int.class && quotedCapturedValue instanceof Integer value) {
-                return new ConstantArgument(i, t, value);
+        public static ConstantArgument of(int i, Class<?> type, Object capturedValue) {
+            if (type == int.class && capturedValue instanceof Integer value) {
+                return new ConstantArgument(i, type, value);
             }
-            throw new IllegalStateException("Input constant of type: " + t.getName() + " not supported");
+            throw new IllegalStateException("Input constant of type: " + type.getName() + " not supported");
         }
     }
 
@@ -164,12 +163,9 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             Parameter[] parameters = kernelMethod.getParameters();
             List<ConstantArgument> arguments = new ArrayList<>();
             for (int i = 0; i < quotedCapturedValues.length; i++) {
-                Parameter parameter = parameters[i];
-                if (!parameter.isAnnotationPresent(Constant.class)) {
-                    // dont insert into the parameter list
-                    continue;
+                if (parameters[i].getType().isPrimitive()) {
+                    arguments.add(ConstantArgument.of(i, parameters[i].getType(), quotedCapturedValues[i]));
                 }
-                arguments.add(ConstantArgument.of(i, parameter, quotedCapturedValues[i]));
             }
             if (arguments.isEmpty()) {
                 return empty();
