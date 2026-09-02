@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import jdk.incubator.code.extern.OpWriter;
+import jdk.incubator.code.internal.OpWriterOption;
 
 /**
  * A block containing an ordered sequence of operations, where the last operation is a
@@ -861,21 +862,25 @@ public final class Block implements CodeElement<Block, Op> {
     private void bindOp(Op.Result opr, Op op) {
         // Structural checks
         if (!ops.isEmpty() && ops.getLast() instanceof Op.Terminating) {
-            throw new IllegalStateException("Operation cannot be appended, the block has a terminating operation\n"
+            throw new IllegalStateException(
+                    "Operation cannot be appended, the block has a terminating operation\n"
                     + diagnosticText(ops.getLast(), "terminating operation"));
         }
 
         for (Body b : op.bodies()) {
             if (b.connectedAncestorBody != null && b.connectedAncestorBody != this.parentBody) {
-                throw new IllegalStateException("Body of operation is connected to a different ancestor body\n"
-                        + b.entryBlock().diagnosticText("operation body"));
+                throw new IllegalStateException(
+                        "Operation body's connected ancestor body differs from this block's parent body\n"
+                        + b.entryBlock().diagnosticText("operation body")
+                        + diagnosticText("block receiving operation"));
             }
         }
 
         for (Value v : op.operands()) {
             if (!isReachable(v)) {
-                throw new IllegalStateException("Cannot append an operation because its operand belongs to another code model\n"
-                        + v.block.diagnosticText(v, "operand from another model")
+                throw new IllegalStateException(
+                        "Cannot append an operation because its operand is not reachable\n"
+                        + v.block.diagnosticText(v, "unreachable operand")
                         + diagnosticText("operation appended here"));
             }
             assert !v.isBuilt();
@@ -883,15 +888,17 @@ public final class Block implements CodeElement<Block, Op> {
 
         for (Reference s : op.successors()) {
             if (s.target.parentBody != this.parentBody) {
-                throw new IllegalStateException("Target of block reference is not a sibling of this block\n"
+                throw new IllegalStateException(
+                        "Target of block reference is not a sibling of this block\n"
                         + s.target.diagnosticText("reference target")
                         + diagnosticText("append block"));
             }
 
             for (Value v : s.arguments()) {
                 if (!isReachable(v)) {
-                    throw new IllegalStateException("Cannot append a block reference because its argument belongs to another code model\n"
-                            + v.block.diagnosticText(v, "argument from another model")
+                    throw new IllegalStateException(
+                            "Cannot append an operation because its successor argument is not reachable\n"
+                            + v.block.diagnosticText(v, "unreachable successor argument")
                             + diagnosticText("referencing operation appended here"));
                 }
                 assert !v.isBuilt();

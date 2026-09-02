@@ -51,9 +51,10 @@ public class TestDiagnostics {
         assertEquals("""
                 Block has no terminating operation as the last operation
                 ^block_0:
-                ^~~~~~~~ missing terminal op
+                ^~~~~~~~ missing terminating op
                   %0 : java.type:"int" = constant @1;
-                """, assertThrows(IllegalStateException.class, () -> func("f", body)).getMessage());
+                """, assertThrows(IllegalStateException.class,
+                () -> func("f", body)).getMessage());
     }
 
     @Test
@@ -64,11 +65,12 @@ public class TestDiagnostics {
         func("f", body);
 
         assertEquals("""
-                A new operation cannot directly use a value from a completed code model
+                Operand's declaring block is built
                 ^block_0(%0 : java.type:"int"):
-                         ^~ value from completed model
+                         ^~ operand
                   return;
-                """, assertThrows(IllegalArgumentException.class, () -> JavaOp.neg(parameter)).getMessage());
+                """, assertThrows(IllegalArgumentException.class,
+                () -> JavaOp.neg(parameter)).getMessage());
     }
 
     @Test
@@ -77,11 +79,12 @@ public class TestDiagnostics {
         Op operation = body.entryBlock().add(constant(JavaType.INT, 1)).op();
 
         assertEquals("""
-                Cannot access the operation's parent block while it is still being built
+                Operation's parent block is unobservable
                 ^block_0:
                   %0 : java.type:"int" = constant @1;
-                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ operation in block being built
-                """, assertThrows(IllegalStateException.class, operation::parent).getMessage());
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ operation with unobservable parent block
+                """, assertThrows(IllegalStateException.class,
+                operation::parent).getMessage());
     }
 
     @Test
@@ -112,15 +115,16 @@ public class TestDiagnostics {
         target.add(return_());
 
         assertEquals("""
-                Reference to block with 1 arguments but the block has 0 parameters
+                Block reference argument count (1) differs from target block parameter count (0)
                 ^block_0:
                   %0 : java.type:"int" = constant @1;
                   branch ^block_1(%0);
-                  ^~~~~~~~~~~~~~~~~~~~ reference with wrong arity
+                  ^~~~~~~~~~~~~~~~~~~~ block reference with wrong arity
                 ^block_1:
                 ^~~~~~~~ target block
                   return;
-                """, assertThrows(IllegalStateException.class, () -> func("f", body)).getMessage());
+                """, assertThrows(IllegalStateException.class,
+                () -> func("f", body)).getMessage());
     }
 
     @Test
@@ -216,7 +220,7 @@ public class TestDiagnostics {
     public void testMissingReferenceTargetMapping() {
         Block.Reference reference = builtReference();
         assertEquals("""
-                No mapping for input reference target block
+                No mapping for input block reference's target block
                 ^block_1:
                 ^~~~~~~~ reference target
                   return;
@@ -268,11 +272,13 @@ public class TestDiagnostics {
         Body.Builder otherAncestor = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         CoreOp.QuotedOp quoted = CoreOp.quoted(otherAncestor, _ -> constant(JavaType.INT, 1));
         assertEquals("""
-                Body of operation is connected to a different ancestor body
+                Operation body's connected ancestor body differs from this block's parent body
                 ^block_1:
                 ^~~~~~~~ operation body
                   %0 : java.type:"int" = constant @1;
                   yield %0;
+                ^block_0:
+                ^~~~~~~~ block receiving operation
                 """, assertThrows(IllegalStateException.class,
                 () -> destination.entryBlock().add(quoted)).getMessage());
     }
@@ -283,9 +289,9 @@ public class TestDiagnostics {
         Block.Parameter value = source.entryBlock().parameters().getFirst();
         Body.Builder destination = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         assertEquals("""
-                Cannot append an operation because its operand belongs to another code model
+                Cannot append an operation because its operand is not reachable
                 ^block_0(%0 : java.type:"int"):
-                         ^~ operand from another model
+                         ^~ unreachable operand
                 ^block_0:
                 ^~~~~~~~ operation appended here
                 """, assertThrows(IllegalStateException.class,
@@ -314,9 +320,9 @@ public class TestDiagnostics {
         Body.Builder destination = Body.Builder.of(null, FUNCTION_TYPE_VOID);
         Block.Builder target = destination.entryBlock().block();
         assertEquals("""
-                Cannot append a block reference because its argument belongs to another code model
+                Cannot append an operation because its successor argument is not reachable
                 ^block_0(%0 : java.type:"int"):
-                         ^~ argument from another model
+                         ^~ unreachable successor argument
                 ^block_0:
                 ^~~~~~~~ referencing operation appended here
                 """, assertThrows(IllegalStateException.class,
@@ -335,13 +341,14 @@ public class TestDiagnostics {
                 Use of an operation result is not dominated by the result
                 ^block_1:
                   %1 : java.type:"int" = constant @1;
-                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ declaration
+                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ value declared here
                   return;
                 ^block_0:
                   %0 : java.type:"int" = neg %1;
                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ invalid use
                   return;
-                """, assertThrows(IllegalStateException.class, () -> func("f", body)).getMessage());
+                """, assertThrows(IllegalStateException.class,
+                () -> func("f", body)).getMessage());
     }
 
     @Test
@@ -361,7 +368,8 @@ public class TestDiagnostics {
                   %0 : java.type:"int" = neg %1;
                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ invalid use
                   return;
-                """, assertThrows(IllegalStateException.class, () -> func("f", body)).getMessage());
+                """, assertThrows(IllegalStateException.class,
+                () -> func("f", body)).getMessage());
     }
 
     @Test
@@ -383,7 +391,8 @@ public class TestDiagnostics {
                   %1 : java.type:"int" = neg %2;
                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ invalid use
                   branch ^block_1(%0);
-                """, assertThrows(IllegalStateException.class, () -> func("f", body)).getMessage());
+                """, assertThrows(IllegalStateException.class,
+                () -> func("f", body)).getMessage());
     }
 
     @Test
@@ -404,7 +413,8 @@ public class TestDiagnostics {
                   %0 : java.type:"int" = neg %1;
                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ invalid use
                   branch ^block_1;
-                """, assertThrows(IllegalStateException.class, () -> func("f", body)).getMessage());
+                """, assertThrows(IllegalStateException.class,
+                () -> func("f", body)).getMessage());
     }
 
     @Test
@@ -415,7 +425,7 @@ public class TestDiagnostics {
         body.entryBlock().add(return_(result));
         func("f", body);
         assertEquals("""
-                Cannot create a quoted value because no runtime value was provided for this operand
+                Cannot create the quoted form of an operation because no runtime value was provided for this operand
                 ^block_0(%0 : java.type:"int"):
                          ^~ operand without runtime value
                   %1 : java.type:"int" = neg %0;
@@ -433,7 +443,7 @@ public class TestDiagnostics {
         body.entryBlock().add(return_());
         func("f", body);
         assertEquals("""
-                Cannot create a quoted value because no runtime value was provided for this captured value
+                Cannot create the quoted form of an operation because no runtime value was provided for this captured value
                 ^block_0(%0 : java.type:"int"):
                          ^~ captured value without runtime value
                   %1 : java.type:"jdk.incubator.code.Quoted<jdk.incubator.code.Op>" = quoted;

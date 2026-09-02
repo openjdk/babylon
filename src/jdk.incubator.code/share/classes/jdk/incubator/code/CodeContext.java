@@ -435,7 +435,8 @@ public final class CodeContext {
         // Create reference
         Block.Builder outputBlock = blockMap.get(input.targetBlock());
         if (outputBlock == null) {
-            throw new IllegalArgumentException("No mapping for input reference target block\n"
+            throw new IllegalArgumentException(
+                    "No mapping for input block reference's target block\n"
                     + input.target.diagnosticText("reference target"));
         }
         return outputBlock.reference(getValues(input.arguments()));

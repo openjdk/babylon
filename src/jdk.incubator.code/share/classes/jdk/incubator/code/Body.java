@@ -746,10 +746,11 @@ public final class Body implements CodeElement<Body, Block> {
 
                         // Check successor arity
                         if (s.arguments().size() != target.parameters().size()) {
-                            String m = String.format("Reference to block with %d arguments but the block has %d parameters",
+                            String m = String.format(
+                                    "Block reference argument count (%d) differs from target block parameter count (%d)",
                                     s.arguments().size(), target.parameters().size());
                             throw new IllegalStateException(m + "\n"
-                                    + n.diagnosticText(n.ops.getLast(), "reference with wrong arity")
+                                    + n.diagnosticText(n.ops.getLast(), "block reference with wrong arity")
                                     + target.diagnosticText("target block"));
                         }
 
@@ -783,8 +784,9 @@ public final class Body implements CodeElement<Body, Block> {
 
         private static void checkBlock(Block b) {
             if (b.ops.isEmpty() || !(b.ops.getLast() instanceof Op.Terminating)) {
-                throw new IllegalStateException("Block has no terminating operation as the last operation\n"
-                        + b.diagnosticText("missing terminal op"));
+                throw new IllegalStateException(
+                        "Block has no terminating operation as the last operation\n"
+                        + b.diagnosticText("missing terminating op"));
             }
         }
 
@@ -830,15 +832,17 @@ public final class Body implements CodeElement<Body, Block> {
                         case Op op -> {
                             Op.Result use = op.result();
                             if (!use.uses.isEmpty()) {
-                                throw new IllegalStateException("Use of an operation result is not dominated by the result\n"
-                                        + use.block.diagnosticText(use, "declaration")
+                                throw new IllegalStateException(
+                                        "Use of an operation result is not dominated by the result\n"
+                                        + use.block.diagnosticText(use, "value declared here")
                                         + use.uses.getFirst().block.diagnosticText(use.uses.getFirst(), "invalid use"));
                             }
                         }
                         case Block bb -> {
                             for (Block.Parameter p : bb.parameters()) {
                                 if (!p.uses.isEmpty()) {
-                                    throw new IllegalStateException("Use of block parameter is not dominated by the parameter\n"
+                                    throw new IllegalStateException(
+                                            "Use of block parameter is not dominated by the parameter\n"
                                             + p.block.diagnosticText(p, "value declared here")
                                             + p.uses.getFirst().block.diagnosticText(p.uses.getFirst(), "invalid use"));
                                 }
