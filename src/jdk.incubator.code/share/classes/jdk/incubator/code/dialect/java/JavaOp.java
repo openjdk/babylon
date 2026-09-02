@@ -3534,9 +3534,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // Create predicate and action blocks
             List<Block.Builder> blocks = new ArrayList<>(reorderedBodies.size());
-            blocks.add(b);
-            for (int i = 1; i < reorderedBodies.size(); i ++) {
-                blocks.add(b.block());
+            Map<Body, Block.Builder> body2blocks = new IdentityHashMap<>();
+            for (int i = 0; i < reorderedBodies.size(); i ++) {
+                Block.Builder block = i == 0 ? b : b.block();
+                blocks.add(block);
+                body2blocks.put(reorderedBodies.get(i), block);
             }
 
             Block.Builder exit = b.block();
@@ -3548,10 +3550,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // Set this body's break target to the exit block
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
             // Set action body's continue target to next action block for lowering of SwitchFallThroughOp
-            for (int i = 1; i < reorderedBodies.size() - 2; i += 2) {
-                Body actionBody = reorderedBodies.get(i);
-                Block.Builder nextActionBlock = blocks.get(i + 2);
-                BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
+            // using original source order
+            for (int i = 1; i < bodies().size() - 2; i += 2) {
+                Body actionBody = bodies().get(i);
+                Body nextActionBody = bodies().get(i + 2);
+                BranchTarget.setBranchTarget(b.context(), actionBody, null, body2blocks.get(nextActionBody));
             }
 
             if (defaultCaseIndex == 0) {
