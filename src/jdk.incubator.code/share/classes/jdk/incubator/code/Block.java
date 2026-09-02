@@ -973,7 +973,8 @@ public final class Block implements CodeElement<Block, Op> {
         }
         for (Op op : ops) {
             String line = "  " + OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(namer),
-                                                     OpWriter.OpDescendantsOption.DROP_DESCENDANTS);
+                                                     OpWriter.OpDescendantsOption.DROP_DESCENDANTS,
+                                                     OpWriter.WritingModeOption.LENIENT);
             out.append(line).append('\n');
             if (pos == op || pos instanceof Op.Result result && result.op() == op) {
                 out.append("  ^").append("~".repeat(Math.max(0, line.length() - 3))).append(' ').append(label).append('\n');
