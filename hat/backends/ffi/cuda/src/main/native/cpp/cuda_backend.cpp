@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,11 +24,165 @@
  */
 
 #include <sys/wait.h>
+#include <unistd.h>
 #include <chrono>
 #include "cuda_backend.h"
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
+#include <dlfcn.h>
 #include <filesystem>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace {
+constexpr bool DEFAULT_USE_NVRTC = false;
+
+using nvrtcProgram = void *;
+using nvrtcResult = int;
+constexpr nvrtcResult NVRTC_SUCCESS = 0;
+
+template <typename T>
+T loadNvrtcSymbol(void *handle, const char *name) {
+    dlerror();
+    void *symbol = dlsym(handle, name);
+    if (const char *error = dlerror()) {
+        std::cerr << "Failed to load NVRTC symbol " << name << ": " << error << std::endl;
+        std::exit(1);
+    }
+    return reinterpret_cast<T>(symbol);
+}
+
+void *loadNvrtcLibrary() {
+    std::vector<std::string> candidates;
+    if (const char *envLibrary = std::getenv("HAT_CUDA_NVRTC_LIBRARY")) {
+        dlerror();
+        if (void *handle = dlopen(envLibrary, RTLD_NOW | RTLD_LOCAL)) {
+            return handle;
+        }
+        std::cerr << "Failed to load NVRTC from HAT_CUDA_NVRTC_LIBRARY='"
+                  << envLibrary << "'";
+        if (const char *error = dlerror()) {
+            std::cerr << ": " << error;
+        }
+        std::cerr << std::endl;
+        std::exit(1);
+    }
+    // First try the CUDA toolkit library directory found by CMake.
+    // Then let dlopen search the system loader path.
+#ifdef HAT_CUDA_LIBRARY_DIR
+    candidates.emplace_back(std::string(HAT_CUDA_LIBRARY_DIR) +
+                            "/libnvrtc.so");
+#endif
+    candidates.emplace_back("libnvrtc.so");
+
+    std::vector<std::string> errors;
+    for (const std::string &candidate : candidates) {
+        if (void *handle = dlopen(candidate.c_str(), RTLD_NOW | RTLD_LOCAL)) {
+            return handle;
+        }
+        if (const char *error = dlerror()) {
+            errors.emplace_back(candidate + ": " + error);
+        }
+    }
+
+    std::cerr << "Failed to load NVRTC. Set HAT_CUDA_NVRTC_LIBRARY to "
+              << "the NVRTC shared library path or name, "
+              << "or use HAT_CUDA_COMPILER=nvcc." << std::endl;
+    for (const std::string &error : errors) {
+        std::cerr << "  " << error << std::endl;
+    }
+    std::exit(1);
+}
+
+std::vector<std::string> splitDelimited(const char *value,
+                                        const char delimiter) {
+    std::vector<std::string> result;
+    if (value == nullptr || *value == '\0') {
+        return result;
+    }
+
+    std::stringstream stream(value);
+    std::string item;
+    while (std::getline(stream, item, delimiter)) {
+        if (!item.empty()) {
+            result.push_back(item);
+        }
+    }
+    return result;
+}
+
+// Minimal NVRTC ABI surface used through dlsym. This avoids a build-time
+// dependency on nvrtc.h and a link-time dependency on libnvrtc.so.
+struct NvrtcApi {
+    using CreateProgram = nvrtcResult (*)(nvrtcProgram *,
+                                          const char *,
+                                          const char *,
+                                          int,
+                                          const char * const *,
+                                          const char * const *);
+    using CompileProgram = nvrtcResult (*)(nvrtcProgram, int, const char * const *);
+    using DestroyProgram = nvrtcResult (*)(nvrtcProgram *);
+    using GetErrorString = const char *(*)(nvrtcResult);
+    using GetPTX = nvrtcResult (*)(nvrtcProgram, char *);
+    using GetPTXSize = nvrtcResult (*)(nvrtcProgram, size_t *);
+    using GetProgramLog = nvrtcResult (*)(nvrtcProgram, char *);
+    using GetProgramLogSize = nvrtcResult (*)(nvrtcProgram, size_t *);
+
+    void *handle;
+    CreateProgram createProgram;
+    CompileProgram compileProgram;
+    DestroyProgram destroyProgram;
+    GetErrorString getErrorString;
+    GetPTX getPTX;
+    GetPTXSize getPTXSize;
+    GetProgramLog getProgramLog;
+    GetProgramLogSize getProgramLogSize;
+
+    explicit NvrtcApi(void *handle)
+        : handle(handle),
+          createProgram(loadNvrtcSymbol<CreateProgram>(handle, "nvrtcCreateProgram")),
+          compileProgram(loadNvrtcSymbol<CompileProgram>(handle, "nvrtcCompileProgram")),
+          destroyProgram(loadNvrtcSymbol<DestroyProgram>(handle, "nvrtcDestroyProgram")),
+          getErrorString(loadNvrtcSymbol<GetErrorString>(handle, "nvrtcGetErrorString")),
+          getPTX(loadNvrtcSymbol<GetPTX>(handle, "nvrtcGetPTX")),
+          getPTXSize(loadNvrtcSymbol<GetPTXSize>(handle, "nvrtcGetPTXSize")),
+          getProgramLog(loadNvrtcSymbol<GetProgramLog>(handle, "nvrtcGetProgramLog")),
+          getProgramLogSize(loadNvrtcSymbol<GetProgramLogSize>(handle, "nvrtcGetProgramLogSize")) {
+    }
+};
+
+// Load and cache NVRTC API entry points on first use
+NvrtcApi &nvrtcApi() {
+    static NvrtcApi api(loadNvrtcLibrary());
+    return api;
+}
+
+void nvrtcCheck(const NvrtcApi &api, const nvrtcResult result,
+                const char *functionName) {
+    if (result != NVRTC_SUCCESS) {
+        std::cerr << functionName << " NVRTC error = " << result << " "
+                  << api.getErrorString(result) << std::endl;
+        std::exit(1);
+    }
+}
+
+std::string getNvrtcLog(const NvrtcApi &api, nvrtcProgram program) {
+    size_t logSize = 0;
+    nvrtcCheck(api,
+               api.getProgramLogSize(program, &logSize),
+               "nvrtcGetProgramLogSize");
+    std::string log;
+    if (logSize > 1) {
+        log.resize(logSize, '\0');
+        nvrtcCheck(api,
+                   api.getProgramLog(program, log.data()),
+                   "nvrtcGetProgramLog");
+    }
+    return log;
+}
+}
 
 PtxSource::PtxSource()
     : Text(0L) {
@@ -149,6 +303,23 @@ void CudaBackend::showDeviceInfo() {
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
+bool CudaBackend::useNvrtcCompiler() const {
+    const char *compiler = std::getenv("HAT_CUDA_COMPILER");
+    if (compiler != nullptr) {
+        if (std::strcmp(compiler, "nvcc") == 0) {
+            return false;
+        }
+        if (std::strcmp(compiler, "nvrtc") == 0) {
+            return true;
+        }
+        std::cerr << "Unknown HAT_CUDA_COMPILER='" << compiler
+                  << "', expected 'nvrtc' or 'nvcc'." << std::endl;
+        std::exit(1);
+    }
+
+    return DEFAULT_USE_NVRTC;
+}
+
 PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
 
     // create var/cuda directory
@@ -196,12 +367,113 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     }
 }
 
+PtxSource *CudaBackend::nvrtc(const CudaSource *cudaSource) {
+    NvrtcApi &api = nvrtcApi();
+    std::string source(cudaSource->text, cudaSource->len);
+
+    // Keep generated CUDA/PTX artifacts under the same directory as the nvcc path.
+    std::string localDirectory = "./var/cuda";
+    std::filesystem::create_directories(localDirectory);
+    const uint64_t time = timeSinceEpochMillisec();
+    const std::string ptxPath = tmpFileName(time, localDirectory, ".ptx");
+    const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
+    cudaSource->write(cudaPath);
+
+    nvrtcProgram program;
+    nvrtcCheck(api,
+               api.createProgram(&program,
+                                 source.c_str(),
+                                 cudaPath.c_str(),
+                                 0,
+                                 nullptr,
+                                 nullptr),
+               "nvrtcCreateProgram");
+
+    int major = 0;
+    int minor = 0;
+    CUDA_CHECK(cuDeviceGetAttribute(&major,
+                                    CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                                    device),
+               "cuDeviceGetAttribute");
+    CUDA_CHECK(cuDeviceGetAttribute(&minor,
+                                    CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                                    device),
+               "cuDeviceGetAttribute");
+
+    std::vector<std::string> options;
+    options.emplace_back("--std=c++17");
+    options.emplace_back("--gpu-architecture=compute_" +
+                         std::to_string(major) +
+                         std::to_string(minor));
+#ifdef HAT_CUDA_INCLUDE_DIRS
+    // CMake serializes the CUDA include list with '|' so it can be passed as a
+    // single compile definition.
+    for (const std::string &includeDir :
+            splitDelimited(HAT_CUDA_INCLUDE_DIRS, '|')) {
+        options.emplace_back("-I" + includeDir);
+    }
+#endif
+    if (cudaSource->lineInfo()) {
+        options.emplace_back("--generate-line-info");
+    }
+
+    std::vector<const char *> optionPtrs;
+    optionPtrs.reserve(options.size());
+    for (const std::string &option : options) {
+        optionPtrs.push_back(option.c_str());
+    }
+
+    nvrtcResult compileResult =
+            api.compileProgram(program,
+                               static_cast<int>(optionPtrs.size()),
+                               optionPtrs.data());
+    if (compileResult != NVRTC_SUCCESS) {
+        std::cerr << "NVRTC compilation failed: "
+                  << api.getErrorString(compileResult)
+                  << ". CUDA source saved to " << cudaPath << std::endl;
+        std::string log = getNvrtcLog(api, program);
+        if (!log.empty()) {
+            std::cerr << "> NVRTC log:" << std::endl << log << std::endl;
+        }
+        nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+        std::exit(1);
+    } else if (config->info || config->trace) {
+        std::string log = getNvrtcLog(api, program);
+        if (!log.empty()) {
+            std::cout << "> NVRTC log:" << std::endl << log << std::endl;
+        }
+    }
+
+    size_t ptxSize = 0;
+    nvrtcCheck(api, api.getPTXSize(program, &ptxSize), "nvrtcGetPTXSize");
+    auto *ptx = new PtxSource(ptxSize);
+    nvrtcCheck(api, api.getPTX(program, ptx->text), "nvrtcGetPTX");
+    if (ptxSize == 0 || ptx->text[ptxSize - 1] != '\0') {
+        std::cerr << "NVRTC returned invalid PTX buffer" << std::endl;
+        nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+        std::exit(1);
+    }
+
+    // nvrtcGetPTXSize includes the trailing NUL. Keep it in memory for the
+    // driver API, but omit it from the debug artifact to match nvcc output.
+    PtxSource ptxFile(ptxSize > 0 ? ptxSize - 1 : 0, ptx->text, false);
+    ptxFile.write(ptxPath);
+
+    nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+    return ptx;
+}
+
 CudaBackend::CudaModule *CudaBackend::compile(const CudaSource &cudaSource) {
     return compile(&cudaSource);
 }
 
 CudaBackend::CudaModule *CudaBackend::compile(const CudaSource *cudaSource) {
-    const PtxSource *ptxSource = nvcc(cudaSource);
+    const bool useNvrtc = useNvrtcCompiler();
+    if (config->info) {
+        std::cout << "[INFO] CUDA source compiler: "
+                  << (useNvrtc ? "NVRTC" : "NVCC") << std::endl;
+    }
+    const PtxSource *ptxSource = useNvrtc ? nvrtc(cudaSource) : nvcc(cudaSource);
     return compile(ptxSource);
 }
 
