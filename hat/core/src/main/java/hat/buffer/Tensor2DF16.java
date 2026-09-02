@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import hat.types.F16;
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -36,35 +37,41 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface Tensor2DF32 extends Buffer {
+public interface Tensor2DF16 extends Buffer {
 
     @Reflect
     default void schema() {
-        array(m() * n());
+        array((long) m() * n());
     }
 
     int m();
     int n();
-    float array(long idx);
-    void array(long idx, float f);
+
+    F16Array.F16Impl array(long index);
+
+    interface F16Impl extends Struct, F16 {
+        short value();
+        void value(short value);
+    }
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
-    Schema<Tensor2DF32> schema = Schema.of(Tensor2DF32.class, ifaceType ->
+    Schema<Tensor2DF16> schema = Schema.of(Tensor2DF16.class, ifaceType ->
             ifaceType.arrayLen("m", "n")
                     .pad(8)
-                    .array("array"));
+                    .array("array",
+                            half -> half.fields("value")));
 
-    static Tensor2DF32 create(ArenaAndLookupCarrier cc, int m, int n) {
+    static Tensor2DF16 create(ArenaAndLookupCarrier cc, int m, int n) {
         return BoundSchema.of(cc ,schema, m, n).allocate();
     }
 
-    default Tensor2DF32 copyFrom(float[] floats) {
+    default Tensor2DF16 copyFrom(float[] floats) {
         MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, m() * n());
         return this;
     }
 
-    default Tensor2DF32 copyTo(float[] floats) {
+    default Tensor2DF16 copyTo(float[] floats) {
         MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, m() * n());
         return this;
     }

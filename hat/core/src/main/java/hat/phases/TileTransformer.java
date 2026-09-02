@@ -1,7 +1,6 @@
 package hat.phases;
 
 import hat.DType;
-import hat.HATMath;
 import hat.TileContext;
 import hat.TileOp;
 import hat.codetypes.*;
@@ -52,7 +51,7 @@ import java.util.stream.Stream;
 public class TileTransformer {
 
     private static final boolean PRINT_INTERNALS = Boolean.parseBoolean(System.getProperty("PRINT_INTERNALS"));
-    private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA"));
+    private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA", "FALSE"));
     private static final boolean SIMPLE_SIGNATURE = Boolean.parseBoolean(System.getProperty("SIMPLE_SIGNATURE", "TRUE"));
 
     public static TileOps.ModuleOp dispatch(Class<?> klass, String methodName, List<? extends CodeType> argTypes, MethodHandles.Lookup lookup) {
@@ -134,7 +133,6 @@ public class TileTransformer {
         return funcOp;
     }
 
-
     /**
      * Process the tile function. It first checks all shapes and builds the code model with custom ops for supporting the Tile Programming Model.
      *
@@ -179,7 +177,12 @@ public class TileTransformer {
 
         // Once we have verified the input code model to have the correct shapes and propagated those shapes for the new operations,
         // we generate a new code model. For the new code model, it uses the symbol table built in the previous process.
-        return TileTransformer.transformToTileFunction(kernel, signature, rType, valueTypeMap, opData, symbolTable);
+        CoreOp.FuncOp funcOp = TileTransformer.transformToTileFunction(kernel, signature, rType, valueTypeMap, opData, symbolTable);
+
+        IO.println("[DEBUG] AFTER TRANSFORMATION");
+        IO.println("\t" + funcOp.toText());
+
+        return funcOp;
     }
 
     private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature, CodeType rType, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable) {
@@ -198,10 +201,10 @@ public class TileTransformer {
                             args.add(functionBlock.parameter(type));
                         }
                     }
-
                     // kernel body
                     functionBlock.transformBody(kernel.body(), args, (kernelBlock, op) -> transformToTileOperation(kernelBlock, op, valueTypeMap, opData, symbolTable));
                 });
+
         if (LOWER_TO_SSA) {
             tileKernel = lowerToSSA(tileKernel);
         }
@@ -547,6 +550,17 @@ public class TileTransformer {
     static final JavaType TYPE_TILE = JavaType.type(Tile.class);
     static final JavaType TYPE_J_L_MATH = JavaType.type(Math.class);
 
+    private static boolean isTypePromotionValid(CodeType fromType, CodeType toType) {
+        if (fromType.equals(toType)) {
+            return true;
+        } else if (toType.equals(DType.TENSOR_2D_F32_TYPE) && fromType.equals(DType.TENSOR_2D_F16_TYPE)) {
+            return true;
+        } else if (toType.equals(DType.TENSOR_F32_TYPE) && fromType.equals(DType.TENSOR_F16_TYPE)) {
+            return true;
+        }
+        throw new IllegalStateException("Type conversion not supported: " + fromType + " -> " + toType);
+    }
+
     private static <O extends Op & Op.Invokable> void typeCheckKernel(O kernel, List<? extends CodeType> argTypes, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData) {
         kernel.elements().forEach( codeElement -> {
             if (!(codeElement instanceof Op op)) {
@@ -569,7 +583,16 @@ public class TileTransformer {
                     CodeType varType = valueTypeMap.get(var);
                     Value v = op.operands().get(1);
                     CodeType vType = valueTypeMap.get(v);
-                    if (!varType.equals(vType)) {
+
+                    // check type promotion for Tensors
+                    if (varType instanceof ConstantType c && c.value() instanceof TensorType t1 && vType instanceof ConstantType c2 && c2.value() instanceof TensorType t2) {
+                        CodeType toType = t1.elementType();
+                        CodeType fromType = t2.elementType();
+                        // Promotion: F16 to F32
+                        if (!isTypePromotionValid(fromType, toType)) {
+                            throw new IllegalArgumentException("incompatible types to be stored: " + varType + " != " + vType);
+                        }
+                    } else  if (!varType.equals(vType)) {
                         throw new IllegalArgumentException("incompatible types to be stored: " + varType + " != " + vType);
                     }
                 }
@@ -784,7 +807,7 @@ public class TileTransformer {
         }
 
         public static TensorType load(PtrType ptr, ConstantType dimension, ConstantType shape) {
-            if (shape.value() instanceof ShapeType shapeType) {
+            if (shape.value()  instanceof ShapeType shapeType) {
                 return new TensorType(ptr.rType(), shapeType.list());
             } else {
                 return new TensorType(ptr.rType(), List.of((Integer) shape.value()));
@@ -823,6 +846,7 @@ public class TileTransformer {
         public static JavaType min(CodeType t1, CodeType t2) {
             return JavaType.INT;
         }
+
 
         public static JavaType numTiles(PtrType ptr, ConstantType dimension, ConstantType tileSize) {
             return JavaType.INT;
@@ -1017,7 +1041,7 @@ public class TileTransformer {
             } else if (t1 instanceof ConstantType || t2 instanceof ConstantType) {
                 return checkScalarTypes(reduceScalarType(t1), reduceScalarType(t2));
             } else if (t1 instanceof PrimitiveType && t2 instanceof ClassType classType) {
-                // check for type equivalences
+                // check for type equivalence
                 if (classType.equals(ClassType.J_L_FLOAT) && t1.equals(JavaType.FLOAT)) {
                     return t1;
                 } else if (classType.equals(DType.TENSOR_F32_TYPE) && t1.equals(JavaType.FLOAT)) {
@@ -1025,7 +1049,6 @@ public class TileTransformer {
                 } else {
                     throw new IllegalArgumentException("t1 vs t2 vs classType! " + t1 + " vs " + t2);
                 }
-
             } else if (!t1.equals(t2)) {
                 throw new IllegalArgumentException("t1 and t2 must be equal, but found `" + t1 + "` vs `" + t2 + "`");
             }
@@ -1081,4 +1104,3 @@ public class TileTransformer {
         }
     }
 }
-

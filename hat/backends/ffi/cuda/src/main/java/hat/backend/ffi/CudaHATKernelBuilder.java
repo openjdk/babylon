@@ -267,16 +267,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useVectors(), _ -> defineMacroVectorSelectStore(VSELECT_STORE))
 
                 // S16 types
-                .when(useS16Types(), _ -> defineMacroF16Of(F16_OF))
-                .when(useS16Types(), _ -> defineMacroBF16Of(BF16_OF))
-                .when(useS16Types(), _ -> defineMacroF162Float(F16_TO_FLOAT_0, false))
-                .when(useS16Types(), _ -> defineMacroF162Float(F16_TO_FLOAT_1, true))
-                .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_0, false))
-                .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_1, true))
-                .when(useS16Types(), _ -> includeSys("cuda_fp16.h", "cuda_bf16.h"))
-                .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
-                .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
-                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
+                .when(useS16Types() || isTile, _ -> defineMacroF16Of(F16_OF))
+                .when(useS16Types() || isTile, _ -> defineMacroBF16Of(BF16_OF))
+                .when(useS16Types() || isTile, _ -> defineMacroF162Float(F16_TO_FLOAT_0, false))
+                .when(useS16Types() || isTile, _ -> defineMacroF162Float(F16_TO_FLOAT_1, true))
+                .when(useS16Types() || isTile, _ -> defineMacroBF162Float(BF16_TO_FLOAT_0, false))
+                .when(useS16Types() || isTile, _ -> defineMacroBF162Float(BF16_TO_FLOAT_1, true))
+                .when(useS16Types() || isTile, _ -> includeSys("cuda_fp16.h", "cuda_bf16.h"))
+                .when(useS16Types() || isTile, _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
+                .when(useS16Types() || isTile, _ -> typedefSingleValueStruct("F16", "half"))
+                .when(useS16Types() || isTile, _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
 
                 // Tensor Macros
                 .when(useTensors(), _ -> includeSys("mma.h"))
@@ -1343,10 +1343,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder genTileSize(CodeType resultType, Value ptr) {
         if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tensorType) {
             CodeType tt = tensorType.elementType();
-            if (tt.equals(DType.TENSOR_F32_TYPE)
-                    || tt.equals(DType.Float)) { // this check is due to type equivalence
+            if (tt.equals(DType.TENSOR_F32_TYPE) || tt.equals(DType.Float)) { // this check is due to type equivalence
                 generateAlignedReference(ptr).rarrow().id("m");
-            } else if (tt.equals(DType.TENSOR_2D_F32_TYPE)) {
+            } else if (tt.equals(DType.TENSOR_2D_F32_TYPE) || tt.equals(DType.TENSOR_2D_F16_TYPE)) {
                 generateAlignedReference(ptr).rarrow().id("m").comma().sp().generateAlignedReference(ptr).rarrow().id("n");
             } else {
                 throw new UnsupportedOperationException("Tensor Type not supported yet: " + tt);

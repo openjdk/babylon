@@ -1,6 +1,7 @@
 
 package hat;
 
+import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.types.Tile;
@@ -25,6 +26,10 @@ public interface TileContext {
     }
 
     static Tile load(Tensor2DF32 buffer, TileIndex2D tileIndex2D, Shape tileSize) {
+        return null;
+    }
+
+    static Tile load(Tensor2DF16 buffer, TileIndex2D tileIndex2D, Shape tileSize) {
         return null;
     }
 

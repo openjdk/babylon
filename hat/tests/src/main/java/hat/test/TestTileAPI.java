@@ -31,11 +31,13 @@ import hat.NDRange;
 import hat.TileContext;
 import hat.TileOp;
 import hat.backend.Backend;
+import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
+import hat.types.F16;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
@@ -230,6 +232,7 @@ public class TestTileAPI {
         Tensor2DF32 matrixA = Tensor2DF32.create(accelerator, size, size);
         Tensor2DF32 matrixB = Tensor2DF32.create(accelerator, size, size);
         Tensor2DF32 matrixC = Tensor2DF32.create(accelerator, size, size);
+        Tensor2DF32 matrixSeq = Tensor2DF32.create(accelerator, size, size);
 
         // Initialize matrices (A and B have the same size)
         Random r = new Random(19);
@@ -238,21 +241,19 @@ public class TestTileAPI {
             matrixB.array(j, r.nextFloat());
         }
 
-        int tm = 64;
-        int tn = 64;
-        int tk = 64;
-
-        final int numTiles = (size + tk -1 ) / tk;
-
+        final int tm = 64;
+        final int tn = 64;
+        final int tk = 64;
+        final int numTiles = (size + tk -1) / tk;
         accelerator.compute( (@Reflect Compute)computeContext -> {
             tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
 
-        runSequential(matrixA, matrixB, matrixC, size);
+        runSequential(matrixA, matrixB, matrixSeq, size);
 
         for (int j = 0; j < size; j++) {
             for (int i = 0; i < size; i++) {
-                HATAsserts.assertEquals(matrixC.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
@@ -364,6 +365,98 @@ public class TestTileAPI {
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
                 HATAsserts.assertEquals(input.array(i * N + j), result.array(j * N + i), 0.01f);
+            }
+        }
+    }
+
+    @Reflect
+    public static void matmulF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
+
+        final int GROUP_SIZE_M = 8;
+        // Calculate bidx and bidy using swizzle
+        final int bid = TileContext.BIDX();
+        final int num_bid_m = TileOp.ceildiv(M, tm);
+        final int num_bid_n = TileOp.ceildiv(N, tn);
+        //final int num_bid_m = (M + tm -1) / tm; //Math.ceilDiv(M, tm);
+        //final int num_bid_n = (N + tn -1) / tn; //Math.ceilDiv(N, tn);
+        final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
+
+        final int group_id = bid / num_bid_in_group;
+        final int first_bid_m = group_id * GROUP_SIZE_M;
+        final int group_size_m = TileOp.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
+        final int bidx = first_bid_m + (bid % group_size_m);
+        final int bidy = (bid % num_bid_in_group) / num_bid_in_group;
+
+        // Calculate the total number of tiles
+        //final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+
+        // declare the accumulator using the shapes describes as arguments
+        var accumulator = TileOp.zeros(tm, tn);
+
+        for (int k = 0; k < num_tiles; k++) {
+            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
+            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
+            accumulator = TileOp.mma(tileA, tileB, accumulator);
+        }
+
+        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
+    }
+
+    @Reflect
+    public static void matmulF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+        computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
+                () -> matmulF16(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
+    }
+
+    private static void runSequential(Tensor2DF16 matrixA, Tensor2DF16 matrixB, Tensor2DF32 matrixC, final int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                float sum = 0;
+                for (int k = 0; k < size; k++) {
+                    F16 a = matrixA.array((long) i * size + k);
+                    F16 b = matrixB.array((long) k * size + j);
+                    F16 mul = F16.mul(a, b);
+                    sum += F16.f16ToFloat(mul);
+                }
+                matrixC.array((long) i * size + j, sum);
+            }
+        }
+    }
+
+    @HatTest
+    public void test_hat_tile_05() {
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 1024;
+
+        Tensor2DF16 matrixA = Tensor2DF16.create(accelerator, size, size);
+        Tensor2DF16 matrixB = Tensor2DF16.create(accelerator, size, size);
+        Tensor2DF32 matrixC = Tensor2DF32.create(accelerator, size, size);
+        Tensor2DF32 matrixSeq = Tensor2DF32.create(accelerator, size, size);
+
+        // Initialize matrices (A and B have the same size)
+        Random r = new Random(19);
+        for (int j = 0; j < size * size; j++) {
+            F16 valA = F16.floatToF16(r.nextFloat());
+            F16 valB = F16.floatToF16(r.nextFloat());
+            matrixA.array(j).value(valA.value());
+            matrixB.array(j).value(valB.value());
+        }
+
+        final int tm = 64;
+        final int tn = 64;
+        final int tk = 64;
+        final int numTiles = (size + tk -1) / tk;
+        accelerator.compute( (@Reflect Compute)computeContext -> {
+            matmulF16(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
+        });
+
+        runSequential(matrixA, matrixB, matrixSeq, size);
+
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
     }
