@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -78,9 +79,9 @@ public class Reduction {
      */
     @Reflect
     private static void reduce(@RO KernelContext context, @RW S32Array input, @RW S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+        int localId = LIX();
+        int localSize = LSX();
+        int blockId = BIX();
         int baseIndex = localSize * blockId + localId;
 
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
@@ -89,7 +90,7 @@ public class Reduction {
                 val += input.array((baseIndex + offset));
                 input.array(baseIndex, val);
             }
-            context.barrier();
+            barrier();
         }
         if (localId == 0) {
             // copy from shared memory to global memory
@@ -101,25 +102,24 @@ public class Reduction {
      * Example of a simple parallel reduction using accelerator's local memory. This shows a proposal of how
      * HAT could start offering local(shared) types.
      *
-     * @param context
      * @param input
      * @param partialSums
      */
     @Reflect
-    private static void reduceLocal(@RO KernelContext context, @RW S32Array input, @RW S32Array partialSums) {
-        int localId = context.lix;
-        int localSize = context.lsx;
-        int blockId = context.bix;
+    private static void reduceLocal( @RW S32Array input, @RW S32Array partialSums) {
+        int localId = LIX();
+        int localSize = LSX();
+        int blockId = BIX();
 
         // Prototype: allocate in shared memory an array of 16 ints
         MySharedArray sharedArray = MySharedArray.createLocal();
 
         // Copy from global to shared memory
-        sharedArray.array(localId, input.array(context.gix));
+        sharedArray.array(localId, input.array(GIX()));
 
         // Reduction using local memory
         for (int offset = localSize / 2; offset > 0; offset /= 2) {
-            context.barrier();
+            barrier();
             if (localId < offset) {
                 sharedArray.array(localId,  sharedArray.array(localId) +  sharedArray.array(localId + offset));
             }
@@ -135,7 +135,7 @@ public class Reduction {
     @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array input, @RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        cc.dispatchKernel(NDRange.of1D(32,16), kc -> reduceLocal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32,16), () -> reduceLocal( input, partialSums));
     }
 
     public static void main(String[] args) {

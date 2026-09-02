@@ -36,6 +36,8 @@ import com.sun.source.util.JavacTask;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+
+import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -58,6 +60,8 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileManager;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
+
+import static jdk.incubator.code.dialect.core.CoreOp.func;
 
 public class TestIRFromAnnotation {
 
@@ -148,7 +152,7 @@ public class TestIRFromAnnotation {
                         throw new AssertionError(String.format("No body found in method %s annotated with @IR",
                                 toMethodString(e)));
                     }
-                    String actualOp = canonicalizeModel((FuncOp)body.get());
+                    String actualOp = canonicalizeModel(removeSourceAttribute(body.get()));
                     String expectedOp = canonicalizeModel(ir.value());
                     if (!actualOp.equals(expectedOp)) {
                         throw new AssertionError(String.format("Bad IR found in %s:\n%s\nExpected:\n%s",
@@ -163,6 +167,12 @@ public class TestIRFromAnnotation {
             }
             return true;
         }
+    }
+
+    static FuncOp removeSourceAttribute(FuncOp fop) {
+        return func(fop.funcName(), fop.invokableSignature()).body(b -> {
+            b.transformBody(fop.body(), b.parameters(), CodeTransformer.COPYING_TRANSFORMER);
+        });
     }
 
     // serializes dropping location information, parses, and then serializes, dropping location information

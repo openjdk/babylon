@@ -26,8 +26,10 @@
  * @modules jdk.incubator.code
  * @library lib
  * @run junit TestTryFinally
+ * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryFinally
  * @run main Unreflect TestTryFinally
  * @run junit TestTryFinally
+ * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryFinally
  */
 
 import jdk.incubator.code.Reflect;
@@ -191,6 +193,94 @@ public class TestTryFinally {
             Consumer<IntConsumer> test = testConsumer(
                     c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
                     TestTryFinally::finallyReturn
+            );
+
+            test(test);
+        }
+    }
+
+
+    @Reflect
+    public static void tryCatchYield(IntConsumer c) {
+        int i = switch (0) {
+            default -> {
+                try {
+                    c.accept(0);
+                    c.accept(-1);
+                    yield 3;
+                } catch (IllegalStateException e) {
+                    c.accept(1);
+                    c.accept(-1);
+                    yield 4;
+                } finally {
+                    c.accept(2);
+                    c.accept(-1);
+                }
+            }
+        };
+        c.accept(i);
+        c.accept(-1);
+    }
+
+    @Test
+    public void testTryCatchYield() {
+        CoreOp.FuncOp f = getFuncOp("tryCatchYield");
+
+        System.out.println(f.toText());
+
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
+
+        System.out.println(lf.toText());
+
+        // @@@ High interpreter does not support switch expressions
+        for (CoreOp.FuncOp op : List.of(lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryFinally::tryCatchYield
+            );
+
+            test(test);
+        }
+    }
+
+    @Reflect
+    public static void finallyYield(IntConsumer c) {
+        int i = switch (0) {
+            default -> {
+                try {
+                    c.accept(0);
+                    c.accept(-1);
+                    yield 3;
+                } catch (IllegalStateException e) {
+                    c.accept(1);
+                    c.accept(-1);
+                    yield 4;
+                } finally {
+                    c.accept(2);
+                    c.accept(-1);
+                    yield 5;
+                }
+            }
+        };
+        c.accept(i);
+        c.accept(-1);
+    }
+
+    @Test
+    public void testFinallyYield() {
+        CoreOp.FuncOp f = getFuncOp("finallyYield");
+
+        System.out.println(f.toText());
+
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
+
+        System.out.println(lf.toText());
+
+        // @@@ High interpreter does not support switch expressions
+        for (CoreOp.FuncOp op : List.of(lf)) {
+            Consumer<IntConsumer> test = testConsumer(
+                    c -> Interpreter.invoke(MethodHandles.lookup(), op, c),
+                    TestTryFinally::finallyYield
             );
 
             test(test);

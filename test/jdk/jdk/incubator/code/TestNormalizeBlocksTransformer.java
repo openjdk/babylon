@@ -72,7 +72,8 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_INPUT = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_8 ^block_3;
+                %10 : java.type:"java.lang.RuntimeException" = constant @null;
+                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_8(%10) ^block_3(%10);
 
               ^block_1:
                 %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
@@ -82,7 +83,8 @@ public class TestNormalizeBlocksTransformer {
                 exception.region.exit %2 ^block_6;
 
               ^block_3(%4 : java.type:"java.lang.RuntimeException"):
-                %5 : java.type:"void" = exception.region.enter ^block_4 ^block_8;
+                %11 : java.type:"java.lang.Throwable" = constant @null;
+                %5 : java.type:"void" = exception.region.enter ^block_4 ^block_8(%11);
 
               ^block_4:
                 %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
@@ -106,14 +108,16 @@ public class TestNormalizeBlocksTransformer {
     static final String TEST2_EXPECTED = """
             func @"f" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_5 ^block_2;
+                %10 : java.type:"java.lang.RuntimeException" = constant @null;
+                %2 : java.type:"void" = exception.region.enter ^block_1 ^block_5(%10) ^block_2(%10);
 
               ^block_1:
                 %3 : java.type:"int" = invoke @java.ref:"A::try_():int";
                 exception.region.exit %2 ^block_4;
 
               ^block_2(%4 : java.type:"java.lang.RuntimeException"):
-                %5 : java.type:"void" = exception.region.enter ^block_3 ^block_5;
+                %11 : java.type:"java.lang.Throwable" = constant @null;
+                %5 : java.type:"void" = exception.region.enter ^block_3 ^block_5(%11);
 
               ^block_3:
                 %6 : Var<java.type:"java.lang.RuntimeException"> = var %4 @"e";
@@ -214,7 +218,8 @@ public class TestNormalizeBlocksTransformer {
 
     static final String TEST5_INPUT = """
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_4;
+                %2 : java.type:"java.lang.Throwable" = constant @null;
+                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_4(%2);
 
               ^block_1:
                 invoke @java.ref:"A::m():void";
@@ -235,7 +240,8 @@ public class TestNormalizeBlocksTransformer {
             """;
     static final String TEST5_EXPECTED = """
             func @"f" ()java.type:"void" -> {
-                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3;
+                %1 : java.type:"java.lang.Throwable" = constant @null;
+                %0 : java.type:"void" = exception.region.enter ^block_1 ^block_3(%1);
 
               ^block_1:
                 invoke @java.ref:"A::m():void";
@@ -384,6 +390,47 @@ public class TestNormalizeBlocksTransformer {
                 return %14;
             };
             """;
+    static final String TEST7_INPUT = """
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                cbranch %0 ^block_1 ^block_2(%0);
+
+              ^block_1:
+                %1 : java.type:"boolean" = constant @true;
+                branch ^block_2(%1);
+
+              ^block_2(%2 : java.type:"boolean"):
+                cbranch %2 ^block_3 ^block_4;
+
+              ^block_3:
+                branch ^block_5;
+
+              ^block_4:
+                branch ^block_5;
+
+              ^block_5:
+                return;
+            };
+            """;
+    static final String TEST7_EXPECTED = """
+            func @"m" (%0 : java.type:"boolean")java.type:"void" -> {
+                cbranch %0 ^block_1 ^block_2(%0);
+
+              ^block_1:
+                branch ^block_3;
+
+              ^block_2(%1 : java.type:"boolean"):
+                cbranch %1 ^block_3 ^block_4;
+
+              ^block_3:
+                branch ^block_5;
+
+              ^block_4:
+                branch ^block_5;
+
+              ^block_5:
+                return;
+            };
+            """;
     static Object[][] testModels() {
         return new Object[][]{
                 parse(TEST1_INPUT, TEST1_EXPECTED),
@@ -392,6 +439,7 @@ public class TestNormalizeBlocksTransformer {
                 parse(TEST4_INPUT, TEST4_EXPECTED),
                 parse(TEST5_INPUT, TEST5_EXPECTED),
                 parse(TEST6_INPUT, TEST6_EXPECTED),
+                parse(TEST7_INPUT, TEST7_EXPECTED),
         };
     }
 

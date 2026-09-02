@@ -209,7 +209,6 @@ public interface ArgArray extends Buffer {
 
     int argc();
 
-
     Arg arg(long idx);
 
     int schemaLen();
@@ -217,7 +216,6 @@ public interface ArgArray extends Buffer {
     byte schemaBytes(long idx);
 
     void schemaBytes(long idx, byte b);
-
 
     Schema<ArgArray> schema = Schema.of(ArgArray.class, s -> s
             .arrayLen("argc")
@@ -237,13 +235,12 @@ public interface ArgArray extends Buffer {
             .array("schemaBytes")
     );
 
-
-    static ArgArray create(ArenaAndLookupCarrier cc, KernelCallGraph kernelCallGraph, Object... args) {
-        String[] schemas = new String[args.length];
+    static ArgArray create(ArenaAndLookupCarrier cc, KernelCallGraph kernelCallGraph, Object[] dispatchContextAndArgs) {
+        String[] schemas = new String[dispatchContextAndArgs.length];
         StringBuilder argSchema = new StringBuilder();
-        argSchema.append(args.length);
-        for (int i = 0; i < args.length; i++) {
-            Object argObject = args[i];
+        argSchema.append(dispatchContextAndArgs.length);
+        for (int i = 0; i < dispatchContextAndArgs.length; i++) {
+            Object argObject = dispatchContextAndArgs[i];
             schemas[i] = switch (argObject) {
                 case Boolean _ -> "(?:z1)";
                 case Byte _ -> "(?:s8)";
@@ -263,23 +260,35 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = BoundSchema.of(cc, schema, args.length, schemaStr.length() + 1).allocate();
+        ArgArray argArray = BoundSchema.of(cc, schema, dispatchContextAndArgs.length, schemaStr.length() + 1).allocate();
         byte[] schemaStrBytes = schemaStr.getBytes();
         for (int i = 0; i < schemaStrBytes.length; i++) {
             argArray.schemaBytes(i, schemaStrBytes[i]);
         }
         argArray.schemaBytes(schemaStrBytes.length, (byte) 0);
-        update(argArray, kernelCallGraph, args);
+        update(argArray, kernelCallGraph, dispatchContextAndArgs);
         return argArray;
     }
 
-    static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
+    private static void checkAnnotationArg(KernelCallGraph kernelCallGraph, AccessType accessType, Annotation annotation, int argIndex) {
+        if (accessType != AccessType.NA && !isKernelAnnotationPresent(kernelCallGraph)) {
+            // print warning to remove the I/O annotation from the arg parameter
+            IO.println("[WARNING]: Annotation " + annotation + " can be removed from the input parameter " + argIndex);
+        }
+    }
+
+    private static boolean isKernelAnnotationPresent(KernelCallGraph kernelCallGraph) {
+        return kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class) != null;
+    }
+
+    static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object[] dispatchContextAndArgs) {
         Annotation[][] parameterAnnotations = kernelCallGraph.callDag.entryPoint.method().getParameterAnnotations();
         var bufferAccessList = kernelCallGraph.bufferAccessList;
-        for (int i = 0; i < args.length; i++) {
-            Object argObject = args[i];
-            Arg arg = argArray.arg(i); // this should be invariant, but if we are called from create it will be 0 for all
-            arg.idx(i);
+        for (int argIndex = 0; argIndex < dispatchContextAndArgs.length; argIndex++) {
+            final int finalArgIndex = argIndex; // Sigh
+            Object argObject = dispatchContextAndArgs[argIndex];
+            Arg arg = argArray.arg(argIndex); // this should be invariant, but if we are called from create it will be 0 for all
+            arg.idx(argIndex);
             switch (argObject) {
                 case Boolean z1 -> arg.z1(z1);
                 case Byte s8 -> arg.s8(s8);
@@ -289,12 +298,15 @@ public interface ArgArray extends Buffer {
                 case Integer s32 -> arg.s32(s32);
                 case Long s64 -> arg.s64(s64);
                 case Double f64 -> arg.f64(f64);
-                case Buffer buffer -> {
-                    Annotation[] annotations = parameterAnnotations[i];
-                    AccessType accessType = AccessType.NA;
-                    for (Annotation annotation : annotations) {
-                        accessType = AccessType.of(annotation);
-                    }
+                case Buffer buffer when finalArgIndex >0-> {
+
+                        Annotation[] annotations = parameterAnnotations[finalArgIndex-1];
+                        AccessType accessType = AccessType.NA;
+                        for (Annotation annotation : annotations) {
+                            accessType = AccessType.of(annotation);
+                            checkAnnotationArg(kernelCallGraph, accessType, annotation, finalArgIndex-1);
+                        }
+
                     MemorySegment segment = getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
@@ -302,15 +314,23 @@ public interface ArgArray extends Buffer {
                     buf.address(segment);
                     buf.bytes(segment.byteSize());
 
-                    if (kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class) != null) {
+                    if (isKernelAnnotationPresent(kernelCallGraph)) {
                         // If the annotation is present, then we keep the accessor defined for each parameter
                         buf.access(accessType.value);
                     } else {
                         // otherwise, we rely on the buffer-tagger to set the accessor
-                        buf.access(bufferAccessList.get(i).value);
+                        buf.access(bufferAccessList.get(finalArgIndex-1).value);
                     }
                 }
-                default -> throw new IllegalStateException("Unexpected value: " + argObject);
+                case Buffer buffer -> {
+                    MemorySegment segment = getMemorySegment(buffer);
+                    arg.variant((byte) '&');
+                    Arg.Value value = arg.value();
+                    Arg.Value.Buf buf = value.buf();
+                    buf.address(segment);
+                    buf.bytes(segment.byteSize());
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + argObject+ ":"+argObject.getClass().getName()+" in dispatchAndArgs slot "+argIndex);
             }
         }
     }

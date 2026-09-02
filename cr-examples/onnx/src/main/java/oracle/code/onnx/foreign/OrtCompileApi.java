@@ -30,6 +30,7 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  *     OrtStatusPtr (*ModelCompilationOptions_SetOutputModelWriteFunc)(OrtModelCompilationOptions *, OrtWriteBufferFunc, void *);
  *     OrtStatusPtr (*ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc)(OrtModelCompilationOptions *, OrtGetInitializerLocationFunc, void *);
  *     OrtStatusPtr (*ModelCompilationOptions_SetInputModel)(OrtModelCompilationOptions *, const OrtModel *);
+ *     OrtStatusPtr (*ModelCompilationOptions_SetWeightlessEnabled)(OrtModelCompilationOptions *, bool);
  * }
  * }
  */
@@ -54,7 +55,8 @@ public class OrtCompileApi {
         onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetGraphOptimizationLevel"),
         onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetOutputModelWriteFunc"),
         onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetOutputModelGetInitializerLocationFunc"),
-        onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetInputModel")
+        onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetInputModel"),
+        onnxruntime_c_api_h.C_POINTER.withName("ModelCompilationOptions_SetWeightlessEnabled")
     ).withName("OrtCompileApi");
 
     /**
@@ -1583,6 +1585,107 @@ public class OrtCompileApi {
      */
     public static void ModelCompilationOptions_SetInputModel(MemorySegment struct, MemorySegment fieldValue) {
         struct.set(ModelCompilationOptions_SetInputModel$LAYOUT, ModelCompilationOptions_SetInputModel$OFFSET, fieldValue);
+    }
+
+    /**
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetWeightlessEnabled)(OrtModelCompilationOptions *, bool)
+     * }
+     */
+    public final static class ModelCompilationOptions_SetWeightlessEnabled {
+
+        private ModelCompilationOptions_SetWeightlessEnabled() {
+            // Should not be called directly
+        }
+
+        /**
+         * The function pointer signature, expressed as a functional interface
+         */
+        public interface Function {
+            MemorySegment apply(MemorySegment _x0, boolean _x1);
+        }
+
+        private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_POINTER,
+            onnxruntime_c_api_h.C_BOOL
+        );
+
+        /**
+         * The descriptor of this function pointer
+         */
+        public static FunctionDescriptor descriptor() {
+            return $DESC;
+        }
+
+        private static final MethodHandle UP$MH = onnxruntime_c_api_h.upcallHandle(ModelCompilationOptions_SetWeightlessEnabled.Function.class, "apply", $DESC);
+
+        /**
+         * Allocates a new upcall stub, whose implementation is defined by {@code fi}.
+         * The lifetime of the returned segment is managed by {@code arena}
+         */
+        public static MemorySegment allocate(ModelCompilationOptions_SetWeightlessEnabled.Function fi, Arena arena) {
+            return Linker.nativeLinker().upcallStub(UP$MH.bindTo(fi), $DESC, arena);
+        }
+
+        private static final MethodHandle DOWN$MH = Linker.nativeLinker().downcallHandle($DESC);
+
+        /**
+         * Invoke the upcall stub {@code funcPtr}, with given parameters
+         */
+        public static MemorySegment invoke(MemorySegment funcPtr, MemorySegment _x0, boolean _x1) {
+            try {
+                return (MemorySegment) DOWN$MH.invokeExact(funcPtr, _x0, _x1);
+            } catch (Error | RuntimeException ex) {
+                throw ex;
+            } catch (Throwable ex$) {
+                throw new AssertionError("should not reach here", ex$);
+            }
+        }
+    }
+
+    private static final AddressLayout ModelCompilationOptions_SetWeightlessEnabled$LAYOUT = (AddressLayout)$LAYOUT.select(groupElement("ModelCompilationOptions_SetWeightlessEnabled"));
+
+    /**
+     * Layout for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetWeightlessEnabled)(OrtModelCompilationOptions *, bool)
+     * }
+     */
+    public static final AddressLayout ModelCompilationOptions_SetWeightlessEnabled$layout() {
+        return ModelCompilationOptions_SetWeightlessEnabled$LAYOUT;
+    }
+
+    private static final long ModelCompilationOptions_SetWeightlessEnabled$OFFSET = $LAYOUT.byteOffset(groupElement("ModelCompilationOptions_SetWeightlessEnabled"));
+
+    /**
+     * Offset for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetWeightlessEnabled)(OrtModelCompilationOptions *, bool)
+     * }
+     */
+    public static final long ModelCompilationOptions_SetWeightlessEnabled$offset() {
+        return ModelCompilationOptions_SetWeightlessEnabled$OFFSET;
+    }
+
+    /**
+     * Getter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetWeightlessEnabled)(OrtModelCompilationOptions *, bool)
+     * }
+     */
+    public static MemorySegment ModelCompilationOptions_SetWeightlessEnabled(MemorySegment struct) {
+        return struct.get(ModelCompilationOptions_SetWeightlessEnabled$LAYOUT, ModelCompilationOptions_SetWeightlessEnabled$OFFSET);
+    }
+
+    /**
+     * Setter for field:
+     * {@snippet lang=c :
+     * OrtStatusPtr (*ModelCompilationOptions_SetWeightlessEnabled)(OrtModelCompilationOptions *, bool)
+     * }
+     */
+    public static void ModelCompilationOptions_SetWeightlessEnabled(MemorySegment struct, MemorySegment fieldValue) {
+        struct.set(ModelCompilationOptions_SetWeightlessEnabled$LAYOUT, ModelCompilationOptions_SetWeightlessEnabled$OFFSET, fieldValue);
     }
 
     /**

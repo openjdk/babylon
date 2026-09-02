@@ -28,7 +28,8 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.HATMath;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F16Array;
 import hat.buffer.F32Array;
@@ -38,7 +39,6 @@ import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.types.F16;
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
@@ -79,12 +79,12 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttentionF16(KernelContext kernelContext,
+    public static void flashAttentionF16(
                                          F16Array Q, F16Array K, F16Array V,
                                          F16Array O, F16Array m, F16Array l,
                                          final int N, final int d, final float softmaxScale) {
-        int bx = kernelContext.bix;
-        int tid = kernelContext.lix;
+        int bx = BIX();
+        int tid = LIX();
 
         // Parameters used
         final int headDim = 64;
@@ -113,7 +113,7 @@ public class TestFlashAttention {
             sharedArray.array((tid * d + k) + sQ_index).value(valQ.value());
         }
 
-        kernelContext.barrier();
+        barrier();
 
         int numBlocks = ceilFunction(N, blockN);
         for (int tileId = 0; tileId < numBlocks; tileId++) {
@@ -127,7 +127,7 @@ public class TestFlashAttention {
                 sharedArray.array((tid * d + k) + sK_index).value(kVal.value());
                 sharedArray.array((tid + d + k) + sV_index).value(vVal.value());
             }
-            kernelContext.barrier();
+            barrier();
 
             // m we accumulate the max values
             F16 m_prev = m.array(tileId * blockN + tid);
@@ -203,17 +203,17 @@ public class TestFlashAttention {
             m.array(tileId * blockN + tid).value(m_new.value());
             l.array(tileId * blockN + tid).value(l_new.value());
 
-            kernelContext.barrier();
+            barrier();
         }
     }
 
     @Reflect
-    public static void computeFlashAttentionF16(@MappableIface.RO ComputeContext computeContext,
-                                                @MappableIface.RO F16Array Q, @MappableIface.RO F16Array K, @MappableIface.RO F16Array V,
-                                                @MappableIface.WO F16Array O, @MappableIface.RW F16Array m, @MappableIface.RW F16Array l,
+    public static void computeFlashAttentionF16(ComputeContext computeContext,
+                                                F16Array Q, F16Array K, F16Array V,
+                                                F16Array O, F16Array m, F16Array l,
                                                 final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> flashAttentionF16(kernelContext, Q, K, V, O, m, l, N, d, scale));
+        computeContext.dispatchKernel(ndRange, () -> flashAttentionF16( Q, K, V, O, m, l, N, d, scale));
     }
 
     // Express a float array in shared memory with HAT
@@ -252,12 +252,12 @@ public class TestFlashAttention {
     }
 
     @Reflect
-    public static void flashAttention(KernelContext kernelContext,
-                                      F32Array Q, F32Array K, F32Array V,
-                                      F32Array O, F32Array m, F32Array l,
-                                      final int N, final int d, final float softmaxScale) {
-        int bx = kernelContext.bix;
-        int tid = kernelContext.lix;
+    public static void flashAttention(
+            F32Array Q, F32Array K, F32Array V,
+            F32Array O, F32Array m, F32Array l,
+            final int N, final int d, final float softmaxScale) {
+        int bx = BIX();
+        int tid = LIX();
 
         // Parameters used
         final int headDim = 64;
@@ -282,7 +282,7 @@ public class TestFlashAttention {
             sharedArray.array((tid * d + k) + sQ_index,
                     Q.array((startIndex + (tid * d + k) * d + k)));
         }
-        kernelContext.barrier();
+        barrier();
 
         int numBlocks = ceilFunction(N, blockN);
         for (int tileId = 0; tileId < numBlocks; tileId++) {
@@ -294,7 +294,7 @@ public class TestFlashAttention {
                 sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
                 sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
             }
-            kernelContext.barrier();
+            barrier();
 
             // m we accumulate the max values
             float m_prev = m.array(tileId * blockN + tid);
@@ -351,17 +351,17 @@ public class TestFlashAttention {
             m.array(tileId * blockN + tid, m_new);
             l.array(tileId * blockN + tid, l_new);
 
-            kernelContext.barrier();
+            barrier();
         }
     }
 
     @Reflect
-    public static void computeFlashAttention(@MappableIface.RO ComputeContext computeContext,
-                                             @MappableIface.RO F32Array Q, @MappableIface.RO F32Array K, @MappableIface.RO F32Array V,
-                                             @MappableIface.WO F32Array O, @MappableIface.RW F32Array m, @MappableIface.RW F32Array l,
+    public static void computeFlashAttention(ComputeContext computeContext,
+                                             F32Array Q, F32Array K, F32Array V,
+                                             F32Array O, F32Array m, F32Array l,
                                              final int N, final int d, final float scale, final int blockSize) {
         var ndRange = NDRange1D.of(Global1D.of(N), Local1D.of(blockSize));
-        computeContext.dispatchKernel(ndRange, kernelContext -> flashAttention(kernelContext, Q, K, V, O, m, l, N, d, scale));
+        computeContext.dispatchKernel(ndRange, () -> flashAttention( Q, K, V, O, m, l, N, d, scale));
     }
 
     @HatTest

@@ -52,6 +52,8 @@ public final class Block implements CodeElement<Block, Op> {
      */
     public static final class Parameter extends Value {
         Parameter(Block block, CodeType type) {
+            Objects.requireNonNull(type);
+
             super(block, type);
         }
 
@@ -505,6 +507,9 @@ public final class Block implements CodeElement<Block, Op> {
         final CodeTransformer ct;
 
         Builder(Body.Builder parentBody, CodeContext cc, CodeTransformer ct) {
+            Objects.requireNonNull(cc);
+            Objects.requireNonNull(ct);
+
             this.parentBody = parentBody;
             this.cc = cc;
             this.ct = ct;
@@ -591,6 +596,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @return the new block builder
          */
         public Block.Builder block(CodeType... params) {
+            check(); // needs to be here to make sure finished building check precede null check
             return block(List.of(params));
         }
 
@@ -640,6 +646,7 @@ public final class Block implements CodeElement<Block, Op> {
          * @throws IllegalArgumentException if any argument's declaring block is built.
          */
         public Reference reference(Value... args) {
+            check(); // needs to be here to make sure finished building check precede null check
             return reference(List.of(args));
         }
 
@@ -673,10 +680,30 @@ public final class Block implements CodeElement<Block, Op> {
         /**
          * Transforms the given body into this block builder's parent body, using this block builder as the current
          * output block builder, a {@link CodeContext#create(CodeContext) child} of this block builder's code context,
+         * and the builder's code transformer.
+         * <p>
+         * This method behaves as if invoking {@link #transformBody(Body, List, CodeContext, CodeTransformer)} with the
+         * given body, the given entry values, a child of this block builder's code context, and the builder's code
+         * transformer.
+         *
+         * @param body the body to transform
+         * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
+         *                    parameters
+         * @throws IllegalArgumentException if there are more output entry values than entry block parameters
+         * @see #transformBody(Body, List, CodeContext, CodeTransformer)
+         */
+        public void transformBody(Body body, List<? extends Value> entryValues) {
+            transformBody(body, entryValues, CodeContext.create(cc), ct);
+        }
+
+        /**
+         * Transforms the given body into this block builder's parent body, using this block builder as the current
+         * output block builder, a {@link CodeContext#create(CodeContext) child} of this block builder's code context,
          * and the given code transformer.
          * <p>
-         * This method behaves as if invoking {@link #transformBody(Body, List, CodeContext, CodeTransformer)} with the given
-         * body, the given entry values, a child of this block builder's code context, and the given code transformer.
+         * This method behaves as if invoking {@link #transformBody(Body, List, CodeContext, CodeTransformer)} with the
+         * given body, the given entry values, a child of this block builder's code context, and the given code
+         * transformer.
          *
          * @param body the body to transform
          * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
@@ -687,8 +714,6 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public void transformBody(Body body, List<? extends Value> entryValues,
                                   CodeTransformer ct) {
-            check();
-
             transformBody(body, entryValues, CodeContext.create(cc), ct);
         }
 
@@ -705,11 +730,9 @@ public final class Block implements CodeElement<Block, Op> {
          * Any remaining entry block parameters are not mapped.
          *
          * @apiNote
-         * Supplying an explicit code context can ensure block and value mappings produced by the transformation do not
-         * affect this builder's code context. The explicit code context can also be used when some of the input body's
-         * entry block parameters have already been mapped prior to transforming the body. This is useful when the
-         * transformation removes some entry block parameters. In such cases an empty list of output entry values can be
-         * given.
+         * Supplying an explicit code context is useful when some of the input body's entry block parameters have
+         * already been mapped prior to transforming the body. For example, when the transformation removes some entry
+         * block parameters. In such cases an empty list of output entry values can be given.
          *
          * @param body the body to transform
          * @param entryValues the output entry values to map, in order, from a prefix of the input body's entry block
@@ -770,6 +793,7 @@ public final class Block implements CodeElement<Block, Op> {
          */
         public Op.Result add(Op op) {
             check();
+            Objects.requireNonNull(op);
 
             // Perform transform-on-append for a placed operation
             Op outputOp = op.isPlacedInBlock() || op.isRoot()

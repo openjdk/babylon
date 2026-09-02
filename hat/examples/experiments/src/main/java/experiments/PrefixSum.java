@@ -29,7 +29,8 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.annotations.Kernel;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.annotations.Preformatted;
 import hat.annotations.TypeDef;
 import hat.backend.Backend;
@@ -37,10 +38,8 @@ import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.RO;
 import optkl.ifacemapper.MappableIface.RW;
 import jdk.incubator.code.Reflect;
 
@@ -166,41 +165,41 @@ public class PrefixSum {
 // then sum each group
 
     @Reflect
-    static void groupScan(@RO KernelContext kc, @RW S32Array dataBuf) {
+    static void groupScan( @RW S32Array dataBuf) {
         var scratchBuf = SharedS32x256Array.createLocal();
         // int[] scratch=scratchBuf.arrayView();
         int[] data = dataBuf.arrayView();
 
-        scratchBuf.array(kc.lix, data[kc.gix]); // scratch[kc.lix]=data[kc.gix];
-        kc.barrier();
+        scratchBuf.array(LIX(), data[GIX()]); // scratch[LIX()]=data[GIX()];
+        barrier();
 
-        for (int step = 2; step <= kc.lsx; step <<= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + scratchBuf.array(kc.lix - (step >> 1))); // scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
+        for (int step = 2; step <= LSX(); step <<= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + scratchBuf.array(LIX() - (step >> 1))); // scratch[LIX()]+=scratch[LIX()-(step>>1)];
             }
-            kc.barrier();
+            barrier();
         }
         int sum = 0;
-        if ((kc.lix + 1) == kc.lsx) {
-            sum = scratchBuf.array(kc.lix);    // sum = scratch[kc.lix];
-            scratchBuf.array(kc.lix, 0); // scratch[kc.lix]=0;
+        if ((LIX() + 1) == LSX()) {
+            sum = scratchBuf.array(LIX());    // sum = scratch[LIX()];
+            scratchBuf.array(LIX(), 0); // scratch[LIX()]=0;
         }
-        kc.barrier();
-        for (int step = kc.lsx; step > 1; step >>= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                int prev = scratchBuf.array(kc.lix - (step >> 1));                // int prev = scratch[kc.lix-(step>>1)];
-                scratchBuf.array(kc.lix - (step >> 1), scratchBuf.array(kc.lix)); // scratch[kc.lix-(step>>1)]=scratch[kc.lix];
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + prev);        //  scratch[kc.lix]+= prev;
+        barrier();
+        for (int step = LSX(); step > 1; step >>= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                int prev = scratchBuf.array(LIX() - (step >> 1));                // int prev = scratch[LIX()-(step>>1)];
+                scratchBuf.array(LIX() - (step >> 1), scratchBuf.array(LIX())); // scratch[LIX()-(step>>1)]=scratch[LIX()];
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + prev);        //  scratch[LIX()]+= prev;
             }
-            kc.barrier();
+            barrier();
         }
 
-        if ((kc.lix + 1) == kc.lsx) {
-            data[kc.gix] = sum;
+        if ((LIX() + 1) == LSX()) {
+            data[GIX()] = sum;
         } else {
-            data[kc.gix] = scratchBuf.array(kc.lix + 1);  // data[ kc.gix] = scratch[kc.lix+1];
+            data[GIX()] = scratchBuf.array(LIX() + 1);  // data[ GIX()] = scratch[LIX()+1];
         }
-        kc.barrier();
+        barrier();
 
     }
 
@@ -256,39 +255,39 @@ public class PrefixSum {
                         return;
                     }
             """)
-    static void crossGroupScan(@RO KernelContext kc, @RW S32Array dataBuf) {/*
+    static void crossGroupScan( @RW S32Array dataBuf) {/*
         var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();  // int[] scratch=scratchBuf.arrayView();
 
-        int gid = (kc.gix * (kc.gsx)) - 1; // 0-> -1?  hence the >0 checks below.
+        int gid = (GIX() * (GSX())) - 1; // 0-> -1?  hence the >0 checks below.
 
-        scratchBuf.array(kc.lix, (gid > 0) ? data[gid] : 0);   // scratch[kc.lix]= (gid>0)?data[gid]:0;
+        scratchBuf.array(LIX(), (gid > 0) ? data[gid] : 0);   // scratch[LIX()]= (gid>0)?data[gid]:0;
         kc.barrier();
-        for (int step = 2; step <= kc.gsx; step <<= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + scratchBuf.array(kc.lix - (step >> 1))); // scratch[kc.lix]+=scratch[kc.lix-(step>>1)];
+        for (int step = 2; step <= GSX(); step <<= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + scratchBuf.array(LIX() - (step >> 1))); // scratch[LIX()]+=scratch[LIX()-(step>>1)];
             }
             kc.barrier();
         }
         int sum = 0;
-        if ((kc.lix + 1) == kc.gsx) {
-            sum = scratchBuf.array(kc.lix);     // sum = scratch[kc.lix];
-            scratchBuf.array(kc.lix, 0);  // scratch[kc.lix]=0;
+        if ((LIX() + 1) == GSX()) {
+            sum = scratchBuf.array(LIX());     // sum = scratch[LIX()];
+            scratchBuf.array(LIX(), 0);  // scratch[LIX()]=0;
         }
         kc.barrier();
-        for (int step = kc.gsx; step > 1; step >>= 1) {
-            if (((kc.lix + 1) % step) == 0) {
-                int swap = scratchBuf.array(kc.lix - (step >> 1));                // int swap = scratch[kc.lix-(step>>1)];
-                scratchBuf.array(kc.lix - (step >> 1), scratchBuf.array(kc.lix)); // scratch[kc.lix-(step>>1)]=scratch[kc.lix];
-                scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + swap);        // scratch[kc.lix]+= swap;
+        for (int step = GSX(); step > 1; step >>= 1) {
+            if (((LIX() + 1) % step) == 0) {
+                int swap = scratchBuf.array(LIX() - (step >> 1));                // int swap = scratch[LIX()-(step>>1)];
+                scratchBuf.array(LIX() - (step >> 1), scratchBuf.array(LIX())); // scratch[LIX()-(step>>1)]=scratch[LIX()];
+                scratchBuf.array(LIX(), scratchBuf.array(LIX()) + swap);        // scratch[LIX()]+= swap;
             }
             kc.barrier();
         }
 
-        if ((kc.lix + 1) == kc.gsx) {
+        if ((LIX() + 1) == GSX()) {
             data[gid] = sum;
         } else if (gid > 0) {
-            data[gid] = scratchBuf.array(kc.lix + 1); //  data[ gid] = scratch[kc.lix+1];
+            data[gid] = scratchBuf.array(LIX() + 1); //  data[ gid] = scratch[LIX()+1];
         }
         kc.barrier(); */
     }
@@ -302,18 +301,18 @@ public class PrefixSum {
     //                 s0                s1                s2                s3                 s4
     //                     0+s0, 1+s0, ....| 0+s1, 1+s1, ....| 0+s2, 1+s2, ....| 0+s3, 1+s4, ....
     @Reflect
-    static void sumKernel(@RO KernelContext kc, @RW S32Array dataBuf) {
+    static void sumKernel( @RW S32Array dataBuf) {
         var scratchBuf = SharedS32x256Array.createLocal();
         int[] data = dataBuf.arrayView();
         //  int[] scratch=scratchBuf.arrayView();
 
-        scratchBuf.array(kc.lix, data[kc.gix]); // scratch[kc.lix] = data[kc.gix];
-        kc.barrier();
-        if ((kc.lix + 1) != kc.gsx && kc.gix > 0) {// don't do this for last in group
-            scratchBuf.array(kc.lix, scratchBuf.array(kc.lix) + data[(kc.gix * kc.gsx) - 1]); // scratch[kc.lix]+= data[(kc.gix*kc.gsx)-1];
+        scratchBuf.array(LIX(), data[GIX()]); // scratch[LIX()] = data[GIX()];
+        barrier();
+        if ((LIX() + 1) != GSX() && GIX() > 0) {// don't do this for last in group
+            scratchBuf.array(LIX(), scratchBuf.array(LIX()) + data[(GIX() * GSX()) - 1]); // scratch[LIX()]+= data[(GIX()*GSX())-1];
         }
-        kc.barrier();
-        data[kc.gix] = scratchBuf.array(kc.lix); // data[kc.gix]=scratch[kc.lix];
+        barrier();
+        data[GIX()] = scratchBuf.array(LIX()); // data[GIX()]=scratch[LIX()];
     }
     static String view(int[] data){
         StringBuilder sb = new StringBuilder();
@@ -353,11 +352,11 @@ public class PrefixSum {
         }
         results.add(view(ref));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of1D(data.length()), kc -> groupScan(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()), () -> groupScan( data));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), kc -> crossGroupScan(kc, data));
+        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), () -> crossGroupScan( data));
         results.add(view(data));
-        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), kc -> sumKernel(kc, data));
+        cc.dispatchKernel(NDRange.of1D(GROUP_SIZE), () -> sumKernel( data));
       //  results.add(view(data));
         results.add(view(seq));
         boolean brokenBytecodeGen = false;
@@ -374,9 +373,7 @@ public class PrefixSum {
         Accelerator accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         var methodRef= MethodRef.method(PrefixSum.class, "compute", void.class, ComputeContext.class,S32Array.class);
         var funcOp = Op.ofMethod(methodRef.resolveToMethod(MethodHandles.lookup())).get();
-
-        VarTable varTable = new VarTable(funcOp.funcName());
-        Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(), funcOp, varTable);
+        Backend.injectBufferTracking(accelerator.config(),accelerator.lookup(), funcOp);
         JavaCodeBuilder jc = new JavaCodeBuilder(accelerator.lookup(),funcOp);
         System.out.println(jc.toText());
         S32Array input = S32Array.create(accelerator, GROUP_SIZE * GROUP_SIZE);

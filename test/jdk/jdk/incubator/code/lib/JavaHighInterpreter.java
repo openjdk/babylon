@@ -21,7 +21,6 @@
  * questions.
  */
 
-import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 
@@ -42,17 +41,17 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
     }
 
     static class JavaHighEnv extends JavaLowInterpreter.JavaEnv {
-        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<Block>> catchBlocks) {
-            super(bindings, l, catchBlocks);
+        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
+            super(bindings, l, catchHandlers);
         }
 
         @Override
         protected Env newEnv(Map<Value, Object> m) {
-            return new JavaHighEnv(m, l, catchBlocks);
+            return new JavaHighEnv(m, l, catchHandlers);
         }
 
         @Override
-        protected JavaEnv newEnv(Deque<List<Block>> catchBlocks) {
+        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
             return new JavaHighEnv(bindings, l, catchBlocks);
         }
 
@@ -104,7 +103,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
     @Override
     public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
         return switch (op) {
-            case JavaOp.StatementTargetOp _ -> {
+            case JavaOp.StatementTargetingOp _ -> {
                 List<Object> operands = e.valuesOf(op.operands());
                 yield new TerminatingOpEffect(op, operands, e);
             }
@@ -270,20 +269,18 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
     }
 
     private static Body findCatchBody(MethodHandles.Lookup l, JavaOp.TryOp tryOp, Throwable t) {
-        Body cb = null;
-        for (Body catchBody : tryOp.catchBodies()) {
-            Class<?> c;
+        for (int i = 0; i < tryOp.catchBodies().size(); i++) {
+            Body catchBody = tryOp.catchBodies().get(i);
+            CatchHandler handler = new CatchHandler(tryOp.catchTypes().get(i), catchBody.entryBlock());
             try {
-                c = resolveToClass(l, catchBody.entryBlock().parameters().getFirst().type());
+                if (handler.matches(l, t)) {
+                    return catchBody;
+                }
             } catch (ReflectiveOperationException ex) {
                 throw new InterpreterException(ex);
             }
-            if (c.isInstance(t)) {
-                cb = catchBody;
-                break;
-            }
         }
-        return cb;
+        return null;
     }
 
     static OpEffect processVoidEffect(TerminatingOpEffect eff, Body body, Env e) {

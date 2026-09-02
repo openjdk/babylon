@@ -284,6 +284,29 @@ public class TestBytecode {
         return i;
     }
 
+    @Reflect
+    static int tryWithConditionalResourceFinallyInLoopWithBreakAndContinue(int i) {
+        for (int j = -5; j < 5; j++) {
+            try (var _ = i % 2 == 1 ? Stream.empty(): Stream.empty()) {
+                if (i == j) continue;
+                i++;
+            } finally {
+                if (i == -j) break;
+                i = i + j;
+            }
+        }
+        return i;
+    }
+
+    @Reflect
+    static int definitiveAssignment(int i) {
+        int assigned;
+        if (i > 0 && (assigned = i) > 1) {
+            return assigned;
+        }
+        return -1;
+    }
+
     public record A(String s) {}
 
     @Reflect
@@ -497,6 +520,14 @@ public class TestBytecode {
         return ret;
     }
 
+    record Box<T>(T value) {}
+
+    @Reflect
+    static int genericFieldCast(String s) {
+        Box<String> box = new Box(s);
+        return box.value.length();
+    }
+
     @Reflect
     static String stringConcat(String a, String b) {
         return "a"+ a +"\u0001" + a + "b\u0002c" + b + "\u0001\u0002" + b + "dd";
@@ -552,6 +583,18 @@ public class TestBytecode {
     }
 
     @Reflect
+    static boolean finallyPassingThrough(boolean flag) {
+        try {
+            if (flag) {
+                return flag;
+            }
+        } finally {
+            flag = !flag;
+        }
+        return flag;
+    }
+
+    @Reflect
     static long doubleUseOfOperand(int x) {
         long piece = x;
         return piece * piece;
@@ -574,6 +617,30 @@ public class TestBytecode {
             return ss.length();
         }
         return -1;
+    }
+
+    @Reflect
+    static int unreachable(int i) {
+        while (true) {
+            if (i-- <= 0) return i;
+        }
+    }
+
+    @Reflect
+    static int constantMerge(boolean value) {
+        return (value && true) ? 1 : 0;
+    }
+
+    @Reflect
+    static int largeLambda(int x, int y) {
+        Supplier<int[][][][][][][][]> lambda = () -> new int[][][][][][][][] {
+                {{{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}},
+                {{{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}},
+                {{{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}},
+                {{{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}},
+                {{{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}},
+                {{{{{{{1}}}}}}, {{{{{{1}}}}}}, {{{{{{0}}}}}}, {{{{{{0}}}}}}, {{{{{{1}}}}}}, {{{{{{1}}}}}}}};
+        return lambda.get()[y][x][0][0][0][0][0][0];
     }
 
     record TestData(Method testMethod) {

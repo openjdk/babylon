@@ -91,7 +91,7 @@ Kernel's and any kernel reachable methods will naturally be restricted to subset
       - Technically you can call a kernel entrypoint, but must pass your KernelContext
    * `ifaceMappedSegment` accessor/mutators (see later)
    * Calls on `KernelContext` (backend kernel features)
-     - `KernelContext.barrier()`
+     - `barrier()`
      - `kernelContext.I32.hypot(x,y)`
 #### Kernel Entrypoints
 * Declared `@Reflect static public void`

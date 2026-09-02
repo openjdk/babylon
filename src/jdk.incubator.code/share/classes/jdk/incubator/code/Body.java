@@ -499,9 +499,15 @@ public final class Body implements CodeElement<Body, Block> {
      */
     public final class Builder {
         /**
-         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a code context and code
+         * transformer derived from {@code connectedAncestorBody}.
+         * <p>
+         * If {@code connectedAncestorBody} is {@code null} then the entry block builder has a
          * {@link CodeContext#create() new} code context and a {@link CodeTransformer#COPYING_TRANSFORMER copying}
          * code transformer.
+         * If {@code connectedAncestorBody} is {@code non-null} then the entry block builder has a
+         * {@link CodeContext#create(CodeContext) child} of {@code connectedAncestorBody}'s entry block builder's code
+         * context and the same code transformer as {@code connectedAncestorBody}'s entry block builder.
          *
          * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
          * {@code null} if the created body builder is isolated
@@ -511,29 +517,52 @@ public final class Body implements CodeElement<Body, Block> {
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
         public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature) {
-            // @@@ Creation of CodeContext
-            return of(connectedAncestorBody, bodySignature, CodeContext.create(), CodeTransformer.COPYING_TRANSFORMER);
+            Block.Builder connectedEntryBlockBuilder = connectedAncestorBody != null
+                ? connectedAncestorBody.entryBlock()
+                : null;
+            CodeContext cc = connectedEntryBlockBuilder != null
+                    ? CodeContext.create(connectedEntryBlockBuilder.context())
+                    : CodeContext.create();
+            CodeTransformer ct = connectedEntryBlockBuilder != null
+                    ? connectedEntryBlockBuilder.transformer()
+                    : CodeTransformer.COPYING_TRANSFORMER;
+            return of(connectedAncestorBody, bodySignature, cc, ct);
         }
 
         /**
-         * Creates a body builder, with an entry block {@link #entryBlock builder} that has the given code context
-         * and a {@link CodeTransformer#COPYING_TRANSFORMER copying} code transformer.
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has a code context derived
+         * from {@code connectedAncestorBody} and the given code transformer.
+         * <p>
+         * If {@code connectedAncestorBody} is {@code null}, then the entry block builder has a
+         * {@link CodeContext#create() new} code context.
+         * If {@code connectedAncestorBody} is {@code non-null} then the entry block builder has a
+         * {@link CodeContext#create(CodeContext) child} of {@code connectedAncestorBody}'s entry block builder's code
+         * context.
+         *
+         * If {@code connectedAncestorBody} is {@code non-null}, then the entry block builder has the same code context
+         * as {@code connectedAncestorBody}'s entry block builder.
          *
          * @param connectedAncestorBody  the nearest ancestor body builder if the created body builder is connected, or
          * {@code null} if the created body builder is isolated
          * @param bodySignature the initial body signature
-         * @param cc            the code context
+         * @param ct            the code transformer for the entry block builder
          * @return the body builder
          * @throws IllegalStateException if the ancestor body builder is finished
          * @see #of(Builder, FunctionType, CodeContext, CodeTransformer)
          */
-        public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature, CodeContext cc) {
-            return of(connectedAncestorBody, bodySignature, cc, CodeTransformer.COPYING_TRANSFORMER);
+        public static Builder of(Builder connectedAncestorBody, FunctionType bodySignature, CodeTransformer ct) {
+            Block.Builder connectedEntryBlockBuilder = connectedAncestorBody != null
+                    ? connectedAncestorBody.entryBlock()
+                    : null;
+            CodeContext cc = connectedEntryBlockBuilder != null
+                    ? CodeContext.create(connectedEntryBlockBuilder.context())
+                    : CodeContext.create();
+            return of(connectedAncestorBody, bodySignature, cc, ct);
         }
 
         /**
-         * Creates a body builder whose entry block {@link #entryBlock builder} uses the given code context and code
-         * transformer.
+         * Creates a body builder, with an entry block {@link #entryBlock builder} that has the given code context and
+         * code transformer.
          * <p>
          * If {@code connectedAncestorBody} is non-{@code null}, the created body builder is
          * <a id="connected-builder"><i>connected</i></a> to {@code connectedAncestorBody} as the
@@ -592,6 +621,7 @@ public final class Body implements CodeElement<Body, Block> {
 
         Builder(Builder connectedAncestorBody, FunctionType bodySignature,
                 CodeContext cc, CodeTransformer ct) {
+
             // Structural check
             // The connected ancestor body should not be built before this body is built
             if (connectedAncestorBody != null) {
@@ -639,7 +669,7 @@ public final class Body implements CodeElement<Body, Block> {
          * @throws IllegalStateException if any connected body builder finishes successfully and its body's parent
          * operation is unplaced
          * @throws IllegalStateException if a reachable block has no terminating operation
-         * @throws IllegalStateException if a reachable block has a successor whose number of arguments is greater than
+         * @throws IllegalStateException if a reachable block has a successor whose number of arguments is not equal to
          * the number of parameters of the successor's target block
          * @throws IllegalStateException if an operation result or block parameter declared in an unreachable block is
          * used by an operation in a reachable block or a descendant block of a reachable block.
@@ -647,11 +677,10 @@ public final class Body implements CodeElement<Body, Block> {
          * not {@link Value#isDominatedBy(Value) dominate} a use of that value
          */
         public Body build(Op op) {
-            Objects.requireNonNull(op);
-
             // Structural check
             // This body builder should not be finished
             check();
+            Objects.requireNonNull(op);
             finished = true;
 
             // Structural check
@@ -716,9 +745,9 @@ public final class Body implements CodeElement<Body, Block> {
                         Block target = s.target;
 
                         // Check successor arity
-                        if (s.arguments().size() > target.parameters().size()) {
-                            String m = String.format("Block reference argument count is %d but target block parameter count is %d",
-                                    s.arguments().size(), target.parameters().size());
+                        if (s.arguments().size() != target.parameters().size()) {
+                            String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
+                                    target, s.arguments().size(), target.parameters().size());
                             throw new IllegalStateException(m + "\n"
                                     + n.diagnosticText(n.ops.getLast(), "reference with wrong arity")
                                     + target.diagnosticText("target block"));
@@ -920,7 +949,6 @@ public final class Body implements CodeElement<Body, Block> {
 
         // Build new block in body
         Block.Builder block(List<CodeType> params, CodeContext cc, CodeTransformer ct) {
-            check();
             Block block = Body.this.createBlock(params);
 
             return block.new Builder(this, cc, ct);

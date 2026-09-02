@@ -40,7 +40,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.Mutable;
@@ -78,8 +78,8 @@ public class KernelCallGraph implements LookupCarrier {
     public final Set<Class<? extends MappableIface>> accessedMappableIfaceClasses;
     public final Set<Class<? extends IfaceValue.vec>> accessedVecClasses;
     public final Set<Class<? extends S16ImplOfF16>> accessedFP16Classes;
-    public final Set<String> accessedKernelContextFields;
-
+  //  public final Set<String> accessedKernelContextFields;
+    public final Set<String> accessedKernelContextMethods;
     private boolean usesBarrier;
     private boolean usesAtomics;
     private final VarTable varTable;
@@ -90,9 +90,14 @@ public class KernelCallGraph implements LookupCarrier {
         this.computeCallGraph = computeCallGraph;
         var inlinedEntryPoint = inlineEntryPoint(kernelFunction);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
-                .anyMatch(invoke -> invoke.refIs(KernelContext.class) && invoke.named("barrier"));
-        this.accessedKernelContextFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
-                .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList()
+                .anyMatch(invoke -> invoke instanceof OpHelper.Invoke.Static invokeStatic && invokeStatic.refIs(KernelContext.class) && invokeStatic.named("barrier"));
+        // We should be able to remove these field access checks once we pivot to using direct access to KernelContext static calls.
+    //    this.accessedKernelContextFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
+      //          .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList()
+       // );
+        this.accessedKernelContextMethods = new HashSet<>(OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
+                .filter(invoke -> invoke instanceof OpHelper.Invoke.Static)
+                .filter(invokeStatic -> invokeStatic.refIs(KernelContext.class) && invokeStatic.nameMatchesRegex(KernelContext.threadAccessRegex)).map(OpHelper.Invoke::name).toList()
         );
         this.accessedTypes = inlinedEntryPoint.elements()
                 .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
@@ -208,9 +213,9 @@ public class KernelCallGraph implements LookupCarrier {
                     var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
                     var exitBlockBuilder = jdk.incubator.code.dialect.core.Inliner.inline(
                             blockbuilder, ssaInline,
-                            blockbuilder.context().getValues(invoke.op().operands()), (_, value) -> {
-                                if (value != null) {
-                                    blockbuilder.context().mapValue(invoke.op().result(), value);
+                            blockbuilder.context().getValues(invoke.op().operands()), (_, v) -> {
+                                if (v != null) {
+                                    blockbuilder.context().mapValue(invoke.op().result(), v);
                                 }
                             });
                     if (!exitBlockBuilder.parameters().isEmpty()) {

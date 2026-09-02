@@ -41,10 +41,12 @@ CudaBackend::CudaModule::CudaKernel * CudaBackend::CudaModule::CudaKernel::of(Ke
 }
 
 bool CudaBackend::CudaModule::CudaKernel::setArg(KernelArg *arg){
-    argslist[arg->idx] = static_cast<void *>(&arg->value);
+    // remember the KernelArgs include a Dispatch context as first arg.Which we do not pass to kernel.  Hence (arg->.idx-1) here
+    argslist[arg->idx-1] = static_cast<void *>(&arg->value);
     return true;
 }
 bool CudaBackend::CudaModule::CudaKernel::setArg(KernelArg *arg, Buffer *buffer) {
-    argslist[arg->idx] = static_cast<void *>(&dynamic_cast<CudaBuffer *>(buffer)->devicePtr);
+   // remember the KernelArgs include a Dispatch context as first arg.Which we do not pass to kernel.  Hence (arg->.idx-1) here
+    argslist[arg->idx-1] = static_cast<void *>(&dynamic_cast<CudaBuffer *>(buffer)->devicePtr);
     return true;
 }

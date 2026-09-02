@@ -27,10 +27,10 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
-import optkl.ifacemapper.MappableIface.*;
 import jdk.incubator.code.Reflect;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -40,45 +40,45 @@ import java.lang.invoke.MethodHandles;
 public class TestParenthesis {
 
     @Reflect
-    public static void compute(KernelContext context, S32Array data) {
+    public static void compute( S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / (TN * TF);
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
-    public static void compute2(KernelContext context, S32Array data) {
+    public static void compute2( S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX / ((TN * TF) / (TN * TN));
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
-    public static void compute3(KernelContext context, S32Array data) {
+    public static void compute3( S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
         int c = MAX * (TF + 2) / ((TN * TF) / (TN * TN));
-        data.array(context.gix, c);
+        data.array(GIX(), c);
     }
 
     @Reflect
-    public static void compute(@RO ComputeContext cc, @WO S32Array data) {
-        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute(kc, data));
+    public static void compute(ComputeContext cc, S32Array data) {
+        cc.dispatchKernel(NDRange.of1D(data.length()),()-> compute( data));
     }
 
     @Reflect
-    public static void compute2(@RO ComputeContext cc, @WO S32Array data) {
-        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute2(kc, data));
+    public static void compute2(ComputeContext cc, S32Array data) {
+        cc.dispatchKernel(NDRange.of1D(data.length()),()-> compute2( data));
     }
 
     @Reflect
-    public static void compute3(@RO ComputeContext cc, @WO S32Array data) {
-        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute3(kc, data));
+    public static void compute3(ComputeContext cc, S32Array data) {
+        cc.dispatchKernel(NDRange.of1D(data.length()),()-> compute3( data));
     }
 
     @HatTest

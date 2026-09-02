@@ -687,8 +687,10 @@ public class SwitchExpressionTest2 {
                         yield %28;
                     }
                     ()java.type:"int" -> {
-                        %29 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %29;
+                        %29 : java.type:"java.lang.String" = constant @null;
+                        %30 : java.type:"java.lang.Throwable" = constant @null;
+                        %31 : java.type:"java.lang.MatchException" = new %29 %30 @java.ref:"java.lang.MatchException::(java.lang.String, java.lang.Throwable)";
+                        throw %31;
                     };
                 return %3;
             };
@@ -1041,8 +1043,10 @@ public class SwitchExpressionTest2 {
                         yield %12;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %13 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %13;
+                        %13 : java.type:"java.lang.String" = constant @null;
+                        %14 : java.type:"java.lang.Throwable" = constant @null;
+                        %15 : java.type:"java.lang.MatchException" = new %13 %14 @java.ref:"java.lang.MatchException::(java.lang.String, java.lang.Throwable)";
+                        throw %15;
                     };
                 return %3;
             };
@@ -1147,8 +1151,10 @@ public class SwitchExpressionTest2 {
                         yield %18;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %19 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %19;
+                        %19 : java.type:"java.lang.String" = constant @null;
+                        %20 : java.type:"java.lang.Throwable" = constant @null;
+                        %21 : java.type:"java.lang.MatchException" = new %19 %20 @java.ref:"java.lang.MatchException::(java.lang.String, java.lang.Throwable)";
+                        throw %21;
                     };
                 return %7;
             };

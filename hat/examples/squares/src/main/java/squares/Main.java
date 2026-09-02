@@ -28,12 +28,11 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
 
 import jdk.incubator.code.Reflect;
-import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 
@@ -45,16 +44,16 @@ public class Main {
     }
 
     @Reflect
-    public static void squareKernel(KernelContext kc, S32Array s32Array) {
-        if (kc.gix < kc.gsx){
-           int value = s32Array.array(kc.gix);       // arr[cc.x]
-           s32Array.array(kc.gix, squareit(value));  // arr[cc.x]=value*value
+    public static void squareKernel( S32Array s32Array) {
+        if (GIX() < GSX()){
+           int value = s32Array.array(GIX());       // arr[cc.x]
+           s32Array.array(GIX(), squareit(value));  // arr[cc.x]=value*value
         }
     }
 
     @Reflect
-    public static void square(@MappableIface.RO ComputeContext cc, @MappableIface.RW S32Array s32Array) {
-        cc.dispatchKernel(NDRange.of1D(s32Array.length()), kc -> squareKernel(kc, s32Array));
+    public static void square(ComputeContext cc, S32Array s32Array) {
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()), () -> squareKernel( s32Array));
     }
 
     static void main(String[] args) {

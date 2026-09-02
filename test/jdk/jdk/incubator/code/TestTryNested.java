@@ -26,8 +26,10 @@
  * @modules jdk.incubator.code
  * @library lib
  * @run junit TestTryNested
+ * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryNested
  * @run main Unreflect TestTryNested
  * @run junit TestTryNested
+ * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryNested
  */
 
 import jdk.incubator.code.Reflect;
@@ -432,6 +434,42 @@ public class TestTryNested {
         }
     }
 
+
+    @Reflect
+    public static int multiCatch(int mode) {
+        try {
+            try {
+                if (mode == 0) {
+                    throw new IllegalArgumentException();
+                }
+                if (mode == 1) {
+                    throw new IllegalStateException();
+                }
+                if (mode == 2) {
+                    throw new ArithmeticException();
+                }
+                return 0;
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                return 10;
+            }
+        } catch (RuntimeException e) {
+            return 20;
+        }
+    }
+
+    @Test
+    public void testMultiCatch() {
+        CoreOp.FuncOp f = getFuncOp("multiCatch");
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
+
+        for (CoreOp.FuncOp op : List.of(f, lf)) {
+            for (int mode = 0; mode < 4; mode++) {
+                Assertions.assertEquals(
+                        multiCatch(mode),
+                        Interpreter.invoke(MethodHandles.lookup(), op, mode));
+            }
+        }
+    }
 
     static CoreOp.FuncOp getFuncOp(String name) {
         Optional<Method> om = Stream.of(TestTryNested.class.getDeclaredMethods())
