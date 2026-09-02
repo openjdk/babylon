@@ -112,7 +112,7 @@ public class TestDiagnostics {
         target.add(return_());
 
         assertEquals("""
-                Block reference argument count is 1 but target block parameter count is 0
+                Reference to block with 1 arguments but the block has 0 parameters
                 ^block_0:
                   %0 : java.type:"int" = constant @1;
                   branch ^block_1(%0);

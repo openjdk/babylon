@@ -746,8 +746,8 @@ public final class Body implements CodeElement<Body, Block> {
 
                         // Check successor arity
                         if (s.arguments().size() != target.parameters().size()) {
-                            String m = String.format("Reference to block %s with %d arguments but the block has %d parameters",
-                                    target, s.arguments().size(), target.parameters().size());
+                            String m = String.format("Reference to block with %d arguments but the block has %d parameters",
+                                    s.arguments().size(), target.parameters().size());
                             throw new IllegalStateException(m + "\n"
                                     + n.diagnosticText(n.ops.getLast(), "reference with wrong arity")
                                     + target.diagnosticText("target block"));
