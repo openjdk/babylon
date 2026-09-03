@@ -224,6 +224,7 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
 
+        var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
         var visitedAlready = new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
@@ -232,7 +233,9 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
                     boundSchema.schema().rootIfaceType.visitUniqueTypes(t -> {
                         if (visitedAlready.add(t)) { // true first time we see this type
-                            builder.typedef(boundSchema, t);
+                            if (preformattedAnnotation == null) {
+                                builder.typedef(boundSchema, t);
+                            }
                         }
                     });
                 });
@@ -250,7 +253,6 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
                 builder.typedefStruct(typedefAnnotation.name(), _ -> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
             }
-            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
             if (preformattedAnnotation != null) {
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformattedAnnotation.value());

@@ -24,7 +24,6 @@
  */
 package hat.buffer;
 
-import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -37,11 +36,6 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Tensor2DF32 extends Buffer {
-
-    @Reflect
-    default void schema() {
-        array(m() * n());
-    }
 
     int m();
     int n();

@@ -24,8 +24,6 @@
  */
 package hat.buffer;
 
-import hat.types.F16;
-import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -39,20 +37,9 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface Tensor2DF16 extends Buffer {
 
-    @Reflect
-    default void schema() {
-        array((long) m() * n());
-    }
-
     int m();
     int n();
-
     F16Array.F16Impl array(long index);
-
-    interface F16Impl extends Struct, F16 {
-        short value();
-        void value(short value);
-    }
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
 
