@@ -299,6 +299,24 @@ public class TestSwitchStatementOp {
     }
 
     @Test
+    void testCaseConstantEnumWithDefaultFallThrough() {
+        CoreOp.FuncOp lmodel = lower("caseConstantEnumWithDefaultFallThrough");
+        for (Day day : Day.values()) {
+            Assertions.assertEquals(caseConstantEnumWithDefaultFallThrough(day), Interpreter.invoke(MethodHandles.lookup(), lmodel, day));
+        }
+    }
+
+    @Reflect
+    private static int caseConstantEnumWithDefaultFallThrough(Day d) {
+        switch (d) {
+            case MON, FRI, SUN: return 0;
+            case TUE:
+            default:
+            case WED: return 1;
+        }
+    }
+
+    @Test
     void testCaseConstantOtherKindsOfExpr() {
         CoreOp.FuncOp lmodel = lower("caseConstantOtherKindsOfExpr");
         for (int i = 0; i < 14; i++) {
@@ -693,6 +711,93 @@ public class TestSwitchStatementOp {
             r.add("finally");
         }
         return r;
+    }
+
+    @Reflect
+    private static int caseReassignVar(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                i = 2;
+                return i;
+            default:
+                return -1;
+        }
+    }
+
+    @Reflect
+    private static int caseReassignVarFallThrough(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+            case 1:
+                i = 2;
+                return i;
+            default:
+                return -1;
+        }
+    }
+
+    @Reflect
+    private static int caseReassignVarNested(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                int j = (i = 2);
+                return i + j;
+            default:
+                return -1;
+        }
+    }
+
+    @Reflect
+    private static int caseReassignVarNestedBlock(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                {
+                    i = 2;
+                }
+                return i;
+            default:
+                return -1;
+        }
+    }
+
+    @Reflect
+    private static int caseReassignVarExpression(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                return i = 2;
+            default:
+                return -1;
+        }
+    }
+
+    @Test
+    void testCaseReassignVar() {
+        CoreOp.FuncOp lfrv = lower("caseReassignVar");
+        CoreOp.FuncOp lfrvft = lower("caseReassignVarFallThrough");
+        CoreOp.FuncOp lfrvn = lower("caseReassignVarNested");
+        CoreOp.FuncOp lfrvnb = lower("caseReassignVarNestedBlock");
+        CoreOp.FuncOp lfrve = lower("caseReassignVarExpression");
+        int[] args = {0, 1, 2};
+        for (int a : args) {
+            Assertions.assertEquals(caseReassignVar(a), Interpreter.invoke(MethodHandles.lookup(), lfrv, a));
+            Assertions.assertEquals(caseReassignVarFallThrough(a), Interpreter.invoke(MethodHandles.lookup(), lfrvft, a));
+            Assertions.assertEquals(caseReassignVarNested(a), Interpreter.invoke(MethodHandles.lookup(), lfrvn, a));
+            Assertions.assertEquals(caseReassignVarNestedBlock(a), Interpreter.invoke(MethodHandles.lookup(), lfrvnb, a));
+            Assertions.assertEquals(caseReassignVarExpression(a), Interpreter.invoke(MethodHandles.lookup(), lfrve, a));
+        }
     }
 
     private static CoreOp.FuncOp lower(String methodName) {

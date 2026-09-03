@@ -79,12 +79,14 @@ import com.sun.tools.javac.tree.JCTree.JCModuleDecl;
 import com.sun.tools.javac.tree.JCTree.JCNewArray;
 import com.sun.tools.javac.tree.JCTree.JCNewClass;
 import com.sun.tools.javac.tree.JCTree.JCReturn;
+import com.sun.tools.javac.tree.JCTree.JCStatement;
 import com.sun.tools.javac.tree.JCTree.JCTypeCast;
 import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
 import com.sun.tools.javac.tree.JCTree.JCAssert;
 import com.sun.tools.javac.tree.JCTree.Tag;
 import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
+import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.Assert;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
@@ -1644,6 +1646,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                                                           List<JCTree.JCCase> cases, FunctionType caseBodyType,
                                                           boolean isDefaultCaseNeeded) {
             List<Body.Builder> bodies = new ArrayList<>();
+            Map<Symbol, JCVariableDecl> prevCaseVars = new LinkedHashMap<>();
             boolean hasDefaultCase = false;
             boolean handlesNull = false;
 
@@ -1655,7 +1658,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     hasDefaultCase = true;
                 }
                 Body.Builder caseLabel = visitCaseLabel(tree, target, c);
-                Body.Builder caseBody = visitCaseBody(tree, c, caseBodyType, cases.getLast() == c);
+                Body.Builder caseBody = visitCaseBody(tree, c, prevCaseVars, caseBodyType, cases.getLast() == c);
+                addVars(c.stats, prevCaseVars);
                 bodies.add(caseLabel);
                 bodies.add(caseBody);
             }
@@ -1681,6 +1685,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             return new SwitchBodyInfo(handlesNull, bodies);
+        }
+
+        private static void addVars(com.sun.tools.javac.util.List<JCStatement> stats, Map<Symbol, JCVariableDecl> vars) {
+            for (; stats.nonEmpty(); stats = stats.tail) {
+                JCTree stat = stats.head;
+                if (stat.hasTag(Tag.VARDEF)) {
+                    vars.put(((JCVariableDecl) stat).sym, (JCVariableDecl) stat);
+                }
+            }
         }
 
         boolean handlesNull(JCTree.JCCase caseTree) {
@@ -1815,7 +1828,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             return body;
         }
 
-        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, FunctionType caseBodyType, boolean isLastCase) {
+        private Body.Builder visitCaseBody(JCTree tree, JCTree.JCCase c, Map<Symbol, JCVariableDecl> prevCaseVars, FunctionType caseBodyType, boolean isLastCase) {
             Body.Builder body = null;
 
             switch (c.caseKind) {
@@ -1841,6 +1854,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // boolean oneBlock = c.stats.size() == 1 && c.stats.head instanceof JCBlock;
                     pushBody(c, caseBodyType);
 
+                    for (JCVariableDecl var : assignedIn(prevCaseVars, c.stats)) {
+                        result = append(CoreOp.var(var.name.toString(), typeToCodeType(var.type)), generateLocation(var, false));
+                        stack.localToOp.put(var.sym, result);
+                    }
+
                     scan(c.stats);
 
                     appendTerminating(c.completesNormally
@@ -1854,6 +1872,27 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
             }
             return body;
+        }
+
+        private Set<JCVariableDecl> assignedIn(Map<Symbol, JCVariableDecl> vars, com.sun.tools.javac.util.List<JCStatement> stats) {
+            final Set<JCVariableDecl> initVars = new LinkedHashSet<>();
+            new TreeScanner() {
+                @Override
+                public void visitAssign(JCAssign tree) {
+                    JCVariableDecl var = vars.get(TreeInfo.symbol(TreeInfo.skipParens(tree.lhs)));
+                    if (var != null) {
+                        initVars.add(var);
+                    }
+                    super.visitAssign(tree);
+                }
+                @Override
+                public void visitLambda(JCLambda tree) {
+                }
+                @Override
+                public void visitClassDef(JCClassDecl tree) {
+                }
+            }.scan(stats);
+            return initVars;
         }
 
         @Override
