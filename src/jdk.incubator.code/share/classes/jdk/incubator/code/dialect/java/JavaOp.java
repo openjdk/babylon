@@ -5684,7 +5684,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         TryOp normalizeExtendedTryWithResources(Body.Builder anc, List<Value> res) {
             Body resource = resourcesBodies.get(res.size());
             Body.Builder resourceBody = Body.Builder.of(anc, CoreType.functionType(resource.yieldType()));
-            resourceBody.entryBlock().transformBody(resource, res);
+            resourceBody.entryBlock().transformBody(resource, res, resourceBody.entryBlock().context(), resourceBody.entryBlock().transformer());
             Body.Builder basicBody = Body.Builder.of(anc, CoreType.functionType(VOID, List.of(resource.yieldType())));
             Block.Builder bodyBlock = basicBody.entryBlock();
             res.add(bodyBlock.parameters().getFirst());
@@ -5692,7 +5692,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 bodyBlock.add(normalizeExtendedTryWithResources(basicBody, res));
                 bodyBlock.add(core_yield());
             } else {
-                bodyBlock.transformBody(body, res);
+                bodyBlock.transformBody(body, res, bodyBlock.context(), bodyBlock.transformer());
             }
             return try_(List.of(resourceBody), basicBody, List.of(), null);
         }
@@ -5727,12 +5727,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // for resource values, differs from the code context for b.parentBody().entryBlock().context()
             // which does not contain the mappings. In this case we need to explicitly
             // pass the b's code context when creating the body builder
-            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID), b.context(), b.transformer());
+            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
             Block.Builder entryBlock = normalizedBody.entryBlock();
             Body resourceBody = resourcesBodies.getFirst();
             CodeType resourceType = resourceBody.bodySignature().returnType();
             Block.Builder afterAcquire = entryBlock.block(resourceType);
-            entryBlock.transformBody(resourceBody, List.of(), (block, op) -> {
+            entryBlock.transformBody(resourceBody, List.of(), entryBlock.context(), (block, op) -> {
                 if (op instanceof CoreOp.YieldOp yop && op.ancestorBody() == resourceBody) {
                     block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
                 } else {
@@ -5751,7 +5751,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
             // @@@ following builder code may be refactored into a reflected template method transformation
             afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
-                tryEntry.transformBody(body, List.of(resourceArgument));
+                tryEntry.transformBody(body, List.of(resourceArgument), tryEntry.context(), tryEntry.transformer());
             }).catch_(type(Throwable.class), catchB -> {
                 Block.Parameter thrown = catchB.parameters().getFirst();
                 catchB.add(varStore(primaryExceptionVar, thrown));
