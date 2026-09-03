@@ -208,10 +208,10 @@ public class TestTileAPI {
         }
     }
 
-    private void checkResult(Tensor2DF32 matrixSeq, Tensor2DF32 matrixC, int size) {
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+    private void checkResult(Tensor2DF32 expected, Tensor2DF32 obtained) {
+        for (int i = 0; i < expected.m(); i++) {
+            for (int j = 0; j < obtained.n(); j++) {
+                HATAsserts.assertEquals(expected.array(i * obtained.n() + j), obtained.array(i * obtained.n() + j), 0.01f);
             }
         }
     }
@@ -244,12 +244,7 @@ public class TestTileAPI {
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
-
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
-            }
-        }
+        checkResult(matrixSeq, matrixC);
     }
 
     // ================================================================================================================
@@ -500,12 +495,7 @@ public class TestTileAPI {
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
-
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
-            }
-        }
+        checkResult(matrixSeq, matrixC);
     }
 
     @Reflect
@@ -553,12 +543,7 @@ public class TestTileAPI {
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
-
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
-            }
-        }
+        checkResult(matrixSeq, matrixC);
     }
 
     @Preformatted("""
@@ -656,17 +641,11 @@ public class TestTileAPI {
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
-
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.1f);
-            }
-        }
+        checkResult(matrixSeq, matrixC);
     }
 
     @HatTest
     public void test_hat_tile_08() {
-        IO.println("Testing hat_tile_08");
         final int M = 1024;
         final int N = 64;
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
@@ -674,6 +653,5 @@ public class TestTileAPI {
 
         HATAsserts.assertEquals(M, matrixA.m());
         HATAsserts.assertEquals(N, matrixA.n());
-
     }
 }
