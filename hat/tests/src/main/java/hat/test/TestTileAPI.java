@@ -87,18 +87,21 @@ import static optkl.ifacemapper.MappableIface.*;
  */
 public class TestTileAPI {
 
+    // ================================================================================================================
+    // Expressing Vector Addition
+    // ================================================================================================================
     @Reflect
-    public static void helloTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
+    public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
         final var pid = TileContext.BIDX();
-        var aTile = TileContext.load(inputA, pid, tileSize);
-        var bTile = TileContext.load(inputB, pid, tileSize);
-        var tileResult = TileOp.add(aTile, bTile);
-        TileContext.store(output, pid, tileResult);
+        var tileA = TileContext.load(inputA, pid, tileSize);
+        var tileB = TileContext.load(inputB, pid, tileSize);
+        var result = TileOp.add(tileA, tileB);
+        TileContext.store(output, pid, result);
     }
 
     @Reflect
-    public static void computeEmptyTile(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tile_size) {
-        computeContext.dispatchTile(NDRange.of1D(inputA.m(), tile_size), () -> helloTile(inputA, inputB, output, tile_size));
+    public static void vectorAddTile(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(inputA.m(), tileSize), () -> vectorAddTile(inputA, inputB, output, tileSize));
     }
 
     @HatTest
@@ -119,37 +122,20 @@ public class TestTileAPI {
         TensorF32 result = TensorF32.create(accelerator, size);
 
         // Invoking the kernel multiple times to check the code cache
-        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tileSize));
-        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tileSize));
+        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
+        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
 
         // change the tile size
         final int newTileSize = 16;
-        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, newTileSize));
+        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, newTileSize));
 
         // Alternate the tile size
-        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, tileSize));
-        accelerator.compute( (@Reflect Compute)computeContext -> computeEmptyTile(computeContext, inputA, inputB, result, newTileSize));
+        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
+        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, newTileSize));
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
         }
-    }
-
-    // ================================================================================================================
-    // Expressing Vector Addition
-    // ================================================================================================================
-    @Reflect
-    public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
-        final var pid = TileContext.BIDX();
-        var tileA = TileContext.load(inputA, pid, tileSize);
-        var tileB = TileContext.load(inputB, pid, tileSize);
-        var result = TileOp.add(tileA, tileB);
-        TileContext.store(output, pid, result);
-    }
-
-    @Reflect
-    public static void myComputeWithTile_vector_add(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
-        computeContext.dispatchTile(NDRange.of1D(inputA.m(), tileSize), () -> vectorAddTile(inputA, inputB, output, tileSize));
     }
 
     @HatTest
@@ -160,8 +146,7 @@ public class TestTileAPI {
         TensorF32 inputA = TensorF32.create(accelerator, size);
         TensorF32 inputB = TensorF32.create(accelerator, size);
         TensorF32 result = TensorF32.create(accelerator, size);
-        accelerator.compute( (@Reflect Compute)computeContext ->
-            myComputeWithTile_vector_add(computeContext, inputA, inputB, result, tile_size));
+        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tile_size));
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
@@ -223,6 +208,14 @@ public class TestTileAPI {
         }
     }
 
+    private void checkResult(Tensor2DF32 matrixSeq, Tensor2DF32 matrixC, int size) {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
+            }
+        }
+    }
+
     @HatTest
     public void test_hat_tile_02() {
 
@@ -254,7 +247,6 @@ public class TestTileAPI {
 
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                IO.println(i + "," + j + ": " + matrixSeq.array((long) i * size + j) + " vs " + matrixC.array((long) i * size + j));
                 HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.01f);
             }
         }
@@ -670,5 +662,18 @@ public class TestTileAPI {
                 HATAsserts.assertEquals(matrixSeq.array(i * size + j), matrixC.array(i * size + j), 0.1f);
             }
         }
+    }
+
+    @HatTest
+    public void test_hat_tile_08() {
+        IO.println("Testing hat_tile_08");
+        final int M = 1024;
+        final int N = 64;
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        Tensor2DF16 matrixA = Tensor2DF16.create(accelerator, M, N);
+
+        HATAsserts.assertEquals(M, matrixA.m());
+        HATAsserts.assertEquals(N, matrixA.n());
+
     }
 }

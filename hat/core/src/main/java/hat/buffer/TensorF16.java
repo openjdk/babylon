@@ -30,10 +30,14 @@ import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
 public interface TensorF16 extends Buffer {
 
     int length();
     F16Impl array(long index);
+
+    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
 
     interface F16Impl extends Struct, F16 {
         short value();
@@ -42,6 +46,7 @@ public interface TensorF16 extends Buffer {
 
     Schema<TensorF16> schema = Schema.of(TensorF16.class, f16array ->
             f16array.arrayLen("length")
+                    .pad(12)
                     .array("array",
                             half -> half.fields("value")));
 

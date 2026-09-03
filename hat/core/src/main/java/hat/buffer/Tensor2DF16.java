@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import hat.types.F16;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -39,9 +40,14 @@ public interface Tensor2DF16 extends Buffer {
 
     int m();
     int n();
-    F16Array.F16Impl array(long index);
+    HalfImpl array(long index);
 
-    long ARRAY_OFFSET = JAVA_INT.byteSize();
+    interface HalfImpl extends Struct, F16 {
+        short value();
+        void value(short value);
+    }
+
+    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
 
     Schema<Tensor2DF16> schema = Schema.of(Tensor2DF16.class, ifaceType ->
             ifaceType.arrayLen("m", "n")
@@ -54,12 +60,12 @@ public interface Tensor2DF16 extends Buffer {
     }
 
     default Tensor2DF16 copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, m() * n());
+        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_HEADER_OFFSET, m() * n());
         return this;
     }
 
     default Tensor2DF16 copyTo(float[] floats) {
-        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, m() * n());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_HEADER_OFFSET, floats, 0, m() * n());
         return this;
     }
 

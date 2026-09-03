@@ -42,7 +42,7 @@ public interface Tensor2DF32 extends Buffer {
     float array(long idx);
     void array(long idx, float f);
 
-    long ARRAY_OFFSET = JAVA_INT.byteSize();
+    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
 
     Schema<Tensor2DF32> schema = Schema.of(Tensor2DF32.class, ifaceType ->
             ifaceType.arrayLen("m", "n")
@@ -54,12 +54,12 @@ public interface Tensor2DF32 extends Buffer {
     }
 
     default Tensor2DF32 copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, m() * n());
+        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_HEADER_OFFSET, m() * n());
         return this;
     }
 
     default Tensor2DF32 copyTo(float[] floats) {
-        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, m() * n());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_HEADER_OFFSET, floats, 0, m() * n());
         return this;
     }
 

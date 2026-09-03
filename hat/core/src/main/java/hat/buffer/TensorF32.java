@@ -24,7 +24,6 @@
  */
 package hat.buffer;
 
-import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -38,16 +37,11 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface TensorF32 extends Buffer {
 
-    @Reflect
-    default void schema() {
-        array(m());
-    }
-
     int m();
     float array(long idx);
     void array(long idx, float f);
 
-    long ARRAY_OFFSET = JAVA_INT.byteSize();
+    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
 
     Schema<TensorF32> schema = Schema.of(TensorF32.class, $ -> $
             .arrayLen("m")
@@ -59,7 +53,7 @@ public interface TensorF32 extends Buffer {
     }
 
     default TensorF32 copyFrom(float[] floats) {
-        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, m());
+        MemorySegment.copy(floats, 0, MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_HEADER_OFFSET, m());
         return this;
     }
 
@@ -68,7 +62,7 @@ public interface TensorF32 extends Buffer {
     }
 
     default TensorF32 copyTo(float[] floats) {
-        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_OFFSET, floats, 0, m());
+        MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_FLOAT, ARRAY_HEADER_OFFSET, floats, 0, m());
         return this;
     }
 
