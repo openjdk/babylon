@@ -3514,34 +3514,28 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 }
             }
 
-            // Reorder bodies with default case at the end
-            // @@@ Model this as the last case
-            List<Body> reorderedBodies;
-            if (defaultCaseIndex != -1 && defaultCaseIndex != bodies().size() - 2) {
-                reorderedBodies = new ArrayList<>(bodies().size());
-                for (int i = 0; i < bodies().size(); i += 2) {
-                    if (i != defaultCaseIndex) {
-                        reorderedBodies.add(bodies().get(i));
-                        reorderedBodies.add(bodies().get(i + 1));
-                    }
-                }
-                reorderedBodies.add(bodies().get(defaultCaseIndex));
-                reorderedBodies.add(bodies().get(defaultCaseIndex + 1));
-                defaultCaseIndex = bodies().size() - 2;
-            } else {
-                reorderedBodies = bodies();
-            }
-
             // Create predicate and action blocks
-            List<Block.Builder> blocks = new ArrayList<>(reorderedBodies.size());
-            Map<Body, Block.Builder> body2blocks = new IdentityHashMap<>();
-            for (int i = 0; i < reorderedBodies.size(); i ++) {
-                Block.Builder block = i == 0 ? b : b.block();
-                blocks.add(block);
-                body2blocks.put(reorderedBodies.get(i), block);
+            List<Block.Builder> blocks = new ArrayList<>(bodies().size());
+            // Reuse incoming block for the first predicate
+            int reuseIdx = 0;
+            for (int i = 0; i < bodies().size(); i ++) {
+                if (i == defaultCaseIndex) {
+                    // No block needed for default predicate
+                    blocks.add(null);
+                    if (i == 0) {
+                        // The first predicate is default. Reuese incoming block
+                        // for the default action block itself if the switch is
+                        // only-default, or for the next predicate otherwise
+                        reuseIdx = bodies().size() > 2 ? i + 2 : i + 1;
+                    }
+                } else if (i == reuseIdx) {
+                    blocks.add(b);
+                } else {
+                    blocks.add(b.block());
+                }
             }
 
-            Block.Builder exit = b.block();
+            Block.Builder exit = bodies().isEmpty() ? b : b.block();
             if (resultType() != VOID) {
                 Value r = exit.parameter(resultType());
                 exit.context().mapValue(result(), r);
@@ -3550,46 +3544,38 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // Set this body's break target to the exit block
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
             // Set action body's continue target to next action block for lowering of SwitchFallThroughOp
-            // using original source order
             for (int i = 1; i < bodies().size() - 2; i += 2) {
                 Body actionBody = bodies().get(i);
-                Body nextActionBody = bodies().get(i + 2);
-                BranchTarget.setBranchTarget(b.context(), actionBody, null, body2blocks.get(nextActionBody));
+                Block.Builder nextActionBlock = blocks.get(i + 2);
+                BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
             }
 
-            if (defaultCaseIndex == 0) {
-                // If there is only the default case branch to the action block
-                Block.Builder actionBlock = blocks.get(1);
-                b.add(branch(actionBlock.reference()));
-            }
-            for (int i = 0; i < reorderedBodies.size(); i += 2) {
-                Body predicateBody = reorderedBodies.get(i);
+            for (int i = 0; i < bodies().size(); i += 2) {
+                Body predicateBody = bodies().get(i);
                 Block.Builder predicateBlock = blocks.get(i);
-                Body actionBody = reorderedBodies.get(i + 1);
+                Body actionBody = bodies().get(i + 1);
                 Block.Builder actionBlock = blocks.get(i + 1);
 
                 // Lower predicate body for non-default cases
                 if (i != defaultCaseIndex) {
-                    boolean isLastCaseNoDefault = i == reorderedBodies.size() - 2;
-                    boolean isLastCaseWithDefault = defaultCaseIndex == i + 2;
+                    int nextPredicateIdx = i + 2;
+                    if (nextPredicateIdx == defaultCaseIndex) {
+                        nextPredicateIdx += 2;
+                    }
+
                     Block.Builder noMatchBlock;
-                    if (isLastCaseNoDefault) {
+                    if (nextPredicateIdx < bodies().size()) {
+                        noMatchBlock = blocks.get(nextPredicateIdx);
+                    } else if (defaultCaseIndex != -1) {
+                        noMatchBlock = blocks.get(defaultCaseIndex + 1);
+                    } else if (this instanceof SwitchExpressionOp) {
                         // If switch expression, the last predicate body should be unconditional
                         // and no conditional branch should be required. Rather than verifying
                         // that create a no match block that terminates with unreachable
-                        if (this instanceof SwitchExpressionOp) {
-                            Block.Builder unreachableBlock = b.block();
-                            unreachableBlock.add(unreachable());
-                            noMatchBlock = unreachableBlock;
-                        } else {
-                            noMatchBlock = exit;
-                        }
-                    } else if (isLastCaseWithDefault) {
-                        Block.Builder defaultActionBlock = blocks.get(defaultCaseIndex + 1);
-                        noMatchBlock = defaultActionBlock;
+                        noMatchBlock = b.block();
+                        noMatchBlock.add(unreachable());
                     } else {
-                        Block.Builder nextPredicateBlock = blocks.get(i + 2);
-                        noMatchBlock = nextPredicateBlock;
+                        noMatchBlock = exit;
                     }
 
                     predicateBlock.transformBody(predicateBody, List.of(selectorExpression), loweringTransformer(inherited,

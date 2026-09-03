@@ -159,54 +159,51 @@ public class TestSynchronized {
                 throw %7;
 
               ^block_2:
-                branch ^block_3;
-
-              ^block_3:
                 %8 : java.type:"java.lang.Object" = var.load %2;
-                branch ^block_4(%8);
+                branch ^block_3(%8);
 
-              ^block_4(%9 : java.type:"java.lang.Object"):
+              ^block_3(%9 : java.type:"java.lang.Object"):
                 monitor.enter %9;
                 %10 : java.type:"java.lang.Throwable" = constant @null;
-                %11 : java.type:"void" = exception.region.enter ^block_5 ^block_12(%10);
+                %11 : java.type:"void" = exception.region.enter ^block_4 ^block_11(%10);
 
-              ^block_5:
+              ^block_4:
                 %12 : java.type:"int" = var.load %3;
                 %13 : java.type:"int" = constant @0;
                 %14 : java.type:"boolean" = gt %12 %13;
-                cbranch %14 ^block_6 ^block_8;
+                cbranch %14 ^block_5 ^block_7;
 
-              ^block_6:
+              ^block_5:
                 %15 : java.type:"int" = var.load %3;
                 monitor.exit %9;
-                exception.region.exit %11 ^block_7;
+                exception.region.exit %11 ^block_6;
+
+              ^block_6:
+                branch ^block_10(%15);
 
               ^block_7:
-                branch ^block_11(%15);
+                branch ^block_8;
 
               ^block_8:
-                branch ^block_9;
-
-              ^block_9:
                 %16 : java.type:"int" = constant @0;
                 monitor.exit %9;
-                exception.region.exit %11 ^block_10;
+                exception.region.exit %11 ^block_9;
 
-              ^block_10:
-                branch ^block_11(%16);
+              ^block_9:
+                branch ^block_10(%16);
 
-              ^block_11(%17 : java.type:"int"):
+              ^block_10(%17 : java.type:"int"):
                 return %17;
 
-              ^block_12(%18 : java.type:"java.lang.Throwable"):
+              ^block_11(%18 : java.type:"java.lang.Throwable"):
                 %19 : java.type:"java.lang.Throwable" = constant @null;
-                %20 : java.type:"void" = exception.region.enter ^block_13 ^block_12(%19);
+                %20 : java.type:"void" = exception.region.enter ^block_12 ^block_11(%19);
+
+              ^block_12:
+                monitor.exit %9;
+                exception.region.exit %20 ^block_13;
 
               ^block_13:
-                monitor.exit %9;
-                exception.region.exit %20 ^block_14;
-
-              ^block_14:
                 throw %18;
             };
             """, ssa = false)
