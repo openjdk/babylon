@@ -24,7 +24,6 @@
  */
 package hat.buffer;
 
-import hat.types.F16;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
@@ -36,24 +35,19 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface Tensor2DF16 extends Buffer {
+public interface Tensor2DF16 extends Buffer, Half {
 
     int m();
     int n();
-    HalfImpl array(long index);
-
-    interface HalfImpl extends Struct, F16 {
-        short value();
-        void value(short value);
-    }
+    void array(long index, short value);
+    short array(long index);
 
     long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
 
-    Schema<Tensor2DF16> schema = Schema.of(Tensor2DF16.class, ifaceType ->
-            ifaceType.arrayLen("m", "n")
+    Schema<Tensor2DF16> schema = Schema.of(Tensor2DF16.class, tensor ->
+            tensor.arrayLen("m", "n")
                     .pad(8)
-                    .array("array",
-                            half -> half.fields("value")));
+                    .array("array"));
 
     static Tensor2DF16 create(ArenaAndLookupCarrier cc, int m, int n) {
         return BoundSchema.of(cc ,schema, m, n).allocate();

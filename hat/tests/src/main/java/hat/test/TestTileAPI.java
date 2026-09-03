@@ -455,10 +455,9 @@ public class TestTileAPI {
             for (int j = 0; j < size; j++) {
                 float sum = 0;
                 for (int k = 0; k < size; k++) {
-                    F16 a = matrixA.array((long) i * size + k);
-                    F16 b = matrixB.array((long) k * size + j);
-                    F16 mul = F16.mul(a, b);
-                    sum += F16.f16ToFloat(mul);
+                    short a = matrixA.array((long) i * size + k);
+                    short b = matrixB.array((long) k * size + j);
+                    sum += Float.float16ToFloat(a) * Float.float16ToFloat(b);
                 }
                 matrixC.array((long) i * size + j, sum);
             }
@@ -479,11 +478,9 @@ public class TestTileAPI {
 
         // Initialize matrices (A and B have the same size)
         Random r = new Random(19);
-        for (int j = 0; j < size * size; j++) {
-            F16 valA = F16.floatToF16(r.nextFloat());
-            F16 valB = F16.floatToF16(r.nextFloat());
-            matrixA.array(j).value(valA.value());
-            matrixB.array(j).value(valB.value());
+        for (int i = 0; i < size * size; i++) {
+            matrixA.array(i, Float.floatToFloat16(r.nextFloat()));
+            matrixB.array(i, Float.floatToFloat16(r.nextFloat()));
         }
 
         final int tm = 64;
@@ -547,52 +544,47 @@ public class TestTileAPI {
     }
 
     @Preformatted("""
-            typedef struct Tensor2DF16_s{
-                int m;
-                int n;
-                unsigned char pad$t9t1Y[8];
-                half array[1];
-            }Tensor2DF16_t;
+typedef struct Tensor2DF16_s{
+    half m;
+    half n;
+    unsigned char pad$ewxm_[8];
+    half array[1];
+}Tensor2DF16_t;
 
-            typedef struct Tensor2DF32_s{
-                int m;
-                int n;
-                unsigned char pad$pIF4y[8];
-                float array[1];
-            }Tensor2DF32_t;
+typedef struct Tensor2DF32_s{
+    int m;
+    int n;
+    unsigned char pad$69FRs[8];
+    float array[1];
+}Tensor2DF32_t;
             """)
     @Kernel("""
             HAT_KERNEL void matmulSimpleF16(
-                HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputA,
-                HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputB,
-                HAT_GLOBAL_MEM Tensor2DF32_t* __restrict__ output
-            ){
-                auto tm = 32;
-                auto inputA_ = ct::assume_aligned(inputA->array, 16_ic);
-                auto inputB_ = ct::assume_aligned(inputB->array, 16_ic);
-                auto output_ = ct::assume_aligned(output->array, 16_ic);
-
-                auto M = 1024;
-                auto N = 1024;
-                auto mSize = ct::assume_divisible(M, 16_ic);
-                auto nSize = ct::assume_divisible(N, 16_ic);
-                auto kSize = ct::assume_divisible(M, 16_ic);
-
-                auto tn = 64;
-                auto tk = 64;
-                auto num_tiles = 16;
-                int bidx = ct::bid().x;
-                int bidy = ct::bid().y;
-                auto accumulator = ct::zeros<ct::tile<float, ct::shape<32, 64>>>();
-                //for(int k = 0; k<num_tiles; k=k+1){
-                for(auto k : ct::irange(0, num_tiles)) {
-                    auto tileA = ct::partition_view{ct::tensor_span{inputA_, ct::extents{mSize, kSize}},ct::shape{32_ic,64_ic}}.load_masked(bidx, k);
-                    auto tileB = ct::partition_view{ct::tensor_span{inputB_, ct::extents{kSize, nSize}},ct::shape{64_ic,64_ic}}.load_masked(k, bidy);
-                    accumulator=ct::mma(tileA, tileB, accumulator);
-                }
-                ct::partition_view{ct::tensor_span{output_, ct::extents{mSize, nSize}},ct::shape{32_ic,64_ic} }.store_masked(accumulator, bidx, bidy);
-                return;
-            }
+                 HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputA,
+                 HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputB,
+                 HAT_GLOBAL_MEM Tensor2DF32_t* __restrict__ output
+             ){
+                 auto tm = 32;
+                 auto inputA_ = ct::assume_aligned(inputA->array, 16_ic);
+                 auto inputB_ = ct::assume_aligned(inputB->array, 16_ic);
+                 auto output_ = ct::assume_aligned(output->array, 16_ic);
+                 auto tn = 64;
+                 auto tk = 64;
+                 auto M = 1024;
+                 auto N = 1024;
+                 auto num_tiles = 16;
+                 int bidx = ct::bid().x;
+                 int bidy = ct::bid().y;
+                 auto accumulator = ct::zeros<ct::tile<float, ct::shape<32, 64>>>();
+                 //for(int k = 0; k<num_tiles; k=k+1){
+                  for(int k : ct::irange(0, num_tiles)){
+                     auto tileA = ct::partition_view{ct::tensor_span{inputA_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{32_ic,64_ic}}.load(bidx, k);
+                     auto tileB = ct::partition_view{ct::tensor_span{inputB_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{64_ic,64_ic}}.load(k, bidy);
+                     accumulator=ct::mma(tileA, tileB, accumulator);
+                 }
+                 ct::partition_view{ct::tensor_span{output_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{32_ic,64_ic} }.store(accumulator, bidx, bidy);
+                 return;
+             }
             """)
     @Reflect
     public static void matmulSimpleF16(@RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
@@ -625,11 +617,9 @@ public class TestTileAPI {
 
         // Initialize matrices (A and B have the same size)
         Random r = new Random(19);
-        for (int j = 0; j < size * size; j++) {
-            F16 valA = F16.floatToF16(r.nextFloat());
-            F16 valB = F16.floatToF16(r.nextFloat());
-            matrixA.array(j).value(valA.value());
-            matrixB.array(j).value(valB.value());
+        for (int i = 0; i < size * size; i++) {
+            matrixA.array(i, Float.floatToFloat16(r.nextFloat()));
+            matrixB.array(i, Float.floatToFloat16(r.nextFloat()));
         }
 
         final int tm = 32;

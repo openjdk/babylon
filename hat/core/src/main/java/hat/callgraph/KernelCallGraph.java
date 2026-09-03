@@ -165,35 +165,35 @@ public class KernelCallGraph implements LookupCarrier {
      * Compile a kernel into the target device-code. The input stage for compilation is the method represented in a code-tree from code reflection.
      * Then the kernel is transformed and lowered to a OpenCL/CUDA kernel.
      *
-     * @param args
+     * @param kernelParameters
      *     Input I/O arguments. Arguments are used for code specialization (currently only for Tile code specialization).
      */
-    public void compile(Object[] args) {
+    public void compile(Object[] kernelParameters) {
         varTable.addFunction(entrypoint.funcOp().funcName());
         boolean canTransformToTile = OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class);
         if (HAT_PROCESS_TILE_DIALECT && canTransformToTile) {
             Class<?>[] parameterTypes = method.getParameterTypes();
             List<CodeType> codeTypes = new ArrayList<>();
-            if (args.length != parameterTypes.length) {
-                throw new IllegalArgumentException(String.format("Expected %d arguments, got %d", parameterTypes.length, args.length));
+            if (kernelParameters.length != parameterTypes.length) {
+                throw new IllegalArgumentException(String.format("Expected %d arguments, got %d", parameterTypes.length, kernelParameters.length));
             }
             for (int i = 0; i < parameterTypes.length; i++) {
                 Class<?> parameterType = parameterTypes[i];
-                Object arg = args[i];
+                Object kernelArgument = kernelParameters[i];
                 if (parameterType.isPrimitive()) {
-                    if (parameterType.equals(int.class) && arg instanceof Integer val) {
+                    if (parameterType.equals(int.class) && kernelArgument instanceof Integer val) {
                         codeTypes.add(new ConstantType(DType.Int, val));
                     } else {
                         throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
                     }
                 } else {
-                    // We need to inspect thge type
-                    if (parameterType.equals(TensorF32.class)) {
-                        codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE));
-                    } else if (parameterType.equals(Tensor2DF32.class)) {
-                        codeTypes.add(new PtrType(DType.TENSOR_2D_F32_TYPE));
-                    } else if (parameterType.equals(Tensor2DF16.class)) {
-                        codeTypes.add(new PtrType(DType.TENSOR_2D_F16_TYPE));
+                    // We need to inspect the type
+                    if (parameterType.equals(TensorF32.class) && kernelArgument instanceof TensorF32 tensorF32) {
+                        codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE, tensorF32.m()));
+                    } else if (parameterType.equals(Tensor2DF32.class) &&  kernelArgument instanceof Tensor2DF32 tensor2DF32) {
+                        codeTypes.add(new PtrType(DType.TENSOR_2D_F32_TYPE,  tensor2DF32.m(),  tensor2DF32.n()));
+                    } else if (parameterType.equals(Tensor2DF16.class) &&  kernelArgument instanceof Tensor2DF16 tensor2DF16) {
+                        codeTypes.add(new PtrType(DType.TENSOR_2D_F16_TYPE, tensor2DF16.m(),  tensor2DF16.n()));
                     } else {
                         throw new UnsupportedOperationException("Unsupported parameter type: " + parameterType);
                     }

@@ -38,12 +38,12 @@ public class TileOps {
         return new TileIDOp(dimension);
     }
 
-    public static Op load(CodeType type, Value ptr, Value dimension, Value shape) {
-        return new LoadOp(type, ptr, dimension, shape);
+    public static Op load(CodeType type, Value ptr, Value dimension, Value shape, List<Object> dims) {
+        return new LoadOp(type, ptr, dimension, shape, dims);
     }
 
-    public static Op store(Value ptr, Value id, Value tensor) {
-        return new StoreOp(ptr, id, tensor);
+    public static Op store(Value ptr, Value id, Value tensor, List<Object> dims) {
+        return new StoreOp(ptr, id, tensor, dims);
     }
 
     public static Op index(Value... values) {
@@ -440,14 +440,18 @@ public class TileOps {
         }
     }
 
-    public static class LoadOp extends TOp implements Op.Pure, Precedence.LoadOrConv {
+    public static class LoadOp extends TOp implements Op.Pure {
+
+        private final List<Object> dims;
 
         public LoadOp(ExternalizedOp def) {
             super(def);
+            this.dims = List.of();
         }
 
         LoadOp(LoadOp that, CodeContext cc) {
             super(that, cc);
+            this.dims = that.dims;
         }
 
         @Override
@@ -455,24 +459,38 @@ public class TileOps {
             return new LoadOp(this, cc);
         }
 
-        LoadOp(CodeType tensorType, Value ptr, Value dimension, Value shape) {
-            super(tensorType, List.of(ptr, dimension, shape));
+        LoadOp(CodeType tensorType, Value ptr, Value mask) {
+            super(tensorType, List.of(ptr, mask));
+            this.dims = List.of();
+        }
+
+        LoadOp(CodeType tensorType, Value ptr, Value mask, Value other, List<Object> dims) {
+            super(tensorType, List.of(ptr, mask, other));
+            this.dims = dims;
         }
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("tile.load  ", resultType);
+            return Map.of("tile.load  ", resultType + " -- " + Arrays.toString(dims.toArray()));
+        }
+
+        public List<Object> dims() {
+            return dims;
         }
     }
 
-    public static class StoreOp extends TOp implements Precedence.Store {
+    public static class StoreOp extends TOp {
+
+        private final List<Object> dims;
 
         public StoreOp(ExternalizedOp def) {
             super(def);
+            this.dims = List.of();
         }
 
         StoreOp(StoreOp that, CodeContext cc) {
             super(that, cc);
+            this.dims = that.dims;
         }
 
         @Override
@@ -480,8 +498,9 @@ public class TileOps {
             return new StoreOp(this, cc);
         }
 
-        StoreOp(Value ptr, Value id, Value tensor) {
+        StoreOp(Value ptr, Value id, Value tensor, List<Object> dims) {
             super(JavaType.VOID, List.of(ptr, id, tensor));
+            this.dims = dims;
         }
 
         @Override
@@ -496,8 +515,12 @@ public class TileOps {
                     builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
                 }
             }
-            builder.append(resultType);
+            builder.append(resultType).append(" ").append(Arrays.toString(dims.toArray()));
             return Map.of("tile.store  ", builder.toString());
+        }
+
+        public List<Object> dims() {
+            return dims;
         }
     }
 

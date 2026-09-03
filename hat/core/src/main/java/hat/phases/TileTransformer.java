@@ -349,7 +349,8 @@ public class TileTransformer {
                           ConstantType dimensionType, Value dimension,
                           ConstantType shapeType, Value shape) {
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
-            return block.add(TileOps.load(type, block.context().getValue(ptr), block.context().getValue(dimension), block.context().getValue(shape)));
+            // Here we can perform some checks, for example, check shapes, check dimensions, etc.
+            return block.add(TileOps.load(type, block.context().getValue(ptr), block.context().getValue(dimension), block.context().getValue(shape), ptrType.dims()));
         }
 
         public Value store(CodeType type, Op.Result result,
@@ -359,7 +360,7 @@ public class TileTransformer {
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
             return block.add(TileOps.store(block.context().getValue(ptr),
                     block.context().getValue(id),
-                    block.context().getValue(tensor)));
+                    block.context().getValue(tensor), ptrType.dims()));
         }
 
         public Value add(CodeType type, Op.Result result,

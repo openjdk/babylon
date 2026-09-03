@@ -27,6 +27,8 @@ package hat.codebuilders;
 import hat.KernelContext;
 import hat.TileContext;
 import hat.buffer.BF16Array;
+import hat.buffer.Half;
+import hat.buffer.Tensor2DF16;
 import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
 import hat.dialect.HATPtrOp;
@@ -256,6 +258,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 || ifaceType.iface.isAssignableFrom(BF16Array.BF16Impl.class);
     }
 
+    public final boolean isTensorType(Schema.IfaceType ifaceType) {
+        return ifaceType.iface.isAssignableFrom(Tensor2DF16.class);
+    }
+
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword()
                 .sp()
@@ -274,6 +280,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                         type("half");
                                     } else if (isbfloat16(ifaceType)) {
                                         type("BFLOAT16");
+                                    } else if (isTensorType(ifaceType)) {
+                                        type("half");
                                     } else {
                                         type(primitiveField.type.getSimpleName());
                                     }

@@ -12,10 +12,27 @@ import java.util.Objects;
  */
 public final class PtrType implements TileType {
 
-    final CodeType rType;
+    private final CodeType rType;
+    private final List<Object> dims;
 
     public PtrType(CodeType rType) {
         this.rType = rType;
+        this.dims = List.of();
+    }
+
+    public PtrType(CodeType rType, Object dim1) {
+        this.rType = rType;
+        this.dims = List.of(dim1);
+    }
+
+    public PtrType(CodeType rType, Object dim1, Object dim2) {
+        this.rType = rType;
+        this.dims = List.of(dim1, dim2);
+    }
+
+    public PtrType(CodeType rType, Object dim1, Object dim2, Object dim3) {
+        this.rType = rType;
+        this.dims = List.of(dim1, dim2, dim3);
     }
 
     public CodeType rType() {
@@ -43,5 +60,9 @@ public final class PtrType implements TileType {
     @Override
     public String toString() {
         return externalize().toString();
+    }
+
+    public List<Object> dims() {
+        return dims;
     }
 }

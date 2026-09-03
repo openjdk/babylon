@@ -1371,12 +1371,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value ptr = operands.get(0);
         Value dimension = operands.get(1);
         Value shape = operands.get(2);
+        List<Object> dims = tileLoadOp.dims();
 
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(ptr);
         id(", ct::extents{");
         CodeType resultType = tileLoadOp.resultType();
-        genTileSize(resultType, ptr);
+        //genTileSize(resultType, ptr);
+        //id("ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)");
+        commaSpaceSeparated(dims, x -> id("ct::assume_divisible<16>(" + x.toString()).cparen());
         id("}}").comma();
 
         // Process shapes: We assume shapes are constants.
@@ -1390,7 +1393,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             cbrace();
         }
 
-        id("}.load_masked(");
+        id("}.load(");
         recurseResultOrThrow(dimension);
         id(")");
         return self();
@@ -1409,11 +1412,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value inputReference = operands.get(0);
         Value blockId = operands.get(1);
         Value tensor = operands.get(2);
+        List<Object> dims = tileStoreOp.dims();
 
         id("ct::partition_view{ct::tensor_span{");
         recurseResultOrThrow(inputReference); //.rarrow().id(ARRAY);
         id(", ct::extents{");
-        genTileSize(tensor.type(), inputReference);
+        //genTileSize(tensor.type(), inputReference);
+        //id("ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)");
+        commaSpaceSeparated(dims, x -> id("ct::assume_divisible<16>(" + x.toString()).cparen());
         id("}},");
         CodeType tensorType = tensor.type();
         if (tensorType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
@@ -1429,7 +1435,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             // we know this error can't occur. If something unexpected happens, we throw an error.
             throw new UnsupportedOperationException("[codegen] tensor store shape not supported yet.");
         }
-        id(" }.store_masked(");
+        id(" }.store(");
         recurseResultOrThrow(tensor)
                 .comma()
                 .sp()
