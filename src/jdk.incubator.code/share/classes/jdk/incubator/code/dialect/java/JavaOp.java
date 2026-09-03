@@ -5722,11 +5722,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         /// @jls 14.20.3.1 Basic try-with-resources
         Op.Result normalizeBasicTryWithResources(Block.Builder b) {
             assert resourcesBodies.size() == 1;
-            // due to the default behavior of child code context creation when creating
-            // bodies and transforming bodies, b.context(), which contains the mappings
-            // for resource values, differs from the code context for b.parentBody().entryBlock().context()
-            // which does not contain the mappings. In this case we need to explicitly
-            // pass the b's code context when creating the body builder
             Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
             Block.Builder entryBlock = normalizedBody.entryBlock();
             Body resourceBody = resourcesBodies.getFirst();
