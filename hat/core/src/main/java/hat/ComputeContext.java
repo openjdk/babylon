@@ -146,7 +146,10 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     private record ConstantArgument(int paramIndex, Class<?> type, Object value) {
         public static ConstantArgument of(int i, Class<?> type, Object capturedValue) {
-            if (type == int.class && capturedValue instanceof Integer value) {
+            // We only specialized for a small set of types
+            if (type == int.class && capturedValue instanceof Number value) {
+                return new ConstantArgument(i, type, value);
+            } else if (type == float.class && capturedValue instanceof Float value) {
                 return new ConstantArgument(i, type, value);
             }
             throw new IllegalStateException("Input constant of type: " + type.getName() + " not supported");
@@ -176,15 +179,14 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             return new SpecializationKey(List.of());
         }
     }
-//
- //   private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+
     private final Map<Op.Location, Map<SpecializationKey, KernelCallSite>> kernelCallSiteCache = new ConcurrentHashMap<>();
 
     static OpHelper.Invoke getTargetInvoke(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp) {
         return lambdaOp.body().entryBlock().ops().stream()
                 .filter(ce -> ce instanceof JavaOp.InvokeOp)
                 .map(ce -> (OpHelper.Invoke)invoke(lookup, ce))
-                .filter(i->!i.refIs(ComputeContext.class))
+                .filter(invoke->!invoke.refIs(ComputeContext.class))
                 .findFirst()
                 .orElseThrow();
     }
@@ -235,25 +237,6 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
-
-//            if (kernelCallSiteCache.containsKey(location)) {
-//                var oldKernelCallSite = kernelCallSiteCache.get(location);
-//                kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), oldKernelCallSite.capturedArgs());
-//            } else {
-//                kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
-////                    JavaOp.LambdaOp lambdaOp = quoted.op();
-//                    MethodRef methodRef = getTargetInvoke(lookup, lambdaOp).op().invokeReference();
-//                    KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-//                    if (kernelCallGraph == null) {
-//                        throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
-//                    }
-//                    var lambda = lambda(lookup, lambdaOp);
-//                    Object[] capturedArgs = lambda.getQuotedCapturedValues(quoted, kernelCallGraph.method());
-//                    // Compilation happens here!
-//                    kernelCallGraph.compile(capturedArgs);
-//                    return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph, capturedArgs);
-//                });
-//            }
 
             Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs.length + 1];
             System.arraycopy(kernelCallSite.capturedArgs(), 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs().length);
