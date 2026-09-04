@@ -1550,4 +1550,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder minOp(ArithMathOps.MinOp minOp) {
         return id("ct::min").paren(_ -> commaSpaceSeparated(minOp.operands(), this::recurseResultOrThrow));
     }
+
+    @Override
+    public CudaHATKernelBuilder tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp) {
+        Value startIndex = tileIrangeOp.operands().getFirst();
+        Value endIndex = tileIrangeOp.operands().getLast();
+        return id("ct::irange").paren( _ -> {
+           recurseResultOrThrow(startIndex).comma().sp().recurseResultOrThrow(endIndex);
+        });
+    }
 }

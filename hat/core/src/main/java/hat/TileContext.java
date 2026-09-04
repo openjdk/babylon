@@ -7,6 +7,8 @@ import hat.buffer.TensorF32;
 import hat.types.Tile;
 import optkl.ifacemapper.Buffer;
 
+import java.util.stream.IntStream;
+
 /**
  * Interface to represent common context operations to support the Tile Programming Model.
  * Common operations are:
@@ -63,6 +65,10 @@ public interface TileContext {
 
     static Shape shape(int tm, int tn, int tk) {
         return new Shape(tm, tn, tk);
+    }
+
+    static int[] irange(int startIndex, int endIndex) {
+        return IntStream.range(0, (endIndex - startIndex)).map(i -> startIndex + i).toArray();
     }
 
 }

@@ -90,6 +90,10 @@ public class TileOps {
         return new AsTypeOp(typeResult, tensor);
     }
 
+    public static Op irange(CodeType resultType, Value startValue, Value endValue) {
+        return new TileIrangeOp(resultType, startValue, endValue);
+    }
+
     public abstract static class TOp extends AbstractOp implements ExternalizedOp.Externalizable {
 
         final CodeType resultType;
@@ -332,6 +336,27 @@ public class TileOps {
         @Override
         public Map<String, Object> externalize() {
             return Map.of("tile.arange ", operands().get(0));
+        }
+    }
+
+    public static class TileIrangeOp extends TOp implements Op.Pure {
+
+        protected TileIrangeOp(CodeType type, Value startIndex, Value endIndex) {
+            super(type, List.of(startIndex, endIndex));
+        }
+
+        protected TileIrangeOp(TileIrangeOp that, CodeContext cc, CodeTransformer ot) {
+            super(that, cc);
+        }
+
+        @Override
+        public TileIrangeOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new TileIrangeOp(this, codeContext, codeTransformer);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("tile.irange ", operands().getFirst());
         }
     }
 

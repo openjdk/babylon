@@ -363,6 +363,12 @@ public class TileTransformer {
                     block.context().getValue(tensor), ptrType.dims()));
         }
 
+        public Value irange(CodeType resultType, Op.Result result,
+                            ConstantType startIndex, Value start,
+                            ConstantType endIndex, Value end) {
+            return block.add(TileOps.irange(resultType, block.context().getValue(start), block.context().getValue(end)));
+        }
+
         public Value add(CodeType type, Op.Result result,
                          CodeType typeA, Value tensorA,
                          CodeType typeB, Value tensorB) {
@@ -662,6 +668,17 @@ public class TileTransformer {
                         throw new IllegalArgumentException("incompatible types to be stored: " + forLoopOp);
                     }
                 }
+                case JavaOp.EnhancedForOp enhancedForOp -> {
+                    // taken from the Triton experiment
+                    CodeType t = enhancedForOp.initBody().yieldType();
+                    if (t instanceof VarType varType && varType.valueType().equals(JavaType.INT)) {
+                        for (Body b: List.of(enhancedForOp.loopBody())) {
+                            valueTypeMap.put(b.entryBlock().parameters().getFirst(), JavaType.INT);
+                        }
+                    } else {
+                        throw new IllegalArgumentException("incompatible types to be stored: " + enhancedForOp);
+                    }
+                }
                 case CoreOp.YieldOp _ -> {
 
                 }
@@ -818,6 +835,10 @@ public class TileTransformer {
         // store(arrayBuffer, id, tensor)
         public static void store(PtrType ptr,  ConstantType id, ConstantType tensor) {
 
+        }
+
+        public static JavaType irange(CodeType startIndex, CodeType endIndex) {
+            return JavaType.INT;
         }
 
         public static CodeType add(CodeType t1, CodeType t2) {

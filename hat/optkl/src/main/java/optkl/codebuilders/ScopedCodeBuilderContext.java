@@ -46,7 +46,7 @@ public class ScopedCodeBuilderContext implements LookupCarrier {
         return (scope != null && scope.parent instanceof ForScope);
     }
 
-    public static sealed abstract class Scope<O extends Op> permits ForScope, FuncScope, IfScope, LambdaScope, RootScope {
+    public static sealed abstract class Scope<O extends Op> permits ForScope, FuncScope, IfScope, LambdaScope, RootScope, EnhancedForScope {
         public final Scope<?> parent;
         final O op;
 
@@ -206,6 +206,32 @@ public class ScopedCodeBuilderContext implements LookupCarrier {
         }
     }
 
+    // TODO: Very simple way to handle EnhancedForLoops
+    public static final class EnhancedForScope extends Scope<JavaOp.EnhancedForOp> {
+        Map<Block.Parameter, CoreOp.VarOp> blockParamToVarOpMap = new HashMap<>();
+
+        public EnhancedForScope(Scope<?> parent, JavaOp.EnhancedForOp enhancedForOp) {
+            super(parent, enhancedForOp);
+            var loopParams = op.loopBody().entryBlock().parameters();
+            Op firstOp = enhancedForOp.initBody().entryBlock().parameters().getFirst().declaringBlock().firstOp();
+            CoreOp.VarOp iterationVar = (CoreOp.VarOp) firstOp;
+            for (Block.Parameter loopParameter : loopParams) {
+                blockParamToVarOpMap.put(loopParameter, iterationVar);
+            }
+        }
+
+        @Override
+        public Op resolve(Value value) {
+            if (value instanceof Block.Parameter blockParameter) {
+                CoreOp.VarOp varOp = this.blockParamToVarOpMap.get(blockParameter);
+                if (varOp != null) {
+                    return varOp;
+                }
+            }
+            return super.resolve(value);
+        }
+    }
+
     public static final class IfScope extends Scope<JavaOp.IfOp> {
         IfScope(Scope<?> parent, JavaOp.IfOp op) {
             super(parent, op);
@@ -247,8 +273,14 @@ public class ScopedCodeBuilderContext implements LookupCarrier {
         popScope();
     }
 
-    public  void forScope(JavaOp.ForOp forOp, Runnable r) {
-        scope = new ForScope(scope,forOp);
+    public void forScope(JavaOp.ForOp forOp, Runnable r) {
+        scope = new ForScope(scope, forOp);
+        r.run();
+        popScope();
+    }
+
+    public void enhancedForScope(JavaOp.EnhancedForOp enhancedForOp, Runnable r) {
+        scope = new EnhancedForScope(scope, enhancedForOp);
         r.run();
         popScope();
     }

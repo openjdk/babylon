@@ -728,6 +728,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (resolve) {
             case CoreOp.VarOp varOp -> varName(varOp);
             case null, default -> {
+                blockComment("varLoadOp missing: " + resolve);
             }
         }
         return self();

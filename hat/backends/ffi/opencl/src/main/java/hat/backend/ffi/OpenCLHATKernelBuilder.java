@@ -1118,4 +1118,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder minOp(ArithMathOps.MinOp minOp) {
         throw new UnsupportedOperationException("Min Operation is not supported yet.");
     }
+
+    @Override
+    public OpenCLHATKernelBuilder tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp) {
+        throw new UnsupportedOperationException("Tile Irange Operation is not supported yet.");
+    }
 }
