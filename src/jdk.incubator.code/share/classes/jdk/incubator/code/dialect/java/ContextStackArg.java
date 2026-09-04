@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,33 +22,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package jdk.incubator.code.dialect.java;
 
-package jdk.incubator.code.internal;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeContext;
-import jdk.incubator.code.CodeElement;
 
-public record BranchTarget(Block.Builder breakBlock, Block.Builder continueBlock) {
+import java.util.ArrayDeque;
 
-    static final Object BRANCH_TARGET_MAP_PROPERTY_KEY = new Object();
+final class ContextStackArg<T> {
 
-    public static BranchTarget getBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement) {
+    void push(CodeContext cc, T arg) {
         @SuppressWarnings("unchecked")
-        var branchMap = (Map<CodeElement<?, ?>, BranchTarget>) cc.getProperty(BRANCH_TARGET_MAP_PROPERTY_KEY);
-        return branchMap != null
-                ? branchMap.get(codeElement)
-                : null;
+        var argStack = (ArrayDeque<T>) cc.computePropertyIfAbsent(this,
+                _ -> new ArrayDeque<>(1));
+        argStack.push(arg);
     }
 
-    public static void setBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement,
-                                       Block.Builder breakBlock, Block.Builder continueBlock) {
+    T poll(CodeContext cc) {
         @SuppressWarnings("unchecked")
-        var branchMap = (Map<CodeElement<?, ?>, BranchTarget>) cc.computePropertyIfAbsent(
-                BRANCH_TARGET_MAP_PROPERTY_KEY, k -> new HashMap<>());
-        branchMap.put(codeElement, new BranchTarget(breakBlock, continueBlock));
+        var argStack = (ArrayDeque<T>) cc.getProperty(this);
+        return argStack != null
+                ? argStack.poll()
+                : null;
     }
 }
