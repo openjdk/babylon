@@ -128,7 +128,8 @@ public final class UnreflectMetafactory {
     }
 
     /**
-     * Metafactory used to create a reflectable lambda.
+     * Metafactory used to create a reflectable lambda with implementation
+     * generated from its stored code model.
      * <p>
      * The functionality provided by this metafactory is identical to that in
      * {@link ReflectableLambdaMetafactory#altMetafactory(Lookup, String,
