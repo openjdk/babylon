@@ -27,7 +27,6 @@ package hat.codebuilders;
 import hat.KernelContext;
 import hat.TileContext;
 import hat.buffer.BF16Array;
-import hat.buffer.Half;
 import hat.buffer.Tensor2DF16;
 import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
@@ -40,7 +39,6 @@ import hat.types.BF16;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -262,6 +260,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return ifaceType.iface.isAssignableFrom(Tensor2DF16.class);
     }
 
+    private boolean isTensorArray(Schema.FieldNode.AbstractPrimitiveField primitiveField,Schema.IfaceType ifaceType) {
+        // Generate half, only if is a tensor type for the field array (short -> half)
+        return primitiveField instanceof Schema.FieldNode.PrimitiveArray  && isTensorType(ifaceType);
+    }
+
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword()
                 .sp()
@@ -276,12 +279,10 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             field -> {
                                 boolean isLast = fieldIdx.get() == fieldCount - 1;
                                 if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
-                                    if (isHalfType(ifaceType)) {
+                                    if (isHalfType(ifaceType) || isTensorArray(primitiveField, ifaceType)) {
                                         type("half");
                                     } else if (isbfloat16(ifaceType)) {
                                         type("BFLOAT16");
-                                    } else if (isTensorType(ifaceType)) {
-                                        type("half");
                                     } else {
                                         type(primitiveField.type.getSimpleName());
                                     }

@@ -187,7 +187,7 @@ public class KernelCallGraph implements LookupCarrier {
                         throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
                     }
                 } else {
-                    // We need to inspect the type
+                    // We need to inspect the type and pass the input dimensions
                     if (parameterType.equals(TensorF32.class) && kernelArgument instanceof TensorF32 tensorF32) {
                         codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE, tensorF32.m()));
                     } else if (parameterType.equals(Tensor2DF32.class) &&  kernelArgument instanceof Tensor2DF32 tensor2DF32) {
@@ -195,7 +195,7 @@ public class KernelCallGraph implements LookupCarrier {
                     } else if (parameterType.equals(Tensor2DF16.class) &&  kernelArgument instanceof Tensor2DF16 tensor2DF16) {
                         codeTypes.add(new PtrType(DType.TENSOR_2D_F16_TYPE, tensor2DF16.m(),  tensor2DF16.n()));
                     } else {
-                        throw new UnsupportedOperationException("Unsupported parameter type: " + parameterType);
+                        throw new UnsupportedOperationException("Unsupported I/O parameter type: " + parameterType);
                     }
                 }
             }
