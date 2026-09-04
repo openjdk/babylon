@@ -42,11 +42,11 @@ public interface Tensor2DF16 extends Buffer, Half {
     void array(long index, short value);
     short array(long index);
 
-    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
+    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 128;
 
     Schema<Tensor2DF16> schema = Schema.of(Tensor2DF16.class, tensor ->
             tensor.arrayLen("m", "n")
-                    .pad(8)
+                    .pad(120)
                     .array("array"));
 
     static Tensor2DF16 create(ArenaAndLookupCarrier cc, int m, int n) {

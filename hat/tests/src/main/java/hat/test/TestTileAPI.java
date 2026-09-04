@@ -172,7 +172,7 @@ public class TestTileAPI {
         final int group_size_m = TileOp.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
 
         final int bidx = first_bid_m + (bid % group_size_m);
-        final int bidy = (bid % num_bid_in_group) / num_bid_in_group;
+        final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
         //final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
@@ -358,62 +358,62 @@ public class TestTileAPI {
         }
     }
 
-    @Preformatted("""
-            typedef struct Tensor2DF16_s{
-                int m;
-                int n;
-                unsigned char pad$1hAbP[8];
-                half array[1];
-            }Tensor2DF16_t;
-
-            typedef struct Tensor2DF32_s{
-                int m;
-                int n;
-                unsigned char pad$S9b4s[8];
-                float array[1];
-            }Tensor2DF32_t;
-            """)
-    @Kernel("""
-            HAT_KERNEL void matmulF16(
-                const HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputA,
-                const HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputB,
-                HAT_GLOBAL_MEM Tensor2DF32_t* __restrict__ output
-            ){
-                auto tm = 16;
-                auto inputA_ = ct::assume_aligned(inputA->array, 16_ic);
-                auto inputB_ = ct::assume_aligned(inputB->array, 16_ic);
-                auto output_ = ct::assume_aligned(output->array, 16_ic);
-
-                auto M = 1024;
-                auto N = 1024;
-                auto mSize = ct::assume_divisible(M, 16_ic);
-                auto nSize = ct::assume_divisible(N, 16_ic);
-                auto kSize = ct::assume_divisible(M, 16_ic);
-
-                auto tn = 64;
-                auto tk = 64;
-                auto num_tiles = 64;
-                int GROUP_SIZE_M = 8;
-                int bid = ct::bid().x;
-                auto num_bid_m = ct::ceildiv(M, tm);
-                auto num_bid_n = ct::ceildiv(N, tn);
-                int num_bid_in_group = GROUP_SIZE_M*num_bid_n;
-                int group_id = bid/num_bid_in_group;
-                int first_bid_m = group_id*GROUP_SIZE_M;
-                auto group_size_m = ct::min(num_bid_m-first_bid_m, GROUP_SIZE_M);
-                int bidx = first_bid_m+bid%group_size_m;
-                int bidy = (bid%num_bid_in_group)/num_bid_in_group;
-                auto accumulator = ct::zeros<ct::tile<float, ct::shape<64, 64>>>();
-                for(int k = 0; k<num_tiles; k=k+1){
-                //for(auto k: ct::irange(0, num_tiles)){
-                    auto tileA = ct::partition_view{ct::tensor_span{inputA_, ct::extents{mSize, kSize}},ct::shape{64_ic,16_ic}}.load_masked(bidx, k);
-                    auto tileB = ct::partition_view{ct::tensor_span{inputB_, ct::extents{kSize, nSize}},ct::shape{16_ic,64_ic}}.load_masked(k, bidy);
-                    accumulator=ct::mma(tileA, tileB, accumulator);
-                }
-                ct::partition_view{ct::tensor_span{output_, ct::extents{mSize, nSize}},ct::shape{64_ic,64_ic} }.store_masked(accumulator, bidx, bidy);
-                return;
-            }
-            """)
+//    @Preformatted("""
+//            typedef struct Tensor2DF16_s{
+//                int m;
+//                int n;
+//                unsigned char pad$1hAbP[8];
+//                half array[1];
+//            }Tensor2DF16_t;
+//
+//            typedef struct Tensor2DF32_s{
+//                int m;
+//                int n;
+//                unsigned char pad$S9b4s[8];
+//                float array[1];
+//            }Tensor2DF32_t;
+////            """)
+//    @Kernel("""
+//            HAT_KERNEL void matmulF16(
+//                const HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputA,
+//                const HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputB,
+//                HAT_GLOBAL_MEM Tensor2DF32_t* __restrict__ output
+//            ){
+//                auto tm = 64;
+//                auto inputA_ = ct::assume_aligned(inputA->array, 16_ic);
+//                auto inputB_ = ct::assume_aligned(inputB->array, 16_ic);
+//                auto output_ = ct::assume_aligned(output->array, 16_ic);
+//
+//                auto M = 1024;
+//                auto N = 1024;
+//                auto mSize = ct::assume_divisible(M, 16_ic);
+//                auto nSize = ct::assume_divisible(N, 16_ic);
+//                auto kSize = ct::assume_divisible(M, 16_ic);
+//
+//                auto tn = 64;
+//                auto tk = 16;
+//                auto num_tiles = 64;
+//                int GROUP_SIZE_M = 8;
+//                int bid = ct::bid().x;
+//                auto num_bid_m = ct::ceildiv(M, tm);
+//                auto num_bid_n = ct::ceildiv(N, tn);
+//                int num_bid_in_group = GROUP_SIZE_M*num_bid_n;
+//                int group_id = bid/num_bid_in_group;
+//                int first_bid_m = group_id*GROUP_SIZE_M;
+//                auto group_size_m = ct::min(num_bid_m-first_bid_m, GROUP_SIZE_M);
+//                int bidx = first_bid_m+bid%group_size_m;
+//                int bidy = (bid%num_bid_in_group)/num_bid_in_group;
+//                auto accumulator = ct::zeros<ct::tile<float, ct::shape<64, 64>>>();
+//                for(int k = 0; k<num_tiles; k=k+1){
+//                //for(auto k: ct::irange(0, num_tiles)){
+//                    auto tileA = ct::partition_view{ct::tensor_span{inputA_, ct::extents{mSize, kSize}},ct::shape{64_ic,16_ic}}.load_masked(bidx, k);
+//                    auto tileB = ct::partition_view{ct::tensor_span{inputB_, ct::extents{kSize, nSize}},ct::shape{16_ic,64_ic}}.load_masked(k, bidy);
+//                    accumulator=ct::mma(tileA, tileB, accumulator);
+//                }
+//                ct::partition_view{ct::tensor_span{output_, ct::extents{mSize, nSize}},ct::shape{64_ic,64_ic} }.store_masked(accumulator, bidx, bidy);
+//                return;
+//            }
+//            """)
     @Reflect
     public static void matmulF16(@RO Tensor2DF16 inputA,@RO  Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
 
@@ -427,7 +427,7 @@ public class TestTileAPI {
         final int first_bid_m = group_id * GROUP_SIZE_M;
         final int group_size_m = TileOp.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
         final int bidx = first_bid_m + (bid % group_size_m);
-        final int bidy = (bid % num_bid_in_group) / num_bid_in_group;
+        final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
         //final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
@@ -496,7 +496,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimple(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
+    public static void matmulSimple(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
@@ -511,7 +511,7 @@ public class TestTileAPI {
     @Reflect
     public static void tileMatmulSimple(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmulSimple(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
+                () -> matmulSimple(inputA, inputB, output, tm, tn, tk, numTiles));
     }
 
     @HatTest
@@ -543,51 +543,49 @@ public class TestTileAPI {
         checkResult(matrixSeq, matrixC);
     }
 
-//    @Preformatted("""
-//typedef struct Tensor2DF16_s{
-//    int m;
-//    int n;
-//    unsigned char pad$ewxm_[8];
-//    half array[1];
-//}Tensor2DF16_t;
-//
-//typedef struct Tensor2DF32_s{
-//    int m;
-//    int n;
-//    unsigned char pad$69FRs[8];
-//    float array[1];
-//}Tensor2DF32_t;
-//            """)
-//    @Kernel("""
-//            HAT_KERNEL void matmulSimpleF16(
-//                 HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputA,
-//                 HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputB,
-//                 HAT_GLOBAL_MEM Tensor2DF32_t* __restrict__ output
-//             ){
-//                 auto tm = 32;
-//                 auto inputA_ = ct::assume_aligned(inputA->array, 16_ic);
-//                 auto inputB_ = ct::assume_aligned(inputB->array, 16_ic);
-//                 auto output_ = ct::assume_aligned(output->array, 16_ic);
-//                 auto tn = 64;
-//                 auto tk = 64;
-//                 auto M = 1024;
-//                 auto N = 1024;
-//                 auto num_tiles = 16;
-//                 int bidx = ct::bid().x;
-//                 int bidy = ct::bid().y;
-//                 auto accumulator = ct::zeros<ct::tile<float, ct::shape<32, 64>>>();
-//                 //for(int k = 0; k<num_tiles; k=k+1){
-//                  for(int k : ct::irange(0, num_tiles)){
-//                     auto tileA = ct::partition_view{ct::tensor_span{inputA_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{32_ic,64_ic}}.load(bidx, k);
-//                     auto tileB = ct::partition_view{ct::tensor_span{inputB_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{64_ic,64_ic}}.load(k, bidy);
-//                     accumulator=ct::mma(tileA, tileB, accumulator);
-//                 }
-//                 ct::partition_view{ct::tensor_span{output_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{32_ic,64_ic} }.store(accumulator, bidx, bidy);
-//                 return;
-//             }
-//            """)
+    @Preformatted("""
+            typedef struct Tensor2DF16_s{
+                int m;
+                int n;
+                unsigned char pad$hj$8i[120];
+                half array[1];
+            }Tensor2DF16_t;
+
+            typedef struct Tensor2DF32_s{
+                int m;
+                int n;
+                unsigned char pad$Mto$i[120];
+                float array[1];
+            }Tensor2DF32_t;
+            """)
+    @Kernel("""
+            HAT_KERNEL void matmulSimpleF16(
+                const HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputA,
+                const HAT_GLOBAL_MEM Tensor2DF16_t* __restrict__ inputB,
+                HAT_GLOBAL_MEM Tensor2DF32_t* __restrict__ output
+            ){
+                auto tm = 32;
+                auto inputA_ = ct::assume_aligned(inputA->array, 16_ic);
+                auto inputB_ = ct::assume_aligned(inputB->array, 16_ic);
+                auto output_ = ct::assume_aligned(output->array, 16_ic);
+                auto tn = 64;
+                auto tk = 64;
+                auto num_tiles = 16;
+                int bidx = ct::bid().x;
+                int bidy = ct::bid().y;
+                auto accumulator = ct::zeros<ct::tile<float, ct::shape<32, 64>>>();
+                //for(int k = 0; k<num_tiles; k=k+1){
+                for(auto k : ct::irange(0, num_tiles)){
+                    auto tileA = ct::partition_view{ct::tensor_span{inputA_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{32_ic,64_ic}}.load(bidx, k);
+                    auto tileB = ct::partition_view{ct::tensor_span{inputB_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{64_ic,64_ic}}.load(k, bidy);
+                    accumulator=ct::mma(tileA, tileB, accumulator);
+                }
+                ct::partition_view{ct::tensor_span{output_, ct::extents{ct::assume_divisible<16>(1024), ct::assume_divisible<16>(1024)}},ct::shape{32_ic,64_ic} }.store(accumulator, bidx, bidy);
+                return;
+            }
+            """)
     @Reflect
-    public static void matmulSimpleF16(@RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
+    public static void matmulSimpleF16(@RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
@@ -602,7 +600,7 @@ public class TestTileAPI {
     @Reflect
     public static void matmulSimpleF16(ComputeContext computeContext, @RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmulSimpleF16(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
+                () -> matmulSimpleF16(inputA, inputB, output, tm, tn, tk, numTiles));
     }
 
     @HatTest
