@@ -37,6 +37,7 @@ import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.CapturedType;
 import com.sun.tools.javac.code.Type.IntersectionClassType;
+import com.sun.tools.javac.code.Type.JCNoType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Type.StructuralTypeMapping;
 import com.sun.tools.javac.code.Type.UnionClassType;
@@ -65,6 +66,7 @@ import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCConstantCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCDefaultCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression.CodeReflectionInfo;
@@ -89,6 +91,8 @@ import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.Assert;
 import com.sun.tools.javac.util.Context;
+import com.sun.tools.javac.util.DefinedBy;
+import com.sun.tools.javac.util.DefinedBy.Api;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Log;
@@ -476,6 +480,18 @@ public class ReflectMethods extends TreeTranslatorPrev {
         private Type pt = Type.noType;
         private final boolean isLambdaReflectable;
         private Type bodyTarget;
+
+        /*
+         * Constant type: special type to be used when field/method access should prefer erased types.
+         * Used to make sure that the types attached to model values is not too sharp when javac,
+         * which could result in too eager synthetic casts.
+         */
+        static final JCNoType erasedType = new JCNoType(){
+            @Override @DefinedBy(Api.LANGUAGE_MODEL)
+            public String toString() {
+                return "erased";
+            }
+        };
 
         BodyScanner(JCMethodDecl tree) {
             this.tree = tree;
@@ -1100,7 +1116,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         } else {
                             FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
-                            CodeType resultType = typeToCodeType(tree.type);
+                            CodeType resultType = pt == erasedType ?
+                                    typeToCodeType(types.erasure(sym.type)) :
+                                    typeToCodeType(tree.type);
                             if (sym.isStatic()) {
                                 result = append(JavaOp.fieldLoad(resultType, fr));
                             } else {
@@ -1152,7 +1170,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                     MethodRef mr = symbolToErasedMethodRef(sym, symbolSiteType(sym));
 
-                    JavaType resultType = typeToCodeType(tree.type);
+                    JavaType resultType = pt == erasedType ?
+                            typeToCodeType(types.erasure(sym.type.getReturnType())) :
+                            typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
                     Value res = append(iop);
@@ -1200,7 +1220,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // Use the actual type of the expression, tree.type, rather than meth.type.getReturnType()
                     // This ensures invocation expressions to clone on arrays and getClass are modeled
                     // with the correct result type
-                    JavaType resultType = typeToCodeType(tree.type);
+                    JavaType resultType = pt == erasedType ?
+                            typeToCodeType(types.erasure(sym.type.getReturnType())) :
+                            typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
                     Value res = append(iop);
@@ -1277,7 +1299,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitTypeTest(JCTree.JCInstanceOf tree) {
-            Value target = toValue(tree.expr);
+            Value target = toValue(tree.expr, erasedType); // erased target
             JCTree.JCPattern pattern = tree.getPattern();
             if (pattern != null) {
                 result = scanPattern(pattern, target);
@@ -1406,6 +1428,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Create the match operation
             return append(JavaOp.match(target, patternBody, matchBody));
+        }
+
+        @Override
+        public void visitExec(JCExpressionStatement tree) {
+            toValue(tree.expr, erasedType); // erased target
+            result = null;
         }
 
         @Override
