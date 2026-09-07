@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.*;
@@ -52,7 +52,7 @@ public class TestArrayView {
      * simple square kernel example using S32Array's ArrayView
      */
     @Reflect
-    public static void squareKernel(KernelContext unused, S32Array s32Array) {
+    public static void squareKernel(S32Array s32Array) {
         if (GIX() < GSX()){
             int[] arr = s32Array.arrayView();
             arr[GIX()] *= arr[GIX()];
@@ -61,9 +61,7 @@ public class TestArrayView {
 
     @Reflect
     public static void square(ComputeContext cc, S32Array s32Array) {
-        cc.dispatchKernel(NDRange.of1D(s32Array.length()),
-                kc -> squareKernel(kc, s32Array)
-        );
+        cc.dispatchKernel(NDRange.of1D(s32Array.length()), () -> squareKernel( s32Array));
     }
 
     @HatTest
@@ -87,7 +85,7 @@ public class TestArrayView {
      * making sure arrayviews aren't reliant on varOps
      */
     @Reflect
-    public static void squareKernelNoVarOp(KernelContext unused, S32Array s32Array) {
+    public static void squareKernelNoVarOp( S32Array s32Array) {
         if (GIX()<GSX()){
             s32Array.arrayView()[GIX()] *= s32Array.arrayView()[GIX()];
         }
@@ -96,7 +94,7 @@ public class TestArrayView {
     @Reflect
     public static void squareNoVarOp(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
-                kc -> squareKernelNoVarOp(kc, s32Array)
+               ()-> squareKernelNoVarOp( s32Array)
         );
     }
 
@@ -117,7 +115,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void square2DKernel(KernelContext unused, S32Array2D s32Array2D) {
+    public static void square2DKernel( S32Array2D s32Array2D) {
         if (GIX() < GSX()){
             int[][] arr = s32Array2D.arrayView();
             arr[GIX()][GIY()] *= arr[GIX()][GIY()];
@@ -127,7 +125,7 @@ public class TestArrayView {
     @Reflect
     public static void square2D(ComputeContext cc, S32Array2D s32Array2D) {
         cc.dispatchKernel(NDRange.of1D(s32Array2D.width() * s32Array2D.height()),
-                kc -> square2DKernel(kc, s32Array2D)
+               ()-> square2DKernel( s32Array2D)
         );
     }
 
@@ -290,7 +288,7 @@ public class TestArrayView {
         }
 
         @Reflect
-        public static void life(KernelContext unused, CellGrid cellGrid, CellGrid cellGridRes) {
+        public static void life( CellGrid cellGrid, CellGrid cellGridRes) {
             if (GIX() < GSX()) {
                 Compute.lifePerIdx(GIX(), cellGrid, cellGridRes);
             }
@@ -299,7 +297,7 @@ public class TestArrayView {
         @Reflect
         public static void compute(final ComputeContext cc, CellGrid grid, CellGrid gridRes) {
             int range = grid.width() * grid.height();
-            cc.dispatchKernel(NDRange.of1D(range), kc -> Compute.life(kc, grid, gridRes));
+            cc.dispatchKernel(NDRange.of1D(range),()-> Compute.life( grid, gridRes));
         }
     }
 
@@ -388,7 +386,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void mandel(KernelContext unused, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
+    public static void mandel( S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
         if (GIX() < GSX()) {
             int[] pal = pallette.arrayView();
             int[][] s32 = s32Array2D.arrayView();
@@ -417,7 +415,7 @@ public class TestArrayView {
 
         computeContext.dispatchKernel(
                 NDRange.of1D(s32Array2D.width()*s32Array2D.height()), //0..S32Array2D.size()
-                kc -> mandel(kc, s32Array2D, pallete, x, y, scale));
+               ()-> mandel( s32Array2D, pallete, x, y, scale));
     }
 
     @HatTest
@@ -459,14 +457,14 @@ public class TestArrayView {
      * simplified version of BlackScholes using ArrayView
      */
     @Reflect
-    public static void blackScholesKernel(KernelContext unused,
-                                          F32Array call,
-                                          F32Array put,
-                                          F32Array sArray,
-                                          F32Array xArray,
-                                          F32Array tArray,
-                                          float r,
-                                          float v) {
+    public static void blackScholesKernel(
+            F32Array call,
+            F32Array put,
+            F32Array sArray,
+            F32Array xArray,
+            F32Array tArray,
+            float r,
+            float v) {
         if (GIX()<GSX()){
             float[] callArr = call.arrayView();
             float[] putArr = put.arrayView();
@@ -516,7 +514,7 @@ public class TestArrayView {
     @Reflect
     public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of1D(call.length()),
-                kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
+               ()-> blackScholesKernel(call, put, S, X, T, r, v)
         );
     }
 
@@ -618,7 +616,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void squareKernelWithPrivateAndLocal(KernelContext kc, S32Array s32Array) {
+    public static void squareKernelWithPrivateAndLocal( S32Array s32Array) {
         SharedMemory shared = SharedMemory.createLocal();
         if (GIX() < GSX()){
             int[] arr = s32Array.arrayView();
@@ -639,7 +637,7 @@ public class TestArrayView {
     @Reflect
     public static void privateAndLocal(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
-                kc -> squareKernelWithPrivateAndLocal(kc, s32Array)
+               ()-> squareKernelWithPrivateAndLocal( s32Array)
         );
     }
 
@@ -699,7 +697,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void kernelBasicDeviceType( KernelContext kc, S32Array s32Array) {
+    public static void kernelBasicDeviceType(  S32Array s32Array) {
         SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
         if (GIX() < GSX()){
             PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();
@@ -718,7 +716,7 @@ public class TestArrayView {
     @Reflect
     public static void basicDeviceType(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
-                kc -> kernelBasicDeviceType(kc, s32Array)
+               ()-> kernelBasicDeviceType( s32Array)
         );
     }
 
@@ -737,7 +735,7 @@ public class TestArrayView {
     }
 
     @Reflect
-    public static void squareKernelDeviceType( KernelContext kc, S32Array s32Array) {
+    public static void squareKernelDeviceType(  S32Array s32Array) {
         SharedNonMappableIface shared = SharedNonMappableIface.createLocal();
         if (GIX() < GSX()){
             PrivateNonMappableIface priv = PrivateNonMappableIface.createPrivate();
@@ -756,7 +754,7 @@ public class TestArrayView {
     @Reflect
     public static void deviceType(ComputeContext cc, S32Array s32Array) {
         cc.dispatchKernel(NDRange.of1D(s32Array.length()),
-                kc -> squareKernelDeviceType(kc, s32Array)
+               ()-> squareKernelDeviceType( s32Array)
         );
     }
 

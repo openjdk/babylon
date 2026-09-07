@@ -22,15 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package optkl;
+package hat.phases;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import optkl.Trxfmr;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class VarTable {
-
+public class VarTable implements Trxfmr.Listener {
     public enum HATOpAttribute {
         UNKNOWN,
         PRIVATE,
@@ -93,4 +93,9 @@ public class VarTable {
             });
         }
     }
+    @Override
+    public void remap(CoreOp.FuncOp funcOp,Op oldOp, Op newOp) {
+                passthrough(funcOp.funcName(),oldOp,newOp);
+    }
+
 }

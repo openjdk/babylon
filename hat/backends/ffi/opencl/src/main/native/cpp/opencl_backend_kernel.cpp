@@ -34,7 +34,8 @@ OpenCLBackend::OpenCLProgram::OpenCLKernel::~OpenCLKernel() {
 
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg, Buffer *buffer) {
     const auto * openCLBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
-    const cl_int status = clSetKernelArg(kernel, arg->idx, sizeof(cl_mem), &openCLBuffer->clMem);
+     // remember arg->idx includes dispatch context, hence the real arg index in the kernel is arg->idx -1
+    const cl_int status = clSetKernelArg(kernel, (arg->idx)-1, sizeof(cl_mem), &openCLBuffer->clMem);
     if (status != CL_SUCCESS) {
         std::cerr << errorMsg(status) << std::endl;
         return false;
@@ -43,7 +44,8 @@ bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg, Buffer *
 }
 
 bool OpenCLBackend::OpenCLProgram::OpenCLKernel::setArg(KernelArg *arg) {
-    const cl_int status = clSetKernelArg(kernel, arg->idx, arg->size(), &arg->value);
+      // remember arg->idx includes dispatch context, hence the real arg index in the kernel is arg->idx -1
+    const cl_int status = clSetKernelArg(kernel, (arg->idx)-1, arg->size(), &arg->value);
     if (status != CL_SUCCESS) {
         std::cerr << errorMsg(status) << std::endl;
         return false;

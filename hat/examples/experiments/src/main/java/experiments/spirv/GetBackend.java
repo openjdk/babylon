@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -94,7 +94,7 @@ public class GetBackend {
 
          */
         @Reflect
-        static void kernel(KernelContext kid, F32Array a, F32Array b, F32Array c) {
+        static void kernel( F32Array a, F32Array b, F32Array c) {
             for (int j = 0; j < GSX(); j++) {
                 float sum = 0f;
                 for (int k = 0; k < GSX(); k++) {
@@ -110,7 +110,7 @@ public class GetBackend {
 
         @Reflect
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
-            computeContext.dispatchKernel(NDRange.of1D(size * size), kc -> MatrixMultiply.kernel(kc, a, b, c));
+            computeContext.dispatchKernel(NDRange.of1D(size * size), () -> MatrixMultiply.kernel( a, b, c));
         }
 
     }

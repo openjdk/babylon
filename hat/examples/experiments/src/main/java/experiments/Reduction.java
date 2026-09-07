@@ -102,12 +102,11 @@ public class Reduction {
      * Example of a simple parallel reduction using accelerator's local memory. This shows a proposal of how
      * HAT could start offering local(shared) types.
      *
-     * @param context
      * @param input
      * @param partialSums
      */
     @Reflect
-    private static void reduceLocal(@RO KernelContext context, @RW S32Array input, @RW S32Array partialSums) {
+    private static void reduceLocal( @RW S32Array input, @RW S32Array partialSums) {
         int localId = LIX();
         int localSize = LSX();
         int blockId = BIX();
@@ -136,7 +135,7 @@ public class Reduction {
     @Reflect
     private static void mySimpleCompute(@RO ComputeContext cc,  @RW S32Array input, @RW S32Array partialSums) {
         // 2 groups of 16 threads each
-        cc.dispatchKernel(NDRange.of1D(32,16), kc -> reduceLocal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32,16), () -> reduceLocal( input, partialSums));
     }
 
     public static void main(String[] args) {

@@ -23,12 +23,8 @@
  * questions.
  */
 package hat.backend.ffi;
-
-import hat.ComputeContext;
 import hat.Config;
-import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
-import optkl.VarTable;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
 import java.lang.foreign.Arena;
@@ -44,33 +40,7 @@ public class OpenCLBackend extends C99FFIBackend {
     }
 
     @Override
-    public void computeContextHandoff(ComputeContext computeContext) {
-        VarTable varTable = new VarTable(computeContext.computeCallGraph().callDag.entryPoint.funcOp().funcName());
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(), lookup(), computeContext.computeCallGraph().callDag.entryPoint.funcOp(), varTable));
+    public String createCode(KernelCallGraph kernelCallGraph, Object... justArgs) {
+        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp())), justArgs);
     }
-
-    @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-
-        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code = createC99(kernelCallGraph, args);
-            if (config().showCode()) {
-                System.out.println(code);
-            }
-            var compilationUnit = backendBridge.compile(code);
-            if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
-                return new CompiledKernel(this, kernelCallGraph, kernel, args);
-            } else {
-                // TODO: We should capture the log from OpenCL and provide as exception message
-                throw new IllegalStateException("OpenCL program failed to compile");
-            }
-        });
-        compiledKernel.dispatch(kernelContext, args);
-    }
-
-    String createC99(KernelCallGraph kernelCallGraph, Object[] args) {
-        return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp())), args);
-    }
-
 }

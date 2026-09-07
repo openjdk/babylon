@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
@@ -200,7 +200,7 @@ public class Main {
         }
 
         @Reflect
-        public static void life(KernelContext kc, Control control, CellGrid cellGrid) {
+        public static void life( Control control, CellGrid cellGrid) {
             if (GIX() < GSX()) {
                 ComputeLife.lifePerIdx(GIX(), control, cellGrid);
             }
@@ -212,7 +212,7 @@ public class Main {
             viewer.state.timeOfLastChange = System.currentTimeMillis();
             int range = grid.width() * grid.height();
             while (viewer.stillRunning()) {
-                cc.dispatchKernel(NDRange.of1D(range), kc -> ComputeLife.life(kc, ctrl, grid));
+                cc.dispatchKernel(NDRange.of1D(range), () -> ComputeLife.life( ctrl, grid));
 
                 int to = ctrl.from(); ctrl.from(ctrl.to()); ctrl.to(to);
 

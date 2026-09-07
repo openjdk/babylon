@@ -28,7 +28,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -89,7 +89,7 @@ public class MatrixMultiply {
          */
 
         @Reflect
-        static void matmul(KernelContext kc, F32Array a, F32Array b, F32Array c, int sz) {
+        static void matmul( F32Array a, F32Array b, F32Array c, int sz) {
             //long size = kc.maxX; // There is probably a SPIRV call or intrinsic or const for this
             //   OpenCL kc.max -> get_global_size(0)
             //   CUDA   kc.max -> blockDim.x*gridDim.x
@@ -116,8 +116,8 @@ public class MatrixMultiply {
         @Reflect
         static void compute(ComputeContext computeContext, F32Array a, F32Array b, F32Array c, int size) {
             computeContext.dispatchKernel(
-                    NDRange.of1D(size * size),                // range is passed as int and creation internalized
-                    (kid) -> matmul(kid, a, b, c, size));  // kid is Kid1D has kid.x and kid.maxX
+                    NDRange.of1D(size * size),
+                    () -> matmul( a, b, c, size));
         }
 
 

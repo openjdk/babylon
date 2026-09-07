@@ -27,7 +27,6 @@ package tensors;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.KernelContext;
 
 import static hat.KernelContext.*;
 import hat.NDRange;
@@ -67,7 +66,7 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 public class Main {
 
     @Reflect
-    public static void mxmTensorsCM(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
+    public static void mxmTensorsCM( F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         final int shapeSize = 16;
         final int WMMA_M = shapeSize;
         final int WMMA_N = shapeSize;
@@ -103,11 +102,11 @@ public class Main {
                 Local2D.of(128, 4),
                 NDRange.Tile2D.of(16, 16),
                 Warp2D.of(true, false));
-        cc.dispatchKernel(ndRange, kc -> mxmTensorsCM(kc, matrixA, matrixB, matrixC, globalSize));
+        cc.dispatchKernel(ndRange, () -> mxmTensorsCM(matrixA, matrixB, matrixC, globalSize));
     }
 
     @Reflect
-    public static void mxmNaiveF32(KernelContext kc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
+    public static void mxmNaiveF32( F32Array matrixA, F32Array matrixB, F32Array matrixC, int size) {
         if (GIX() < GSX() && GIY() < GSY()) {
             float acc = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -120,12 +119,12 @@ public class Main {
     @Reflect
     public static void mxmNaiveF32(ComputeContext cc, F32Array matrixA, F32Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, 16, 16),
-                kc -> mxmNaiveF32(kc, matrixA, matrixB, matrixC, globalSize)
+                () -> mxmNaiveF32( matrixA, matrixB, matrixC, globalSize)
         );
     }
 
     @Reflect
-    public static void mxmNaiveF16(KernelContext kc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
+    public static void mxmNaiveF16( F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         if (GIX() < GSX() && GIY() < GSY()) {
             float acc = 0.0f;
             for (int k = 0; k < size; k++) {
@@ -143,7 +142,7 @@ public class Main {
     @Reflect
     public static void mxmNaiveF16(ComputeContext cc, F16Array matrixA, F16Array matrixB, F32Array matrixC, int globalSize) {
         cc.dispatchKernel(of2D(globalSize, globalSize, 16, 16),
-                kc -> mxmNaiveF16(kc, matrixA, matrixB, matrixC, globalSize)
+                () -> mxmNaiveF16( matrixA, matrixB, matrixC, globalSize)
         );
     }
 

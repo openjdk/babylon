@@ -3,13 +3,11 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_cuda.iml" filepath="$PROJECT_DIR$/backend_ffi_cuda.iml" />
-      <module fileurl="file://$PROJECT_DIR$/backend_ffi_mock.iml" filepath="$PROJECT_DIR$/backend_ffi_mock.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_opencl.iml" filepath="$PROJECT_DIR$/backend_ffi_opencl.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_shared.iml" filepath="$PROJECT_DIR$/backend_ffi_shared.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_ffi_spirv.iml" filepath="$PROJECT_DIR$/backend_ffi_spirv.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_java_mt.iml" filepath="$PROJECT_DIR$/backend_java_mt.iml" />
       <module fileurl="file://$PROJECT_DIR$/backend_java_seq.iml" filepath="$PROJECT_DIR$/backend_java_seq.iml" />
-      <module fileurl="file://$PROJECT_DIR$/backend_jextracted_shared.iml" filepath="$PROJECT_DIR$/backend_jextracted_shared.iml" />
       <module fileurl="file://$PROJECT_DIR$/core.iml" filepath="$PROJECT_DIR$/core.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_blackscholes.iml" filepath="$PROJECT_DIR$/example_blackscholes.iml" />
       <module fileurl="file://$PROJECT_DIR$/example_experiments.iml" filepath="$PROJECT_DIR$/example_experiments.iml" />

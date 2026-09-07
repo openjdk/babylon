@@ -151,25 +151,25 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                 .when(useS16Types(), _ ->defineMacroBF162Float(BF16_TO_FLOAT_1, true))
 
                 // Thread access macros
-                .when(useThreadConstruct("gix"), _-> hashDefine("HAT_GIX", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstZero()))))
-                .when(useThreadConstruct("giy"), _-> hashDefine("HAT_GIY", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstOne()))))
-                .when(useThreadConstruct("giz"), _-> hashDefine("HAT_GIZ", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstTwo()))))
-                .when(useThreadConstruct("lix"), _-> hashDefine("HAT_LIX", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstZero()))))
-                .when(useThreadConstruct("liy"), _-> hashDefine("HAT_LIY", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstOne()))))
-                .when(useThreadConstruct("liz"), _-> hashDefine("HAT_LIZ", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstTwo()))))
-                .when(useThreadConstruct("gsx"), _-> hashDefine("HAT_GSX", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstZero()))))
-                .when(useThreadConstruct("gsy"), _-> hashDefine("HAT_GSY", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstOne()))))
-                .when(useThreadConstruct("gsz"), _-> hashDefine("HAT_GSZ", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstTwo()))))
-                .when(useThreadConstruct("lsx"), _-> hashDefine("HAT_LSX", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstZero()))))
-                .when(useThreadConstruct("lsy"), _-> hashDefine("HAT_LSY", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstOne()))))
-                .when(useThreadConstruct("lsz"), _-> hashDefine("HAT_LSZ", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstTwo()))))
-                .when(useThreadConstruct("bix"), _-> hashDefine("HAT_BIX", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstZero()))))
-                .when(useThreadConstruct("biy"), _-> hashDefine("HAT_BIY", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstOne()))))
-                .when(useThreadConstruct("biz"), _-> hashDefine("HAT_BIZ", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstTwo()))))
-                .when(useThreadConstruct("bsx"), _-> hashDefine("HAT_BSX", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstZero()))))
-                .when(useThreadConstruct("bsy"), _-> hashDefine("HAT_BSY", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstOne()))))
-                .when(useThreadConstruct("bsz"), _-> hashDefine("HAT_BSZ", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstTwo()))))
-                .when(useThreadConstruct("wrs"), _-> hashDefine("HAT_WRS", _ -> paren(_ -> intValue(OPENCL_WARP_SIZE))))
+                .when(useThreadConstruct("GIX"), _-> hashDefine("HAT_GIX", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("GIY"), _-> hashDefine("HAT_GIY", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("GIZ"), _-> hashDefine("HAT_GIZ", _ -> paren(_ -> id(GLOBAL_ID).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("LIX"), _-> hashDefine("HAT_LIX", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("LIY"), _-> hashDefine("HAT_LIY", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("LIZ"), _-> hashDefine("HAT_LIZ", _ -> paren(_ -> id(LOCAL_ID).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("GSX"), _-> hashDefine("HAT_GSX", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("GSY"), _-> hashDefine("HAT_GSY", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("GSZ"), _-> hashDefine("HAT_GSZ", _ -> paren(_ -> id(GLOBAL_SIZE).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("LSX"), _-> hashDefine("HAT_LSX", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("LSY"), _-> hashDefine("HAT_LSY", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("LSZ"), _-> hashDefine("HAT_LSZ", _ -> paren(_ -> id(LOCAL_SIZE).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("BIX"), _-> hashDefine("HAT_BIX", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("BIY"), _-> hashDefine("HAT_BIY", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("BIZ"), _-> hashDefine("HAT_BIZ", _ -> paren(_ -> id(GROUP_ID).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("BSX"), _-> hashDefine("HAT_BSX", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstZero()))))
+                .when(useThreadConstruct("BSY"), _-> hashDefine("HAT_BSY", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstOne()))))
+                .when(useThreadConstruct("BSZ"), _-> hashDefine("HAT_BSZ", _ -> paren(_ -> id(NUM_GROUPS).paren(_ -> intConstTwo()))))
+                .when(useThreadConstruct("WRS"), _-> hashDefine("HAT_WRS", _ -> paren(_ -> intValue(OPENCL_WARP_SIZE))))
 
                 // Math Functions
                 .when(useS16Types(), _->maxMacro("MAX_HAT"))
@@ -188,7 +188,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
                 // Tensor Macros
                 .when(useTensors(), _ -> defineMacroCond(MACRO_COND))
-                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
+                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
                 .when(useTensors(), _ -> defineMacroTensorLoad(MACRO_FRAGMENT_LOAD_F16))
@@ -685,7 +685,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
             default -> throw new IllegalStateException("Unexpected value: " + ordering);
         };
 
-        id(MACRO_FRAMGMENT_CREATE).paren( _ -> {
+        id(MACRO_FRAGMENT_CREATE).paren( _ -> {
             switch (klass) {
                 case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) ->
                         f16Type();

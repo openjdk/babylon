@@ -27,8 +27,7 @@ package shade.shaders;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Accelerator.Compute;
-import hat.ComputeContext.Kernel;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
@@ -321,7 +320,7 @@ public class MobiusShader{
 
 
     @Reflect
-    public static void penumbra(@MappableIface.RO KernelContext kc, @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
+    public static void penumbra( @MappableIface.RO Uniforms uniforms, @MappableIface.RW F32Array f32Array) {
         int width = (int) uniforms.iResolution().x();
         int height = (int) uniforms.iResolution().y();
         var fragColor = mainImage(uniforms, vec4.vec4(0f), vec2.vec2((float)(GIX() % width), (float)(height-(GIX() / width))));
@@ -332,7 +331,7 @@ public class MobiusShader{
 
     @Reflect
     static public void compute(final ComputeContext computeContext, @MappableIface.RO Uniforms uniforms, @MappableIface.RO F32Array image, int width, int height) {
-        computeContext.dispatchKernel(NDRange.of1D(width * height), (@Reflect Kernel) kc -> penumbra(kc, uniforms, image));
+        computeContext.dispatchKernel(NDRange.of1D(width * height), () -> penumbra( uniforms, image));
     }
 
     public static void update(  Accelerator acc, Uniforms uniforms, F32Array f32Array, int width, int height) {

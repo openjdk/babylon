@@ -42,7 +42,7 @@ import java.lang.reflect.Method;
 public class TestFuncOpViewer {
     static class Compute {
         @Reflect
-        public static void mandel(@MappableIface.RO KernelContext kc, @MappableIface.RW S32Array2D s32Array2D, @MappableIface.RO S32Array pallette, float offsetx, float offsety, float scale) {
+        public static void mandel( @MappableIface.RW S32Array2D s32Array2D, @MappableIface.RO S32Array pallette, float offsetx, float offsety, float scale) {
             if (GIX() < GSX()) {
                 float width = s32Array2D.width();
                 float height = s32Array2D.height();
@@ -69,7 +69,7 @@ public class TestFuncOpViewer {
 
             computeContext.dispatchKernel(
                     NDRange.of1D(s32Array2D.width() * s32Array2D.height()),         //0..S32Array2D.size()
-                    kc -> mandel(kc, s32Array2D, pallete, x, y, scale));
+                    ()-> mandel( s32Array2D, pallete, x, y, scale));
         }
 
     }

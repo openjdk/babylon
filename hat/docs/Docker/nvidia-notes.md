@@ -16,14 +16,14 @@ You will get an output similar to this:
 
 ```bash
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
+| NVIDIA-SMI 610.43.02              KMD Version: 610.43.02     CUDA UMD Version: 13.3     |
 +-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 5060        Off |   00000000:01:00.0  On |                  N/A |
-|  0%   46C    P8             12W /  145W |     578MiB /   8151MiB |      0%      Default |
+|  0%   48C    P8             13W /  145W |     579MiB /   8151MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -41,15 +41,15 @@ You will get an output similar to this:
 You can use the following `Dockerfile` for building a new docker container:
 
 ```dockerfile
-FROM nvidia/cuda:13.0.1-devel-ubuntu24.04
+FROM nvidia/cuda:13.3.1-devel-ubuntu26.04
 
 RUN apt-get update -q && apt install -qy \
         build-essential git cmake vim maven curl bash unzip zip wget
 
 WORKDIR /opt/babylon/
-RUN wget https://download.java.net/java/early_access/jdk26/22/GPL/openjdk-26-ea+22_linux-x64_bin.tar.gz
-RUN tar xvzf openjdk-26-ea+22_linux-x64_bin.tar.gz
-ENV JAVA_HOME=/opt/babylon/jdk-26/
+RUN wget https://download.java.net/java/early_access/jdk28/13/GPL/openjdk-28-ea+13_linux-x64_bin.tar.gz
+RUN tar xvzf openjdk-28-ea+13_linux-x64_bin.tar.gz
+ENV JAVA_HOME=/opt/babylon/jdk-28/
 ENV PATH=$JAVA_HOME/bin:$PATH
 RUN java --version
 
@@ -71,17 +71,13 @@ RUN make images
 
 # Configure HAT
 WORKDIR /opt/babylon/babylon/hat
-RUN wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
-RUN tar xvzf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz > /dev/null
-ENV PATH=/opt/babylon/babylon/hat/jextract-22/bin:$PATH
 ENV PATH=/opt/babylon/babylon/build/linux-x86_64-server-release/jdk/bin/:$PATH
 ENV JAVA_HOME=/opt/babylon/babylon/build/linux-x86_64-server-release/jdk
 RUN /bin/bash -c "source env.bash"
 
-RUN apt-get install -y maven
 RUN mvn clean package
 
-## Expose a volume to pass files in the local directory
+## Expose volume
 WORKDIR /opt/babylon/babylon/hat/
 VOLUME ["/data"]
 ```
@@ -107,14 +103,13 @@ All setup! Now you can run HAT on NVIDIA GPUs.
 Run matrix-multiply example:
 
 ```bash
-docker run -it --rm --runtime=nvidia --gpus all babylon java @.ffi-cuda-examples matmul --size=1024 --kernel=2DREGISTERTILING_FP16
+docker run -it --rm --runtime=nvidia --gpus all babylon java @.ffi-cuda-example matmul.Main --size=1024 --kernel=2DREGISTERTILING_FP16
 ```
 
 ## Enable debug info
 
 ```bash
-docker run -it --rm --runtime=nvidia --gpus all babylon java @.ffi-cuda-examples matmul -DHAT=INFO matmul --size=1024 --kernel=2DREGISTERTILING_FP16
-```
+docker run -it --rm --runtime=nvidia --gpus all babylon java -DHAT=INFO @.ffi-cuda-example matmul.Main --size=1024 --kernel=2DREGISTERTILING_FP16
 
 Expected output:
 

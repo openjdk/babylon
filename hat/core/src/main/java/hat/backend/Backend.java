@@ -28,9 +28,9 @@ package hat.backend;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.Config;
-import hat.KernelContext;
 //import hat.backend.java.JavaMultiThreadedBackend;
 //import hat.backend.java.JavaSequentialBackend;
+import hat.NDRange;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -38,13 +38,10 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.FuncOpParams;
 import optkl.OpHelper;
 import optkl.Trxfmr;
-import optkl.VarTable;
 import optkl.ifacemapper.AccessType;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.carriers.ArenaAndLookupCarrier;
-import optkl.util.carriers.ArenaCarrier;
-import optkl.util.carriers.LookupCarrier;
 
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
@@ -102,12 +99,11 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
 
     public abstract void computeContextHandoff(ComputeContext computeContext);
 
-    public abstract void dispatchCompute(ComputeContext computeContext, Object... args);
+    public abstract void dispatchCompute(ComputeContext computeContext, Object[] args);
 
-    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args);
+    public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object[] args);
 
-
-    public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
+    public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         var transformer = Trxfmr.of(lookup,funcOp);
         if (config.minimizeCopies()) {
             var paramTable = new FuncOpParams(funcOp);
@@ -148,7 +144,7 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
                                             )
                                     );
                         }
-                    }, varTable)
+                    })
                     .when(config.showComputeModel(), trxfmr -> trxfmr.toText("COMPUTE after injecting buffer tracking..."))
                     .funcOp();
         } else {

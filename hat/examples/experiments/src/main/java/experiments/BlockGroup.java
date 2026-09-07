@@ -30,7 +30,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.codebuilders.JavaCodeBuilder;
 
 
@@ -80,11 +80,10 @@ public class BlockGroup {
         VarTable varTable = new VarTable(mModel.funcName());
          var mGroupModel=  Trxfmr.of(lookup,mModel).transform(opsToGroup::contains, c->{ // Here we use a HAT style transformer
             if (opsToGroup.getLast() == c.op()) {
-                // Create a new body builder connected as a child
-                // Use a child of the code context so values can be shared ???? what does this mean
+                // Create a new body builder connected as a child of the parent builder c.builder()
+                // The new body builder will have a code context that is a child of the parent
                 Body.Builder groupBodyBuilder = Body.Builder.of(
-                        c.builder().parentBody(), CoreType.FUNCTION_TYPE_VOID,
-                        CodeContext.create(c.builder().context()));
+                        c.builder().parentBody(), CoreType.FUNCTION_TYPE_VOID);
 
                 // Add ops to the entry block
                 Block.Builder groupBlockBuilder = groupBodyBuilder.entryBlock();

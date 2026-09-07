@@ -26,7 +26,7 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
@@ -44,7 +44,7 @@ import java.util.Random;
 public class TestFloat2 {
 
     @Reflect
-    public static void vectorOps01(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
+    public static void vectorOps01( F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2 vA = a.float2View(index * 2);
@@ -55,7 +55,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps02(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b) {
+    public static void vectorOps02( F32ArrayPadded a, F32ArrayPadded b) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2.MutableImpl vA = a.float2View(index * 2);
@@ -66,7 +66,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps03(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b) {
+    public static void vectorOps03( F32ArrayPadded a, F32ArrayPadded b) {
         if (GIX() < GSX()) {
             int index = GIX();
 
@@ -87,7 +87,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps04(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b) {
+    public static void vectorOps04( F32ArrayPadded a, F32ArrayPadded b) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2.MutableImpl vA = a.float2View(index * 2);
@@ -98,7 +98,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps05(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
+    public static void vectorOps05( F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2 vA = a.float2View(index * 2);
@@ -109,7 +109,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps06(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
+    public static void vectorOps06( F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2 vA = a.float2View(index * 2);
@@ -121,7 +121,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps07(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
+    public static void vectorOps07( F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2 vA = a.float2View(index * 2);
@@ -132,7 +132,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps08(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
+    public static void vectorOps08( F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2 vA = a.float2View(index * 2);
@@ -143,7 +143,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps09(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
+    public static void vectorOps09( F32ArrayPadded a, F32ArrayPadded b, F32ArrayPadded c) {
         // Checking composition
         if (GIX() < GSX()) {
             int index = GIX();
@@ -173,7 +173,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps10(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b) {
+    public static void vectorOps10( F32ArrayPadded a, F32ArrayPadded b) {
         SharedArray sm = SharedArray.createLocal();
         if (GIX() < GSX()) {
             int index = GIX();
@@ -205,7 +205,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps11(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b) {
+    public static void vectorOps11( F32ArrayPadded a, F32ArrayPadded b) {
         PrivateMemory pm = PrivateMemory.createPrivate();
         if (GIX() < GSX()) {
             int index = GIX();
@@ -218,7 +218,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps12(KernelContext unused, F32ArrayPadded a, F32ArrayPadded b) {
+    public static void vectorOps12( F32ArrayPadded a, F32ArrayPadded b) {
         SharedArray sm = SharedArray.createLocal();
         if (GIX() < GSX()) {
             int index = GIX();
@@ -233,7 +233,7 @@ public class TestFloat2 {
     }
 
     @Reflect
-    public static void vectorOps14(KernelContext unused, F32ArrayPadded a) {
+    public static void vectorOps14( F32ArrayPadded a) {
         if (GIX() < GSX()) {
             int index = GIX();
             Float2 vA = a.float2View(index * 2);
@@ -245,7 +245,7 @@ public class TestFloat2 {
 
 
     @Reflect
-    public static void vectorOps15(KernelContext unused, F32ArrayPadded a) {
+    public static void vectorOps15( F32ArrayPadded a) {
         // in this sample, we don't perform the vload, but rather the vstore directly
         // from a new float2.
         if (GIX() < GSX()) {
@@ -258,86 +258,86 @@ public class TestFloat2 {
     @Reflect
     public static void computeGraph01( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2,128), kernelContext -> TestFloat2.vectorOps01(kernelContext, a, b, c));
+        cc.dispatchKernel(NDRange.of1D(size/2,128), ()->TestFloat2.vectorOps01( a, b, c));
     }
 
     @Reflect
     public static void computeGraph02( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps02(kernelContext, a, b));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps02( a, b));
     }
 
     @Reflect
     public static void computeGraph03( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps03(kernelContext, a, b));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps03( a, b));
     }
 
     @Reflect
     public static void computeGraph04( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps04(kernelContext, a, b));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps04( a, b));
     }
 
     @Reflect
     public static void computeGraph05( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps05(kernelContext, a, b, c));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps05( a, b, c));
     }
 
     @Reflect
     public static void computeGraph06( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps06(kernelContext, a, b, c));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps06( a, b, c));
     }
 
 
     @Reflect
     public static void computeGraph07( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps07(kernelContext, a, b, c));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps07( a, b, c));
     }
 
     @Reflect
     public static void computeGraph08( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps08(kernelContext, a, b, c));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps08( a, b, c));
     }
 
     @Reflect
     public static void computeGraph09( ComputeContext cc,  F32ArrayPadded a,  F32ArrayPadded b,  F32ArrayPadded c,  int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps09(kernelContext, a, b, c));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps09( a, b, c));
     }
 
     @Reflect
     public static void computeGraph10( ComputeContext cc,  F32ArrayPadded a,   F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps10(kernelContext, a, b));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps10( a, b));
     }
 
     @Reflect
     public static void computeGraph11( ComputeContext cc,  F32ArrayPadded a,   F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps11(kernelContext, a, b));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps11( a, b));
     }
 
     @Reflect
     public static void computeGraph12( ComputeContext cc,  F32ArrayPadded a,   F32ArrayPadded b, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps12(kernelContext, a, b));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps12( a, b));
     }
 
     @Reflect
     public static void computeGraph14( ComputeContext cc,  F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps14(kernelContext, a));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps14( a));
     }
 
     @Reflect
     public static void computeGraph15( ComputeContext cc,  F32ArrayPadded a, int size) {
         // Note: we need to launch N threads / vectorWidth -> size / 2 for this example
-        cc.dispatchKernel(NDRange.of1D(size/2), kernelContext -> TestFloat2.vectorOps15(kernelContext, a));
+        cc.dispatchKernel(NDRange.of1D(size/2), ()->TestFloat2.vectorOps15( a));
     }
 
 

@@ -29,7 +29,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -43,7 +43,7 @@ public class Main {
     static Random rand;
 
     @Reflect
-    public static void blackScholesKernel(KernelContext kc,
+    public static void blackScholesKernel(
                                           F32Array call,
                                           F32Array put,
                                           F32Array sArray,
@@ -96,7 +96,7 @@ public class Main {
     @Reflect
     public static void blackScholes(ComputeContext cc, F32Array call, F32Array put, F32Array S, F32Array X, F32Array T, float r, float v) {
         cc.dispatchKernel(NDRange.of1D(call.length()),
-                kc -> blackScholesKernel(kc, call, put, S, X, T, r, v)
+                () -> blackScholesKernel( call, put, S, X, T, r, v)
         );
     }
 

@@ -26,7 +26,7 @@ package hat;
 
 import hat.backend.Backend;
 
-import optkl.codebuilders.BabylonOpDispatcher;
+import hat.buffer.DispatchContext;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
@@ -36,7 +36,6 @@ import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -84,8 +83,13 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
 
     private final Map<Method, hat.ComputeContext> cache = new HashMap<>();
 
-    public KernelContext range(NDRange ndRange) {
-        return new KernelContext(ndRange);
+  //  public KernelContext kernelContext(NDRange ndRange) {
+    //    return new KernelContext(ndRange);
+   // }
+    public DispatchContext dispatchContext(NDRange ndRange) {
+        var dispatchContext =  DispatchContext.createDefault(this);
+        throw new RuntimeException("fill me");
+      //  return dispatchContext;
     }
 
     protected Accelerator(MethodHandles.Lookup lookup, ServiceLoader.Provider<Backend> provider) {
@@ -168,7 +172,6 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
      *  );
      *  </pre>
      */
-    @Reflect
     @FunctionalInterface
     public interface Compute extends Consumer<ComputeContext> {
     }

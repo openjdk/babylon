@@ -40,7 +40,7 @@ import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import optkl.IfaceValue;
 import optkl.OpHelper;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.ifacemapper.AccessType;
 import optkl.ifacemapper.MappableIface;
 import optkl.util.Mutable;

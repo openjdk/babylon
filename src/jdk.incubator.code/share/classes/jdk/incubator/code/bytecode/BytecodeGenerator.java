@@ -806,7 +806,7 @@ public final class BytecodeGenerator {
                                 }
                             }
                             if (protectedAccess) {
-                                lookupHandle(specialCaller, md.name(), mDesc,
+                                lookupHandle(refType.toNominalDescriptor(), md.name(), mDesc,
                                              op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
                             }
                         }

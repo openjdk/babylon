@@ -60,7 +60,7 @@ public class AnfTransformer {
             builderEntry.context().mapValue(p,newP);
         }
 
-        var outerLetRecBody = Body.Builder.of(outerBodyBuilder, CoreType.functionType(b.yieldType(), List.of()), CodeContext.create(builderEntry.context()));
+        var outerLetRecBody = Body.Builder.of(outerBodyBuilder, CoreType.functionType(b.yieldType(), List.of()));
 
         List<Block> dominatedBlocks = idomMap.idominates(entry);
         List<AnfDialect.AnfFuncOp> funs = dominatedBlocks.stream().map(block -> transformBlock(block, outerLetRecBody)).toList();
@@ -87,7 +87,7 @@ public class AnfTransformer {
 
         var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
 
-        Body.Builder newBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth, CodeContext.create(ancestorBodyBuilder.entryBlock().context()));
+        Body.Builder newBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth);
 
         var selfRefParam = newBodyBuilder.entryBlock().parameters().get(0);
         funMap.put(b, selfRefParam);
@@ -97,7 +97,7 @@ public class AnfTransformer {
             newBodyBuilder.entryBlock().context().mapValue(param, p);
         }
 
-        var letBody = Body.Builder.of(newBodyBuilder, CoreType.functionType(blockReturnType, List.of()), CodeContext.create(newBodyBuilder.entryBlock().context()));
+        var letBody = Body.Builder.of(newBodyBuilder, CoreType.functionType(blockReturnType, List.of()));
 
         AnfDialect.AnfLetOp let = transformOps(b, letBody);
         newBodyBuilder.entryBlock().add(let);
@@ -115,7 +115,7 @@ public class AnfTransformer {
         var blockFTypeSynth = CoreType.functionType(blockReturnType, synthParamTypes);
 
         //Function body contains letrec and its bodies
-        Body.Builder funcBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth, CodeContext.create(ancestorBodyBuilder.entryBlock().context()));
+        Body.Builder funcBodyBuilder = Body.Builder.of(ancestorBodyBuilder, blockFTypeSynth);
 
         //Self param
         var selfRefParam = funcBodyBuilder.entryBlock().parameters().get(0);
@@ -127,7 +127,7 @@ public class AnfTransformer {
         }
 
         //letrec inner body
-        Body.Builder letrecBody = Body.Builder.of(funcBodyBuilder, CoreType.functionType(blockReturnType, List.of()), CodeContext.create(funcBodyBuilder.entryBlock().context()));
+        Body.Builder letrecBody = Body.Builder.of(funcBodyBuilder, CoreType.functionType(blockReturnType, List.of()));
 
         List<Block> dominates = idomMap.idominates(b);
         for (Block dblock : dominates) {
@@ -136,7 +136,7 @@ public class AnfTransformer {
             funMap2.put(dblock, fval);
         }
 
-        var letBody = Body.Builder.of(letrecBody, letrecBody.bodySignature(), CodeContext.create(letrecBody.entryBlock().context()));
+        var letBody = Body.Builder.of(letrecBody, letrecBody.bodySignature());
         transformBlockOps(b, letBody.entryBlock());
         var let = AnfDialect.let(letBody);
 

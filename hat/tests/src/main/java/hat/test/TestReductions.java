@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -61,12 +61,11 @@ public class TestReductions {
      * Example of a simple reduction using accelerator's global memory. This is inefficient, but it shows
      * the constructs needed to support this case, such as accessing to local ids, sizes and blocks.
      *
-     * @param context
      * @param input
      * @param partialSums
      */
     @Reflect
-    private static void reduceGlobal(KernelContext context, S32Array input, S32Array partialSums) {
+    private static void reduceGlobal( S32Array input, S32Array partialSums) {
         int localId = LIX();
         int localSize = LSX();
         int blockId = BIX();
@@ -95,7 +94,7 @@ public class TestReductions {
      * @param partialSums
      */
     @Reflect
-    private static void reduceLocal(KernelContext context, S32Array input, S32Array partialSums) {
+    private static void reduceLocal( S32Array input, S32Array partialSums) {
         int localId = LIX();
         int localSize = LSX();
         int blockId = BIX();
@@ -124,13 +123,13 @@ public class TestReductions {
     @Reflect
     private static void reduceGlobal(ComputeContext cc, S32Array input, S32Array partialSums) {
         // 2 groups of 16 threads each
-        cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceGlobal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32, 16), () -> reduceGlobal( input, partialSums));
     }
 
     @Reflect
     private static void reduceLocal(ComputeContext cc, S32Array input, S32Array partialSums) {
         // 2 groups of 16 threads each
-        cc.dispatchKernel(NDRange.of1D(32, 16), kc -> reduceLocal(kc, input, partialSums));
+        cc.dispatchKernel(NDRange.of1D(32, 16), () -> reduceLocal( input, partialSums));
     }
 
     @HatTest

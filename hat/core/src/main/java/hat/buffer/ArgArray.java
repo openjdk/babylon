@@ -235,12 +235,12 @@ public interface ArgArray extends Buffer {
             .array("schemaBytes")
     );
 
-    static ArgArray create(ArenaAndLookupCarrier cc, KernelCallGraph kernelCallGraph, Object... args) {
-        String[] schemas = new String[args.length];
+    static ArgArray create(ArenaAndLookupCarrier cc, KernelCallGraph kernelCallGraph, Object[] dispatchContextAndArgs) {
+        String[] schemas = new String[dispatchContextAndArgs.length];
         StringBuilder argSchema = new StringBuilder();
-        argSchema.append(args.length);
-        for (int i = 0; i < args.length; i++) {
-            Object argObject = args[i];
+        argSchema.append(dispatchContextAndArgs.length);
+        for (int i = 0; i < dispatchContextAndArgs.length; i++) {
+            Object argObject = dispatchContextAndArgs[i];
             schemas[i] = switch (argObject) {
                 case Boolean _ -> "(?:z1)";
                 case Byte _ -> "(?:s8)";
@@ -260,13 +260,13 @@ public interface ArgArray extends Buffer {
             argSchema.append(schemas[i]);
         }
         String schemaStr = argSchema.toString();
-        ArgArray argArray = BoundSchema.of(cc, schema, args.length, schemaStr.length() + 1).allocate();
+        ArgArray argArray = BoundSchema.of(cc, schema, dispatchContextAndArgs.length, schemaStr.length() + 1).allocate();
         byte[] schemaStrBytes = schemaStr.getBytes();
         for (int i = 0; i < schemaStrBytes.length; i++) {
             argArray.schemaBytes(i, schemaStrBytes[i]);
         }
         argArray.schemaBytes(schemaStrBytes.length, (byte) 0);
-        update(argArray, kernelCallGraph, args);
+        update(argArray, kernelCallGraph, dispatchContextAndArgs);
         return argArray;
     }
 
@@ -281,11 +281,12 @@ public interface ArgArray extends Buffer {
         return kernelCallGraph.callDag.entryPoint.method().getAnnotation(Kernel.class) != null;
     }
 
-    static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object... args) {
+    static void update(ArgArray argArray, KernelCallGraph kernelCallGraph, Object[] dispatchContextAndArgs) {
         Annotation[][] parameterAnnotations = kernelCallGraph.callDag.entryPoint.method().getParameterAnnotations();
         var bufferAccessList = kernelCallGraph.bufferAccessList;
-        for (int argIndex = 0; argIndex < args.length; argIndex++) {
-            Object argObject = args[argIndex];
+        for (int argIndex = 0; argIndex < dispatchContextAndArgs.length; argIndex++) {
+            final int finalArgIndex = argIndex; // Sigh
+            Object argObject = dispatchContextAndArgs[argIndex];
             Arg arg = argArray.arg(argIndex); // this should be invariant, but if we are called from create it will be 0 for all
             arg.idx(argIndex);
             switch (argObject) {
@@ -297,13 +298,15 @@ public interface ArgArray extends Buffer {
                 case Integer s32 -> arg.s32(s32);
                 case Long s64 -> arg.s64(s64);
                 case Double f64 -> arg.f64(f64);
-                case Buffer buffer -> {
-                    Annotation[] annotations = parameterAnnotations[argIndex];
-                    AccessType accessType = AccessType.NA;
-                    for (Annotation annotation : annotations) {
-                        accessType = AccessType.of(annotation);
-                        checkAnnotationArg(kernelCallGraph, accessType, annotation, argIndex);
-                    }
+                case Buffer buffer when finalArgIndex >0-> {
+
+                        Annotation[] annotations = parameterAnnotations[finalArgIndex-1];
+                        AccessType accessType = AccessType.NA;
+                        for (Annotation annotation : annotations) {
+                            accessType = AccessType.of(annotation);
+                            checkAnnotationArg(kernelCallGraph, accessType, annotation, finalArgIndex-1);
+                        }
+
                     MemorySegment segment = getMemorySegment(buffer);
                     arg.variant((byte) '&');
                     Arg.Value value = arg.value();
@@ -316,10 +319,18 @@ public interface ArgArray extends Buffer {
                         buf.access(accessType.value);
                     } else {
                         // otherwise, we rely on the buffer-tagger to set the accessor
-                        buf.access(bufferAccessList.get(argIndex).value);
+                        buf.access(bufferAccessList.get(finalArgIndex-1).value);
                     }
                 }
-                default -> throw new IllegalStateException("Unexpected value: " + argObject);
+                case Buffer buffer -> {
+                    MemorySegment segment = getMemorySegment(buffer);
+                    arg.variant((byte) '&');
+                    Arg.Value value = arg.value();
+                    Arg.Value.Buf buf = value.buf();
+                    buf.address(segment);
+                    buf.bytes(segment.byteSize());
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + argObject+ ":"+argObject.getClass().getName()+" in dispatchAndArgs slot "+argIndex);
             }
         }
     }

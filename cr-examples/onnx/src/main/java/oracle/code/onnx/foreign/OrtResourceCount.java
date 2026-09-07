@@ -20,7 +20,7 @@ import static java.lang.foreign.MemoryLayout.PathElement.*;
  *     union {
  *         uint64_t total_bytes;
  *         uint64_t reserved_words[6];
- *     } value;
+ *     } value_;
  * }
  * }
  */
@@ -33,7 +33,7 @@ public class OrtResourceCount {
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
         onnxruntime_c_api_h.C_INT.withName("kind"),
         onnxruntime_c_api_h.C_INT.withName("reserved"),
-        OrtResourceCount.value.layout().withName("value")
+        OrtResourceCount.value_.layout().withName("value_")
     ).withName("OrtResourceCount");
 
     /**
@@ -139,9 +139,9 @@ public class OrtResourceCount {
      * }
      * }
      */
-    public static class value {
+    public static class value_ {
 
-        value() {
+        value_() {
             // Should not be called directly
         }
 
@@ -323,7 +323,7 @@ public class OrtResourceCount {
         }
     }
 
-    private static final GroupLayout value$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("value"));
+    private static final GroupLayout value_$LAYOUT = (GroupLayout)$LAYOUT.select(groupElement("value_"));
 
     /**
      * Layout for field:
@@ -331,14 +331,14 @@ public class OrtResourceCount {
      * union {
      *     uint64_t total_bytes;
      *     uint64_t reserved_words[6];
-     * } value
+     * } value_
      * }
      */
-    public static final GroupLayout value$layout() {
-        return value$LAYOUT;
+    public static final GroupLayout value_$layout() {
+        return value_$LAYOUT;
     }
 
-    private static final long value$OFFSET = $LAYOUT.byteOffset(groupElement("value"));
+    private static final long value_$OFFSET = $LAYOUT.byteOffset(groupElement("value_"));
 
     /**
      * Offset for field:
@@ -346,11 +346,11 @@ public class OrtResourceCount {
      * union {
      *     uint64_t total_bytes;
      *     uint64_t reserved_words[6];
-     * } value
+     * } value_
      * }
      */
-    public static final long value$offset() {
-        return value$OFFSET;
+    public static final long value_$offset() {
+        return value_$OFFSET;
     }
 
     /**
@@ -359,11 +359,11 @@ public class OrtResourceCount {
      * union {
      *     uint64_t total_bytes;
      *     uint64_t reserved_words[6];
-     * } value
+     * } value_
      * }
      */
-    public static MemorySegment value(MemorySegment struct) {
-        return struct.asSlice(value$OFFSET, value$LAYOUT.byteSize());
+    public static MemorySegment value_(MemorySegment struct) {
+        return struct.asSlice(value_$OFFSET, value_$LAYOUT.byteSize());
     }
 
     /**
@@ -372,11 +372,11 @@ public class OrtResourceCount {
      * union {
      *     uint64_t total_bytes;
      *     uint64_t reserved_words[6];
-     * } value
+     * } value_
      * }
      */
-    public static void value(MemorySegment struct, MemorySegment fieldValue) {
-        MemorySegment.copy(fieldValue, 0L, struct, value$OFFSET, value$LAYOUT.byteSize());
+    public static void value_(MemorySegment struct, MemorySegment fieldValue) {
+        MemorySegment.copy(fieldValue, 0L, struct, value_$OFFSET, value_$LAYOUT.byteSize());
     }
 
     /**

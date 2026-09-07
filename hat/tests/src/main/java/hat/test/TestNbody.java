@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import optkl.ifacemapper.BoundSchema;
@@ -77,7 +77,7 @@ public class TestNbody {
     }
 
     @Reflect
-    static public void nbodyKernel(KernelContext kc, Universe universe, float mass, float delT, float espSqr) {
+    static public void nbodyKernel( Universe universe, float mass, float delT, float espSqr) {
         float accx = 0.0f;
         float accy = 0.0f;
         float accz = 0.0f;
@@ -107,7 +107,7 @@ public class TestNbody {
 
     @Reflect
     public static void nbodyCompute(ComputeContext cc, Universe universe, final float mass, final float delT, final float espSqr) {
-        cc.dispatchKernel(NDRange.of1D(universe.length()), kernelContext -> nbodyKernel(kernelContext, universe, mass, delT, espSqr));
+        cc.dispatchKernel(NDRange.of1D(universe.length()), () -> nbodyKernel( universe, mass, delT, espSqr));
     }
 
     public static void computeSequential(Universe universe, float mass, float delT, float espSqr) {

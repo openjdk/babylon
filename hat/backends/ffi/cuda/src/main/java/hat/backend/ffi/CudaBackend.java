@@ -25,16 +25,13 @@
 package hat.backend.ffi;
 
 
-import hat.ComputeContext;
 import hat.Config;
-import hat.KernelContext;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.MethodCallDag;
 import jdk.incubator.code.CodeTransformer;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 import optkl.codebuilders.ScopedCodeBuilderContext;
-import optkl.util.CallSite;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.MappableIface;
@@ -56,6 +53,25 @@ import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaBackend extends C99FFIBackend {
+    public CudaBackend(Config config) {
+        super(Arena.global(), MethodHandles.lookup(),"cuda_backend", config);
+    }
+
+    public CudaBackend() {
+        this(Config.fromEnvOrProperty());
+    }
+
+
+    @Override public String createCode(KernelCallGraph kernelCallGraph,  Object... justArgs){
+        if (config().ptx()){
+            return createPTX(kernelCallGraph,  justArgs);
+        }else{
+            return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), justArgs);
+        }
+    }
+
+    // The rest of this is needed only for PTX.
+
     final int major = 7;
     final int minor = 5;
     final String target = "sm_52";
@@ -364,41 +380,7 @@ public class CudaBackend extends C99FFIBackend {
 
     final Set<String> usedMathFns = new HashSet<>();
 
-    public CudaBackend(Config config) {
-        super(Arena.global(), MethodHandles.lookup(),"cuda_backend", config);
-    }
 
-    public CudaBackend() {
-        this(Config.fromEnvOrProperty());
-    }
-    @Override
-    public void computeContextHandoff(ComputeContext computeContext) {
-        VarTable varTable = new VarTable(computeContext.computeCallGraph().callDag.entryPoint.funcOp().funcName());
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp(), varTable));
-    }
-
-    @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
-        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
-            String code =config().ptx() ? createPTX(kernelCallGraph,  args) : createC99(kernelCallGraph, args);
-            if (config().showCode()) {
-                System.out.println(code);
-            }
-            var compilationUnit = backendBridge.compile(code);
-            if (compilationUnit.ok()) {
-                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
-                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
-            } else {
-                throw new IllegalStateException("cuda failed to compile ");
-            }
-        });
-        compiledKernel.dispatch(kernelContext, args);
-    }
-    String createC99(KernelCallGraph kernelCallGraph, Object... args){
-        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), args);
-    }
-
-    ///   Same as OpenCL backend until here
 
 
     String createPTX(KernelCallGraph kernelCallGraph,  Object... args){

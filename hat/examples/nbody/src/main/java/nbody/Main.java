@@ -28,7 +28,7 @@ package nbody;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.buffer.F32Array;
@@ -266,7 +266,6 @@ public class Main extends JFrame implements Runnable {
     @Reflect
 
     static public void nbodyKernel(
-            KernelContext kc,
             int bodies,
             F32Array xyzPos,
             F32Array xyzVel,
@@ -280,9 +279,7 @@ public class Main extends JFrame implements Runnable {
     }
 
     @Reflect
-    public static void clearImage(
-            KernelContext kc,
-            S32RGBAImage image) {
+    public static void clearImage(S32RGBAImage image) {
         image.data(GIX(), 0);
     }
 
@@ -303,9 +300,9 @@ public class Main extends JFrame implements Runnable {
         int cbodies = bodies;
         int cimageWidth = imageWidth;
 
-        cc.dispatchKernel(NDRange.of1D(imageWidth * image.height()), kc -> clearImage(kc, image));
+        cc.dispatchKernel(NDRange.of1D(imageWidth * image.height()), () -> clearImage( image));
 
-        cc.dispatchKernel(NDRange.of1D(bodies), kc -> nbodyKernel(kc, cbodies, xyzPos, xyzVel, image, cimageWidth, cmass, cdelT, cespSqr));
+        cc.dispatchKernel(NDRange.of1D(bodies), () -> nbodyKernel( cbodies, xyzPos, xyzVel, image, cimageWidth, cmass, cdelT, cespSqr));
     }
 
 

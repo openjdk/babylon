@@ -205,7 +205,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_CUDA")
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())//.keyword("inline"))
+                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().keyword("__global__"))
 
                 // threads
@@ -234,11 +234,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
                 // Math
                 .when(useS16Types(), _ -> maxMacro("MAX_HAT"))
-                .when(useS16Types(), _ ->minMacro("MIN_HAT"))
+                .when(useS16Types(), _ -> minMacro("MIN_HAT"))
 
                 // General Macros
-                .when(useVectors() || useVectors(), _ -> concatMacro())
-                .when(useVectors() || useVectors(), _ -> prefixMacro())
+                .when(useVectors(), _ -> concatMacro().prefixMacro())
 
                 // Vectors
                 .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_0",false))
@@ -265,7 +264,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
                 // Tensor Macros
                 .when(useTensors(), _ -> includeSys("mma.h"))
-                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAMGMENT_CREATE))
+                .when(useTensors(), _ -> defineFragmentCreate(MACRO_FRAGMENT_CREATE))
                 .when(useTensors(), _ -> defineMacroTensorFill(MACRO_FRAGMENT_FILL))
                 .when(useTensors(), _ -> defineMacroTensorMMA(MACRO_FRAGMENT_MMA))
                 .when(useTensors(), _ -> defineMacroTensorLoadF16(MACRO_FRAGMENT_LOAD_F16))
@@ -817,7 +816,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access, String tensorVar) {
         // Params: "kind", "size", "m", "n", "k", "type", "layout", "name";
         // call the macro with the right args
-        id(MACRO_FRAMGMENT_CREATE).paren(_ -> {
+        id(MACRO_FRAGMENT_CREATE).paren(_ -> {
             id(matrixOrder).comma()
                     .id(ZERO).comma().sp()           // For the CUDA backend, this value is not used
                     .intValue(shape.getFirst()).comma().sp()

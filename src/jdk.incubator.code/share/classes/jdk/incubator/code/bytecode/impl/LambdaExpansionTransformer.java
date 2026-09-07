@@ -102,11 +102,15 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             });
         }
         if (!modelsToBuild.isEmpty()) {
-            functions.addAll(OpBuilder.createBuilderFunctions(
+            CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(
                     modelsToBuild,
                     b -> b.add(JavaOp.fieldLoad(
-                            FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))))
-                    .functionTable().sequencedValues());
+                            FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
+            names.addAll(module.functionTable().sequencedKeySet());
+            for (FuncOp builder : module.functionTable().sequencedValues()) {
+                // module may contain chunked large lambdas, which must also be expanded
+                functions.add(builder.transform(this));
+            }
         }
         return CoreOp.module(functions);
     }

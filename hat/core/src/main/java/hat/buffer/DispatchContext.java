@@ -26,50 +26,41 @@ package hat.buffer;
 
 import jdk.incubator.code.Reflect;
 import optkl.ifacemapper.BoundSchema;
-import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
+import optkl.util.carriers.ArenaAndLookupCarrier;
 
-public interface KernelBufferContext extends Buffer {
+public interface DispatchContext extends Buffer {
 
     @Reflect
     default void  schema(){
+        type();
         dimensions();          // Dimension (1D, 2D or 3D)
-        gix(); giy(); giz();   // global thread-id accesses
         gsx(); gsy(); gsz();   // global sizes
-        lix(); liy(); liz();   // local (thread-ids)
         lsx(); lsy(); lsz();   // local sizes
-        bix(); biy(); biz();   // block index
         bsx(); bsy(); bsz();   // block sizes
         tlx(); tly(); tlz();   // tile sizes
         wsx(); wsy(); wsz();   // warp sizes
     }
-    Schema<KernelBufferContext> schema = Schema.of(KernelBufferContext.class);
+    Schema<DispatchContext> schema = Schema.of(DispatchContext.class);
 
     // ----------------------------------------------------------------------|
     // Mapping between OpenCL, CUDA and HAT                                  |
     // ----------------------------------------------------------------------|
     //| OpenCL            | CUDA                                  | HAT      |
     //| ----------------- | ------------------------------------- |--------- |
-    //| get_global_id(0)  | blockIdx.x *blockDim.x + threadIdx.x  | gix      |
     //| get_global_size(0)| gridDim.x * blockDim.x                | gsx      |
-    //| get_local_id(0)   | threadIdx.x                           | lix      |
     //| get_local_size(0) | blockDim.x                            | lsx      |
-    //| get_group_id(0)   | blockIdx.x                            | bix      |
     //| get_num_groups(0) | gridDim.x                             | bsx      |
     // ----------------------------------------------------------------------|
 
+    int type(); //0 kernel, 1 tile, 2 tensor
+
+    void type(int type);
     int dimensions();
 
     void dimensions(int dimensions);
 
-    // Global: new names
-    int gix();
-    void gix(int gix);
-    int giy();
-    void giy(int giy);
-    int giz();
-    void giz(int giz);
 
     int gsx();
     void gsx(int gsx);
@@ -78,13 +69,6 @@ public interface KernelBufferContext extends Buffer {
     int gsz();
     void gsz(int gsz);
 
-    // Local accesses
-    int lix();
-    void lix(int lix);
-    int liy();
-    void liy(int liy);
-    int liz();
-    void liz(int liz);
 
     // Local group size / block size
     int lsx();
@@ -94,13 +78,6 @@ public interface KernelBufferContext extends Buffer {
     int lsz();
     void lsz(int lsz);
 
-    // Block ID
-    int bix();
-    void bix(int bix);
-    int biy();
-    void biy(int biy);
-    int biz();
-    void biz(int biz);
 
     int bsx();
     void bsx(int bsx);
@@ -118,51 +95,40 @@ public interface KernelBufferContext extends Buffer {
     void tlz(int tlz);
 
     // Warp Size
-    boolean wsx();
-    void wsx(boolean wsx);
-    boolean wsy();
-    void wsy(boolean wsy);
-    boolean wsz();
-    void wsz(boolean wsz);
+    int wsx();
+    void wsx(int wsx);
+    int wsy();
+    void wsy(int wsy);
+    int wsz();
+    void wsz(int wsz);
 
-    static KernelBufferContext createDefault(ArenaAndLookupCarrier cc) {
-        KernelBufferContext kernelBufferContext = BoundSchema.of(cc ,schema).allocate();
-
+    static DispatchContext createDefault(ArenaAndLookupCarrier cc) {
+        DispatchContext dispatchContext = BoundSchema.of(cc ,schema).allocate();
+        dispatchContext.type(0); // default to kernel
         // Set default value for each construct
-        kernelBufferContext.dimensions(3);
+        dispatchContext.dimensions(3);
 
-        kernelBufferContext.gix(0);
-        kernelBufferContext.giy(0);
-        kernelBufferContext.giz(0);
 
-        kernelBufferContext.gsy(0);
-        kernelBufferContext.giy(0);
-        kernelBufferContext.giz(0);
+        dispatchContext.gsy(0);
+        dispatchContext.gsx(0);
+        dispatchContext.gsz(0);
 
-        kernelBufferContext.lix(0);
-        kernelBufferContext.liy(0);
-        kernelBufferContext.liz(0);
+        dispatchContext.lsx(0);
+        dispatchContext.lsy(0);
+        dispatchContext.lsz(0);
 
-        kernelBufferContext.lsx(0);
-        kernelBufferContext.lsy(0);
-        kernelBufferContext.lsz(0);
+        dispatchContext.bsx(0);
+        dispatchContext.bsy(0);
+        dispatchContext.bsz(0);
 
-        kernelBufferContext.bix(0);
-        kernelBufferContext.biy(0);
-        kernelBufferContext.biz(0);
+        dispatchContext.tlx(0);
+        dispatchContext.tly(0);
+        dispatchContext.tlz(0);
 
-        kernelBufferContext.bsx(0);
-        kernelBufferContext.bsy(0);
-        kernelBufferContext.bsz(0);
+        dispatchContext.wsx(0);
+        dispatchContext.wsy(0);
+        dispatchContext.wsz(0);
 
-        kernelBufferContext.tlx(0);
-        kernelBufferContext.tly(0);
-        kernelBufferContext.tlz(0);
-
-        kernelBufferContext.wsx(false);
-        kernelBufferContext.wsy(false);
-        kernelBufferContext.wsz(false);
-
-        return kernelBufferContext;
+        return dispatchContext;
     }
 }

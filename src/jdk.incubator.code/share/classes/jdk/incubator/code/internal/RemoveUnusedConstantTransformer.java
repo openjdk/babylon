@@ -29,6 +29,7 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 /**
  * A transformer that removes unused {@link jdk.incubator.code.dialect.core.CoreOp.ConstantOp}.
@@ -40,7 +41,11 @@ public class RemoveUnusedConstantTransformer implements CodeTransformer {
 
     @Override
     public Block.Builder acceptOp(Block.Builder builder, Op op) {
-        if (op instanceof CoreOp.ConstantOp && op.result() != null && op.result().uses().isEmpty()) {
+        if (op instanceof CoreOp.ConstantOp
+                && op.result() != null
+                && op.result().uses().isEmpty()
+                // label constant cannot be removed
+                && !(op.ancestorOp() instanceof JavaOp.LabeledOp labeled && labeled.label() == op)) {
             return builder;
         }
         builder.add(op);

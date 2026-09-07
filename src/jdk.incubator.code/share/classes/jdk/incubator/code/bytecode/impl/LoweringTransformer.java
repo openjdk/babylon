@@ -68,7 +68,7 @@ public final class LoweringTransformer {
 
     private static CodeTransformer getInstance(MethodHandles.Lookup lookup) {
         return (block, op) -> switch (op) {
-            case JavaOp.JavaSwitchOp swOp -> {
+            case JavaOp.SwitchOp swOp -> {
                 Optional<LabelsAndTargets> opt = isCaseConstantSwitchWithIntegralSelector(swOp, lookup);
                 if (opt.isPresent()) {
                     yield lowerToConstantLabelSwitchOp(block, block.transformer(), swOp, opt.get());
@@ -98,7 +98,7 @@ public final class LoweringTransformer {
     }
 
     private static Block.Builder lowerToConstantLabelSwitchOp(Block.Builder block, CodeTransformer transformer,
-                                                              JavaOp.JavaSwitchOp swOp, LabelsAndTargets labelsAndTargets) {
+                                                              JavaOp.SwitchOp swOp, LabelsAndTargets labelsAndTargets) {
         List<Block> targets = labelsAndTargets.targets();
         List<Block.Builder> blocks = new ArrayList<>();
         for (int i = 0; i < targets.size(); i++) {
@@ -167,7 +167,7 @@ public final class LoweringTransformer {
     private static final Set<ClassType> integralReferenceTypes = Set.of(J_L_BYTE, J_L_CHARACTER, J_L_SHORT, J_L_INTEGER);
     private static final Set<PrimitiveType> integralPrimitiveTypes = Set.of(BYTE, CHAR, SHORT, INT);
 
-    public static Optional<LabelsAndTargets> isCaseConstantSwitchWithIntegralSelector(JavaOp.JavaSwitchOp swOp, MethodHandles.Lookup lookup) {
+    public static Optional<LabelsAndTargets> isCaseConstantSwitchWithIntegralSelector(JavaOp.SwitchOp swOp, MethodHandles.Lookup lookup) {
         //@@@ we only check for case constant switch that has integral type
         // so labels in model / source code will be identical to the one we will find in bytecode
         Value selector = swOp.operands().get(0);

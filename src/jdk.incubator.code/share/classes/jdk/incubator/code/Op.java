@@ -45,6 +45,8 @@ import jdk.internal.access.SharedSecrets;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -511,22 +513,24 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
             // supports the internal protocol to access the quoted instance
             oq = Proxy.getInvocationHandler(oq);
         }
-
-        Method method;
+        MethodHandle mh;
         try {
-            method = oq.getClass().getDeclaredMethod("__internal_quoted");
-        } catch (NoSuchMethodException e) {
+            mh = SharedSecrets.getJavaLangInvokeAccess().findVirtual(oq.getClass(), "__internal_quoted",
+                    MethodType.methodType(Quoted.class));
+        } catch (IllegalAccessException e) { // @@@ when this is thrown and what to do about it ?
+            throw new RuntimeException(e);
+        }
+        if (mh == null) {
             return Optional.empty();
         }
-        method.setAccessible(true);
-
         Quoted<?> q;
         try {
-            q = (Quoted<?>) method.invoke(oq);
-        } catch (ReflectiveOperationException e) {
+            q = (Quoted<?>) mh.invoke(oq);
+        } catch (Throwable e) {
+            // @@@ revisit this
             // op method may throw UOE in case java compile time version doesn't match runtime version
-            if (e.getCause() instanceof UnsupportedOperationException uoe) {
-                throw uoe;
+            if (e instanceof RuntimeException re) {
+                throw re;
             }
             throw new RuntimeException(e);
         }
@@ -568,21 +572,24 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
             }
         }
         String opMethodName = new String(sig);
-        Method opMethod;
+        MethodHandle mh;
         try {
-            // @@@ Use method handle with full power mode
-            opMethod = method.getDeclaringClass().getDeclaredMethod(opMethodName);
-        } catch (NoSuchMethodException e) {
+            mh = SharedSecrets.getJavaLangInvokeAccess().findStatic(method.getDeclaringClass(), opMethodName,
+                    MethodType.methodType(Op.class));
+        } catch (IllegalAccessException e) { // @@@ when this is thrown and what to do about it ?
+            throw new RuntimeException(e);
+        }
+        if (mh == null) {
             return Optional.empty();
         }
-        opMethod.setAccessible(true);
         try {
-            FuncOp funcOp = (FuncOp) opMethod.invoke(null);
+            FuncOp funcOp = (FuncOp) mh.invoke();
             return Optional.of(funcOp);
-        } catch (ReflectiveOperationException e) {
+        } catch (Throwable e) {
+            // @@@ revisit this
             // op method may throw UOE in case java compile time version doesn't match runtime version
-            if (e.getCause() instanceof UnsupportedOperationException uoe) {
-                throw uoe;
+            if (e instanceof RuntimeException re) {
+                throw re;
             }
             throw new RuntimeException(e);
         }

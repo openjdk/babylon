@@ -43,10 +43,10 @@ import java.lang.invoke.MethodHandles;
 public class TestJavaHATCodeBuilder {
     public static class Compute {
         @Reflect
-        public static void mandel(@MappableIface.RO KernelContext kc,
-                                  @MappableIface.RO S32Array pallette,
-                                  @MappableIface.RW S32Array2D s32Array2D,
-                                  float offsetx, float offsety, float scale) {
+        public static void mandel(
+                @MappableIface.RO S32Array pallette,
+                @MappableIface.RW S32Array2D s32Array2D,
+                float offsetx, float offsety, float scale) {
             if (GIX() < GSX()) {
                 float width = s32Array2D.width();
                 float height = s32Array2D.height();
@@ -73,7 +73,7 @@ public class TestJavaHATCodeBuilder {
 
             computeContext.dispatchKernel(
                     NDRange.of1D(s32Array2D.width()*s32Array2D.height()),  //0..S32Array2D.size()
-                    kc -> mandel(kc,  pallete,s32Array2D, x, y, scale));
+                    () -> mandel(  pallete,s32Array2D, x, y, scale));
         }
 
     }

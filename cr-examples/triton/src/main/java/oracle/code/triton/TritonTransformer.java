@@ -531,7 +531,6 @@ public final class TritonTransformer {
 
                 s.add(d);
             }
-
             return s;
         }
 
@@ -732,7 +731,7 @@ public final class TritonTransformer {
         // @@@ Build in java code model, then transform?
         SCFOps.ForOp scffor = SCFOps.for_(kblock.parentBody(), start, end, step, iterValues)
                 // Ensure existing context is used
-                .body(CodeContext.create(cc), builder -> {
+                .body(builder -> {
                     // Create index var initialized from entry block parameter
                     Value index = builder.parameters().get(0);
                     valueTypeMap.put(index, JavaType.INT);

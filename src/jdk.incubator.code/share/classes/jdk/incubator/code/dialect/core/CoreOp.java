@@ -649,7 +649,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ReturnOp.NAME)
     public static final class ReturnOp extends AbstractOp.Terminating
-            implements CoreOp, JavaOp.JavaStatement {
+            implements CoreOp, JavaOp.JavaStatement, JavaOp.TargetingOp {
         static final String NAME = "return";
 
         ReturnOp(ExternalizedOp def) {
@@ -685,6 +685,16 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
         @Override
         public CodeType resultType() {
             return JavaType.VOID;
+        }
+
+        @Override
+        public Op target() {
+            return nearestInvokable(this);
+        }
+
+        private static Op nearestInvokable(Op op) {
+            while (!(op instanceof Op.Invokable)) op = op.ancestorOp();
+            return op;
         }
     }
 

@@ -26,7 +26,6 @@ package violajones;
 
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
 import static hat.KernelContext.*;
 import hat.buffer.F32Array2D;
 import hat.buffer.S08x3RGBImage;
@@ -71,7 +70,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void rgbToGreyKernel(KernelContext kc, S08x3RGBImage rgbImage, F32Array2D greyImage) {
+    public static void rgbToGreyKernel( S08x3RGBImage rgbImage, F32Array2D greyImage) {
         if (GIX() < GSX()){
            rgbToGrey(GIX(), rgbImage, greyImage);
         }
@@ -86,7 +85,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void integralColKernel(KernelContext kc, F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
+    public static void integralColKernel( F32Array2D greyImage, F32Array2D integral, F32Array2D integralSq) {
         if (GIX() <GSX()){  // GSX() = imageWidth
            int x = GIX();
            int width = GSX();
@@ -116,7 +115,7 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void integralRowKernel(KernelContext kc, F32Array2D integral, F32Array2D integralSq) {
+    public static void integralRowKernel( F32Array2D integral, F32Array2D integralSq) {
         if (GIX() <GSX()){  // GSX() == imageHeight
            int y = GIX();
            int width = integral.width();
@@ -231,13 +230,12 @@ public class ViolaJonesCoreCompute {
     }
 
     @Reflect
-    public static void findFeaturesKernel(KernelContext kc,
-                                          Cascade cascade,
-                                          F32Array2D integral,
-                                          F32Array2D integralSq,
-                                          ScaleTable scaleTable,
-                                          ResultTable resultTable
-
+    public static void findFeaturesKernel(
+            Cascade cascade,
+            F32Array2D integral,
+            F32Array2D integralSq,
+            ScaleTable scaleTable,
+            ResultTable resultTable
     ) {
 
         if (GIX() < GSX()){//;scaleTable.multiScaleAccumulativeRange()) {
@@ -314,16 +312,16 @@ public class ViolaJonesCoreCompute {
 
         F32Array2D greyImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(NDRange.of1D(width * height), kc -> rgbToGreyKernel(kc, s08X3RGBImage, greyImage));
+        cc.dispatchKernel(NDRange.of1D(width * height), () -> rgbToGreyKernel( s08X3RGBImage, greyImage));
 
         F32Array2D integralImage = createF32Array2D(cc, width, height);
         F32Array2D integralSqImage = createF32Array2D(cc, width, height);
 
-        cc.dispatchKernel(NDRange.of1D(width), kc -> integralColKernel(kc, greyImage, integralImage, integralSqImage));
-        cc.dispatchKernel(NDRange.of1D(height), kc -> integralRowKernel(kc, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of1D(width), () -> integralColKernel( greyImage, integralImage, integralSqImage));
+        cc.dispatchKernel(NDRange.of1D(height), () -> integralRowKernel( integralImage, integralSqImage));
 
-        cc.dispatchKernel(NDRange.of1D(scaleTable.multiScaleAccumulativeRange()), kc ->
-                findFeaturesKernel(kc, cascade, integralImage, integralSqImage, scaleTable, resultTable));
+        cc.dispatchKernel(NDRange.of1D(scaleTable.multiScaleAccumulativeRange()), () ->
+                findFeaturesKernel( cascade, integralImage, integralSqImage, scaleTable, resultTable));
 
     }
 

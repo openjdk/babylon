@@ -27,6 +27,8 @@ package hat.backend;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import hat.NDRange;
+import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
 
 import java.lang.foreign.Arena;
@@ -54,7 +56,7 @@ public abstract class BackendAdaptor extends Backend {
     }
 
     @Override
-    public void dispatchKernel(KernelCallGraph kernelCallGraph, KernelContext kernelContext, Object... args) {
+    public void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
       //  KernelEntrypoint kernelEntrypoint = kernelCallGraph.entrypoint;
         // We need to use NDRANGE here?
      /*   for (kernelContext.gix = 0; kernelContext.gix < kernelContext.gsx; kernelContext.gix++) {
@@ -68,6 +70,7 @@ public abstract class BackendAdaptor extends Backend {
             }
         } */
     }
+
 
 
 }

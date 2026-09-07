@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.F32Array;
@@ -58,7 +58,7 @@ public class TestLocal {
     }
 
     @Reflect
-    private static void compute(KernelContext unused, F32Array data) {
+    private static void compute( F32Array data) {
         MySharedArray mySharedArray = MySharedArray.createLocal();
         int lix = LIX();
         int blockId = BIX();
@@ -70,9 +70,7 @@ public class TestLocal {
 
     @Reflect
     private static void myCompute(ComputeContext computeContext, F32Array data) {
-        computeContext.dispatchKernel(NDRange.of1D(32,16),
-                kernelContext -> compute(kernelContext, data)
-        );
+        computeContext.dispatchKernel(NDRange.of1D(32,16), () -> compute( data));
     }
 
     @HatTest

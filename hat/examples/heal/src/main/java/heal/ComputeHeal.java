@@ -49,7 +49,7 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.buffer.F32Array;
 import hat.buffer.S32Array2D;
@@ -233,8 +233,7 @@ public class ComputeHeal {
     }
 
     @Reflect
-    public static void bestFitKernel(KernelContext kc,
-                                     S32Array2D s32Array2D,
+    public static void bestFitKernel (S32Array2D s32Array2D,
                                      Box searchArea,
                                      Box selectionBox,
                                      XYRGBList xyrgbList,
@@ -253,7 +252,7 @@ public class ComputeHeal {
         F32Array sumArrayF32 = F32Array.create(cc.accelerator(), searchArea.area());
 
         cc.dispatchKernel(NDRange.of1D(searchArea.area()),
-                kc -> bestFitKernel(kc,  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
+                () -> bestFitKernel(  s32Array2D, searchArea, selectionBox, xyrgbList, sumArrayF32)
         );
 
         float[] sumArray = new float[searchArea.area()];

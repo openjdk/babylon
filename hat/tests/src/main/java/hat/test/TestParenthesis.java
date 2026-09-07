@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -40,7 +40,7 @@ import java.lang.invoke.MethodHandles;
 public class TestParenthesis {
 
     @Reflect
-    public static void compute(KernelContext context, S32Array data) {
+    public static void compute( S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
@@ -49,7 +49,7 @@ public class TestParenthesis {
     }
 
     @Reflect
-    public static void compute2(KernelContext context, S32Array data) {
+    public static void compute2( S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
@@ -58,7 +58,7 @@ public class TestParenthesis {
     }
 
     @Reflect
-    public static void compute3(KernelContext context, S32Array data) {
+    public static void compute3( S32Array data) {
         final int TN = 2;
         final int TF = 128;
         final int MAX = 1024;
@@ -68,17 +68,17 @@ public class TestParenthesis {
 
     @Reflect
     public static void compute(ComputeContext cc, S32Array data) {
-        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()),()-> compute( data));
     }
 
     @Reflect
     public static void compute2(ComputeContext cc, S32Array data) {
-        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute2(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()),()-> compute2( data));
     }
 
     @Reflect
     public static void compute3(ComputeContext cc, S32Array data) {
-        cc.dispatchKernel(NDRange.of1D(data.length()),kc -> compute3(kc, data));
+        cc.dispatchKernel(NDRange.of1D(data.length()),()-> compute3( data));
     }
 
     @HatTest

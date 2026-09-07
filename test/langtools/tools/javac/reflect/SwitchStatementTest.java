@@ -1106,11 +1106,13 @@ public class SwitchStatementTest {
                         yield %23;
                     }
                     ()java.type:"void" -> {
-                        %24 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %24;
+                        %24 : java.type:"java.lang.String" = constant @null;
+                        %25 : java.type:"java.lang.Throwable" = constant @null;
+                        %26 : java.type:"java.lang.MatchException" = new %24 %25 @java.ref:"java.lang.MatchException::(java.lang.String, java.lang.Throwable)";
+                        throw %26;
                     };
-                %25 : java.type:"java.lang.String" = var.load %3;
-                return %25;
+            %27 : java.type:"java.lang.String" = var.load %3;
+            return %27;
             };
             """)
     @Reflect
@@ -1181,11 +1183,13 @@ public class SwitchStatementTest {
                         yield %23;
                     }
                     ()java.type:"void" -> {
-                        %24 : java.type:"java.lang.MatchException" = new @java.ref:"java.lang.MatchException::()";
-                        throw %24;
+                        %24 : java.type:"java.lang.String" = constant @null;
+                        %25 : java.type:"java.lang.Throwable" = constant @null;
+                        %26 : java.type:"java.lang.MatchException" = new %24 %25 @java.ref:"java.lang.MatchException::(java.lang.String, java.lang.Throwable)";
+                        throw %26;
                     };
-                %25 : java.type:"java.lang.String" = var.load %3;
-                return %25;
+                %27 : java.type:"java.lang.String" = var.load %3;
+                return %27;
             };
             """)
     @Reflect
@@ -2177,7 +2181,7 @@ public class SwitchStatementTest {
                             }
                             ()java.type:"boolean" -> {
                                 %31 : java.type:"java.lang.Number" = var.load %8;
-                                %32 : java.type:"java.lang.Class<?>" = invoke %31 @java.ref:"java.lang.Object::getClass():java.lang.Class";
+                                %32 : java.type:"java.lang.Class<? extends java.lang.Number>" = invoke %31 @java.ref:"java.lang.Object::getClass():java.lang.Class";
                                 %33 : java.type:"java.lang.Class" = constant @java.type:"java.lang.Double";
                                 %34 : java.type:"boolean" = invoke %32 %33 @java.ref:"java.lang.Object::equals(java.lang.Object):boolean";
                                 yield %34;
@@ -2632,5 +2636,274 @@ public class SwitchStatementTest {
             default -> r += "no match";
         }
         return r;
+    }
+
+    @IR("""
+        func @"caseReassignVar" (%0 : java.type:"int")java.type:"int" -> {
+            %1 : Var<java.type:"int"> = var %0 @"sel";
+            %2 : java.type:"int" = var.load %1;
+            java.switch.statement %2
+                (%3 : java.type:"int")java.type:"boolean" -> {
+                    %4 : java.type:"int" = constant @0;
+                    %5 : java.type:"boolean" = eq %3 %4;
+                    yield %5;
+                }
+                ()java.type:"void" -> {
+                    %6 : java.type:"int" = constant @1;
+                    %7 : Var<java.type:"int"> = var %6 @"i";
+                    %8 : java.type:"int" = var.load %7;
+                    return %8;
+                }
+                (%9 : java.type:"int")java.type:"boolean" -> {
+                    %10 : java.type:"int" = constant @1;
+                    %11 : java.type:"boolean" = eq %9 %10;
+                    yield %11;
+                }
+                ()java.type:"void" -> {
+                    %12 : Var<java.type:"int"> = var @"i";
+                    %13 : java.type:"int" = constant @2;
+                    var.store %12 %13;
+                    %14 : java.type:"int" = var.load %12;
+                    return %14;
+                }
+                ()java.type:"boolean" -> {
+                    %15 : java.type:"boolean" = constant @true;
+                    yield %15;
+                }
+                ()java.type:"void" -> {
+                    %16 : java.type:"int" = constant @-1;
+                    return %16;
+                };
+            unreachable;
+        };
+        """)
+    @Reflect
+    private static int caseReassignVar(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                i = 2;
+                return i;
+            default:
+                return -1;
+        }
+    }
+
+    @IR("""
+        func @"caseReassignVarFallThrough" (%0 : java.type:"int")java.type:"int" -> {
+            %1 : Var<java.type:"int"> = var %0 @"sel";
+            %2 : java.type:"int" = var.load %1;
+            java.switch.statement %2
+                (%3 : java.type:"int")java.type:"boolean" -> {
+                    %4 : java.type:"int" = constant @0;
+                    %5 : java.type:"boolean" = eq %3 %4;
+                    yield %5;
+                }
+                ()java.type:"void" -> {
+                    %6 : java.type:"int" = constant @1;
+                    %7 : Var<java.type:"int"> = var %6 @"i";
+                    java.switch.fallthrough;
+                }
+                (%9 : java.type:"int")java.type:"boolean" -> {
+                    %10 : java.type:"int" = constant @1;
+                    %11 : java.type:"boolean" = eq %9 %10;
+                    yield %11;
+                }
+                ()java.type:"void" -> {
+                    %12 : Var<java.type:"int"> = var @"i";
+                    %13 : java.type:"int" = constant @2;
+                    var.store %12 %13;
+                    %14 : java.type:"int" = var.load %12;
+                    return %14;
+                }
+                ()java.type:"boolean" -> {
+                    %15 : java.type:"boolean" = constant @true;
+                    yield %15;
+                }
+                ()java.type:"void" -> {
+                    %16 : java.type:"int" = constant @-1;
+                    return %16;
+                };
+            unreachable;
+        };
+        """)
+    @Reflect
+    private static int caseReassignVarFallThrough(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+            case 1:
+                i = 2;
+                return i;
+            default:
+                return -1;
+        }
+    }
+
+    @IR("""
+        func @"caseReassignVarNested" (%0 : java.type:"int")java.type:"int" -> {
+            %1 : Var<java.type:"int"> = var %0 @"sel";
+            %2 : java.type:"int" = var.load %1;
+            java.switch.statement %2
+                (%3 : java.type:"int")java.type:"boolean" -> {
+                    %4 : java.type:"int" = constant @0;
+                    %5 : java.type:"boolean" = eq %3 %4;
+                    yield %5;
+                }
+                ()java.type:"void" -> {
+                    %6 : java.type:"int" = constant @1;
+                    %7 : Var<java.type:"int"> = var %6 @"i";
+                    %8 : java.type:"int" = var.load %7;
+                    return %8;
+                }
+                (%9 : java.type:"int")java.type:"boolean" -> {
+                    %10 : java.type:"int" = constant @1;
+                    %11 : java.type:"boolean" = eq %9 %10;
+                    yield %11;
+                }
+                ()java.type:"void" -> {
+                    %12 : Var<java.type:"int"> = var @"i";
+                    %13 : java.type:"int" = constant @2;
+                    var.store %12 %13;
+                    %14 : Var<java.type:"int"> = var %13 @"j";
+                    %15 : java.type:"int" = var.load %12;
+                    %16 : java.type:"int" = var.load %14;
+                    %17 : java.type:"int" = add %15 %16;
+                    return %17;
+                }
+                ()java.type:"boolean" -> {
+                    %18 : java.type:"boolean" = constant @true;
+                    yield %18;
+                }
+                ()java.type:"void" -> {
+                    %19 : java.type:"int" = constant @-1;
+                    return %19;
+                };
+            unreachable;
+        };
+        """)
+    @Reflect
+    private static int caseReassignVarNested(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                int j = (i = 2);
+                return i + j;
+            default:
+                return -1;
+        }
+    }
+
+    @IR("""
+        func @"caseReassignVarNestedBlock" (%0 : java.type:"int")java.type:"int" -> {
+            %1 : Var<java.type:"int"> = var %0 @"sel";
+            %2 : java.type:"int" = var.load %1;
+            java.switch.statement %2
+                (%3 : java.type:"int")java.type:"boolean" -> {
+                    %4 : java.type:"int" = constant @0;
+                    %5 : java.type:"boolean" = eq %3 %4;
+                    yield %5;
+                }
+                ()java.type:"void" -> {
+                    %6 : java.type:"int" = constant @1;
+                    %7 : Var<java.type:"int"> = var %6 @"i";
+                    %8 : java.type:"int" = var.load %7;
+                    return %8;
+                }
+                (%9 : java.type:"int")java.type:"boolean" -> {
+                    %10 : java.type:"int" = constant @1;
+                    %11 : java.type:"boolean" = eq %9 %10;
+                    yield %11;
+                }
+                ()java.type:"void" -> {
+                    %12 : Var<java.type:"int"> = var @"i";
+                    java.block ()java.type:"void" -> {
+                        %13 : java.type:"int" = constant @2;
+                        var.store %12 %13;
+                        yield;
+                    };
+                    %14 : java.type:"int" = var.load %12;
+                    return %14;
+                }
+                ()java.type:"boolean" -> {
+                    %15 : java.type:"boolean" = constant @true;
+                    yield %15;
+                }
+                ()java.type:"void" -> {
+                    %16 : java.type:"int" = constant @-1;
+                    return %16;
+                };
+            unreachable;
+        };
+        """)
+    @Reflect
+    private static int caseReassignVarNestedBlock(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                {
+                    i = 2;
+                }
+                return i;
+            default:
+                return -1;
+        }
+    }
+
+    @IR("""
+        func @"caseReassignVarExpression" (%0 : java.type:"int")java.type:"int" -> {
+            %1 : Var<java.type:"int"> = var %0 @"sel";
+            %2 : java.type:"int" = var.load %1;
+            java.switch.statement %2
+                (%3 : java.type:"int")java.type:"boolean" -> {
+                    %4 : java.type:"int" = constant @0;
+                    %5 : java.type:"boolean" = eq %3 %4;
+                    yield %5;
+                }
+                ()java.type:"void" -> {
+                    %6 : java.type:"int" = constant @1;
+                    %7 : Var<java.type:"int"> = var %6 @"i";
+                    %8 : java.type:"int" = var.load %7;
+                    return %8;
+                }
+                (%9 : java.type:"int")java.type:"boolean" -> {
+                    %10 : java.type:"int" = constant @1;
+                    %11 : java.type:"boolean" = eq %9 %10;
+                    yield %11;
+                }
+                ()java.type:"void" -> {
+                    %12 : Var<java.type:"int"> = var @"i";
+                    %13 : java.type:"int" = constant @2;
+                    var.store %12 %13;
+                    return %13;
+                }
+                ()java.type:"boolean" -> {
+                    %14 : java.type:"boolean" = constant @true;
+                    yield %14;
+                }
+                ()java.type:"void" -> {
+                    %15 : java.type:"int" = constant @-1;
+                    return %15;
+                };
+            unreachable;
+        };
+        """)
+    @Reflect
+    private static int caseReassignVarExpression(int sel) {
+        switch (sel) {
+            case 0:
+                int i = 1;
+                return i;
+            case 1:
+                return i = 2;
+            default:
+                return -1;
+        }
     }
 }

@@ -24,8 +24,6 @@
  */
 package hat.backend.ffi;
 
-import hat.dialect.HATThreadOp;
-
 import optkl.FuncOpParams;
 import optkl.ParamVar;
 import optkl.codebuilders.CodeBuilder;
@@ -194,20 +192,15 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
             case CoreOp.VarOp $ -> varDeclaration($);
             case CoreOp.ReturnOp $ -> ret($);
             case JavaOp.BreakOp $ -> javaBreak($);
-            case HATThreadOp $ -> hatThreadOp($);
-            default -> { // Why are  these switch ops not just inlined above?
-                switch (op){
-                    case CoreOp.BranchOp $ -> branch($);
-                    case CoreOp.ConditionalBranchOp $ -> condBranch($);
-                    case JavaOp.NegOp $ -> neg($);
-                    case PTXPtrOp $ -> ptxPtr($);
-                    default -> throw new IllegalStateException("op translation doesn't exist");
-                }
-            }
+            case CoreOp.BranchOp $ -> branch($);
+            case CoreOp.ConditionalBranchOp $ -> condBranch($);
+            case JavaOp.NegOp $ -> neg($);
+            case PTXPtrOp $ -> ptxPtr($);
+            default -> throw new IllegalStateException("op translation doesn't exist");
         }
         return this;
     }
-
+/*
     private void hatThreadOp(HATThreadOp threadOp) {
         switch (threadOp) {
             case HATThreadOp.HAT_GI.HAT_GIX $ -> hatGix($);
@@ -246,7 +239,7 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         ensureKcAddr();
         ld().global().u32().sp().resultReg(op, PTXRegister.Type.U32).csp()
                 .address(fieldToRegMap.get(Field.KC_ADDR).name(), 20);
-    }
+    } */
 
     private void ensureKcAddr() {
         if (!fieldToRegMap.containsKey(Field.KC_ADDR)) {

@@ -27,7 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.KernelContext;
+
 import static hat.KernelContext.*;
 import hat.backend.Backend;
 import hat.buffer.S32Array;
@@ -41,7 +41,7 @@ import java.lang.invoke.MethodHandles;
 public class TestMandel {
 
     @Reflect
-    public static void mandel(KernelContext unused, S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
+    public static void mandel( S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {
         if (GIX() < GSX()) {
             float width = s32Array2D.width();
             float height = s32Array2D.height();
@@ -65,8 +65,7 @@ public class TestMandel {
     @Reflect
     static public void compute(final ComputeContext computeContext, S32Array pallete, S32Array2D s32Array2D, float x, float y, float scale) {
         computeContext.dispatchKernel(NDRange.of1D(s32Array2D.width() * s32Array2D.height()),
-                kc -> TestMandel.mandel(kc, s32Array2D, pallete, x, y, scale)
-        );
+                () -> TestMandel.mandel( s32Array2D, pallete, x, y, scale));
     }
 
     public static void mandelSeq(S32Array2D s32Array2D, S32Array pallette, float offsetx, float offsety, float scale) {

@@ -36,7 +36,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.Trxfmr;
-import optkl.VarTable;
+import hat.phases.VarTable;
 
 import java.lang.invoke.MethodHandles;
 
@@ -61,7 +61,7 @@ public class AddArbitraryBlock {
         VarTable varTable = new VarTable(hackMeFuncOp.funcName());
         Trxfmr.of(lookup,hackMeFuncOp)
                 .toJava("Before injecting")
-                .transform("withNewBlock", varTable, ce -> invoke(lookup,ce) instanceof Invoke $ && $.named("printf"), c -> {
+                .transform("withNewBlock",  ce -> invoke(lookup,ce) instanceof Invoke $ && $.named("printf"), c -> {
                     var beforeString = c.builder().add(CoreOp.constant(JavaType.J_L_STRING, "Before ...."));
                     var afterString = c.builder().add(CoreOp.constant(JavaType.J_L_STRING, "After ...."));
                     c.add(JavaOp.if_(c.builder().parentBody()).if_(b -> {
@@ -81,7 +81,7 @@ public class AddArbitraryBlock {
                     }).else_(e->
                             e.add(CoreOp.core_yield()))
                     );
-                })
+                },varTable)
                 .toJava( "After injecting")
                 .run(txfmr-> {
                     try {

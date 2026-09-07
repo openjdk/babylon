@@ -62,22 +62,16 @@ public class ComputeCallGraph implements LookupCarrier {
         // We check that the proposed kernel returns void, the first arg is an KernelContext and we have more args
         // We also check that other args are primitive or ifacebuffers  (or atomics?)...
         class Traits{
-            boolean firstArgKernelContext = false;
             boolean atLeastOneIfaceBufferParam=false;
             boolean hasOnlyPrimitiveAndIfaceBufferParams=true;
             boolean ok(){
-                return firstArgKernelContext &&atLeastOneIfaceBufferParam&&hasOnlyPrimitiveAndIfaceBufferParams;
+                return atLeastOneIfaceBufferParam&&hasOnlyPrimitiveAndIfaceBufferParams;
             }
         }
         var traits = new Traits();
-        if (funcOp.body().yieldType().equals(JavaType.VOID)
-                && calledMethod.getParameterTypes() instanceof Class<?>[] parameterTypes
-                && parameterTypes.length > 1) {
+        if (funcOp.body().yieldType().equals(JavaType.VOID) && calledMethod.getParameterTypes().length>0) {
                 FuncOpParams paramTable = new FuncOpParams(funcOp);
                 paramTable.stream().forEach(paramInfo -> {
-                    if (paramInfo.idx == 0) {
-                        traits.firstArgKernelContext = parameterTypes[0].isAssignableFrom(KernelContext.class);
-                    } else {
                         if (paramInfo.isPrimitive()) {
                             // OK
                         } else if (OpHelper.isAssignable(lookup,paramInfo.javaType, MappableIface.class)){
@@ -85,7 +79,6 @@ public class ComputeCallGraph implements LookupCarrier {
                         } else {
                             traits.hasOnlyPrimitiveAndIfaceBufferParams=false;
                         }
-                    }
                 });
             }
             return traits.ok();
