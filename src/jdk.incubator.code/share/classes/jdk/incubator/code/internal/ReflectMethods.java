@@ -722,7 +722,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         public Value toValue(JCExpression expression, Type targetType) {
-            targetType = types.erasure(targetType);
             result = null; // reset
             Type prevPt = pt;
             try {
@@ -748,10 +747,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
             Type refTarget = targetType.isPrimitive()
                     ? types.erasure(codeTypeToType(sourceValue.type()))
-                    : targetType;
+                    : types.erasure(targetType);
 
             if (sourceType.isReference() && refTarget.isReference() &&
-                    !types.isSubtype(types.erasure(sourceType), types.erasure(refTarget))) {
+                    !types.isSubtype(types.erasure(sourceType), refTarget)) {
                 sourceValue = append(JavaOp.cast(typeToCodeType(refTarget), sourceValue));
             }
             return convert(sourceValue, targetType);

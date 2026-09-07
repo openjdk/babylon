@@ -101,7 +101,7 @@ public class DenotableTypesTest {
     @Reflect
     @IR("""
             func @"test5" ()java.type:"void" -> {
-                %0 : java.type:"java.util.List" = constant @null;
+                %0 : java.type:"java.util.List<? extends java.lang.Number>" = constant @null;
                 %1 : Var<java.type:"java.util.List<? extends java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? extends java.lang.Number>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
@@ -117,7 +117,7 @@ public class DenotableTypesTest {
     @Reflect
     @IR("""
             func @"test6" ()java.type:"void" -> {
-                %0 : java.type:"java.util.List" = constant @null;
+                %0 : java.type:"java.util.List<? super java.lang.Number>" = constant @null;
                 %1 : Var<java.type:"java.util.List<? super java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? super java.lang.Number>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
@@ -135,7 +135,7 @@ public class DenotableTypesTest {
     @Reflect
     @IR("""
             func @"test7" ()java.type:"void" -> {
-                %0 : java.type:"java.lang.Object" = constant @null;
+                %0 : java.type:"&DenotableTypesTest::test7():void::<X>" = constant @null;
                 %1 : Var<java.type:"&DenotableTypesTest::test7():void::<X>"> = var %0 @"x";
                 %2 : java.type:"&DenotableTypesTest::test7():void::<X>" = var.load %1;
                 %3 : java.type:"java.lang.Runnable" = cast %2 @java.type:"java.lang.Runnable";
