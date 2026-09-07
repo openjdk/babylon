@@ -58,115 +58,115 @@ public class ErasedAccessTest {
         }
     }
 
-    static class UnboundedString extends Unbounded<String> {
+    static class UnboundedInteger extends Unbounded<Integer> {
 
         @IR("""
-                func @"testInstanceof" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %4 : java.type:"boolean" = instanceof %3 @java.type:"java.lang.String";
+                func @"testInstanceof" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %4 : java.type:"boolean" = instanceof %3 @java.type:"java.lang.Integer";
                     %5 : Var<java.type:"boolean"> = var %4 @"f_s_s";
-                    %6 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %7 : java.type:"java.lang.String" = field.load %6 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %8 : java.type:"boolean" = instanceof %7 @java.type:"java.lang.String";
+                    %6 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %7 : java.type:"java.lang.Integer" = field.load %6 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %8 : java.type:"boolean" = instanceof %7 @java.type:"java.lang.Integer";
                     %9 : Var<java.type:"boolean"> = var %8 @"f_q_s";
-                    %10 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %11 : java.type:"boolean" = instanceof %10 @java.type:"java.lang.String";
+                    %10 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %11 : java.type:"boolean" = instanceof %10 @java.type:"java.lang.Integer";
                     %12 : Var<java.type:"boolean"> = var %11 @"m_s_s";
-                    %13 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %14 : java.type:"java.lang.String" = invoke %13 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %15 : java.type:"boolean" = instanceof %14 @java.type:"java.lang.String";
+                    %13 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %14 : java.type:"java.lang.Integer" = invoke %13 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %15 : java.type:"boolean" = instanceof %14 @java.type:"java.lang.Integer";
                     %16 : Var<java.type:"boolean"> = var %15 @"m_q_s";
                     return;
                 };
                 """)
         @Reflect
-        void testInstanceof(UnboundedString test) {
+        void testInstanceof(UnboundedInteger test) {
             // simple field name
-            boolean f_s_s = x instanceof String;
+            boolean f_s_s = x instanceof Integer;
 
             // qualified field name
-            boolean f_q_s = test.x instanceof String;
+            boolean f_q_s = test.x instanceof Integer;
 
             // simple method name
-            boolean m_s_s = getX() instanceof String;
+            boolean m_s_s = getX() instanceof Integer;
 
             // qualified method name
-            boolean m_q_s = test.getX() instanceof String;
+            boolean m_q_s = test.getX() instanceof Integer;
         }
 
         @IR("""
-                func @"testInstanceofCond" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString", %2 : java.type:"boolean")java.type:"void" -> {
-                    %3 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
+                func @"testInstanceofCond" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger", %2 : java.type:"boolean")java.type:"void" -> {
+                    %3 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
                     %4 : Var<java.type:"boolean"> = var %2 @"cond";
-                    %5 : java.type:"java.lang.String" = java.cexpression
+                    %5 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %6 : java.type:"boolean" = var.load %4;
                             yield %6;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %8 : java.type:"java.lang.String" = cast %7 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
                             yield %8;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %9 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %9 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
                             yield %10;
                         };
                     %11 : java.type:"boolean" = instanceof %5 @java.type:"java.lang.Object";
                     %12 : Var<java.type:"boolean"> = var %11 @"f_s_o";
-                    %13 : java.type:"java.lang.String" = java.cexpression
+                    %13 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %14 : java.type:"boolean" = var.load %4;
                             yield %14;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %15 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %16 : java.type:"java.lang.String" = field.load %15 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %17 : java.type:"java.lang.String" = cast %16 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %15 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %16 : java.type:"java.lang.Integer" = field.load %15 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %17 : java.type:"java.lang.Integer" = cast %16 @java.type:"java.lang.Integer";
                             yield %17;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %18 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %19 : java.type:"java.lang.String" = field.load %18 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %20 : java.type:"java.lang.String" = cast %19 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %18 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %19 : java.type:"java.lang.Integer" = field.load %18 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %20 : java.type:"java.lang.Integer" = cast %19 @java.type:"java.lang.Integer";
                             yield %20;
                         };
                     %21 : java.type:"boolean" = instanceof %13 @java.type:"java.lang.Object";
                     %22 : Var<java.type:"boolean"> = var %21 @"f_q_o";
-                    %23 : java.type:"java.lang.String" = java.cexpression
+                    %23 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %24 : java.type:"boolean" = var.load %4;
                             yield %24;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %25 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %26 : java.type:"java.lang.String" = cast %25 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %25 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %26 : java.type:"java.lang.Integer" = cast %25 @java.type:"java.lang.Integer";
                             yield %26;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %27 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %28 : java.type:"java.lang.String" = cast %27 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %27 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %28 : java.type:"java.lang.Integer" = cast %27 @java.type:"java.lang.Integer";
                             yield %28;
                         };
                     %29 : java.type:"boolean" = instanceof %23 @java.type:"java.lang.Object";
                     %30 : Var<java.type:"boolean"> = var %29 @"m_s_o";
-                    %31 : java.type:"java.lang.String" = java.cexpression
+                    %31 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %32 : java.type:"boolean" = var.load %4;
                             yield %32;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %33 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %34 : java.type:"java.lang.String" = invoke %33 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %35 : java.type:"java.lang.String" = cast %34 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %33 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %34 : java.type:"java.lang.Integer" = invoke %33 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %35 : java.type:"java.lang.Integer" = cast %34 @java.type:"java.lang.Integer";
                             yield %35;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %36 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %37 : java.type:"java.lang.String" = invoke %36 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %38 : java.type:"java.lang.String" = cast %37 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %36 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %37 : java.type:"java.lang.Integer" = invoke %36 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %38 : java.type:"java.lang.Integer" = cast %37 @java.type:"java.lang.Integer";
                             yield %38;
                         };
                     %39 : java.type:"boolean" = instanceof %31 @java.type:"java.lang.Object";
@@ -175,7 +175,7 @@ public class ErasedAccessTest {
                 };
                 """)
         @Reflect
-        void testInstanceofCond(UnboundedString test, boolean cond) {
+        void testInstanceofCond(UnboundedInteger test, boolean cond) {
             // simple field name
             boolean f_s_o = (cond ? x : x) instanceof Object;
 
@@ -190,16 +190,16 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testExec" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %4 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %5 : java.type:"java.lang.String" = invoke %4 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
+                func @"testExec" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %4 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %5 : java.type:"java.lang.Integer" = invoke %4 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
                     return;
                 };
                 """)
         @Reflect
-        void testExec(UnboundedString test) {
+        void testExec(UnboundedInteger test) {
             // simple method name
             getX();
 
@@ -208,27 +208,27 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testChainedCall" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %4 : java.type:"java.lang.String" = cast %3 @java.type:"java.lang.String";
-                    %5 : java.type:"int" = invoke %4 @java.ref:"java.lang.String::hashCode():int";
-                    %6 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %7 : java.type:"java.lang.String" = field.load %6 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %8 : java.type:"java.lang.String" = cast %7 @java.type:"java.lang.String";
-                    %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.String::hashCode():int";
-                    %10 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %11 : java.type:"java.lang.String" = cast %10 @java.type:"java.lang.String";
-                    %12 : java.type:"int" = invoke %11 @java.ref:"java.lang.String::hashCode():int";
-                    %13 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %14 : java.type:"java.lang.String" = invoke %13 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %15 : java.type:"java.lang.String" = cast %14 @java.type:"java.lang.String";
-                    %16 : java.type:"int" = invoke %15 @java.ref:"java.lang.String::hashCode():int";
+                func @"testChainedCall" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %4 : java.type:"java.lang.Integer" = cast %3 @java.type:"java.lang.Integer";
+                    %5 : java.type:"int" = invoke %4 @java.ref:"java.lang.Integer::hashCode():int";
+                    %6 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %7 : java.type:"java.lang.Integer" = field.load %6 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
+                    %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.Integer::hashCode():int";
+                    %10 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %11 : java.type:"java.lang.Integer" = cast %10 @java.type:"java.lang.Integer";
+                    %12 : java.type:"int" = invoke %11 @java.ref:"java.lang.Integer::hashCode():int";
+                    %13 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %14 : java.type:"java.lang.Integer" = invoke %13 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %15 : java.type:"java.lang.Integer" = cast %14 @java.type:"java.lang.Integer";
+                    %16 : java.type:"int" = invoke %15 @java.ref:"java.lang.Integer::hashCode():int";
                     return;
                 };
                 """)
         @Reflect
-        void testChainedCall(UnboundedString test) {
+        void testChainedCall(UnboundedInteger test) {
             // simple field name
             x.hashCode();
 
@@ -243,82 +243,82 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testChainedCallCond" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString", %2 : java.type:"boolean")java.type:"void" -> {
-                    %3 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
+                func @"testChainedCallCond" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger", %2 : java.type:"boolean")java.type:"void" -> {
+                    %3 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
                     %4 : Var<java.type:"boolean"> = var %2 @"cond";
-                    %5 : java.type:"java.lang.String" = java.cexpression
+                    %5 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %6 : java.type:"boolean" = var.load %4;
                             yield %6;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %8 : java.type:"java.lang.String" = cast %7 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
                             yield %8;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %9 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %9 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
                             yield %10;
                         };
-                    %11 : java.type:"int" = invoke %5 @java.ref:"java.lang.String::hashCode():int";
-                    %12 : java.type:"java.lang.String" = java.cexpression
+                    %11 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::hashCode():int";
+                    %12 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %13 : java.type:"boolean" = var.load %4;
                             yield %13;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %14 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %15 : java.type:"java.lang.String" = field.load %14 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %16 : java.type:"java.lang.String" = cast %15 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %14 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %15 : java.type:"java.lang.Integer" = field.load %14 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %16 : java.type:"java.lang.Integer" = cast %15 @java.type:"java.lang.Integer";
                             yield %16;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %17 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %18 : java.type:"java.lang.String" = field.load %17 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                            %19 : java.type:"java.lang.String" = cast %18 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %17 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %18 : java.type:"java.lang.Integer" = field.load %17 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %19 : java.type:"java.lang.Integer" = cast %18 @java.type:"java.lang.Integer";
                             yield %19;
                         };
-                    %20 : java.type:"int" = invoke %12 @java.ref:"java.lang.String::hashCode():int";
-                    %21 : java.type:"java.lang.String" = java.cexpression
+                    %20 : java.type:"int" = invoke %12 @java.ref:"java.lang.Integer::hashCode():int";
+                    %21 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %22 : java.type:"boolean" = var.load %4;
                             yield %22;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %23 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %24 : java.type:"java.lang.String" = cast %23 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %23 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %24 : java.type:"java.lang.Integer" = cast %23 @java.type:"java.lang.Integer";
                             yield %24;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %25 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %26 : java.type:"java.lang.String" = cast %25 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %25 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %26 : java.type:"java.lang.Integer" = cast %25 @java.type:"java.lang.Integer";
                             yield %26;
                         };
-                    %27 : java.type:"int" = invoke %21 @java.ref:"java.lang.String::hashCode():int";
-                    %28 : java.type:"java.lang.String" = java.cexpression
+                    %27 : java.type:"int" = invoke %21 @java.ref:"java.lang.Integer::hashCode():int";
+                    %28 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %29 : java.type:"boolean" = var.load %4;
                             yield %29;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %30 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %31 : java.type:"java.lang.String" = invoke %30 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %32 : java.type:"java.lang.String" = cast %31 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %30 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %31 : java.type:"java.lang.Integer" = invoke %30 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %32 : java.type:"java.lang.Integer" = cast %31 @java.type:"java.lang.Integer";
                             yield %32;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %33 : java.type:"ErasedAccessTest$UnboundedString" = var.load %3;
-                            %34 : java.type:"java.lang.String" = invoke %33 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                            %35 : java.type:"java.lang.String" = cast %34 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %33 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %34 : java.type:"java.lang.Integer" = invoke %33 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %35 : java.type:"java.lang.Integer" = cast %34 @java.type:"java.lang.Integer";
                             yield %35;
                         };
-                    %36 : java.type:"int" = invoke %28 @java.ref:"java.lang.String::hashCode():int";
+                    %36 : java.type:"int" = invoke %28 @java.ref:"java.lang.Integer::hashCode():int";
                     return;
                 };
                 """)
         @Reflect
-        void testChainedCallCond(UnboundedString test, boolean cond) {
+        void testChainedCallCond(UnboundedInteger test, boolean cond) {
             // simple field name
             (cond ? x : x).hashCode();
 
@@ -333,166 +333,166 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testAssign" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
+                func @"testAssign" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
                     %3 : Var<java.type:"java.lang.Object"> = var @"o";
-                    %4 : Var<java.type:"java.lang.CharSequence"> = var @"cs";
-                    %5 : Var<java.type:"java.lang.String"> = var @"s";
-                    %6 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
+                    %4 : Var<java.type:"java.lang.Number"> = var @"n";
+                    %5 : Var<java.type:"java.lang.Integer"> = var @"i";
+                    %6 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
                     var.store %3 %6;
-                    %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %8 : java.type:"java.lang.CharSequence" = cast %7 @java.type:"java.lang.CharSequence";
+                    %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %8 : java.type:"java.lang.Number" = cast %7 @java.type:"java.lang.Number";
                     var.store %4 %8;
-                    %9 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                    %9 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
                     var.store %5 %10;
-                    %11 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %12 : java.type:"java.lang.String" = field.load %11 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
+                    %11 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %12 : java.type:"java.lang.Integer" = field.load %11 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
                     var.store %3 %12;
-                    %13 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %14 : java.type:"java.lang.String" = field.load %13 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %15 : java.type:"java.lang.CharSequence" = cast %14 @java.type:"java.lang.CharSequence";
+                    %13 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %14 : java.type:"java.lang.Integer" = field.load %13 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %15 : java.type:"java.lang.Number" = cast %14 @java.type:"java.lang.Number";
                     var.store %4 %15;
-                    %16 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %17 : java.type:"java.lang.String" = field.load %16 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %18 : java.type:"java.lang.String" = cast %17 @java.type:"java.lang.String";
+                    %16 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %17 : java.type:"java.lang.Integer" = field.load %16 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %18 : java.type:"java.lang.Integer" = cast %17 @java.type:"java.lang.Integer";
                     var.store %5 %18;
-                    %19 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
+                    %19 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
                     var.store %3 %19;
-                    %20 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %21 : java.type:"java.lang.CharSequence" = cast %20 @java.type:"java.lang.CharSequence";
+                    %20 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %21 : java.type:"java.lang.Number" = cast %20 @java.type:"java.lang.Number";
                     var.store %4 %21;
-                    %22 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %23 : java.type:"java.lang.String" = cast %22 @java.type:"java.lang.String";
+                    %22 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %23 : java.type:"java.lang.Integer" = cast %22 @java.type:"java.lang.Integer";
                     var.store %5 %23;
-                    %24 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %25 : java.type:"java.lang.String" = invoke %24 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
+                    %24 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %25 : java.type:"java.lang.Integer" = invoke %24 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
                     var.store %3 %25;
-                    %26 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %27 : java.type:"java.lang.String" = invoke %26 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %28 : java.type:"java.lang.CharSequence" = cast %27 @java.type:"java.lang.CharSequence";
+                    %26 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %27 : java.type:"java.lang.Integer" = invoke %26 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %28 : java.type:"java.lang.Number" = cast %27 @java.type:"java.lang.Number";
                     var.store %4 %28;
-                    %29 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %30 : java.type:"java.lang.String" = invoke %29 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %31 : java.type:"java.lang.String" = cast %30 @java.type:"java.lang.String";
+                    %29 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %30 : java.type:"java.lang.Integer" = invoke %29 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %31 : java.type:"java.lang.Integer" = cast %30 @java.type:"java.lang.Integer";
                     var.store %5 %31;
                     return;
                 };
                 """)
         @Reflect
-        void testAssign(UnboundedString test) {
-            Object o; CharSequence cs; String s;
+        void testAssign(UnboundedInteger test) {
+            Object o; Number n; Integer i;
 
             // simple field name
             o = x;
-            cs = x;
-            s = x;
+            n = x;
+            i = x;
 
             // qualified field name
             o = test.x;
-            cs = test.x;
-            s = test.x;
+            n = test.x;
+            i = test.x;
 
             // simple method name
             o = getX();
-            cs = getX();
-            s = getX();
+            n = getX();
+            i = getX();
 
             // qualified method name
             o = test.getX();
-            cs = test.getX();
-            s = test.getX();
+            n = test.getX();
+            i = test.getX();
         }
 
         @IR("""
-                func @"testArrayInit" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
+                func @"testArrayInit" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
                     %3 : Var<java.type:"java.lang.Object[]"> = var @"o";
-                    %4 : Var<java.type:"java.lang.CharSequence[]"> = var @"cs";
-                    %5 : Var<java.type:"java.lang.String[]"> = var @"s";
+                    %4 : Var<java.type:"java.lang.Number[]"> = var @"n";
+                    %5 : Var<java.type:"java.lang.Integer[]"> = var @"i";
                     %6 : java.type:"int" = constant @1;
                     %7 : java.type:"java.lang.Object[]" = new %6 @java.ref:"java.lang.Object[]::(int)";
-                    %8 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
+                    %8 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
                     %9 : java.type:"int" = constant @0;
                     array.store %7 %9 %8;
                     var.store %3 %7;
                     %10 : java.type:"int" = constant @1;
-                    %11 : java.type:"java.lang.CharSequence[]" = new %10 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %12 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %13 : java.type:"java.lang.CharSequence" = cast %12 @java.type:"java.lang.CharSequence";
+                    %11 : java.type:"java.lang.Number[]" = new %10 @java.ref:"java.lang.Number[]::(int)";
+                    %12 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %13 : java.type:"java.lang.Number" = cast %12 @java.type:"java.lang.Number";
                     %14 : java.type:"int" = constant @0;
                     array.store %11 %14 %13;
                     var.store %4 %11;
                     %15 : java.type:"int" = constant @1;
-                    %16 : java.type:"java.lang.String[]" = new %15 @java.ref:"java.lang.String[]::(int)";
-                    %17 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %18 : java.type:"java.lang.String" = cast %17 @java.type:"java.lang.String";
+                    %16 : java.type:"java.lang.Integer[]" = new %15 @java.ref:"java.lang.Integer[]::(int)";
+                    %17 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %18 : java.type:"java.lang.Integer" = cast %17 @java.type:"java.lang.Integer";
                     %19 : java.type:"int" = constant @0;
                     array.store %16 %19 %18;
                     var.store %5 %16;
                     %20 : java.type:"int" = constant @1;
                     %21 : java.type:"java.lang.Object[]" = new %20 @java.ref:"java.lang.Object[]::(int)";
-                    %22 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %23 : java.type:"java.lang.String" = field.load %22 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
+                    %22 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %23 : java.type:"java.lang.Integer" = field.load %22 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
                     %24 : java.type:"int" = constant @0;
                     array.store %21 %24 %23;
                     var.store %3 %21;
                     %25 : java.type:"int" = constant @1;
-                    %26 : java.type:"java.lang.CharSequence[]" = new %25 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %27 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %28 : java.type:"java.lang.String" = field.load %27 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %29 : java.type:"java.lang.CharSequence" = cast %28 @java.type:"java.lang.CharSequence";
+                    %26 : java.type:"java.lang.Number[]" = new %25 @java.ref:"java.lang.Number[]::(int)";
+                    %27 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %28 : java.type:"java.lang.Integer" = field.load %27 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %29 : java.type:"java.lang.Number" = cast %28 @java.type:"java.lang.Number";
                     %30 : java.type:"int" = constant @0;
                     array.store %26 %30 %29;
                     var.store %4 %26;
                     %31 : java.type:"int" = constant @1;
-                    %32 : java.type:"java.lang.String[]" = new %31 @java.ref:"java.lang.String[]::(int)";
-                    %33 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %34 : java.type:"java.lang.String" = field.load %33 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %35 : java.type:"java.lang.String" = cast %34 @java.type:"java.lang.String";
+                    %32 : java.type:"java.lang.Integer[]" = new %31 @java.ref:"java.lang.Integer[]::(int)";
+                    %33 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %34 : java.type:"java.lang.Integer" = field.load %33 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %35 : java.type:"java.lang.Integer" = cast %34 @java.type:"java.lang.Integer";
                     %36 : java.type:"int" = constant @0;
                     array.store %32 %36 %35;
                     var.store %5 %32;
                     %37 : java.type:"int" = constant @1;
                     %38 : java.type:"java.lang.Object[]" = new %37 @java.ref:"java.lang.Object[]::(int)";
-                    %39 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
+                    %39 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
                     %40 : java.type:"int" = constant @0;
                     array.store %38 %40 %39;
                     var.store %3 %38;
                     %41 : java.type:"int" = constant @1;
-                    %42 : java.type:"java.lang.CharSequence[]" = new %41 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %43 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %44 : java.type:"java.lang.CharSequence" = cast %43 @java.type:"java.lang.CharSequence";
+                    %42 : java.type:"java.lang.Number[]" = new %41 @java.ref:"java.lang.Number[]::(int)";
+                    %43 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %44 : java.type:"java.lang.Number" = cast %43 @java.type:"java.lang.Number";
                     %45 : java.type:"int" = constant @0;
                     array.store %42 %45 %44;
                     var.store %4 %42;
                     %46 : java.type:"int" = constant @1;
-                    %47 : java.type:"java.lang.String[]" = new %46 @java.ref:"java.lang.String[]::(int)";
-                    %48 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %49 : java.type:"java.lang.String" = cast %48 @java.type:"java.lang.String";
+                    %47 : java.type:"java.lang.Integer[]" = new %46 @java.ref:"java.lang.Integer[]::(int)";
+                    %48 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %49 : java.type:"java.lang.Integer" = cast %48 @java.type:"java.lang.Integer";
                     %50 : java.type:"int" = constant @0;
                     array.store %47 %50 %49;
                     var.store %5 %47;
                     %51 : java.type:"int" = constant @1;
                     %52 : java.type:"java.lang.Object[]" = new %51 @java.ref:"java.lang.Object[]::(int)";
-                    %53 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %54 : java.type:"java.lang.String" = invoke %53 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
+                    %53 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %54 : java.type:"java.lang.Integer" = invoke %53 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
                     %55 : java.type:"int" = constant @0;
                     array.store %52 %55 %54;
                     var.store %3 %52;
                     %56 : java.type:"int" = constant @1;
-                    %57 : java.type:"java.lang.CharSequence[]" = new %56 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %58 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %59 : java.type:"java.lang.String" = invoke %58 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %60 : java.type:"java.lang.CharSequence" = cast %59 @java.type:"java.lang.CharSequence";
+                    %57 : java.type:"java.lang.Number[]" = new %56 @java.ref:"java.lang.Number[]::(int)";
+                    %58 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %59 : java.type:"java.lang.Integer" = invoke %58 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %60 : java.type:"java.lang.Number" = cast %59 @java.type:"java.lang.Number";
                     %61 : java.type:"int" = constant @0;
                     array.store %57 %61 %60;
                     var.store %4 %57;
                     %62 : java.type:"int" = constant @1;
-                    %63 : java.type:"java.lang.String[]" = new %62 @java.ref:"java.lang.String[]::(int)";
-                    %64 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %65 : java.type:"java.lang.String" = invoke %64 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %66 : java.type:"java.lang.String" = cast %65 @java.type:"java.lang.String";
+                    %63 : java.type:"java.lang.Integer[]" = new %62 @java.ref:"java.lang.Integer[]::(int)";
+                    %64 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %65 : java.type:"java.lang.Integer" = invoke %64 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %66 : java.type:"java.lang.Integer" = cast %65 @java.type:"java.lang.Integer";
                     %67 : java.type:"int" = constant @0;
                     array.store %63 %67 %66;
                     var.store %5 %63;
@@ -500,177 +500,223 @@ public class ErasedAccessTest {
                 };
                 """)
         @Reflect
-        void testArrayInit(UnboundedString test) {
-            Object[] o; CharSequence[] cs; String[] s;
+        void testArrayInit(UnboundedInteger test) {
+            Object[] o; Number[] n; Integer[] i;
 
             // simple field name
             o = new Object[] { x };
-            cs = new CharSequence[] { x };
-            s = new String[] { x };
+            n = new Number[] { x };
+            i = new Integer[] { x };
 
             // qualified field name
             o = new Object[] { test.x };
-            cs = new CharSequence[] { test.x };
-            s = new String[] { test.x };
+            n = new Number[] { test.x };
+            i = new Integer[] { test.x };
 
             // simple method name
             o = new Object[] { getX() };
-            cs = new CharSequence[] { getX() };
-            s = new String[] { getX() };
+            n = new Number[] { getX() };
+            i = new Integer[] { getX() };
 
             // qualified method name
             o = new Object[] { test.getX() };
-            cs = new CharSequence[] { test.getX() };
-            s = new String[] { test.getX() };
+            n = new Number[] { test.getX() };
+            i = new Integer[] { test.getX() };
         }
 
         @IR("""
-                func @"testCast" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
+                func @"testCast" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
                     %3 : Var<java.type:"java.lang.Object"> = var @"o";
-                    %4 : Var<java.type:"java.lang.CharSequence"> = var @"cs";
-                    %5 : Var<java.type:"java.lang.String"> = var @"s";
-                    %6 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
+                    %4 : Var<java.type:"java.lang.Number"> = var @"n";
+                    %5 : Var<java.type:"java.lang.Integer"> = var @"i";
+                    %6 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
                     var.store %3 %6;
-                    %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %8 : java.type:"java.lang.CharSequence" = cast %7 @java.type:"java.lang.CharSequence";
+                    %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %8 : java.type:"java.lang.Number" = cast %7 @java.type:"java.lang.Number";
                     var.store %4 %8;
-                    %9 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                    %9 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
                     var.store %5 %10;
-                    %11 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %12 : java.type:"java.lang.String" = field.load %11 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
+                    %11 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %12 : java.type:"java.lang.Integer" = field.load %11 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
                     var.store %3 %12;
-                    %13 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %14 : java.type:"java.lang.String" = field.load %13 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %15 : java.type:"java.lang.CharSequence" = cast %14 @java.type:"java.lang.CharSequence";
+                    %13 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %14 : java.type:"java.lang.Integer" = field.load %13 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %15 : java.type:"java.lang.Number" = cast %14 @java.type:"java.lang.Number";
                     var.store %4 %15;
-                    %16 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %17 : java.type:"java.lang.String" = field.load %16 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %18 : java.type:"java.lang.String" = cast %17 @java.type:"java.lang.String";
+                    %16 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %17 : java.type:"java.lang.Integer" = field.load %16 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %18 : java.type:"java.lang.Integer" = cast %17 @java.type:"java.lang.Integer";
                     var.store %5 %18;
-                    %19 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
+                    %19 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
                     var.store %3 %19;
-                    %20 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %21 : java.type:"java.lang.CharSequence" = cast %20 @java.type:"java.lang.CharSequence";
+                    %20 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %21 : java.type:"java.lang.Number" = cast %20 @java.type:"java.lang.Number";
                     var.store %4 %21;
-                    %22 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %23 : java.type:"java.lang.String" = cast %22 @java.type:"java.lang.String";
+                    %22 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %23 : java.type:"java.lang.Integer" = cast %22 @java.type:"java.lang.Integer";
                     var.store %5 %23;
-                    %24 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %25 : java.type:"java.lang.String" = invoke %24 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
+                    %24 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %25 : java.type:"java.lang.Integer" = invoke %24 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
                     var.store %3 %25;
-                    %26 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %27 : java.type:"java.lang.String" = invoke %26 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %28 : java.type:"java.lang.CharSequence" = cast %27 @java.type:"java.lang.CharSequence";
+                    %26 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %27 : java.type:"java.lang.Integer" = invoke %26 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %28 : java.type:"java.lang.Number" = cast %27 @java.type:"java.lang.Number";
                     var.store %4 %28;
-                    %29 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %30 : java.type:"java.lang.String" = invoke %29 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %31 : java.type:"java.lang.String" = cast %30 @java.type:"java.lang.String";
+                    %29 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %30 : java.type:"java.lang.Integer" = invoke %29 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %31 : java.type:"java.lang.Integer" = cast %30 @java.type:"java.lang.Integer";
                     var.store %5 %31;
                     return;
                 };
                 """)
         @Reflect
-        void testCast(UnboundedString test) {
-            Object o; CharSequence cs; String s;
+        void testCast(UnboundedInteger test) {
+            Object o; Number n; Integer i;
 
             // simple field name
             o = (Object) x;
-            cs = (CharSequence) x;
-            s = (String) x;
+            n = (Number) x;
+            i = (Integer) x;
 
             // qualified field name
             o = (Object) test.x;
-            cs = (CharSequence) test.x;
-            s = (String) test.x;
+            n = (Number) test.x;
+            i = (Integer) test.x;
 
             // simple method name
             o = (Object) getX();
-            cs = (CharSequence) getX();
-            s = (String) getX();
+            n = (Number) getX();
+            i = (Integer) getX();
 
             // qualified method name
             o = (Object) test.getX();
-            cs = (CharSequence) test.getX();
-            s = (String) test.getX();
+            n = (Number) test.getX();
+            i = (Integer) test.getX();
         }
 
         void o(Object o) { }
-        void cs(CharSequence cs) { }
-        void s(String s) { }
+        void n(Number n) { }
+        void i(Integer i) { }
 
         @IR("""
-                func @"testMethod" (%0 : java.type:"ErasedAccessTest$UnboundedString", %1 : java.type:"ErasedAccessTest$UnboundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$UnboundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    invoke %0 %3 @java.ref:"ErasedAccessTest$UnboundedString::o(java.lang.Object):void";
-                    %4 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %5 : java.type:"java.lang.CharSequence" = cast %4 @java.type:"java.lang.CharSequence";
-                    invoke %0 %5 @java.ref:"ErasedAccessTest$UnboundedString::cs(java.lang.CharSequence):void";
-                    %6 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %7 : java.type:"java.lang.String" = cast %6 @java.type:"java.lang.String";
-                    invoke %0 %7 @java.ref:"ErasedAccessTest$UnboundedString::s(java.lang.String):void";
-                    %8 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %9 : java.type:"java.lang.String" = field.load %8 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    invoke %0 %9 @java.ref:"ErasedAccessTest$UnboundedString::o(java.lang.Object):void";
-                    %10 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %11 : java.type:"java.lang.String" = field.load %10 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %12 : java.type:"java.lang.CharSequence" = cast %11 @java.type:"java.lang.CharSequence";
-                    invoke %0 %12 @java.ref:"ErasedAccessTest$UnboundedString::cs(java.lang.CharSequence):void";
-                    %13 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %14 : java.type:"java.lang.String" = field.load %13 @java.ref:"ErasedAccessTest$UnboundedString::x:java.lang.Object";
-                    %15 : java.type:"java.lang.String" = cast %14 @java.type:"java.lang.String";
-                    invoke %0 %15 @java.ref:"ErasedAccessTest$UnboundedString::s(java.lang.String):void";
-                    %16 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    invoke %0 %16 @java.ref:"ErasedAccessTest$UnboundedString::o(java.lang.Object):void";
-                    %17 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %18 : java.type:"java.lang.CharSequence" = cast %17 @java.type:"java.lang.CharSequence";
-                    invoke %0 %18 @java.ref:"ErasedAccessTest$UnboundedString::cs(java.lang.CharSequence):void";
-                    %19 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %20 : java.type:"java.lang.String" = cast %19 @java.type:"java.lang.String";
-                    invoke %0 %20 @java.ref:"ErasedAccessTest$UnboundedString::s(java.lang.String):void";
-                    %21 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %22 : java.type:"java.lang.String" = invoke %21 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    invoke %0 %22 @java.ref:"ErasedAccessTest$UnboundedString::o(java.lang.Object):void";
-                    %23 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %24 : java.type:"java.lang.String" = invoke %23 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %25 : java.type:"java.lang.CharSequence" = cast %24 @java.type:"java.lang.CharSequence";
-                    invoke %0 %25 @java.ref:"ErasedAccessTest$UnboundedString::cs(java.lang.CharSequence):void";
-                    %26 : java.type:"ErasedAccessTest$UnboundedString" = var.load %2;
-                    %27 : java.type:"java.lang.String" = invoke %26 @java.ref:"ErasedAccessTest$UnboundedString::getX():java.lang.Object";
-                    %28 : java.type:"java.lang.String" = cast %27 @java.type:"java.lang.String";
-                    invoke %0 %28 @java.ref:"ErasedAccessTest$UnboundedString::s(java.lang.String):void";
+                func @"testMethod" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    invoke %0 %3 @java.ref:"ErasedAccessTest$UnboundedInteger::o(java.lang.Object):void";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %5 : java.type:"java.lang.Number" = cast %4 @java.type:"java.lang.Number";
+                    invoke %0 %5 @java.ref:"ErasedAccessTest$UnboundedInteger::n(java.lang.Number):void";
+                    %6 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %7 : java.type:"java.lang.Integer" = cast %6 @java.type:"java.lang.Integer";
+                    invoke %0 %7 @java.ref:"ErasedAccessTest$UnboundedInteger::i(java.lang.Integer):void";
+                    %8 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %9 : java.type:"java.lang.Integer" = field.load %8 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    invoke %0 %9 @java.ref:"ErasedAccessTest$UnboundedInteger::o(java.lang.Object):void";
+                    %10 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %11 : java.type:"java.lang.Integer" = field.load %10 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %12 : java.type:"java.lang.Number" = cast %11 @java.type:"java.lang.Number";
+                    invoke %0 %12 @java.ref:"ErasedAccessTest$UnboundedInteger::n(java.lang.Number):void";
+                    %13 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %14 : java.type:"java.lang.Integer" = field.load %13 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %15 : java.type:"java.lang.Integer" = cast %14 @java.type:"java.lang.Integer";
+                    invoke %0 %15 @java.ref:"ErasedAccessTest$UnboundedInteger::i(java.lang.Integer):void";
+                    %16 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    invoke %0 %16 @java.ref:"ErasedAccessTest$UnboundedInteger::o(java.lang.Object):void";
+                    %17 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %18 : java.type:"java.lang.Number" = cast %17 @java.type:"java.lang.Number";
+                    invoke %0 %18 @java.ref:"ErasedAccessTest$UnboundedInteger::n(java.lang.Number):void";
+                    %19 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %20 : java.type:"java.lang.Integer" = cast %19 @java.type:"java.lang.Integer";
+                    invoke %0 %20 @java.ref:"ErasedAccessTest$UnboundedInteger::i(java.lang.Integer):void";
+                    %21 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %22 : java.type:"java.lang.Integer" = invoke %21 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    invoke %0 %22 @java.ref:"ErasedAccessTest$UnboundedInteger::o(java.lang.Object):void";
+                    %23 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %24 : java.type:"java.lang.Integer" = invoke %23 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %25 : java.type:"java.lang.Number" = cast %24 @java.type:"java.lang.Number";
+                    invoke %0 %25 @java.ref:"ErasedAccessTest$UnboundedInteger::n(java.lang.Number):void";
+                    %26 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %27 : java.type:"java.lang.Integer" = invoke %26 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %28 : java.type:"java.lang.Integer" = cast %27 @java.type:"java.lang.Integer";
+                    invoke %0 %28 @java.ref:"ErasedAccessTest$UnboundedInteger::i(java.lang.Integer):void";
                     return;
                 };
                 """)
         @Reflect
-        void testMethod(UnboundedString test) {
+        void testMethod(UnboundedInteger test) {
             // simple field name
             o(x);
-            cs(x);
-            s(x);
+            n(x);
+            i(x);
 
             // qualified field name
             o(test.x);
-            cs(test.x);
-            s(test.x);
+            n(test.x);
+            i(test.x);
 
             // simple method name
             o(getX());
-            cs(getX());
-            s(getX());
+            n(getX());
+            i(getX());
 
             // qualified method name
             o(test.getX());
-            cs(test.getX());
-            s(test.getX());
+            n(test.getX());
+            i(test.getX());
+        }
+
+        @IR("""
+                func @"testWidening" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %3 : Var<java.type:"long"> = var @"l";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %5 : java.type:"java.lang.Integer" = cast %4 @java.type:"java.lang.Integer";
+                    %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                    %7 : java.type:"long" = conv %6;
+                    var.store %3 %7;
+                    %8 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %9 : java.type:"java.lang.Integer" = field.load %8 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
+                    %11 : java.type:"int" = invoke %10 @java.ref:"java.lang.Integer::intValue():int";
+                    %12 : java.type:"long" = conv %11;
+                    var.store %3 %12;
+                    %13 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %14 : java.type:"java.lang.Integer" = cast %13 @java.type:"java.lang.Integer";
+                    %15 : java.type:"int" = invoke %14 @java.ref:"java.lang.Integer::intValue():int";
+                    %16 : java.type:"long" = conv %15;
+                    var.store %3 %16;
+                    %17 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %18 : java.type:"java.lang.Integer" = invoke %17 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %19 : java.type:"java.lang.Integer" = cast %18 @java.type:"java.lang.Integer";
+                    %20 : java.type:"int" = invoke %19 @java.ref:"java.lang.Integer::intValue():int";
+                    %21 : java.type:"long" = conv %20;
+                    var.store %3 %21;
+                    return;
+                };
+                """)
+        @Reflect
+        void testWidening(UnboundedInteger test) {
+            long l;
+
+            // simple field name
+            l = x;
+
+            // qualified field name
+            l = test.x;
+
+            // simple method name
+            l = getX();
+
+            // qualified method name
+            l = test.getX();
         }
     }
 
     // the part below is just copied from the above with minor adaptations in the expected IRs
 
-    static class Bounded<X extends CharSequence> {
+    static class Bounded<X extends Number> {
         X x;
 
         X getX() {
@@ -678,115 +724,115 @@ public class ErasedAccessTest {
         }
     }
 
-    static class BoundedString extends Bounded<String> {
+    static class BoundedInteger extends Bounded<Integer> {
 
         @IR("""
-                func @"testInstanceof" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %4 : java.type:"boolean" = instanceof %3 @java.type:"java.lang.String";
+                func @"testInstanceof" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %4 : java.type:"boolean" = instanceof %3 @java.type:"java.lang.Integer";
                     %5 : Var<java.type:"boolean"> = var %4 @"f_s_s";
-                    %6 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %7 : java.type:"java.lang.String" = field.load %6 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %8 : java.type:"boolean" = instanceof %7 @java.type:"java.lang.String";
+                    %6 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %7 : java.type:"java.lang.Integer" = field.load %6 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %8 : java.type:"boolean" = instanceof %7 @java.type:"java.lang.Integer";
                     %9 : Var<java.type:"boolean"> = var %8 @"f_q_s";
-                    %10 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %11 : java.type:"boolean" = instanceof %10 @java.type:"java.lang.String";
+                    %10 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %11 : java.type:"boolean" = instanceof %10 @java.type:"java.lang.Integer";
                     %12 : Var<java.type:"boolean"> = var %11 @"m_s_s";
-                    %13 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %14 : java.type:"java.lang.String" = invoke %13 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %15 : java.type:"boolean" = instanceof %14 @java.type:"java.lang.String";
+                    %13 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %14 : java.type:"java.lang.Integer" = invoke %13 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %15 : java.type:"boolean" = instanceof %14 @java.type:"java.lang.Integer";
                     %16 : Var<java.type:"boolean"> = var %15 @"m_q_s";
                     return;
                 };
                 """)
         @Reflect
-        void testInstanceof(BoundedString test) {
+        void testInstanceof(BoundedInteger test) {
             // simple field name
-            boolean f_s_s = x instanceof String;
+            boolean f_s_s = x instanceof Integer;
 
             // qualified field name
-            boolean f_q_s = test.x instanceof String;
+            boolean f_q_s = test.x instanceof Integer;
 
             // simple method name
-            boolean m_s_s = getX() instanceof String;
+            boolean m_s_s = getX() instanceof Integer;
 
             // qualified method name
-            boolean m_q_s = test.getX() instanceof String;
+            boolean m_q_s = test.getX() instanceof Integer;
         }
 
         @IR("""
-                func @"testInstanceofCond" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString", %2 : java.type:"boolean")java.type:"void" -> {
-                    %3 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
+                func @"testInstanceofCond" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger", %2 : java.type:"boolean")java.type:"void" -> {
+                    %3 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
                     %4 : Var<java.type:"boolean"> = var %2 @"cond";
-                    %5 : java.type:"java.lang.String" = java.cexpression
+                    %5 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %6 : java.type:"boolean" = var.load %4;
                             yield %6;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %8 : java.type:"java.lang.String" = cast %7 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
                             yield %8;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %9 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %9 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
                             yield %10;
                         };
                     %11 : java.type:"boolean" = instanceof %5 @java.type:"java.lang.Object";
                     %12 : Var<java.type:"boolean"> = var %11 @"f_s_o";
-                    %13 : java.type:"java.lang.String" = java.cexpression
+                    %13 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %14 : java.type:"boolean" = var.load %4;
                             yield %14;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %15 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %16 : java.type:"java.lang.String" = field.load %15 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %17 : java.type:"java.lang.String" = cast %16 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %15 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %16 : java.type:"java.lang.Integer" = field.load %15 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %17 : java.type:"java.lang.Integer" = cast %16 @java.type:"java.lang.Integer";
                             yield %17;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %18 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %19 : java.type:"java.lang.String" = field.load %18 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %20 : java.type:"java.lang.String" = cast %19 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %18 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %19 : java.type:"java.lang.Integer" = field.load %18 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %20 : java.type:"java.lang.Integer" = cast %19 @java.type:"java.lang.Integer";
                             yield %20;
                         };
                     %21 : java.type:"boolean" = instanceof %13 @java.type:"java.lang.Object";
                     %22 : Var<java.type:"boolean"> = var %21 @"f_q_o";
-                    %23 : java.type:"java.lang.String" = java.cexpression
+                    %23 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %24 : java.type:"boolean" = var.load %4;
                             yield %24;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %25 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %26 : java.type:"java.lang.String" = cast %25 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %25 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %26 : java.type:"java.lang.Integer" = cast %25 @java.type:"java.lang.Integer";
                             yield %26;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %27 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %28 : java.type:"java.lang.String" = cast %27 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %27 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %28 : java.type:"java.lang.Integer" = cast %27 @java.type:"java.lang.Integer";
                             yield %28;
                         };
                     %29 : java.type:"boolean" = instanceof %23 @java.type:"java.lang.Object";
                     %30 : Var<java.type:"boolean"> = var %29 @"m_s_o";
-                    %31 : java.type:"java.lang.String" = java.cexpression
+                    %31 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %32 : java.type:"boolean" = var.load %4;
                             yield %32;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %33 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %34 : java.type:"java.lang.String" = invoke %33 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %35 : java.type:"java.lang.String" = cast %34 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %33 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %34 : java.type:"java.lang.Integer" = invoke %33 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %35 : java.type:"java.lang.Integer" = cast %34 @java.type:"java.lang.Integer";
                             yield %35;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %36 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %37 : java.type:"java.lang.String" = invoke %36 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %38 : java.type:"java.lang.String" = cast %37 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %36 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %37 : java.type:"java.lang.Integer" = invoke %36 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %38 : java.type:"java.lang.Integer" = cast %37 @java.type:"java.lang.Integer";
                             yield %38;
                         };
                     %39 : java.type:"boolean" = instanceof %31 @java.type:"java.lang.Object";
@@ -795,7 +841,7 @@ public class ErasedAccessTest {
                 };
                 """)
         @Reflect
-        void testInstanceofCond(BoundedString test, boolean cond) {
+        void testInstanceofCond(BoundedInteger test, boolean cond) {
             // simple field name
             boolean f_s_o = (cond ? x : x) instanceof Object;
 
@@ -810,16 +856,16 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testExec" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %4 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %5 : java.type:"java.lang.String" = invoke %4 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                func @"testExec" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %4 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %5 : java.type:"java.lang.Integer" = invoke %4 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     return;
                 };
                 """)
         @Reflect
-        void testExec(BoundedString test) {
+        void testExec(BoundedInteger test) {
             // simple method name
             getX();
 
@@ -828,27 +874,27 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testChainedCall" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %4 : java.type:"java.lang.String" = cast %3 @java.type:"java.lang.String";
-                    %5 : java.type:"int" = invoke %4 @java.ref:"java.lang.String::hashCode():int";
-                    %6 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %7 : java.type:"java.lang.String" = field.load %6 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %8 : java.type:"java.lang.String" = cast %7 @java.type:"java.lang.String";
-                    %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.String::hashCode():int";
-                    %10 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %11 : java.type:"java.lang.String" = cast %10 @java.type:"java.lang.String";
-                    %12 : java.type:"int" = invoke %11 @java.ref:"java.lang.String::hashCode():int";
-                    %13 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %14 : java.type:"java.lang.String" = invoke %13 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %15 : java.type:"java.lang.String" = cast %14 @java.type:"java.lang.String";
-                    %16 : java.type:"int" = invoke %15 @java.ref:"java.lang.String::hashCode():int";
+                func @"testChainedCall" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %4 : java.type:"java.lang.Integer" = cast %3 @java.type:"java.lang.Integer";
+                    %5 : java.type:"int" = invoke %4 @java.ref:"java.lang.Integer::hashCode():int";
+                    %6 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %7 : java.type:"java.lang.Integer" = field.load %6 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
+                    %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.Integer::hashCode():int";
+                    %10 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %11 : java.type:"java.lang.Integer" = cast %10 @java.type:"java.lang.Integer";
+                    %12 : java.type:"int" = invoke %11 @java.ref:"java.lang.Integer::hashCode():int";
+                    %13 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %14 : java.type:"java.lang.Integer" = invoke %13 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %15 : java.type:"java.lang.Integer" = cast %14 @java.type:"java.lang.Integer";
+                    %16 : java.type:"int" = invoke %15 @java.ref:"java.lang.Integer::hashCode():int";
                     return;
                 };
                 """)
         @Reflect
-        void testChainedCall(BoundedString test) {
+        void testChainedCall(BoundedInteger test) {
             // simple field name
             x.hashCode();
 
@@ -863,82 +909,82 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testChainedCallCond" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString", %2 : java.type:"boolean")java.type:"void" -> {
-                    %3 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
+                func @"testChainedCallCond" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger", %2 : java.type:"boolean")java.type:"void" -> {
+                    %3 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
                     %4 : Var<java.type:"boolean"> = var %2 @"cond";
-                    %5 : java.type:"java.lang.String" = java.cexpression
+                    %5 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %6 : java.type:"boolean" = var.load %4;
                             yield %6;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %8 : java.type:"java.lang.String" = cast %7 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
                             yield %8;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %9 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %9 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
                             yield %10;
                         };
-                    %11 : java.type:"int" = invoke %5 @java.ref:"java.lang.String::hashCode():int";
-                    %12 : java.type:"java.lang.String" = java.cexpression
+                    %11 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::hashCode():int";
+                    %12 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %13 : java.type:"boolean" = var.load %4;
                             yield %13;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %14 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %15 : java.type:"java.lang.String" = field.load %14 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %16 : java.type:"java.lang.String" = cast %15 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %14 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %15 : java.type:"java.lang.Integer" = field.load %14 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %16 : java.type:"java.lang.Integer" = cast %15 @java.type:"java.lang.Integer";
                             yield %16;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %17 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %18 : java.type:"java.lang.String" = field.load %17 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                            %19 : java.type:"java.lang.String" = cast %18 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %17 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %18 : java.type:"java.lang.Integer" = field.load %17 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %19 : java.type:"java.lang.Integer" = cast %18 @java.type:"java.lang.Integer";
                             yield %19;
                         };
-                    %20 : java.type:"int" = invoke %12 @java.ref:"java.lang.String::hashCode():int";
-                    %21 : java.type:"java.lang.String" = java.cexpression
+                    %20 : java.type:"int" = invoke %12 @java.ref:"java.lang.Integer::hashCode():int";
+                    %21 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %22 : java.type:"boolean" = var.load %4;
                             yield %22;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %23 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %24 : java.type:"java.lang.String" = cast %23 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %23 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %24 : java.type:"java.lang.Integer" = cast %23 @java.type:"java.lang.Integer";
                             yield %24;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %25 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %26 : java.type:"java.lang.String" = cast %25 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %25 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %26 : java.type:"java.lang.Integer" = cast %25 @java.type:"java.lang.Integer";
                             yield %26;
                         };
-                    %27 : java.type:"int" = invoke %21 @java.ref:"java.lang.String::hashCode():int";
-                    %28 : java.type:"java.lang.String" = java.cexpression
+                    %27 : java.type:"int" = invoke %21 @java.ref:"java.lang.Integer::hashCode():int";
+                    %28 : java.type:"java.lang.Integer" = java.cexpression
                         ()java.type:"boolean" -> {
                             %29 : java.type:"boolean" = var.load %4;
                             yield %29;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %30 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %31 : java.type:"java.lang.String" = invoke %30 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %32 : java.type:"java.lang.String" = cast %31 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %30 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %31 : java.type:"java.lang.Integer" = invoke %30 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %32 : java.type:"java.lang.Integer" = cast %31 @java.type:"java.lang.Integer";
                             yield %32;
                         }
-                        ()java.type:"java.lang.String" -> {
-                            %33 : java.type:"ErasedAccessTest$BoundedString" = var.load %3;
-                            %34 : java.type:"java.lang.String" = invoke %33 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                            %35 : java.type:"java.lang.String" = cast %34 @java.type:"java.lang.String";
+                        ()java.type:"java.lang.Integer" -> {
+                            %33 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %34 : java.type:"java.lang.Integer" = invoke %33 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %35 : java.type:"java.lang.Integer" = cast %34 @java.type:"java.lang.Integer";
                             yield %35;
                         };
-                    %36 : java.type:"int" = invoke %28 @java.ref:"java.lang.String::hashCode():int";
+                    %36 : java.type:"int" = invoke %28 @java.ref:"java.lang.Integer::hashCode():int";
                     return;
                 };
                 """)
         @Reflect
-        void testChainedCallCond(BoundedString test, boolean cond) {
+        void testChainedCallCond(BoundedInteger test, boolean cond) {
             // simple field name
             (cond ? x : x).hashCode();
 
@@ -953,158 +999,158 @@ public class ErasedAccessTest {
         }
 
         @IR("""
-                func @"testAssign" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
+                func @"testAssign" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
                     %3 : Var<java.type:"java.lang.Object"> = var @"o";
-                    %4 : Var<java.type:"java.lang.CharSequence"> = var @"cs";
-                    %5 : Var<java.type:"java.lang.String"> = var @"s";
-                    %6 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %4 : Var<java.type:"java.lang.Number"> = var @"n";
+                    %5 : Var<java.type:"java.lang.Integer"> = var @"i";
+                    %6 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %3 %6;
-                    %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %4 %7;
-                    %8 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %9 : java.type:"java.lang.String" = cast %8 @java.type:"java.lang.String";
+                    %8 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %9 : java.type:"java.lang.Integer" = cast %8 @java.type:"java.lang.Integer";
                     var.store %5 %9;
-                    %10 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %11 : java.type:"java.lang.String" = field.load %10 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %10 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %11 : java.type:"java.lang.Integer" = field.load %10 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %3 %11;
-                    %12 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %13 : java.type:"java.lang.String" = field.load %12 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %12 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %13 : java.type:"java.lang.Integer" = field.load %12 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %4 %13;
-                    %14 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %15 : java.type:"java.lang.String" = field.load %14 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %16 : java.type:"java.lang.String" = cast %15 @java.type:"java.lang.String";
+                    %14 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %15 : java.type:"java.lang.Integer" = field.load %14 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %16 : java.type:"java.lang.Integer" = cast %15 @java.type:"java.lang.Integer";
                     var.store %5 %16;
-                    %17 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %17 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %3 %17;
-                    %18 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %18 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %4 %18;
-                    %19 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %20 : java.type:"java.lang.String" = cast %19 @java.type:"java.lang.String";
+                    %19 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %20 : java.type:"java.lang.Integer" = cast %19 @java.type:"java.lang.Integer";
                     var.store %5 %20;
-                    %21 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %22 : java.type:"java.lang.String" = invoke %21 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %21 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %22 : java.type:"java.lang.Integer" = invoke %21 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %3 %22;
-                    %23 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %24 : java.type:"java.lang.String" = invoke %23 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %23 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %24 : java.type:"java.lang.Integer" = invoke %23 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %4 %24;
-                    %25 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %26 : java.type:"java.lang.String" = invoke %25 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %27 : java.type:"java.lang.String" = cast %26 @java.type:"java.lang.String";
+                    %25 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %26 : java.type:"java.lang.Integer" = invoke %25 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %27 : java.type:"java.lang.Integer" = cast %26 @java.type:"java.lang.Integer";
                     var.store %5 %27;
                     return;
                 };
                 """)
         @Reflect
-        void testAssign(BoundedString test) {
-            Object o; CharSequence cs; String s;
+        void testAssign(BoundedInteger test) {
+            Object o; Number n; Integer i;
 
             // simple field name
             o = x;
-            cs = x;
-            s = x;
+            n = x;
+            i = x;
 
             // qualified field name
             o = test.x;
-            cs = test.x;
-            s = test.x;
+            n = test.x;
+            i = test.x;
 
             // simple method name
             o = getX();
-            cs = getX();
-            s = getX();
+            n = getX();
+            i = getX();
 
             // qualified method name
             o = test.getX();
-            cs = test.getX();
-            s = test.getX();
+            n = test.getX();
+            i = test.getX();
         }
 
         @IR("""
-                func @"testArrayInit" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
+                func @"testArrayInit" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
                     %3 : Var<java.type:"java.lang.Object[]"> = var @"o";
-                    %4 : Var<java.type:"java.lang.CharSequence[]"> = var @"cs";
-                    %5 : Var<java.type:"java.lang.String[]"> = var @"s";
+                    %4 : Var<java.type:"java.lang.Number[]"> = var @"n";
+                    %5 : Var<java.type:"java.lang.Integer[]"> = var @"i";
                     %6 : java.type:"int" = constant @1;
                     %7 : java.type:"java.lang.Object[]" = new %6 @java.ref:"java.lang.Object[]::(int)";
-                    %8 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %8 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     %9 : java.type:"int" = constant @0;
                     array.store %7 %9 %8;
                     var.store %3 %7;
                     %10 : java.type:"int" = constant @1;
-                    %11 : java.type:"java.lang.CharSequence[]" = new %10 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %12 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %11 : java.type:"java.lang.Number[]" = new %10 @java.ref:"java.lang.Number[]::(int)";
+                    %12 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     %13 : java.type:"int" = constant @0;
                     array.store %11 %13 %12;
                     var.store %4 %11;
                     %14 : java.type:"int" = constant @1;
-                    %15 : java.type:"java.lang.String[]" = new %14 @java.ref:"java.lang.String[]::(int)";
-                    %16 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %17 : java.type:"java.lang.String" = cast %16 @java.type:"java.lang.String";
+                    %15 : java.type:"java.lang.Integer[]" = new %14 @java.ref:"java.lang.Integer[]::(int)";
+                    %16 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %17 : java.type:"java.lang.Integer" = cast %16 @java.type:"java.lang.Integer";
                     %18 : java.type:"int" = constant @0;
                     array.store %15 %18 %17;
                     var.store %5 %15;
                     %19 : java.type:"int" = constant @1;
                     %20 : java.type:"java.lang.Object[]" = new %19 @java.ref:"java.lang.Object[]::(int)";
-                    %21 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %22 : java.type:"java.lang.String" = field.load %21 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %21 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %22 : java.type:"java.lang.Integer" = field.load %21 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     %23 : java.type:"int" = constant @0;
                     array.store %20 %23 %22;
                     var.store %3 %20;
                     %24 : java.type:"int" = constant @1;
-                    %25 : java.type:"java.lang.CharSequence[]" = new %24 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %26 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %27 : java.type:"java.lang.String" = field.load %26 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %25 : java.type:"java.lang.Number[]" = new %24 @java.ref:"java.lang.Number[]::(int)";
+                    %26 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %27 : java.type:"java.lang.Integer" = field.load %26 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     %28 : java.type:"int" = constant @0;
                     array.store %25 %28 %27;
                     var.store %4 %25;
                     %29 : java.type:"int" = constant @1;
-                    %30 : java.type:"java.lang.String[]" = new %29 @java.ref:"java.lang.String[]::(int)";
-                    %31 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %32 : java.type:"java.lang.String" = field.load %31 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %33 : java.type:"java.lang.String" = cast %32 @java.type:"java.lang.String";
+                    %30 : java.type:"java.lang.Integer[]" = new %29 @java.ref:"java.lang.Integer[]::(int)";
+                    %31 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %32 : java.type:"java.lang.Integer" = field.load %31 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %33 : java.type:"java.lang.Integer" = cast %32 @java.type:"java.lang.Integer";
                     %34 : java.type:"int" = constant @0;
                     array.store %30 %34 %33;
                     var.store %5 %30;
                     %35 : java.type:"int" = constant @1;
                     %36 : java.type:"java.lang.Object[]" = new %35 @java.ref:"java.lang.Object[]::(int)";
-                    %37 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %37 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     %38 : java.type:"int" = constant @0;
                     array.store %36 %38 %37;
                     var.store %3 %36;
                     %39 : java.type:"int" = constant @1;
-                    %40 : java.type:"java.lang.CharSequence[]" = new %39 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %41 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %40 : java.type:"java.lang.Number[]" = new %39 @java.ref:"java.lang.Number[]::(int)";
+                    %41 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     %42 : java.type:"int" = constant @0;
                     array.store %40 %42 %41;
                     var.store %4 %40;
                     %43 : java.type:"int" = constant @1;
-                    %44 : java.type:"java.lang.String[]" = new %43 @java.ref:"java.lang.String[]::(int)";
-                    %45 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %46 : java.type:"java.lang.String" = cast %45 @java.type:"java.lang.String";
+                    %44 : java.type:"java.lang.Integer[]" = new %43 @java.ref:"java.lang.Integer[]::(int)";
+                    %45 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %46 : java.type:"java.lang.Integer" = cast %45 @java.type:"java.lang.Integer";
                     %47 : java.type:"int" = constant @0;
                     array.store %44 %47 %46;
                     var.store %5 %44;
                     %48 : java.type:"int" = constant @1;
                     %49 : java.type:"java.lang.Object[]" = new %48 @java.ref:"java.lang.Object[]::(int)";
-                    %50 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %51 : java.type:"java.lang.String" = invoke %50 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %50 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %51 : java.type:"java.lang.Integer" = invoke %50 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     %52 : java.type:"int" = constant @0;
                     array.store %49 %52 %51;
                     var.store %3 %49;
                     %53 : java.type:"int" = constant @1;
-                    %54 : java.type:"java.lang.CharSequence[]" = new %53 @java.ref:"java.lang.CharSequence[]::(int)";
-                    %55 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %56 : java.type:"java.lang.String" = invoke %55 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %54 : java.type:"java.lang.Number[]" = new %53 @java.ref:"java.lang.Number[]::(int)";
+                    %55 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %56 : java.type:"java.lang.Integer" = invoke %55 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     %57 : java.type:"int" = constant @0;
                     array.store %54 %57 %56;
                     var.store %4 %54;
                     %58 : java.type:"int" = constant @1;
-                    %59 : java.type:"java.lang.String[]" = new %58 @java.ref:"java.lang.String[]::(int)";
-                    %60 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %61 : java.type:"java.lang.String" = invoke %60 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %62 : java.type:"java.lang.String" = cast %61 @java.type:"java.lang.String";
+                    %59 : java.type:"java.lang.Integer[]" = new %58 @java.ref:"java.lang.Integer[]::(int)";
+                    %60 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %61 : java.type:"java.lang.Integer" = invoke %60 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %62 : java.type:"java.lang.Integer" = cast %61 @java.type:"java.lang.Integer";
                     %63 : java.type:"int" = constant @0;
                     array.store %59 %63 %62;
                     var.store %5 %59;
@@ -1112,169 +1158,215 @@ public class ErasedAccessTest {
                 };
                 """)
         @Reflect
-        void testArrayInit(BoundedString test) {
-            Object[] o; CharSequence[] cs; String[] s;
+        void testArrayInit(BoundedInteger test) {
+            Object[] o; Number[] n; Integer[] i;
 
             // simple field name
             o = new Object[] { x };
-            cs = new CharSequence[] { x };
-            s = new String[] { x };
+            n = new Number[] { x };
+            i = new Integer[] { x };
 
             // qualified field name
             o = new Object[] { test.x };
-            cs = new CharSequence[] { test.x };
-            s = new String[] { test.x };
+            n = new Number[] { test.x };
+            i = new Integer[] { test.x };
 
             // simple method name
             o = new Object[] { getX() };
-            cs = new CharSequence[] { getX() };
-            s = new String[] { getX() };
+            n = new Number[] { getX() };
+            i = new Integer[] { getX() };
 
             // qualified method name
             o = new Object[] { test.getX() };
-            cs = new CharSequence[] { test.getX() };
-            s = new String[] { test.getX() };
+            n = new Number[] { test.getX() };
+            i = new Integer[] { test.getX() };
         }
 
         @IR("""
-                func @"testCast" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
+                func @"testCast" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
                     %3 : Var<java.type:"java.lang.Object"> = var @"o";
-                    %4 : Var<java.type:"java.lang.CharSequence"> = var @"cs";
-                    %5 : Var<java.type:"java.lang.String"> = var @"s";
-                    %6 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %4 : Var<java.type:"java.lang.Number"> = var @"n";
+                    %5 : Var<java.type:"java.lang.Integer"> = var @"i";
+                    %6 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %3 %6;
-                    %7 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %4 %7;
-                    %8 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %9 : java.type:"java.lang.String" = cast %8 @java.type:"java.lang.String";
+                    %8 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %9 : java.type:"java.lang.Integer" = cast %8 @java.type:"java.lang.Integer";
                     var.store %5 %9;
-                    %10 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %11 : java.type:"java.lang.String" = field.load %10 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %10 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %11 : java.type:"java.lang.Integer" = field.load %10 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %3 %11;
-                    %12 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %13 : java.type:"java.lang.String" = field.load %12 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
+                    %12 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %13 : java.type:"java.lang.Integer" = field.load %12 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
                     var.store %4 %13;
-                    %14 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %15 : java.type:"java.lang.String" = field.load %14 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %16 : java.type:"java.lang.String" = cast %15 @java.type:"java.lang.String";
+                    %14 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %15 : java.type:"java.lang.Integer" = field.load %14 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %16 : java.type:"java.lang.Integer" = cast %15 @java.type:"java.lang.Integer";
                     var.store %5 %16;
-                    %17 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %17 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %3 %17;
-                    %18 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %18 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %4 %18;
-                    %19 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %20 : java.type:"java.lang.String" = cast %19 @java.type:"java.lang.String";
+                    %19 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %20 : java.type:"java.lang.Integer" = cast %19 @java.type:"java.lang.Integer";
                     var.store %5 %20;
-                    %21 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %22 : java.type:"java.lang.String" = invoke %21 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %21 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %22 : java.type:"java.lang.Integer" = invoke %21 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %3 %22;
-                    %23 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %24 : java.type:"java.lang.String" = invoke %23 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
+                    %23 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %24 : java.type:"java.lang.Integer" = invoke %23 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
                     var.store %4 %24;
-                    %25 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %26 : java.type:"java.lang.String" = invoke %25 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %27 : java.type:"java.lang.String" = cast %26 @java.type:"java.lang.String";
+                    %25 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %26 : java.type:"java.lang.Integer" = invoke %25 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %27 : java.type:"java.lang.Integer" = cast %26 @java.type:"java.lang.Integer";
                     var.store %5 %27;
                     return;
                 };
                 """)
         @Reflect
-        void testCast(BoundedString test) {
-            Object o; CharSequence cs; String s;
+        void testCast(BoundedInteger test) {
+            Object o; Number n; Integer i;
 
             // simple field name
             o = (Object) x;
-            cs = (CharSequence) x;
-            s = (String) x;
+            n = (Number) x;
+            i = (Integer) x;
 
             // qualified field name
             o = (Object) test.x;
-            cs = (CharSequence) test.x;
-            s = (String) test.x;
+            n = (Number) test.x;
+            i = (Integer) test.x;
 
             // simple method name
             o = (Object) getX();
-            cs = (CharSequence) getX();
-            s = (String) getX();
+            n = (Number) getX();
+            i = (Integer) getX();
 
             // qualified method name
             o = (Object) test.getX();
-            cs = (CharSequence) test.getX();
-            s = (String) test.getX();
+            n = (Number) test.getX();
+            i = (Integer) test.getX();
         }
 
         void o(Object o) { }
-        void cs(CharSequence cs) { }
-        void s(String s) { }
+        void n(Number n) { }
+        void i(Integer i) { }
 
         @IR("""
-                func @"testMethod" (%0 : java.type:"ErasedAccessTest$BoundedString", %1 : java.type:"ErasedAccessTest$BoundedString")java.type:"void" -> {
-                    %2 : Var<java.type:"ErasedAccessTest$BoundedString"> = var %1 @"test";
-                    %3 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    invoke %0 %3 @java.ref:"ErasedAccessTest$BoundedString::o(java.lang.Object):void";
-                    %4 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    invoke %0 %4 @java.ref:"ErasedAccessTest$BoundedString::cs(java.lang.CharSequence):void";
-                    %5 : java.type:"java.lang.String" = field.load %0 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %6 : java.type:"java.lang.String" = cast %5 @java.type:"java.lang.String";
-                    invoke %0 %6 @java.ref:"ErasedAccessTest$BoundedString::s(java.lang.String):void";
-                    %7 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %8 : java.type:"java.lang.String" = field.load %7 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    invoke %0 %8 @java.ref:"ErasedAccessTest$BoundedString::o(java.lang.Object):void";
-                    %9 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %10 : java.type:"java.lang.String" = field.load %9 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    invoke %0 %10 @java.ref:"ErasedAccessTest$BoundedString::cs(java.lang.CharSequence):void";
-                    %11 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %12 : java.type:"java.lang.String" = field.load %11 @java.ref:"ErasedAccessTest$BoundedString::x:java.lang.CharSequence";
-                    %13 : java.type:"java.lang.String" = cast %12 @java.type:"java.lang.String";
-                    invoke %0 %13 @java.ref:"ErasedAccessTest$BoundedString::s(java.lang.String):void";
-                    %14 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    invoke %0 %14 @java.ref:"ErasedAccessTest$BoundedString::o(java.lang.Object):void";
-                    %15 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    invoke %0 %15 @java.ref:"ErasedAccessTest$BoundedString::cs(java.lang.CharSequence):void";
-                    %16 : java.type:"java.lang.String" = invoke %0 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %17 : java.type:"java.lang.String" = cast %16 @java.type:"java.lang.String";
-                    invoke %0 %17 @java.ref:"ErasedAccessTest$BoundedString::s(java.lang.String):void";
-                    %18 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %19 : java.type:"java.lang.String" = invoke %18 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    invoke %0 %19 @java.ref:"ErasedAccessTest$BoundedString::o(java.lang.Object):void";
-                    %20 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %21 : java.type:"java.lang.String" = invoke %20 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    invoke %0 %21 @java.ref:"ErasedAccessTest$BoundedString::cs(java.lang.CharSequence):void";
-                    %22 : java.type:"ErasedAccessTest$BoundedString" = var.load %2;
-                    %23 : java.type:"java.lang.String" = invoke %22 @java.ref:"ErasedAccessTest$BoundedString::getX():java.lang.CharSequence";
-                    %24 : java.type:"java.lang.String" = cast %23 @java.type:"java.lang.String";
-                    invoke %0 %24 @java.ref:"ErasedAccessTest$BoundedString::s(java.lang.String):void";
+                func @"testMethod" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    invoke %0 %3 @java.ref:"ErasedAccessTest$BoundedInteger::o(java.lang.Object):void";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    invoke %0 %4 @java.ref:"ErasedAccessTest$BoundedInteger::n(java.lang.Number):void";
+                    %5 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %6 : java.type:"java.lang.Integer" = cast %5 @java.type:"java.lang.Integer";
+                    invoke %0 %6 @java.ref:"ErasedAccessTest$BoundedInteger::i(java.lang.Integer):void";
+                    %7 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %8 : java.type:"java.lang.Integer" = field.load %7 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    invoke %0 %8 @java.ref:"ErasedAccessTest$BoundedInteger::o(java.lang.Object):void";
+                    %9 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %10 : java.type:"java.lang.Integer" = field.load %9 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    invoke %0 %10 @java.ref:"ErasedAccessTest$BoundedInteger::n(java.lang.Number):void";
+                    %11 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %12 : java.type:"java.lang.Integer" = field.load %11 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %13 : java.type:"java.lang.Integer" = cast %12 @java.type:"java.lang.Integer";
+                    invoke %0 %13 @java.ref:"ErasedAccessTest$BoundedInteger::i(java.lang.Integer):void";
+                    %14 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    invoke %0 %14 @java.ref:"ErasedAccessTest$BoundedInteger::o(java.lang.Object):void";
+                    %15 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    invoke %0 %15 @java.ref:"ErasedAccessTest$BoundedInteger::n(java.lang.Number):void";
+                    %16 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %17 : java.type:"java.lang.Integer" = cast %16 @java.type:"java.lang.Integer";
+                    invoke %0 %17 @java.ref:"ErasedAccessTest$BoundedInteger::i(java.lang.Integer):void";
+                    %18 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %19 : java.type:"java.lang.Integer" = invoke %18 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    invoke %0 %19 @java.ref:"ErasedAccessTest$BoundedInteger::o(java.lang.Object):void";
+                    %20 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %21 : java.type:"java.lang.Integer" = invoke %20 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    invoke %0 %21 @java.ref:"ErasedAccessTest$BoundedInteger::n(java.lang.Number):void";
+                    %22 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %23 : java.type:"java.lang.Integer" = invoke %22 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %24 : java.type:"java.lang.Integer" = cast %23 @java.type:"java.lang.Integer";
+                    invoke %0 %24 @java.ref:"ErasedAccessTest$BoundedInteger::i(java.lang.Integer):void";
                     return;
                 };
                 """)
         @Reflect
-        void testMethod(BoundedString test) {
+        void testMethod(BoundedInteger test) {
             // simple field name
             o(x);
-            cs(x);
-            s(x);
+            n(x);
+            i(x);
 
             // qualified field name
             o(test.x);
-            cs(test.x);
-            s(test.x);
+            n(test.x);
+            i(test.x);
 
             // simple method name
             o(getX());
-            cs(getX());
-            s(getX());
+            n(getX());
+            i(getX());
 
             // qualified method name
             o(test.getX());
-            cs(test.getX());
-            s(test.getX());
+            n(test.getX());
+            i(test.getX());
+        }
+
+        @IR("""
+                func @"testWidening" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %3 : Var<java.type:"long"> = var @"l";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %5 : java.type:"java.lang.Integer" = cast %4 @java.type:"java.lang.Integer";
+                    %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
+                    %7 : java.type:"long" = conv %6;
+                    var.store %3 %7;
+                    %8 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %9 : java.type:"java.lang.Integer" = field.load %8 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %10 : java.type:"java.lang.Integer" = cast %9 @java.type:"java.lang.Integer";
+                    %11 : java.type:"int" = invoke %10 @java.ref:"java.lang.Integer::intValue():int";
+                    %12 : java.type:"long" = conv %11;
+                    var.store %3 %12;
+                    %13 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %14 : java.type:"java.lang.Integer" = cast %13 @java.type:"java.lang.Integer";
+                    %15 : java.type:"int" = invoke %14 @java.ref:"java.lang.Integer::intValue():int";
+                    %16 : java.type:"long" = conv %15;
+                    var.store %3 %16;
+                    %17 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %18 : java.type:"java.lang.Integer" = invoke %17 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %19 : java.type:"java.lang.Integer" = cast %18 @java.type:"java.lang.Integer";
+                    %20 : java.type:"int" = invoke %19 @java.ref:"java.lang.Integer::intValue():int";
+                    %21 : java.type:"long" = conv %20;
+                    var.store %3 %21;
+                    return;
+                };
+                """)
+        @Reflect
+        void testWidening(BoundedInteger test) {
+            long l;
+
+            // simple field name
+            l = x;
+
+            // qualified field name
+            l = test.x;
+
+            // simple method name
+            l = getX();
+
+            // qualified method name
+            l = test.getX();
         }
     }
 
 
     static final String TEST_CLASSES_DIR = System.getProperty("test.classes", ".");
-    static final Class<?>[] TEST_CLASSES = new Class<?>[] { UnboundedString.class, BoundedString.class };
+    static final Class<?>[] TEST_CLASSES = new Class<?>[] { UnboundedInteger.class, BoundedInteger.class };
 
     public static void main(String[] args) throws ReflectiveOperationException, IOException {
         for (Class<?> testClass : TEST_CLASSES) {
