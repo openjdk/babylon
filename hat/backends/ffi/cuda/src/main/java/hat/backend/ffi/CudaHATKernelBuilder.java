@@ -25,6 +25,7 @@
 package hat.backend.ffi;
 
 import hat.DType;
+import hat.Shape;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codetypes.ConstantType;
@@ -1497,7 +1498,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Value> operands = tileSumOp.operands();
         Value tensor = operands.getFirst();
         Value dimension = operands.get(1);
-        return id("ct::sum").paren(_ ->
+        return cudaTile().sum().paren(_ ->
                 recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(dimension).id("_ic"));
     }
 
@@ -1508,54 +1509,102 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp) {
-        return id("ct::transpose").paren( _-> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
+        return cudaTile().transpose().paren( _-> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
     }
 
     @Override
     public CudaHATKernelBuilder tileZerosOp(TileOps.TileZerosOp tileZerosOp) {
-        List<Value> operands = tileZerosOp.operands();
-        id("ct::zeros<ct::tile").lt();
-        if (tileZerosOp.resultType() instanceof ConstantType constantType &&  constantType.value() instanceof TensorType tt) {
-            if (tt.elementType().equals(DType.TENSOR_2D_F32_TYPE) || tt.elementType().equals(DType.TENSOR_F32_TYPE)) {
-                type("float");
+        cudaTile().zeros().ltgt( _ -> {
+            cudaTile().tile().ltgt( _ -> {
+            if (tileZerosOp.resultType() instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
+                if (tt.elementType().equals(DType.TENSOR_2D_F32_TYPE) || tt.elementType().equals(DType.TENSOR_F32_TYPE)) {
+                    f32Type();
+                } else {
+                    type(tt.elementType().toString());
+                }
             } else {
-                type(tt.elementType().toString());
+                throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileZerosOp.resultType());
             }
-        } else {
-            throw new  UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileZerosOp.resultType());
-        }
-        comma().sp().id("ct::shape").lt();
-        CodeType codeType = tileZerosOp.resultType();
-        if (codeType instanceof ConstantType constantType1 && constantType1.value() instanceof TensorType tensorType) {
-            List<Integer> shape = tensorType.shape();
-            commaSpaceSeparated(shape, this::intValue);
-        } else {
-            throw new IllegalStateException("[codegen] ct::zero shape not recognized");
-        }
-        gt().gt().gt().paren( _ ->{});
+            comma().sp().cudaTile().shape().ltgt( _ -> {
+                CodeType codeType = tileZerosOp.resultType();
+                if (codeType instanceof ConstantType constantType1 && constantType1.value() instanceof TensorType tensorType) {
+                    List<Integer> shape = tensorType.shape();
+                    commaSpaceSeparated(shape, this::intValue);
+                } else {
+                    throw new IllegalStateException("[codegen] ct::zero shape not recognized");
+                }
+                });
+            });
+        }).paren( _ ->{});
+
         return self();
+    }
+
+    // CUDA Tile Constructs
+    private CudaHATKernelBuilder cudaTile() {
+        return id("ct::");
+    }
+
+    private CudaHATKernelBuilder tile() {
+        return id("tile");
+    }
+
+    private CudaHATKernelBuilder zeros() {
+        return id("zeros");
+    }
+
+    private CudaHATKernelBuilder sum() {
+        return id("sum");
+    }
+
+    private CudaHATKernelBuilder transpose() {
+        return id("transpose");
+    }
+
+    private CudaHATKernelBuilder shape() {
+        return id("shape");
+    }
+
+    private CudaHATKernelBuilder mma() {
+        return id("mma");
+    }
+
+    private CudaHATKernelBuilder ceildiv() {
+        return id("ceildiv");
+    }
+
+    private CudaHATKernelBuilder min() {
+        return id("min");
+    }
+
+    private CudaHATKernelBuilder max() {
+        return id("max");
+    }
+
+    private CudaHATKernelBuilder irange() {
+        return id("irange");
     }
 
     @Override
     public CudaHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
-        return id("ct::mma").paren(_ -> commaSpaceSeparated(tileMMAOp.operands(), this::recurseResultOrThrow));
+        return cudaTile().mma().paren(_ -> commaSpaceSeparated(tileMMAOp.operands(), this::recurseResultOrThrow));
     }
 
     @Override
     public CudaHATKernelBuilder cDivOp(ArithMathOps.CDivOp cDivOp) {
-        return id("ct::ceildiv").paren(_ -> commaSpaceSeparated(cDivOp.operands(), this::recurseResultOrThrow));
+        return cudaTile().ceildiv().paren(_ -> commaSpaceSeparated(cDivOp.operands(), this::recurseResultOrThrow));
     }
 
     @Override
     public CudaHATKernelBuilder minOp(ArithMathOps.MinOp minOp) {
-        return id("ct::min").paren(_ -> commaSpaceSeparated(minOp.operands(), this::recurseResultOrThrow));
+        return cudaTile().min().paren(_ -> commaSpaceSeparated(minOp.operands(), this::recurseResultOrThrow));
     }
 
     @Override
     public CudaHATKernelBuilder tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp) {
         Value startIndex = tileIrangeOp.operands().getFirst();
         Value endIndex = tileIrangeOp.operands().getLast();
-        return id("ct::irange").paren( _ -> {
+        return cudaTile().irange().paren( _ -> {
            recurseResultOrThrow(startIndex).comma().sp().recurseResultOrThrow(endIndex);
         });
     }
