@@ -745,13 +745,19 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            Type refTarget = targetType.isPrimitive()
-                    ? types.erasure(codeTypeToType(sourceValue.type()))
-                    : types.erasure(targetType);
+            // primitive target requires care: if target is "int", but source
+            // expression has (after type subst) type "Integer", we should still
+            // emit a synthetic cast to "Integer" (if needed)
+            Type refTarget = targetType.isPrimitive() ?
+                    codeTypeToType(sourceValue.type()) :
+                    targetType;
 
             if (sourceType.isReference() && refTarget.isReference() &&
-                    !types.isSubtype(types.erasure(sourceType), refTarget)) {
-                sourceValue = append(JavaOp.cast(typeToCodeType(refTarget), sourceValue));
+                    !types.isSubtype(types.erasure(sourceType), types.erasure(refTarget))) {
+                // the generated synthetic cast uses a raw type as type operand,
+                // but preserves full static type info in the result type
+                sourceValue = append(JavaOp.cast(typeToCodeType(refTarget),
+                        typeToCodeType(types.erasure(refTarget)), sourceValue));
             }
             return convert(sourceValue, targetType);
         }

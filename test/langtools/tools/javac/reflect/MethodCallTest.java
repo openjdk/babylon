@@ -331,7 +331,7 @@ public class MethodCallTest {
                 %1 : Var<java.type:"java.lang.Comparable<java.lang.String>[]"> = var %0 @"values";
                 %2 : java.type:"java.lang.Comparable<java.lang.String>[]" = var.load %1;
                 %3 : java.type:"java.lang.Comparable<java.lang.String>[]" = invoke %2 @java.ref:"java.lang.Comparable[]::clone():java.lang.Object";
-                %4 : java.type:"java.lang.Comparable[]" = cast %3 @java.type:"java.lang.Comparable[]";
+                %4 : java.type:"java.lang.Comparable<java.lang.String>[]" = cast %3 @java.type:"java.lang.Comparable[]";
                 return %4;
             };
             """)

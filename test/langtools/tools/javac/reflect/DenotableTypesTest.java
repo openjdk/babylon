@@ -159,11 +159,11 @@ public class DenotableTypesTest {
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
                 %4 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
-                %5 : java.type:"DenotableTypesTest$Adder" = cast %4 @java.type:"DenotableTypesTest$Adder";
+                %5 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = cast %4 @java.type:"DenotableTypesTest$Adder";
                 %6 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
                 %7 : java.type:"int" = constant @1;
                 %8 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %6 %7 @java.ref:"java.util.List::get(int):java.lang.Object";
-                %9 : java.type:"DenotableTypesTest$Adder" = cast %8 @java.type:"DenotableTypesTest$Adder";
+                %9 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = cast %8 @java.type:"DenotableTypesTest$Adder";
                 invoke %5 %9 @java.ref:"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder):void";
                 return;
             };
@@ -183,7 +183,7 @@ public class DenotableTypesTest {
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
                 %4 : java.type:"DenotableTypesTest$Box<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
-                %5 : java.type:"DenotableTypesTest$Box" = cast %4 @java.type:"DenotableTypesTest$Box";
+                %5 : java.type:"DenotableTypesTest$Box<java.lang.Integer>" = cast %4 @java.type:"DenotableTypesTest$Box";
                 %6 : java.type:"java.lang.Integer" = field.load %5 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
                 %7 : java.type:"java.lang.Integer" = cast %6 @java.type:"java.lang.Integer";
                 %8 : Var<java.type:"java.lang.Integer"> = var %7 @"i";
