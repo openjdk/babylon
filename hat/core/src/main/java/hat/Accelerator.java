@@ -31,7 +31,6 @@ import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 
-
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -49,7 +48,6 @@ import java.util.function.Predicate;
 import static hat.backend.Backend.FIRST;
 import static optkl.OpHelper.Invoke.getTargetInvoke;
 import static optkl.OpHelper.Lambda.lambda;
-
 
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of

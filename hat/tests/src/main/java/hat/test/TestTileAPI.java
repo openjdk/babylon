@@ -30,8 +30,6 @@ import hat.ComputeContext;
 import hat.NDRange;
 import hat.TileContext;
 import hat.TileOp;
-import hat.annotations.Kernel;
-import hat.annotations.Preformatted;
 import hat.backend.Backend;
 import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
@@ -39,7 +37,6 @@ import hat.buffer.TensorF32;
 
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
-import hat.types.F16;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
