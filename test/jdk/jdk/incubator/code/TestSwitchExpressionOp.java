@@ -268,6 +268,24 @@ public class TestSwitchExpressionOp {
     }
 
     @Test
+    void testCaseConstantEnumWithDefaultFallThrough() {
+        CoreOp.FuncOp lmodel = lower("caseConstantEnumWithDefaultFallThrough");
+        for (Day day : Day.values()) {
+            Assertions.assertEquals(caseConstantEnumWithDefaultFallThrough(day), Interpreter.invoke(MethodHandles.lookup(), lmodel, day));
+        }
+    }
+
+    @Reflect
+    private static int caseConstantEnumWithDefaultFallThrough(Day d) {
+        return switch (d) {
+            case MON, FRI, SUN: yield 0;
+            case TUE:
+            default:
+            case WED: yield 1;
+        };
+    }
+
+    @Test
     void testCaseConstantFallThrough() {
         CoreOp.FuncOp lmodel = lower("caseConstantFallThrough");
         char[] args = {'A', 'B', 'C'};

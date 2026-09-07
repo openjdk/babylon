@@ -53,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TestTryWithResources {
 
-    record Resource(Consumer<String> log, String suffix, boolean throwOnClose, boolean throwOnCreate) implements Closeable {
+    record Resource(Consumer<String> log, String suffix, boolean throwOnClose, boolean throwOnCreate, Resource... res) implements Closeable {
 
         Resource {
             log.accept("open" + suffix);
@@ -79,10 +79,10 @@ public class TestTryWithResources {
                                         boolean throwOnCreate2, boolean throwOnCreate3) throws IOException {
         var r2 = new Resource(log, "2", throwOnClose2, throwOnCreate2);
         try {
-            try (var _ = new Resource(log, "1", throwOnClose1, throwOnCreate1)) {
+            try (var r1 = new Resource(log, "1", throwOnClose1, throwOnCreate1, r2)) {
                 log.accept("outerBody");
-                try (var _ = r2;
-                     var _ = new Resource(log, "3", throwOnClose3, throwOnCreate3)) {
+                try (var r = r2;
+                     var _ = new Resource(log, "3", throwOnClose3, throwOnCreate3, r, r1)) {
                     log.accept("innerBody");
                     if (throwInBody) {
                         log.accept("throwBody");
@@ -140,5 +140,4 @@ public class TestTryWithResources {
             assertIterableEquals(expected, actual);
         }
     }
-
 }
