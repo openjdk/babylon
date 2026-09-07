@@ -240,6 +240,60 @@ public class ErasedAccessTest {
         return (c ? xs.x : xs.x).hashCode();
     }
 
+    @Reflect
+    @IR("""
+            func @"method_objectAssign" (%0 : java.type:"ErasedAccessTest$Box<java.lang.String>")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"ErasedAccessTest$Box<java.lang.String>"> = var %0 @"xs";
+                %2 : java.type:"ErasedAccessTest$Box<java.lang.String>" = var.load %1;
+                %3 : java.type:"java.lang.String" = invoke %2 @java.ref:"ErasedAccessTest$Box::get():java.lang.Object";
+                return %3;
+            };
+            """)
+    static Object method_objectAssign(Box<String> xs) {
+        return xs.get();
+    }
+
+    @Reflect
+    @IR("""
+            func @"method_CharSequenceAssign" (%0 : java.type:"ErasedAccessTest$Box<java.lang.String>")java.type:"java.lang.CharSequence" -> {
+                %1 : Var<java.type:"ErasedAccessTest$Box<java.lang.String>"> = var %0 @"xs";
+                %2 : java.type:"ErasedAccessTest$Box<java.lang.String>" = var.load %1;
+                %3 : java.type:"java.lang.String" = invoke %2 @java.ref:"ErasedAccessTest$Box::get():java.lang.Object";
+                %4 : java.type:"java.lang.CharSequence" = cast %3 @java.type:"java.lang.CharSequence";
+                return %4;
+            };
+            """)
+    static CharSequence method_CharSequenceAssign(Box<String> xs) {
+        return xs.get();
+    }
+
+    @Reflect
+    @IR("""
+            func @"field_objectAssign" (%0 : java.type:"ErasedAccessTest$Box<java.lang.String>")java.type:"java.lang.Object" -> {
+                %1 : Var<java.type:"ErasedAccessTest$Box<java.lang.String>"> = var %0 @"xs";
+                %2 : java.type:"ErasedAccessTest$Box<java.lang.String>" = var.load %1;
+                %3 : java.type:"java.lang.String" = field.load %2 @java.ref:"ErasedAccessTest$Box::x:java.lang.Object";
+                return %3;
+            };
+            """)
+    static Object field_objectAssign(Box<String> xs) {
+        return xs.x;
+    }
+
+    @Reflect
+    @IR("""
+            func @"field_CharSequenceAssign" (%0 : java.type:"ErasedAccessTest$Box<java.lang.String>")java.type:"java.lang.CharSequence" -> {
+                %1 : Var<java.type:"ErasedAccessTest$Box<java.lang.String>"> = var %0 @"xs";
+                %2 : java.type:"ErasedAccessTest$Box<java.lang.String>" = var.load %1;
+                %3 : java.type:"java.lang.String" = field.load %2 @java.ref:"ErasedAccessTest$Box::x:java.lang.Object";
+                %4 : java.type:"java.lang.CharSequence" = cast %3 @java.type:"java.lang.CharSequence";
+                return %4;
+            };
+            """)
+    static CharSequence field_CharSequenceAssign(Box<String> xs) {
+        return xs.x;
+    }
+
     static class Box<X> {
         X x;
         Box(X x) { this.x = x; }
