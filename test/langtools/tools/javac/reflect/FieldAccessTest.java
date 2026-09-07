@@ -530,8 +530,9 @@ public class FieldAccessTest {
         @IR("""
                 func @"test1" (%0 : java.type:"FieldAccessTest$ZZ")java.type:"int" -> {
                     %1 : java.type:"FieldAccessTest$Y" = field.load %0 @java.ref:"FieldAccessTest$ZZ::x:FieldAccessTest$X";
-                    %2 : java.type:"int" = field.load %1 @java.ref:"FieldAccessTest$Y::yf:int";
-                    return %2;
+                    %2 : java.type:"FieldAccessTest$Y" = cast %1 @java.type:"FieldAccessTest$Y";
+                    %3 : java.type:"int" = field.load %2 @java.ref:"FieldAccessTest$Y::yf:int";
+                    return %3;
                 };
                 """)
         @Reflect
@@ -544,8 +545,9 @@ public class FieldAccessTest {
                     %1 : Var<java.type:"FieldAccessTest$ZZ"> = var %0 @"zz";
                     %2 : java.type:"FieldAccessTest$ZZ" = var.load %1;
                     %3 : java.type:"FieldAccessTest$Y" = field.load %2 @java.ref:"FieldAccessTest$ZZ::x:FieldAccessTest$X";
-                    %4 : java.type:"int" = field.load %3 @java.ref:"FieldAccessTest$Y::yf:int";
-                    return %4;
+                    %4 : java.type:"FieldAccessTest$Y" = cast %3 @java.type:"FieldAccessTest$Y";
+                    %5 : java.type:"int" = field.load %4 @java.ref:"FieldAccessTest$Y::yf:int";
+                    return %5;
                 };
                 """)
         @Reflect
@@ -756,7 +758,8 @@ public class FieldAccessTest {
                 %2 : Var<java.type:"FieldAccessTest$Box<java.lang.String>"> = var %1 @"b";
                 %3 : java.type:"FieldAccessTest$Box<java.lang.String>" = var.load %2;
                 %4 : java.type:"java.lang.String" = field.load %3 @java.ref:"FieldAccessTest$Box::v:java.lang.Object";
-                %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
+                %5 : java.type:"java.lang.String" = cast %4 @java.type:"java.lang.String";
+                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
                 return;
             };
             """)

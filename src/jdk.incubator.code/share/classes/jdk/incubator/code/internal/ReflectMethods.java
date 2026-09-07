@@ -65,6 +65,7 @@ import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCConstantCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCDefaultCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression.CodeReflectionInfo;
@@ -721,6 +722,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         public Value toValue(JCExpression expression, Type targetType) {
+            targetType = types.erasure(targetType);
             result = null; // reset
             Type prevPt = pt;
             try {
@@ -744,9 +746,13 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (sourceType.isReference() && targetType.isReference() &&
-                    !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
-                return append(JavaOp.cast(typeToCodeType(targetType), sourceValue));
+            Type refTarget = targetType.isPrimitive()
+                    ? types.erasure(codeTypeToType(sourceValue.type()))
+                    : targetType;
+
+            if (sourceType.isReference() && refTarget.isReference() &&
+                    !types.isSubtype(types.erasure(sourceType), types.erasure(refTarget))) {
+                sourceValue = append(JavaOp.cast(typeToCodeType(refTarget), sourceValue));
             }
             return convert(sourceValue, targetType);
         }
@@ -1048,7 +1054,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
                         } else {
-                            result = append(JavaOp.fieldLoad(resultType, fr, thisValue()));
+                            result = coerce(
+                                    append(JavaOp.fieldLoad(resultType, fr, thisValue())),
+                                    sym.erasure(types),
+                                    pt);
                         }
                     }
                 }
@@ -1081,7 +1090,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             Type qualifierTarget = qualifierTarget(tree);
             // @@@: might cause redundant load if accessed symbol is static but the qualifier is not a type
-            Value receiver = toValue(tree.selected);
+            Value receiver = toValue(tree.selected, qualifierTarget);
 
             if (tree.name.equals(names._class)) {
                 result = append(CoreOp.constant(JavaType.J_L_CLASS, typeToCodeType(tree.selected.type)));
@@ -1104,7 +1113,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             if (sym.isStatic()) {
                                 result = append(JavaOp.fieldLoad(resultType, fr));
                             } else {
-                                result = append(JavaOp.fieldLoad(resultType, fr, receiver));
+                                result = coerce(
+                                        append(JavaOp.fieldLoad(resultType, fr, receiver)),
+                                        sym.erasure(types),
+                                        pt);
                             }
                         }
                     }
@@ -1155,7 +1167,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JavaType resultType = typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
-                    Value res = append(iop);
+                    Value res = coerce(
+                            append(iop),
+                            sym.erasure(types).getReturnType(),
+                            pt);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1203,7 +1218,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JavaType resultType = typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
-                    Value res = append(iop);
+                    Value res = coerce(
+                            append(iop),
+                            sym.erasure(types).getReturnType(),
+                            pt);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1246,7 +1264,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Type selectedType = types.skipTypeVars(tree.selected.type, true);
             return selectedType.isCompound() ?
                     tree.sym.owner.type :
-                    Type.noType;
+                    tree.selected.type;
         }
 
         @Override
@@ -1406,6 +1424,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Create the match operation
             return append(JavaOp.match(target, patternBody, matchBody));
+        }
+
+        @Override
+        public void visitExec(JCExpressionStatement tree) {
+            toValue(tree.expr); // no target
+            result = null;
         }
 
         @Override
@@ -2162,14 +2186,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
             popBody();
 
             result = append(JavaOp.conditionalExpression(typeToCodeType(condType), predicateBody, trueBody, falseBody));
-        }
-
-        private Type condType(JCExpression tree, Type type) {
-            if (type.hasTag(BOT)) {
-                return adaptBottom(tree.type);
-            } else {
-                return type;
-            }
         }
 
         private Type adaptBottom(Type type) {

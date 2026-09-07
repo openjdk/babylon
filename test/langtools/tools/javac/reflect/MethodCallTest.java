@@ -278,13 +278,15 @@ public class MethodCallTest {
                 %2 : java.type:"java.util.ArrayList<java.lang.String>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
                 %4 : java.type:"java.lang.String" = invoke %2 %3 @java.ref:"java.util.ArrayList::get(int):java.lang.Object";
-                %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
-                %6 : java.type:"java.util.ArrayList<java.lang.String>" = var.load %1;
-                %7 : Var<java.type:"java.util.List<java.lang.String>"> = var %6 @"l";
-                %8 : java.type:"java.util.List<java.lang.String>" = var.load %7;
-                %9 : java.type:"int" = constant @0;
-                %10 : java.type:"java.lang.String" = invoke %8 %9 @java.ref:"java.util.List::get(int):java.lang.Object";
-                var.store %5 %10;
+                %5 : java.type:"java.lang.String" = cast %4 @java.type:"java.lang.String";
+                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
+                %7 : java.type:"java.util.ArrayList<java.lang.String>" = var.load %1;
+                %8 : Var<java.type:"java.util.List<java.lang.String>"> = var %7 @"l";
+                %9 : java.type:"java.util.List<java.lang.String>" = var.load %8;
+                %10 : java.type:"int" = constant @0;
+                %11 : java.type:"java.lang.String" = invoke %9 %10 @java.ref:"java.util.List::get(int):java.lang.Object";
+                %12 : java.type:"java.lang.String" = cast %11 @java.type:"java.lang.String";
+                var.store %6 %12;
                 return;
             };
             """)
@@ -297,10 +299,11 @@ public class MethodCallTest {
     @Reflect
     @IR("""
             func @"test11" (%0 : java.type:"java.lang.Object[]")java.type:"java.lang.Object[]" -> {
-                  %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"values";
-                  %2 : java.type:"java.lang.Object[]" = var.load %1;
-                  %3 : java.type:"java.lang.Object[]" = invoke %2 @java.ref:"java.lang.Object[]::clone():java.lang.Object";
-                  return %3;
+                %1 : Var<java.type:"java.lang.Object[]"> = var %0 @"values";
+                %2 : java.type:"java.lang.Object[]" = var.load %1;
+                %3 : java.type:"java.lang.Object[]" = invoke %2 @java.ref:"java.lang.Object[]::clone():java.lang.Object";
+                %4 : java.type:"java.lang.Object[]" = cast %3 @java.type:"java.lang.Object[]";
+                return %4;
             };
             """)
     static Object[] test11(Object[] values) {
@@ -310,10 +313,11 @@ public class MethodCallTest {
     @Reflect
     @IR("""
             func @"test12" (%0 : java.type:"int[]")java.type:"int[]" -> {
-                  %1 : Var<java.type:"int[]"> = var %0 @"values";
-                  %2 : java.type:"int[]" = var.load %1;
-                  %3 : java.type:"int[]" = invoke %2 @java.ref:"int[]::clone():java.lang.Object";
-                  return %3;
+                %1 : Var<java.type:"int[]"> = var %0 @"values";
+                %2 : java.type:"int[]" = var.load %1;
+                %3 : java.type:"int[]" = invoke %2 @java.ref:"int[]::clone():java.lang.Object";
+                %4 : java.type:"int[]" = cast %3 @java.type:"int[]";
+                return %4;
             };
             """)
     static int[] test12(int[] values) {
@@ -327,7 +331,8 @@ public class MethodCallTest {
                 %1 : Var<java.type:"java.lang.Comparable<java.lang.String>[]"> = var %0 @"values";
                 %2 : java.type:"java.lang.Comparable<java.lang.String>[]" = var.load %1;
                 %3 : java.type:"java.lang.Comparable<java.lang.String>[]" = invoke %2 @java.ref:"java.lang.Comparable[]::clone():java.lang.Object";
-                return %3;
+                %4 : java.type:"java.lang.Comparable[]" = cast %3 @java.type:"java.lang.Comparable[]";
+                return %4;
             };
             """)
     static Comparable<String>[] test13(Comparable<String>[] values) {

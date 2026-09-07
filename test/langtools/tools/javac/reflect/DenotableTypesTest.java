@@ -101,7 +101,7 @@ public class DenotableTypesTest {
     @Reflect
     @IR("""
             func @"test5" ()java.type:"void" -> {
-                %0 : java.type:"java.util.List<? extends java.lang.Number>" = constant @null;
+                %0 : java.type:"java.util.List" = constant @null;
                 %1 : Var<java.type:"java.util.List<? extends java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? extends java.lang.Number>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
@@ -117,7 +117,7 @@ public class DenotableTypesTest {
     @Reflect
     @IR("""
             func @"test6" ()java.type:"void" -> {
-                %0 : java.type:"java.util.List<? super java.lang.Number>" = constant @null;
+                %0 : java.type:"java.util.List" = constant @null;
                 %1 : Var<java.type:"java.util.List<? super java.lang.Number>"> = var %0 @"l";
                 %2 : java.type:"java.util.List<? super java.lang.Number>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
@@ -135,7 +135,7 @@ public class DenotableTypesTest {
     @Reflect
     @IR("""
             func @"test7" ()java.type:"void" -> {
-                %0 : java.type:"&DenotableTypesTest::test7():void::<X>" = constant @null;
+                %0 : java.type:"java.lang.Object" = constant @null;
                 %1 : Var<java.type:"&DenotableTypesTest::test7():void::<X>"> = var %0 @"x";
                 %2 : java.type:"&DenotableTypesTest::test7():void::<X>" = var.load %1;
                 %3 : java.type:"java.lang.Runnable" = cast %2 @java.type:"java.lang.Runnable";
@@ -159,10 +159,12 @@ public class DenotableTypesTest {
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
                 %4 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
-                %5 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
-                %6 : java.type:"int" = constant @1;
-                %7 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %5 %6 @java.ref:"java.util.List::get(int):java.lang.Object";
-                invoke %4 %7 @java.ref:"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder):void";
+                %5 : java.type:"DenotableTypesTest$Adder" = cast %4 @java.type:"DenotableTypesTest$Adder";
+                %6 : java.type:"java.util.List<? extends DenotableTypesTest$Adder<java.lang.Integer>>" = var.load %1;
+                %7 : java.type:"int" = constant @1;
+                %8 : java.type:"DenotableTypesTest$Adder<java.lang.Integer>" = invoke %6 %7 @java.ref:"java.util.List::get(int):java.lang.Object";
+                %9 : java.type:"DenotableTypesTest$Adder" = cast %8 @java.type:"DenotableTypesTest$Adder";
+                invoke %5 %9 @java.ref:"DenotableTypesTest$Adder::add(DenotableTypesTest$Adder):void";
                 return;
             };
             """)
@@ -181,8 +183,10 @@ public class DenotableTypesTest {
                 %2 : java.type:"java.util.List<? extends DenotableTypesTest$Box<java.lang.Integer>>" = var.load %1;
                 %3 : java.type:"int" = constant @0;
                 %4 : java.type:"DenotableTypesTest$Box<java.lang.Integer>" = invoke %2 %3 @java.ref:"java.util.List::get(int):java.lang.Object";
-                %5 : java.type:"java.lang.Integer" = field.load %4 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
-                %6 : Var<java.type:"java.lang.Integer"> = var %5 @"i";
+                %5 : java.type:"DenotableTypesTest$Box" = cast %4 @java.type:"DenotableTypesTest$Box";
+                %6 : java.type:"java.lang.Integer" = field.load %5 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
+                %7 : java.type:"java.lang.Integer" = cast %6 @java.type:"java.lang.Integer";
+                %8 : Var<java.type:"java.lang.Integer"> = var %7 @"i";
                 return;
             };
             """)
@@ -429,7 +433,8 @@ public class DenotableTypesTest {
                 %1 : Var<java.type:"DenotableTypesTest$Box<? extends java.lang.Number>"> = var %0 @"box";
                 %2 : java.type:"DenotableTypesTest$Box<? extends java.lang.Number>" = var.load %1;
                 %3 : java.type:"java.lang.Number" = field.load %2 @java.ref:"DenotableTypesTest$Box::x:java.lang.Object";
-                return %3;
+                %4 : java.type:"java.lang.Number" = cast %3 @java.type:"java.lang.Number";
+                return %4;
             };
             """)
     static Number test20(Box<? extends Number> box) {
