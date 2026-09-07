@@ -225,23 +225,7 @@ public interface HATPhaseUtils {
     }
 
     static boolean isTileOperation(OpHelper.Invoke invoke) {
-        return isTileThreadId(invoke) || isTileContextOp(invoke) || isTileStore(invoke) || isTileMath(invoke) || isAlignOperation(invoke);
-    }
-
-    static boolean isTileThreadId(OpHelper.Invoke invoke) {
-       return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("BID[XYZ]");
-    }
-
-    static boolean isTileContextOp(OpHelper.Invoke invoke) {
-        return !invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("load|index");
-    }
-
-    static boolean isTileStore(OpHelper.Invoke invoke) {
-        return invoke.returnsVoid() && invoke.refIs(TileContext.class) && invoke.nameMatchesRegex("store");
-    }
-
-    static boolean isTileMath(OpHelper.Invoke invoke) {
-        return !invoke.returnsVoid() && invoke.refIs(TileOp.class) && invoke.nameMatchesRegex("add|mma|transpose");
+        return isAlignOperation(invoke);
     }
 
     static boolean isAlignOperation(OpHelper.Invoke invoke) {
@@ -396,7 +380,7 @@ public interface HATPhaseUtils {
         return invoke.isPresent() && !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
     }
 
-    public static int findValueIntExpression(Value v) {
+    static int findValueIntExpression(Value v) {
         return switch (OpHelper.asOpFromResultOrNull(v)) {
             case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
                     findValueIntExpression(varLoadOp.operands().getFirst()); //recurse

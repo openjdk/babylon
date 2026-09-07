@@ -24,8 +24,6 @@
  */
 package hat.phases;
 
-import hat.TileContext;
-import hat.TileOp;
 import hat.buffer.TensorF32;
 import hat.codetypes.PtrType;
 import hat.dialect.ArithMathOps;
@@ -38,7 +36,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import optkl.OpHelper;
 import optkl.Trxfmr;
 
 import java.lang.invoke.MethodHandles;
@@ -54,12 +51,8 @@ public record HATTilesPhase() implements HATPhase {
     private CoreOp.FuncOp appendAlignment(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = new HashSet<>();
 
-        // Check for static access to the TileContext class
-        boolean isTileUsed = OpHelper.isKlassUsed(lookup, funcOp, TileContext.class);
-
         // Also check the tile dialect was introduced
-        isTileUsed |= funcOp.elements().anyMatch(element -> element instanceof TileOps.TOp || element instanceof ArithMathOps.ArithMathOp);
-
+        final boolean isTileUsed = funcOp.elements().anyMatch(element -> element instanceof TileOps.TOp || element instanceof ArithMathOps.ArithMathOp);
         if (isTileUsed) {
             // We need to transform the code tree to insert a Invoke for the alignment associated with a new var
             // to carry for all loads/store operations after the alignment.
@@ -110,9 +103,9 @@ public record HATTilesPhase() implements HATPhase {
                     CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);  // Alignment is always to 16 bytes.
                     Op.Result constantValue = builder.add(constantOp);
                     for (CoreOp.VarOp varTile : tileArgs) {
-                        // Insert a varLoadOp
+                        // Insert a varLoadOp for the tile variable
                         Op.Result varLoadOp =  builder.add(CoreOp.varLoad(paramMap.get(varTile)));
-                        // Insert the invoke
+                        // Insert a new invoke with the alignment
                         JavaOp.InvokeOp invoke = JavaOp.invoke(TILE_ARRAY_ALIGN, List.of(varLoadOp, constantValue));
                         Op.Result invokeResult = builder.add(invoke);
                         // Insert the new varOp
@@ -139,7 +132,6 @@ public record HATTilesPhase() implements HATPhase {
     }
 
     private static final MethodRef TILE_ARRAY_ALIGN = MethodRef.method(TileAlign.class, "align", Tile.class, Object.class, int.class);
-
     public static class TileAlign {
         public static Tile align(Object inputRef, final int alignment) {
             return null;
@@ -150,15 +142,6 @@ public record HATTilesPhase() implements HATPhase {
         // process Tile-Vars to insert into the VarTable
         // Load operation returns a new Tile (view of the input data in a tile)
         Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(invoke -> !invoke.returnsVoid())
-                .filter(invoke -> invoke.refIs(TileContext.class))
-                .filter(invoke -> invoke.name().equals("load"))
-                .forEach(invoke ->
-                        invoke.op().result().uses().stream()
-                                .filter(result -> (result.op() instanceof CoreOp.VarOp))
-                                .map(result -> (CoreOp.VarOp) result.op())
-                                .forEach(opsToProcess::add));
 
         // Process nodes after Tile dialect
         funcOp.elements().forEach(element -> {
@@ -190,14 +173,6 @@ public record HATTilesPhase() implements HATPhase {
         // process Tile-Vars to insert into the VarTable
         // we create Tiles when we load
         Set<Op> opsToProcess = new HashSet<>();
-        OpHelper.Invoke.stream(lookup, funcOp)
-                .filter(invoke -> !invoke.returnsVoid())
-                .filter(invoke -> invoke.refIs(TileOp.class))
-                .forEach(invoke ->
-                        invoke.op().result().uses().stream()
-                                .filter(result -> (result.op() instanceof CoreOp.VarOp))
-                                .map(result -> (CoreOp.VarOp) result.op())
-                                .forEach(opsToProcess::add));
 
         // Process nodes after Tile dialect
         funcOp.elements().forEach(element -> {

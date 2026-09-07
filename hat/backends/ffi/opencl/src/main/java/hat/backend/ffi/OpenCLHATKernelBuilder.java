@@ -936,56 +936,6 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .id(tensorVarOp.varName()));
     }
 
-    @Override
-    protected OpenCLHATKernelBuilder hatTileAlignOperation(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("Align Tile operation not supported yet for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileLoadOperation(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile Load Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileStoreOperation(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile Store Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileBinaryArithmeticOperation(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile Arithmetic Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileMMAOperation(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile MMA Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileTransposeOperation(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile Transpose Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileIndexOperation(OpHelper.Invoke invoke) {
-        throw new  UnsupportedOperationException("HAT Tile Index Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileIdx(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileIdy(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
-    }
-
-    @Override
-    protected OpenCLHATKernelBuilder hatTileIdz(OpHelper.Invoke invoke) {
-        throw new UnsupportedOperationException("HAT Tile Id Operation not supported for the OpenCL backend");
-    }
-
     /**
      * Code example being generated via the {@code MACRO_FRAGMENT_STORE} macro.
      *
@@ -1042,6 +992,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .recurseResultOrThrow(reference).comma().sp()
                         .id(tensorVarOp.varName()).comma().sp()
                         .id(ZERO));
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileAlignOperation(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("Align Tile operation not supported yet for the OpenCL backend");
     }
 
     @Override

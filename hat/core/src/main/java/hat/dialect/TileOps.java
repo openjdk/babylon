@@ -214,11 +214,6 @@ public class TileOps {
             this.dimension = that.dimension;
         }
 
-        protected TileIDOp(TileIDOp that, CodeContext cc) {
-            super(that, cc);
-            this.dimension = that.dimension;
-        }
-
         @Override
         public TileIDOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new TileIDOp(this, codeContext, codeTransformer);
@@ -395,11 +390,6 @@ public class TileOps {
             this.dimension = that.dimension;
         }
 
-        protected TileShapeOp(TileShapeOp that, CodeContext cc) {
-            super(that, cc);
-            this.dimension = that.dimension;
-        }
-
         @Override
         public TileShapeOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new TileShapeOp(this, codeContext, codeTransformer);
@@ -416,10 +406,6 @@ public class TileOps {
     }
 
     public static class TileNumOp extends TOp implements Op.Pure, Precedence.Invoke {
-
-        public TileNumOp(ExternalizedOp def) {
-            super(def);
-        }
 
         TileNumOp(TileNumOp that, CodeContext cc) {
             super(that, cc);
@@ -441,10 +427,6 @@ public class TileOps {
     }
 
     public static class TileSumOp extends TOp implements Op.Pure, Precedence.Invoke {
-
-        public TileSumOp(ExternalizedOp def) {
-            super(def);
-        }
 
         TileSumOp(TileSumOp that, CodeContext cc) {
             super(that, cc);
@@ -469,11 +451,6 @@ public class TileOps {
 
         private final List<Object> dims;
 
-        public LoadOp(ExternalizedOp def) {
-            super(def);
-            this.dims = List.of();
-        }
-
         LoadOp(LoadOp that, CodeContext cc) {
             super(that, cc);
             this.dims = that.dims;
@@ -482,11 +459,6 @@ public class TileOps {
         @Override
         public LoadOp transform(CodeContext cc, CodeTransformer ot) {
             return new LoadOp(this, cc);
-        }
-
-        LoadOp(CodeType tensorType, Value ptr, Value mask) {
-            super(tensorType, List.of(ptr, mask));
-            this.dims = List.of();
         }
 
         LoadOp(CodeType tensorType, Value ptr, Value mask, Value other, List<Object> dims) {
@@ -507,11 +479,6 @@ public class TileOps {
     public static class StoreOp extends TOp {
 
         private final List<Object> dims;
-
-        public StoreOp(ExternalizedOp def) {
-            super(def);
-            this.dims = List.of();
-        }
 
         StoreOp(StoreOp that, CodeContext cc) {
             super(that, cc);
