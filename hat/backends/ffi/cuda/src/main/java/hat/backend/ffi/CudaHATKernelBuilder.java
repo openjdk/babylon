@@ -25,12 +25,10 @@
 package hat.backend.ffi;
 
 import hat.DType;
-import hat.Shape;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
-import hat.codetypes.ShapeType;
 import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
@@ -53,7 +51,6 @@ import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
-import optkl.textmodel.JavaTextModel;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -1043,7 +1040,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder hatTileAlignOperation(Invoke invoke) {
-        return id("ct::assume_aligned").paren( _ ->
+        return tileContext().id("assume_aligned").paren( _ ->
                 recurseResultOrThrow(invoke.op().operands().getFirst()).rarrow().id(ARRAY)
                 .comma().sp()
                 .recurseResultOrThrow(invoke.op().operands().get(1)).id("_ic"));
@@ -1176,7 +1173,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder hatTileMMAOperation(Invoke invoke) {
-        return cudaTile().mma().paren(_ -> {
+        return tileMMA().paren(_ -> {
             for (int i = 0; i < invoke.op().operands().size(); i++) {
                 recurseResultOrThrow(invoke.op().operands().get(i));
                 if (i < invoke.op().operands().size() - 1) {
@@ -1188,7 +1185,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder hatTileTransposeOperation(Invoke invoke) {
-        return cudaTile().transpose().paren(_ -> recurseResultOrThrow(invoke.op().operands().getFirst()));
+        return tileTranspose().paren(_ -> recurseResultOrThrow(invoke.op().operands().getFirst()));
     }
 
     @Override
@@ -1198,7 +1195,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     private CudaHATKernelBuilder tileBlockId() {
-        return cudaTile().id("bid").ocparen();
+        return tileContext().id("bid").ocparen();
     }
 
     @Override
@@ -1386,16 +1383,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
             // Process shapes: We assume shapes are constants.
             if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
-                cudaTile().shape().brace(_ -> {
+                tileShape().brace(_ -> {
                     List<Integer> shapeList = tt.shape();
-                    intConst(shapeList.getFirst()).id("_ic");
+                    literalIC(shapeList.getFirst());
                     for (int i = 1; i < shapeList.size(); i++) {
-                        comma().intConst(shapeList.get(i)).id("_ic");
+                        comma().literalIC(shapeList.get(i));
                     }
                 });
             }
         });
-        return dot().load().paren( _ -> recurseResultOrThrow(dimension));
+        return dot().tileLoad().paren( _ -> recurseResultOrThrow(dimension));
     }
 
     @Override
@@ -1423,11 +1420,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             }).comma();
             CodeType tensorType = tensor.type();
             if (tensorType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
-                cudaTile().shape().brace(_ -> {
+                tileShape().brace(_ -> {
                     List<Integer> shape = tt.shape();
-                    intConst(shape.getFirst()).id("_ic");
+                    literalIC(shape.getFirst());
                     for (int i = 1; i < shape.size(); i++) {
-                        comma().intConst(shape.get(i)).id("_ic");
+                        comma().literalIC(shape.get(i));
                     }
                 });
             } else {
@@ -1435,7 +1432,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 // we know this error can't occur. If something unexpected happens, we throw an error.
                 throw new UnsupportedOperationException("[codegen] tensor store shape not supported yet.");
             }
-        }).dot().store().paren( _ -> recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(blockId));
+        }).dot().tileStore().paren( _ -> recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(blockId));
     }
 
     @Override
@@ -1459,15 +1456,15 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Value> operands = tileFullOp.operands();
         Value shape = operands.getFirst();
         Value initValue = operands.get(1);
-        return cudaTile().full()
+        return tileFull()
                 .ltgt(_ -> {
-                    cudaTile().tile().ltgt(_ -> {
+                    cudaTile().ltgt(_ -> {
                         if (tileFullOp.resultType() instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
                             type(tt.elementType().toString());
                         } else {
                             throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileFullOp.resultType());
                         }
-                        comma().sp().cudaTile().shape().ltgt(_ -> recurseResultOrThrow(shape));
+                        comma().sp().tileShape().ltgt(_ -> recurseResultOrThrow(shape));
                     });
                 }).paren(_ -> {
                     recurseResultOrThrow(initValue);
@@ -1491,7 +1488,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Value> operands = tileSumOp.operands();
         Value tensor = operands.getFirst();
         Value dimension = operands.get(1);
-        return cudaTile().sum().paren(_ ->
+        return tileSum().paren(_ ->
                 recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(dimension).id("_ic"));
     }
 
@@ -1502,13 +1499,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp) {
-        return cudaTile().transpose().paren( _-> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
+        return tileTranspose().paren(_-> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
     }
 
     @Override
     public CudaHATKernelBuilder tileZerosOp(TileOps.TileZerosOp tileZerosOp) {
-        cudaTile().zeros().ltgt( _ -> {
-            cudaTile().tile().ltgt( _ -> {
+        tileZeros().ltgt(_ -> {
+            cudaTile().ltgt(_ -> {
             if (tileZerosOp.resultType() instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
                 if (tt.elementType().equals(DType.TENSOR_2D_F32_TYPE) || tt.elementType().equals(DType.TENSOR_F32_TYPE)) {
                     f32Type();
@@ -1518,7 +1515,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             } else {
                 throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileZerosOp.resultType());
             }
-            comma().sp().cudaTile().shape().ltgt( _ -> {
+            comma().sp().tileShape().ltgt(_ -> {
                 CodeType codeType = tileZerosOp.resultType();
                 if (codeType instanceof ConstantType constantType1 && constantType1.value() instanceof TensorType tensorType) {
                     List<Integer> shape = tensorType.shape();
@@ -1534,100 +1531,100 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     // CUDA Tile Constructs
-    private CudaHATKernelBuilder cudaTile() {
-        return id("ct::");
+    private CudaHATKernelBuilder tileContext() {
+        return id("ct").colon().colon();
     }
 
     private CudaHATKernelBuilder partitionView() {
-        return cudaTile().id("partition_view");
+        return tileContext().id("partition_view");
     }
 
     private CudaHATKernelBuilder tensorSpan() {
-        return cudaTile().id("tensor_span");
+        return tileContext().id("tensor_span");
     }
 
     private CudaHATKernelBuilder tensorExtent() {
-        return cudaTile().id("extents");
+        return tileContext().id("extents");
     }
 
     private CudaHATKernelBuilder tensorAssumeDivisible(int div) {
-        return cudaTile().id("assume_divisible").ltgt(_ -> {
+        return tileContext().id("assume_divisible").ltgt(_ -> {
             intValue(div);
         });
     }
 
-    private CudaHATKernelBuilder tile() {
-        return id("tile");
+    private CudaHATKernelBuilder cudaTile() {
+        return tileContext().id("tile");
     }
 
-    private CudaHATKernelBuilder full() {
-        return id("full");
+    private CudaHATKernelBuilder tileFull() {
+        return tileContext().id("full");
     }
 
-    private CudaHATKernelBuilder zeros() {
-        return id("zeros");
+    private CudaHATKernelBuilder tileZeros() {
+        return tileContext().id("zeros");
     }
 
-    private CudaHATKernelBuilder sum() {
-        return id("sum");
+    private CudaHATKernelBuilder tileSum() {
+        return tileContext().id("sum");
     }
 
-    private CudaHATKernelBuilder transpose() {
-        return id("transpose");
+    private CudaHATKernelBuilder tileTranspose() {
+        return tileContext().id("transpose");
     }
 
-    private CudaHATKernelBuilder shape() {
-        return id("shape");
+    private CudaHATKernelBuilder tileShape() {
+        return tileContext().id("shape");
     }
 
-    private CudaHATKernelBuilder mma() {
-        return id("mma");
+    private CudaHATKernelBuilder tileMMA() {
+        return tileContext().id("mma");
     }
 
-    private CudaHATKernelBuilder ceildiv() {
-        return id("ceildiv");
+    private CudaHATKernelBuilder tileCeilDiv() {
+        return tileContext().id("ceildiv");
     }
 
-    private CudaHATKernelBuilder min() {
-        return id("min");
+    private CudaHATKernelBuilder tileMin() {
+        return tileContext().id("min");
     }
 
-    private CudaHATKernelBuilder max() {
-        return id("max");
+    private CudaHATKernelBuilder tileMax() {
+        return tileContext().id("max");
     }
 
-    private CudaHATKernelBuilder irange() {
-        return id("irange");
+    private CudaHATKernelBuilder tileIRange() {
+        return tileContext().id("irange");
     }
 
-    private CudaHATKernelBuilder load() {
+    private CudaHATKernelBuilder tileLoad() {
         return id("load");
     }
 
-    private CudaHATKernelBuilder store() {
+    private CudaHATKernelBuilder tileStore() {
         return id("store");
     }
 
     @Override
     public CudaHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
-        return cudaTile().mma().paren(_ -> commaSpaceSeparated(tileMMAOp.operands(), this::recurseResultOrThrow));
+        return tileMMA().paren(_ -> commaSpaceSeparated(tileMMAOp.operands(), this::recurseResultOrThrow));
     }
 
     @Override
     public CudaHATKernelBuilder cDivOp(ArithMathOps.CDivOp cDivOp) {
-        return cudaTile().ceildiv().paren(_ -> commaSpaceSeparated(cDivOp.operands(), this::recurseResultOrThrow));
+        return tileCeilDiv().paren(_ -> commaSpaceSeparated(cDivOp.operands(), this::recurseResultOrThrow));
     }
 
     @Override
     public CudaHATKernelBuilder minOp(ArithMathOps.MinOp minOp) {
-        return cudaTile().min().paren(_ -> commaSpaceSeparated(minOp.operands(), this::recurseResultOrThrow));
+        return tileMin().paren(_ -> commaSpaceSeparated(minOp.operands(), this::recurseResultOrThrow));
     }
 
     @Override
     public CudaHATKernelBuilder tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp) {
         Value startIndex = tileIrangeOp.operands().getFirst();
         Value endIndex = tileIrangeOp.operands().getLast();
-        return cudaTile().irange().paren( _ -> {
+        return tileIRange().paren(_ -> {
            recurseResultOrThrow(startIndex).comma().sp().recurseResultOrThrow(endIndex);
         });
     }

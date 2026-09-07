@@ -42,8 +42,6 @@ import jdk.incubator.code.Reflect;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
-import static optkl.ifacemapper.MappableIface.*;
-
 /**
  * How to run?
  *
@@ -356,7 +354,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulF16(@RO Tensor2DF16 inputA,@RO  Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
+    public static void matmulF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
 
         // Calculate bidx and bidy using swizzle
         final int bid = TileContext.BIDX();
@@ -386,7 +384,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulF16(ComputeContext computeContext, @RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void matmulF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
         computeContext.dispatchTile(NDRange.of1D(M * N, tm * tn),
                 () -> matmulF16(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
     }
@@ -485,7 +483,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16(@RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
+    public static void matmulSimpleF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
@@ -498,7 +496,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16(ComputeContext computeContext, @RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void matmulSimpleF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 () -> matmulSimpleF16(inputA, inputB, output, tm, tn, tk, numTiles));
     }
@@ -544,7 +542,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16IRange(@RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
+    public static void matmulSimpleF16IRange(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
@@ -557,7 +555,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16IRange(ComputeContext computeContext, @RO Tensor2DF16 inputA, @RO Tensor2DF16 inputB, @WO Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void matmulSimpleF16IRange(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 () -> matmulSimpleF16IRange(inputA, inputB, output, tm, tn, tk, numTiles));
     }

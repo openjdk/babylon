@@ -624,6 +624,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     final public T intConst(int i) {
         return constant(Integer.toString(i));
     }
+
+    public final T literalIC(int val) {
+        return intConst(val).id("_ic");
+    }
+
     final public T intConstZero() {
         return intConst(0);
     }
