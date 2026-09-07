@@ -72,7 +72,7 @@ public record HATTilesPhase() implements HATPhase {
                 }
             }
 
-            if (tileArgs.contains(firstOp)) {
+            if (firstOp != null && tileArgs.contains(firstOp)) {
                 // If this is the case, we need to move firstOp to next Op
                 // Otherwise, the subsequence transform phase will not expand
                 // with the new Ops for performing the alignment.
@@ -97,11 +97,19 @@ public record HATTilesPhase() implements HATPhase {
                     Op.Result newVarOpResult = builder.add(op);
                     paramMap.put(op, newVarOpResult);
                 } else if (op == finalFirstOp) {
-                    builder.add(finalFirstOp);
-                    // place new invoke ops here
-                    // do this for all parameters
+                    // if the current op is the same object as the firstOp, then we expand this
+                    // op with more ops to accommodate the alignment.
+
+                    // Add the current op
+                    builder.add(op);
+
+                    // place new invoke ops here: we need to expand the alignment for all parameters that read/write to global memory
+
                     CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 16);  // Alignment is always to 16 bytes.
                     Op.Result constantValue = builder.add(constantOp);
+
+                    // For each parameter, we add a varLoadOp with the varOp to align, an InvokeOp with the alignment, and a VarOp with the result
+                    // to be propagated for the rest of the code tree
                     for (CoreOp.VarOp varTile : tileArgs) {
                         // Insert a varLoadOp for the tile variable
                         Op.Result varLoadOp =  builder.add(CoreOp.varLoad(paramMap.get(varTile)));
@@ -118,10 +126,11 @@ public record HATTilesPhase() implements HATPhase {
                         varTable.addIfNeededOrThrow(finalFuncOp.funcName(), varOp, VarTable.HATOpAttribute.TILE);
                     }
                 } else if (opsToProcess.contains(op) && op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                    // For the rest of the varLoads that loads a Read/Write buffer, we replace it with the new VarOp created during the
+                    // op expansion
                     CoreOp.VarAccessOp.VarLoadOp v = CoreOp.varLoad(useVarOps.get(varLoadOp));
                     Op.Result newVarLoad = builder.add(v);
                     builder.context().mapValue(varLoadOp.result(), newVarLoad);
-
                 } else {
                     builder.add(op);
                 }
