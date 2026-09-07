@@ -1274,27 +1274,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitTypeCast(JCTree.JCTypeCast tree) {
-            Value v = toValue(tree.expr);
-
-            Type expressionType = tree.expr.type;
-            Type type = tree.type;
-            if (expressionType.isPrimitive() && type.isPrimitive()) {
-                if (expressionType.equals(type)) {
-                    // Redundant cast
-                    result = v;
-                } else {
-                    result = append(JavaOp.conv(typeToCodeType(type), v));
-                }
-            } else if (expressionType.isPrimitive() || type.isPrimitive()) {
-                result = convert(v, tree.type);
-            } else if (!expressionType.hasTag(BOT) &&
-                    types.isAssignable(expressionType, type)) {
-                // Redundant cast
-                result = v;
+            // @@@: what about intersection type target?
+            if (tree.expr.type.hasTag(BOT)) {
+                Value v = toValue(tree.expr);
+                result = append(JavaOp.cast(
+                        typeToCodeType(tree.type),
+                        typeToCodeType(types.erasure(tree.type)),
+                        v));
             } else {
-                // Reference cast
-                JavaType jt = typeToCodeType(types.erasure(type));
-                result = append(JavaOp.cast(typeToCodeType(type), jt, v));
+                result = toValue(tree.expr, tree.type);
             }
         }
 
