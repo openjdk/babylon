@@ -3201,6 +3201,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                 return new IfOp(bodies);
             }
+
+            //@@@ user shouldn't have to add an empty else to complete the building of IfOp
         }
 
         static final String NAME = "java.if";
@@ -3234,15 +3236,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             super(List.of());
 
-            // Normalize by adding an empty else action
-            // @@@ Is this needed?
-            if (bodyCs.size() % 2 == 0) {
-                bodyCs = new ArrayList<>(bodyCs);
-                Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
-                        CoreType.FUNCTION_TYPE_VOID);
-                end.entryBlock().add(core_yield());
-                bodyCs.add(end);
-            }
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
@@ -3257,9 +3250,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
             // Create predicate and action blocks
+            boolean isNumBodiesOdd = bodies.size() % 2 != 0; // odd num of bodies indicates the last one is for else
             List<Block.Builder> builders = new ArrayList<>();
             for (int i = 0; i < bodies.size(); i += 2) {
-                if (i == bodies.size() - 1) {
+                if (isNumBodiesOdd && i == bodies.size() - 1) {
                     builders.add(b.block());
                 } else {
                     builders.add(i == 0 ? b : b.block());
@@ -3270,7 +3264,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             for (int i = 0; i < bodies.size(); i += 2) {
                 Body actionBody;
                 Block.Builder action;
-                if (i == bodies.size() - 1) {
+                if (isNumBodiesOdd && i == bodies.size() - 1) {
                     actionBody = bodies.get(i);
                     action = builders.get(i);
                 } else {
@@ -3279,12 +3273,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     Block.Builder pred = builders.get(i);
                     action = builders.get(i + 1);
-                    Block.Builder next = builders.get(i + 2);
 
+                    Block.Builder next = i + 2 < builders.size() ? builders.get(i + 2) : null;
                     pred.transformBody(predBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yo) {
                             block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                                    action.reference(), next.reference()));
+                                    action.reference(), next != null ? next.reference() : exit.reference()));
                             return block;
                         } else {
                             return null;
