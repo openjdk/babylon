@@ -46,9 +46,9 @@ import java.util.Random;
  * How to run?
  *
  * <p>
- *     <code>
- *         java @.ffi-opencl-test hat.test.TestTileAPI
- *     </code>
+ * <code>
+ * java @.ffi-opencl-test hat.test.TestTileAPI
+ * </code>
  * </p>
  *
  */
@@ -80,7 +80,7 @@ public class TestTileAPI {
         TensorF32 inputB = TensorF32.create(accelerator, size);
 
         // Fill data
-        Random r = new Random();
+        Random r = new Random(71);
         for (int i = 0; i < size; i++) {
             inputA.array(i, r.nextFloat());
             inputB.array(i, r.nextFloat());
@@ -89,16 +89,16 @@ public class TestTileAPI {
         TensorF32 result = TensorF32.create(accelerator, size);
 
         // Invoking the kernel multiple times to check the code cache
-        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
-        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
+        accelerator.compute((@Reflect Compute) computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
+        accelerator.compute((@Reflect Compute) computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
 
         // change the tile size
         final int newTileSize = 16;
-        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, newTileSize));
+        accelerator.compute((@Reflect Compute) computeContext -> vectorAddTile(computeContext, inputA, inputB, result, newTileSize));
 
         // Alternate the tile size
-        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
-        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, newTileSize));
+        accelerator.compute((@Reflect Compute) computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
+        accelerator.compute((@Reflect Compute) computeContext -> vectorAddTile(computeContext, inputA, inputB, result, newTileSize));
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
@@ -108,20 +108,20 @@ public class TestTileAPI {
     @HatTest
     public void test_hat_tile_01() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        final int size = Math.powExact(2, 12);
-        final int tile_size = 64;
+        final int size = Math.powExact(2, 16);
+        final int tileSize = 64;
         TensorF32 inputA = TensorF32.create(accelerator, size);
         TensorF32 inputB = TensorF32.create(accelerator, size);
         TensorF32 result = TensorF32.create(accelerator, size);
 
         // Fill data
-        Random r = new Random();
+        Random r = new Random(19);
         for (int i = 0; i < size; i++) {
             inputA.array(i, r.nextFloat());
             inputB.array(i, r.nextFloat());
         }
 
-        accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tile_size));
+        accelerator.compute((@Reflect Compute) computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tileSize));
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
@@ -216,7 +216,7 @@ public class TestTileAPI {
         final int tn = 64;
         final int tk = 16;
         final int numTiles = (size + tk - 1) / tk;
-        accelerator.compute( (@Reflect Compute)computeContext -> {
+        accelerator.compute((@Reflect Compute) computeContext -> {
             tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
 
@@ -267,12 +267,12 @@ public class TestTileAPI {
         TensorF32 result = TensorF32.create(accelerator, 1);
 
         // fill input
-        Random r = new Random();
+        Random r = new Random(71);
         for (int k = 0; k < size; k++) {
             input.array(k, r.nextFloat(1));
         }
 
-        accelerator.compute( (@Reflect Compute)computeContext ->
+        accelerator.compute((@Reflect Compute) computeContext ->
                 tileReduction(computeContext, input, result, tileSize));
 
         float acc = 0.0f;
@@ -328,7 +328,7 @@ public class TestTileAPI {
         }
 
         // Launch kernel
-        accelerator.compute( (@Reflect Compute) computeContext ->
+        accelerator.compute((@Reflect Compute) computeContext ->
                 computeTransposeKernel(computeContext, input, result, M, N, tileSize, tileSize));
 
         // Check results
@@ -411,8 +411,8 @@ public class TestTileAPI {
         final int tm = 64;
         final int tn = 64;
         final int tk = 16;
-        final int numTiles = (size + tk -1) / tk;
-        accelerator.compute( (@Reflect Compute)computeContext -> {
+        final int numTiles = (size + tk - 1) / tk;
+        accelerator.compute((@Reflect Compute) computeContext -> {
             matmulF16(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
 
@@ -460,7 +460,7 @@ public class TestTileAPI {
         final int tn = 64;
         final int tk = 64;
         final int numTiles = (size + tk - 1) / tk;
-        accelerator.compute( (@Reflect Compute)computeContext -> {
+        accelerator.compute((@Reflect Compute) computeContext -> {
             tileMatmulSimple(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
 
@@ -508,7 +508,7 @@ public class TestTileAPI {
         final int tn = 64;
         final int tk = 64;
         final int numTiles = (size + tk - 1) / tk;
-        accelerator.compute( (@Reflect Compute)computeContext -> {
+        accelerator.compute((@Reflect Compute) computeContext -> {
             matmulSimpleF16(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
 
@@ -532,7 +532,7 @@ public class TestTileAPI {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
-        for(int k : TileContext.irange(0, num_tiles)) {
+        for (int k : TileContext.irange(0, num_tiles)) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
@@ -567,7 +567,7 @@ public class TestTileAPI {
         final int tn = 64;
         final int tk = 64;
         final int numTiles = (size + tk - 1) / tk;
-        accelerator.compute( (@Reflect Compute)computeContext -> {
+        accelerator.compute((@Reflect Compute) computeContext -> {
             matmulSimpleF16IRange(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
         });
 
@@ -609,12 +609,12 @@ public class TestTileAPI {
         TensorF32 result = TensorF32.create(accelerator, numTiles);
 
         // fill input
-        Random r = new Random();
+        Random r = new Random(71);
         for (int k = 0; k < size; k++) {
             input.array(k, r.nextFloat(1));
         }
 
-        accelerator.compute( (@Reflect Compute)computeContext ->
+        accelerator.compute((@Reflect Compute) computeContext ->
                 partialReduction(computeContext, input, result, tileSize));
 
         // Check CPU implementation
