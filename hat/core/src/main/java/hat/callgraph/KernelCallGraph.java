@@ -206,7 +206,6 @@ public class KernelCallGraph implements LookupCarrier {
             // 3. A list of CodeTypes for each input argument to the kernel.
             CoreOp.FuncOp funcOp = entrypoint.funcOp();
             funcOp = TileTransformer.processConstantFields(funcOp, lookup());
-            IO.println("INPUT MODEL: " + funcOp.toText());
             funcOp = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes);
             entrypoint = new FuncOpCarrier.Impl(funcOp);
             checkSSALowering(entrypoint.funcOp());
