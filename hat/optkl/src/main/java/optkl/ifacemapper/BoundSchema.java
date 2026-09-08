@@ -116,13 +116,14 @@ public class BoundSchema<T extends MappableIface> {
         this.rootBoundSchemaNode.memoryLayouts.add(this.groupLayout);
     }
 
+    private int nextArrayLengthIndex;
+
     int takeArrayLen() {
-        return arrayLengths[boundArrayFields.size()];
+        if (nextArrayLengthIndex < arrayLengths.length) {
+            return arrayLengths[nextArrayLengthIndex++];
+        }
+        throw new IllegalStateException("array length out of bounds");
     }
-
-
-
-
 
     public Schema<T> schema() {
         return schema;

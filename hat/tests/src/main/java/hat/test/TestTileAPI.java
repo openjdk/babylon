@@ -46,39 +46,11 @@ import java.util.Random;
  * How to run?
  *
  * <p>
- *     Hello Tile Kernel
  *     <code>
- *         java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_00
+ *         java @.ffi-opencl-test hat.test.TestTileAPI
  *     </code>
  * </p>
  *
- * <p>p
- *     To run the Vector Addition
- * <code>
- *  java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_01
- * </code>
- * </p>
- *
- * <p>
- *     Matrix Multiplication
- * <code>
- * java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_02
- * </code>
- * </p>
- *
- * <p>
- *     Reduction
- * <code>
- *   java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_03
- * </code>
- * </p>
- *
- * <p>
- *     Transpose Matrix
- * <code>
- *  java @.ffi-opencl-test hat.test.TestTileAPI#test_hat_tile_04
- * </code>
- * </p>
  */
 public class TestTileAPI {
 
@@ -310,7 +282,7 @@ public class TestTileAPI {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
 
-        // Load the tile with shape tm x tn into memory (e.g., registers, shared memory, or tensor memory)_
+        // Load the tile with shape tm x tn into memory
         var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(tm, tn));
 
         // compute the transpose function.
@@ -331,12 +303,19 @@ public class TestTileAPI {
     public void test_hat_tile_04() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
-        final int M = 2048;
+        final int M = 1024;
         final int N = 512;
         final int tileSize = 128;
 
         Tensor2DF32 input = Tensor2DF32.create(accelerator, M, N);
-        Tensor2DF32 result = Tensor2DF32.create(accelerator, M, N);
+        Tensor2DF32 result = Tensor2DF32.create(accelerator, N, M);
+
+        Random r = new Random(19);
+        for (int i = 0; i < input.m(); i++) {
+            for (int j = 0; j < input.n(); j++) {
+                input.array((long) i * input.n() + j, r.nextFloat());
+            }
+        }
 
         // Launch kernel
         accelerator.compute( (@Reflect Compute) computeContext ->
@@ -345,7 +324,7 @@ public class TestTileAPI {
         // Check results
         for (int i = 0; i < M; i++) {
             for (int j = 0; j < N; j++) {
-                HATAsserts.assertEquals(input.array(i * N + j), result.array(j * N + i), 0.01f);
+                HATAsserts.assertEquals(input.array(i * N + j), result.array(j * M + i), 0.00f);
             }
         }
     }
@@ -640,5 +619,4 @@ public class TestTileAPI {
 
         HATAsserts.assertEquals(acc, accResult, 0.01f);
     }
-
 }
