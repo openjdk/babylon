@@ -1248,6 +1248,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
+    private boolean isInputDivisible(List<Object> dims) {
+        boolean isDivisible = true;
+        for (Object dim : dims) {
+            if (dim instanceof Integer value) {
+                if (value % 16 != 0) {
+                    isDivisible = false;
+                    break;
+                }
+            } else {
+                throw new IllegalArgumentException("Invalid type for dimension. Integer expected but found " + dim.getClass());
+            }
+        }
+        return isDivisible;
+    }
+
     @Override
     public CudaHATKernelBuilder tileLoadOp(TileOps.LoadOp tileLoadOp) {
         List<Value> operands = tileLoadOp.operands();
@@ -1256,7 +1271,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Object> dims = tileLoadOp.dims();
         CodeType resultType = tileLoadOp.resultType();
 
-        boolean isDivisible16 = dims.stream().filter(dim -> dim instanceof Integer).map(dim -> (Integer) dim).noneMatch(i -> i % 16 != 0);
+        boolean isDivisible16 = isInputDivisible(dims);
 
         partitionView().brace(_ -> {
                 tensorSpan().brace(_ -> {
@@ -1271,7 +1286,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                     });
                 }).comma();
 
-            // Process shapes: We assume shapes are constants.
+            // Process shapes: We assume shapes are constants: after type attribution, this has been checked already
             if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
                 tileShape().brace(_ -> {
                     List<Integer> shapeList = tt.shape();
@@ -1280,6 +1295,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         comma().literalIC(shapeList.get(i));
                     }
                 });
+            } else {
+                throw new IllegalStateException("Result Type not supported yet: " + resultType);
             }
         });
         return dot().tileLoad().paren( _ -> recurseResultOrThrow(dimension));
@@ -1300,8 +1317,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value tensor = operands.get(2);
         List<Object> dims = tileStoreOp.dims();
 
-        boolean isDivisible16 = dims.stream().filter(dim -> dim instanceof Integer).map(dim -> (Integer) dim).noneMatch(i -> i % 16 != 0);
-
+        boolean isDivisible16 = isInputDivisible(dims);
         return partitionView().brace( _ -> {
                 tensorSpan().brace( _ -> {
                 recurseResultOrThrow(inputReference);
@@ -1346,8 +1362,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         final Value tileExtent;
-        if (dimValue > 0 && shape.declaringElement() instanceof TileOps.TileShapeOp shapeOp) {
-            if (dimValue >= shapeOp.operands().size()) {
+        if (shape.declaringElement() instanceof TileOps.TileShapeOp shapeOp) {
+            if (dimValue < 0 || dimValue >= shapeOp.operands().size()) {
                 throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
             }
             tileExtent = shapeOp.operands().get(dimValue);
@@ -1356,7 +1372,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
 
         return paren(_ ->
-                genTileSize(ptr, dim)
+                genTileSize(ptr, dimValue)
                         .sp()
                         .plus()
                         .recurseResultOrThrow(tileExtent)
