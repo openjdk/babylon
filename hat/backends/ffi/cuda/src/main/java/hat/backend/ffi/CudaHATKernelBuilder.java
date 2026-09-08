@@ -1319,16 +1319,32 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder tileNumOp(TileOps.TileNumOp tileNumOp) {
         List<Value> operands = tileNumOp.operands();
         Value ptr = operands.getFirst();
+        Value dimension = operands.get(1);
         Value shape = operands.get(2);
-        return paren( _->
-                genTileSize(ptr) // TODO: This tileSize function might the correct one.
-                .sp()
-                .plus()
-                .recurseResultOrThrow(shape)
-                .sp()
-                .minus()
-                .intConst(1)
-        ).div().recurseResultOrThrow(shape);
+
+        int dimValue;
+        if (dimension.declaringElement() instanceof CoreOp.ConstantOp constantOp && constantOp.value() instanceof Integer dim) {
+            dimValue = dim;
+        } else {
+            throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
+        }
+
+        final Value s;
+        if (dimValue > 0 && shape.declaringElement() instanceof TileOps.TileShapeOp shapeOp) {
+            s = shapeOp.operands().get(dimValue);
+        } else {
+            s = shape;
+        }
+
+        return paren(_ ->
+                genTileSize(ptr)
+                        .sp()
+                        .plus()
+                        .recurseResultOrThrow(s)
+                        .sp()
+                        .minus()
+                        .intConst(1)
+        ).div().recurseResultOrThrow(s);
     }
 
     @Override

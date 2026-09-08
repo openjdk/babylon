@@ -24,6 +24,7 @@
  */
 package hat;
 
+import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.types.Tile;
@@ -152,6 +153,10 @@ public class TileOp {
     }
 
     public static int numTiles(Tensor2DF32 input, int dimension, Shape shape) {
+        throw new UnsupportedOperationException("TileOp.numTiles is a compiler intrinsic.");
+    }
+
+    public static int numTiles(Tensor2DF16 input, int dimension, Shape shape) {
         throw new UnsupportedOperationException("TileOp.numTiles is a compiler intrinsic.");
     }
 

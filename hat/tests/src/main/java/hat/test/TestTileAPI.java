@@ -24,12 +24,8 @@
  */
 package hat.test;
 
-import hat.Accelerator;
+import hat.*;
 import hat.Accelerator.Compute;
-import hat.ComputeContext;
-import hat.NDRange;
-import hat.TileContext;
-import hat.TileOp;
 import hat.backend.Backend;
 import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
@@ -134,7 +130,7 @@ public class TestTileAPI {
     public static final int GROUP_SIZE_M = 8;
 
     @Reflect
-    public static void matmul(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
+    public static void matmul(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
 
         // Calculate bidx and bidy using swizzle
         final int bid = TileContext.BIDX();
@@ -150,12 +146,12 @@ public class TestTileAPI {
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
-        //final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        final int numberOfTiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
         var accumulator = TileOp.zeros(tm, tn);
 
-        for (int k = 0; k < num_tiles; k++) {
+        for (int k = 0; k < numberOfTiles; k++) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
@@ -164,9 +160,9 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tileMatmul(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void tileMatmul(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
         computeContext.dispatchTile(NDRange.of1D(M * N, tm * tn),
-                () -> matmul(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
+                () -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
     }
 
     private static void runSequential(Tensor2DF32 matrixA, Tensor2DF32 matrixB, Tensor2DF32 matrixC, final int size) {
@@ -215,9 +211,8 @@ public class TestTileAPI {
         final int tm = 64;
         final int tn = 64;
         final int tk = 16;
-        final int numTiles = (size + tk - 1) / tk;
         accelerator.compute((@Reflect Compute) computeContext -> {
-            tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
+            tileMatmul(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
@@ -340,7 +335,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int num_tiles) {
+    public static void matmulF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
 
         // Calculate bidx and bidy using swizzle
         final int bid = TileContext.BIDX();
@@ -355,12 +350,11 @@ public class TestTileAPI {
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
-        //final int num_tiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        final int numberOfTiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
         var accumulator = TileOp.zeros(tm, tn);
-
-        for (int k = 0; k < num_tiles; k++) {
+        for (int k = 0; k < numberOfTiles; k++) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
@@ -370,9 +364,9 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void matmulF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
         computeContext.dispatchTile(NDRange.of1D(M * N, tm * tn),
-                () -> matmulF16(inputA, inputB, output, tm, tn, tk, M, N, numTiles));
+                () -> matmulF16(inputA, inputB, output, tm, tn, tk, M, N));
     }
 
     private static void runSequential(Tensor2DF16 matrixA, Tensor2DF16 matrixB, Tensor2DF32 matrixC, final int size) {
@@ -411,9 +405,8 @@ public class TestTileAPI {
         final int tm = 64;
         final int tn = 64;
         final int tk = 16;
-        final int numTiles = (size + tk - 1) / tk;
         accelerator.compute((@Reflect Compute) computeContext -> {
-            matmulF16(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
+            matmulF16(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
@@ -421,11 +414,12 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimple(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
+    public static void matmulSimple(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
-        for (int k = 0; k < num_tiles; k++) {
+        final int numberOfTiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        for (int k = 0; k < numberOfTiles; k++) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
@@ -434,15 +428,15 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void tileMatmulSimple(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void tileMatmulSimple(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmulSimple(inputA, inputB, output, tm, tn, tk, numTiles));
+                () -> matmulSimple(inputA, inputB, output, tm, tn, tk));
     }
 
     @HatTest
     public void test_hat_tile_06() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        // Testing square matrices
+
         final int size = 1024;
         Tensor2DF32 matrixA = Tensor2DF32.create(accelerator, size, size);
         Tensor2DF32 matrixB = Tensor2DF32.create(accelerator, size, size);
@@ -459,9 +453,8 @@ public class TestTileAPI {
         final int tm = 32;
         final int tn = 64;
         final int tk = 64;
-        final int numTiles = (size + tk - 1) / tk;
         accelerator.compute((@Reflect Compute) computeContext -> {
-            tileMatmulSimple(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
+            tileMatmulSimple(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
@@ -469,11 +462,12 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
+    public static void matmulSimpleF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
-        for (int k = 0; k < num_tiles; k++) {
+        final int numberOfTiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        for (int k = 0; k < numberOfTiles; k++) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
@@ -482,9 +476,9 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void matmulSimpleF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmulSimpleF16(inputA, inputB, output, tm, tn, tk, numTiles));
+                () -> matmulSimpleF16(inputA, inputB, output, tm, tn, tk));
     }
 
     @HatTest
@@ -507,9 +501,8 @@ public class TestTileAPI {
         final int tm = 32;
         final int tn = 64;
         final int tk = 64;
-        final int numTiles = (size + tk - 1) / tk;
         accelerator.compute((@Reflect Compute) computeContext -> {
-            matmulSimpleF16(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
+            matmulSimpleF16(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size);
         });
 
         runSequential(matrixA, matrixB, matrixSeq, size);
