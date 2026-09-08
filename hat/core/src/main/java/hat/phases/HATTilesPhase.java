@@ -155,14 +155,11 @@ public record HATTilesPhase() implements HATPhase {
         // Process nodes after Tile dialect
         funcOp.elements().forEach(element -> {
             switch (element) {
-                case TileOps.LoadOp loadOp when loadOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
+                // Two types of Tile Ops: a) TileContextOp for context operations, and arithmetic ops
+                case TileOps.TileContextOp modelOp when modelOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
                         opsToProcess.add(varOo);
-                case TileOps.TileFullOp fullOp when fullOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
-                        opsToProcess.add(varOo);
-                case TileOps.TileSumOp sumOp when sumOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
-                        opsToProcess.add(varOo);
-                case TileOps.TileZerosOp zerosOp when zerosOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
-                        opsToProcess.add(varOo);
+                case ArithMathOps.ArithMathOp arithMathOp when arithMathOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOp ->
+                        opsToProcess.add(varOp);
                 case null, default -> {
                 }
             }
@@ -178,35 +175,11 @@ public record HATTilesPhase() implements HATPhase {
         }, varTable).funcOp();
     }
 
-    private CoreOp.FuncOp classifyArithmeticTileVarOp(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        // process Tile-Vars to insert into the VarTable
-        // we create Tiles when we load
-        Set<Op> opsToProcess = new HashSet<>();
-
-        // Process nodes after Tile dialect
-        funcOp.elements().forEach(element -> {
-            if (element instanceof ArithMathOps.ArithMathOp arithMathOp && arithMathOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo) {
-                opsToProcess.add(varOo);
-            }
-        });
-
-        // We have identified the invoke and the varOp associated with it
-        return Trxfmr.of(lookup, funcOp).transform(opsToProcess::contains, (blockBuilder, op) -> {
-            if (op instanceof CoreOp.VarOp varOp) {
-                Op.Result opResult = blockBuilder.add(varOp);
-                varTable.addIfNeededOrThrow(funcOp.funcName(), opResult.op(), VarTable.HATOpAttribute.TILE);
-            }
-            return blockBuilder;
-        }, varTable).funcOp();
-    }
-
-
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         List<ActionTransformer> transformers = List.of(
                 this::appendAlignment,
-                this::classifyTileVarOp,
-                this::classifyArithmeticTileVarOp
+                this::classifyTileVarOp
         );
         CoreOp.FuncOp[] f = new CoreOp.FuncOp[]{funcOp};
         transformers.forEach(action -> f[0] = action.apply(lookup, f[0], varTable));

@@ -148,6 +148,24 @@ public class TileOps {
         }
     }
 
+    // Intermediate class to pack all related TileOps that needs to be processed
+    // in a HAT Tile Transformer. If a HAT Tile Transformer is not used, then
+    // we can extend directly from TOp
+    public abstract static class TileContextOp extends TOp {
+
+        protected TileContextOp(ExternalizedOp def) {
+            super(def);
+        }
+
+        TileContextOp(TOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        TileContextOp(CodeType resultType, List<? extends Value> operands) {
+            super(resultType, operands);
+        }
+    }
+
     public static final class ModuleOp extends TOp implements Op.Isolated {
 
         public static final String NAME = "module";
@@ -282,7 +300,7 @@ public class TileOps {
         }
     }
 
-    public static class TileFullOp extends TOp implements Op.Pure, Precedence.Invoke{
+    public static class TileFullOp extends TileContextOp implements Op.Pure, Precedence.Invoke{
 
         protected TileFullOp(CodeType type, Value shapeValue, Value initValue) {
             super(type, List.of(shapeValue, initValue));
@@ -303,7 +321,7 @@ public class TileOps {
         }
     }
 
-    public static class TileZerosOp extends TOp implements Op.Pure, Precedence.Invoke {
+    public static class TileZerosOp extends TileContextOp implements Op.Pure, Precedence.Invoke {
 
         protected TileZerosOp(CodeType type, Value... shapes) {
             super(type, Arrays.stream(shapes).toList());
@@ -450,7 +468,7 @@ public class TileOps {
         }
     }
 
-    public static class TileSumOp extends TOp implements Op.Pure, Precedence.Invoke {
+    public static class TileSumOp extends TileContextOp implements Op.Pure, Precedence.Invoke {
 
         TileSumOp(TileSumOp that, CodeContext cc) {
             super(that, cc);
@@ -471,7 +489,7 @@ public class TileOps {
         }
     }
 
-    public static class LoadOp extends TOp implements Op.Pure {
+    public static class LoadOp extends TileContextOp implements Op.Pure {
 
         private final List<Object> dims;
 
