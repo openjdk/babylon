@@ -68,43 +68,43 @@ import java.util.stream.IntStream;
 public interface TileContext {
 
     static int BIDX() {
-        return 0;
+        throw  new UnsupportedOperationException("TileContext.BIDX() is a compiler intrinsic.");
     }
 
     static int BIDY() {
-        return 0;
+        throw new UnsupportedOperationException("TileContext.BIDY() is a compiler intrinsic.");
     }
 
     static int BIDZ() {
-        return 0;
+        throw new UnsupportedOperationException("TileContext.BIDZ() is a compiler intrinsic.");
     }
 
     static Tile load(TensorF32 buffer, int pid, int tileSize) {
-        return null;
+        throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     static Tile load(Tensor2DF32 buffer, TileIndex2D tileIndex2D, Shape tileSize) {
-        return null;
+        throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     static Tile load(Tensor2DF16 buffer, TileIndex2D tileIndex2D, Shape tileSize) {
-        return null;
+        throw new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     static Tile load(TensorF32 buffer, TileIndex2D tileIndex2D, Shape shape) {
-        return null;
+        throw new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     static void store(TensorF32 buffer, int pid, Tile result) {
-
+        throw  new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
     static void store(TensorF32 buffer, TileIndex2D tileIndex, Tile result) {
-
+        throw new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
     static void store(Tensor2DF32 buffer, TileIndex2D tileIndex, Tile result) {
-
+        throw  new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
     static TileIndex2D index(int bidx, int bidy) {

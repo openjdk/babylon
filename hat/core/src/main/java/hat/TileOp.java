@@ -29,46 +29,45 @@ import hat.buffer.TensorF32;
 import hat.types.Tile;
 import jdk.incubator.code.CodeType;
 
-
 /**
  * Class to represent common tile math operations (add, sub, transpose, mma, etc).
  */
 public class TileOp {
 
     public static Tile add(Tile aTile, Tile bTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.add is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile add(Tile aTile, T val) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.add is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile add(T val, Tile aTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.add is a compiler intrinsic.");
     }
 
     public static Tile sub(Tile aTile, Tile bTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.sub is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile sub(Tile aTile, T val) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.sub is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile sub(T val, Tile aTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.sub is a compiler intrinsic.");
     }
 
     public static Tile mul(Tile aTile, Tile bTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.mul is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile mul(Tile aTile, T val) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.mul is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile mul(T val, Tile aTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.mul is a compiler intrinsic.");
     }
 
     /**
@@ -79,15 +78,15 @@ public class TileOp {
      * @return
      */
     public static Tile truediv(Tile aTile, Tile bTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.truediv is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile truediv(Tile aTile, T val) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.truediv is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile truediv(T val, Tile aTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.truediv is a compiler intrinsic.");
     }
 
     /**
@@ -98,23 +97,23 @@ public class TileOp {
      * @return
      */
     public static Tile ceildiv(Tile aTile, Tile bTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.ceildiv is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile ceildiv(Tile aTile, T val) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.ceildiv is a compiler intrinsic.");
     }
 
     public static <T extends Number> Tile ceildiv(T val, Tile aTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.ceildiv is a compiler intrinsic.");
     }
 
     public static int ceildiv(int a, int b) {
-        return 0;
+        throw new UnsupportedOperationException("TileOp.ceildiv is a compiler intrinsic.");
     }
 
     public static Tile transpose(Tile aTile) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.transpose is a compiler intrinsic.");
     }
 
     /**
@@ -125,56 +124,55 @@ public class TileOp {
      * @return
      */
     public static Tile reshape(Tile aTile, Shape aShape) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.reshape is a compiler intrinsic.");
     }
 
     public static Tile sum(Tile aTile, int axis) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.sum is a compiler intrinsic.");
     }
 
     public static Tile min(Tile aTile, int axis) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.min is a compiler intrinsic.");
     }
 
     public static int min(final int a, final int b) {
-        return 0;
+        throw new UnsupportedOperationException("TileOp.min is a compiler intrinsic.");
     }
 
     public static Tile max(Tile aTile, int axis) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.max is a compiler intrinsic.");
     }
 
     public static int numTiles(TensorF32 input, int dimension, int tileSize) {
-        return 0;
+        throw new UnsupportedOperationException("TileOp.numTiles is a compiler intrinsic.");
     }
 
     public static int numTiles(TensorF32 input, int dimension, Shape shape) {
-        return 0;
+        throw new UnsupportedOperationException("TileOp.numTiles is a compiler intrinsic.");
     }
 
     public static int numTiles(Tensor2DF32 input, int dimension, Shape shape) {
-        return 0;
+        throw new UnsupportedOperationException("TileOp.numTiles is a compiler intrinsic.");
     }
 
-
     public static Tile full(Shape shape, float value) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.full is a compiler intrinsic.");
     }
 
     public static Tile mma(Tile tileA, Tile tileB, Tile accumulator) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.mma is a compiler intrinsic.");
     }
 
     public static Tile zeros(final int axis0) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.zeros is a compiler intrinsic.");
     }
 
     public static Tile zeros(final int axis0, final int axis1) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.zeros is a compiler intrinsic.");
     }
 
     public static Tile zeros(final int axis0, final int axis1, final int axis2) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.zeros is a compiler intrinsic.");
     }
 
     /**
@@ -191,11 +189,11 @@ public class TileOp {
      * @return {@link Tile}
      */
     public static Tile arange(final int size) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.arange is a compiler intrinsic.");
     }
 
     public static Tile arange(final int size, CodeType codeType) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.arange is a compiler intrinsic.");
     }
 
     /**
@@ -211,7 +209,7 @@ public class TileOp {
      * @return {@link Tile}
      */
     public static Tile arange(final int size, final int start, final int step) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.arange is a compiler intrinsic.");
     }
 
     /**
@@ -227,10 +225,10 @@ public class TileOp {
      * @return {@link Tile}
      */
     public static Tile arange(final int size, final int start, final int step, CodeType codeType) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.arange is a compiler intrinsic.");
     }
 
     public static Tile permute(Tile reshape, Shape shape) {
-        return null;
+        throw new UnsupportedOperationException("TileOp.permute is a compiler intrinsic.");
     }
 }
