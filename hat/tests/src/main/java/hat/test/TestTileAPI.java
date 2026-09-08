@@ -47,16 +47,13 @@ import java.util.Random;
  *
  * <p>
  * <code>
- * java @.ffi-opencl-test hat.test.TestTileAPI
+ * java @.ffi-cuda-test hat.test.TestTileAPI
  * </code>
  * </p>
  *
  */
 public class TestTileAPI {
 
-    // ================================================================================================================
-    // Expressing Vector Addition
-    // ================================================================================================================
     @Reflect
     public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
         final var pid = TileContext.BIDX();
@@ -128,9 +125,6 @@ public class TestTileAPI {
         }
     }
 
-    // ================================================================================================================
-    // Expressing MatMul
-    // ================================================================================================================
     public static final int GROUP_SIZE_M = 8;
 
     @Reflect
@@ -229,9 +223,6 @@ public class TestTileAPI {
         checkResult(matrixSeq, matrixC);
     }
 
-    // ================================================================================================================
-    // Expressing Reductions
-    // ================================================================================================================
     // This example launches one grid (1, 1, 1).
     @Reflect
     public static void tileReduction(TensorF32 input, TensorF32 output, final int tileSize) {
