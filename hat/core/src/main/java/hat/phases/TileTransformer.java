@@ -370,7 +370,7 @@ public class TileTransformer {
 
         public Value load(CodeType type, Op.Result result,
                           PtrType ptrType, Value ptr,
-                          ConstantType dimensionType, Value dimension,
+                          CodeType dimensionType, Value dimension,
                           ConstantType shapeType, Value shape) {
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
@@ -379,7 +379,7 @@ public class TileTransformer {
 
         public Value store(CodeType type, Op.Result result,
                            PtrType ptrType, Value ptr,
-                           ConstantType idType, Value id,
+                           CodeType idType, Value id,
                            ConstantType tensorType, Value tensor) {
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
             return block.add(TileOps.store(block.context().getValue(ptr),
@@ -848,7 +848,7 @@ public class TileTransformer {
             return new ShapeType(shapeA,  shapeB, shapeC);
         }
 
-        public static TensorType load(PtrType ptr, ConstantType dimension, ConstantType shape) {
+        public static TensorType load(PtrType ptr, CodeType dimension, ConstantType shape) {
             if (shape.value()  instanceof ShapeType shapeType) {
                 return new TensorType(ptr.rType(), shapeType.list());
             } else {
@@ -857,7 +857,7 @@ public class TileTransformer {
         }
 
         // store(arrayBuffer, id, tensor)
-        public static void store(PtrType ptr,  ConstantType id, ConstantType tensor) {
+        public static void store(PtrType ptr,  CodeType id, ConstantType tensor) {
 
         }
 

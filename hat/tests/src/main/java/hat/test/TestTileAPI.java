@@ -245,11 +245,9 @@ public class TestTileAPI {
     // ================================================================================================================
     // Expressing Reductions
     // ================================================================================================================
+    // This example launches one grid (1, 1, 1).
     @Reflect
     public static void tileReduction(TensorF32 input, TensorF32 output, final int tileSize) {
-
-        // Obtain the tile-id
-        final int pid = TileContext.BIDX();
 
         // Obtain the number of tiles
         final int numTiles = TileOp.numTiles(input, 0, tileSize);
@@ -260,21 +258,20 @@ public class TestTileAPI {
         // Perform the sum for all blocks of tiles
         for (int i = 0; i < numTiles; i++) {
             // load tile
-            var tileA = TileContext.load(input, pid, tileSize);
+            var tileA = TileContext.load(input, i, tileSize);
             // Perform a sum over the tile
             var res = TileOp.sum(tileA, 0);
             // Store the result into the accumulator
             acc = TileOp.add(acc, res);
         }
 
-        // Store the final result into global memory
+        // Store the final accumulator into global memory
         TileContext.store(output, 0, acc);
     }
 
     @Reflect
     public static void tileReduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, final int tileSize) {
-        computeContext.dispatchTile(NDRange.of1D(input.m(), tileSize),
-                () -> tileReduction(input, output, tileSize));
+        computeContext.dispatchTile(NDRange.of1D(1, tileSize), () -> tileReduction(input, output, tileSize));
     }
 
     @HatTest
@@ -587,6 +584,61 @@ public class TestTileAPI {
 
         runSequential(matrixA, matrixB, matrixSeq, size);
         checkResult(matrixSeq, matrixC);
+    }
+
+    @Reflect
+    public static void partialReduction(TensorF32 input, TensorF32 output, final int tileSize) {
+
+        // Obtain the block-thread ID
+        final int pid = TileContext.BIDX();
+
+        // Perform the sum for all blocks of tiles
+        var tileA = TileContext.load(input, pid, tileSize);
+
+        // Perform a sum over the tile
+        var partial = TileOp.sum(tileA, 0);
+
+        // Store the partial result into global memory
+        TileContext.store(output, pid, partial);
+    }
+
+    @Reflect
+    public static void partialReduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(input.m(), tileSize), () -> tileReduction(input, output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_10() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = Math.powExact(2, 12);
+        final int tileSize = 64;
+
+        TensorF32 input = TensorF32.create(accelerator, size);
+        TensorF32 result = TensorF32.create(accelerator, tileSize);
+
+        // fill input
+        Random r = new Random();
+        for (int k = 0; k < size; k++) {
+            input.array(k, r.nextFloat(1));
+        }
+
+        accelerator.compute( (@Reflect Compute)computeContext ->
+                partialReduction(computeContext, input, result, tileSize));
+
+        // Check CPU implementation
+        float acc = 0.0f;
+        for (int k = 0; k < size; k++) {
+            acc += input.array(k);
+        }
+
+        // Sum-up the partial results
+        float accResult = 0.0f;
+        for (int k = 0; k < result.m(); k++) {
+            accResult += result.array(k);
+        }
+
+        HATAsserts.assertEquals(acc, accResult, 0.01f);
     }
 
 }
