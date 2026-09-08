@@ -165,8 +165,14 @@ public class TestTileAPI {
 
     @Reflect
     public static void tileMatmul(ComputeContext computeContext, Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
-        computeContext.dispatchTile(NDRange.of1D(M * N, tm * tn),
-                () -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
+
+        var range = NDRange.NDRange2D.of(
+                NDRange.Global2D.of(M, N),
+                NDRange.Local2D.of(tm, tn),
+                NDRange.Tile2D.of(tm, tn),
+                NDRange.Warp2D.of(true, false));
+
+        computeContext.dispatchTile(range, () -> matmul(inputA, inputB, output, tm, tn, tk, M, N));
     }
 
     private static void runSequential(Tensor2DF32 matrixA, Tensor2DF32 matrixB, Tensor2DF32 matrixC, final int size) {
@@ -341,7 +347,7 @@ public class TestTileAPI {
     @Reflect
     public static void matmulF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
 
-        // Calculate bidx and bidy using swizzle
+        // Calculate bidx and bidy using swizzling
         final int bid = TileContext.BIDX();
         final int num_bid_m = TileOp.ceildiv(M, tm);
         final int num_bid_n = TileOp.ceildiv(N, tn);
@@ -369,8 +375,14 @@ public class TestTileAPI {
 
     @Reflect
     public static void matmulF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
-        computeContext.dispatchTile(NDRange.of1D(M * N, tm * tn),
-                () -> matmulF16(inputA, inputB, output, tm, tn, tk, M, N));
+
+        var range = NDRange.NDRange2D.of(
+                NDRange.Global2D.of(M, N),
+                NDRange.Local2D.of(tm, tn),
+                NDRange.Tile2D.of(tm, tn),
+                NDRange.Warp2D.of(true, false));
+
+        computeContext.dispatchTile(range, () -> matmulF16(inputA, inputB, output, tm, tn, tk, M, N));
     }
 
     private static void runSequential(Tensor2DF16 matrixA, Tensor2DF16 matrixB, Tensor2DF32 matrixC, final int size) {

@@ -157,6 +157,15 @@ void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, Compilat
         blocksPerGridX = ceil_div(dispatchContext->gsx, dispatchContext->lsx);
         blocksPerGridY = ceil_div(dispatchContext->gsy, dispatchContext->lsy);
         blocksPerGridZ = ceil_div(dispatchContext->gsz, dispatchContext->lsz);
+
+        if (dispatchContext->wsx != 0) {
+            blocksPerGridX = blocksPerGridX * blocksPerGridY;
+            blocksPerGridY = 1;
+            blocksPerGridZ = 1;
+        } else if (dispatchContext->wsy != 0 || dispatchContext->wsz != 0) {
+            std::cerr << "NOT SUPPORTED = " << std::endl;
+        }
+
     } else {
         threadsPerBlockX = estimateThreadsPerBlock(dispatchContext->dimensions, dispatchContext->gsx,
                                                    dispatchContext->lsx);

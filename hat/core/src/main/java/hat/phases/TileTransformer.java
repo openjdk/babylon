@@ -393,6 +393,13 @@ public class TileTransformer {
             return block.add(TileOps.irange(resultType, block.context().getValue(start), block.context().getValue(end)));
         }
 
+        public Value irange(CodeType resultType, Op.Result result,
+                            ConstantType endIndex, Value end) {
+            CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 0);
+            block.add(constantOp);
+            return block.add(TileOps.irange(resultType, constantOp.result(), block.context().getValue(end)));
+        }
+
         public Value add(CodeType type, Op.Result result,
                          CodeType typeA, Value tensorA,
                          CodeType typeB, Value tensorB) {
@@ -862,6 +869,10 @@ public class TileTransformer {
         }
 
         public static JavaType irange(CodeType startIndex, CodeType endIndex) {
+            return JavaType.INT;
+        }
+
+        public static JavaType irange(CodeType endIndex) {
             return JavaType.INT;
         }
 

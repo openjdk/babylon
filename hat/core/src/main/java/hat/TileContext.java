@@ -126,4 +126,8 @@ public interface TileContext {
     static int[] irange(int startIndex, int endIndex) {
         return IntStream.range(startIndex, endIndex).toArray();
     }
+
+    static int[] irange(int endIndex) {
+        return irange(0, endIndex);
+    }
 }
