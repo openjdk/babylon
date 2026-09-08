@@ -124,6 +124,6 @@ public interface TileContext {
     }
 
     static int[] irange(int startIndex, int endIndex) {
-        return IntStream.range(0, (endIndex - startIndex)).map(i -> startIndex + i).toArray();
+        return IntStream.range(startIndex, endIndex).toArray();
     }
 }
