@@ -603,8 +603,10 @@ public class TestTileAPI {
         final int size = Math.powExact(2, 12);
         final int tileSize = 64;
 
+        final int numTiles = (size + tileSize - 1) / tileSize;
+
         TensorF32 input = TensorF32.create(accelerator, size);
-        TensorF32 result = TensorF32.create(accelerator, tileSize);
+        TensorF32 result = TensorF32.create(accelerator, numTiles);
 
         // fill input
         Random r = new Random();
