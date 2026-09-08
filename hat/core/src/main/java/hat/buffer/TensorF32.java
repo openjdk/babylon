@@ -41,11 +41,11 @@ public interface TensorF32 extends Buffer {
     float array(long idx);
     void array(long idx, float f);
 
-    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
+    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 32;
 
     Schema<TensorF32> schema = Schema.of(TensorF32.class, $ -> $
             .arrayLen("m")
-            .pad(12)
+            .pad(124)
             .array("array"));
 
     static TensorF32 create(ArenaAndLookupCarrier cc, int length) {

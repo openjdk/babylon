@@ -25,30 +25,20 @@
 package hat.buffer;
 
 import hat.Accelerator;
-import hat.types.F16;
 import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
-import static java.lang.foreign.ValueLayout.JAVA_INT;
+public interface TensorF16 extends Buffer, Half {
 
-public interface TensorF16 extends Buffer {
-
-    int length();
-    F16Impl array(long index);
-
-    long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 4;
-
-    interface F16Impl extends Struct, F16 {
-        short value();
-        void value(short value);
-    }
+    int m();
+    short array(long index);
+    void array(long index, short value);
 
     Schema<TensorF16> schema = Schema.of(TensorF16.class, f16array ->
-            f16array.arrayLen("length")
-                    .pad(12)
-                    .array("array",
-                            half -> half.fields("value")));
+            f16array.arrayLen("m")
+                    .pad(120)
+                    .array("array"));
 
     static TensorF16 create(Accelerator accelerator, int length){
         return BoundSchema.of(accelerator,schema, length).allocate();

@@ -39,6 +39,7 @@ import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
 
+import java.awt.image.SinglePixelPackedSampleModel;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
@@ -113,6 +114,14 @@ public class TestTileAPI {
         TensorF32 inputA = TensorF32.create(accelerator, size);
         TensorF32 inputB = TensorF32.create(accelerator, size);
         TensorF32 result = TensorF32.create(accelerator, size);
+
+        // Fill data
+        Random r = new Random();
+        for (int i = 0; i < size; i++) {
+            inputA.array(i, r.nextFloat());
+            inputB.array(i, r.nextFloat());
+        }
+
         accelerator.compute( (@Reflect Compute)computeContext -> vectorAddTile(computeContext, inputA, inputB, result, tile_size));
 
         for (int i = 0; i < size; i++) {
@@ -175,10 +184,12 @@ public class TestTileAPI {
         }
     }
 
-    private void checkResult(Tensor2DF32 expected, Tensor2DF32 obtained) {
+    private void checkResult(Tensor2DF32 expected, Tensor2DF32 actual) {
+        HATAsserts.assertEquals(expected.m(), actual.m());
+        HATAsserts.assertEquals(expected.n(), actual.n());
         for (int i = 0; i < expected.m(); i++) {
-            for (int j = 0; j < obtained.n(); j++) {
-                HATAsserts.assertEquals(expected.array(i * obtained.n() + j), obtained.array(i * obtained.n() + j), 0.01f);
+            for (int j = 0; j < expected.n(); j++) {
+                HATAsserts.assertEquals(expected.array((long) i * actual.n() + j), actual.array((long) i * actual.n() + j), 0.01f);
             }
         }
     }
