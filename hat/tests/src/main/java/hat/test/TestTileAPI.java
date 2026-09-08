@@ -583,7 +583,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void partialReduction(ComputeContext computeContext, TensorF32 input, TensorF32 output, final int tileSize) {
-        computeContext.dispatchTile(NDRange.of1D(input.m(), tileSize), () -> tileReduction(input, output, tileSize));
+        computeContext.dispatchTile(NDRange.of1D(input.m(), tileSize), () -> partialReduction(input, output, tileSize));
     }
 
     @HatTest
