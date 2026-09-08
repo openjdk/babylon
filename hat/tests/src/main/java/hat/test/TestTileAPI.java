@@ -24,8 +24,12 @@
  */
 package hat.test;
 
-import hat.*;
+import hat.Accelerator;
 import hat.Accelerator.Compute;
+import hat.ComputeContext;
+import hat.NDRange;
+import hat.TileContext;
+import hat.TileOp;
 import hat.backend.Backend;
 import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
