@@ -74,7 +74,6 @@ import static hat.phases.HATPhaseUtils.mapLane;
 import static hat.phases.HATPhaseUtils.reduceFloatType;
 import static hat.phases.HATPhaseUtils.reduceFloatTypeFromReturnType;
 import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
-import static jdk.incubator.code.dialect.core.CoreOp.var;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke.invoke;
 
@@ -1233,12 +1232,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private static final String ALIGN = "align";
 
-    private CudaHATKernelBuilder genTileSize(Value ptr) {
+    private CudaHATKernelBuilder genTileSize(Value ptr, int dim) {
         if (ptr.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals(ALIGN)) {
-            return generateAlignedReference(ptr).rarrow().id("m");
+            generateAlignedReference(ptr).rarrow();
+            switch (dim) {
+                case 0 -> { return id("m"); }
+                case 1 -> { return id("n"); }
+                default -> throw new IllegalStateException("Unexpected value: " + dim);
+            }
         } else {
             if (ptr instanceof Op.Result r) {
-                return genTileSize(r.op().operands().getFirst());
+                return genTileSize(r.op().operands().getFirst(), dim);
             }
         }
         return self();
@@ -1252,12 +1256,18 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Object> dims = tileLoadOp.dims();
         CodeType resultType = tileLoadOp.resultType();
 
+        boolean isDivisible16 = dims.stream().filter(dim -> dim instanceof Integer).map(dim -> (Integer) dim).noneMatch(i -> i % 16 != 0);
+
         partitionView().brace(_ -> {
                 tensorSpan().brace(_ -> {
                     recurseResultOrThrow(ptr);
                     comma().sp().tensorExtent().paren(_ -> {
-                        //genTileSize(resultType, ptr);
-                        commaSpaceSeparated(dims, x -> tensorAssumeDivisible(16).paren( _ ->  id(x.toString())));
+                        if (isDivisible16) {
+                            // if input is divisible by 16, then we can emit the following optimization
+                            commaSpaceSeparated(dims, x -> { tensorAssumeDivisible(16).paren(_ -> id(x.toString())); });
+                        } else {
+                            genTileSize(resultType, ptr);
+                        }
                     });
                 }).comma();
 
@@ -1290,12 +1300,18 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value tensor = operands.get(2);
         List<Object> dims = tileStoreOp.dims();
 
+        boolean isDivisible16 = dims.stream().filter(dim -> dim instanceof Integer).map(dim -> (Integer) dim).noneMatch(i -> i % 16 != 0);
+
         return partitionView().brace( _ -> {
                 tensorSpan().brace( _ -> {
                 recurseResultOrThrow(inputReference);
                 comma().tensorExtent().brace(_ -> {
-                    //genTileSize(tensor.type(), inputReference);
-                    commaSpaceSeparated(dims, x -> tensorAssumeDivisible(16).paren(_ -> id(x.toString())));
+                    if (isDivisible16) {
+                        // if input is divisible by 16, then we can emit the following optimization
+                        commaSpaceSeparated(dims, x -> tensorAssumeDivisible(16).paren(_ -> id(x.toString())));
+                    } else {
+                        genTileSize(tensor.type(), inputReference);
+                    }
                 });
             }).comma();
             CodeType tensorType = tensor.type();
@@ -1329,22 +1345,25 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
         }
 
-        final Value s;
+        final Value tileExtent;
         if (dimValue > 0 && shape.declaringElement() instanceof TileOps.TileShapeOp shapeOp) {
-            s = shapeOp.operands().get(dimValue);
+            if (dimValue >= shapeOp.operands().size()) {
+                throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
+            }
+            tileExtent = shapeOp.operands().get(dimValue);
         } else {
-            s = shape;
+            tileExtent = shape;
         }
 
         return paren(_ ->
-                genTileSize(ptr)
+                genTileSize(ptr, dim)
                         .sp()
                         .plus()
-                        .recurseResultOrThrow(s)
+                        .recurseResultOrThrow(tileExtent)
                         .sp()
                         .minus()
                         .intConst(1)
-        ).div().recurseResultOrThrow(s);
+        ).div().recurseResultOrThrow(tileExtent);
     }
 
     @Override
