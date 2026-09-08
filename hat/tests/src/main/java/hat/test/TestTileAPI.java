@@ -39,7 +39,6 @@ import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import jdk.incubator.code.Reflect;
 
-import java.awt.image.SinglePixelPackedSampleModel;
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
