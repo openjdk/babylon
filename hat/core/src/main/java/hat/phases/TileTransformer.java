@@ -85,15 +85,10 @@ public class TileTransformer {
                 .findFirst();
 
         CoreOp.FuncOp funcOp = Op.ofMethod(method.orElseThrow()).get();
-        IO.println("Input Code Model");
-        IO.println("\t" + funcOp.toText());
         funcOp = processConstantFields(funcOp, lookup);
-        IO.println("After constant propagation");
-        IO.println("\t" + funcOp.toText());
 
         // Verify types and shapes from the input Tile Kernel and generate a new code model (dialect for Tile)
         // A tile kernel always returns VOID
-        // TODO: we can add a check if the input code model function does not return VOID
         return TileTransformer.tileModule(funcOp, JavaType.VOID, argTypes);
     }
 
