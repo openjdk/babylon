@@ -50,15 +50,19 @@ import java.util.List;
 
 public class ErasedAccessTest {
 
-    static class Unbounded<X> {
+    static class Unbounded<X, T extends Throwable> {
         X x;
+        T t;
 
         X getX() {
             return x;
         }
+        T getT() {
+            return t;
+        }
     }
 
-    static class UnboundedInteger extends Unbounded<Integer> {
+    static class UnboundedInteger extends Unbounded<Integer, WrongThreadException> {
 
         @IR("""
                 func @"testInstanceof" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
@@ -712,6 +716,688 @@ public class ErasedAccessTest {
             // qualified method name
             l = test.getX();
         }
+
+        @IR("""
+                func @"testAssert" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    assert
+                        ()java.type:"boolean" -> {
+                            %3 : java.type:"boolean" = constant @false;
+                            yield %3;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %5 : java.type:"java.lang.Integer" = cast %4 @java.type:"java.lang.Integer";
+                            yield %5;
+                        };
+                    assert
+                        ()java.type:"boolean" -> {
+                            %6 : java.type:"boolean" = constant @false;
+                            yield %6;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %7 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                            %8 : java.type:"java.lang.Integer" = field.load %7 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %9 : java.type:"java.lang.Integer" = cast %8 @java.type:"java.lang.Integer";
+                            yield %9;
+                        };
+                    assert
+                        ()java.type:"boolean" -> {
+                            %10 : java.type:"boolean" = constant @false;
+                            yield %10;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %11 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %12 : java.type:"java.lang.Integer" = cast %11 @java.type:"java.lang.Integer";
+                            yield %12;
+                        };
+                    assert
+                        ()java.type:"boolean" -> {
+                            %13 : java.type:"boolean" = constant @false;
+                            yield %13;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %14 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                            %15 : java.type:"java.lang.Integer" = invoke %14 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %16 : java.type:"java.lang.Integer" = cast %15 @java.type:"java.lang.Integer";
+                            yield %16;
+                        };
+                    return;
+                };
+                """)
+        @Reflect
+        void testAssert(UnboundedInteger test) {
+            // simple field name
+            assert false : x;
+
+            // qualified field name
+            assert false : test.x;
+
+            // simple method name
+            assert false : getX();
+
+            // qualified method name
+            assert false : test.getX();
+        }
+
+        @IR("""
+                func @"testSynchronized" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %4 : java.type:"java.lang.Integer" = cast %3 @java.type:"java.lang.Integer";
+                            yield %4;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %5 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                            %6 : java.type:"java.lang.Integer" = field.load %5 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %7 : java.type:"java.lang.Integer" = cast %6 @java.type:"java.lang.Integer";
+                            yield %7;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %8 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %9 : java.type:"java.lang.Integer" = cast %8 @java.type:"java.lang.Integer";
+                            yield %9;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %10 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                            %11 : java.type:"java.lang.Integer" = invoke %10 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %12 : java.type:"java.lang.Integer" = cast %11 @java.type:"java.lang.Integer";
+                            yield %12;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    return;
+                };
+                """)
+        @Reflect
+        @SuppressWarnings("identity")
+        void testSynchronized(UnboundedInteger test) {
+            // simple field name
+            synchronized (x) { };
+
+            // qualified field name
+            synchronized (test.x) { };
+
+            // simple method name
+            synchronized (getX()) { };
+
+            // qualified method name
+            synchronized (test.getX()) { };
+        }
+
+        @IR("""
+                func @"testYield" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger", %2 : java.type:"int")java.type:"void" -> {
+                    %3 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %4 : Var<java.type:"int"> = var %2 @"s";
+                    %5 : Var<java.type:"java.lang.Object"> = var @"o";
+                    %6 : Var<java.type:"java.lang.Number"> = var @"n";
+                    %7 : Var<java.type:"java.lang.Integer"> = var @"i";
+                    %8 : java.type:"int" = var.load %4;
+                    %9 : java.type:"java.lang.Object" = java.switch.expression %8
+                        (%10 : java.type:"int")java.type:"boolean" -> {
+                            %11 : java.type:"int" = constant @0;
+                            %12 : java.type:"boolean" = eq %10 %11;
+                            yield %12;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %13 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %14 : java.type:"java.lang.Integer" = cast %13 @java.type:"java.lang.Integer";
+                            yield %14;
+                        }
+                        ()java.type:"boolean" -> {
+                            %15 : java.type:"boolean" = constant @true;
+                            yield %15;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %16 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %17 : java.type:"java.lang.Integer" = cast %16 @java.type:"java.lang.Integer";
+                            yield %17;
+                        };
+                    var.store %5 %9;
+                    %18 : java.type:"int" = var.load %4;
+                    %19 : java.type:"java.lang.Number" = java.switch.expression %18
+                        (%20 : java.type:"int")java.type:"boolean" -> {
+                            %21 : java.type:"int" = constant @0;
+                            %22 : java.type:"boolean" = eq %20 %21;
+                            yield %22;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %23 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %24 : java.type:"java.lang.Integer" = cast %23 @java.type:"java.lang.Integer";
+                            yield %24;
+                        }
+                        ()java.type:"boolean" -> {
+                            %25 : java.type:"boolean" = constant @true;
+                            yield %25;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %26 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %27 : java.type:"java.lang.Integer" = cast %26 @java.type:"java.lang.Integer";
+                            yield %27;
+                        };
+                    var.store %6 %19;
+                    %28 : java.type:"int" = var.load %4;
+                    %29 : java.type:"java.lang.Integer" = java.switch.expression %28
+                        (%30 : java.type:"int")java.type:"boolean" -> {
+                            %31 : java.type:"int" = constant @0;
+                            %32 : java.type:"boolean" = eq %30 %31;
+                            yield %32;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %33 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %34 : java.type:"java.lang.Integer" = cast %33 @java.type:"java.lang.Integer";
+                            yield %34;
+                        }
+                        ()java.type:"boolean" -> {
+                            %35 : java.type:"boolean" = constant @true;
+                            yield %35;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %36 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %37 : java.type:"java.lang.Integer" = cast %36 @java.type:"java.lang.Integer";
+                            yield %37;
+                        };
+                    var.store %7 %29;
+                    %38 : java.type:"int" = var.load %4;
+                    %39 : java.type:"java.lang.Object" = java.switch.expression %38
+                        (%40 : java.type:"int")java.type:"boolean" -> {
+                            %41 : java.type:"int" = constant @0;
+                            %42 : java.type:"boolean" = eq %40 %41;
+                            yield %42;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %43 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %44 : java.type:"java.lang.Integer" = field.load %43 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %45 : java.type:"java.lang.Integer" = cast %44 @java.type:"java.lang.Integer";
+                            yield %45;
+                        }
+                        ()java.type:"boolean" -> {
+                            %46 : java.type:"boolean" = constant @true;
+                            yield %46;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %47 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %48 : java.type:"java.lang.Integer" = field.load %47 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %49 : java.type:"java.lang.Integer" = cast %48 @java.type:"java.lang.Integer";
+                            yield %49;
+                        };
+                    var.store %5 %39;
+                    %50 : java.type:"int" = var.load %4;
+                    %51 : java.type:"java.lang.Number" = java.switch.expression %50
+                        (%52 : java.type:"int")java.type:"boolean" -> {
+                            %53 : java.type:"int" = constant @0;
+                            %54 : java.type:"boolean" = eq %52 %53;
+                            yield %54;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %55 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %56 : java.type:"java.lang.Integer" = field.load %55 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %57 : java.type:"java.lang.Integer" = cast %56 @java.type:"java.lang.Integer";
+                            yield %57;
+                        }
+                        ()java.type:"boolean" -> {
+                            %58 : java.type:"boolean" = constant @true;
+                            yield %58;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %59 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %60 : java.type:"java.lang.Integer" = field.load %59 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %61 : java.type:"java.lang.Integer" = cast %60 @java.type:"java.lang.Integer";
+                            yield %61;
+                        };
+                    var.store %6 %51;
+                    %62 : java.type:"int" = var.load %4;
+                    %63 : java.type:"java.lang.Integer" = java.switch.expression %62
+                        (%64 : java.type:"int")java.type:"boolean" -> {
+                            %65 : java.type:"int" = constant @0;
+                            %66 : java.type:"boolean" = eq %64 %65;
+                            yield %66;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %67 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %68 : java.type:"java.lang.Integer" = field.load %67 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %69 : java.type:"java.lang.Integer" = cast %68 @java.type:"java.lang.Integer";
+                            yield %69;
+                        }
+                        ()java.type:"boolean" -> {
+                            %70 : java.type:"boolean" = constant @true;
+                            yield %70;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %71 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %72 : java.type:"java.lang.Integer" = field.load %71 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                            %73 : java.type:"java.lang.Integer" = cast %72 @java.type:"java.lang.Integer";
+                            yield %73;
+                        };
+                    var.store %7 %63;
+                    %74 : java.type:"int" = var.load %4;
+                    %75 : java.type:"java.lang.Object" = java.switch.expression %74
+                        (%76 : java.type:"int")java.type:"boolean" -> {
+                            %77 : java.type:"int" = constant @0;
+                            %78 : java.type:"boolean" = eq %76 %77;
+                            yield %78;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %79 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %80 : java.type:"java.lang.Integer" = cast %79 @java.type:"java.lang.Integer";
+                            yield %80;
+                        }
+                        ()java.type:"boolean" -> {
+                            %81 : java.type:"boolean" = constant @true;
+                            yield %81;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %82 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %83 : java.type:"java.lang.Integer" = cast %82 @java.type:"java.lang.Integer";
+                            yield %83;
+                        };
+                    var.store %5 %75;
+                    %84 : java.type:"int" = var.load %4;
+                    %85 : java.type:"java.lang.Number" = java.switch.expression %84
+                        (%86 : java.type:"int")java.type:"boolean" -> {
+                            %87 : java.type:"int" = constant @0;
+                            %88 : java.type:"boolean" = eq %86 %87;
+                            yield %88;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %89 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %90 : java.type:"java.lang.Integer" = cast %89 @java.type:"java.lang.Integer";
+                            yield %90;
+                        }
+                        ()java.type:"boolean" -> {
+                            %91 : java.type:"boolean" = constant @true;
+                            yield %91;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %92 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %93 : java.type:"java.lang.Integer" = cast %92 @java.type:"java.lang.Integer";
+                            yield %93;
+                        };
+                    var.store %6 %85;
+                    %94 : java.type:"int" = var.load %4;
+                    %95 : java.type:"java.lang.Integer" = java.switch.expression %94
+                        (%96 : java.type:"int")java.type:"boolean" -> {
+                            %97 : java.type:"int" = constant @0;
+                            %98 : java.type:"boolean" = eq %96 %97;
+                            yield %98;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %99 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %100 : java.type:"java.lang.Integer" = cast %99 @java.type:"java.lang.Integer";
+                            yield %100;
+                        }
+                        ()java.type:"boolean" -> {
+                            %101 : java.type:"boolean" = constant @true;
+                            yield %101;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %102 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %103 : java.type:"java.lang.Integer" = cast %102 @java.type:"java.lang.Integer";
+                            yield %103;
+                        };
+                    var.store %7 %95;
+                    %104 : java.type:"int" = var.load %4;
+                    %105 : java.type:"java.lang.Object" = java.switch.expression %104
+                        (%106 : java.type:"int")java.type:"boolean" -> {
+                            %107 : java.type:"int" = constant @0;
+                            %108 : java.type:"boolean" = eq %106 %107;
+                            yield %108;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %109 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %110 : java.type:"java.lang.Integer" = invoke %109 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %111 : java.type:"java.lang.Integer" = cast %110 @java.type:"java.lang.Integer";
+                            yield %111;
+                        }
+                        ()java.type:"boolean" -> {
+                            %112 : java.type:"boolean" = constant @true;
+                            yield %112;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %113 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %114 : java.type:"java.lang.Integer" = invoke %113 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %115 : java.type:"java.lang.Integer" = cast %114 @java.type:"java.lang.Integer";
+                            yield %115;
+                        };
+                    var.store %5 %105;
+                    %116 : java.type:"int" = var.load %4;
+                    %117 : java.type:"java.lang.Number" = java.switch.expression %116
+                        (%118 : java.type:"int")java.type:"boolean" -> {
+                            %119 : java.type:"int" = constant @0;
+                            %120 : java.type:"boolean" = eq %118 %119;
+                            yield %120;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %121 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %122 : java.type:"java.lang.Integer" = invoke %121 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %123 : java.type:"java.lang.Integer" = cast %122 @java.type:"java.lang.Integer";
+                            yield %123;
+                        }
+                        ()java.type:"boolean" -> {
+                            %124 : java.type:"boolean" = constant @true;
+                            yield %124;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %125 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %126 : java.type:"java.lang.Integer" = invoke %125 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %127 : java.type:"java.lang.Integer" = cast %126 @java.type:"java.lang.Integer";
+                            yield %127;
+                        };
+                    var.store %6 %117;
+                    %128 : java.type:"int" = var.load %4;
+                    %129 : java.type:"java.lang.Integer" = java.switch.expression %128
+                        (%130 : java.type:"int")java.type:"boolean" -> {
+                            %131 : java.type:"int" = constant @0;
+                            %132 : java.type:"boolean" = eq %130 %131;
+                            yield %132;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %133 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %134 : java.type:"java.lang.Integer" = invoke %133 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %135 : java.type:"java.lang.Integer" = cast %134 @java.type:"java.lang.Integer";
+                            yield %135;
+                        }
+                        ()java.type:"boolean" -> {
+                            %136 : java.type:"boolean" = constant @true;
+                            yield %136;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %137 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %138 : java.type:"java.lang.Integer" = invoke %137 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                            %139 : java.type:"java.lang.Integer" = cast %138 @java.type:"java.lang.Integer";
+                            yield %139;
+                        };
+                    var.store %7 %129;
+                    return;
+                };
+                """)
+        @Reflect
+        void testYield(UnboundedInteger test, int s) {
+            Object o; Number n; Integer i;
+
+            // simple field name
+            o = switch (s) {
+                case 0 -> x;
+                default -> x;
+            };
+
+            n = switch (s) {
+                case 0 -> x;
+                default -> x;
+            };
+
+            i = switch (s) {
+                case 0 -> x;
+                default -> x;
+            };
+
+            // qualified field name
+            o = switch (s) {
+                case 0 -> test.x;
+                default -> test.x;
+            };
+
+            n = switch (s) {
+                case 0 -> test.x;
+                default -> test.x;
+            };
+
+            i = switch (s) {
+                case 0 -> test.x;
+                default -> test.x;
+            };
+
+            // simple method name
+            o = switch (s) {
+                case 0 -> getX();
+                default -> getX();
+            };
+
+            n = switch (s) {
+                case 0 -> getX();
+                default -> getX();
+            };
+
+            i = switch (s) {
+                case 0 -> getX();
+                default -> getX();
+            };
+
+            // qualified method name
+            o = switch (s) {
+                case 0 -> test.getX();
+                default -> test.getX();
+            };
+
+            n = switch (s) {
+                case 0 -> test.getX();
+                default -> test.getX();
+            };
+
+            i = switch (s) {
+                case 0 -> test.getX();
+                default -> test.getX();
+            };
+        }
+
+        @IR("""
+                func @"testThrows" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger", %2 : java.type:"boolean")java.type:"void" -> {
+                    %3 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %4 : Var<java.type:"boolean"> = var %2 @"cond";
+                    java.if
+                        ()java.type:"boolean" -> {
+                            %5 : java.type:"boolean" = var.load %4;
+                            yield %5;
+                        }
+                        ()java.type:"void" -> {
+                            %6 : java.type:"java.lang.WrongThreadException" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::t:java.lang.Throwable";
+                            %7 : java.type:"java.lang.WrongThreadException" = cast %6 @java.type:"java.lang.WrongThreadException";
+                            throw %7;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.if
+                        ()java.type:"boolean" -> {
+                            %8 : java.type:"boolean" = var.load %4;
+                            yield %8;
+                        }
+                        ()java.type:"void" -> {
+                            %9 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %10 : java.type:"java.lang.WrongThreadException" = field.load %9 @java.ref:"ErasedAccessTest$UnboundedInteger::t:java.lang.Throwable";
+                            %11 : java.type:"java.lang.WrongThreadException" = cast %10 @java.type:"java.lang.WrongThreadException";
+                            throw %11;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.if
+                        ()java.type:"boolean" -> {
+                            %12 : java.type:"boolean" = var.load %4;
+                            yield %12;
+                        }
+                        ()java.type:"void" -> {
+                            %13 : java.type:"java.lang.WrongThreadException" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getT():java.lang.Throwable";
+                            %14 : java.type:"java.lang.WrongThreadException" = cast %13 @java.type:"java.lang.WrongThreadException";
+                            throw %14;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.if
+                        ()java.type:"boolean" -> {
+                            %15 : java.type:"boolean" = var.load %4;
+                            yield %15;
+                        }
+                        ()java.type:"void" -> {
+                            %16 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %3;
+                            %17 : java.type:"java.lang.WrongThreadException" = invoke %16 @java.ref:"ErasedAccessTest$UnboundedInteger::getT():java.lang.Throwable";
+                            %18 : java.type:"java.lang.WrongThreadException" = cast %17 @java.type:"java.lang.WrongThreadException";
+                            throw %18;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    return;
+                };
+                """)
+        @Reflect
+        void testThrows(UnboundedInteger test, boolean cond) {
+            // simple field name
+            if (cond) {
+                throw t;
+            }
+
+            // qualified field name
+            if (cond) {
+                throw test.t;
+            }
+
+            // simple method name
+            if (cond) {
+                throw getT();
+            }
+
+            // qualified method name
+            if (cond) {
+                throw test.getT();
+            }
+        }
+
+        @IR("""
+                func @"testSwitchSelector" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %3 : Var<java.type:"java.lang.Object"> = var @"o";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %5 : java.type:"java.lang.Integer" = cast %4 @java.type:"java.lang.Integer";
+                    java.switch.statement %5
+                        ()java.type:"boolean" -> {
+                            %6 : java.type:"boolean" = constant @true;
+                            yield %6;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
+                    %9 : java.type:"java.lang.Object" = java.switch.expression %8
+                        ()java.type:"boolean" -> {
+                            %10 : java.type:"boolean" = constant @true;
+                            yield %10;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %11 : java.type:"java.lang.Object" = constant @null;
+                            yield %11;
+                        };
+                    var.store %3 %9;
+                    %12 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %13 : java.type:"java.lang.Integer" = field.load %12 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %14 : java.type:"java.lang.Integer" = cast %13 @java.type:"java.lang.Integer";
+                    java.switch.statement %14
+                        ()java.type:"boolean" -> {
+                            %15 : java.type:"boolean" = constant @true;
+                            yield %15;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %16 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %17 : java.type:"java.lang.Integer" = field.load %16 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %18 : java.type:"java.lang.Integer" = cast %17 @java.type:"java.lang.Integer";
+                    %19 : java.type:"java.lang.Object" = java.switch.expression %18
+                        ()java.type:"boolean" -> {
+                            %20 : java.type:"boolean" = constant @true;
+                            yield %20;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %21 : java.type:"java.lang.Object" = constant @null;
+                            yield %21;
+                        };
+                    var.store %3 %19;
+                    %22 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %23 : java.type:"java.lang.Integer" = cast %22 @java.type:"java.lang.Integer";
+                    java.switch.statement %23
+                        ()java.type:"boolean" -> {
+                            %24 : java.type:"boolean" = constant @true;
+                            yield %24;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %25 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %26 : java.type:"java.lang.Integer" = cast %25 @java.type:"java.lang.Integer";
+                    %27 : java.type:"java.lang.Object" = java.switch.expression %26
+                        ()java.type:"boolean" -> {
+                            %28 : java.type:"boolean" = constant @true;
+                            yield %28;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %29 : java.type:"java.lang.Object" = constant @null;
+                            yield %29;
+                        };
+                    var.store %3 %27;
+                    %30 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %31 : java.type:"java.lang.Integer" = invoke %30 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %32 : java.type:"java.lang.Integer" = cast %31 @java.type:"java.lang.Integer";
+                    java.switch.statement %32
+                        ()java.type:"boolean" -> {
+                            %33 : java.type:"boolean" = constant @true;
+                            yield %33;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %34 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %35 : java.type:"java.lang.Integer" = invoke %34 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %36 : java.type:"java.lang.Integer" = cast %35 @java.type:"java.lang.Integer";
+                    %37 : java.type:"java.lang.Object" = java.switch.expression %36
+                        ()java.type:"boolean" -> {
+                            %38 : java.type:"boolean" = constant @true;
+                            yield %38;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %39 : java.type:"java.lang.Object" = constant @null;
+                            yield %39;
+                        };
+                    var.store %3 %37;
+                    return;
+                };
+                """)
+        @Reflect
+        void testSwitchSelector(UnboundedInteger test) {
+            Object o;
+
+            // simple field name
+            switch (x) {default -> { }}
+            o = switch (x) { default -> null; };
+
+            // qualified field name
+            switch (test.x) {default -> { }}
+            o = switch (test.x) { default -> null; };
+
+            // simple method name
+            switch (getX()) {default -> { }}
+            o = switch (getX()) { default -> null; };
+
+            // qualified method name
+            switch (test.getX()) {default -> { }}
+            o = switch (test.getX()) { default -> null; };
+        }
     }
 
     // the part below is just copied from the above with minor adaptations in the expected IRs
@@ -1361,6 +2047,604 @@ public class ErasedAccessTest {
 
             // qualified method name
             l = test.getX();
+        }
+
+        @IR("""
+                func @"testAssert" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    assert
+                        ()java.type:"boolean" -> {
+                            %3 : java.type:"boolean" = constant @false;
+                            yield %3;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %5 : java.type:"java.lang.Integer" = cast %4 @java.type:"java.lang.Integer";
+                            yield %5;
+                        };
+                    assert
+                        ()java.type:"boolean" -> {
+                            %6 : java.type:"boolean" = constant @false;
+                            yield %6;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %7 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                            %8 : java.type:"java.lang.Integer" = field.load %7 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %9 : java.type:"java.lang.Integer" = cast %8 @java.type:"java.lang.Integer";
+                            yield %9;
+                        };
+                    assert
+                        ()java.type:"boolean" -> {
+                            %10 : java.type:"boolean" = constant @false;
+                            yield %10;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %11 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %12 : java.type:"java.lang.Integer" = cast %11 @java.type:"java.lang.Integer";
+                            yield %12;
+                        };
+                    assert
+                        ()java.type:"boolean" -> {
+                            %13 : java.type:"boolean" = constant @false;
+                            yield %13;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %14 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                            %15 : java.type:"java.lang.Integer" = invoke %14 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %16 : java.type:"java.lang.Integer" = cast %15 @java.type:"java.lang.Integer";
+                            yield %16;
+                        };
+                    return;
+                };
+                """)
+        @Reflect
+        void testAssert(BoundedInteger test) {
+            // simple field name
+            assert false : x;
+
+            // qualified field name
+            assert false : test.x;
+
+            // simple method name
+            assert false : getX();
+
+            // qualified method name
+            assert false : test.getX();
+        }
+
+        @IR("""
+                func @"testSynchronized" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %3 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %4 : java.type:"java.lang.Integer" = cast %3 @java.type:"java.lang.Integer";
+                            yield %4;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %5 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                            %6 : java.type:"java.lang.Integer" = field.load %5 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %7 : java.type:"java.lang.Integer" = cast %6 @java.type:"java.lang.Integer";
+                            yield %7;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %8 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %9 : java.type:"java.lang.Integer" = cast %8 @java.type:"java.lang.Integer";
+                            yield %9;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    java.synchronized
+                        ()java.type:"java.lang.Integer" -> {
+                            %10 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                            %11 : java.type:"java.lang.Integer" = invoke %10 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %12 : java.type:"java.lang.Integer" = cast %11 @java.type:"java.lang.Integer";
+                            yield %12;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    return;
+                };
+                """)
+        @Reflect
+        @SuppressWarnings("identity")
+        void testSynchronized(BoundedInteger test) {
+            // simple field name
+            synchronized (x) { };
+
+            // qualified field name
+            synchronized (test.x) { };
+
+            // simple method name
+            synchronized (getX()) { };
+
+            // qualified method name
+            synchronized (test.getX()) { };
+        }
+
+        @IR("""
+                func @"testYield" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger", %2 : java.type:"int")java.type:"void" -> {
+                    %3 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %4 : Var<java.type:"int"> = var %2 @"s";
+                    %5 : Var<java.type:"java.lang.Object"> = var @"o";
+                    %6 : Var<java.type:"java.lang.Number"> = var @"n";
+                    %7 : Var<java.type:"java.lang.Integer"> = var @"i";
+                    %8 : java.type:"int" = var.load %4;
+                    %9 : java.type:"java.lang.Object" = java.switch.expression %8
+                        (%10 : java.type:"int")java.type:"boolean" -> {
+                            %11 : java.type:"int" = constant @0;
+                            %12 : java.type:"boolean" = eq %10 %11;
+                            yield %12;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %13 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %14 : java.type:"java.lang.Integer" = cast %13 @java.type:"java.lang.Integer";
+                            yield %14;
+                        }
+                        ()java.type:"boolean" -> {
+                            %15 : java.type:"boolean" = constant @true;
+                            yield %15;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %16 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %17 : java.type:"java.lang.Integer" = cast %16 @java.type:"java.lang.Integer";
+                            yield %17;
+                        };
+                    var.store %5 %9;
+                    %18 : java.type:"int" = var.load %4;
+                    %19 : java.type:"java.lang.Number" = java.switch.expression %18
+                        (%20 : java.type:"int")java.type:"boolean" -> {
+                            %21 : java.type:"int" = constant @0;
+                            %22 : java.type:"boolean" = eq %20 %21;
+                            yield %22;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %23 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %24 : java.type:"java.lang.Integer" = cast %23 @java.type:"java.lang.Integer";
+                            yield %24;
+                        }
+                        ()java.type:"boolean" -> {
+                            %25 : java.type:"boolean" = constant @true;
+                            yield %25;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %26 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %27 : java.type:"java.lang.Integer" = cast %26 @java.type:"java.lang.Integer";
+                            yield %27;
+                        };
+                    var.store %6 %19;
+                    %28 : java.type:"int" = var.load %4;
+                    %29 : java.type:"java.lang.Integer" = java.switch.expression %28
+                        (%30 : java.type:"int")java.type:"boolean" -> {
+                            %31 : java.type:"int" = constant @0;
+                            %32 : java.type:"boolean" = eq %30 %31;
+                            yield %32;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %33 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %34 : java.type:"java.lang.Integer" = cast %33 @java.type:"java.lang.Integer";
+                            yield %34;
+                        }
+                        ()java.type:"boolean" -> {
+                            %35 : java.type:"boolean" = constant @true;
+                            yield %35;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %36 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %37 : java.type:"java.lang.Integer" = cast %36 @java.type:"java.lang.Integer";
+                            yield %37;
+                        };
+                    var.store %7 %29;
+                    %38 : java.type:"int" = var.load %4;
+                    %39 : java.type:"java.lang.Object" = java.switch.expression %38
+                        (%40 : java.type:"int")java.type:"boolean" -> {
+                            %41 : java.type:"int" = constant @0;
+                            %42 : java.type:"boolean" = eq %40 %41;
+                            yield %42;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %43 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %44 : java.type:"java.lang.Integer" = field.load %43 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %45 : java.type:"java.lang.Integer" = cast %44 @java.type:"java.lang.Integer";
+                            yield %45;
+                        }
+                        ()java.type:"boolean" -> {
+                            %46 : java.type:"boolean" = constant @true;
+                            yield %46;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %47 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %48 : java.type:"java.lang.Integer" = field.load %47 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %49 : java.type:"java.lang.Integer" = cast %48 @java.type:"java.lang.Integer";
+                            yield %49;
+                        };
+                    var.store %5 %39;
+                    %50 : java.type:"int" = var.load %4;
+                    %51 : java.type:"java.lang.Number" = java.switch.expression %50
+                        (%52 : java.type:"int")java.type:"boolean" -> {
+                            %53 : java.type:"int" = constant @0;
+                            %54 : java.type:"boolean" = eq %52 %53;
+                            yield %54;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %55 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %56 : java.type:"java.lang.Integer" = field.load %55 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %57 : java.type:"java.lang.Integer" = cast %56 @java.type:"java.lang.Integer";
+                            yield %57;
+                        }
+                        ()java.type:"boolean" -> {
+                            %58 : java.type:"boolean" = constant @true;
+                            yield %58;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %59 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %60 : java.type:"java.lang.Integer" = field.load %59 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %61 : java.type:"java.lang.Integer" = cast %60 @java.type:"java.lang.Integer";
+                            yield %61;
+                        };
+                    var.store %6 %51;
+                    %62 : java.type:"int" = var.load %4;
+                    %63 : java.type:"java.lang.Integer" = java.switch.expression %62
+                        (%64 : java.type:"int")java.type:"boolean" -> {
+                            %65 : java.type:"int" = constant @0;
+                            %66 : java.type:"boolean" = eq %64 %65;
+                            yield %66;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %67 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %68 : java.type:"java.lang.Integer" = field.load %67 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %69 : java.type:"java.lang.Integer" = cast %68 @java.type:"java.lang.Integer";
+                            yield %69;
+                        }
+                        ()java.type:"boolean" -> {
+                            %70 : java.type:"boolean" = constant @true;
+                            yield %70;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %71 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %72 : java.type:"java.lang.Integer" = field.load %71 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                            %73 : java.type:"java.lang.Integer" = cast %72 @java.type:"java.lang.Integer";
+                            yield %73;
+                        };
+                    var.store %7 %63;
+                    %74 : java.type:"int" = var.load %4;
+                    %75 : java.type:"java.lang.Object" = java.switch.expression %74
+                        (%76 : java.type:"int")java.type:"boolean" -> {
+                            %77 : java.type:"int" = constant @0;
+                            %78 : java.type:"boolean" = eq %76 %77;
+                            yield %78;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %79 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %80 : java.type:"java.lang.Integer" = cast %79 @java.type:"java.lang.Integer";
+                            yield %80;
+                        }
+                        ()java.type:"boolean" -> {
+                            %81 : java.type:"boolean" = constant @true;
+                            yield %81;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %82 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %83 : java.type:"java.lang.Integer" = cast %82 @java.type:"java.lang.Integer";
+                            yield %83;
+                        };
+                    var.store %5 %75;
+                    %84 : java.type:"int" = var.load %4;
+                    %85 : java.type:"java.lang.Number" = java.switch.expression %84
+                        (%86 : java.type:"int")java.type:"boolean" -> {
+                            %87 : java.type:"int" = constant @0;
+                            %88 : java.type:"boolean" = eq %86 %87;
+                            yield %88;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %89 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %90 : java.type:"java.lang.Integer" = cast %89 @java.type:"java.lang.Integer";
+                            yield %90;
+                        }
+                        ()java.type:"boolean" -> {
+                            %91 : java.type:"boolean" = constant @true;
+                            yield %91;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %92 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %93 : java.type:"java.lang.Integer" = cast %92 @java.type:"java.lang.Integer";
+                            yield %93;
+                        };
+                    var.store %6 %85;
+                    %94 : java.type:"int" = var.load %4;
+                    %95 : java.type:"java.lang.Integer" = java.switch.expression %94
+                        (%96 : java.type:"int")java.type:"boolean" -> {
+                            %97 : java.type:"int" = constant @0;
+                            %98 : java.type:"boolean" = eq %96 %97;
+                            yield %98;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %99 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %100 : java.type:"java.lang.Integer" = cast %99 @java.type:"java.lang.Integer";
+                            yield %100;
+                        }
+                        ()java.type:"boolean" -> {
+                            %101 : java.type:"boolean" = constant @true;
+                            yield %101;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %102 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %103 : java.type:"java.lang.Integer" = cast %102 @java.type:"java.lang.Integer";
+                            yield %103;
+                        };
+                    var.store %7 %95;
+                    %104 : java.type:"int" = var.load %4;
+                    %105 : java.type:"java.lang.Object" = java.switch.expression %104
+                        (%106 : java.type:"int")java.type:"boolean" -> {
+                            %107 : java.type:"int" = constant @0;
+                            %108 : java.type:"boolean" = eq %106 %107;
+                            yield %108;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %109 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %110 : java.type:"java.lang.Integer" = invoke %109 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %111 : java.type:"java.lang.Integer" = cast %110 @java.type:"java.lang.Integer";
+                            yield %111;
+                        }
+                        ()java.type:"boolean" -> {
+                            %112 : java.type:"boolean" = constant @true;
+                            yield %112;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %113 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %114 : java.type:"java.lang.Integer" = invoke %113 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %115 : java.type:"java.lang.Integer" = cast %114 @java.type:"java.lang.Integer";
+                            yield %115;
+                        };
+                    var.store %5 %105;
+                    %116 : java.type:"int" = var.load %4;
+                    %117 : java.type:"java.lang.Number" = java.switch.expression %116
+                        (%118 : java.type:"int")java.type:"boolean" -> {
+                            %119 : java.type:"int" = constant @0;
+                            %120 : java.type:"boolean" = eq %118 %119;
+                            yield %120;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %121 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %122 : java.type:"java.lang.Integer" = invoke %121 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %123 : java.type:"java.lang.Integer" = cast %122 @java.type:"java.lang.Integer";
+                            yield %123;
+                        }
+                        ()java.type:"boolean" -> {
+                            %124 : java.type:"boolean" = constant @true;
+                            yield %124;
+                        }
+                        ()java.type:"java.lang.Number" -> {
+                            %125 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %126 : java.type:"java.lang.Integer" = invoke %125 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %127 : java.type:"java.lang.Integer" = cast %126 @java.type:"java.lang.Integer";
+                            yield %127;
+                        };
+                    var.store %6 %117;
+                    %128 : java.type:"int" = var.load %4;
+                    %129 : java.type:"java.lang.Integer" = java.switch.expression %128
+                        (%130 : java.type:"int")java.type:"boolean" -> {
+                            %131 : java.type:"int" = constant @0;
+                            %132 : java.type:"boolean" = eq %130 %131;
+                            yield %132;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %133 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %134 : java.type:"java.lang.Integer" = invoke %133 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %135 : java.type:"java.lang.Integer" = cast %134 @java.type:"java.lang.Integer";
+                            yield %135;
+                        }
+                        ()java.type:"boolean" -> {
+                            %136 : java.type:"boolean" = constant @true;
+                            yield %136;
+                        }
+                        ()java.type:"java.lang.Integer" -> {
+                            %137 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %3;
+                            %138 : java.type:"java.lang.Integer" = invoke %137 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                            %139 : java.type:"java.lang.Integer" = cast %138 @java.type:"java.lang.Integer";
+                            yield %139;
+                        };
+                    var.store %7 %129;
+                    return;
+                };
+                """)
+        @Reflect
+        void testYield(BoundedInteger test, int s) {
+            Object o; Number n; Integer i;
+
+            // simple field name
+            o = switch (s) {
+                case 0 -> x;
+                default -> x;
+            };
+
+            n = switch (s) {
+                case 0 -> x;
+                default -> x;
+            };
+
+            i = switch (s) {
+                case 0 -> x;
+                default -> x;
+            };
+
+            // qualified field name
+            o = switch (s) {
+                case 0 -> test.x;
+                default -> test.x;
+            };
+
+            n = switch (s) {
+                case 0 -> test.x;
+                default -> test.x;
+            };
+
+            i = switch (s) {
+                case 0 -> test.x;
+                default -> test.x;
+            };
+
+            // simple method name
+            o = switch (s) {
+                case 0 -> getX();
+                default -> getX();
+            };
+
+            n = switch (s) {
+                case 0 -> getX();
+                default -> getX();
+            };
+
+            i = switch (s) {
+                case 0 -> getX();
+                default -> getX();
+            };
+
+            // qualified method name
+            o = switch (s) {
+                case 0 -> test.getX();
+                default -> test.getX();
+            };
+
+            n = switch (s) {
+                case 0 -> test.getX();
+                default -> test.getX();
+            };
+
+            i = switch (s) {
+                case 0 -> test.getX();
+                default -> test.getX();
+            };
+        }
+
+        @IR("""
+                func @"testSwitchSelector" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %3 : Var<java.type:"java.lang.Object"> = var @"o";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %5 : java.type:"java.lang.Integer" = cast %4 @java.type:"java.lang.Integer";
+                    java.switch.statement %5
+                        ()java.type:"boolean" -> {
+                            %6 : java.type:"boolean" = constant @true;
+                            yield %6;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %7 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %8 : java.type:"java.lang.Integer" = cast %7 @java.type:"java.lang.Integer";
+                    %9 : java.type:"java.lang.Object" = java.switch.expression %8
+                        ()java.type:"boolean" -> {
+                            %10 : java.type:"boolean" = constant @true;
+                            yield %10;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %11 : java.type:"java.lang.Object" = constant @null;
+                            yield %11;
+                        };
+                    var.store %3 %9;
+                    %12 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %13 : java.type:"java.lang.Integer" = field.load %12 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %14 : java.type:"java.lang.Integer" = cast %13 @java.type:"java.lang.Integer";
+                    java.switch.statement %14
+                        ()java.type:"boolean" -> {
+                            %15 : java.type:"boolean" = constant @true;
+                            yield %15;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %16 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %17 : java.type:"java.lang.Integer" = field.load %16 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %18 : java.type:"java.lang.Integer" = cast %17 @java.type:"java.lang.Integer";
+                    %19 : java.type:"java.lang.Object" = java.switch.expression %18
+                        ()java.type:"boolean" -> {
+                            %20 : java.type:"boolean" = constant @true;
+                            yield %20;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %21 : java.type:"java.lang.Object" = constant @null;
+                            yield %21;
+                        };
+                    var.store %3 %19;
+                    %22 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %23 : java.type:"java.lang.Integer" = cast %22 @java.type:"java.lang.Integer";
+                    java.switch.statement %23
+                        ()java.type:"boolean" -> {
+                            %24 : java.type:"boolean" = constant @true;
+                            yield %24;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %25 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %26 : java.type:"java.lang.Integer" = cast %25 @java.type:"java.lang.Integer";
+                    %27 : java.type:"java.lang.Object" = java.switch.expression %26
+                        ()java.type:"boolean" -> {
+                            %28 : java.type:"boolean" = constant @true;
+                            yield %28;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %29 : java.type:"java.lang.Object" = constant @null;
+                            yield %29;
+                        };
+                    var.store %3 %27;
+                    %30 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %31 : java.type:"java.lang.Integer" = invoke %30 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %32 : java.type:"java.lang.Integer" = cast %31 @java.type:"java.lang.Integer";
+                    java.switch.statement %32
+                        ()java.type:"boolean" -> {
+                            %33 : java.type:"boolean" = constant @true;
+                            yield %33;
+                        }
+                        ()java.type:"void" -> {
+                            yield;
+                        };
+                    %34 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %35 : java.type:"java.lang.Integer" = invoke %34 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %36 : java.type:"java.lang.Integer" = cast %35 @java.type:"java.lang.Integer";
+                    %37 : java.type:"java.lang.Object" = java.switch.expression %36
+                        ()java.type:"boolean" -> {
+                            %38 : java.type:"boolean" = constant @true;
+                            yield %38;
+                        }
+                        ()java.type:"java.lang.Object" -> {
+                            %39 : java.type:"java.lang.Object" = constant @null;
+                            yield %39;
+                        };
+                    var.store %3 %37;
+                    return;
+                };
+                """)
+        @Reflect
+        void testSwitchSelector(BoundedInteger test) {
+            Object o;
+
+            // simple field name
+            switch (x) {default -> { }}
+            o = switch (x) { default -> null; };
+
+            // qualified field name
+            switch (test.x) {default -> { }}
+            o = switch (test.x) { default -> null; };
+
+            // simple method name
+            switch (getX()) {default -> { }}
+            o = switch (getX()) { default -> null; };
+
+            // qualified method name
+            switch (test.getX()) {default -> { }}
+            o = switch (test.getX()) { default -> null; };
         }
     }
 

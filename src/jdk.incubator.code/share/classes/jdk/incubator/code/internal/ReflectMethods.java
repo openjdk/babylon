@@ -1634,7 +1634,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitSwitchExpression(JCTree.JCSwitchExpression tree) {
-            Value target = toValue(tree.selector);
+            Value target = toValue(tree.selector, tree.selector.type);
 
             Type switchType = adaptBottom(tree.type);
             FunctionType caseBodyType = CoreType.functionType(typeToCodeType(switchType));
@@ -1647,7 +1647,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitSwitch(JCTree.JCSwitch tree) {
-            Value target = toValue(tree.selector);
+            Value target = toValue(tree.selector, tree.selector.type);
 
             FunctionType actionType = CoreType.FUNCTION_TYPE_VOID;
 
@@ -1853,8 +1853,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     pushBody(c.body, caseBodyType);
 
                     if (c.body instanceof JCTree.JCExpression e) {
-                        Type yieldType = adaptBottom(tree.type);
+                        Type yieldType = adaptBottom(e.type);
                         Value bodyVal = toValue(e, yieldType);
+                        bodyVal = coerce(bodyVal, yieldType, tree.type);
                         append(CoreOp.core_yield(bodyVal));
                     } else if (c.body instanceof JCTree.JCStatement s) { // this includes Block
                         // Otherwise there is a yield statement
@@ -1914,8 +1915,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitYield(JCTree.JCYield tree) {
-            Type yieldType = adaptBottom(tree.target.type);
+            Type yieldType = adaptBottom(tree.value.type);
             Value retVal = toValue(tree.value, yieldType);
+            retVal = coerce(retVal, yieldType, tree.target.type);
             result = append(JavaOp.java_yield(retVal));
         }
 
@@ -2211,7 +2213,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 pushBody(detail,
                         CoreType.functionType(typeToCodeType(tree.detail.type)));
-                Value detailVal = toValue(detail);
+                Value detailVal = toValue(detail, tree.detail.type);
 
                 append(CoreOp.core_yield(detailVal));
                 bodies.add(stack.body);
@@ -2249,7 +2251,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public void visitSynchronized(JCTree.JCSynchronized tree) {
             // Push expr
             pushBody(tree.lock, CoreType.functionType(typeToCodeType(tree.lock.type)));
-            Value last = toValue(tree.lock);
+            Value last = toValue(tree.lock, tree.lock.type);
             append(CoreOp.core_yield(last));
             Body.Builder expr = stack.body;
 
@@ -2539,7 +2541,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitThrow(JCTree.JCThrow tree) {
-            Value throwVal = toValue(tree.expr);
+            Value throwVal = toValue(tree.expr, tree.expr.type);
             result = append(JavaOp.throw_(throwVal));
         }
 
