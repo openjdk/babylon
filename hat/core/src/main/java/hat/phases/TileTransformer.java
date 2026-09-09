@@ -27,7 +27,11 @@ package hat.phases;
 import hat.DType;
 import hat.TileContext;
 import hat.TileOp;
-import hat.codetypes.*;
+import hat.codetypes.ConstantType;
+import hat.codetypes.IndexType;
+import hat.codetypes.PtrType;
+import hat.codetypes.ShapeType;
+import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.TileOps;
 import hat.types.Tile;
@@ -96,13 +100,11 @@ public class TileTransformer {
      * Method to perform checks on the shapes and build the corresponding tensors with the correct dimensions and shapes across
      * all operations.
      *
-     * @param kernel
-     *      Input Kernel
-     * @param rType Return Type
+     * @param kernel   Input Kernel
+     * @param rType    Return Type
      * @param argTypes Arguments to the Tile Kernel
-     * @return
-     *         Module {@link TileOps.ModuleOp}
-     * @param <O> Op type
+     * @param <O>      Op type
+     * @return Module {@link TileOps.ModuleOp}
      */
     public static <O extends Op & Op.Invokable> TileOps.ModuleOp tileModule(O kernel, CodeType rType, List<? extends CodeType> argTypes) {
         Map<String, CoreOp.FuncOp> symbolTable = new LinkedHashMap<>();
@@ -110,19 +112,17 @@ public class TileTransformer {
         return TileOps.module(symbolTable.values().stream().toList());
     }
 
-    public static <O extends Op & Op.Invokable> CoreOp.FuncOp  tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes) {
+    public static <O extends Op & Op.Invokable> CoreOp.FuncOp tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes) {
         Map<String, CoreOp.FuncOp> symbolTable = new LinkedHashMap<>();
         return tileFunction(kernel, rType, argTypes, symbolTable);
     }
 
     /**
      * Process the code tree to find constants that are introduced via the scope of the function being analyzed.
-     * @param funcOp
-     *     Input function
-     * @param lookup
-     *     Method lookup
-     * @return
-     *     A new function with the replacement of FieldLoads/constant with its constant value.
+     *
+     * @param funcOp Input function
+     * @param lookup Method lookup
+     * @return A new function with the replacement of FieldLoads/constant with its constant value.
      */
     public static CoreOp.FuncOp processConstantFields(CoreOp.FuncOp funcOp, MethodHandles.Lookup lookup) {
         // Preprocessing constants
@@ -155,18 +155,12 @@ public class TileTransformer {
     /**
      * Process the tile function. It first checks all shapes and builds the code model with custom ops for supporting the Tile Programming Model.
      *
-     * @param kernel
-     *      Input Kernel
-     * @param rType
-     *      Return type
-     * @param argTypes
-     *      Arguments to the Tile Kernel
-     * @param symbolTable
-     *      Symbol Table
-     * @return
-     *      A new function which includes the code tree in the Tile format (dialect)
-     *
+     * @param kernel      Input Kernel
+     * @param rType       Return type
+     * @param argTypes    Arguments to the Tile Kernel
+     * @param symbolTable Symbol Table
      * @param <O>
+     * @return A new function which includes the code tree in the Tile format (dialect)
      */
     private static <O extends Op & Op.Invokable> CoreOp.FuncOp tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, Map<String, CoreOp.FuncOp> symbolTable) {
 
@@ -268,10 +262,9 @@ public class TileTransformer {
 
     /**
      * Lower the input model to SSA representation.
-     * @param funcOp
-     *  Input code model in non-SSA format
-     * @return
-     *  Code model in SSA representation.
+     *
+     * @param funcOp Input code model in non-SSA format
+     * @return Code model in SSA representation.
      */
     static CoreOp.FuncOp lowerToSSA(CoreOp.FuncOp funcOp) {
         CoreOp.FuncOp loweredCodeModel = funcOp.transform(CodeTransformer.LOWERING_TRANSFORMER);
@@ -586,7 +579,7 @@ public class TileTransformer {
     }
 
     private static <O extends Op & Op.Invokable> void typeCheckKernel(O kernel, List<? extends CodeType> argTypes, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData) {
-        kernel.elements().forEach( codeElement -> {
+        kernel.elements().forEach(codeElement -> {
             if (!(codeElement instanceof Op op)) {
                 return;
             }
@@ -616,7 +609,7 @@ public class TileTransformer {
                         if (!isTypePromotionValid(fromType, toType)) {
                             throw new IllegalArgumentException("incompatible types to be stored: " + varType + " != " + vType);
                         }
-                    } else  if (!varType.equals(vType)) {
+                    } else if (!varType.equals(vType)) {
                         throw new IllegalArgumentException("incompatible types to be stored: " + varType + " != " + vType);
                     }
                 }
@@ -629,11 +622,11 @@ public class TileTransformer {
                 }
                 case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE_MATH) -> {
                     CodeType t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
-                    valueTypeMap.put(op.result(), new ConstantType(op.result().type(),  t));
+                    valueTypeMap.put(op.result(), new ConstantType(op.result().type(), t));
                 }
                 case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE) -> {
                     CodeType t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
-                    valueTypeMap.put(op.result(), new ConstantType(op.result().type(),  t));
+                    valueTypeMap.put(op.result(), new ConstantType(op.result().type(), t));
                 }
                 case JavaOp.BinaryOp _, JavaOp.UnaryOp _ -> {
                     CodeType t = checkWithTypeInterpreter(op, externalizeOpName(op), valueTypeMap);
@@ -678,7 +671,7 @@ public class TileTransformer {
                     // taken from the Triton experiment
                     CodeType t = forLoopOp.initBody().yieldType();
                     if (t instanceof VarType varType && varType.valueType().equals(JavaType.INT)) {
-                        for (Body b: List.of(forLoopOp.condBody(), forLoopOp.updateBody(), forLoopOp.loopBody())) {
+                        for (Body b : List.of(forLoopOp.condBody(), forLoopOp.updateBody(), forLoopOp.loopBody())) {
                             valueTypeMap.put(b.entryBlock().parameters().getFirst(), JavaType.INT);
                         }
                     } else {
@@ -689,7 +682,7 @@ public class TileTransformer {
                     // taken from the Triton experiment
                     CodeType t = enhancedForOp.initBody().yieldType();
                     if (t instanceof VarType varType && varType.valueType().equals(JavaType.INT)) {
-                        for (Body b: List.of(enhancedForOp.loopBody())) {
+                        for (Body b : List.of(enhancedForOp.loopBody())) {
                             valueTypeMap.put(b.entryBlock().parameters().getFirst(), JavaType.INT);
                         }
                     } else {
@@ -743,7 +736,7 @@ public class TileTransformer {
     static String signature(String name, CodeType rType, List<? extends CodeType> argTypes) {
         StringBuilder sb = new StringBuilder(name);
 
-        for(CodeType argType : argTypes) {
+        for (CodeType argType : argTypes) {
             sb.append("_");
             if (argType instanceof ConstantType ct) {
                 sb.append(ct.value());
@@ -790,9 +783,9 @@ public class TileTransformer {
         try {
             Optional<Method> optionalMethod = Stream.of(TileTypeInterpreter.class.getDeclaredMethods())
                     .filter(m -> m.getName().equals(name))
-                    .filter(m -> m.isVarArgs() ? m.getParameterCount() <= op.operands().size(): m.getParameterCount() == op.operands().size())
+                    .filter(m -> m.isVarArgs() ? m.getParameterCount() <= op.operands().size() : m.getParameterCount() == op.operands().size())
                     .findFirst();
-            mh = MethodHandles.lookup().unreflect(optionalMethod.orElseThrow( () -> new NoSuchMethodException(name)));
+            mh = MethodHandles.lookup().unreflect(optionalMethod.orElseThrow(() -> new NoSuchMethodException(name)));
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -806,7 +799,8 @@ public class TileTransformer {
     }
 
     static class TileTypeInterpreter {
-        private TileTypeInterpreter() {}
+        private TileTypeInterpreter() {
+        }
 
         // int bid(Constant int dimension)
         public static JavaType BIDX() {
@@ -838,11 +832,11 @@ public class TileTransformer {
         }
 
         public static ShapeType shape(ConstantType shapeA, ConstantType shapeB, ConstantType shapeC) {
-            return new ShapeType(shapeA,  shapeB, shapeC);
+            return new ShapeType(shapeA, shapeB, shapeC);
         }
 
         public static TensorType load(PtrType ptr, CodeType dimension, ConstantType shape) {
-            if (shape.value()  instanceof ShapeType shapeType) {
+            if (shape.value() instanceof ShapeType shapeType) {
                 return new TensorType(ptr.rType(), shapeType.list());
             } else {
                 return new TensorType(ptr.rType(), List.of((Integer) shape.value()));
@@ -850,7 +844,7 @@ public class TileTransformer {
         }
 
         // store(arrayBuffer, id, tensor)
-        public static void store(PtrType ptr,  CodeType id, ConstantType tensor) {
+        public static void store(PtrType ptr, CodeType id, ConstantType tensor) {
 
         }
 
@@ -983,7 +977,7 @@ public class TileTransformer {
             if (tensor instanceof TensorType tensorType && reshapeDims.value() instanceof ShapeType permuteShape) {
                 List<Integer> shape = tensorType.shape();
                 List<Integer> permuteList = permuteShape.list();
-                List<Integer> resultShape =  new ArrayList<>();
+                List<Integer> resultShape = new ArrayList<>();
                 Set<Integer> check = new HashSet<>();
                 if (shape.size() != permuteList.size()) {
                     throw new IllegalStateException("permute dimensions must be the same size: " + shape.size() + " != " + permuteList.size());
@@ -1051,8 +1045,8 @@ public class TileTransformer {
 
             List<Integer> dimensions = new ArrayList<>();
             for (int i = 0; i < t1.shape().size(); i++) {
-                int dimA =  t1.shape().get(i);
-                int dimB =  t2.shape().get(i);
+                int dimA = t1.shape().get(i);
+                int dimB = t2.shape().get(i);
 
                 int dim;
                 if (dimA == dimB) {
@@ -1142,7 +1136,6 @@ public class TileTransformer {
             for (int i = 2; i < inputShape.size(); i++) {
                 transposeShape.add(inputShape.get(i));
             }
-            IO.println("Transpose matrix shape: " + Arrays.toString(transposeShape.toArray()));
             return transposeShape;
         }
     }
