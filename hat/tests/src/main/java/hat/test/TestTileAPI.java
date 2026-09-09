@@ -170,12 +170,12 @@ public class TestTileAPI {
     }
 
     private static void runSequential(Tensor2DF32 matrixA, Tensor2DF32 matrixB, Tensor2DF32 matrixC, final int size) {
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
+        for (int i = 0; i < matrixA.m(); i++) {
+            for (int j = 0; j < matrixB.n(); j++) {
                 float sum = 0;
-                for (int k = 0; k < size; k++) {
-                    float a = matrixA.array((long) i * size + k);
-                    float b = matrixB.array((long) k * size + j);
+                for (int k = 0; k < matrixA.n(); k++) {
+                    float a = matrixA.array((long) i * matrixA.n() + k);
+                    float b = matrixB.array((long) k * matrixB.n() + j);
                     sum += a * b;
                 }
                 matrixC.array((long) i * size + j, sum);

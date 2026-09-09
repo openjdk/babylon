@@ -154,6 +154,7 @@ void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, Compilat
     int blocksPerGridY = 1;
     int blocksPerGridZ = 1;
     if (dispatchContext->type > 0) {
+        // Local Size must be > 0. The corresponding check happens in the Java side.
         blocksPerGridX = ceil_div(dispatchContext->gsx, dispatchContext->lsx);
         blocksPerGridY = ceil_div(dispatchContext->gsy, dispatchContext->lsy);
         blocksPerGridZ = ceil_div(dispatchContext->gsz, dispatchContext->lsz);
@@ -163,6 +164,8 @@ void CudaBackend::CudaQueue::dispatch(DispatchContext *dispatchContext, Compilat
             blocksPerGridY = 1;
             blocksPerGridZ = 1;
         } else if (dispatchContext->wsy != 0 || dispatchContext->wsz != 0) {
+            // Check from the Java side we never execute this. From the Java
+            // side we can throw an exception.
             std::cerr << "NOT SUPPORTED = " << std::endl;
         }
 

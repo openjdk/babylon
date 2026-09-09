@@ -477,11 +477,48 @@ public class CudaBackend extends C99FFIBackend {
         return out;
     }
 
+    private void checkLegalNDRangeDispatch(NDRange ndRange) {
+        // check ndRange
+        if (ndRange != null && !ndRange.hasLocal()) {
+            throw new IllegalStateException("NDRange for dispatching a Tile Kernel must specify Local dimensions");
+        }
+
+        // if local is defined, then we check if the values <= 0
+        if (ndRange != null && ndRange.hasLocal()) {
+            NDRange.Local local = ndRange.local();
+            if (local instanceof NDRange.Local1D l) {
+                if (l.x() <= 0) {
+                    throw new IllegalStateException("Local x must be greater than 0");
+                }
+            } else if (local instanceof NDRange.Local2D l) {
+                if (l.y() <= 0 || l.x() <= 0) {
+                    throw new IllegalStateException("Local x,y must be greater than 0");
+                }
+            } else if (local instanceof NDRange.Local3D l) {
+                if (l.z() <= 0 || l.y() <= 0 || l.x() <= 0) {
+                    throw new IllegalStateException("Local x,y,z must be greater than 0");
+                }
+            }
+        }
+
+        // check warps 2D and 3D
+        if (ndRange != null && ndRange.hasWarp()) {
+            NDRange.Warp warp = ndRange.warp();
+            if (warp instanceof NDRange.Warp2D warp2d) {
+                if (warp2d.y()) {
+                    throw new UnsupportedOperationException("Warp 2D not supported");
+                }
+            } else if (warp instanceof NDRange.Warp3D) {
+                throw new UnsupportedOperationException("Warp 3D not supported");
+            }
+        }
+    }
+
     @Override
     public void dispatchTile(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             if (config().ptx()) {
-                throw new UnsupportedOperationException("tile for PTX not supported");
+                throw new UnsupportedOperationException("tile model for the PTX is not supported");
             }
             String code = createC99Tile(kernelCallGraph, args);
             if (config().showCode()) {
@@ -492,9 +529,11 @@ public class CudaBackend extends C99FFIBackend {
                 var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
                 return new CompiledKernel(this, kernelCallGraph,  kernel, args);
             } else {
-                throw new IllegalStateException("cuda failed to compile ");
+                throw new IllegalStateException("CUDA failed to compile the generated code.");
             }
         });
+        // before the final dispatch, we need to check the ndRange parameters are legal
+        checkLegalNDRangeDispatch(ndRange);
         compiledKernel.dispatch(ndRange, args);
     }
 
