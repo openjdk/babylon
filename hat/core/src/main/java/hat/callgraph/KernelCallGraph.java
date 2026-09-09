@@ -141,7 +141,7 @@ public class KernelCallGraph implements LookupCarrier {
                                 && invoke.returnsInt()
                                 && invoke.nameMatchesRegex("(atomic.*)Inc"));
 
-        this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
+        this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint, isTileDialectEnabled(inlinedEntryPoint));
 
         // To detect vectors: it could be either because of the use of vector types, or because
         // array views (going through arrayStoreOp/arrayLoadOp)
@@ -161,6 +161,10 @@ public class KernelCallGraph implements LookupCarrier {
         this.varTable = new VarTable();
     }
 
+    private boolean isTileDialectEnabled(CoreOp.FuncOp inlinedEntryPoint) {
+        return OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class) && HAT_PROCESS_TILE_DIALECT;
+    }
+
     /**
      * Compile a kernel into the target device-code. The input stage for compilation is the method represented in a code-tree from code reflection.
      * Then the kernel is transformed and lowered to a OpenCL/CUDA kernel.
@@ -170,8 +174,7 @@ public class KernelCallGraph implements LookupCarrier {
      */
     public void compile(Object[] kernelParameters) {
         varTable.addFunction(entrypoint.funcOp().funcName());
-        boolean canTransformToTile = OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class);
-        if (HAT_PROCESS_TILE_DIALECT && canTransformToTile) {
+        if (isTileDialectEnabled(inlinedEntryPoint)) {
             Class<?>[] parameterTypes = method.getParameterTypes();
             List<CodeType> codeTypes = new ArrayList<>();
             if (kernelParameters.length != parameterTypes.length) {

@@ -50,24 +50,23 @@ public class BufferTagger {
     static HashMap<Block, List<Block.Parameter>> blockParams = new HashMap<>(); // holds block parameters for easy lookup
 
     // generates a list of AccessTypes matching the given FuncOp's parameter order
-    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntryPoint) {
+    public static ArrayList<AccessType> getAccessList(MethodHandles.Lookup lookup, CoreOp.FuncOp inlinedEntryPoint, boolean isTileModelUsed) {
         buildAccessMap(lookup, inlinedEntryPoint);
         ArrayList<AccessType> accessList = new ArrayList<>();
         for (Block.Parameter p : inlinedEntryPoint.body().entryBlock().parameters()) {
             if (accessMap.containsKey(p)) {
                 accessList.add(accessMap.get(p)); // is an accessed buffer
             } else if (OpHelper.isAssignable(lookup, p.type(), MappableIface.class)) {
-                // accessList.add(AccessType.NA); // is a buffer but not accessed
-                // TODO: shouldn't be RO as default
-
-                // TODO: Changed to RW as default
-                accessList.add(AccessType.RW);
+                // For the Tile Model, we tag each I/O as RW by default.
+                AccessType accessType = isTileModelUsed ? AccessType.RW : AccessType.RO;
+                accessList.add(accessType);
             } else {
                 accessList.add(AccessType.NOT_BUFFER); // is not a buffer
             }
         }
         return accessList;
     }
+
     private static boolean isReference(Invoke ioh) {
         return ioh.returns(IfaceValue.class)
                 && ioh.opFromOnlyUseOrNull() instanceof JavaOp.InvokeOp nextInvoke
