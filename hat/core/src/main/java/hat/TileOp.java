@@ -31,7 +31,22 @@ import hat.types.Tile;
 import jdk.incubator.code.CodeType;
 
 /**
- * Class to represent common tile math operations (add, sub, transpose, mma, etc).
+ * Provides arithmetic, reduction, shape-transformation and construction operations
+ * for the {@link Tile} Programming Model implementation.
+ *
+ * <p>Binary operations involving two tiles are performed element-wise.
+ * Operations that involve a tile and a scalar values apply the scalar
+ * to every element of the tile. Compatible tile shapes may be broadcasted
+ * by the compiler (or HAT Transformer).</p>
+ *
+ * <p>All methods in this class are compiler intrinsics. Calls made from a HAT
+ * Tile kernel are replaced by the HAT Tile Transformer and lowered to the
+ * backend-specific operations.</p>
+ *
+ * @apiNote These methods have no ordinary Java implementation and throws an
+ * {@link UnsupportedOperationException} exception. Support for a Java CPU
+ * execution is planned for future versions of the Tile programming model
+ * implementation within HAT.
  */
 public class TileOp {
 
