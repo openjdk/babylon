@@ -12,6 +12,8 @@
   * [OpenCL Intercept Layer](Profiling/opencl-intercept-layer.md)
 * Programming model
    * [HAT Programming Model](ProgrammingModel/programming-model.md)
+* Tile Programming Model
+  * [HAT Tile Programming Model](Tile/tile-programming-model.md)
 * Interface Mapping
    * [Interface Mapping Overview](Implementation/interface-mapping.md)
    * [Cascade Interface Mapping](Implementation/cascade-interface-mapping.md)
