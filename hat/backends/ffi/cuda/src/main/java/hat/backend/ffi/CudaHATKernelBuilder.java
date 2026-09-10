@@ -1042,7 +1042,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return tileContext().id("assume_aligned").paren( _ ->
                 recurseResultOrThrow(invoke.op().operands().getFirst()).rarrow().id(ARRAY)
                 .comma().sp()
-                .recurseResultOrThrow(invoke.op().operands().get(1)).id("_ic"));
+                .recurseResultOrThrow(invoke.op().operands().get(1)).ic());
     }
 
     private int obtainShapeDimensions(Value value) {
@@ -1072,13 +1072,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         }
     }
 
+    private CudaHATKernelBuilder ic() {
+        return id("_ic");
+    }
+
     private CudaHATKernelBuilder genTileConstantShape(Value value, int argIndex) {
         if (value.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("shape")) {
             return genTileConstantShape(invokeOp.operands().get(argIndex), argIndex);
         } else if (value.declaringElement() instanceof CoreOp.ConstantOp constant) {
-            Object value1 = constant.value();
-            if (value1 instanceof Integer i) {
-                id(i + "_ic");
+            Object val = constant.value();
+            if (val instanceof Integer i) {
+                intValue(i).ic();
             } else {
                 throw new IllegalStateException("Expected a integer value to specify a tile shape");
             }
@@ -1410,7 +1414,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder tileShapeOp(TileOps.TileShapeOp tileShapeOp) {
         return commaSpaceSeparated(tileShapeOp.operands(), v -> {
-            recurseResultOrThrow(v).id("_ic");
+            recurseResultOrThrow(v).ic();
         });
     }
 
@@ -1420,7 +1424,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value tensor = operands.getFirst();
         Value dimension = operands.get(1);
         return tileSum().paren(_ ->
-                recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(dimension).id("_ic"));
+                recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(dimension).ic());
     }
 
     @Override
