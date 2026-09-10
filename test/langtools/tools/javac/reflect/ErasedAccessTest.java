@@ -28,6 +28,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.CodeModel;
@@ -598,6 +599,52 @@ public class ErasedAccessTest {
             o = (Object) test.getX();
             n = (Number) test.getX();
             i = (Integer) test.getX();
+        }
+
+        @IR("""
+                func @"testIntersectionCast" (%0 : java.type:"ErasedAccessTest$UnboundedInteger", %1 : java.type:"ErasedAccessTest$UnboundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$UnboundedInteger"> = var %1 @"test";
+                    %3 : Var<java.type:"java.lang.Object"> = var @"o";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %5 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %4 @java.type:"java.lang.Comparable";
+                    %6 : java.type:"java.io.Serializable" = cast %5 @java.type:"java.io.Serializable";
+                    %7 : java.type:"java.lang.Number" = cast %6 @java.type:"java.lang.Number";
+                    var.store %3 %7;
+                    %8 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %9 : java.type:"java.lang.Integer" = field.load %8 @java.ref:"ErasedAccessTest$UnboundedInteger::x:java.lang.Object";
+                    %10 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %9 @java.type:"java.lang.Comparable";
+                    %11 : java.type:"java.io.Serializable" = cast %10 @java.type:"java.io.Serializable";
+                    %12 : java.type:"java.lang.Number" = cast %11 @java.type:"java.lang.Number";
+                    var.store %3 %12;
+                    %13 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %14 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %13 @java.type:"java.lang.Comparable";
+                    %15 : java.type:"java.io.Serializable" = cast %14 @java.type:"java.io.Serializable";
+                    %16 : java.type:"java.lang.Number" = cast %15 @java.type:"java.lang.Number";
+                    var.store %3 %16;
+                    %17 : java.type:"ErasedAccessTest$UnboundedInteger" = var.load %2;
+                    %18 : java.type:"java.lang.Integer" = invoke %17 @java.ref:"ErasedAccessTest$UnboundedInteger::getX():java.lang.Object";
+                    %19 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %18 @java.type:"java.lang.Comparable";
+                    %20 : java.type:"java.io.Serializable" = cast %19 @java.type:"java.io.Serializable";
+                    %21 : java.type:"java.lang.Number" = cast %20 @java.type:"java.lang.Number";
+                    var.store %3 %21;
+                    return;
+                };
+                """)
+        @Reflect
+        void testIntersectionCast(UnboundedInteger test) {
+            Object o;
+
+            // simple field name
+            o = (Number & Comparable<Integer> & Serializable) x;
+
+            // qualified field name
+            o = (Number & Comparable<Integer> & Serializable) test.x;
+
+            // simple method name
+            o = (Number & Comparable<Integer> & Serializable) getX();
+
+            // qualified method name
+            o = (Number & Comparable<Integer> & Serializable) test.getX();
         }
 
         void o(Object o) { }
@@ -1934,6 +1981,52 @@ public class ErasedAccessTest {
             o = (Object) test.getX();
             n = (Number) test.getX();
             i = (Integer) test.getX();
+        }
+
+        @IR("""
+                func @"testIntersectionCast" (%0 : java.type:"ErasedAccessTest$BoundedInteger", %1 : java.type:"ErasedAccessTest$BoundedInteger")java.type:"void" -> {
+                    %2 : Var<java.type:"ErasedAccessTest$BoundedInteger"> = var %1 @"test";
+                    %3 : Var<java.type:"java.lang.Object"> = var @"o";
+                    %4 : java.type:"java.lang.Integer" = field.load %0 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %5 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %4 @java.type:"java.lang.Comparable";
+                    %6 : java.type:"java.io.Serializable" = cast %5 @java.type:"java.io.Serializable";
+                    %7 : java.type:"java.lang.Number" = cast %6 @java.type:"java.lang.Number";
+                    var.store %3 %7;
+                    %8 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %9 : java.type:"java.lang.Integer" = field.load %8 @java.ref:"ErasedAccessTest$BoundedInteger::x:java.lang.Number";
+                    %10 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %9 @java.type:"java.lang.Comparable";
+                    %11 : java.type:"java.io.Serializable" = cast %10 @java.type:"java.io.Serializable";
+                    %12 : java.type:"java.lang.Number" = cast %11 @java.type:"java.lang.Number";
+                    var.store %3 %12;
+                    %13 : java.type:"java.lang.Integer" = invoke %0 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %14 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %13 @java.type:"java.lang.Comparable";
+                    %15 : java.type:"java.io.Serializable" = cast %14 @java.type:"java.io.Serializable";
+                    %16 : java.type:"java.lang.Number" = cast %15 @java.type:"java.lang.Number";
+                    var.store %3 %16;
+                    %17 : java.type:"ErasedAccessTest$BoundedInteger" = var.load %2;
+                    %18 : java.type:"java.lang.Integer" = invoke %17 @java.ref:"ErasedAccessTest$BoundedInteger::getX():java.lang.Number";
+                    %19 : java.type:"java.lang.Comparable<java.lang.Integer>" = cast %18 @java.type:"java.lang.Comparable";
+                    %20 : java.type:"java.io.Serializable" = cast %19 @java.type:"java.io.Serializable";
+                    %21 : java.type:"java.lang.Number" = cast %20 @java.type:"java.lang.Number";
+                    var.store %3 %21;
+                    return;
+                };
+                """)
+        @Reflect
+        void testIntersectionCast(BoundedInteger test) {
+            Object o;
+
+            // simple field name
+            o = (Number & Comparable<Integer> & Serializable) x;
+
+            // qualified field name
+            o = (Number & Comparable<Integer> & Serializable) test.x;
+
+            // simple method name
+            o = (Number & Comparable<Integer> & Serializable) getX();
+
+            // qualified method name
+            o = (Number & Comparable<Integer> & Serializable) test.getX();
         }
 
         void o(Object o) { }

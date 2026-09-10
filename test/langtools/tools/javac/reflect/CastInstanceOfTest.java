@@ -22,6 +22,8 @@
  */
 
 import jdk.incubator.code.Reflect;
+
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
@@ -145,5 +147,21 @@ public class CastInstanceOfTest {
             """)
     void test7(Object o) {
         boolean b = o instanceof java.lang.String;
+    }
+
+    @Reflect
+    @IR("""
+            func @"test8" (%0 : java.type:"CastInstanceOfTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
+                %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
+                %3 : java.type:"java.lang.Object" = var.load %2;
+                %4 : java.type:"java.lang.Runnable" = cast %3 @java.type:"java.lang.Runnable";
+                %5 : java.type:"java.io.Serializable" = cast %4 @java.type:"java.io.Serializable";
+                %6 : java.type:"java.lang.Number" = cast %5 @java.type:"java.lang.Number";
+                %7 : Var<java.type:"java.lang.Object"> = var %6 @"o2";
+                return;
+            };
+            """)
+    void test8(Object o) {
+        Object o2 = (Number & Runnable & Serializable)o;
     }
 }
