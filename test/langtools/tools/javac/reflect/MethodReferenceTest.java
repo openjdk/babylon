@@ -32,7 +32,9 @@ import java.util.function.Supplier;
  * @test
  * @summary Smoke test for code reflection with method reference expressions.
  * @modules jdk.incubator.code
- * @compile MethodReferenceTest.java
+ * @build MethodReferenceTest
+ * @build CodeReflectionTester
+ * @run main CodeReflectionTester MethodReferenceTest
  */
 
 public class MethodReferenceTest {
@@ -111,9 +113,10 @@ public class MethodReferenceTest {
                     %7 : java.type:"MethodReferenceTest::A<java.lang.String>" = var.load %3;
                     %8 : java.type:"java.lang.String" = var.load %6;
                     %9 : java.type:"java.lang.String" = invoke %7 %8 @java.ref:"MethodReferenceTest::A::m(java.lang.Object):java.lang.Object";
-                    return %9;
+                    %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                    return %10;
                 };
-                %10 : Var<java.type:"java.util.function.Function<java.lang.String, java.lang.String>"> = var %4 @"f";
+                %11 : Var<java.type:"java.util.function.Function<java.lang.String, java.lang.String>"> = var %4 @"f";
                 return;
             };
             """)

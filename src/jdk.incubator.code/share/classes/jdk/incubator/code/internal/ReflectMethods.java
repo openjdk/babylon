@@ -65,6 +65,7 @@ import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCConstantCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCDefaultCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression.CodeReflectionInfo;
@@ -744,9 +745,19 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (sourceType.isReference() && targetType.isReference() &&
-                    !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
-                return append(JavaOp.cast(typeToCodeType(targetType), sourceValue));
+            // primitive target requires care: if target is "int", but source
+            // expression has (after type subst) type "Integer", we should still
+            // emit a synthetic cast to "Integer" (if needed)
+            Type refTarget = targetType.isPrimitive() ?
+                    codeTypeToType(sourceValue.type()) :
+                    targetType;
+
+            if (sourceType.isReference() && refTarget.isReference() &&
+                    !types.isSubtype(types.erasure(sourceType), types.erasure(refTarget))) {
+                // the generated synthetic cast uses a raw type as type operand,
+                // but preserves full static type info in the result type
+                sourceValue = append(JavaOp.cast(typeToCodeType(refTarget),
+                        typeToCodeType(types.erasure(refTarget)), sourceValue));
             }
             return convert(sourceValue, targetType);
         }
@@ -1048,7 +1059,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         if (sym.isStatic()) {
                             result = append(JavaOp.fieldLoad(resultType, fr));
                         } else {
-                            result = append(JavaOp.fieldLoad(resultType, fr, thisValue()));
+                            result = coerce(
+                                    append(JavaOp.fieldLoad(resultType, fr, thisValue())),
+                                    sym.erasure(types),
+                                    pt);
                         }
                     }
                 }
@@ -1081,7 +1095,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             Type qualifierTarget = qualifierTarget(tree);
             // @@@: might cause redundant load if accessed symbol is static but the qualifier is not a type
-            Value receiver = toValue(tree.selected);
+            Value receiver = toValue(tree.selected, qualifierTarget);
 
             if (tree.name.equals(names._class)) {
                 result = append(CoreOp.constant(JavaType.J_L_CLASS, typeToCodeType(tree.selected.type)));
@@ -1104,7 +1118,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             if (sym.isStatic()) {
                                 result = append(JavaOp.fieldLoad(resultType, fr));
                             } else {
-                                result = append(JavaOp.fieldLoad(resultType, fr, receiver));
+                                result = coerce(
+                                        append(JavaOp.fieldLoad(resultType, fr, receiver)),
+                                        sym.erasure(types),
+                                        pt);
                             }
                         }
                     }
@@ -1155,7 +1172,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JavaType resultType = typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
-                    Value res = append(iop);
+                    Value res = coerce(
+                            append(iop),
+                            sym.erasure(types).getReturnType(),
+                            pt);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1203,7 +1223,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     JavaType resultType = typeToCodeType(tree.type);
                     JavaOp.InvokeOp iop = JavaOp.invoke(ik, tree.varargsElement != null,
                             resultType, mr, args);
-                    Value res = append(iop);
+                    Value res = coerce(
+                            append(iop),
+                            sym.erasure(types).getReturnType(),
+                            pt);
                     if (sym.type.getReturnType().getTag() != TypeTag.VOID) {
                         result = res;
                     }
@@ -1246,32 +1269,20 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Type selectedType = types.skipTypeVars(tree.selected.type, true);
             return selectedType.isCompound() ?
                     tree.sym.owner.type :
-                    Type.noType;
+                    tree.selected.type;
         }
 
         @Override
         public void visitTypeCast(JCTree.JCTypeCast tree) {
-            Value v = toValue(tree.expr);
-
-            Type expressionType = tree.expr.type;
-            Type type = tree.type;
-            if (expressionType.isPrimitive() && type.isPrimitive()) {
-                if (expressionType.equals(type)) {
-                    // Redundant cast
-                    result = v;
-                } else {
-                    result = append(JavaOp.conv(typeToCodeType(type), v));
-                }
-            } else if (expressionType.isPrimitive() || type.isPrimitive()) {
-                result = convert(v, tree.type);
-            } else if (!expressionType.hasTag(BOT) &&
-                    types.isAssignable(expressionType, type)) {
-                // Redundant cast
-                result = v;
+            // @@@: what about intersection type target?
+            if (tree.expr.type.hasTag(BOT)) {
+                Value v = toValue(tree.expr);
+                result = append(JavaOp.cast(
+                        typeToCodeType(tree.type),
+                        typeToCodeType(types.erasure(tree.type)),
+                        v));
             } else {
-                // Reference cast
-                JavaType jt = typeToCodeType(types.erasure(type));
-                result = append(JavaOp.cast(typeToCodeType(type), jt, v));
+                result = toValue(tree.expr, tree.type);
             }
         }
 
@@ -1406,6 +1417,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             // Create the match operation
             return append(JavaOp.match(target, patternBody, matchBody));
+        }
+
+        @Override
+        public void visitExec(JCExpressionStatement tree) {
+            toValue(tree.expr); // no target
+            result = null;
         }
 
         @Override
@@ -1617,7 +1634,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitSwitchExpression(JCTree.JCSwitchExpression tree) {
-            Value target = toValue(tree.selector);
+            Value target = toValue(tree.selector, tree.selector.type);
 
             Type switchType = adaptBottom(tree.type);
             FunctionType caseBodyType = CoreType.functionType(typeToCodeType(switchType));
@@ -1630,7 +1647,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitSwitch(JCTree.JCSwitch tree) {
-            Value target = toValue(tree.selector);
+            Value target = toValue(tree.selector, tree.selector.type);
 
             FunctionType actionType = CoreType.FUNCTION_TYPE_VOID;
 
@@ -1836,8 +1853,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     pushBody(c.body, caseBodyType);
 
                     if (c.body instanceof JCTree.JCExpression e) {
-                        Type yieldType = adaptBottom(tree.type);
+                        Type yieldType = adaptBottom(e.type);
                         Value bodyVal = toValue(e, yieldType);
+                        bodyVal = coerce(bodyVal, yieldType, tree.type);
                         append(CoreOp.core_yield(bodyVal));
                     } else if (c.body instanceof JCTree.JCStatement s) { // this includes Block
                         // Otherwise there is a yield statement
@@ -1897,8 +1915,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitYield(JCTree.JCYield tree) {
-            Type yieldType = adaptBottom(tree.target.type);
+            Type yieldType = adaptBottom(tree.value.type);
             Value retVal = toValue(tree.value, yieldType);
+            retVal = coerce(retVal, yieldType, tree.target.type);
             result = append(JavaOp.java_yield(retVal));
         }
 
@@ -2164,14 +2183,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
             result = append(JavaOp.conditionalExpression(typeToCodeType(condType), predicateBody, trueBody, falseBody));
         }
 
-        private Type condType(JCExpression tree, Type type) {
-            if (type.hasTag(BOT)) {
-                return adaptBottom(tree.type);
-            } else {
-                return type;
-            }
-        }
-
         private Type adaptBottom(Type type) {
             return type.hasTag(BOT) ?
                     (pt.hasTag(NONE) ? syms.objectType : pt) :
@@ -2202,7 +2213,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 pushBody(detail,
                         CoreType.functionType(typeToCodeType(tree.detail.type)));
-                Value detailVal = toValue(detail);
+                Value detailVal = toValue(detail, tree.detail.type);
 
                 append(CoreOp.core_yield(detailVal));
                 bodies.add(stack.body);
@@ -2240,7 +2251,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public void visitSynchronized(JCTree.JCSynchronized tree) {
             // Push expr
             pushBody(tree.lock, CoreType.functionType(typeToCodeType(tree.lock.type)));
-            Value last = toValue(tree.lock);
+            Value last = toValue(tree.lock, tree.lock.type);
             append(CoreOp.core_yield(last));
             Body.Builder expr = stack.body;
 
@@ -2530,7 +2541,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitThrow(JCTree.JCThrow tree) {
-            Value throwVal = toValue(tree.expr);
+            Value throwVal = toValue(tree.expr, tree.expr.type);
             result = append(JavaOp.throw_(throwVal));
         }
 
