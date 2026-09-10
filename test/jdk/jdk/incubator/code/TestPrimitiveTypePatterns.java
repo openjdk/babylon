@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.runtime.ExactConversionsSupport;
@@ -267,7 +268,7 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testNarrowingReferenceUnboxing() {
+    void testNarrowingReferenceUnboxing() throws Throwable {
         FuncOp f = getFuncOp("narrowingReferenceUnboxing");
         System.out.println(f.toText());
 
@@ -277,6 +278,11 @@ public class TestPrimitiveTypePatterns {
         Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, 1));
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1));
         Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Number) null));
+
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (Number n : new Number[]{1, (short) 1, null}) {
+            Assertions.assertEquals(narrowingReferenceUnboxing(n), mh.invoke(n));
+        }
     }
 
     @Reflect

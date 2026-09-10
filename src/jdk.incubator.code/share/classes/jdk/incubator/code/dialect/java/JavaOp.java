@@ -6445,7 +6445,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                 // Check if instance of target type
                 Op p; // op that perform type check
-                Op c; // op that perform conversion
+                BiFunction<Block.Builder, Value, Op.Result> c; // logic that append the op performing conversion
                 CodeType s = target.type();
                 CodeType t = targetType;
                 if (t instanceof PrimitiveType pt) {
@@ -6462,7 +6462,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             box = cs;
                             p = neq(target, currentBlock.add(constant(s, null)));
                         }
-                        c = invoke(MethodRef.method(box, t + "Value", t), target);
+                        c = (b, v) -> {
+                            // e.g. Object -> int, we need to cast target to Integer then invoke Integer#intValue
+                            if (cs.unbox().isEmpty())   v = b.add(cast(box, v));
+                            return b.add(invoke(MethodRef.method(box, t + "Value", t), v));
+                        };
                     } else {
                         // primitive to primitive conversion
                         PrimitiveType ps = ((PrimitiveType) s);
@@ -6476,7 +6480,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         } else {
                             p = null;
                         }
-                        c = conv(targetType, target);
+                        c = (b, v) -> b.add(conv(targetType, v));
                     }
                 } else if (s instanceof PrimitiveType ps) {
                     // boxing conversions
@@ -6484,14 +6488,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     // e.g. byte -> Byte, boxing
                     p = null;
                     ClassType box = ps.box().orElseThrow();
-                    c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
+                    c = (b, v) -> b.add(invoke(MethodRef.method(box, "valueOf", box, ps), v));
                 } else {
                     // reference to reference
                     // e.g. Character -> Character
                     // e.g. Number -> Double, narrowing
                     // e.g. Short -> Object, widening
                     p = instanceOf(targetType, target);
-                    c = s.equals(t) ? null : cast(targetType, target);
+                    c = s.equals(t) ? null : (b, v) -> b.add(cast(targetType, v));
                 }
 
                 if (p != null) {
@@ -6501,7 +6505,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     currentBlock = nextBlock;
                 }
                 if (c != null) {
-                    target = currentBlock.add(c);
+                    target = c.apply(currentBlock, target);
                 }
 
                 bindings.add(target);
