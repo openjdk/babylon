@@ -1274,15 +1274,32 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitTypeCast(JCTree.JCTypeCast tree) {
-            // @@@: what about intersection type target?
+            Type castTarget = tree.type;
+            List<Type> additionalTargets = new ArrayList<>();
+            if (tree.type instanceof Type.IntersectionClassType ict) {
+                // TransTypes emits a component casts following source order,
+                // but leaves the first component (the erasure of the intersection) last.
+                Type principalComponent = ict.getExplicitComponents().head;
+                castTarget = ict.getExplicitComponents().tail.head;
+                additionalTargets = ict.getExplicitComponents()
+                        .tail.tail.append(principalComponent);
+            }
             if (tree.expr.type.hasTag(BOT)) {
                 Value v = toValue(tree.expr);
                 result = append(JavaOp.cast(
                         typeToCodeType(tree.type),
-                        typeToCodeType(types.erasure(tree.type)),
+                        typeToCodeType(types.erasure(castTarget)),
                         v));
             } else {
-                result = toValue(tree.expr, tree.type);
+                result = toValue(tree.expr, castTarget);
+            }
+            for (Type t : additionalTargets) {
+                Type ec = types.erasure(t);
+                if (!types.isSameType(ec, types.erasure(pt))) {
+                    // TransTypes skip components that have same erasure
+                    // as the outer target type
+                    result = coerce(result, codeTypeToType(result.type()), ec);
+                }
             }
         }
 
