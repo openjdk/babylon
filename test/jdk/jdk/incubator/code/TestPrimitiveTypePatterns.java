@@ -275,13 +275,11 @@ public class TestPrimitiveTypePatterns {
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, 1));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Number) null));
-
         MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
         for (Number n : new Number[]{1, (short) 1, null}) {
-            Assertions.assertEquals(narrowingReferenceUnboxing(n), mh.invoke(n));
+            boolean expected = narrowingReferenceUnboxing(n);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, n));
+            Assertions.assertEquals(expected, mh.invoke(n));
         }
     }
 
