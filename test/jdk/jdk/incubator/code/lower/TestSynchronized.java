@@ -96,7 +96,7 @@ public class TestSynchronized {
                 %7 : java.type:"int" = var.load %3;
                 %8 : java.type:"int" = constant @0;
                 %9 : java.type:"boolean" = gt %7 %8;
-                cbranch %9 ^block_3 ^block_5;
+                cbranch %9 ^block_3 ^block_6;
 
               ^block_3:
                 %10 : java.type:"int" = constant @-1;
@@ -105,9 +105,6 @@ public class TestSynchronized {
 
               ^block_4:
                 return %10;
-
-              ^block_5:
-                branch ^block_6;
 
               ^block_6:
                 %11 : java.type:"int" = var.load %3;
@@ -171,7 +168,7 @@ public class TestSynchronized {
                 %12 : java.type:"int" = var.load %3;
                 %13 : java.type:"int" = constant @0;
                 %14 : java.type:"boolean" = gt %12 %13;
-                cbranch %14 ^block_5 ^block_7;
+                cbranch %14 ^block_5 ^block_8;
 
               ^block_5:
                 %15 : java.type:"int" = var.load %3;
@@ -180,9 +177,6 @@ public class TestSynchronized {
 
               ^block_6:
                 branch ^block_10(%15);
-
-              ^block_7:
-                branch ^block_8;
 
               ^block_8:
                 %16 : java.type:"int" = constant @0;
@@ -238,7 +232,7 @@ public class TestSynchronized {
                 %8 : java.type:"int" = var.load %3;
                 %9 : java.type:"int" = constant @0;
                 %10 : java.type:"boolean" = gt %8 %9;
-                cbranch %10 ^block_3 ^block_5;
+                cbranch %10 ^block_3 ^block_6;
 
               ^block_3:
                 %11 : java.type:"int" = constant @42;
@@ -248,9 +242,6 @@ public class TestSynchronized {
 
               ^block_4:
                 branch ^block_7;
-
-              ^block_5:
-                branch ^block_6;
 
               ^block_6:
                 %12 : java.type:"int" = var.load %3;
@@ -318,7 +309,7 @@ public class TestSynchronized {
                 %13 : java.type:"int" = var.load %3;
                 %14 : java.type:"int" = constant @0;
                 %15 : java.type:"boolean" = gt %13 %14;
-                cbranch %15 ^block_5 ^block_7;
+                cbranch %15 ^block_5 ^block_8;
 
               ^block_5:
                 %16 : java.type:"int" = constant @42;
@@ -328,9 +319,6 @@ public class TestSynchronized {
 
               ^block_6:
                 branch ^block_10;
-
-              ^block_7:
-                branch ^block_8;
 
               ^block_8:
                 %17 : java.type:"int" = var.load %3;

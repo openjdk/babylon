@@ -221,7 +221,7 @@ public class TestPE {
                  %6 : java.type:"int" = constant @3;
                  invoke %5 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                  %7 : java.type:"boolean" = field.load %0 @java.ref:"TestPE::b:boolean";
-                 cbranch %7 ^block_1 ^block_2;
+                 cbranch %7 ^block_1 ^block_3;
 
                ^block_1:
                  %8 : java.type:"java.util.function.IntConsumer" = var.load %2;
@@ -280,9 +280,6 @@ public class TestPE {
                  invoke %46 %47 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                  branch ^block_3;
 
-               ^block_2:
-                 branch ^block_3;
-
                ^block_3:
                  %48 : java.type:"java.util.function.IntConsumer" = var.load %2;
                  %49 : java.type:"int" = constant @9;
@@ -297,7 +294,7 @@ public class TestPE {
                    %3 : java.type:"int" = constant @3;
                    invoke %1 %3 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                    %4 : java.type:"boolean" = field.load %0 @java.ref:"TestPE::b:boolean";
-                   cbranch %4 ^block_1 ^block_2;
+                   cbranch %4 ^block_1 ^block_3;
 
                  ^block_1:
                    %5 : java.type:"int" = constant @5;
@@ -334,9 +331,6 @@ public class TestPE {
                    invoke %1 %23 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                    %24 : java.type:"int" = constant @8;
                    invoke %1 %24 @java.ref:"java.util.function.IntConsumer::accept(int):void";
-                   branch ^block_3;
-
-                 ^block_2:
                    branch ^block_3;
 
                  ^block_3:
@@ -567,7 +561,7 @@ public class TestPE {
               ^block_2(%8 : java.type:"int"):
                 %9 : java.type:"int" = constant @2;
                 %10 : java.type:"boolean" = ge %8 %9;
-                cbranch %10 ^block_3 ^block_6;
+                cbranch %10 ^block_3 ^block_7;
 
               ^block_3:
                 %11 : java.type:"boolean" = ge %8 %2;
@@ -579,9 +573,6 @@ public class TestPE {
                 return;
 
               ^block_5:
-                branch ^block_7;
-
-              ^block_6:
                 branch ^block_7;
 
               ^block_7:
@@ -649,7 +640,7 @@ public class TestPE {
               ^block_2(%6 : java.type:"int"):
                 %7 : java.type:"int" = constant @2;
                 %8 : java.type:"boolean" = ge %6 %7;
-                cbranch %8 ^block_3 ^block_6;
+                cbranch %8 ^block_3 ^block_7;
 
               ^block_3:
                 %9 : java.type:"boolean" = ge %6 %2;
@@ -661,9 +652,6 @@ public class TestPE {
                 return;
 
               ^block_5:
-                branch ^block_7;
-
-              ^block_6:
                 branch ^block_7;
 
               ^block_7:
