@@ -572,8 +572,10 @@ public final class BytecodeLift {
                                                             bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
 
                         Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, inst.name().toString(), mtd, inst.bootstrapArgs());
+                        Value bootstrapResult = op(JavaOp.invoke(bsmRef, bootstrapArgs));
+                        Value callSite = op(JavaOp.cast(JavaType.type(ConstantDescs.CD_CallSite), bootstrapResult));
                         Value methodHandle = op(JavaOp.invoke(MethodRef.method(CallSite.class, "dynamicInvoker", MethodHandle.class),
-                                                    op(JavaOp.invoke(JavaType.type(ConstantDescs.CD_CallSite), bsmRef, bootstrapArgs))));
+                                                    callSite));
 
                         //invocation
                         List<Value> operands = new ArrayList<>();
@@ -805,12 +807,17 @@ public final class BytecodeLift {
             case DynamicConstantDesc<?> dcd -> {
                 DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
                 MethodTypeDesc bsmDesc = bsm.invocationType();
-                Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, dcd.constantName(), dcd.constantType(), dcd.bootstrapArgsList());
                 MethodRef bsmRef = MethodRef.method(JavaType.type(bsm.owner()),
                                                     bsm.methodName(),
                                                     JavaType.type(bsmDesc.returnType()),
                                                     bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
-                yield op(JavaOp.invoke(bsmRef, bootstrapArgs));
+
+                Value[] bootstrapArgs = liftBootstrapArgs(bsmDesc, dcd.constantName(), dcd.constantType(), dcd.bootstrapArgsList());
+                Op.Result bootstrapResult = op(JavaOp.invoke(bsmRef, bootstrapArgs));
+                JavaType constantType = JavaType.type(dcd.constantType());
+                yield bootstrapResult.type().equals(constantType)
+                        ? bootstrapResult
+                        : op(JavaOp.cast(constantType, bootstrapResult));
             }
             case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
             case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
