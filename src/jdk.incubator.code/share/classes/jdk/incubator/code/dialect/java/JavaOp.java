@@ -3278,7 +3278,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             boolean isNumBodiesOdd = bodies.size() % 2 != 0; // odd num of bodies indicates the last one is for else
             List<Block.Builder> builders = new ArrayList<>();
             for (int i = 0; i < bodies.size(); i += 2) {
-                if (isNumBodiesOdd && i == bodies.size() - 1) {
+                if (i == bodies.size() - 1) {
                     builders.add(b.block());
                 } else {
                     builders.add(i == 0 ? b : b.block());
@@ -3289,7 +3289,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             for (int i = 0; i < bodies.size(); i += 2) {
                 Body actionBody;
                 Block.Builder action;
-                if (isNumBodiesOdd && i == bodies.size() - 1) {
+                if (i == bodies.size() - 1) {
                     actionBody = bodies.get(i);
                     action = builders.get(i);
                 } else {
@@ -3299,11 +3299,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     Block.Builder pred = builders.get(i);
                     action = builders.get(i + 1);
 
-                    Block.Builder next = i + 2 < builders.size() ? builders.get(i + 2) : null;
+                    Block.Builder next = i + 2 < builders.size() ? builders.get(i + 2) : exit;
                     pred.transformBody(predBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                         if (op instanceof CoreOp.YieldOp yo) {
                             block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                                    action.reference(), next != null ? next.reference() : exit.reference()));
+                                    action.reference(), next.reference()));
                             return block;
                         } else {
                             return null;
