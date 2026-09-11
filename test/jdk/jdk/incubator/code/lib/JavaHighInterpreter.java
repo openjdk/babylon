@@ -174,6 +174,9 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         for (int i = 0; action == null; i += 2) {
             if (i == bodies.size() - 1) {
                 action = bodies.get(i);
+            } else if (i > bodies.size() - 1) {
+                // no action to execute and no else
+                return new OpResultEffect(null, e);
             } else {
                 Body pred = bodies.get(i);
                 var condEffect = executeBody(pred, List.of(), e);

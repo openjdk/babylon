@@ -3223,6 +3223,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                 return new IfOp(bodies);
             }
+
+            //@@@ user shouldn't have to add an empty else to complete the building of IfOp
         }
 
         static final String NAME = "java.if";
@@ -3256,15 +3258,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             super(List.of());
 
-            // Normalize by adding an empty else action
-            // @@@ Is this needed?
-            if (bodyCs.size() % 2 == 0) {
-                bodyCs = new ArrayList<>(bodyCs);
-                Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
-                        CoreType.FUNCTION_TYPE_VOID);
-                end.entryBlock().add(core_yield());
-                bodyCs.add(end);
-            }
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
@@ -3315,7 +3308,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     Block.Builder pred = builders.get(i);
                     action = builders.get(i + 1);
-                    Block.Builder nextAction = builders.get(i + 2);
+                    Block.Builder nextAction = i + 2 < builders.size() ? builders.get(i + 2) : exit;
 
                     ControlFlowBooleanExpressionOp.lowerBooleanBody(pred, predBody, List.of(),
                             new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(action.reference(), nextAction.reference()),
