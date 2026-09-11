@@ -722,6 +722,21 @@ public class BoxingConversionTest {
 
     @Reflect
     @IR("""
+            func @"test34" (%0 : java.type:"java.lang.Integer")java.type:"void" -> {
+                %1 : Var<java.type:"java.lang.Integer"> = var %0 @"i";
+                %2 : java.type:"java.lang.Integer" = var.load %1;
+                %3 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
+                %4 : java.type:"long" = conv %3;
+                %5 : Var<java.type:"long"> = var %4 @"l";
+                return;
+            };
+            """)
+    static void test34(Integer i) {
+        long l = i;
+    }
+
+    @Reflect
+    @IR("""
             func @"unboxForEachList" (%0 : java.type:"java.util.List<java.lang.Integer>")java.type:"int" -> {
                 %1 : Var<java.type:"java.util.List<java.lang.Integer>"> = var %0 @"li";
                 %2 : java.type:"int" = constant @0;
@@ -732,19 +747,20 @@ public class BoxingConversionTest {
                         yield %4;
                     }
                     (%5 : java.type:"java.lang.Integer")Var<java.type:"int"> -> {
-                        %6 : java.type:"int" = invoke %5 @java.ref:"java.lang.Integer::intValue():int";
-                        %7 : Var<java.type:"int"> = var %6 @"i";
-                        yield %7;
+                        %6 : java.type:"java.lang.Integer" = cast %5 @java.type:"java.lang.Integer";
+                        %7 : java.type:"int" = invoke %6 @java.ref:"java.lang.Integer::intValue():int";
+                        %8 : Var<java.type:"int"> = var %7 @"i";
+                        yield %8;
                     }
-                    (%8 : Var<java.type:"int">)java.type:"void" -> {
-                        %9 : java.type:"int" = var.load %3;
-                        %10 : java.type:"int" = var.load %8;
-                        %11 : java.type:"int" = add %9 %10;
-                        var.store %3 %11;
+                    (%9 : Var<java.type:"int">)java.type:"void" -> {
+                        %10 : java.type:"int" = var.load %3;
+                        %11 : java.type:"int" = var.load %9;
+                        %12 : java.type:"int" = add %10 %11;
+                        var.store %3 %12;
                         java.continue;
                     };
-                %12 : java.type:"int" = var.load %3;
-                return %12;
+                %13 : java.type:"int" = var.load %3;
+                return %13;
             };
             """)
     static int unboxForEachList(List<Integer> li) {

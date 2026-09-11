@@ -846,11 +846,6 @@ public final class BytecodeGenerator {
                                                       "invokeExact",
                                                       mDesc.insertParameterTypes(0, specialCaller));
                         }
-                        ClassDesc ret = toClassDesc(op.resultType());
-                        if (!ret.isPrimitive() && !ret.equals(mDesc.returnType())) {
-                            // Explicit cast if method return type differs
-                            cob.checkcast(ret);
-                        }
                         push(op.result());
                     }
                     case FuncCallOp op -> {
@@ -1069,11 +1064,6 @@ public final class BytecodeGenerator {
                             fieldType);
         }
         if (!store) {
-            ClassDesc ret = toClassDesc(op.resultType());
-            if (!ret.isPrimitive() && !ret.equals(fieldType)) {
-                // Explicit cast if field type differs
-                cob.checkcast(ret);
-            }
             push(op.result());
         }
     }
