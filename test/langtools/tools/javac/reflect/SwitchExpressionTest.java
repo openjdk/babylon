@@ -594,9 +594,6 @@ public class SwitchExpressionTest {
                     ()java.type:"void" -> {
                         %12 : java.type:"int" = constant @1;
                         return %12;
-                    }
-                    ()java.type:"void" -> {
-                        yield;
                     };
                 %13 : java.type:"int" = constant @0;
                 return %13;
