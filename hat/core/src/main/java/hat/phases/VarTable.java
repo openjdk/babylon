@@ -40,6 +40,7 @@ public class VarTable implements Trxfmr.Listener {
         VECTOR,
         TENSOR,
         TENSOR_SHAPE,
+        TILE
     }
 
     /**

@@ -981,4 +981,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
     }
 
+    static boolean isKlassUsed(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, Class<?> klass) {
+        return OpHelper.Invoke.stream(lookup, funcOp)
+                .filter(invoke -> !invoke.returnsVoid())
+                .anyMatch(invoke -> invoke.refIs(klass));
+    }
+
 }

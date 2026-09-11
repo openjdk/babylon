@@ -66,7 +66,7 @@ import static hat.examples.common.StatUtils.dumpStatsToCSVFile;
 public class Main {
 
     @Reflect
-    public static void mxmTensorsCM( F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
+    public static void mxmTensorsCM(F16Array matrixA, F16Array matrixB, F32Array matrixC, int size) {
         final int shapeSize = 16;
         final int WMMA_M = shapeSize;
         final int WMMA_N = shapeSize;

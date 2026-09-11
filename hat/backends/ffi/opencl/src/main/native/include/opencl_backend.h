@@ -155,7 +155,7 @@ public:
 
     OpenCLProgram *compileProgram(int len, char *source);
 
-    CompilationUnit *compile(int len, char *source) override;
+    CompilationUnit *compile(int len, char *source, int typeModel) override;
 
     void computeStart() override;
 

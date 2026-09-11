@@ -25,6 +25,8 @@
 package hat.phases;
 
 import hat.HATMath;
+import hat.TileContext;
+import hat.TileOp;
 import hat.device.NonMappableIface;
 import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
@@ -222,7 +224,15 @@ public interface HATPhaseUtils {
         return isReturnTensorValueOperation(invoke);
     }
 
-   static boolean isTensorCreate(OpHelper.Invoke invoke) {
+    static boolean isTileOperation(OpHelper.Invoke invoke) {
+        return isAlignOperation(invoke);
+    }
+
+    static boolean isAlignOperation(OpHelper.Invoke invoke) {
+        return !invoke.returnsVoid() && invoke.refIs(HATTilesPhase.TileAlign.class);
+    }
+
+    static boolean isTensorCreate(OpHelper.Invoke invoke) {
         return !invoke.returnsVoid() && invoke.refIs(HATTensorsPhase.TensorMarkers.class) && invoke.nameMatchesRegex("create|of");
     }
 
@@ -370,4 +380,19 @@ public interface HATPhaseUtils {
         return invoke.isPresent() && !invoke.get().returnsVoid() && invoke.get().returnsClassType() && invoke.get().refIs(HATMath.class);
     }
 
+    static int findValueIntExpression(Value v) {
+        return switch (OpHelper.asOpFromResultOrNull(v)) {
+            case CoreOp.VarAccessOp.VarLoadOp varLoadOp ->
+                    findValueIntExpression(varLoadOp.operands().getFirst()); //recurse
+            case CoreOp.VarOp varOp -> findValueIntExpression(varOp.operands().getFirst());
+            case CoreOp.ConstantOp constantOp -> {
+                if (constantOp.value() instanceof Integer i) {
+                    yield i;
+                }
+                yield -1;
+            }
+            case null -> -1;
+            default -> -1;
+        };
+    }
 }

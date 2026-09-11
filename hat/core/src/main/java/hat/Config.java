@@ -163,6 +163,10 @@ public class Config {
         return CHECK_SSA_LOWERING.isSet(this);
     }
 
+    public boolean info() {
+        return INFO.isSet(this);
+    }
+
     public static final List<Bit> bitList = List.of(
             PLATFORM,
             DEVICE,

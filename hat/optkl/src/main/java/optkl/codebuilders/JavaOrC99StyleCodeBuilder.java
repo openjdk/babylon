@@ -27,7 +27,9 @@ package optkl.codebuilders;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ArrayType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -112,10 +114,14 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
 
     @Override
-    public T type( JavaType javaType) {
+    public T type(JavaType javaType) {
+         blockInlineComment("javaType: " + javaType);
         return type(javaType.toString());
     }
 
+    public T type(CodeType codeType) {
+         return type(codeType.toString());
+    }
 
     @Override
     public T varLoadOp( CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
@@ -252,8 +258,6 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         }
         return self();
     }
-
-
 
     @Override
     public final  T tupleOp( CoreOp.TupleOp tupleOp) {
@@ -449,8 +453,8 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return self();
     }
 
-    public final  T declareParam( FuncOpParams.Info param){
-        return  type((JavaType) param.parameter.type()).sp().varName(param.varOp);
+    public T declareParam(FuncOpParams.Info param) {
+        return type((JavaType) param.parameter.type()).sp().varName(param.varOp);
     }
 
     @Override
@@ -499,16 +503,26 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
     @Override
     public T enhancedForOp(JavaOp.EnhancedForOp enhancedForOp){
-        forKeyword().paren(_-> {
-            enhancedForOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
-            sp().colon().sp().blockInlineComment("Get rid of = before this");
-            enhancedForOp.exprBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
-        }).braceNlIndented(_->
-            nlSeparated(OpHelper.Statement.bodyStatements(enhancedForOp.loopBody()),
-                    this::statement
-            )
-
-        );
+        scopedCodeBuilderContext().enhancedForScope(enhancedForOp, () -> {
+            forKeyword().paren(_ -> {
+//            enhancedForOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
+                enhancedForOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> {
+                    CoreOp.YieldOp yieldOp = (CoreOp.YieldOp) o;
+                    CodeType type = yieldOp.yieldValue().type();
+                    if (type instanceof VarType varType) {
+                        CodeType codeType1 = varType.valueType();
+                        type(codeType1).sp();
+                    }
+                    Block.Parameter param = enhancedForOp.initBody().entryBlock().parameters().getFirst();
+                    if (param.declaringBlock().firstOp() instanceof CoreOp.VarOp varOp) {
+                        varName(varOp);
+                    }
+                });
+                sp().colon().sp();
+                enhancedForOp.exprBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse(o));
+            }).braceNlIndented(_ ->
+                    nlSeparated(OpHelper.Statement.bodyStatements(enhancedForOp.loopBody()), this::statement));
+        });
         return self();
     }
 

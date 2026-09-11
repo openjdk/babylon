@@ -313,14 +313,9 @@ public record HATTensorsPhase() implements HATPhase {
         return funcOp;
     }
 
-    @FunctionalInterface
-    private interface ActionTensorTransformer {
-        CoreOp.FuncOp apply(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable);
-    }
-
     @Override
     public CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
-        List<ActionTensorTransformer> tensorTransformer = List.of(
+        List<ActionTransformer> tensorTransformer = List.of(
                 this::createTensorsToRelocate,
                 this::createTensors,
                 this::tensorShape,

@@ -25,6 +25,7 @@
 package optkl;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -43,14 +44,14 @@ public class FuncOpParams {
     public static class Info {
         public final int idx;
         public final Block.Parameter parameter;
-        public final JavaType javaType;
+        public final CodeType javaType;
         public final CoreOp.VarOp varOp;
         public Class<?> clazz = null;
 
         Info(int idx, Block.Parameter parameter, CoreOp.VarOp varOp) {
             this.idx = idx;
             this.parameter = parameter;
-            this.javaType = (JavaType) parameter.type();
+            this.javaType = parameter.type();
             this.varOp = varOp;
         }
 

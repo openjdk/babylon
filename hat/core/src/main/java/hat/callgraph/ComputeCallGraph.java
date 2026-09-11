@@ -27,6 +27,7 @@ package hat.callgraph;
 import hat.ComputeContext;
 import hat.Config;
 import hat.KernelContext;
+import hat.TileContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import optkl.OpHelper;
@@ -88,25 +89,23 @@ public class ComputeCallGraph implements LookupCarrier {
 
     public ComputeCallGraph(ComputeContext computeContext, Method method, CoreOp.FuncOp entry) {
         this.computeContext = computeContext;
-        this.callDag = new MethodCallDag(lookup(), method,entry,null);
-        if (showComputeCallDag){
+        this.callDag = new MethodCallDag(lookup(), method, entry, null);
+        if (showComputeCallDag) {
             this.callDag.view("computeCallDag", n -> n.funcOp().funcName());
         }
 
-            callDag.rankOrdered.stream()
-                    .filter(m->m instanceof MethodCallDag.OtherMethodCall &&
+        callDag.rankOrdered
+                .stream()
+                .filter(m -> m instanceof MethodCallDag.OtherMethodCall &&
                         this.callDag.entryPoint.method().getDeclaringClass().equals(m.method().getDeclaringClass())
-                                && isValidKernelDispatch(computeContext.lookup(),m.method(),m.funcOp()))
-                .forEach(m-> kernelCallGraphMap.computeIfAbsent( m.methodRef(), _ ->
-                    new KernelCallGraph(this, m.method(), m.funcOp())
-            )
-        );
-
+                        && isValidKernelDispatch(computeContext.lookup(), m.method(), m.funcOp()))
+                .forEach(m -> kernelCallGraphMap.computeIfAbsent(m.methodRef(), _ ->
+                        new KernelCallGraph(this, m.method(), m.funcOp())));
     }
 
     public CoreOp.FuncOp lazyLower(){
         if (lowered == null) {
-            lowered =callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
+            lowered = callDag.entryPoint.funcOp().transform(CodeTransformer.LOWERING_TRANSFORMER);
         }
         return lowered;
     }

@@ -27,7 +27,9 @@ package hat.backend.ffi;
 import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
+import hat.dialect.TileOps;
 import hat.phases.HATPhaseUtils;
 import hat.types.F16;
 import jdk.incubator.code.Value;
@@ -672,6 +674,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
+    protected OpenCLHATKernelBuilder varOpTile(CoreOp.VarOp varOp) {
+        throw new UnsupportedOperationException("VarOp for Tiles is not supported for the OpenCL backend");
+    }
+
+    @Override
     protected OpenCLHATKernelBuilder hatWarpSize() {
         return id("HAT_WRS");
     }
@@ -985,5 +992,90 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
                         .recurseResultOrThrow(reference).comma().sp()
                         .id(tensorVarOp.varName()).comma().sp()
                         .id(ZERO));
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder hatTileAlignOperation(OpHelper.Invoke invoke) {
+        throw new UnsupportedOperationException("Align Tile operation not supported yet for the OpenCL backend");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileConstantOp(ArithMathOps.ConstantOp constantOp) {
+        throw new UnsupportedOperationException("ArithMathOps.ConstantOp is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileIdOp(TileOps.TileIDOp tileIdOp) {
+        throw new UnsupportedOperationException("Tile ID Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileLoadOp(TileOps.LoadOp tileLoadOp) {
+        throw new UnsupportedOperationException("Tile Load Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileAddOp(ArithMathOps.AddOp tileAddOp) {
+        throw new UnsupportedOperationException("Tile Add Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileStoreOp(TileOps.StoreOp tileStoreOp) {
+        throw new UnsupportedOperationException("Tile Store Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileNumOp(TileOps.TileNumOp tileNumOp) {
+        throw new UnsupportedOperationException("Tile Number Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileFullOp(TileOps.TileFullOp tileFullOp) {
+        throw new UnsupportedOperationException("Tile Full Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileShapeOp(TileOps.TileShapeOp tileShapeOp) {
+        throw new UnsupportedOperationException("Tile Shape Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileSumOp(TileOps.TileSumOp tileSumOp) {
+        throw new UnsupportedOperationException("Tile Sum Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileIndexOp(TileOps.TileIndexOp tileIndexOp) {
+        throw new UnsupportedOperationException("Tile Index Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp) {
+        throw new UnsupportedOperationException("Tile Transpose Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileZerosOp(TileOps.TileZerosOp tileZerosOp) {
+        throw new UnsupportedOperationException("Tile Zeros Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
+        throw new UnsupportedOperationException("Tile MMA Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder cDivOp(ArithMathOps.CDivOp cDivOp) {
+        throw new UnsupportedOperationException("Division Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder minOp(ArithMathOps.MinOp minOp) {
+        throw new UnsupportedOperationException("Min Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp) {
+        throw new UnsupportedOperationException("Tile Irange Operation is not supported yet.");
     }
 }

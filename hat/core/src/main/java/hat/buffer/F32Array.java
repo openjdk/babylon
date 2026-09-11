@@ -53,7 +53,7 @@ public interface F32Array extends Buffer {
     Schema<F32Array> schema = Schema.of(F32Array.class);
 
     static F32Array create(ArenaAndLookupCarrier cc, int length) {
-        return BoundSchema.of(cc ,schema, length).allocate();
+        return BoundSchema.of(cc, schema, length).allocate();
     }
 
     default F32Array copyFrom(float[] floats) {

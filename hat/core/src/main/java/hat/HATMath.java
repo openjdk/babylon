@@ -123,4 +123,8 @@ public class HATMath {
 
     private HATMath() {
     }
+
+    public static int min(int a, int b) {
+        return Math.min(a, b);
+    }
 }

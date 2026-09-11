@@ -624,6 +624,11 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
     final public T intConst(int i) {
         return constant(Integer.toString(i));
     }
+
+    public final T literalIC(int val) {
+        return intConst(val).id("_ic");
+    }
+
     final public T intConstZero() {
         return intConst(0);
     }
@@ -694,6 +699,9 @@ public abstract class CodeBuilder<T extends CodeBuilder<T>>
         return emitText(text);
     }
 
+    final public T typeModifier(String text) {
+        return emitText(text);
+    }
 
     @Override
     final public T reserved(String text) {
