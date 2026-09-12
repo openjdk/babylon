@@ -6441,32 +6441,26 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             static Block.Builder lowerTypePattern(Block.Reference falseRef, Block.Builder currentBlock,
                                                   List<Value> bindings,
                                                   TypePatternOp tpOp, Value target) {
-                CodeType targetType = tpOp.targetType();
-
-                // Check if instance of target type
-                Op p; // op that perform type check
-                BiFunction<Block.Builder, Value, Op.Result> c; // logic that append the op performing conversion
                 CodeType s = target.type();
-                CodeType t = targetType;
+                CodeType t = tpOp.targetType();
+                Block.Builder trueBlock = currentBlock;
                 if (t instanceof PrimitiveType pt) {
                     if (s instanceof ClassType cs) {
-                        // unboxing conversions
                         ClassType box;
                         if (cs.unbox().isEmpty()) { // s not a boxed type
                             // e.g. Number -> int, narrowing + unboxing
                             box = pt.box().orElseThrow();
-                            p = instanceOf(box, target);
+                            trueBlock = appendTypeTestOp(instanceOf(box, target), currentBlock, falseRef);
+                            // e.g. Object -> int, on true path we need to cast Object to Integer
+                            target = trueBlock.add(cast(box, target));
                         } else {
                             // e.g. Float -> float, unboxing
                             // e.g. Integer -> long, unboxing + widening
                             box = cs;
-                            p = neq(target, currentBlock.add(constant(s, null)));
+                            Op p = neq(target, currentBlock.add(constant(s, null)));
+                            trueBlock = appendTypeTestOp(p, currentBlock, falseRef);
                         }
-                        c = (b, v) -> {
-                            // e.g. Object -> int, we need to cast target to Integer then invoke Integer#intValue
-                            if (cs.unbox().isEmpty())   v = b.add(cast(box, v));
-                            return b.add(invoke(MethodRef.method(box, t + "Value", t), v));
-                        };
+                        target = trueBlock.add(invoke(MethodRef.method(box, t + "Value", t), target));
                     } else {
                         // primitive to primitive conversion
                         PrimitiveType ps = ((PrimitiveType) s);
@@ -6476,41 +6470,34 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             // e,g. int -> float, widening with check
                             // e.g. byte -> char, widening and narrowing
                             MethodRef mref = convMethodRef(s, t);
-                            p = invoke(mref, target);
-                        } else {
-                            p = null;
+                            trueBlock = appendTypeTestOp(invoke(mref, target), currentBlock, falseRef);
                         }
-                        c = (b, v) -> b.add(conv(targetType, v));
+                        target = trueBlock.add(conv(t, target));
                     }
                 } else if (s instanceof PrimitiveType ps) {
                     // boxing conversions
                     // e.g. int -> Number, boxing + widening
                     // e.g. byte -> Byte, boxing
-                    p = null;
                     ClassType box = ps.box().orElseThrow();
-                    c = (b, v) -> b.add(invoke(MethodRef.method(box, "valueOf", box, ps), v));
+                    target = currentBlock.add(invoke(MethodRef.method(box, "valueOf", box, ps), target));
                 } else {
                     // reference to reference
                     // e.g. Character -> Character
                     // e.g. Number -> Double, narrowing
                     // e.g. Short -> Object, widening
-                    p = instanceOf(targetType, target);
-                    c = s.equals(t) ? null : (b, v) -> b.add(cast(targetType, v));
-                }
-
-                if (p != null) {
-                    // p != null, we need to perform type check at runtime
-                    Block.Builder nextBlock = currentBlock.block();
-                    currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), falseRef));
-                    currentBlock = nextBlock;
-                }
-                if (c != null) {
-                    target = c.apply(currentBlock, target);
+                    trueBlock = appendTypeTestOp(instanceOf(t, target), currentBlock, falseRef);
+                    if (!s.equals(t))   target = trueBlock.add(cast(t, target));
                 }
 
                 bindings.add(target);
 
-                return currentBlock;
+                return trueBlock;
+            }
+
+            private static Block.Builder appendTypeTestOp(Op p, Block.Builder b, Block.Reference falseBlock) {
+                Block.Builder trueBlock = b.block();
+                b.add(conditionalBranch(b.add(p), trueBlock.reference(), falseBlock));
+                return trueBlock;
             }
 
             private static boolean isWideningAndNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
