@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A writer of code model to code model text.
@@ -364,11 +365,29 @@ public final class OpWriter {
         }
     }
 
+    /**
+     * An option to specify writing mode.
+     */
+    public enum WritingModeOption implements Option {
+        /** Attempts to write incomplete code models. */
+        LENIENT,
+        /** Writes complete code models only. */
+        STRICT;
+
+        /**
+         * {@return the default writing mode option}
+         */
+        public static WritingModeOption defaultValue() {
+            return STRICT;
+        }
+    }
+
     final Function<CodeItem, String> namer;
     final IndentWriter w;
     final boolean dropLocation;
     final boolean dropOpDescendants;
     final boolean writeVoidOpResult;
+    final boolean writeIncomplete;
 
     /**
      * Creates a writer of code model to code model text.
@@ -381,6 +400,7 @@ public final class OpWriter {
         this.dropLocation = false;
         this.dropOpDescendants = false;
         this.writeVoidOpResult = false;
+        this.writeIncomplete = false;
     }
 
     /**
@@ -394,6 +414,7 @@ public final class OpWriter {
         boolean dropLocation = false;
         boolean dropOpDescendants = false;
         boolean writeVoidOpResult = false;
+        boolean writeIncomplete = false;
         for (Option option : options) {
             switch (option) {
                 case CodeItemNamerOption namerOption -> {
@@ -410,6 +431,9 @@ public final class OpWriter {
                 case VoidOpResultOption voidOpResultOption -> {
                     writeVoidOpResult = voidOpResultOption == VoidOpResultOption.WRITE_VOID;
                 }
+                case WritingModeOption writingModeOption -> {
+                    writeIncomplete = writingModeOption == WritingModeOption.LENIENT;
+                }
             }
         }
 
@@ -418,6 +442,7 @@ public final class OpWriter {
         this.dropLocation = dropLocation;
         this.dropOpDescendants = dropOpDescendants;
         this.writeVoidOpResult = writeVoidOpResult;
+        this.writeIncomplete = writeIncomplete;
     }
 
     /**
@@ -433,9 +458,10 @@ public final class OpWriter {
      * @param op the operation
      */
     public void writeOp(Op op) {
-        if (op.parent() != null) {
-            Op.Result opr = op.result();
-            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID) || !opr.uses().isEmpty()) {
+        Op.Result opr = writeIncomplete || op.parent() != null ? op.result() : null;
+        if (opr != null) {
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)
+                    || getOrElse(() -> !opr.uses().isEmpty(), false)) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }
@@ -505,11 +531,24 @@ public final class OpWriter {
     }
 
     void writeSuccessor(Block.Reference successor) {
-        writeBlockName(successor.targetBlock());
+        CodeItem target = getOrElse(successor::targetBlock, successor);
+        write("^");
+        write(namer.apply(target));
         if (!successor.arguments().isEmpty()) {
             write("(");
             writeCommaSeparatedList(successor.arguments(), this::writeValueUse);
             write(")");
+        }
+    }
+
+    private <T> T getOrElse(Supplier<T> action, T fallback) {
+        if (!writeIncomplete) {
+            return action.get();
+        }
+        try {
+            return action.get();
+        } catch (IllegalStateException _) {
+            return fallback;
         }
     }
 
