@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -172,6 +172,7 @@ private:
     CUresult initStatus;
     CUdevice device;
     CUcontext context;
+    bool useNvrtcCompiler() const;
 public:
     void shortDeviceInfo() override;
     void showDeviceInfo() override;
@@ -180,6 +181,7 @@ public:
     CudaModule * compile(const PtxSource *ptxSource);
     CudaModule * compile(const PtxSource &ptxSource);
     static PtxSource *nvcc(const CudaSource *cudaSource);
+    PtxSource *nvrtc(const CudaSource *cudaSource);
     CompilationUnit * compile(int len, char *source) override;
     void computeStart() override;
     void computeEnd() override;
