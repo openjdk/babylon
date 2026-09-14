@@ -132,12 +132,14 @@ public final class CodeModelLinker {
                                        MethodType interfaceMethodType,
                                        MethodHandle implementation,
                                        MethodType dynamicMethodType) throws LambdaConversionException {
-        return ReflectableLambdaMetafactory.metafactory(caller,
-                                                        interfaceMethodName,
-                                                        factoryType,
-                                                        interfaceMethodType,
-                                                        linkLambdaImplementation(caller, interfaceMethodName),
-                                                        dynamicMethodType);
+        MethodHandle generatedImpl = linkLambdaImplementation(caller, interfaceMethodName);
+        CallSite site = ReflectableLambdaMetafactory.metafactory(caller,
+                                                                 interfaceMethodName,
+                                                                 generatedFactoryType(factoryType, generatedImpl),
+                                                                 interfaceMethodType,
+                                                                 generatedImpl,
+                                                                 dynamicMethodType);
+        return new ConstantCallSite(site.getTarget().asType(factoryType));
     }
 
     /**
@@ -193,11 +195,19 @@ public final class CodeModelLinker {
                                           String interfaceMethodName,
                                           MethodType factoryType,
                                           Object... args) throws LambdaConversionException {
-        args[1] = linkLambdaImplementation(caller, interfaceMethodName);
-        return ReflectableLambdaMetafactory.altMetafactory(caller,
-                                                           interfaceMethodName,
-                                                           factoryType,
-                                                           args);
+        MethodHandle generatedImpl = linkLambdaImplementation(caller, interfaceMethodName);
+        args[1] = generatedImpl;
+        CallSite site = ReflectableLambdaMetafactory.altMetafactory(caller,
+                                                                    interfaceMethodName,
+                                                                    generatedFactoryType(factoryType, generatedImpl),
+                                                                    args);
+        return new ConstantCallSite(site.getTarget().asType(factoryType));
+    }
+
+    private static MethodType generatedFactoryType(MethodType factoryType, MethodHandle implementation) {
+        MethodType implementationType = implementation.type();
+        return implementationType.dropParameterTypes(factoryType.parameterCount(), implementationType.parameterCount())
+                                 .changeReturnType(factoryType.returnType());
     }
 
     private static MethodHandle linkLambdaImplementation(MethodHandles.Lookup caller,
