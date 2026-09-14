@@ -42,27 +42,31 @@ import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 /**
- * Provides runtime support for creating methods and lambdas from stored code models.
+ * Provides runtime support for linking stored code models to call sites for
+ * invoking methods and creating lambda instances.
+ *
  * @see ReflectableLambdaMetafactory
  */
-public final class UnreflectMetafactory {
+public final class CodeModelLinker {
 
-    private UnreflectMetafactory() {
+    private CodeModelLinker() {
     }
 
     /**
-     * Creates a constant call site whose target is generated from the stored
-     * code model of a matching method declared by the lookup class.
+     * Creates a constant call site whose target is linked to the stored code
+     * model of a matching method declared by the lookup class.
      *
-     * @param caller the call-site lookup.
-     * @param methodName the source method name.
-     * @param methodType the call-site type.
-     * @return a constant call site for the generated implementation.
-     * @throws NoSuchMethodException if the source method cannot be identified.
+     * @param caller the call-site lookup
+     * @param methodName the name of the modeled method
+     * @param methodType the call-site type
+     * @return a constant call site whose target implements the behavior
+     *         represented by the stored code model
+     * @throws NoSuchMethodException if no matching method is declared by the
+     *                               lookup class
      */
-    public static CallSite unreflect(MethodHandles.Lookup caller,
-                                     String methodName,
-                                     MethodType methodType) throws NoSuchMethodException {
+    public static CallSite linkMethod(MethodHandles.Lookup caller,
+                                      String methodName,
+                                      MethodType methodType) throws NoSuchMethodException {
         String className = caller.lookupClass().getName();
         for (Method m : caller.lookupClass().getDeclaredMethods()) {
             boolean isStatic = Modifier.isStatic(m.getModifiers());
@@ -80,21 +84,27 @@ public final class UnreflectMetafactory {
     }
 
     /**
-     * Metafactory used to create a reflectable lambda with implementation
-     * generated from its stored code model.
+     * Links a call site whose target creates reflectable lambda instances,
+     * using the lambda's stored code model as its implementation.
      * <p>
-     * The functionality provided by this metafactory is identical to that in
+     * Except for the implementation method handle, this method follows the
+     * contract and encoded-name convention of
      * {@link ReflectableLambdaMetafactory#metafactory(Lookup, String,
-     *        MethodType, MethodType, MethodHandle, MethodType)}
-     * with one important difference: this metafactory generates the lambda
-     * implementation method from the stored code model.
+     *        MethodType, MethodType, MethodHandle, MethodType)}.
+     * <p>
+     * The supplied implementation method handle is ignored and replaced
+     * with one linked from the stored code model.
      *
-     * @param caller The lookup
-     * @param interfaceMethodName The name of the method to implement.
+     * @param caller the lookup
+     * @param interfaceMethodName the encoded interface-method and code-model
+     *                            accessor names, as specified by
+     *                            {@link ReflectableLambdaMetafactory#metafactory(Lookup,
+     *                                   String, MethodType, MethodType, MethodHandle,
+     *                                   MethodType)}
      * @param factoryType The expected signature of the {@code CallSite}.
      * @param interfaceMethodType Signature and return type of method to be
      *                            implemented by the function object.
-     * @param implementation Ignored, retained for compatibility with the
+     * @param implementation ignored, retained for compatibility with the
      *                       standard metafactory bootstrap signature
      * @param dynamicMethodType The signature and return type that should
      *                          be enforced dynamically at invocation time.
@@ -103,11 +113,14 @@ public final class UnreflectMetafactory {
      *         {@code factoryType}; each instance can be inspected using
      *         {@link Op#ofLambda(Object)}
      *
-     * @throws LambdaConversionException If, after the lambda name is decoded,
-     *         the parameters of the call are invalid for
+     * @throws LambdaConversionException if the implementation cannot be linked
+     *         from its stored code model, or if, after the lambda name is
+     *         decoded, the parameters of the call are invalid for
      *         {@link ReflectableLambdaMetafactory#metafactory(Lookup, String,
      *                MethodType, MethodType, MethodHandle, MethodType)}
-     * @throws NullPointerException If any argument is {@code null}.
+     * @throws NullPointerException if {@code interfaceMethodName},
+     *         {@code factoryType}, {@code interfaceMethodType}, or
+     *         {@code dynamicMethodType} is {@code null}
      *
      * @see ReflectableLambdaMetafactory#metafactory(Lookup, String, MethodType,
      *      MethodType, MethodHandle, MethodType)
@@ -123,41 +136,51 @@ public final class UnreflectMetafactory {
                                                         interfaceMethodName,
                                                         factoryType,
                                                         interfaceMethodType,
-                                                        unreflectLambdaImplementation(caller, interfaceMethodName),
+                                                        linkLambdaImplementation(caller, interfaceMethodName),
                                                         dynamicMethodType);
     }
 
     /**
-     * Metafactory used to create a reflectable lambda with implementation
-     * generated from its stored code model.
+     * Links a call site whose target creates reflectable lambda instances,
+     * using the lambda's stored code model as its implementation.
      * <p>
-     * The functionality provided by this metafactory is identical to that in
+     * Except for the implementation method handle, this method follows the
+     * contract and encoded-name convention of
      * {@link ReflectableLambdaMetafactory#altMetafactory(Lookup, String,
-     *        MethodType, Object...)}
-     * with one important difference: this metafactory generates the lambda
-     * implementation method from the stored code model.
+     *        MethodType, Object...)}.
+     * <p>
+     * The implementation method handle in {@code args} is replaced with one
+     * linked from the stored code model.
      *
-     * @param caller The lookup
-     * @param interfaceMethodName The name of the method to implement.
-     *                            This is encoded in the format described above.
+     * @param caller the lookup
+     * @param interfaceMethodName the encoded interface-method and code-model
+     *                            accessor names, as specified by
+     *                            {@link ReflectableLambdaMetafactory#altMetafactory(Lookup,
+     *                                   String, MethodType, Object...)}
      * @param factoryType The expected signature of the {@code CallSite}.
      * @param args An array of {@code Object} containing the required
      *              arguments {@code interfaceMethodType}, {@code implementation},
      *              {@code dynamicMethodType}, {@code flags}, and any
      *              optional arguments, as required by
      *              {@link ReflectableLambdaMetafactory#altMetafactory(Lookup,
-     *                     String, MethodType, Object...)}
+     *                     String, MethodType, Object...)}, the
+     *              {@code implementation} component is ignored and replaced
+     *              with one linked from the stored code model
      * @return a CallSite whose target can be used to perform capture, generating
-     *         a reflectable lambda instance implementing the interface named by
-     *         {@code factoryType}. The code model for such instance can be
-     *         inspected using {@link Op#ofLambda(Object)}.
+     *         a reflectable lambda instance implementing the functional
+     *         interface specified by the return type of {@code factoryType}.
+     *         The code model for such instance can be inspected using
+     *         {@link Op#ofLambda(Object)}.
      *
-     * @throws LambdaConversionException If, after the lambda name is decoded,
-     *         the parameters of the call are invalid for
+     * @throws LambdaConversionException if the implementation cannot be linked
+     *         from its stored code model, or if, after the lambda name is
+     *         decoded, the parameters of the call are invalid for
      *         {@link ReflectableLambdaMetafactory#altMetafactory(Lookup, String,
      *                MethodType, Object...)}
-     * @throws NullPointerException If any argument, or any component of {@code args},
-     *         is {@code null}.
+     * @throws NullPointerException if {@code interfaceMethodName},
+     *         {@code factoryType}, or {@code args} is {@code null}, or if a
+     *         required component of {@code args} other than
+     *         {@code implementation} is {@code null}
      * @throws IllegalArgumentException If {@code args} are invalid for
      *         {@link ReflectableLambdaMetafactory#altMetafactory(Lookup, String,
      *                MethodType, Object...)}
@@ -170,15 +193,15 @@ public final class UnreflectMetafactory {
                                           String interfaceMethodName,
                                           MethodType factoryType,
                                           Object... args) throws LambdaConversionException {
-        args[1] = unreflectLambdaImplementation(caller, interfaceMethodName);
+        args[1] = linkLambdaImplementation(caller, interfaceMethodName);
         return ReflectableLambdaMetafactory.altMetafactory(caller,
                                                            interfaceMethodName,
                                                            factoryType,
                                                            args);
     }
 
-    private static MethodHandle unreflectLambdaImplementation(MethodHandles.Lookup caller,
-                                                              String interfaceMethodName)
+    private static MethodHandle linkLambdaImplementation(MethodHandles.Lookup caller,
+                                                         String interfaceMethodName)
             throws LambdaConversionException {
         String modelMethodName = interfaceMethodName.split("=")[1];
         try {
