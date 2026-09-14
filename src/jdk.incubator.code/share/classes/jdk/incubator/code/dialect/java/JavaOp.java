@@ -3278,25 +3278,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
-            boolean isEmptyElseActionBody = isEmptyBodyAction(bodies.getLast());
-
             // Create predicate and action blocks
             List<Block.Builder> builders = new ArrayList<>();
             for (int i = 0; i < bodies.size(); i += 2) {
                 if (i == bodies.size() - 1) {
-                    if (isEmptyElseActionBody) {
-                        builders.add(exit);
-                    } else {
-                        builders.add(b.block());
-                    }
+                    builders.add(b.block());
                 } else {
                     builders.add(i == 0 ? b : b.block());
                     builders.add(b.block());
                 }
             }
 
-            int nBodies = isEmptyElseActionBody ? bodies.size() - 1 : bodies().size();
-            for (int i = 0; i < nBodies; i += 2) {
+            for (int i = 0; i < bodies.size(); i += 2) {
                 Body actionBody;
                 Block.Builder action;
                 if (i == bodies.size() - 1) {
