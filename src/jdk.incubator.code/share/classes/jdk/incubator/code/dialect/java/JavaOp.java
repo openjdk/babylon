@@ -3213,18 +3213,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             /**
-             * Complete the if operation with an empty action body.
+             * Complete the if operation.
              * @return the completed if operation
              */
-            public IfOp else_() {
-                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
-                body.entryBlock().add(core_yield());
-                bodies.add(body);
-
+            public IfOp noElse() {
                 return new IfOp(bodies);
             }
-
-            //@@@ user shouldn't have to add an empty else to complete the building of IfOp
         }
 
         static final String NAME = "java.if";
@@ -5783,7 +5777,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         normB.add(core_yield());
                     }));
                     closeB.add(core_yield());
-                }).else_());
+                }).noElse());
                 finB.add(core_yield());
             }));
             afterAcquire.add(core_yield());
@@ -5876,14 +5870,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         action.context().mapValue(exitOp.operands().getFirst(), returnValue);
                     }
                     action.add(exitOp);
-                }).else_());
+                }).noElse());
             }
             afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
                 Value value = predicate.add(varLoad(completionVar));
                 predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, 1))))));
             }).then(action -> {
                 action.add(throw_(action.add(varLoad(exceptionVar))));
-            }).else_());
+            }).noElse());
             afterFinalizer.add(core_yield());
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
         }
