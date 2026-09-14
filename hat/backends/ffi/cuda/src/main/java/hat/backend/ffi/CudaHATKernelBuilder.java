@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -353,38 +353,39 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         });
     }
 
-    private CudaHATKernelBuilder defineS16macro(String name, Consumer<CudaHATKernelBuilder> type, Consumer<CudaHATKernelBuilder> buildFunction) {
+    private CudaHATKernelBuilder defineS16macro(String name, Class<?> narrowType,
+                                                Consumer<CudaHATKernelBuilder> buildFunction) {
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
-                paren(_ -> type.accept(self()))
-                        .brace(_ -> {
-                            buildFunction.accept(self());
-                            paren(_-> id("val"));
-                        }));
+                aggregateInitializer(_ -> f16OrBF16(narrowType), _ -> {
+                    buildFunction.accept(self());
+                    paren(_ -> id("val"));
+                })
+        );
     }
 
     /**
      * <code>
-     *    #define F16_OF(val) (F16_t){__float2half(val)}
+     *    #define F16_OF(val) F16_t{__float2half(val)}
      * </code>
      * @param name
      *     Name of the CUDA Macro
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroF16Of(String name) {
-        return defineS16macro(name, _ -> f16Type(), _ -> float2half());
+        return defineS16macro(name, F16.class, _ -> float2half());
     }
 
     /**
      * <code>
-     *    #define BF16_OF(val) (BF16_t){__nv_bfloat16(val)}
+     *    #define BF16_OF(val) BF16_t{__nv_bfloat16(val)}
      * </code>
      * @param name
      *    Name of the CUDA Macro
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroBF16Of(String name) {
-        return defineS16macro(name, _ -> bf16Type(), _ -> nvBFloat16());
+        return defineS16macro(name, BF16.class, _ -> nvBFloat16());
     }
 
     private CudaHATKernelBuilder defineMacroS16Conversion(String name, Consumer<CudaHATKernelBuilder> type, boolean isLocal) {
@@ -697,8 +698,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         } else {
             f32Mixed = 0x00;
         }
-        paren(_ -> f16OrBF16(reducedFloatType));
-        brace(_ ->
+        return aggregateInitializer(_ -> f16OrBF16(reducedFloatType), _ ->
                 paren(_ -> {
                     if (f32Mixed == HATFP16Phase.LAST_OP) {
                         s16ToFloat(reducedFloatType).oparen();
@@ -728,7 +728,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
                 })
         );
-        return self();
+    }
+
+    @Override
+    protected CudaHATKernelBuilder aggregateInitializer(Consumer<CudaHATKernelBuilder> typeBuilder,
+                                                        Consumer<CudaHATKernelBuilder> valueBuilder) {
+        // C++ typed brace-init: T{...} rather than (T){...}.
+        typeBuilder.accept(self());
+        return brace(valueBuilder);
     }
 
     private CudaHATKernelBuilder s16ToFloat(Class<?> float16Class) {
