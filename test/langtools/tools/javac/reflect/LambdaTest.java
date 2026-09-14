@@ -71,7 +71,8 @@ public class LambdaTest {
                 %3 : Var<java.type:"java.util.function.Supplier<java.lang.String>"> = var %1 @"c";
                 %4 : java.type:"java.util.function.Supplier<java.lang.String>" = var.load %3;
                 %5 : java.type:"java.lang.String" = invoke %4 @java.ref:"java.util.function.Supplier::get():java.lang.Object";
-                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
+                %6 : java.type:"java.lang.String" = cast %5 @java.type:"java.lang.String";
+                %7 : Var<java.type:"java.lang.String"> = var %6 @"s";
                 return;
             };
             """)
@@ -141,14 +142,15 @@ public class LambdaTest {
                     %20 : java.type:"int" = var.load %3;
                     %21 : java.type:"java.util.function.Supplier<java.lang.Integer>" = var.load %19;
                     %22 : java.type:"java.lang.Integer" = invoke %21 @java.ref:"java.util.function.Supplier::get():java.lang.Object";
-                    %23 : java.type:"int" = invoke %22 @java.ref:"java.lang.Integer::intValue():int";
-                    %24 : java.type:"int" = add %20 %23;
-                    %25 : Var<java.type:"int"> = var %24 @"r";
-                    %26 : java.type:"int" = var.load %25;
-                    %27 : java.type:"java.lang.Integer" = invoke %26 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                    return %27;
+                    %23 : java.type:"java.lang.Integer" = cast %22 @java.type:"java.lang.Integer";
+                    %24 : java.type:"int" = invoke %23 @java.ref:"java.lang.Integer::intValue():int";
+                    %25 : java.type:"int" = add %20 %24;
+                    %26 : Var<java.type:"int"> = var %25 @"r";
+                    %27 : java.type:"int" = var.load %26;
+                    %28 : java.type:"java.lang.Integer" = invoke %27 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                    return %28;
                 };
-                %28 : Var<java.type:"java.util.function.Supplier<java.lang.Integer>"> = var %7 @"sOuter";
+                %29 : Var<java.type:"java.util.function.Supplier<java.lang.Integer>"> = var %7 @"sOuter";
                 return;
             };
             """)

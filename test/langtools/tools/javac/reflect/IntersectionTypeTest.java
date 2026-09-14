@@ -73,17 +73,19 @@ class IntersectionTypeTest {
     // #X<&m<IntersectionTypeTest, test2, func<void, IntersectionTypeTest$A>, IntersectionTypeTest$A>
     @Reflect
     @IR("""
-            func @"test2" (%0 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
-                %1 : Var<java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
-                %2 : java.type:"IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
+            func @"test2" (%0 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>")java.type:"void" -> {
+                %1 : Var<java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>"> = var %0 @"x";
+                %2 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
                 %3 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$A::f_A:java.lang.Object";
                 %4 : Var<java.type:"java.lang.Object"> = var %3 @"oA";
-                %5 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %6 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$B::f_B:java.lang.Object";
-                %7 : Var<java.type:"java.lang.Object"> = var %6 @"oB";
-                %8 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %9 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$C::f_C:java.lang.Object";
-                %10 : Var<java.type:"java.lang.Object"> = var %9 @"oC";
+                %5 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
+                %6 : java.type:"IntersectionTypeTest$B" = cast %5 @java.type:"IntersectionTypeTest$B";
+                %7 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$B::f_B:java.lang.Object";
+                %8 : Var<java.type:"java.lang.Object"> = var %7 @"oB";
+                %9 : java.type:"&IntersectionTypeTest::test2(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
+                %10 : java.type:"IntersectionTypeTest$C" = cast %9 @java.type:"IntersectionTypeTest$C";
+                %11 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$C::f_C:java.lang.Object";
+                %12 : Var<java.type:"java.lang.Object"> = var %11 @"oC";
                 return;
             };
             """)
@@ -219,11 +221,13 @@ class IntersectionTypeTest {
                 %9 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$A::f_A:java.lang.Object";
                 %10 : Var<java.type:"java.lang.Object"> = var %9 @"oA";
                 %11 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %12 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$B::f_B:java.lang.Object";
-                %13 : Var<java.type:"java.lang.Object"> = var %12 @"oB";
-                %14 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %15 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$C::f_C:java.lang.Object";
-                %16 : Var<java.type:"java.lang.Object"> = var %15 @"oC";
+                %12 : java.type:"IntersectionTypeTest$B" = cast %11 @java.type:"IntersectionTypeTest$B";
+                %13 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$B::f_B:java.lang.Object";
+                %14 : Var<java.type:"java.lang.Object"> = var %13 @"oB";
+                %15 : java.type:"IntersectionTypeTest$A" = var.load %7;
+                %16 : java.type:"IntersectionTypeTest$C" = cast %15 @java.type:"IntersectionTypeTest$C";
+                %17 : java.type:"java.lang.Object" = field.load @java.ref:"IntersectionTypeTest$C::f_C:java.lang.Object";
+                %18 : Var<java.type:"java.lang.Object"> = var %17 @"oC";
                 return;
             };
             """)

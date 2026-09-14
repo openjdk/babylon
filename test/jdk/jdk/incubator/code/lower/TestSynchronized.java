@@ -89,48 +89,45 @@ public class TestSynchronized {
 
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
-                %17 : java.type:"java.lang.Throwable" = constant @null;
-                %6 : java.type:"void" = exception.region.enter ^block_2 ^block_8(%17);
+                %6 : java.type:"java.lang.Throwable" = constant @null;
+                %7 : java.type:"void" = exception.region.enter ^block_2 ^block_7(%6);
 
               ^block_2:
-                %7 : java.type:"int" = var.load %3;
-                %8 : java.type:"int" = constant @0;
-                %9 : java.type:"boolean" = gt %7 %8;
-                cbranch %9 ^block_3 ^block_5;
+                %8 : java.type:"int" = var.load %3;
+                %9 : java.type:"int" = constant @0;
+                %10 : java.type:"boolean" = gt %8 %9;
+                cbranch %10 ^block_3 ^block_5;
 
               ^block_3:
-                %10 : java.type:"int" = constant @-1;
+                %11 : java.type:"int" = constant @-1;
                 monitor.exit %5;
-                exception.region.exit %6 ^block_4;
+                exception.region.exit %7 ^block_4;
 
               ^block_4:
-                return %10;
+                return %11;
 
               ^block_5:
-                branch ^block_6;
+                %12 : java.type:"int" = var.load %3;
+                %13 : java.type:"int" = constant @1;
+                %14 : java.type:"int" = add %12 %13;
+                var.store %3 %14;
+                monitor.exit %5;
+                exception.region.exit %7 ^block_6;
 
               ^block_6:
-                %11 : java.type:"int" = var.load %3;
-                %12 : java.type:"int" = constant @1;
-                %13 : java.type:"int" = add %11 %12;
-                var.store %3 %13;
+                %15 : java.type:"int" = var.load %3;
+                return %15;
+
+              ^block_7(%16 : java.type:"java.lang.Throwable"):
+                %17 : java.type:"java.lang.Throwable" = constant @null;
+                %18 : java.type:"void" = exception.region.enter ^block_8 ^block_7(%17);
+
+              ^block_8:
                 monitor.exit %5;
-                exception.region.exit %6 ^block_7;
-
-              ^block_7:
-                %14 : java.type:"int" = var.load %3;
-                return %14;
-
-              ^block_8(%15 : java.type:"java.lang.Throwable"):
-                %18 : java.type:"java.lang.Throwable" = constant @null;
-                %16 : java.type:"void" = exception.region.enter ^block_9 ^block_8(%18);
+                exception.region.exit %18 ^block_9;
 
               ^block_9:
-                monitor.exit %5;
-                exception.region.exit %16 ^block_10;
-
-              ^block_10:
-                throw %15;
+                throw %16;
             };
             """, ssa = false)
     static int test2(Object m, int i) {
@@ -165,7 +162,7 @@ public class TestSynchronized {
               ^block_3(%9 : java.type:"java.lang.Object"):
                 monitor.enter %9;
                 %10 : java.type:"java.lang.Throwable" = constant @null;
-                %11 : java.type:"void" = exception.region.enter ^block_4 ^block_11(%10);
+                %11 : java.type:"void" = exception.region.enter ^block_4 ^block_10(%10);
 
               ^block_4:
                 %12 : java.type:"int" = var.load %3;
@@ -179,31 +176,28 @@ public class TestSynchronized {
                 exception.region.exit %11 ^block_6;
 
               ^block_6:
-                branch ^block_10(%15);
+                branch ^block_9(%15);
 
               ^block_7:
-                branch ^block_8;
-
-              ^block_8:
                 %16 : java.type:"int" = constant @0;
                 monitor.exit %9;
-                exception.region.exit %11 ^block_9;
+                exception.region.exit %11 ^block_8;
 
-              ^block_9:
-                branch ^block_10(%16);
+              ^block_8:
+                branch ^block_9(%16);
 
-              ^block_10(%17 : java.type:"int"):
+              ^block_9(%17 : java.type:"int"):
                 return %17;
 
-              ^block_11(%18 : java.type:"java.lang.Throwable"):
+              ^block_10(%18 : java.type:"java.lang.Throwable"):
                 %19 : java.type:"java.lang.Throwable" = constant @null;
-                %20 : java.type:"void" = exception.region.enter ^block_12 ^block_11(%19);
+                %20 : java.type:"void" = exception.region.enter ^block_11 ^block_10(%19);
+
+              ^block_11:
+                monitor.exit %9;
+                exception.region.exit %20 ^block_12;
 
               ^block_12:
-                monitor.exit %9;
-                exception.region.exit %20 ^block_13;
-
-              ^block_13:
                 throw %18;
             };
             """, ssa = false)
@@ -232,7 +226,7 @@ public class TestSynchronized {
               ^block_1(%5 : java.type:"java.lang.Object"):
                 monitor.enter %5;
                 %6 : java.type:"java.lang.Throwable" = constant @null;
-                %7 : java.type:"void" = exception.region.enter ^block_2 ^block_9(%6);
+                %7 : java.type:"void" = exception.region.enter ^block_2 ^block_8(%6);
 
               ^block_2:
                 %8 : java.type:"int" = var.load %3;
@@ -247,35 +241,32 @@ public class TestSynchronized {
                 exception.region.exit %7 ^block_4;
 
               ^block_4:
-                branch ^block_7;
-
-              ^block_5:
                 branch ^block_6;
 
-              ^block_6:
+              ^block_5:
                 %12 : java.type:"int" = var.load %3;
                 %13 : java.type:"int" = constant @1;
                 %14 : java.type:"int" = add %12 %13;
                 var.store %3 %14;
                 monitor.exit %5;
-                exception.region.exit %7 ^block_7;
+                exception.region.exit %7 ^block_6;
+
+              ^block_6:
+                branch ^block_7;
 
               ^block_7:
-                branch ^block_8;
-
-              ^block_8:
                 %15 : java.type:"int" = var.load %3;
                 return %15;
 
-              ^block_9(%16 : java.type:"java.lang.Throwable"):
+              ^block_8(%16 : java.type:"java.lang.Throwable"):
                 %17 : java.type:"java.lang.Throwable" = constant @null;
-                %18 : java.type:"void" = exception.region.enter ^block_10 ^block_9(%17);
+                %18 : java.type:"void" = exception.region.enter ^block_9 ^block_8(%17);
+
+              ^block_9:
+                monitor.exit %5;
+                exception.region.exit %18 ^block_10;
 
               ^block_10:
-                monitor.exit %5;
-                exception.region.exit %18 ^block_11;
-
-              ^block_11:
                 throw %16;
             };
             """, ssa = false)
@@ -303,7 +294,7 @@ public class TestSynchronized {
                 %6 : java.type:"int" = var.load %5;
                 %7 : java.type:"int" = constant @10;
                 %8 : java.type:"boolean" = lt %6 %7;
-                cbranch %8 ^block_2 ^block_14;
+                cbranch %8 ^block_2 ^block_13;
 
               ^block_2:
                 %9 : java.type:"java.lang.Object" = var.load %2;
@@ -312,7 +303,7 @@ public class TestSynchronized {
               ^block_3(%10 : java.type:"java.lang.Object"):
                 monitor.enter %10;
                 %11 : java.type:"java.lang.Throwable" = constant @null;
-                %12 : java.type:"void" = exception.region.enter ^block_4 ^block_11(%11);
+                %12 : java.type:"void" = exception.region.enter ^block_4 ^block_10(%11);
 
               ^block_4:
                 %13 : java.type:"int" = var.load %3;
@@ -327,41 +318,38 @@ public class TestSynchronized {
                 exception.region.exit %12 ^block_6;
 
               ^block_6:
-                branch ^block_10;
+                branch ^block_9;
 
               ^block_7:
-                branch ^block_8;
-
-              ^block_8:
                 %17 : java.type:"int" = var.load %3;
                 %18 : java.type:"int" = constant @1;
                 %19 : java.type:"int" = add %17 %18;
                 var.store %3 %19;
                 monitor.exit %10;
-                exception.region.exit %12 ^block_9;
+                exception.region.exit %12 ^block_8;
+
+              ^block_8:
+                branch ^block_9;
 
               ^block_9:
-                branch ^block_10;
-
-              ^block_10:
                 %20 : java.type:"int" = var.load %5;
                 %21 : java.type:"int" = constant @1;
                 %22 : java.type:"int" = add %20 %21;
                 var.store %5 %22;
                 branch ^block_1;
 
-              ^block_11(%23 : java.type:"java.lang.Throwable"):
+              ^block_10(%23 : java.type:"java.lang.Throwable"):
                 %24 : java.type:"java.lang.Throwable" = constant @null;
-                %25 : java.type:"void" = exception.region.enter ^block_12 ^block_11(%24);
+                %25 : java.type:"void" = exception.region.enter ^block_11 ^block_10(%24);
+
+              ^block_11:
+                monitor.exit %10;
+                exception.region.exit %25 ^block_12;
 
               ^block_12:
-                monitor.exit %10;
-                exception.region.exit %25 ^block_13;
-
-              ^block_13:
                 throw %23;
 
-              ^block_14:
+              ^block_13:
                 %26 : java.type:"int" = var.load %3;
                 return %26;
             };
