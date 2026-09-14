@@ -242,9 +242,6 @@ public class BlockTest {
                             return;
                         };
                         yield;
-                    }
-                    ()java.type:"void" -> {
-                        yield;
                     };
                 java.if
                     ()java.type:"boolean" -> {
@@ -256,9 +253,6 @@ public class BlockTest {
                             %3 : java.type:"java.lang.RuntimeException" = new @java.ref:"java.lang.RuntimeException::()";
                             throw %3;
                         };
-                        yield;
-                    }
-                    ()java.type:"void" -> {
                         yield;
                     };
                 return;

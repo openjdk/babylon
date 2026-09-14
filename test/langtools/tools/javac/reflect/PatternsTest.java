@@ -123,9 +123,6 @@ public class PatternsTest {
                     ()java.type:"void" -> {
                         %10 : java.type:"java.lang.String" = constant @"";
                         return %10;
-                    }
-                    ()java.type:"void" -> {
-                        yield;
                     };
                 %11 : java.type:"java.lang.String" = var.load %4;
                 return %11;
@@ -467,9 +464,6 @@ public class PatternsTest {
                       }
                       ()java.type:"void" -> {
                           yield;
-                      }
-                      ()java.type:"void" -> {
-                          yield;
                       };
                   return;
               };
@@ -502,9 +496,6 @@ public class PatternsTest {
                     ()java.type:"void" -> {
                         %8 : java.type:"java.lang.String" = constant @"";
                         var.store %3 %8;
-                        yield;
-                    }
-                    ()java.type:"void" -> {
                         yield;
                     };
                 return;
@@ -539,9 +530,6 @@ public class PatternsTest {
                     ()java.type:"void" -> {
                         %8 : java.type:"int" = constant @1;
                         var.store %3 %8;
-                        yield;
-                    }
-                    ()java.type:"void" -> {
                         yield;
                     };
                 return;
@@ -579,9 +567,6 @@ public class PatternsTest {
                         %10 : java.type:"int" = add %8 %9;
                         var.store %3 %10;
                         yield;
-                    }
-                    ()java.type:"void" -> {
-                        yield;
                     };
                 return;
             };
@@ -617,9 +602,6 @@ public class PatternsTest {
                         %9 : java.type:"int" = constant @1;
                         %10 : java.type:"int" = add %8 %9;
                         var.store %3 %10;
-                        yield;
-                    }
-                    ()java.type:"void" -> {
                         yield;
                     };
                 return;

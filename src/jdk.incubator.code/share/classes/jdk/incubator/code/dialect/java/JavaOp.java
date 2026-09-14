@@ -3213,14 +3213,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             /**
-             * Complete the if operation with an empty action body.
+             * Complete the if operation.
              * @return the completed if operation
              */
-            public IfOp else_() {
-                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
-                body.entryBlock().add(core_yield());
-                bodies.add(body);
-
+            public IfOp noElse() {
                 return new IfOp(bodies);
             }
         }
@@ -3256,15 +3252,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             super(List.of());
 
-            // Normalize by adding an empty else action
-            // @@@ Is this needed?
-            if (bodyCs.size() % 2 == 0) {
-                bodyCs = new ArrayList<>(bodyCs);
-                Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
-                        CoreType.FUNCTION_TYPE_VOID);
-                end.entryBlock().add(core_yield());
-                bodyCs.add(end);
-            }
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
@@ -3285,25 +3272,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
-            boolean isEmptyElseActionBody = isEmptyBodyAction(bodies.getLast());
-
             // Create predicate and action blocks
             List<Block.Builder> builders = new ArrayList<>();
             for (int i = 0; i < bodies.size(); i += 2) {
                 if (i == bodies.size() - 1) {
-                    if (isEmptyElseActionBody) {
-                        builders.add(exit);
-                    } else {
-                        builders.add(b.block());
-                    }
+                    builders.add(b.block());
                 } else {
                     builders.add(i == 0 ? b : b.block());
                     builders.add(b.block());
                 }
             }
 
-            int nBodies = isEmptyElseActionBody ? bodies.size() - 1 : bodies().size();
-            for (int i = 0; i < nBodies; i += 2) {
+            for (int i = 0; i < bodies.size(); i += 2) {
                 Body actionBody;
                 Block.Builder action;
                 if (i == bodies.size() - 1) {
@@ -3315,7 +3295,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     Block.Builder pred = builders.get(i);
                     action = builders.get(i + 1);
-                    Block.Builder nextAction = builders.get(i + 2);
+                    Block.Builder nextAction = i + 2 < builders.size() ? builders.get(i + 2) : exit;
 
                     ControlFlowBooleanExpressionOp.lowerBooleanBody(pred, predBody, List.of(),
                             new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(action.reference(), nextAction.reference()),
@@ -5797,7 +5777,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         normB.add(core_yield());
                     }));
                     closeB.add(core_yield());
-                }).else_());
+                }).noElse());
                 finB.add(core_yield());
             }));
             afterAcquire.add(core_yield());
@@ -5890,14 +5870,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         action.context().mapValue(exitOp.operands().getFirst(), returnValue);
                     }
                     action.add(exitOp);
-                }).else_());
+                }).noElse());
             }
             afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
                 Value value = predicate.add(varLoad(completionVar));
                 predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, 1))))));
             }).then(action -> {
                 action.add(throw_(action.add(varLoad(exceptionVar))));
-            }).else_());
+            }).noElse());
             afterFinalizer.add(core_yield());
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
         }
