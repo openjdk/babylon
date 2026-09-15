@@ -28,13 +28,13 @@ import java.lang.invoke.ConstantCallSite;
 import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
-import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -42,8 +42,8 @@ import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 /**
- * Provides runtime support for linking stored code models to call sites for
- * invoking methods and creating lambda instances.
+ * Bootstrap methods for linking {@code invokedynamic} call sites that execute
+ * method code models or create lambda instances implemented by code models.
  *
  * @see ReflectableLambdaMetafactory
  */
@@ -53,39 +53,71 @@ public final class CodeModelBootstraps {
     }
 
     /**
-     * Creates a constant call site whose target is linked to the stored code
-     * model of a matching method declared by the lookup class.
+     * Bootstrap method for linking an {@code invokedynamic} call site that
+     * implements execution of a method's code model.
+     * <p>
+     * The method's code model is obtained for the method referenced by the
+     * given method handle. If the method does not have a code model then an
+     * {@code IllegalArgumentException} is thrown.
+     * <p>
+     * Execution of the code model is implemented by transforming the code model
+     * to bytecode and linking it as the target method handle of the returned
+     * {@code CallSite}.
+     * <p>
+     * If model retrieval or transformation fails, the resulting exception or
+     * error is propagated.
      *
-     * @param caller the call-site lookup
-     * @param methodName the name of the modeled method
-     * @param methodType the call-site type
+     * @param lookup   Represents a lookup context with the accessibility
+     *                 privileges of the caller. Specifically, the lookup
+     *                 context must have
+     *                 {@linkplain MethodHandles.Lookup#hasFullPrivilegeAccess()
+     *                 full privilege access}.
+     *                 When used with {@code invokedynamic}, this is stacked
+     *                 automatically by the VM.
+     * @param name     The name of the method to implement. This name is
+     *                 arbitrary, and has no meaning for this linkage method.
+     *                 When used with {@code invokedynamic}, this is provided by
+     *                 the {@code NameAndType} of the {@code InvokeDynamic}
+     *                 structure and is stacked automatically by the VM.
+     * @param methodType The expected signature of the {@code CallSite}. When
+     *                   used with {@code invokedynamic}, this is provided by the
+     *                   {@code NameAndType} of the {@code InvokeDynamic}
+     *                   structure and is stacked automatically by the VM.
+     * @param method a direct method handle referencing the original method
      * @return a constant call site whose target implements the behavior
      *         represented by the stored code model
-     * @throws NoSuchMethodException if no matching method is declared by the
-     *                               lookup class
+     * @throws NullPointerException If any of the incoming arguments is null.
+     *                              This will never happen when a bootstrap method
+     *                              is called with {@code invokedynamic}.
+     * @throws IllegalArgumentException if the handle cannot be revealed by
+     *         {@code lookup}, does not reference an accessible method, the
+     *         method has no code model, or the generated target type differs
+     *         from {@code methodType}
      */
-    public static CallSite linkMethod(MethodHandles.Lookup caller,
-                                      String methodName,
-                                      MethodType methodType) throws NoSuchMethodException {
-        String className = caller.lookupClass().getName();
-        for (Method m : caller.lookupClass().getDeclaredMethods()) {
-            boolean isStatic = Modifier.isStatic(m.getModifiers());
-            int firstParam = isStatic ? 0 : 1;
-            if (m.getName().equals(methodName)
-                    && m.getReturnType() == methodType.returnType()
-                    && m.getParameterCount() == methodType.parameterCount() - firstParam
-                    && (isStatic || methodType.parameterType(0) == caller.lookupClass())
-                    && Arrays.equals(m.getParameterTypes(), 0, m.getParameterCount(),
-                                     methodType.parameterArray(), firstParam, methodType.parameterCount())) {
-                return new ConstantCallSite(BytecodeGenerator.generate(caller, Op.ofMethod(m).orElseThrow()));
-            }
+    public static CallSite linkMethod(MethodHandles.Lookup lookup,
+                                      String name,
+                                      MethodType methodType,
+                                      MethodHandle method) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(methodType);
+        Member member = lookup.revealDirect(method).reflectAs(Member.class, lookup);
+        if (!(member instanceof Method m)) {
+            throw new IllegalArgumentException("Handle does not reference a method");
         }
-        throw new NoSuchMethodException(className + "." + methodName + methodType);
+        CoreOp.FuncOp model = Op.ofMethod(m).orElseThrow(() ->
+                new IllegalArgumentException("Method has no code model: " + m));
+        MethodHandle target = BytecodeGenerator.generate(lookup, model);
+        if (!target.type().equals(methodType)) {
+            throw new IllegalArgumentException("Code model target type " + target.type()
+                    + " differs from call-site type " + methodType);
+        }
+        return new ConstantCallSite(target);
     }
 
     /**
-     * Links a call site whose target creates reflectable lambda instances,
-     * using the lambda's stored code model as its implementation.
+     * Bootstrap method for linking an {@code invokedynamic} call site whose
+     * target creates reflectable lambda instances, using the lambda's stored
+     * code model as its implementation.
      * <p>
      * Except for the implementation method handle, this method follows the
      * contract and encoded-name convention of
@@ -143,8 +175,9 @@ public final class CodeModelBootstraps {
     }
 
     /**
-     * Links a call site whose target creates reflectable lambda instances,
-     * using the lambda's stored code model as its implementation.
+     * Bootstrap method for linking an {@code invokedynamic} call site whose
+     * target creates reflectable lambda instances, using the lambda's stored
+     * code model as its implementation.
      * <p>
      * Except for the implementation method handle, this method follows the
      * contract and encoded-name convention of
@@ -235,16 +268,13 @@ public final class CodeModelBootstraps {
                 lambda.body().yieldType(),
                 Stream.of(funcOp.invokableSignature().parameterTypes(),
                           lambda.invokableSignature().parameterTypes()).flatMap(List::stream).toList())).body(bb -> {
-            bb.context().mapBlock(funcOp.body().entryBlock(), bb.entryBlock());
             bb.context().mapValues(funcOp.parameters(), bb.parameters().subList(0, capturedValues));
             for (int i = 0; i < ops.size() - 2; i++) {
                 Op o = ops.get(i);
                 bb.add(o);
             }
             bb.transformBody(lambda.body(),
-                             bb.parameters().subList(capturedValues, bb.parameters().size()),
-                             bb.context(),
-                             CodeTransformer.COPYING_TRANSFORMER);
+                             bb.parameters().subList(capturedValues, bb.parameters().size()));
         });
     }
 }
