@@ -632,6 +632,7 @@ public class TileTransformer {
                     CodeType foldType;
                     switch (binaryOp) {
                         case JavaOp.MulOp _ -> foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), (x, y) -> x * y);
+                        case JavaOp.ModOp _ -> foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), (x, y) -> x % y);
                         case JavaOp.DivOp _ ->  foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), (x, y) -> x / y);
                         case JavaOp.AddOp _ ->  foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), Integer::sum);
                         case JavaOp.SubOp _ ->  foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), (x, y) -> x - y);
