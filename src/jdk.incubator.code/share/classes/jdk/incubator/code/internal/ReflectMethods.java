@@ -802,7 +802,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
             } else {
                 // we need to unbox
-                return unbox(exprVal, source, target, types.unboxedType(source));
+                Value unboxed = unbox(exprVal, source, target, types.unboxedType(source));
+                // possible conversion
+                return convert(unboxed, target);
             }
         }
 
@@ -873,13 +875,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case SELECT: {
                     JCFieldAccess assign = (JCFieldAccess) lhs;
 
-                    Value receiver = toValue(assign.selected);
+                    Type qualifierTarget = qualifierTarget(assign);
+                    Value receiver = toValue(assign.selected, qualifierTarget);
 
                     // Scan the rhs, the assign expression result is its input
                     result = toValue(tree.rhs, target);
 
                     Symbol sym = assign.sym;
-                    FieldRef fr = symbolToErasedFieldRef(sym, assign.selected.type);
+                    FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
+                            assign.selected.type : qualifierTarget);
+
                     if (sym.isStatic()) {
                         append(JavaOp.fieldStore(fr, result));
                     } else {
@@ -890,7 +895,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case INDEXED: {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
-                    Value array = toValue(assign.indexed);
+                    Value array = toValue(assign.indexed, assign.indexed.type);
                     Value index = toValue(assign.index, syms.intType);
 
                     // Scan the rhs, the assign expression result is its input
@@ -975,13 +980,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         case FIELD -> {
                             FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
 
-                            Op.Result lhsOpValue;
+                            Value lhsOpValue;
                             CodeType resultType = typeToCodeType(assign.type);
                             if (sym.isStatic()) {
                                 lhsOpValue = append(JavaOp.fieldLoad(resultType, fr));
                             } else {
                                 lhsOpValue = append(JavaOp.fieldLoad(resultType, fr, thisValue()));
                             }
+                            lhsOpValue = coerce(lhsOpValue, sym.erasure(types), assign.type);
                             // Scan the rhs
                             Value r = scanRhs.apply(lhsOpValue);
 
@@ -997,18 +1003,21 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case SELECT -> {
                     JCFieldAccess assign = (JCFieldAccess) lhs;
 
-                    Value receiver = toValue(assign.selected);
+                    Type qualifierTarget = qualifierTarget(assign);
+                    Value receiver = toValue(assign.selected, qualifierTarget);
 
                     Symbol sym = assign.sym;
-                    FieldRef fr = symbolToErasedFieldRef(sym, assign.selected.type);
+                    FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
+                            assign.selected.type : qualifierTarget);
 
-                    Op.Result lhsOpValue;
+                    Value lhsOpValue;
                     CodeType resultType = typeToCodeType(assign.type);
                     if (sym.isStatic()) {
                         lhsOpValue = append(JavaOp.fieldLoad(resultType, fr));
                     } else {
                         lhsOpValue = append(JavaOp.fieldLoad(resultType, fr, receiver));
                     }
+                    lhsOpValue = coerce(lhsOpValue, sym.erasure(types), assign.type);
                     // Scan the rhs
                     Value r = scanRhs.apply(lhsOpValue);
 
@@ -1021,7 +1030,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case INDEXED -> {
                     JCArrayAccess assign = (JCArrayAccess) lhs;
 
-                    Value array = toValue(assign.indexed);
+                    Value array = toValue(assign.indexed, assign.indexed.type);
                     Value index = toValue(assign.index, syms.intType);
 
                     Op.Result lhsOpValue = append(JavaOp.arrayLoadOp(array, index));
@@ -1137,7 +1146,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         public void visitIndexed(JCArrayAccess tree) {
             // Visited only for read access
 
-            Value array = toValue(tree.indexed);
+            Value array = toValue(tree.indexed, tree.indexed.type);
 
             Value index = toValue(tree.index, syms.intType);
 
@@ -2006,32 +2015,39 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // Pop expression
             popBody();
 
-            JCVariableDecl var = tree.getVariable();
-            VarType varEType = CoreType.varType(typeToCodeType(var.type));
+            JCVariableDecl loopVariableDecl = tree.getVariable();
+            VarType loopVarType = CoreType.varType(typeToCodeType(loopVariableDecl.type));
 
             // Push init
             // @@@ When lhs assignment is a pattern we embed the pattern match into the init body and
             // return the bound variables
-            Type exprType = types.cvarUpperBound(tree.expr.type);
-            Type elemtype = types.elemtype(exprType); // perhaps expr is an array?
-            if (elemtype == null) {
+            Type iterationType = types.cvarUpperBound(tree.expr.type);
+            boolean isArray = types.isArray(iterationType);
+            Type elementType;
+            if (isArray) {
+                elementType = types.elemtype(iterationType);
+            } else {
                 Type iterableType = types.asSuper(tree.expr.type, syms.iterableType.tsym);
                 com.sun.tools.javac.util.List<Type> iterableParams = iterableType.allparams();
-                elemtype = iterableParams.isEmpty()
+                elementType = iterableParams.isEmpty()
                         ? syms.objectType
                         : types.wildUpperBound(iterableParams.head);
             }
-            pushBody(var, CoreType.functionType(varEType, typeToCodeType(elemtype)));
-            var initVarExpr = convert(stack.block.parameters().get(0), var.type);
-            Op.Result varEResult = append(CoreOp.var(var.name.toString(), initVarExpr));
-            append(CoreOp.core_yield(varEResult));
+            pushBody(loopVariableDecl, CoreType.functionType(loopVarType, typeToCodeType(elementType)));
+
+            Value elementValue = stack.block.parameters().get(0);
+            Type elementProducerType = isArray ? elementType : syms.objectType;
+            // Coerce the element value into a loop value, since Iterator.next's return type is Object
+            Value loopValue = coerce(elementValue, elementProducerType, loopVariableDecl.type);
+            Op.Result loopVar = append(CoreOp.var(loopVariableDecl.name.toString(), loopVarType.valueType(), loopValue));
+            append(CoreOp.core_yield(loopVar));
             Body.Builder init = stack.body;
             // Pop init
             popBody();
 
             // Push body
-            pushBody(tree.body, CoreType.functionType(JavaType.VOID, varEType));
-            stack.localToOp.put(var.sym, stack.block.parameters().get(0));
+            pushBody(tree.body, CoreType.functionType(JavaType.VOID, loopVarType));
+            stack.localToOp.put(loopVariableDecl.sym, stack.block.parameters().get(0));
 
             scan(tree.body);
             appendTerminating(JavaOp::continue_);

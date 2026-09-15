@@ -44,23 +44,25 @@ public class ForLoopTest {
                         yield %3;
                     }
                     (%4 : java.type:"java.util.List<java.lang.String>")Var<java.type:"java.util.List<java.lang.String>"> -> {
-                        %5 : Var<java.type:"java.util.List<java.lang.String>"> = var %4 @"l";
-                        yield %5;
+                        %5 : java.type:"java.util.List<java.lang.String>" = cast %4 @java.type:"java.util.List";
+                        %6 : Var<java.type:"java.util.List<java.lang.String>"> = var %5 @"l";
+                        yield %6;
                     }
-                    (%6 : Var<java.type:"java.util.List<java.lang.String>">)java.type:"void" -> {
+                    (%7 : Var<java.type:"java.util.List<java.lang.String>">)java.type:"void" -> {
                         java.enhancedFor
                             ()java.type:"java.util.List<java.lang.String>" -> {
-                                %7 : java.type:"java.util.List<java.lang.String>" = var.load %6;
-                                yield %7;
+                                %8 : java.type:"java.util.List<java.lang.String>" = var.load %7;
+                                yield %8;
                             }
-                            (%8 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
-                                %9 : Var<java.type:"java.lang.String"> = var %8 @"s";
-                                yield %9;
+                            (%9 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
+                                %10 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                                %11 : Var<java.type:"java.lang.String"> = var %10 @"s";
+                                yield %11;
                             }
-                            (%10 : Var<java.type:"java.lang.String">)java.type:"void" -> {
-                                %11 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                                %12 : java.type:"java.lang.String" = var.load %10;
-                                invoke %11 %12 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
+                            (%12 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                                %13 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                                %14 : java.type:"java.lang.String" = var.load %12;
+                                invoke %13 %14 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                                 java.continue;
                             };
                         java.continue;
@@ -97,13 +99,14 @@ public class ForLoopTest {
                         yield %13;
                     }
                     (%14 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
-                        %15 : Var<java.type:"java.lang.String"> = var %14 @"s";
-                        yield %15;
+                        %15 : java.type:"java.lang.String" = cast %14 @java.type:"java.lang.String";
+                        %16 : Var<java.type:"java.lang.String"> = var %15 @"s";
+                        yield %16;
                     }
-                    (%16 : Var<java.type:"java.lang.String">)java.type:"void" -> {
-                        %17 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %18 : java.type:"java.lang.String" = var.load %16;
-                        invoke %17 %18 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
+                    (%17 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                        %18 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %19 : java.type:"java.lang.String" = var.load %17;
+                        invoke %18 %19 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         java.continue;
                     };
                 return;
@@ -125,10 +128,11 @@ public class ForLoopTest {
                         yield %3;
                     }
                     (%4 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
-                        %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
-                        yield %5;
+                        %5 : java.type:"java.lang.String" = cast %4 @java.type:"java.lang.String";
+                        %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
+                        yield %6;
                     }
-                    (%6 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                    (%7 : Var<java.type:"java.lang.String">)java.type:"void" -> {
                         java.continue;
                     };
                 return;
@@ -148,15 +152,16 @@ public class ForLoopTest {
                         yield %3;
                     }
                     (%4 : java.type:"java.lang.String")Var<java.type:"java.lang.String"> -> {
-                        %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
-                        yield %5;
+                        %5 : java.type:"java.lang.String" = cast %4 @java.type:"java.lang.String";
+                        %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
+                        yield %6;
                     }
-                    (%6 : Var<java.type:"java.lang.String">)java.type:"void" -> {
-                        %7 : java.type:"java.lang.String" = var.load %6;
-                        return %7;
+                    (%7 : Var<java.type:"java.lang.String">)java.type:"void" -> {
+                        %8 : java.type:"java.lang.String" = var.load %7;
+                        return %8;
                     };
-                %8 : java.type:"java.lang.String" = constant @"";
-                return %8;
+                %9 : java.type:"java.lang.String" = constant @"";
+                return %9;
             };
             """)
     String test2_2(List<String> l) {
