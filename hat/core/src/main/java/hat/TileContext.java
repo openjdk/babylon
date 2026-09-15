@@ -51,7 +51,7 @@ import java.util.stream.IntStream;
  * final int pid = TileContext.BIDX();
  * Tile a = TileContext.load(inputTensorA, pid, tileSize);
  * Tile b = TileContext.load(inputTensorB, pid, tileSize);
- * Tile result = TileOp.add(a, b);
+ * Tile result = Tile.add(a, b);
  * TileContext.store(output, pid, result);
  *}
  *

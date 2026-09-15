@@ -26,7 +26,6 @@ package hat.phases;
 
 import hat.DType;
 import hat.TileContext;
-import hat.TileOp;
 import hat.codetypes.ConstantType;
 import hat.codetypes.IndexType;
 import hat.codetypes.PtrType;
@@ -226,7 +225,6 @@ public class TileTransformer {
                 Op.Result r = kblock.add(CoreOp.var(varOp.varName(), init));
                 cc.mapValue(op.result(), r);
             }
-
             case CoreOp.ConstantOp constantOp -> {
                 CodeType type = valueTypeMap.get(constantOp);
                 if (type instanceof ConstantType c) {
@@ -236,14 +234,7 @@ public class TileTransformer {
                     kblock.add(op);
                 }
             }
-
             case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE_CONTEXT) -> {
-                Value result = tileBuilderInterpreter.build(op, iop.invokeReference().name(), valueTypeMap);
-                if (result != null) {
-                    cc.mapValue(op.result(), result);
-                }
-            }
-            case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE_MATH) -> {
                 Value result = tileBuilderInterpreter.build(op, iop.invokeReference().name(), valueTypeMap);
                 if (result != null) {
                     cc.mapValue(op.result(), result);
@@ -563,7 +554,6 @@ public class TileTransformer {
     }
 
     static final JavaType TYPE_TILE_CONTEXT = JavaType.type(TileContext.class);
-    static final JavaType TYPE_TILE_MATH = JavaType.type(TileOp.class);
     static final JavaType TYPE_TILE = JavaType.type(Tile.class);
     static final JavaType TYPE_J_L_MATH = JavaType.type(Math.class);
 
@@ -617,10 +607,6 @@ public class TileTransformer {
                     valueTypeMap.put(op.result(), new ConstantType(op.result().type(), constantOp.value()));
                 }
                 case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE_CONTEXT) -> {
-                    CodeType t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
-                    valueTypeMap.put(op.result(), new ConstantType(op.result().type(), t));
-                }
-                case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE_MATH) -> {
                     CodeType t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), new ConstantType(op.result().type(), t));
                 }

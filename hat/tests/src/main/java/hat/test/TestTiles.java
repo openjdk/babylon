@@ -41,7 +41,7 @@ import static hat.TileContext.load;
 import static hat.TileContext.store;
 
 import static hat.Accelerator.Compute;
-import static hat.TileOp.add;
+import static hat.types.Tile.add;
 
 /**
  * <p>How to run?</p>

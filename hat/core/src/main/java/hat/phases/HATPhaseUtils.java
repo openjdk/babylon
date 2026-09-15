@@ -25,8 +25,6 @@
 package hat.phases;
 
 import hat.HATMath;
-import hat.TileContext;
-import hat.TileOp;
 import hat.device.NonMappableIface;
 import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
