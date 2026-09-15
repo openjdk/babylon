@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntBinaryOperator;
 import java.util.stream.Stream;
 
 /**
@@ -568,6 +569,15 @@ public class TileTransformer {
         throw new IllegalStateException("Type conversion not supported: " + fromType + " -> " + toType);
     }
 
+    private static CodeType foldType(CodeType typeA, CodeType typeB, CodeType resultType, IntBinaryOperator evaluate) {
+        if (typeA instanceof ConstantType a && typeB instanceof ConstantType b) {
+            if (a.value() instanceof Integer && b.value() instanceof Integer) {
+                return new ConstantType(JavaType.INT, evaluate.applyAsInt((Integer) a.value(), (Integer) b.value()));
+            }
+        }
+        return resultType;
+    }
+
     private static <O extends Op & Op.Invokable> void typeCheckKernel(O kernel, List<? extends CodeType> argTypes, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData) {
         kernel.elements().forEach(codeElement -> {
             if (!(codeElement instanceof Op op)) {
@@ -614,7 +624,22 @@ public class TileTransformer {
                     CodeType t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
                     valueTypeMap.put(op.result(), new ConstantType(op.result().type(), t));
                 }
-                case JavaOp.BinaryOp _, JavaOp.UnaryOp _ -> {
+                case JavaOp.BinaryOp binaryOp -> {
+                    Value left = binaryOp.lhsOperand();
+                    Value right = binaryOp.rhsOperand();
+                    CodeType codeTypeA = valueTypeMap.get(left);
+                    CodeType codeTypeB = valueTypeMap.get(right);
+                    CodeType foldType;
+                    switch (binaryOp) {
+                        case JavaOp.MulOp _ -> foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), (x, y) -> x * y);
+                        case JavaOp.DivOp _ ->  foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), (x, y) -> x / y);
+                        case JavaOp.AddOp _ ->  foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), Integer::sum);
+                        case JavaOp.SubOp _ ->  foldType = foldType(codeTypeA, codeTypeB, binaryOp.resultType(), (x, y) -> x - y);
+                        default ->  throw new IllegalArgumentException("Operation not supported: " + binaryOp.getClass());
+                    }
+                    valueTypeMap.put(op.result(), foldType);
+                }
+                case JavaOp.UnaryOp _ -> {
                     CodeType t = checkWithTypeInterpreter(op, externalizeOpName(op), valueTypeMap);
                     valueTypeMap.put(op.result(), t); // this is the way it should be done: shall we model a CodeType that is not constant?
                 }
