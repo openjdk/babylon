@@ -57,9 +57,10 @@ CudaSource::CudaSource(char *text)
     : Text(text, false) {
 }
 
-CudaSource::CudaSource(size_t len, char *text, bool isCopy, bool lineinfo)
+CudaSource::CudaSource(size_t len, char *text, bool isCopy, bool lineinfo, int typeModel)
     : Text(len, text, isCopy) {
     _lineInfo = lineinfo;
+    _typeModel = typeModel;
 }
 
 CudaSource::CudaSource()
@@ -68,6 +69,10 @@ CudaSource::CudaSource()
 
 bool CudaSource::lineInfo() const {
     return _lineInfo;
+}
+
+int CudaSource::typeModel() const {
+    return _typeModel;
 }
 
 uint64_t timeSinceEpochMillisec() {
@@ -149,39 +154,64 @@ void CudaBackend::showDeviceInfo() {
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
+std::string CudaBackend::obtainSMVersion() {
+    int major = 0, minor = 0;
+    CUDA_CHECK(cuDeviceGetAttribute(&major,CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device), "cuDeviceGetAttribute");
+    CUDA_CHECK(cuDeviceGetAttribute(&minor,CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device), "cuDeviceGetAttribute");
+    return std::string("sm_").append(std::to_string(major)).append(std::to_string(minor));
+}
+
 PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
 
     // create var/cuda directory
     std::string localDirectory = "./var/cuda";
     std::filesystem::create_directories(localDirectory);
-    // create temp file for cuda generarated code
+    // create temp file for cuda generated code
     const uint64_t time = timeSinceEpochMillisec();
-    const std::string ptxPath = tmpFileName(time, localDirectory, ".ptx");
+    std::string suffix = ".ptx";
+    if (cudaSource->typeModel() > 0) {
+        suffix = ".cubin";
+    }
+    const std::string ptxPath = tmpFileName(time, localDirectory, suffix);
     const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
+
+    // Obtain the compute capability and SM version
+    std::string smVersion = obtainSMVersion();
 
     // compile the generated code
     int pid;
     cudaSource->write(cudaPath);
     if ((pid = fork()) == 0) { //child
-        const auto path = "nvcc";
+        const auto cudaCompiler = "nvcc";
         std::vector<std::string> command;
-        command.push_back(path);
-        command.push_back("-ptx");
-        command.push_back("-Wno-deprecated-gpu-targets");
+        command.push_back(cudaCompiler);
+
+        if (cudaSource->typeModel() > 0) {
+            command.push_back("--tilecubin");
+            command.push_back("--std=c++20");
+            command.push_back("--enable-tile");
+            command.push_back("-arch");
+            command.push_back(smVersion);
+        } else {
+            command.push_back("-ptx");
+            command.push_back("-Wno-deprecated-gpu-targets");
+        }
+
         command.push_back(cudaPath);
         if (cudaSource->lineInfo()) {
             command.push_back("-lineinfo");
         }
+
         command.push_back("-o");
         command.push_back(ptxPath);
 
-        // conver to char*[]
+        // conver to char*[] fr the execvp function
         const char* args[command.size() + 1];
         for (int i = 0; i < command.size(); i++) {
             args[i] = command[i].c_str();
         }
         args[command.size()] = nullptr;
-        const int stat = execvp(path, (char *const *) args);
+        const int stat = execvp(cudaCompiler, (char *const *) args);
         std::cerr << " nvcc stat = " << stat << " errno=" << errno << " '" << std::strerror(errno) << "'" << std::endl;
         std::exit(errno);
     } else if (pid < 0) {// fork failed.
@@ -233,23 +263,20 @@ CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
         CUDA_CHECK(cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals), "cuModuleLoadDataEx");
 
         if (*infLog->text!='\0'){
-           std::cout << "> PTX JIT inflog:" << std::endl << infLog->text << std::endl;
+            std::cout << "> PTX JIT inflog:" << std::endl << infLog->text << std::endl;
         }
         if (*errLog->text!='\0'){
-           std::cout << "> PTX JIT errlog:" << std::endl << errLog->text << std::endl;
+            std::cout << "> PTX JIT errlog:" << std::endl << errLog->text << std::endl;
         }
         return new CudaModule(this, ptx->text, infLog->text, true, module);
-
         //delete ptx;
-    } else {
-        std::cout << "no ptx content!" << std::endl;
-        exit(1);
     }
+    std::cout << "no ptx content!" << std::endl;
+    exit(1);
 }
 
 //Entry point from HAT.  We use the config PTX bit to determine which Source type
-
-Backend::CompilationUnit *CudaBackend::compile(const int len, char *source) {
+Backend::CompilationUnit *CudaBackend::compile(const int len, char *source, int typeModel) {
     if (config->traceCalls) {
         std::cout << "inside compileProgram" << std::endl;
     }
@@ -264,7 +291,7 @@ Backend::CompilationUnit *CudaBackend::compile(const int len, char *source) {
         if (config->trace) {
             std::cout << "compiling from provided  cuda " << std::endl;
         }
-        CudaSource cudaSource(len , source, false, config->profile);
+        CudaSource cudaSource(len , source, false, config->profile, typeModel);
         return compile(cudaSource);
     }
 }

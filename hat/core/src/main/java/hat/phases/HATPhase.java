@@ -29,6 +29,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import java.lang.invoke.MethodHandles;
 
 public sealed interface HATPhase
-        permits HATArrayViewPhase,  HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATTensorsPhase,  HATVectorPhase {
+        permits HATArrayViewPhase, HATFP16Phase, HATMathLibPhase, HATMemoryPhase, HATTensorsPhase, HATTilesPhase, HATVectorPhase {
     CoreOp.FuncOp transform(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable);
 }

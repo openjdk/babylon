@@ -96,7 +96,7 @@ public interface BabylonOpDispatcher<T extends JavaOrC99StyleCodeBuilder<T,SCBC>
     T blockOp( JavaOp.BlockOp blockOp);
     T concatOp( JavaOp.ConcatOp concatOp);
 
-    default T recurseResultOrThrow(Value v) {
+    default T  recurseResultOrThrow(Value v) {
         if (v instanceof Op.Result r){
             return recurse(r.op());
         } else {

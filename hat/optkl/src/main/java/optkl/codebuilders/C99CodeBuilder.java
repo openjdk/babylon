@@ -209,6 +209,23 @@ public  class C99CodeBuilder<T extends C99CodeBuilder<T>> extends ScopeAwareJava
         return self();
     }
 
+    public final T ceilDiv(String name) {
+        List<String> params = List.of("a", "b");
+        return macro(name, params, _ -> ceilDivMacroBody(params));
+    }
+
+    public final T ceilDivMacroBody(List<String> params) {
+        final String a = params.getFirst();
+        final String b = params.get(1);
+        paren(_ -> paren( _ -> id(a))
+                .plus()
+                .paren( _ -> id(b))
+                .minus()
+                .paren( _ -> intConst(1)));
+        div().paren( _ -> id(b));
+        return self();
+    }
+
     /**
      * <code>
      *     #define CONCAT(a, b) a##b

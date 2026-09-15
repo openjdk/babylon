@@ -25,7 +25,9 @@
 package hat.codebuilders;
 
 import hat.KernelContext;
+import hat.TileContext;
 import hat.buffer.BF16Array;
+import hat.buffer.Tensor2DF16;
 import hat.callgraph.KernelCallGraph;
 import hat.device.NonMappableIface;
 import hat.dialect.HATPtrOp;
@@ -70,27 +72,7 @@ import static hat.codebuilders.C99VecAndMatHandler.handleInvoke;
 import static hat.codebuilders.C99VecAndMatHandler.handleType;
 import static hat.codebuilders.C99VecAndMatHandler.isVecInvoke;
 import static hat.codebuilders.C99VecAndMatHandler.isVecOrMatType;
-import static hat.phases.HATPhaseUtils.NON_MAPPABLE_IFACE;
-import static hat.phases.HATPhaseUtils.findIsSharedOrPrivateSpace;
-import static hat.phases.HATPhaseUtils.findVectorVarNameOrNull;
-import static hat.phases.HATPhaseUtils.getVectorShapeFromOperandN;
-import static hat.phases.HATPhaseUtils.isArrayReference;
-import static hat.phases.HATPhaseUtils.isAttributeSharedOrPrivate;
-import static hat.phases.HATPhaseUtils.isF16Local;
-import static hat.phases.HATPhaseUtils.isInvokeFromNarrowTypeConversion;
-import static hat.phases.HATPhaseUtils.isInvokeLoadingFromOnChipMemory;
-import static hat.phases.HATPhaseUtils.isMathOperation;
-import static hat.phases.HATPhaseUtils.isOperandF32;
-import static hat.phases.HATPhaseUtils.isS16BinaryOp;
-import static hat.phases.HATPhaseUtils.isS16Conversion;
-import static hat.phases.HATPhaseUtils.isS16ToFloatConversion;
-import static hat.phases.HATPhaseUtils.isSharedOrPrivate;
-import static hat.phases.HATPhaseUtils.isTensorOperation;
-import static hat.phases.HATPhaseUtils.isVectorBinaryOperation;
-import static hat.phases.HATPhaseUtils.isVectorOperation;
-import static hat.phases.HATPhaseUtils.isVectorSelectOperation;
-import static hat.phases.HATPhaseUtils.isVectorView;
-import static hat.phases.HATPhaseUtils.mapLane;
+import static hat.phases.HATPhaseUtils.*;
 import static optkl.IfaceValue.Vector.getVectorShape;
 import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.FieldAccess.fieldAccess;
@@ -274,6 +256,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 || ifaceType.iface.isAssignableFrom(BF16Array.BF16Impl.class);
     }
 
+    public final boolean isTensorType(Schema.IfaceType ifaceType) {
+        return ifaceType.iface.isAssignableFrom(Tensor2DF16.class);
+    }
+
+    private boolean isTensorArray(Schema.FieldNode.AbstractPrimitiveField primitiveField,Schema.IfaceType ifaceType) {
+        // Generate half, only if is a tensor type for the field array (short -> half)
+        return primitiveField instanceof Schema.FieldNode.PrimitiveArray  && isTensorType(ifaceType);
+    }
+
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
         typedefKeyword()
                 .sp()
@@ -288,7 +279,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                             field -> {
                                 boolean isLast = fieldIdx.get() == fieldCount - 1;
                                 if (field instanceof Schema.FieldNode.AbstractPrimitiveField primitiveField) {
-                                    if (isHalfType(ifaceType)) {
+                                    if (isHalfType(ifaceType) || isTensorArray(primitiveField, ifaceType)) {
                                         type("half");
                                     } else if (isbfloat16(ifaceType)) {
                                         type("BFLOAT16");
@@ -374,7 +365,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T types() {
         return typedefKeyword().sp().s08Type("byte").snl()
                 .typedefKeyword().sp().s08Type("boolean").snl()
-                .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl();
+                .typedefStruct(KernelContext.class, _ -> s32Type("dimensions").semicolon()).nl()
+                .typedefStruct(TileContext.class, _ -> s32Type("dimensions").semicolon()).nl();
     }
 
     @Override
@@ -408,6 +400,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             HAT_GLOBAL_MEM().sp().suffix_t(classType).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, KernelContext.class)) {
             HAT_GLOBAL_MEM().sp().suffix_t(KernelContext.class).asterisk();
+        } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, TileContext.class)) {
+            HAT_GLOBAL_MEM().sp().suffix_t(TileContext.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, F16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls
             HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, BF16.class)) { // TODO: update this with a custom op, to avoid direct use of Impls
@@ -734,6 +728,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         switch (resolve) {
             case CoreOp.VarOp varOp -> varName(varOp);
             case null, default -> {
+                blockComment("varLoadOp missing: " + resolve);
             }
         }
         return self();
@@ -883,6 +878,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+    private void handleTileOperation(Invoke invoke) {
+        if (invoke.name().equals("align")) {
+            hatTileAlignOperation(invoke);
+        } else {
+            throw new IllegalStateException("[CodeGen] Unknown op: " + invoke.name());
+        }
+    }
+
     private void handleIFaceInvoke(Invoke invoke) {
         if (invoke instanceof Invoke.Virtual && invoke.operandCount() == 1 && invoke.returnsInt() && invoke.nameMatchesRegex(atomicIncRegex)) {
             if (invoke.resultFromOperandNOrThrow(0) instanceof Op.Result instanceResult) {
@@ -959,9 +962,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T invokeOp(JavaOp.InvokeOp invokeOp) {
         MethodHandles.Lookup lookup = scopedCodeBuilderContext().lookup();
         var invoke = invoke(lookup, invokeOp);
-        if (invoke instanceof Invoke.Static staticInvoke && staticInvoke.refIs(KernelContext.class) && invoke.nameMatchesRegex(KernelContext.threadAccessRegex)){
-            id("HAT_"+invoke.name().toUpperCase()); // toUppercase is for barrier()
-        }else if (isVecInvoke(invoke)) { // hacked for vec op calls.
+        if (invoke instanceof Invoke.Static staticInvoke && staticInvoke.refIs(KernelContext.class) && invoke.nameMatchesRegex(KernelContext.threadAccessRegex)) {
+            id("HAT_" + invoke.name().toUpperCase()); // toUppercase is for barrier()
+        } else if (isVecInvoke(invoke)) { // hacked for vec op calls.
             handleInvoke(self(), invoke);
         } else if (isVectorOperation(lookup, invokeOp)) {
             handleVectorOperations(invoke);
@@ -977,6 +980,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             handleS16BinaryOperation(invoke);
         } else if (isTensorOperation(invoke)) {
             handleTensorOperation(invoke);
+        } else if (isTileOperation(invoke)) {
+            handleTileOperation(invoke);
         } else if (isIFaceValue(invoke)) {
             handleIFaceInvoke(invoke);
         } else if (isMathOperation(invoke)) {
@@ -1007,7 +1012,12 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (scopedCodeBuilderContext().isVarOpFinal(varOp)) {
             constKeyword().sp();
         }
-        type((JavaType) varOp.varValueType()).sp().varName(varOp).sp().equals().sp();
+        if (varOp.varValueType() instanceof JavaType javaType) {
+            type(javaType);
+        } else {
+            type(varOp.varValueType());
+        }
+        sp().varName(varOp).sp().equals().sp();
         var first = varOp.operands().getFirst();
         switch (first) {
             case Op.Result result -> parenthesisIfNeeded(varOp, result.op());
@@ -1039,6 +1049,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 case PRIVATE -> varOpPrivateMemory(varOp);
                 case TENSOR -> varOpTensor(varOp);
                 case TENSOR_SHAPE -> self();
+                case TILE ->  varOpTile(varOp);
                 case null -> genericVarOp(varOp);
                 default -> throw new IllegalStateException("Unexpected HATOpAttribute: " + attribute);
             }
@@ -1559,11 +1570,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
 
     protected abstract T varOpPrivateMemory(CoreOp.VarOp varOp);
 
+    protected abstract T varOpTile(CoreOp.VarOp varOp);
+
     protected abstract T hatTensorCreateOperation(Invoke invoke);
 
     protected abstract T hatTensorStore(Invoke invoke);
 
     protected abstract T hatTensorLoad(Invoke invoke);
+
+    protected abstract T hatTileAlignOperation(Invoke invoke);
 
     protected abstract String mapMathIntrinsic(String name);
 
