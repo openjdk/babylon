@@ -49,6 +49,15 @@ import static hat.NDRange.Local1D;
 import static hat.NDRange.NDRange1D;
 import static hat.buffer.F16Array.create;
 
+/**
+ * How to run?
+ *
+ * <p>Testing with the OpenCL backend:</p>
+ * <code>java @.ffi-opencl-test hat.test.TestFlashAttention</code>
+ *
+ * <p>Testing with the CUDA backend:</p>
+ * <code>java @.ffi-cuda-test hat.test.TestFlashAttention</code>
+ */
 public class TestFlashAttention {
 
     private interface SharedF16Array extends NonMappableIface {
