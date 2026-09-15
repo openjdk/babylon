@@ -1485,6 +1485,18 @@ public class JavaCompiler {
         try {
             warningAnalyzer.analyzeTree(env);
             compileStates.put(env, CompileState.WARN);
+            // Run ReflectMethods here to ensure that it always runs before TransTypes,
+            // even when TransTypes recursively translates classes from other compilation units
+            if (!shouldStop(CompileState.TRANSTYPES)
+                    && env.tree.hasTag(JCTree.Tag.CLASSDEF)
+                    && (implicitSourcePolicy != ImplicitSourcePolicy.NONE || inputFiles.contains(env.toplevel.sourcefile))
+                    && (modules.multiModuleMode || env.toplevel.modle == modules.getDefaultModule())
+                    && Feature.REFLECT_METHODS.allowedInSource(source)) {
+                Optional<CodeReflectionTransformer> reflectMethods = reflectMethods();
+                if (reflectMethods.isPresent()) {
+                    env.tree = reflectMethods.get().translateTopLevelClass(context, env.tree, make.forToplevel(env.toplevel));
+                }
+            }
             results.add(env);
         }
         finally {
@@ -1674,13 +1686,6 @@ public class JavaCompiler {
 
             if (shouldStop(CompileState.TRANSTYPES))
                 return;
-
-            if (Feature.REFLECT_METHODS.allowedInSource(source)) {
-                Optional<CodeReflectionTransformer> reflectMethods = reflectMethods();
-                if (reflectMethods.isPresent()) {
-                    env.tree = reflectMethods.get().translateTopLevelClass(context, env.tree, localMake);
-                }
-            }
 
             env.tree = transTypes.translateTopLevelClass(env.tree, localMake);
             compileStates.put(env, CompileState.TRANSTYPES);
