@@ -1485,6 +1485,8 @@ public class JavaCompiler {
         try {
             warningAnalyzer.analyzeTree(env);
             compileStates.put(env, CompileState.WARN);
+            // Run ReflectMethods here to ensure that it always runs before TransTypes,
+            // even when TransTypes recursively translates classes from other compilation units
             if (!shouldStop(CompileState.TRANSTYPES)
                     && env.tree.hasTag(JCTree.Tag.CLASSDEF)
                     && (implicitSourcePolicy != ImplicitSourcePolicy.NONE || inputFiles.contains(env.toplevel.sourcefile))
