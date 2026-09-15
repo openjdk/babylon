@@ -47,9 +47,9 @@ import jdk.incubator.code.dialect.java.JavaOp;
  *
  * @see ReflectableLambdaMetafactory
  */
-public final class CodeModelLinker {
+public final class CodeModelBootstraps {
 
-    private CodeModelLinker() {
+    private CodeModelBootstraps() {
     }
 
     /**
