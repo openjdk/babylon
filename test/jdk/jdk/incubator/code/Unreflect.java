@@ -43,6 +43,9 @@ import java.nio.file.Path;
 import java.util.*;
 
 import jdk.incubator.code.Reflect;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.runtime.CodeModelBootstraps;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
@@ -51,6 +54,7 @@ public final class Unreflect {
     static final ClassDesc CD_Reflect = Reflect.class.describeConstable().get();
     static final ClassDesc CD_CodeModelBootstraps = CodeModelBootstraps.class.describeConstable().get();
     static final ClassDesc CD_ReflectableLambdaMetafactory = ReflectableLambdaMetafactory.class.describeConstable().get();
+    static final ClassDesc CD_CallerSensitive = ClassDesc.of("jdk.internal.reflect.CallerSensitive");
 
     static boolean isReflective(MethodModel mm) {
         return mm.findAttribute(Attributes.runtimeVisibleAnnotations())
@@ -59,9 +63,18 @@ public final class Unreflect {
     }
 
     static byte[] transform(ClassModel clm) {
+        Set<String> modelAccessors = new HashSet<>();
+        MethodTypeDesc modelType = MethodTypeDesc.of(Op.class.describeConstable().orElseThrow());
+        clm.methods().stream().filter(m -> m.methodTypeSymbol().equals(modelType))
+                .forEach(m -> modelAccessors.add(m.methodName().stringValue()));
         return ClassFile.of(ClassFile.ConstantPoolSharingOption.NEW_POOL).transformClass(clm, (clb, cle) -> {
             if (cle instanceof MethodModel mm) {
-                if (isReflective(mm)) {
+                if (mm.methodName().equalsString("<init>") || mm.code().isEmpty()
+                        || mm.findAttribute(Attributes.runtimeVisibleAnnotations())
+                                .map(a -> a.annotations().stream().anyMatch(ann -> ann.classSymbol().equals(CD_CallerSensitive)))
+                                .orElse(false)) {
+                    clb.with(mm);
+                } else if (isReflective(mm) || modelAccessors.contains(modelAccessorName(clm, mm))) {
                     clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
                             .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
                                 MethodTypeDesc mts = mm.methodTypeSymbol();
@@ -106,9 +119,30 @@ public final class Unreflect {
         });
     }
 
+    static String modelAccessorName(ClassModel clm, MethodModel mm) {
+        MethodTypeDesc type = mm.methodTypeSymbol();
+        return MethodRef.method(JavaType.type(clm.thisClass().asSymbol()), mm.methodName().stringValue(),
+                JavaType.type(type.returnType()), type.parameterList().stream().map(JavaType::type).toList())
+                .toString().replace('.', '$').replace(';', '$').replace('[', '$').replace('/', '$');
+    }
+
     public static void main(String[] args) throws Exception {
         // process class files from arguments
-        var toUnreflect = new ArrayDeque<>(List.of(args));
+        var toUnreflect = new ArrayDeque<String>();
+        for (String arg : args) {
+            Path path = Path.of(arg);
+            if (Files.isDirectory(path)) {
+                try (var files = Files.walk(path)) {
+                    for (Path file : files.filter(Files::isRegularFile)
+                            .filter(p -> p.toString().endsWith(".class")).toList()) {
+                        System.out.println("unreflecting " + file);
+                        Files.write(file, transform(ClassFile.of().parse(Files.readAllBytes(file))));
+                    }
+                }
+            } else {
+                toUnreflect.add(arg);
+            }
+        }
         var done = new HashSet<String>();
         while (!toUnreflect.isEmpty()) {
             String arg = toUnreflect.pop();
