@@ -26,11 +26,8 @@ package hat.test;
 
 import hat.Accelerator;
 import hat.ComputeContext;
-
-import static hat.KernelContext.*;
 import hat.NDRange;
 import hat.backend.Backend;
-import hat.types.BF16;
 import hat.buffer.BF16Array;
 import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
@@ -38,15 +35,21 @@ import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
 import hat.test.exceptions.HATAsserts;
 import hat.test.exceptions.HATExpectedPrecisionError;
+import hat.types.BF16;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Random;
 
+import static hat.KernelContext.GIX;
+import static hat.KernelContext.GSX;
+import static hat.KernelContext.LIX;
+import static hat.KernelContext.barrier;
+
 public class TestBFloat16Type {
 
     @Reflect
-    public static void kernelCopy( BF16Array a, BF16Array b) {
+    public static void kernelCopy(BF16Array a, BF16Array b) {
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             b.array(GIX()).value(ha.value());
@@ -54,7 +57,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_02( BF16Array a, BF16Array b, BF16Array c) {
+    public static void bf16_02(BF16Array a, BF16Array b, BF16Array c) {
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             BF16 hb = b.array(GIX());
@@ -65,7 +68,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_03( BF16Array a, BF16Array b, BF16Array c) {
+    public static void bf16_03(BF16Array a, BF16Array b, BF16Array c) {
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             BF16 hb = b.array(GIX());
@@ -77,7 +80,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_04( BF16Array a, BF16Array b, BF16Array c) {
+    public static void bf16_04(BF16Array a, BF16Array b, BF16Array c) {
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             BF16 hb = b.array(GIX());
@@ -93,16 +96,16 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_05( BF16Array a) {
+    public static void bf16_05(BF16Array a) {
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
-            BF16 initVal = BF16.of( 2.1f);
+            BF16 initVal = BF16.of(2.1f);
             ha.value(initVal.value());
         }
     }
 
     @Reflect
-    public static void bf16_06( BF16Array a) {
+    public static void bf16_06(BF16Array a) {
         if (GIX() < GSX()) {
             BF16 initVal = BF16.of(GIX());
             BF16 ha = a.array(GIX());
@@ -111,7 +114,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_08( BF16Array a) {
+    public static void bf16_08(BF16Array a) {
         if (GIX() < GSX()) {
             BF16 initVal = BF16.float2bfloat16(GIX());
             BF16 ha = a.array(GIX());
@@ -120,7 +123,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_09( BF16Array a, BF16Array b) {
+    public static void bf16_09(BF16Array a, BF16Array b) {
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             float f = BF16.bfloat162float(ha);
@@ -131,7 +134,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_10( BF16Array a) {
+    public static void bf16_10(BF16Array a) {
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             BF16 f16 = BF16.of(1.1f);
@@ -143,12 +146,10 @@ public class TestBFloat16Type {
 
     public interface LocalArray extends NonMappableIface {
         BF16 array(int index);
-        DeviceSchema<LocalArray> deviceSchema = DeviceSchema.of(LocalArray.class,
-                builder -> builder.array("array", 1024, bfloat16 -> bfloat16.field("value")));
 
-        static LocalArray  create(Accelerator accelerator) {
-            return null;
-        }
+        DeviceSchema<LocalArray> deviceSchema = DeviceSchema.of(LocalArray.class,
+                builder -> builder.array("array", 1024,
+                        bfloat16 -> bfloat16.field("value")));
 
         static LocalArray createLocal() {
             return null;
@@ -156,7 +157,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_11( BF16Array a, BF16Array b) {
+    public static void bf16_11(BF16Array a, BF16Array b) {
         LocalArray sm = LocalArray.createLocal();
         if (GIX() < GSX()) {
             int lix = LIX();
@@ -171,29 +172,29 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_12( BF16Array a, BF16Array b, BF16Array c) {
+    public static void bf16_12(BF16Array a, BF16Array b, BF16Array c) {
         // Test the fluent API style
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             BF16 hb = b.array(GIX());
-            BF16 result = BF16.add(ha,hb);
+            BF16 result = BF16.add(ha, hb);
             c.array(GIX()).value(result.value());
         }
     }
 
     @Reflect
-    public static void bf16_13( BF16Array a, BF16Array b,  BF16Array c) {
+    public static void bf16_13(BF16Array a, BF16Array b, BF16Array c) {
         // Test the fluent API style
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
             BF16 hb = b.array(GIX());
-            BF16 result = BF16.div(BF16.mul(BF16.sub(BF16.add(ha,hb),hb),ha),ha);
+            BF16 result = BF16.div(BF16.mul(BF16.sub(BF16.add(ha, hb), hb), ha), ha);
             c.array(GIX()).value(result.value());
         }
     }
 
     @Reflect
-    public static void bf16_14( BF16Array a, BF16Array b) {
+    public static void bf16_14(BF16Array a, BF16Array b) {
         // Testing mixed float types
         if (GIX() < GSX()) {
             BF16 ha = a.array(GIX());
@@ -205,20 +206,16 @@ public class TestBFloat16Type {
 
     public interface PrivateArray extends NonMappableIface {
         BF16 array(int index);
+
         DeviceSchema<PrivateArray> deviceSchema = DeviceSchema.of(PrivateArray.class,
                 builder -> builder.array("array", 256, bfloat16 -> bfloat16.field("value")));
-
-        static PrivateArray  create(Accelerator accelerator) {
-            return null;
-        }
-
         static PrivateArray createPrivate() {
             return null;
         }
     }
 
     @Reflect
-    public static void bf16_15( BF16Array a, BF16Array b) {
+    public static void bf16_15(BF16Array a, BF16Array b) {
         PrivateArray privateArray = PrivateArray.createPrivate();
         if (GIX() < GSX()) {
             int lix = LIX();
@@ -230,7 +227,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_16( BF16Array a) {
+    public static void bf16_16(BF16Array a) {
         BF16 ha = a.array(0);
         BF16 hre = BF16.add(ha, ha);
         hre = BF16.add(hre, hre);
@@ -238,7 +235,7 @@ public class TestBFloat16Type {
     }
 
     @Reflect
-    public static void bf16_17( BF16Array a) {
+    public static void bf16_17(BF16Array a) {
 
         BF16 ha = a.array(0);
         PrivateArray privateArray = PrivateArray.createPrivate();
@@ -256,85 +253,85 @@ public class TestBFloat16Type {
 
     @Reflect
     public static void compute01(ComputeContext computeContext, BF16Array a, BF16Array b) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.kernelCopy( a, b));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.kernelCopy(a, b));
     }
 
     @Reflect
     public static void compute02(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                ()-> TestBFloat16Type.bf16_02( a, b, c));
+                () -> TestBFloat16Type.bf16_02(a, b, c));
     }
 
     @Reflect
     public static void compute03(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                ()-> TestBFloat16Type.bf16_03( a, b, c));
+                () -> TestBFloat16Type.bf16_03(a, b, c));
     }
 
     @Reflect
     public static void compute04(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
         computeContext.dispatchKernel(NDRange.of1D(a.length()),
-                ()-> TestBFloat16Type.bf16_04( a, b, c));
+                () -> TestBFloat16Type.bf16_04(a, b, c));
     }
 
     @Reflect
     public static void compute05(ComputeContext computeContext, BF16Array a) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_05( a));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_05(a));
     }
 
     @Reflect
     public static void compute06(ComputeContext computeContext, BF16Array a) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_06( a));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_06(a));
     }
 
     @Reflect
     public static void compute08(ComputeContext computeContext, BF16Array a) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_08( a));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_08(a));
     }
 
     @Reflect
     public static void compute09(ComputeContext computeContext, BF16Array a, BF16Array b) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_09( a, b));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_09(a, b));
     }
 
     @Reflect
     public static void compute10(ComputeContext computeContext, BF16Array a) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_10( a));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_10(a));
     }
 
     @Reflect
     public static void compute11(ComputeContext computeContext, BF16Array a, BF16Array b) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length(),16), ()-> TestBFloat16Type.bf16_11( a, b));
+        computeContext.dispatchKernel(NDRange.of1D(a.length(), 16), () -> TestBFloat16Type.bf16_11(a, b));
     }
 
     @Reflect
     public static void compute12(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_12( a, b, c));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_12(a, b, c));
     }
 
     @Reflect
     public static void compute13(ComputeContext computeContext, BF16Array a, BF16Array b, BF16Array c) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_13( a, b, c));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_13(a, b, c));
     }
 
     @Reflect
     public static void compute14(ComputeContext computeContext, BF16Array a, BF16Array b) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_14( a, b));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_14(a, b));
     }
 
     @Reflect
     public static void compute15(ComputeContext computeContext, BF16Array a, BF16Array b) {
-        computeContext.dispatchKernel(NDRange.of1D(a.length()), ()-> TestBFloat16Type.bf16_15( a, b));
+        computeContext.dispatchKernel(NDRange.of1D(a.length()), () -> TestBFloat16Type.bf16_15(a, b));
     }
 
     @Reflect
     public static void compute16(ComputeContext computeContext, BF16Array a) {
-        computeContext.dispatchKernel(NDRange.of1D(1), ()-> TestBFloat16Type.bf16_16( a));
+        computeContext.dispatchKernel(NDRange.of1D(1), () -> TestBFloat16Type.bf16_16(a));
     }
 
     @Reflect
     public static void compute17(ComputeContext computeContext, BF16Array a) {
-        computeContext.dispatchKernel(NDRange.of1D(1), ()-> TestBFloat16Type.bf16_17( a));
+        computeContext.dispatchKernel(NDRange.of1D(1), () -> TestBFloat16Type.bf16_17(a));
     }
 
     @HatTest
@@ -353,7 +350,7 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < size; i++) {
             BF16 result = arrayB.array(i);
-            HATAsserts.assertEquals((float)i, BF16.bfloat162float(result), 0.001f);
+            HATAsserts.assertEquals((float) i, BF16.bfloat162float(result), 0.001f);
         }
     }
 
@@ -383,6 +380,7 @@ public class TestBFloat16Type {
             HATAsserts.assertEquals(res, BF16.bfloat162float(result), 0.001f);
         }
     }
+
     @HatTest
     @Reflect
     public void test_bfloat16_03() {
@@ -477,14 +475,12 @@ public class TestBFloat16Type {
             arrayA.array(i).value(BF16.float2bfloat16(0.0f).value());
         }
 
-        accelerator.compute(computeContext -> {
-            TestBFloat16Type.compute06(computeContext, arrayA);
-        });
+        accelerator.compute(computeContext -> TestBFloat16Type.compute06(computeContext, arrayA));
 
         for (int i = 0; i < arrayA.length(); i++) {
             BF16 val = arrayA.array(i);
             try {
-                HATAsserts.assertEquals(i, BF16.bfloat162float(val), 0.01f);
+                HATAsserts.assertEquals(BF16.bfloat162float(BF16.float2bfloat16(i)), BF16.bfloat162float(val), 0.01f);
             } catch (HATAssertionError hatAssertionError) {
                 throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
             }
@@ -654,8 +650,9 @@ public class TestBFloat16Type {
 
         for (int i = 0; i < arrayB.length(); i++) {
             BF16 result = arrayB.array(i);
+            BF16 sum = BF16.add(arrayA.array(i), BF16.float2bfloat16(32.1f));
             try {
-                HATAsserts.assertEquals(BF16.bfloat162float(arrayA.array(i)) + 32.1f, BF16.bfloat162float(result), 0.1f);
+                HATAsserts.assertEquals(BF16.bfloat162float(sum), BF16.bfloat162float(result), 0.1f);
             } catch (HATAssertionError hatAssertionError) {
                 throw new HATExpectedPrecisionError(hatAssertionError.getMessage());
             }
@@ -691,7 +688,6 @@ public class TestBFloat16Type {
         final int size = 1;
         BF16Array arrayA = BF16Array.create(accelerator, size);
 
-        Random r = new Random(73);
         arrayA.array(0).value(BF16.float2bfloat16(10).value());
 
         accelerator.compute(computeContext -> TestBFloat16Type.compute16(computeContext, arrayA));
