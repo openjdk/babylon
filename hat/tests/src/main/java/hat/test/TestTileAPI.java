@@ -527,12 +527,14 @@ public class TestTileAPI {
         HATAsserts.assertEquals(N, matrixA.n());
     }
 
+    // Matmul using irange and FP16
     @Reflect
-    public static void matmulSimpleF16IRange(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int num_tiles) {
+    public static void matmulSimpleF16IRange(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
-        for (int k : TileContext.irange(0, num_tiles)) {
+        final int numberOfTiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        for (int k : TileContext.irange(0, numberOfTiles)) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
@@ -541,13 +543,82 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16IRange(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
+    public static void matmulSimpleF16IRange(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmulSimpleF16IRange(inputA, inputB, output, tm, tn, tk, numTiles));
+                () -> matmulSimpleF16IRange(inputA, inputB, output, tm, tn, tk));
     }
 
+    // Matmul using irange in FP16
     @HatTest
     public void test_hat_tile_09() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+
+        final int size = 1024;
+        Tensor2DF16 matrixA = Tensor2DF16.create(accelerator, size, size);
+        Tensor2DF16 matrixB = Tensor2DF16.create(accelerator, size, size);
+        Tensor2DF32 matrixC = Tensor2DF32.create(accelerator, size, size);
+        Tensor2DF32 matrixSeq = Tensor2DF32.create(accelerator, size, size);
+
+        // Initialize matrices (A and B have the same size)
+        Random r = new Random(19);
+        for (int i = 0; i < size * size; i++) {
+            matrixA.array(i, Float.floatToFloat16(r.nextFloat()));
+            matrixB.array(i, Float.floatToFloat16(r.nextFloat()));
+        }
+
+        // Tile size tuned for 5060
+        final int tm = 64;
+        final int tn = 64;
+        final int tk = 64;
+
+        accelerator.compute((@Reflect Compute) computeContext ->
+                matmulSimpleF16IRange(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size));
+
+        runSequential(matrixA, matrixB, matrixSeq, size);
+        checkResult(matrixSeq, matrixC);
+    }
+
+    /**
+     * matmul in FP16 using swizzling and irange.
+     */
+    @Reflect
+    public static void matmulSimpleF16IRangeSwizzling(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int M, final int N, final int tm, final int tn, final int tk) {
+        // Calculate bidx and bidy using swizzle
+        final int bid = TileContext.BIDX();
+        final int num_bid_m = TileOp.ceildiv(M, tm);
+        final int num_bid_n = TileOp.ceildiv(N, tn);
+        final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
+
+        final int group_id = bid / num_bid_in_group;
+        final int first_bid_m = group_id * GROUP_SIZE_M;
+        final int group_size_m = TileOp.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
+
+        final int bidx = first_bid_m + (bid % group_size_m);
+        final int bidy = (bid % num_bid_in_group) / group_size_m;
+
+        var accumulator = TileOp.zeros(tm, tn);
+        final int numberOfTiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        for (int k : TileContext.irange(numberOfTiles)) {
+            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
+            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
+            accumulator = TileOp.mma(tileA, tileB, accumulator);
+        }
+        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
+    }
+
+    @Reflect
+    public static void matmulSimpleF16IRangeSwizzling(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
+        var range = NDRange.NDRange2D.of(
+                NDRange.Global2D.of(M, N),
+                NDRange.Local2D.of(tm, tn),
+                NDRange.Tile2D.of(tm, tn),
+                NDRange.Warp2D.of(true, false));
+        computeContext.dispatchTile(range, () -> matmulSimpleF16IRangeSwizzling(inputA, inputB, output, M, N, tm, tn, tk));
+    }
+
+    // Test matmul in FP16 using swizzling and irange.
+    @HatTest
+    public void test_hat_tile_10() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         // Testing square matrices
         final int size = 1024;
@@ -563,13 +634,11 @@ public class TestTileAPI {
             matrixB.array(i, Float.floatToFloat16(r.nextFloat()));
         }
 
-        final int tm = 32;
+        final int tm = 64;
         final int tn = 64;
         final int tk = 64;
-        final int numTiles = (size + tk - 1) / tk;
-        accelerator.compute((@Reflect Compute) computeContext -> {
-            matmulSimpleF16IRange(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles);
-        });
+        accelerator.compute((@Reflect Compute) computeContext ->
+                matmulSimpleF16IRangeSwizzling(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size));
 
         runSequential(matrixA, matrixB, matrixSeq, size);
         checkResult(matrixSeq, matrixC);
@@ -597,7 +666,7 @@ public class TestTileAPI {
     }
 
     @HatTest
-    public void test_hat_tile_10() {
+    public void test_hat_tile_11() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         final int size = Math.powExact(2, 12);
