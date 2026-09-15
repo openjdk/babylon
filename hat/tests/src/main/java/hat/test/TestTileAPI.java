@@ -529,12 +529,11 @@ public class TestTileAPI {
 
     // Matmul using irange and FP16
     @Reflect
-    public static void matmulSimpleF16IRange(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
+    public static void matmulSimpleF16IRange(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int numTiles) {
         final int bidx = TileContext.BIDX();
         final int bidy = TileContext.BIDY();
         var accumulator = TileOp.zeros(tm, tn);
-        final int numberOfTiles = TileOp.numTiles(inputA, 1, TileContext.shape(tm, tk));
-        for (int k : TileContext.irange(0, numberOfTiles)) {
+        for (int k : TileContext.irange(0, numTiles)) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = TileOp.mma(tileA, tileB, accumulator);
@@ -543,9 +542,9 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16IRange(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
+    public static void matmulSimpleF16IRange(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmulSimpleF16IRange(inputA, inputB, output, tm, tn, tk));
+                () -> matmulSimpleF16IRange(inputA, inputB, output, tm, tn, tk, numTiles));
     }
 
     // Matmul using irange in FP16
@@ -570,9 +569,9 @@ public class TestTileAPI {
         final int tm = 64;
         final int tn = 64;
         final int tk = 64;
-
+        final int numTiles = (size + tk - 1) / tk;
         accelerator.compute((@Reflect Compute) computeContext ->
-                matmulSimpleF16IRange(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size));
+                matmulSimpleF16IRange(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles));
 
         runSequential(matrixA, matrixB, matrixSeq, size);
         checkResult(matrixSeq, matrixC);
