@@ -34,6 +34,7 @@ import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.constant.DirectMethodHandleDesc.Kind;
 import java.lang.constant.DynamicCallSiteDesc;
 import java.lang.constant.MethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
@@ -55,6 +56,9 @@ public final class Unreflect {
     static final ClassDesc CD_CodeModelBootstraps = CodeModelBootstraps.class.describeConstable().get();
     static final ClassDesc CD_ReflectableLambdaMetafactory = ReflectableLambdaMetafactory.class.describeConstable().get();
     static final ClassDesc CD_CallerSensitive = ClassDesc.of("jdk.internal.reflect.CallerSensitive");
+
+    static final DirectMethodHandleDesc DMHD_codeModelExecutor = ConstantDescs.ofCallsiteBootstrap(
+            CD_CodeModelBootstraps, "codeModelExecutor", ConstantDescs.CD_CallSite, ConstantDescs.CD_MethodHandle);
 
     static boolean isReflective(MethodModel mm) {
         return mm.findAttribute(Attributes.runtimeVisibleAnnotations())
@@ -86,13 +90,18 @@ public final class Unreflect {
                                     cob.loadLocal(TypeKind.from(mts.parameterType(i)), cob.parameterSlot(i));
                                 }
                                 boolean isInterface = clm.flags().has(AccessFlag.INTERFACE);
-                                DirectMethodHandleDesc.Kind kind = hasReceiver
-                                        ? (isInterface ? DirectMethodHandleDesc.Kind.INTERFACE_VIRTUAL : DirectMethodHandleDesc.Kind.VIRTUAL)
-                                        : (isInterface ? DirectMethodHandleDesc.Kind.INTERFACE_STATIC : DirectMethodHandleDesc.Kind.STATIC);
-                                cob.invokedynamic(DynamicCallSiteDesc.of(ConstantDescs.ofCallsiteBootstrap(CD_CodeModelBootstraps, "linkMethod", ConstantDescs.CD_CallSite, ConstantDescs.CD_MethodHandle),
-                                        mm.methodName().stringValue(),
-                                        hasReceiver ? mts.insertParameterTypes(0, clm.thisClass().asSymbol()) : mts,
-                                        MethodHandleDesc.ofMethod(kind, clm.thisClass().asSymbol(), mm.methodName().stringValue(), mts)));
+                                Kind kind = hasReceiver
+                                        ? (isInterface ? Kind.INTERFACE_VIRTUAL : Kind.VIRTUAL)
+                                        : (isInterface ? Kind.INTERFACE_STATIC : Kind.STATIC);
+                                cob.invokedynamic(DynamicCallSiteDesc.of(DMHD_codeModelExecutor,
+                                                                         ConstantDescs.DEFAULT_NAME,
+                                                                         hasReceiver
+                                                                                 ? mts.insertParameterTypes(0, clm.thisClass().asSymbol())
+                                                                                 : mts,
+                                                                         MethodHandleDesc.ofMethod(kind,
+                                                                                                   clm.thisClass().asSymbol(),
+                                                                                                   mm.methodName().stringValue(),
+                                                                                                   mts)));
                                 cob.return_(TypeKind.from(mts.returnType()));
                             }))));
                 } else {
@@ -101,13 +110,15 @@ public final class Unreflect {
                         if (coe instanceof InvokeDynamicInstruction i
                                 && (bsm = i.bootstrapMethod()).owner().equals(CD_ReflectableLambdaMetafactory)) {
                             // redirect metafactory and altMetafactory
-                            cob.invokedynamic(DynamicCallSiteDesc.of(MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                            cob.invokedynamic(DynamicCallSiteDesc.of(MethodHandleDesc.ofMethod(Kind.STATIC,
                                                               CD_CodeModelBootstraps,
-                                                              bsm.methodName(),
+                                                              bsm.methodName().equals("metafactory")
+                                                                      ? "lambdaMetafactory"
+                                                                      : "lambdaAltMetafactory",
                                                               bsm.invocationType()),
-                                    i.name().stringValue(),
-                                    MethodTypeDesc.ofDescriptor(i.type().stringValue()),
-                                    i.bootstrapArgs().toArray(ConstantDesc[]::new)));
+                                              i.name().stringValue(),
+                                              MethodTypeDesc.ofDescriptor(i.type().stringValue()),
+                                              i.bootstrapArgs().toArray(ConstantDesc[]::new)));
                         } else {
                             cob.with(coe);
                         }

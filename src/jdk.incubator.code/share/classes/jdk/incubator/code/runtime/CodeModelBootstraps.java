@@ -94,7 +94,7 @@ public final class CodeModelBootstraps {
      *         method has no code model, or the generated target type differs
      *         from {@code methodType}
      */
-    public static CallSite linkMethod(MethodHandles.Lookup lookup,
+    public static CallSite codeModelExecutor(MethodHandles.Lookup lookup,
                                       String name,
                                       MethodType methodType,
                                       MethodHandle method) {
@@ -137,7 +137,7 @@ public final class CodeModelBootstraps {
      * @param interfaceMethodType Signature and return type of method to be
      *                            implemented by the function object.
      * @param implementation ignored, retained for compatibility with the
-     *                       standard metafactory bootstrap signature
+                             standard lambda metafactory bootstrap signature
      * @param dynamicMethodType The signature and return type that should
      *                          be enforced dynamically at invocation time.
      * @return a call site whose target creates reflectable lambda instances of
@@ -158,7 +158,7 @@ public final class CodeModelBootstraps {
      *      MethodType, MethodHandle, MethodType)
      * @see Op#ofLambda(Object)
      */
-    public static CallSite metafactory(MethodHandles.Lookup caller,
+    public static CallSite lambdaMetafactory(MethodHandles.Lookup caller,
                                        String interfaceMethodName,
                                        MethodType factoryType,
                                        MethodType interfaceMethodType,
@@ -224,7 +224,7 @@ public final class CodeModelBootstraps {
      *      Object...)
      * @see Op#ofLambda(Object)
      */
-    public static CallSite altMetafactory(MethodHandles.Lookup caller,
+    public static CallSite lambdaAltMetafactory(MethodHandles.Lookup caller,
                                           String interfaceMethodName,
                                           MethodType factoryType,
                                           Object... args) throws LambdaConversionException {
