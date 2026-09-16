@@ -110,8 +110,7 @@ public class TestOrdering {
                                         %2 : Var<java.type:"java.util.function.Supplier<java.lang.String>"> = var %1 @loc="4:9" @"supplier";
                                         %3 : java.type:"java.util.function.Supplier<java.lang.String>" = var.load %2 @loc="6:20";
                                         %4 : java.type:"java.lang.String" = invoke %3 @loc="6:20" @java.ref:"java.util.function.Supplier::get():java.lang.Object";
-                                        %5 : java.type:"java.lang.String" = cast %4 @loc="6:20" @java.type:"java.lang.String";
-                                        return %5 @loc="6:13";
+                                        return %4 @loc="6:13";
                                     };""", Op.ofMethod(methodA).orElseThrow().toText());
             Class<?> clsB = loader.loadClass("B");
             var methodB = clsB.getDeclaredMethod("lazy", Supplier.class);
@@ -120,8 +119,7 @@ public class TestOrdering {
                                         %2 : Var<java.type:"java.util.function.Supplier<java.lang.Integer>"> = var %1 @loc="4:9" @"supplier";
                                         %3 : java.type:"java.util.function.Supplier<java.lang.Integer>" = var.load %2 @loc="6:20";
                                         %4 : java.type:"java.lang.Integer" = invoke %3 @loc="6:20" @java.ref:"java.util.function.Supplier::get():java.lang.Object";
-                                        %5 : java.type:"java.lang.Integer" = cast %4 @loc="6:20" @java.type:"java.lang.Integer";
-                                        return %5 @loc="6:13";
+                                        return %4 @loc="6:13";
                                     };""", Op.ofMethod(methodB).orElseThrow().toText());
 
         }
