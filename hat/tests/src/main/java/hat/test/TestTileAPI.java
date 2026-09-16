@@ -699,4 +699,45 @@ public class TestTileAPI {
 
         HATAsserts.assertEquals(acc, accResult, 0.01f);
     }
+
+    @Reflect
+    public static void vectorAddTileWithConstant(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
+        final var pid = TileContext.BIDX();
+        var tileA = TileContext.load(inputA, pid, tileSize * 4);
+        var tileB = TileContext.load(inputB, pid, tileSize * 4);
+        var result = Tile.add(tileA, tileB);
+        TileContext.store(output, pid, result);
+    }
+
+    @Reflect
+    public static void vectorAddTileWithConstant(ComputeContext computeContext, TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(inputA.m(), tileSize),
+                () -> vectorAddTileWithConstant(inputA, inputB, output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_12() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 32 / 4;
+        TensorF32 inputA = TensorF32.create(accelerator, size);
+        TensorF32 inputB = TensorF32.create(accelerator, size);
+
+        // Fill data
+        Random r = new Random(71);
+        for (int i = 0; i < size; i++) {
+            inputA.array(i, r.nextFloat());
+            inputB.array(i, r.nextFloat());
+        }
+
+        TensorF32 result = TensorF32.create(accelerator, size);
+
+        // Invoking the kernel multiple times to check the code cache
+        accelerator.compute((@Reflect Compute) computeContext ->
+                vectorAddTileWithConstant(computeContext, inputA, inputB, result, tileSize));
+
+        for (int i = 0; i < size; i++) {
+            HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
+        }
+    }
 }
