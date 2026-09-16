@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static hat.buffer.F16Array.F16Impl;
@@ -110,7 +111,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public static final String MACRO_FRAGMENT_STORE = "FRAGMENT_STORE";
     public static final String MACRO_COND = "MACRO_COND";
 
-    protected static final String INDEX_PREFIX = "index_$";
+    protected static final String INDEX_PREFIX = "index_";
 
     protected C99HATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext) {
         super(scopedCodeBuilderContext);
@@ -337,7 +338,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                                         }
                                     }
                                 } else if (field instanceof Schema.SchemaNode.Padding padding) {
-                                    u08Type().sp().identifierWithRandomSuffix("pad$", 5).sbrace(_ -> intValue((int) (padding.len)));//; emitText(toC99(padding));
+                                    u08Type().sp().identifierWithRandomSuffix("pad_", 5)
+                                            .sbrace(_ -> intValue((int) (padding.len)));
                                 } else {
                                     throw new IllegalStateException("hmm");
                                 }
@@ -353,7 +355,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
      */
     public final T identifierWithRandomSuffix(String prefix, final int len) {
         var sb = new StringBuilder();
-        final var LEGAL_CHARS = "_$ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        final var LEGAL_CHARS = "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         ThreadLocalRandom.current() //
                 .ints(len, 0, LEGAL_CHARS.length()) //
                 .mapToObj(LEGAL_CHARS::charAt) //
@@ -468,6 +470,14 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         }
     }
 
+    /**
+     * C99 compound literal {@code (T){...}}.
+     * Override when the target language uses a different typed brace-init form.
+     */
+    protected T aggregateInitializer(Consumer<T> typeBuilder, Consumer<T> valueBuilder) {
+        return paren(typeBuilder).brace(valueBuilder);
+    }
+
     private boolean isMixedFirstOperand(byte f32Mixed) {
         return f32Mixed != 0 && f32Mixed != HATFP16Phase.FIRST_OP;
     }
@@ -501,8 +511,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             f32Mixed = 0x00;
         }
 
-        paren(_ -> bf16Type());
-        brace(_ -> {
+        aggregateInitializer(_ -> f16OrBF16(BF16.class), _ -> {
             paren(_ -> {
                 builtin_float2bfloat16();
                 oparen();
@@ -556,8 +565,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (BF16.class.isAssignableFrom(float16Class)) {
             return binaryOperationsForBfloat16(invoke);
         }
-        paren(_ -> f16Type());
-        return brace(_ ->
+        return aggregateInitializer(_ -> f16OrBF16(float16Class), _ ->
                 paren(_ -> {
                     recurse(OpHelper.asResultOrThrow(invoke.op().operands().getFirst()).op());
                     boolean isFirstOperandReference = isArrayReference(scopedCodeBuilderContext.lookup(), invoke.op().operands().get(0));
@@ -1109,24 +1117,22 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         // if the resulting type is a narrowed-type (e.g., bfloat16, or half float)
         Class<?> float16Class = isNarrowType(invoke);
         if (float16Class != null) {
-            paren(_ ->
-                    f16OrBF16(float16Class))
-                    .brace(_ -> {
-                        id(mapMathIntrinsic(invoke.name()));
-                        // For each operand, obtain if it is a reference from global memory or device memory.
-                        List<Boolean> referenceList = invoke.op()
-                                .operands()
-                                .stream()
-                                .map(v -> isArrayReference(scopedCodeBuilderContext.lookup(), v))
-                                .toList();
-                        paren(_ -> {
-                            int[] counter = {0};
-                            commaSpaceSeparated(invoke.op().operands(), op -> {
-                                recurse(OpHelper.asResultOrThrow(op).op());
-                                genFieldAccess(op, referenceList.get(counter[0]++));
-                            });
-                        });
+            aggregateInitializer(_ -> f16OrBF16(float16Class), _ -> {
+                id(mapMathIntrinsic(invoke.name()));
+                // For each operand, obtain if it is a reference from global memory or device memory
+                List<Boolean> referenceList = invoke.op()
+                        .operands()
+                        .stream()
+                        .map(v -> isArrayReference(scopedCodeBuilderContext.lookup(), v))
+                        .toList();
+                paren(_ -> {
+                    int[] counter = {0};
+                    commaSpaceSeparated(invoke.op().operands(), op -> {
+                        recurse(OpHelper.asResultOrThrow(op).op());
+                        genFieldAccess(op, referenceList.get(counter[0]++));
                     });
+                });
+            });
         } else {
             id(mapMathIntrinsic(invoke.name()));
             paren(_ ->
