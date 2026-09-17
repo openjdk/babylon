@@ -6443,24 +6443,23 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                                                   TypePatternOp tpOp, Value target) {
                 CodeType s = target.type();
                 CodeType t = tpOp.targetType();
-                Block.Builder trueBlock = currentBlock;
                 if (t instanceof PrimitiveType pt) {
                     if (s instanceof ClassType cs) {
                         ClassType box;
                         if (cs.unbox().isEmpty()) { // s not a boxed type
                             // e.g. Number -> int, narrowing + unboxing
                             box = pt.box().orElseThrow();
-                            trueBlock = appendTypeTestOp(instanceOf(box, target), currentBlock, falseRef);
+                            currentBlock = appendTypeTestOp(instanceOf(box, target), currentBlock, falseRef);
                             // e.g. Object -> int, on true path we need to cast Object to Integer
-                            target = trueBlock.add(cast(box, target));
+                            target = currentBlock.add(cast(box, target));
                         } else {
                             // e.g. Float -> float, unboxing
                             // e.g. Integer -> long, unboxing + widening
                             box = cs;
                             Op p = neq(target, currentBlock.add(constant(s, null)));
-                            trueBlock = appendTypeTestOp(p, currentBlock, falseRef);
+                            currentBlock = appendTypeTestOp(p, currentBlock, falseRef);
                         }
-                        target = trueBlock.add(invoke(MethodRef.method(box, t + "Value", t), target));
+                        target = currentBlock.add(invoke(MethodRef.method(box, t + "Value", t), target));
                     } else {
                         // primitive to primitive conversion
                         PrimitiveType ps = ((PrimitiveType) s);
@@ -6470,9 +6469,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             // e,g. int -> float, widening with check
                             // e.g. byte -> char, widening and narrowing
                             MethodRef mref = convMethodRef(s, t);
-                            trueBlock = appendTypeTestOp(invoke(mref, target), currentBlock, falseRef);
+                            currentBlock = appendTypeTestOp(invoke(mref, target), currentBlock, falseRef);
                         }
-                        target = trueBlock.add(conv(t, target));
+                        target = currentBlock.add(conv(t, target));
                     }
                 } else if (s instanceof PrimitiveType ps) {
                     // boxing conversions
@@ -6485,13 +6484,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     // e.g. Character -> Character
                     // e.g. Number -> Double, narrowing
                     // e.g. Short -> Object, widening
-                    trueBlock = appendTypeTestOp(instanceOf(t, target), currentBlock, falseRef);
-                    if (!s.equals(t))   target = trueBlock.add(cast(t, target));
+                    currentBlock = appendTypeTestOp(instanceOf(t, target), currentBlock, falseRef);
+                    if (!s.equals(t)) {
+                        target = currentBlock.add(cast(t, target));
+                    }
                 }
 
                 bindings.add(target);
 
-                return trueBlock;
+                return currentBlock;
             }
 
             private static Block.Builder appendTypeTestOp(Op p, Block.Builder b, Block.Reference falseBlock) {
