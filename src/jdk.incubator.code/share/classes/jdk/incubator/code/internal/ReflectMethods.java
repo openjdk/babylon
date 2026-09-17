@@ -1441,9 +1441,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             List<Value> args = new ArrayList<>();
             if (type.tsym.hasOuterInstance()) {
                 // Obtain outer value for inner class, and add as first argument
-                JCTree.JCExpression encl = tree.encl;
                 Value outerInstance;
-                if (encl == null) {
+                if (tree.encl == null || tree.def != null) {
                     outerInstance = thisValue();
                 } else {
                     outerInstance = toValue(tree.encl);
@@ -1455,7 +1454,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
             argtypes.addAll(methodRef.signature().parameterTypes());
-            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
+            // If an anonymous class is created with a qualified new expression,
+            // prepend the qualifier to the argument list, as TransTypes normally does
+            List<JCExpression> treeArgs = tree.encl != null && tree.def != null ? tree.args.prepend(tree.encl) : tree.args;
+            args.addAll(scanMethodArguments(treeArgs, tree.constructorType, tree.varargsElement));
 
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
