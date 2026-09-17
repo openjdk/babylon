@@ -213,7 +213,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 var m = method.resolveToMethod(lookup);
                 if (kernelCallSiteCache.containsKey(location) && kernelCallSiteCache.get(location).containsKey(key)) {
                     var oldKernelCallSite = kernelCallSiteCache.get(location).get(key);
-                    kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), oldKernelCallSite.capturedArgs());
+                    kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), quotedCapturedValues);
                 } else {
                     kernelCallSite = kernelCallSiteCache.computeIfAbsent(location, k -> new ConcurrentHashMap<>())
                             .computeIfAbsent(key, _ -> {
