@@ -1408,21 +1408,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         }
                         comma().sp().tileShape().ltgt(_ -> recurseResultOrThrow(shape));
                     });
-                }).paren(_ -> {
-                    recurseResultOrThrow(initValue);
-
-                    // Add "f" if the init value is float to avoid type conversion in the low SASS code
-                    if (initValue.type() instanceof PrimitiveType primitiveType && primitiveType.equals(JavaType.FLOAT)) {
-                        id("f");
-                    }
-                });
+                }).paren(_ -> recurseResultOrThrow(initValue));
     }
 
     @Override
     public CudaHATKernelBuilder tileShapeOp(TileOps.TileShapeOp tileShapeOp) {
-        return commaSpaceSeparated(tileShapeOp.operands(), v -> {
-            recurseResultOrThrow(v).ic();
-        });
+        return commaSpaceSeparated(tileShapeOp.operands(), v -> recurseResultOrThrow(v).ic());
     }
 
     @Override
@@ -1566,8 +1557,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp) {
         Value startIndex = tileIrangeOp.operands().getFirst();
         Value endIndex = tileIrangeOp.operands().getLast();
-        return tileIRange().paren(_ -> {
-           recurseResultOrThrow(startIndex).comma().sp().recurseResultOrThrow(endIndex);
-        });
+        return tileIRange().paren(_ ->
+                recurseResultOrThrow(startIndex)
+                .comma()
+                .sp()
+                .recurseResultOrThrow(endIndex));
     }
 }
