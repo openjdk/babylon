@@ -221,7 +221,7 @@ public class TestPE {
                  %6 : java.type:"int" = constant @3;
                  invoke %5 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                  %7 : java.type:"boolean" = field.load %0 @java.ref:"TestPE::b:boolean";
-                 cbranch %7 ^block_1 ^block_3;
+                 cbranch %7 ^block_1 ^block_2;
 
                ^block_1:
                  %8 : java.type:"java.util.function.IntConsumer" = var.load %2;
@@ -278,13 +278,13 @@ public class TestPE {
                  %46 : java.type:"java.util.function.IntConsumer" = var.load %2;
                  %47 : java.type:"int" = constant @8;
                  invoke %46 %47 @java.ref:"java.util.function.IntConsumer::accept(int):void";
-                 branch ^block_3;
+                 branch ^block_2;
 
-               ^block_3:
-                 %48 : java.type:"java.util.function.IntConsumer" = var.load %2;
-                 %49 : java.type:"int" = constant @9;
-                 invoke %48 %49 @java.ref:"java.util.function.IntConsumer::accept(int):void";
-                 return;
+               ^block_2:
+                %48 : java.type:"java.util.function.IntConsumer" = var.load %2;
+                %49 : java.type:"int" = constant @9;
+                invoke %48 %49 @java.ref:"java.util.function.IntConsumer::accept(int):void";
+                return;
              };
             """)
     @EvaluatedModel(value = """
@@ -294,7 +294,7 @@ public class TestPE {
                    %3 : java.type:"int" = constant @3;
                    invoke %1 %3 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                    %4 : java.type:"boolean" = field.load %0 @java.ref:"TestPE::b:boolean";
-                   cbranch %4 ^block_1 ^block_3;
+                   cbranch %4 ^block_1 ^block_2;
 
                  ^block_1:
                    %5 : java.type:"int" = constant @5;
@@ -331,9 +331,9 @@ public class TestPE {
                    invoke %1 %23 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                    %24 : java.type:"int" = constant @8;
                    invoke %1 %24 @java.ref:"java.util.function.IntConsumer::accept(int):void";
-                   branch ^block_3;
+                   branch ^block_2;
 
-                 ^block_3:
+                 ^block_2:
                    %25 : java.type:"int" = constant @9;
                    invoke %1 %25 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                    return;
@@ -561,7 +561,7 @@ public class TestPE {
               ^block_2(%8 : java.type:"int"):
                 %9 : java.type:"int" = constant @2;
                 %10 : java.type:"boolean" = ge %8 %9;
-                cbranch %10 ^block_3 ^block_7;
+                cbranch %10 ^block_3 ^block_6;
 
               ^block_3:
                 %11 : java.type:"boolean" = ge %8 %2;
@@ -573,9 +573,9 @@ public class TestPE {
                 return;
 
               ^block_5:
-                branch ^block_7;
+                branch ^block_6;
 
-              ^block_7:
+              ^block_6:
                 invoke %1 %8 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 %13 : java.type:"int" = constant @1;
                 %14 : java.type:"int" = add %8 %13;
@@ -640,7 +640,7 @@ public class TestPE {
               ^block_2(%6 : java.type:"int"):
                 %7 : java.type:"int" = constant @2;
                 %8 : java.type:"boolean" = ge %6 %7;
-                cbranch %8 ^block_3 ^block_7;
+                cbranch %8 ^block_3 ^block_6;
 
               ^block_3:
                 %9 : java.type:"boolean" = ge %6 %2;
@@ -652,19 +652,19 @@ public class TestPE {
                 return;
 
               ^block_5:
-                branch ^block_7;
+                branch ^block_6;
 
-              ^block_7:
+              ^block_6:
                 %11 : java.type:"int" = constant @5;
                 %12 : java.type:"boolean" = lt %6 %11;
-                cbranch %12 ^block_8 ^block_9;
+                cbranch %12 ^block_7 ^block_8;
 
-              ^block_8:
+              ^block_7:
                 %13 : java.type:"int" = constant @2;
                 %14 : java.type:"int" = add %6 %13;
                 branch ^block_2(%14);
 
-              ^block_9:
+              ^block_8:
                 invoke %1 %6 @java.ref:"java.util.function.IntConsumer::accept(int):void";
                 %15 : java.type:"int" = constant @1;
                 %16 : java.type:"int" = add %6 %15;
