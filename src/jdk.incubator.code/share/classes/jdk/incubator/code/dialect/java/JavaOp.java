@@ -3213,7 +3213,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             /**
-             * Complete the if operation.
+             * Completes the if operation with no final action body.
              * @return the completed if operation
              */
             public IfOp noElse() {
