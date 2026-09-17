@@ -264,6 +264,7 @@ public class JavaLowInterpreter extends Interpreter {
                 MethodHandle mh = resolveToMethodHandle(il, o.invokeReference(), o.invokeKind());
 
                 mh = mh.asType(target).asFixedArity();
+//                mh = mh.withVarargs(o.isVarArgs());
                 List<Object> operands = e.valuesOf(o.operands());
                 try {
                     result = mh.invokeWithArguments(operands.toArray());

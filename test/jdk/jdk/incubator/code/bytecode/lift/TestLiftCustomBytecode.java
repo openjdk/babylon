@@ -103,19 +103,36 @@ public class TestLiftCustomBytecode {
     }
 
     @Test
-    public void testConstantBootstrapsCondy() throws Throwable {
-        byte[] testCondy = ClassFile.of().build(ClassDesc.of("TestCondy"), clb ->
-                clb.withMethodBody("condyMethod", MethodTypeDesc.of(ConstantDescs.CD_Class), ClassFile.ACC_STATIC, cob ->
+    public void testConstantBootstrapsCondyPrimitiveClass() throws Throwable {
+        byte[] testCondy = ClassFile.of().build(ClassDesc.of("TestCondyPrimitiveClass"), clb ->
+                clb.withMethodBody("condyMethodPrimitiveClass", MethodTypeDesc.of(ConstantDescs.CD_Class), ClassFile.ACC_STATIC, cob ->
                         cob.ldc(DynamicConstantDesc.ofNamed(
-                                ConstantDescs.ofConstantBootstrap(ConstantDescs.CD_ConstantBootstraps, "primitiveClass", ConstantDescs.CD_Class),
+                                ConstantDescs.BSM_PRIMITIVE_CLASS,
                                 int.class.descriptorString(),
                                 ConstantDescs.CD_Class))
                            .areturn()));
 
-        CoreOp.FuncOp primitiveInteger = getFuncOp(testCondy, "condyMethod");
+        CoreOp.FuncOp primitiveInteger = getFuncOp(testCondy, "condyMethodPrimitiveClass");
 
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         Assertions.assertEquals(int.class, (Class)Interpreter.invoke(lookup, primitiveInteger));
+    }
+
+    @Test
+    public void testConstantBootstrapsCondyExplicitCast() throws Throwable {
+        byte[] testCondy = ClassFile.of().build(ClassDesc.of("TestCondyExplicitCast"), clb ->
+                clb.withMethodBody("condyMethodExplicitCast", MethodTypeDesc.of(ConstantDescs.CD_String), ClassFile.ACC_STATIC, cob ->
+                        cob.ldc(DynamicConstantDesc.ofNamed(
+                                        ConstantDescs.BSM_EXPLICIT_CAST,
+                                        ConstantDescs.DEFAULT_NAME,
+                                        ConstantDescs.CD_String,
+                                        "CONSTANT"))
+                                .areturn()));
+
+        CoreOp.FuncOp primitiveInteger = getFuncOp(testCondy, "condyMethodExplicitCast");
+        IO.println(primitiveInteger.toText());
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        Assertions.assertEquals("CONSTANT", (String)Interpreter.invoke(lookup, primitiveInteger));
     }
 
     @Test
