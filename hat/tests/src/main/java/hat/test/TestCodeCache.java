@@ -67,12 +67,12 @@ public class TestCodeCache {
             HATAsserts.assertEquals(arrayA.array(i) + arrayB.array(i), arrayC.array(i), 0.01f);
         }
     }
-    
+
     // Test run the same compute multiple times using the same input/output sizes, but different
     // I/O objects. We should hit the code-cache since we do not specialize based on sizes for the
     // SIMT model, just based on constants that are folded into the model.
     @HatTest
-    public static void testCodeCache() {
+    public static void testCodeCache01() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 256;
 
@@ -90,6 +90,29 @@ public class TestCodeCache {
 
         }
     }
+
+    @HatTest
+    public static void testCodeCache02() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 256;
+
+        final int numDispatches = 10;
+        int factor = 1;
+        for (int i = 0; i < numDispatches; i++) {
+            F32Array arrayA = F32Array.create(accelerator, size * factor);
+            F32Array arrayB = F32Array.create(accelerator, size * factor);
+            F32Array arrayC = F32Array.create(accelerator, size * factor);
+            initArrayRandom(arrayA);
+            initArrayRandom(arrayB);
+            factor *= 2;
+
+            // It should hit the code-cache
+            accelerator.compute((@Reflect Compute) cc -> vectorAdd(cc, arrayA, arrayB, arrayC));
+            check(arrayA, arrayB, arrayC);
+
+        }
+    }
+
 
 
 }
