@@ -77,7 +77,7 @@ public final class Inliner {
      * @return the block builder to continue building from, which has the same code context and code transformer as the
      * given block builder
      * @throws IllegalArgumentException if the invokable operation has no inlinable return operations
-     * @throws IllegalArgumentException if the invocation operation has one or more non-inlinable return operations
+     * @throws IllegalArgumentException if the invokable operation has one or more non-inlinable return operations
      * @see CodeTransformer#LOWERING_TRANSFORMER
      */
     public static <O extends Op & Op.Invokable>
@@ -148,14 +148,14 @@ public final class Inliner {
      * An invokable operation containing inlinable return operations that cannot be inlined by continuation may be
      * {@link CodeTransformer#LOWERING_TRANSFORMER lowered} and the lowered invokable operation can be
      * {@link #inline(Block.Builder, Op, List) inlined} without continuation.
-     * @see #inline(Block.Builder, Op, List)
      *
      * @param inBlock        the block builder
      * @param invokableOp    the invokable operation
      * @param args           the arguments to map, in order, from a prefix of the invokable operation's parameters
      * @param inlineConsumer the consumer applied for continuation of inlining
      * @param <O>            The invokable type
-     * @throws IllegalArgumentException if the invocation operation has no inlineable return operations
+     * @throws IllegalArgumentException if the invokable operation has no inlineable return operations
+     * @see #inline(Block.Builder, Op, List)
      */
     public static <O extends Op & Op.Invokable>
     void inlineWithContinuation(Block.Builder inBlock, O invokableOp, List<? extends Value> args,
@@ -166,7 +166,7 @@ public final class Inliner {
                         && getNearestInvokeableAncestorOp(rop) == invokableOp)
                 .count();
         if (nInlinableReturnOps == 0) {
-            throw new IllegalArgumentException("The invocation operation has no inlineable return operations");
+            throw new IllegalArgumentException("The invokable operation has no inlineable return operations");
         }
 
         Map<Body, Block.Builder> returnBlocks = new HashMap<>();
