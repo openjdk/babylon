@@ -253,9 +253,8 @@ public class TestSynchronized {
 
               ^block_6:
                 branch ^block_7;
-
               ^block_7:
-                %15 : java.type:"int" = var.load %3;
+                     %15 : java.type:"int" = var.load %3;
                 return %15;
 
               ^block_8(%16 : java.type:"java.lang.Throwable"):
