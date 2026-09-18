@@ -288,7 +288,9 @@ public class KernelCallGraph implements LookupCarrier {
                     var exitBlockBuilder = Inliner.inline(
                             blockbuilder, ssaInline,
                             blockbuilder.context().getValues(invoke.op().operands()));
-                    exitBlockBuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                    if (!exitBlockBuilder.parameters().isEmpty()) {
+                        exitBlockBuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                    }
                     changed.set(true);
                     return exitBlockBuilder;
                 }
