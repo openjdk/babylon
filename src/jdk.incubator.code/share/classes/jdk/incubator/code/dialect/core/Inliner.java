@@ -29,113 +29,85 @@ import jdk.incubator.code.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
-import static jdk.incubator.code.dialect.core.CoreOp.return_;
 
 /**
  * Functionality for inlining code models.
  */
 public final class Inliner {
 
-    private Inliner() {}
+    private Inliner() {
+    }
 
     /**
-     * An inline consumer that inserts a return operation with a value, if non-null.
-     */
-    public static final BiConsumer<Block.Builder, Value> INLINE_RETURN = (block, value) -> {
-        block.add(value != null ? return_(value) : CoreOp.return_());
-    };
-
-    /**
-     * Inlines the invokable operation into the given block builder and returns the block builder from which to
-     * continue building.
+     * Inlines the invokable operation into the given block builder and returns a block builder from which to
+     * continue building. The invokable operation must contain at least one return operation and each return operation
+     * must be an inlinable return operation, an operation whose {@link Op#ancestorOp() nearest ancestor} operation is
+     * the same as the invokable operation. Otherwise, an exception is thrown.
      * <p>
-     * This method {@link Block.Builder#transformBody(Body, List, CodeContext, CodeTransformer) transforms} the
-     * body of the invokable operation with the given arguments, a new context, and an code transformer that
-     * replaces return operations by applying the given consumer to a block builder and a return value.
+     * This method {@link Block.Builder#transformBody(Body, List, CodeTransformer) transforms} the body of the invokable
+     * operation with the given arguments and a code transformer that replaces inlinable return operations.
      * <p>
-     * The code transformer copies all operations except return operations whose nearest invokable operation
-     * ancestor is the given the invokable operation. When such a return operation is encountered, then on
-     * first encounter of its grandparent body a return block builder is computed and used for this return operation
-     * and encounters of subsequent return operations with the same grandparent body.
+     * The code transformer copies all operations except the inlinable return operations.
      * <p>
-     * If the grandparent body has only one block then code transformer's block builder is the return
-     * block builder. Otherwise, if the grandparent body has one or more blocks then the return block builder is
-     * created from the code transformer's block builder. The created return block builder will have a block
-     * parameter whose type corresponds to the return type, or will have no parameter for void return.
-     * The computation finishes by applying the return block builder and a return value to the inlining consumer.
-     * If the grandparent body has only one block then the return value is the value mapped from the return
-     * operation's operand, or is null for void return. Otherwise, if the grandparent body has one or more blocks
-     * then the value is the block parameter of the created return block builder, or is null for void return.
+     * The transformer creates a return block builder from the code transformer's block builder. If the invokable
+     * operation returns a value, the return block builder has one block parameter, representing the return value, whose
+     * type is the same as the invokable operation's return type. Otherwise, the return block has no block parameter.
      * <p>
-     * For every encounter of a return operation the associated return block builder is compared against the
-     * code transformer's block builder. If they are not equal then a branch operation is added to the
-     * code transformer's block builder whose successor is the return block builder with a block argument
-     * that is the value mapped from the return operation's operand, or with no block argument for void return.
+     * The transformer replaces each return operation with a branch operation whose successor is a block reference to
+     * the return block builder. If the return operation has an operand, since the invokable operation returns a value,
+     * then the successor has an argument. The successor argument is the value mapped to the return operation's operand
+     * in the code transformer's block builder's code context.
+     * <p>
+     * After transformation this method returns the return block builder and the return value, if any, is represented by
+     * the return block builder's block parameter.
      * @apiNote
-     * It is easier to inline an invokable op if its body is in lowered form (there are no operations in the blocks
-     * of the body that are lowerable). This ensures a single exit point can be created (paired with the single
-     * entry point). If there are one or more nested return operations, then there is unlikely to be a single exit.
-     * Transforming the model to create a single exit point while preserving nested structure is in general
-     * non-trivial and outside the scope of this method. In such cases the invokable operation can be transformed
-     * with a lowering transformation after which it can then be inlined.
+     * An invokable operation containing non-inlinable return operations may be
+     * {@link CodeTransformer#LOWERING_TRANSFORMER lowered} into one that contains only inlinable return operations,
+     * and therefore the lowered invokable operation can be inlined.
      *
-     * @param inBlock the block builder
+     * @param inBlock     the block builder
      * @param invokableOp the invokable operation
-     * @param args the arguments to map, in order, from a prefix of the invokable operation's parameters
-     * @param inlineConsumer the consumer applied to process the return from the invokable operation.
-     *                       This is called once for each grandparent body of a return operation, with a block to
-     *                       build replacement operations and the return value, or null for void return.
-     * @return the block builder to continue building from
-     * @param <O> The invokable type
+     * @param args        the arguments to map, in order, from a prefix of the invokable operation's parameters
+     * @param <O>         The invokable type
+     * @return the block builder to continue building from, which has the same code context and code transformer as the
+     * given block builder
+     * @throws IllegalArgumentException if the invokable operation has no inlinable return operations
+     * @throws IllegalArgumentException if the invokable operation has one or more non-inlinable return operations
+     * @see CodeTransformer#LOWERING_TRANSFORMER
      */
     public static <O extends Op & Op.Invokable>
-    Block.Builder inline(Block.Builder inBlock, O invokableOp, List<? extends Value> args,
-                         BiConsumer<Block.Builder, Value> inlineConsumer) {
-        Map<Body, Block.Builder> returnBlocks = new HashMap<>();
-        // Create new context, ensuring inlining is isolated
-        inBlock.transformBody(invokableOp.body(), args, CodeContext.create(), (block, op) -> {
-            // If the return operation is associated with the invokable operation
-            if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
+    Block.Builder inline(Block.Builder inBlock, O invokableOp, List<? extends Value> args) {
+        // Find the nearest ancestor op for each return operation targeting this invokable operation
+        Set<Op> collect = invokableOp.elements()
+                .filter(e -> e instanceof CoreOp.ReturnOp rop
+                        && getNearestInvokeableAncestorOp(rop) == invokableOp)
+                .map(CodeElement::ancestorOp)
+                .collect(Collectors.toSet());
+        if (!collect.contains(invokableOp)) {
+            throw new IllegalArgumentException("The invokable operation has no inlinable return operations");
+        }
+        if (collect.size() > 1) {
+            throw new IllegalArgumentException("The invokable operation has one or more non-inlinable return operations");
+        }
+
+        Map<Body, Block.Builder> returnBlocks = new HashMap<>(1);
+        inBlock.transformBody(invokableOp.body(), args, (block, op) -> {
+            if (op instanceof CoreOp.ReturnOp rop && op.ancestorOp() == invokableOp) {
                 // Compute the return block
-                Block.Builder returnBlock = returnBlocks.computeIfAbsent(rop.ancestorBody(), _body -> {
-                    Block.Builder rb;
-                    // If the body has one block we know there is just one return op declared, otherwise there may
-                    // one or more. If so, create a new block that joins all the returns.
-                    // Note: we could count all return op in a body to avoid creating a new block for a body
-                    // with two or more blocks with only one returnOp is declared.
-                    Value r;
-                    if (rop.ancestorBody().blocks().size() != 1) {
-                        List<CodeType> param = rop.returnValue() != null
-                                ? List.of(invokableOp.invokableSignature().returnType())
-                                : List.of();
-                        rb = block.block(param);
-                        r = !param.isEmpty()
-                                ? rb.parameters().get(0)
-                                : null;
-                    } else {
-                        r = rop.returnValue() != null
-                                ? block.context().getValue(rop.returnValue())
-                                : null;
-                        rb = block;
-                    }
-
-                    // Inline the return
-                    inlineConsumer.accept(rb, r);
-
-                    return rb;
+                Block.Builder returnBlock = returnBlocks.computeIfAbsent(rop.ancestorBody(), _ -> {
+                    List<CodeType> param = rop.returnValue() != null
+                            ? List.of(rop.returnValue().type())
+                            : List.of();
+                    return block.block(param);
                 });
 
-                // Replace the return op with a branch to the return block, if needed
-                if (!returnBlock.equals(block)) {
-                    // Replace return op with branch to return block, with given return value
-                    List<Value> arg = rop.returnValue() != null
-                            ? List.of(block.context().getValue(rop.returnValue()))
-                            : List.of();
-                    block.add(branch(returnBlock.reference(arg)));
-                }
+                // Replace return op with branch to return block, with given return value
+                block.add(branch(returnBlock.reference(block.context().getValues(rop.operands()))));
 
                 return block;
             }
@@ -146,11 +118,82 @@ public final class Inliner {
 
 
         Block.Builder builder = returnBlocks.get(invokableOp.body());
-        if (builder != null) {
-            return builder.withContextAndTransformer(inBlock.context(), inBlock.transformer());
-        } else {
-            return inBlock;
+        assert builder != null;
+        return builder.withContextAndTransformer(inBlock.context(), inBlock.transformer());
+    }
+
+    /**
+     * Inlines the invokable operation into the given block builder, applying given consumer for continuation of
+     * inlining. The invokable operation must contain at least one inlinable return operation, an operation that targets
+     * given the invokable operation. Otherwise, an exception is thrown.
+     * <p>
+     * This method {@link Block.Builder#transformBody(Body, List, CodeTransformer) transforms} the body of the invokable
+     * operation with the given arguments and a code transformer that replaces inlinable return operations by applying
+     * a return block builder to the given consumer.
+     * <p>
+     * The code transformer copies all operations except inlinable return operations. When an inlinable return operation
+     * is encountered, then on first encounter of its nearest ancestor body a return block builder is created and used
+     * for this return operation and encounters of subsequent return operations with the same ancestor body.
+     * <p>
+     * The transformer creates a return block builder from the code transformer's block builder. If the invokable
+     * operation returns a value, the return block builder has one block parameter, representing the return value, whose
+     * type is the same as the invokable operation's return type. Otherwise, the return block has no block parameter.
+     * <p>
+     * The transformer replaces each return operation with a branch operation whose successor is a block reference to
+     * the return block builder, and then applies the return block builder to the given consumer. If the return
+     * operation has an operand, since the invokable operation returns a value, then the successor has an argument. The
+     * successor argument is the value mapped to the return operation's operand in the code transformer's block
+     * builder's code context.
+     * @apiNote
+     * An invokable operation containing inlinable return operations that cannot be inlined by continuation may be
+     * {@link CodeTransformer#LOWERING_TRANSFORMER lowered} and the lowered invokable operation can be
+     * {@link #inline(Block.Builder, Op, List) inlined} without continuation.
+     *
+     * @param inBlock        the block builder
+     * @param invokableOp    the invokable operation
+     * @param args           the arguments to map, in order, from a prefix of the invokable operation's parameters
+     * @param inlineConsumer the consumer applied for continuation of inlining
+     * @param <O>            The invokable type
+     * @throws IllegalArgumentException if the invokable operation has no inlineable return operations
+     * @see #inline(Block.Builder, Op, List)
+     */
+    public static <O extends Op & Op.Invokable>
+    void inlineWithContinuation(Block.Builder inBlock, O invokableOp, List<? extends Value> args,
+                                Consumer<Block.Builder> inlineConsumer) {
+        // Count the number of return opertion's targeting the invokable operation
+        long nInlinableReturnOps = invokableOp.elements()
+                .filter(e -> e instanceof CoreOp.ReturnOp rop
+                        && getNearestInvokeableAncestorOp(rop) == invokableOp)
+                .count();
+        if (nInlinableReturnOps == 0) {
+            throw new IllegalArgumentException("The invokable operation has no inlineable return operations");
         }
+
+        Map<Body, Block.Builder> returnBlocks = new HashMap<>();
+        inBlock.transformBody(invokableOp.body(), args, (block, op) -> {
+            // If the return operation is associated with the invokable operation
+            if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
+                // Compute the return block
+                Block.Builder returnBlock = returnBlocks.computeIfAbsent(rop.ancestorBody(), _ -> {
+                    List<CodeType> param = rop.returnValue() != null
+                            ? List.of(rop.returnValue().type())
+                            : List.of();
+                    Block.Builder rb = block.block(param);
+                    // Continue the return
+                    inlineConsumer.accept(rb);
+
+                    return rb;
+                });
+
+                // Replace return op with branch to return block, with given return value
+                block.add(branch(returnBlock.reference(block.context().getValues(rop.operands()))));
+
+                return block;
+            }
+
+            block.add(op);
+            return block;
+        });
     }
 
     private static Op getNearestInvokeableAncestorOp(Op op) {

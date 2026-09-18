@@ -163,7 +163,8 @@ public final class OnnxTransformer {
                     bb.context().mapValue(op.result(), bb.add(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
                 } else {
                     LOG.log(System.Logger.Level.DEBUG, "Inlining " + fo.funcName() + " into " + fname);
-                    Inliner.inline(bb, mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()), (_, v) -> bb.context().mapValue(io.result(), v));
+                    bb = Inliner.inline(bb, mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()));
+                    bb.context().mapValue(io.result(), bb.parameters().getFirst());
                 }
             } else {
                 bb.add(op);
@@ -299,6 +300,9 @@ public final class OnnxTransformer {
             throw new RuntimeException(e);
         }
 
+        // Normalize to produce a single entry block with a return operation
+        // Such structure is assumed by the partial evaluator and subsequent functionality
+        func = NormalizeBlocksTransformer.transform(func);
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
         pe.evaluate(tc.l, func);
 
