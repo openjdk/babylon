@@ -43,6 +43,7 @@ import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -284,18 +285,12 @@ public class KernelCallGraph implements LookupCarrier {
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
                 ) {
                     var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                    var exitBlockBuilder = jdk.incubator.code.dialect.core.Inliner.inline(
+                    var exitBlockBuilder = Inliner.inline(
                             blockbuilder, ssaInline,
-                            blockbuilder.context().getValues(invoke.op().operands()), (_, v) -> {
-                                if (v != null) {
-                                    blockbuilder.context().mapValue(invoke.op().result(), v);
-                                }
-                            });
-                    if (!exitBlockBuilder.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
-                    }
+                            blockbuilder.context().getValues(invoke.op().operands()));
+                    exitBlockBuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
                     changed.set(true);
-                    return exitBlockBuilder.withContextAndTransformer(blockbuilder.context(), blockbuilder.transformer());
+                    return exitBlockBuilder;
                 }
                 blockbuilder.add(op);
                 return blockbuilder;
