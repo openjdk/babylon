@@ -29,9 +29,8 @@ import jdk.incubator.code.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
 
@@ -46,13 +45,14 @@ public final class Inliner {
     /**
      * Inlines the invokable operation into the given block builder and returns a block builder from which to
      * continue building. The invokable operation must contain at least one return operation and each return operation
-     * must be an inlinable return operation, an operation whose {@link Op#ancestorOp() nearest ancestor} operation is
-     * the same as the invokable operation. Otherwise, an exception is thrown.
+     * must be a <i>directly inlinable</i> return operation, an operation that {@link CoreOp.ReturnOp#target() targets}
+     * the invokable operation and whose {@link Op#ancestorOp() nearest ancestor} operation is the same as the invokable
+     * operation. Otherwise, an exception is thrown.
      * <p>
      * This method {@link Block.Builder#transformBody(Body, List, CodeTransformer) transforms} the body of the invokable
-     * operation with the given arguments and a code transformer that replaces inlinable return operations.
+     * operation with the given arguments and a code transformer that replaces return operations.
      * <p>
-     * The code transformer copies all operations except the inlinable return operations.
+     * The code transformer copies all operations except the return operations.
      * <p>
      * The transformer creates a return block builder from the code transformer's block builder. If the invokable
      * operation returns a value, the return block builder has one block parameter, representing the return value, whose
@@ -67,8 +67,8 @@ public final class Inliner {
      * the return block builder's block parameter.
      * @apiNote
      * An invokable operation containing non-inlinable return operations may be
-     * {@link CodeTransformer#LOWERING_TRANSFORMER lowered} into one that contains only inlinable return operations,
-     * and therefore the lowered invokable operation can be inlined.
+     * {@link CodeTransformer#LOWERING_TRANSFORMER lowered} into one that contains only directly inlinable return
+     * operations, and therefore the lowered invokable operation can be inlined.
      *
      * @param inBlock     the block builder
      * @param invokableOp the invokable operation
@@ -76,22 +76,21 @@ public final class Inliner {
      * @param <O>         The invokable type
      * @return the block builder to continue building from, which has the same code context and code transformer as the
      * given block builder
-     * @throws IllegalArgumentException if the invokable operation has no inlinable return operations
+     * @throws IllegalArgumentException if the invokable operation has no directly inlinable return operations
      * @throws IllegalArgumentException if the invokable operation has one or more non-inlinable return operations
      * @see CodeTransformer#LOWERING_TRANSFORMER
      */
     public static <O extends Op & Op.Invokable>
     Block.Builder inline(Block.Builder inBlock, O invokableOp, List<? extends Value> args) {
-        // Find the nearest ancestor op for each return operation targeting this invokable operation
-        Set<Op> collect = invokableOp.elements()
-                .filter(e -> e instanceof CoreOp.ReturnOp rop
-                        && getNearestInvokeableAncestorOp(rop) == invokableOp)
-                .map(CodeElement::ancestorOp)
-                .collect(Collectors.toSet());
-        if (!collect.contains(invokableOp)) {
-            throw new IllegalArgumentException("The invokable operation has no inlinable return operations");
+        // Find if there are only directly inlinable return operations
+        Optional<Boolean> hasReturnOps = invokableOp.elements()
+                .filter(e -> e instanceof CoreOp.ReturnOp rop && rop.target() == invokableOp)
+                .map(e -> e.ancestorOp() == invokableOp)
+                .reduce((isDirectLeft, isDirectRight) -> isDirectLeft & isDirectRight);
+        if (hasReturnOps.isEmpty()) {
+            throw new IllegalArgumentException("The invokable operation has no directly inlinable return operations");
         }
-        if (collect.size() > 1) {
+        if (!hasReturnOps.get()) {
             throw new IllegalArgumentException("The invokable operation has one or more non-inlinable return operations");
         }
 
@@ -124,16 +123,16 @@ public final class Inliner {
 
     /**
      * Inlines the invokable operation into the given block builder, applying given consumer for continuation of
-     * inlining. The invokable operation must contain at least one inlinable return operation, an operation that targets
-     * given the invokable operation. Otherwise, an exception is thrown.
+     * inlining. The invokable operation must contain at least one <i>inlinable</i> return operation, an operation that
+     * {@link CoreOp.ReturnOp#target() targets} the invokable operation. Otherwise, an exception is thrown.
      * <p>
      * This method {@link Block.Builder#transformBody(Body, List, CodeTransformer) transforms} the body of the invokable
-     * operation with the given arguments and a code transformer that replaces inlinable return operations by applying
-     * a return block builder to the given consumer.
+     * operation with the given arguments and a code transformer that replaces return operations by applying a return
+     * block builder to the given consumer.
      * <p>
-     * The code transformer copies all operations except inlinable return operations. When an inlinable return operation
-     * is encountered, then on first encounter of its nearest ancestor body a return block builder is created and used
-     * for this return operation and encounters of subsequent return operations with the same ancestor body.
+     * The code transformer copies all operations except return operations. When a return operation is encountered, then
+     * on first encounter of its nearest ancestor body a return block builder is created and used for this return
+     * operation and encounters of subsequent return operations with the same ancestor body.
      * <p>
      * The transformer creates a return block builder from the code transformer's block builder. If the invokable
      * operation returns a value, the return block builder has one block parameter, representing the return value, whose
@@ -160,19 +159,16 @@ public final class Inliner {
     public static <O extends Op & Op.Invokable>
     void inlineWithContinuation(Block.Builder inBlock, O invokableOp, List<? extends Value> args,
                                 Consumer<Block.Builder> inlineConsumer) {
-        // Count the number of return opertion's targeting the invokable operation
-        long nInlinableReturnOps = invokableOp.elements()
-                .filter(e -> e instanceof CoreOp.ReturnOp rop
-                        && getNearestInvokeableAncestorOp(rop) == invokableOp)
-                .count();
-        if (nInlinableReturnOps == 0) {
+        boolean hasReturnOps = invokableOp.elements()
+                .anyMatch(e -> e instanceof CoreOp.ReturnOp rop && rop.target() == invokableOp);
+        if (!hasReturnOps) {
             throw new IllegalArgumentException("The invokable operation has no inlineable return operations");
         }
 
         Map<Body, Block.Builder> returnBlocks = new HashMap<>();
         inBlock.transformBody(invokableOp.body(), args, (block, op) -> {
             // If the return operation is associated with the invokable operation
-            if (op instanceof CoreOp.ReturnOp rop && getNearestInvokeableAncestorOp(op) == invokableOp) {
+            if (op instanceof CoreOp.ReturnOp rop && rop.target() == invokableOp) {
                 // Compute the return block
                 Block.Builder returnBlock = returnBlocks.computeIfAbsent(rop.ancestorBody(), _ -> {
                     List<CodeType> param = rop.returnValue() != null
@@ -194,12 +190,5 @@ public final class Inliner {
             block.add(op);
             return block;
         });
-    }
-
-    private static Op getNearestInvokeableAncestorOp(Op op) {
-        do {
-            op = op.ancestorOp();
-        } while (!(op instanceof Op.Invokable));
-        return op;
     }
 }
