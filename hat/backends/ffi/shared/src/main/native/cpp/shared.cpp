@@ -498,6 +498,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (profilableQueue != nullptr) {
         profilableQueue->marker(Backend::ProfilableQueue::LeaveKernelDispatchBits, name);
     }
+
     compilationUnit->backend->queue->wait();
     compilationUnit->backend->queue->release();
     if (compilationUnit->backend->config->traceCalls) {

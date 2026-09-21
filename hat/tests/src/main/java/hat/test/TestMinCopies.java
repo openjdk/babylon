@@ -25,6 +25,8 @@
 package hat.test;
 
 import hat.Accelerator;
+import hat.ComputeContext;
+import hat.NDRange;
 import hat.buffer.S32Array;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -32,11 +34,31 @@ import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
 
+import static hat.KernelContext.GIX;
+import static hat.KernelContext.GSX;
+
 /**
  * How to run?
  * <code>HAT=MC java @.ffi-opencl-test hat.test.TestMinCopies</code>
  */
 public class TestMinCopies {
+
+    @Reflect
+    public static void vectorAddition( S32Array arrayA, S32Array arrayB, S32Array arrayC) {
+        if (GIX() < GSX()) {
+            int valueA = arrayA.array(GIX());
+            int valueB = arrayB.array(GIX());
+            arrayC.array(GIX(), (valueA + valueB));
+        }
+    }
+
+    @Reflect
+    public static void vectorAdd(ComputeContext cc, S32Array arrayA, S32Array arrayB, S32Array arrayC) {
+        cc.dispatchKernel(NDRange.of1D(arrayA.length()),() -> vectorAddition( arrayA, arrayB, arrayC));
+
+        // Call to suggest a copy out on exit for the specified buffers
+        cc.copyOutOnExit(arrayC);
+    }
 
     @HatTest
     @Reflect
@@ -50,8 +72,7 @@ public class TestMinCopies {
         arrayA.fill(i -> i);
         arrayB.fill(i -> 100 + i);
 
-        accelerator.compute(cc ->
-                TestArrays.vectorAdd(cc, arrayA, arrayB, arrayC));
+        accelerator.compute(cc -> vectorAdd(cc, arrayA, arrayB, arrayC));
 
         for (int i = 0; i < arrayA.length(); i++) {
             HATAsserts.assertEquals(arrayA.array(i) + arrayB.array(i), arrayC.array(i));
