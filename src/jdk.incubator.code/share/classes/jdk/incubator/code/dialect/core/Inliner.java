@@ -122,7 +122,7 @@ public final class Inliner {
     }
 
     /**
-     * Inlines the invokable operation into the given block builder, applying given consumer for continuation of
+     * Inlines the invokable operation into the given block builder, applying the given consumer for continuation of
      * inlining. The invokable operation must contain at least one <i>inlinable</i> return operation, an operation that
      * {@link CoreOp.ReturnOp#target() targets} the invokable operation. Otherwise, an exception is thrown.
      * <p>
