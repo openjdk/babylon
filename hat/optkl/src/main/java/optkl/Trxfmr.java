@@ -380,7 +380,7 @@ public class Trxfmr implements LookupCarrier{
 
     public Trxfmr transform(String name,  Predicate<CodeElement<?,?>> predicate, Consumer<Cursor> cursorConsumer, Listener listener) {
         if (callSite != null && callSite.tracing()) {
-            System.out.println(callSite);
+            IO.println(callSite);
         }
         var newFuncOp = funcOp().transform(name,(blockBuilder, cursorOp) -> {
             if (predicate.test(cursorOp)){
@@ -389,7 +389,9 @@ public class Trxfmr implements LookupCarrier{
                 if (!cursor.handled()){
                     var result = blockBuilder.add(cursorOp);
                     var opFromResult = result.op();
-                    listener.remap(funcOp,cursorOp,opFromResult);
+                    if (listener != null) {
+                        listener.remap(funcOp,cursorOp,opFromResult);
+                    }
                     biMap.add(cursorOp, opFromResult);
                 }
             } else {
@@ -399,7 +401,6 @@ public class Trxfmr implements LookupCarrier{
                     if (listener!= null) {
                         listener.remap(funcOp, cursorOp, opFromResult);
                     }
-                   // update(funcOp().funcName(), cursorOp, opFromResult, varTable);
                     biMap.add(cursorOp, opFromResult);
                 }catch (Throwable t){
                     throw new RuntimeException(t);
