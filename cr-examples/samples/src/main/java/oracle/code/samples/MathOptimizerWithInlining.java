@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
  */
 package oracle.code.samples;
 
+import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
@@ -225,19 +226,19 @@ public class MathOptimizerWithInlining {
                     CoreOp.FuncOp codeModelToInline = isShiftFunction(invokeOp) ? shiftCodeModel : multCodeModel;
 
                     // 2. Apply the inlining
-                    Inliner.inline(
+                    Block.Builder continueBuilder = Inliner.inline(
                             blockBuilder,   // the current block builder
                             codeModelToInline,  // the method to inline which we obtained using code reflection too
-                            blockBuilder.context().getValues(invokeOp.operands()),  // operands to this call. Since we already replace the function,
-                            // we can use the same operands as the invoke call
-                            (builder, val) -> blockBuilder.context().mapValue(invokeOp.result(), val)); // Propagate the new result
+                            blockBuilder.context().getValues(invokeOp.operands()));  // operands to this call. Since we already replace the function,
+                    // we can use the same operands as the invoke call
+                    continueBuilder.context().mapValue(invokeOp.result(), continueBuilder.parameters().getFirst());
+                    return continueBuilder;
                 } else {
                     // copy the op into the builder if it is not the invoke node we are looking for
                     blockBuilder.add(op);
+                    // return new transformed block builder
+                    return blockBuilder;
                 }
-
-                // return new transformed block builder
-                return blockBuilder;
             });
 
             IO.println("After inlining: " + codeModel.toText());
