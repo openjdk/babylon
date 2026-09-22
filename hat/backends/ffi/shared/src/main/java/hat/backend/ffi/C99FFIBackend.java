@@ -86,7 +86,7 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
             switch (ndRange.global()) {
                 case NDRange.Global1D global1D -> {
                     dispatchContext.gsx(global1D.x());
-                    dispatchContext.gsx(global1D.x());
+                    dispatchContext.dimensions(global1D.dimension());
                 }
                 case NDRange.Global2D global2D -> {
                     dispatchContext.gsx(global2D.x());
@@ -193,7 +193,7 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(), lookup(), computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(), computeContext.lookup(), computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
 
     @Override
