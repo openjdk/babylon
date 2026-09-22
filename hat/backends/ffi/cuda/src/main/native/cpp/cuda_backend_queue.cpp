@@ -57,8 +57,10 @@ void CudaBackend::CudaQueue::wait(){
 
 
 void CudaBackend::CudaQueue::computeStart() {
-    wait(); // should be no-op
-    release(); // also ;
+    if (backend->config->alwaysCopy) {
+        wait();
+        release();
+    }
 }
 
 void CudaBackend::CudaQueue::computeEnd() {

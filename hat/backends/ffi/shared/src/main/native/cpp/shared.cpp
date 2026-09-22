@@ -504,8 +504,11 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
         profilableQueue->marker(Backend::ProfilableQueue::LeaveKernelDispatchBits, name);
     }
 
-    compilationUnit->backend->queue->wait();
-    compilationUnit->backend->queue->release();
+    // We only way when alwaysCopy is enabled
+    if (compilationUnit->backend->config->alwaysCopy) {
+        compilationUnit->backend->queue->wait();
+        compilationUnit->backend->queue->release();
+    }
     if (compilationUnit->backend->config->traceCalls) {
         std::cout << "\"" << name << "\"}" << std::endl;
     }
