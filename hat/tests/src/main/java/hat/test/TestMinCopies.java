@@ -39,7 +39,7 @@ import static hat.KernelContext.GSX;
 
 /**
  * How to run?
- * <code>HAT=MC java @.ffi-opencl-test hat.test.TestMinCopies</code>
+ * <code>HAT=MC,SW,TC java @.ffi-opencl-test hat.test.TestMinCopies</code>
  */
 public class TestMinCopies {
 
@@ -72,11 +72,18 @@ public class TestMinCopies {
         arrayA.fill(i -> i);
         arrayB.fill(i -> 100 + i);
 
-        accelerator.compute(cc -> vectorAdd(cc, arrayA, arrayB, arrayC));
+        for (int i = 0; i < 10; i++) {
+            final int val = i;
+            arrayA.fill(_ -> 100 + val);
+            arrayB.fill(_ -> 100);
 
-        for (int i = 0; i < arrayA.length(); i++) {
-            HATAsserts.assertEquals(arrayA.array(i) + arrayB.array(i), arrayC.array(i));
+            accelerator.compute(cc -> vectorAdd(cc, arrayA, arrayB, arrayC));
+
+            for (int k = 0; k < arrayA.length(); k++) {
+                HATAsserts.assertEquals(arrayA.array(k) + arrayB.array(k), arrayC.array(k));
+            }
         }
+
     }
 
 }
