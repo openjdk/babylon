@@ -25,7 +25,10 @@
 package hat;
 
 import hat.buffer.DispatchContext;
+import hat.buffer.S32Array;
+import jdk.incubator.code.Reflect;
 import optkl.OpHelper;
+import optkl.ifacemapper.Buffer;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
@@ -85,6 +88,20 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     public void invokeWithArgs(Object[] args) {
         computeCallGraph.invokeWithArgs(args);
+    }
+
+    /**
+     *  Suggest copy out on exit of the compute layer for the specified buffers. This
+     *  is mainly used when HAT is run with minimized copies (MC) flag.
+     *
+     *  <p>This call has no effect if minimized copies is not used.</p>
+     */
+    public void copyOutOnExit(Buffer ... buffers) {
+        if (buffers != null && buffers.length > 0) {
+            for (Buffer buffer : buffers) {
+                accelerator.preAccess(buffer);
+            }
+        }
     }
 
     public enum WRAPPER {
