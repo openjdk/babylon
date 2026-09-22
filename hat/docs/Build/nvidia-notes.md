@@ -75,31 +75,42 @@ java @.ffi-cuda-example matmul.Main --kernel=1D
 
 ### CUDA source compiler selection
 
-The CUDA backend compiles generated CUDA source with `nvcc` by default, which
-preserves the original backend behavior. To use NVRTC instead, set
-`HAT_CUDA_COMPILER=nvrtc` when launching the Java process:
+The CUDA backend compiles generated CUDA source with `nvcc` by default. To
+compile with NVRTC instead, set `HAT_CUDA_COMPILER=nvrtc`:
 
 ```bash
 HAT_CUDA_COMPILER=nvrtc java @.ffi-cuda-example matmul.Main --kernel=1D
 ```
 
-The supported values are:
+`HAT_CUDA_COMPILER` accepts `nvcc` or `nvrtc`. Any other value is a
+configuration error.
 
-- `HAT_CUDA_COMPILER=nvcc`: compile generated CUDA source with the `nvcc`
-  executable.
-- `HAT_CUDA_COMPILER=nvrtc`: compile generated CUDA source in-process with
-  NVRTC.
+- **`nvcc`:** compile with the `nvcc` executable. SIMT kernels are emitted as
+  PTX, and Tile kernels as cubin.
+- **`nvrtc`:** compile in-process with NVRTC. SIMT kernels are emitted as PTX,
+  and Tile kernels as cuda_tile IR.
 
-Any other `HAT_CUDA_COMPILER` value is treated as a configuration error.
-
-When the NVRTC path is selected, `libnvrtc.so` is loaded lazily at runtime.
-The backend first tries the CUDA Toolkit library directory found at build time
-and then lets the platform loader search its default paths. If needed, set
-`HAT_CUDA_NVRTC_LIBRARY` to the path or loader-visible name of the NVRTC shared
-library. When this variable is set, that value is passed directly to `dlopen()`
-and loading fails if it is invalid:
+SIMT kernels require no extra setup. Tile kernels compiled with NVRTC do. The
+NVRTC library registers signal handlers while compiling and executing Tile
+kernels. Those handlers receive the signals first and forward them with a
+polluted signal state, which breaks JVM signal handling. Preload JDK `libjsig`
+so the JVM signal handlers process each signal first and then dispatch to the
+NVRTC handlers via chained handlers:
 
 ```bash
-HAT_CUDA_COMPILER=nvrtc HAT_CUDA_NVRTC_LIBRARY=/path/to/libnvrtc.so \
-    java @.ffi-cuda-example matmul.Main --kernel=1D
+LD_PRELOAD=$JAVA_HOME/lib/libjsig.so HAT_CUDA_COMPILER=nvrtc \
+  java @.ffi-cuda-test hat.test.TestTileAPI
+```
+
+If `libjsig` is not preloaded, HAT warns once and compiles Tile kernels with
+`nvcc`.
+
+When NVRTC is selected, HAT loads `libnvrtc.so` from the CUDA Toolkit library
+directory recorded at build time, then from the default library search path. To
+use a specific library, set `HAT_CUDA_NVRTC_LIBRARY` to its path or
+loader-visible name. If that library cannot be loaded, HAT exits:
+
+```bash
+HAT_CUDA_COMPILER=nvrtc HAT_CUDA_NVRTC_LIBRARY=/path/to/libnvrtc.so java \
+  @.ffi-cuda-example matmul.Main --kernel=1D
 ```
