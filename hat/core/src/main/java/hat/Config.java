@@ -64,17 +64,19 @@ public class Config {
             return Integer.compare(index, bit.index);
         }
 
-       public boolean isBitSet(int bits){
-            return (mask()&bits) == mask();
-        }
-        public boolean isSet(Config config){
-            return (mask()&config.bits) == mask();
-        }
-        public int mask(){
-            return ((1<<size)-1) << index;
+        public boolean isBitSet(int bits) {
+            return (mask() & bits) == mask();
         }
 
-        public String maskString(){
+        public boolean isSet(Config config) {
+            return (mask() & config.bits) == mask();
+        }
+
+        public int mask() {
+            return ((1 << size) - 1) << index;
+        }
+
+        public String maskString() {
             return Integer.toBinaryString(mask());
         }
     }

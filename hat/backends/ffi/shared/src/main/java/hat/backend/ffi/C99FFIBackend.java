@@ -189,13 +189,13 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-
-    public abstract String createCode(KernelCallGraph kernelCallGraph,  Object... justArgs);
+    public abstract String createCode(KernelCallGraph kernelCallGraph, Object... justArgs);
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(), lookup(), computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
+
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         backendBridge.computeStart();
@@ -208,7 +208,7 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph,Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length));
             if (config().showCode()) {
-                System.out.println(code);
+                IO.println(code);
             }
             var compilationUnit = backendBridge.compile(code, 0);
             if (compilationUnit.ok()) {

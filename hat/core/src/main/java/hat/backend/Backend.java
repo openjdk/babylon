@@ -56,7 +56,7 @@ import static optkl.OpHelper.Invoke.invoke;
 public  abstract class Backend implements ArenaAndLookupCarrier {
     private final Config config;
 
-    public Config config(){
+    public Config config() {
         return config;
     }
 
@@ -64,7 +64,9 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
     @Override public Arena arena(){
         return arena;
     }
+
     private final MethodHandles.Lookup lookup;
+
     @Override public MethodHandles.Lookup lookup(){
         return lookup;
     }
