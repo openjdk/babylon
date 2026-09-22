@@ -48,9 +48,6 @@ public class IfTest {
                         %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
                         yield;
-                    }
-                    ()java.type:"void" -> {
-                        yield;
                     };
                 return;
             };
@@ -118,9 +115,6 @@ public class IfTest {
                     ()java.type:"void" -> {
                         %10 : java.type:"int" = constant @2;
                         var.store %2 %10;
-                        yield;
-                    }
-                    ()java.type:"void" -> {
                         yield;
                     };
                 return;
@@ -235,9 +229,6 @@ public class IfTest {
                     ()java.type:"void" -> {
                         %6 : java.type:"int" = constant @1;
                         var.store %2 %6;
-                        yield;
-                    }
-                    ()java.type:"void" -> {
                         yield;
                     };
                 return;

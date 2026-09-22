@@ -26,6 +26,7 @@ package hat.backend.ffi;
 
 
 import hat.Config;
+import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import hat.callgraph.MethodCallDag;
 import jdk.incubator.code.CodeTransformer;
@@ -53,6 +54,7 @@ import static optkl.OpHelper.Invoke;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class CudaBackend extends C99FFIBackend {
+
     public CudaBackend(Config config) {
         super(Arena.global(), MethodHandles.lookup(),"cuda_backend", config);
     }
@@ -61,12 +63,13 @@ public class CudaBackend extends C99FFIBackend {
         this(Config.fromEnvOrProperty());
     }
 
-
-    @Override public String createCode(KernelCallGraph kernelCallGraph,  Object... justArgs){
-        if (config().ptx()){
-            return createPTX(kernelCallGraph,  justArgs);
-        }else{
-            return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp())), justArgs);
+    @Override
+    public String createCode(KernelCallGraph kernelCallGraph, Object... justArgs) {
+        if (config().ptx()) {
+            return createPTX(kernelCallGraph, justArgs);
+        } else {
+            // Note: isTile is false because this method is invoked from the SIMT thread code model
+            return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp()), false), justArgs);
         }
     }
 
@@ -380,9 +383,6 @@ public class CudaBackend extends C99FFIBackend {
 
     final Set<String> usedMathFns = new HashSet<>();
 
-
-
-
     String createPTX(KernelCallGraph kernelCallGraph,  Object... args){
         var builder = new PTXHATKernelBuilder();
         StringBuilder out = new StringBuilder();
@@ -451,9 +451,8 @@ public class CudaBackend extends C99FFIBackend {
         }, varTable).funcOp();
     }
 
-    static public String createFunction(MethodHandles.Lookup lookup,PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
+    public static String createFunction(MethodHandles.Lookup lookup,PTXHATKernelBuilder builder, CoreOp.FuncOp lowered, boolean entry) {
          CoreOp.FuncOp ssa =SSA.transform(lowered);
-
 
         // building fn info (name, params)
         builder.functionHeader(lowered.funcName(), entry, lowered.body().yieldType());
@@ -476,5 +475,69 @@ public class CudaBackend extends C99FFIBackend {
         builder.ptxRegisterDecl();
         out += builder.getText() + body;
         return out;
+    }
+
+    private void checkLegalNDRangeDispatch(NDRange ndRange) {
+        // check ndRange
+        if (ndRange != null && !ndRange.hasLocal()) {
+            throw new IllegalStateException("NDRange for dispatching a Tile Kernel must specify Local dimensions");
+        }
+
+        // if local is defined, then we check if the values <= 0
+        if (ndRange != null && ndRange.hasLocal()) {
+            NDRange.Local local = ndRange.local();
+            if (local instanceof NDRange.Local1D l) {
+                if (l.x() <= 0) {
+                    throw new IllegalStateException("Local x must be greater than 0");
+                }
+            } else if (local instanceof NDRange.Local2D l) {
+                if (l.y() <= 0 || l.x() <= 0) {
+                    throw new IllegalStateException("Local x,y must be greater than 0");
+                }
+            } else if (local instanceof NDRange.Local3D l) {
+                if (l.z() <= 0 || l.y() <= 0 || l.x() <= 0) {
+                    throw new IllegalStateException("Local x,y,z must be greater than 0");
+                }
+            }
+        }
+
+        // check warps 2D and 3D
+        if (ndRange != null && ndRange.hasWarp()) {
+            NDRange.Warp warp = ndRange.warp();
+            if (warp instanceof NDRange.Warp2D warp2d) {
+                if (warp2d.y()) {
+                    throw new UnsupportedOperationException("Warp 2D not supported");
+                }
+            } else if (warp instanceof NDRange.Warp3D) {
+                throw new UnsupportedOperationException("Warp 3D not supported");
+            }
+        }
+    }
+
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+        CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
+            if (config().ptx()) {
+                throw new UnsupportedOperationException("tile model for the PTX is not supported");
+            }
+            String code = createC99Tile(kernelCallGraph, args);
+            if (config().showCode()) {
+                IO.println(code);
+            }
+            var compilationUnit = backendBridge.compile(code, 1);
+            if (compilationUnit.ok()) {
+                var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
+                return new CompiledKernel(this, kernelCallGraph,  kernel, args);
+            } else {
+                throw new IllegalStateException("CUDA failed to compile the generated code.");
+            }
+        });
+        // before the final dispatch, we need to check the ndRange parameters are legal
+        checkLegalNDRangeDispatch(ndRange);
+        compiledKernel.dispatch(ndRange, args);
+    }
+
+    String createC99Tile(KernelCallGraph kernelCallGraph, Object... args){
+        return createCode(kernelCallGraph, new CudaHATKernelBuilder(kernelCallGraph,new ScopedCodeBuilderContext(kernelCallGraph.lookup(),kernelCallGraph.callDag.entryPoint.funcOp()), true), args);
     }
 }

@@ -123,12 +123,12 @@ public class PTXHATKernelBuilder extends CodeBuilder<PTXHATKernelBuilder> {
         paren(_ ->
                 nl()
                         .commaNlSeparated(
-                        infoList,
-                        info -> {
-                            ptxIndent().dot().param().sp().paramType(info.javaType);
-                            sp().regName(info.varOp.varName());
-                            paramNames.add(info.varOp.varName());
-                        }
+                                infoList,
+                                info -> {
+                                    ptxIndent().dot().param().sp().paramType(info.javaType);
+                                    sp().regName(info.varOp.varName());
+                                    paramNames.add(info.varOp.varName());
+                                }
                         ).nl()).nl();
         return this;
     }

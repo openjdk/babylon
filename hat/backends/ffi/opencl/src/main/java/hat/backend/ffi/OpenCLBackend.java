@@ -24,6 +24,7 @@
  */
 package hat.backend.ffi;
 import hat.Config;
+import hat.NDRange;
 import hat.callgraph.KernelCallGraph;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 
@@ -42,5 +43,10 @@ public class OpenCLBackend extends C99FFIBackend {
     @Override
     public String createCode(KernelCallGraph kernelCallGraph, Object... justArgs) {
         return createCode(kernelCallGraph, new OpenCLHATKernelBuilder(kernelCallGraph, new ScopedCodeBuilderContext(kernelCallGraph.lookup(), kernelCallGraph.callDag.entryPoint.funcOp())), justArgs);
+    }
+
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -24,7 +24,9 @@
  */
 package hat.codebuilders;
 
+import hat.dialect.ArithMathOps;
 import hat.dialect.HATOp;
+import hat.dialect.TileOps;
 import jdk.incubator.code.Op;
 import optkl.codebuilders.BabylonOpDispatcher;
 import optkl.codebuilders.ScopeAwareJavaOrC99StyleCodeBuilder;
@@ -39,9 +41,41 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T hatPtrLoadOp(HATPtrLoadOp hatPtrLoadOp);
 
-    T hatPtrStoreOp( HATPtrStoreOp hatPtrStoreOp);
+    T hatPtrStoreOp(HATPtrStoreOp hatPtrStoreOp);
 
-    T hatPtrLengthOp( HATPtrLengthOp hatPtrLengthOp);
+    T hatPtrLengthOp(HATPtrLengthOp hatPtrLengthOp);
+
+    T tileConstantOp(ArithMathOps.ConstantOp constantOp);
+
+    T tileIdOp(TileOps.TileIDOp tileIdOp);
+
+    T tileLoadOp(TileOps.LoadOp tileLoadOp);
+
+    T tileAddOp(ArithMathOps.AddOp tileAddOp);
+
+    T tileStoreOp(TileOps.StoreOp tileStoreOp);
+
+    T tileNumOp(TileOps.TileNumOp tileNumOp);
+
+    T tileFullOp(TileOps.TileFullOp tileFullOp);
+
+    T tileShapeOp(TileOps.TileShapeOp tileShapeOp);
+
+    T tileSumOp(TileOps.TileSumOp tileSumOp);
+
+    T tileIndexOp(TileOps.TileIndexOp tileIndexOp);
+
+    T tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp);
+
+    T tileZerosOp(TileOps.TileZerosOp tileZerosOp);
+
+    T tileMMAOp(ArithMathOps.MMAOp tileMMAOp);
+
+    T cDivOp(ArithMathOps.CDivOp cDivOp);
+
+    T minOp(ArithMathOps.MinOp minOp);
+
+    T tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp);
 
     @Override
     default T recurse(Op op) {
@@ -52,6 +86,31 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case HATPtrLengthOp hatPtrLengthOp -> hatPtrLengthOp(hatPtrLengthOp);
                 default -> throw new IllegalStateException("handle nesting of hat op " + op);
             }
+        } else if (op instanceof ArithMathOps.ArithMathOp arithMathOps) {
+            switch (arithMathOps) {
+                case ArithMathOps.ConstantOp constantOp -> tileConstantOp(constantOp);
+                case ArithMathOps.AddOp addOp -> tileAddOp(addOp);
+                case ArithMathOps.TransposeOp tileTransposeOp -> tileTransposeOp(tileTransposeOp);
+                case ArithMathOps.MMAOp  tileMMAOp -> tileMMAOp(tileMMAOp);
+                case ArithMathOps.CDivOp cDivOp -> cDivOp(cDivOp);
+                case ArithMathOps.MinOp minOp -> minOp(minOp);
+                default -> throw new IllegalStateException("handle nesting of Tile AritmeticMath op " + op);
+            }
+        } else if (op instanceof TileOps.TOp tileOps) {
+            switch (tileOps) {
+                case TileOps.TileIDOp idOp -> tileIdOp(idOp);
+                case TileOps.LoadOp loadOp -> tileLoadOp(loadOp);
+                case TileOps.StoreOp storeOp -> tileStoreOp(storeOp);
+                case TileOps.TileNumOp tileNumOp -> tileNumOp(tileNumOp);
+                case TileOps.TileFullOp tileFullOp -> tileFullOp(tileFullOp);
+                case TileOps.TileShapeOp tileShapeOp -> tileShapeOp(tileShapeOp);
+                case TileOps.TileSumOp tileSumOp -> tileSumOp(tileSumOp);
+                case TileOps.TileIndexOp tileIndexOp -> tileIndexOp(tileIndexOp);
+                case TileOps.TileZerosOp tileZerosOp -> tileZerosOp(tileZerosOp);
+                case TileOps.TileIrangeOp tileIrangeOp -> tileIrangeOp(tileIrangeOp);
+                default -> throw new IllegalStateException("handle nesting of Tile TileOps.TOp " + op);
+            }
+
         } else {
             BabylonOpDispatcher.super.recurse(op);
         }

@@ -37,6 +37,7 @@ import hat.device.DeviceSchema;
 import hat.device.NonMappableIface;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAssertionError;
+import hat.test.exceptions.HATAsserts;
 import hat.types.F16;
 import jdk.incubator.code.Reflect;
 
@@ -49,7 +50,66 @@ import static hat.NDRange.Local1D;
 import static hat.NDRange.NDRange1D;
 import static hat.buffer.F16Array.create;
 
+/**
+ * How to run?
+ *
+ * <p>Testing with the OpenCL backend:</p>
+ * <code>java @.ffi-opencl-test hat.test.TestFlashAttention</code>
+ *
+ * <p>Testing with the CUDA backend:</p>
+ * <code>java @.ffi-cuda-test hat.test.TestFlashAttention</code>
+ */
 public class TestFlashAttention {
+
+    private static final float DELTA = 0.01f;
+
+    // Sequential implementation of the standard attention
+    public static void selfAttentionV2(F32Array Q, F32Array K, F32Array V,
+                                       F32Array attentionMatrix, F32Array O,
+                                       final int N, final int d, final float softMaxScale) {
+
+        // Compute the attention scores: Q * K^T and scale it to sqrt(d) => softMaxScale
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                float acc = 0.0f;
+                for (int k = 0; k < d; k++) {
+                    acc += Q.array(i * d + k) * K.array(j * d + k);
+                }
+                // multiply by the scale factor
+                acc *= softMaxScale;
+                // store partial results in the temporary matrix for flash-attention
+                attentionMatrix.array(i * N + j, acc);
+            }
+
+            // SoftMax: apply softmax function to the attention score to normalize them
+            float max = Float.MIN_VALUE;
+            // Compute max
+            for (int j = 0; j < N; j++) {
+                max = Math.max(max, attentionMatrix.array(i * N + j));
+            }
+            float sum = 0.0f;
+            // Compute exp()
+            for (int j = 0; j < N; j++) {
+                float p = (float) Math.exp(attentionMatrix.array(i * N + j) - max);
+                attentionMatrix.array(i * N + j, p);
+                sum += p;
+            }
+            // normalization by the sum compute in the prev. step
+            for (int j = 0; j < N; j++) {
+                float val = attentionMatrix.array(i * N + j) / sum;
+                attentionMatrix.array(i * N + j, val);
+            }
+
+            // Final matmul: O = attention * V
+            for (int j = 0; j < d; j++) {
+                float acc = 0.0f;
+                for (int k = 0; k < N; k++) {
+                    acc += attentionMatrix.array(i * N + k) * V.array(k * d + j);
+                }
+                O.array(i * d + j, acc);
+            }
+        }
+    }
 
     private interface SharedF16Array extends NonMappableIface {
         F16 array(int index);
@@ -109,7 +169,7 @@ public class TestFlashAttention {
 
         // Load Q into shared memory (sQ_index)
         for (int k = 0; k < d; k++) {
-            F16 valQ = Q.array((startIndex + (tid * d + k) * d + k));
+            F16 valQ = Q.array((startIndex + tid) * d + k);
             sharedArray.array((tid * d + k) + sQ_index).value(valQ.value());
         }
 
@@ -125,14 +185,14 @@ public class TestFlashAttention {
                 F16 kVal = K.array(kvTileRow * d + k);
                 F16 vVal = V.array(kvTileRow * d + k);
                 sharedArray.array((tid * d + k) + sK_index).value(kVal.value());
-                sharedArray.array((tid + d + k) + sV_index).value(vVal.value());
+                sharedArray.array((tid * d + k) + sV_index).value(vVal.value());
             }
             barrier();
 
-            // m we accumulate the max values
-            F16 m_prev = m.array(tileId * blockN + tid);
-            // in l we accumulate the sum values
-            F16 l_prev = l.array(tileId * blockN + tid);
+            // m we accumulate the max values for all tiles
+            F16 m_prev = m.array(startIndex + tid);
+            // in l we accumulate the sum values for all tiles
+            F16 l_prev = l.array(startIndex + tid);
             F16 m_block = F16.of(-100f); // for calculating max
             F16 l_block = F16.of(0.0f); // for sum
 
@@ -148,7 +208,7 @@ public class TestFlashAttention {
                     score = F16.add(score, mul);
                 }
                 score = F16.mul(score, scale);
-                privateFloatArray.array((t) + sS_index).value(score.value());
+                privateFloatArray.array(t).value(score.value());
                 m_block = HATMath.maxf16(m_block, score);
             }
 
@@ -200,8 +260,8 @@ public class TestFlashAttention {
             }
 
             // update m and l in global memory
-            m.array(tileId * blockN + tid).value(m_new.value());
-            l.array(tileId * blockN + tid).value(l_new.value());
+            m.array(startIndex + tid).value(m_new.value());
+            l.array(startIndex + tid).value(l_new.value());
 
             barrier();
         }
@@ -280,7 +340,7 @@ public class TestFlashAttention {
         // Load Q into shared memory (sQ_index)
         for (int k = 0; k < d; k++) {
             sharedArray.array((tid * d + k) + sQ_index,
-                    Q.array((startIndex + (tid * d + k) * d + k)));
+                    Q.array((startIndex + tid) * d + k));
         }
         barrier();
 
@@ -289,17 +349,18 @@ public class TestFlashAttention {
 
             int kvTileRow = (tileId * blockN) + tid;
 
-            // Load the tiles K and V into shared memoru
+            // Load the tiles K and V into shared memory
             for (int k = 0; k < d; k++) {
-                sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
-                sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
+                final int storeSharedMemIndex = tid * d + k;
+                sharedArray.array(storeSharedMemIndex + sK_index, K.array(kvTileRow * d + k));
+                sharedArray.array(storeSharedMemIndex + sV_index, V.array(kvTileRow * d + k));
             }
             barrier();
 
-            // m we accumulate the max values
-            float m_prev = m.array(tileId * blockN + tid);
-            // in l we accumulate the sum values
-            float l_prev = l.array(tileId * blockN + tid);
+            // m we accumulate the max values for all tiles
+            float m_prev = m.array(startIndex + tid);
+            // in l we accumulate the sum values for all tiles
+            float l_prev = l.array(startIndex + tid);
             float m_block = Float.MIN_VALUE; // for calculating max
             float l_block = 0.0f; // for sum
 
@@ -313,7 +374,7 @@ public class TestFlashAttention {
                             * sharedArray.array((t * d + k) + sK_index);
                 }
                 score *= softmaxScale;
-                privateFloatArray.array((t) + sS_index, score);
+                privateFloatArray.array(t, score);
                 m_block = Math.max(m_block, score);
             }
 
@@ -338,7 +399,6 @@ public class TestFlashAttention {
 
                 // compute the output value using the formula:
                 // diag(l_new)^-1 (diag(l_prev)*exp(m_prev-m_new) * O(current) + exp(m_block - m_new) * pv
-                int oldIndex = startIndex + (tileId * blockN + tid) * d + k;
                 int oIndex = (bx * blockN + tid) * d + k;
                 float value = O.array(oIndex);
                 float outVal = (float) ((l_prev * Math.exp(m_prev - m_new) * value +
@@ -348,8 +408,8 @@ public class TestFlashAttention {
             }
 
             // update m and l in global memory
-            m.array(tileId * blockN + tid, m_new);
-            l.array(tileId * blockN + tid, l_new);
+            m.array(startIndex + tid, m_new);
+            l.array(startIndex + tid, l_new);
 
             barrier();
         }
@@ -364,11 +424,24 @@ public class TestFlashAttention {
         computeContext.dispatchKernel(ndRange, () -> flashAttention( Q, K, V, O, m, l, N, d, scale));
     }
 
+    public static void checkResult(F32Array O_reference, F32Array O, final int matrixSize) {
+        for (int i = 0; i < matrixSize; i++) {
+            HATAsserts.assertEquals(O_reference.array(i), O.array(i), DELTA);
+        }
+    }
+
+    public static void checkResult(F32Array O_reference, F16Array O, final int matrixSize) {
+        for (int i = 0; i < matrixSize; i++) {
+            HATAsserts.assertEquals(O_reference.array(i), F16.f16ToFloat(O.array(i)), DELTA);
+        }
+    }
+
     @HatTest
-    public void testFlashAttention() {
+    public void testFlashAttentionF32() {
 
         var lookup = MethodHandles.lookup();
         var accelerator = new Accelerator(lookup, Backend.FIRST);
+
         final int sequenceLen = 512;   // represent the number of tokens (or words)
         final int headDim = 64;        // vector representation for a single token
         final int blockM = 32;         // tile size
@@ -381,7 +454,60 @@ public class TestFlashAttention {
         var V = F32Array.create(accelerator, matrixSize);
         var m = F32Array.create(accelerator, matrixSize);
         var l = F32Array.create(accelerator, matrixSize);
-        var outputReference = F32Array.create(accelerator, matrixSize);
+        var outputF32 = F32Array.create(accelerator, matrixSize);
+
+        var Q16 = create(accelerator, matrixSize);
+        var K16 = create(accelerator, matrixSize);
+        var V16 = create(accelerator, matrixSize);
+
+        // In the real-world, this will be calculated from the input embeddings
+        Random r = new Random(71);
+        for (int i = 0; i < matrixSize; i++) {
+            Q.array(i, r.nextFloat(1));
+            K.array(i, r.nextFloat(1));
+            V.array(i, r.nextFloat(1));
+            Q16.array(i).value(F16.floatToF16(Q.array(i)).value());
+            K16.array(i).value(F16.floatToF16(K.array(i)).value());
+            V16.array(i).value(F16.floatToF16(V.array(i)).value());
+        }
+
+        IntStream.range(0, m.length()).forEach(k -> m.array(k, Float.MIN_VALUE));
+        IntStream.range(0, l.length()).forEach(k -> l.array(k, 0.0f));
+
+        // HAT Accelerated Version Using FP32
+        accelerator.compute((@Reflect Compute)
+                cc -> computeFlashAttention(
+                        cc,
+                        Q,
+                        K,
+                        V,
+                        outputF32,
+                        m, l,
+                        sequenceLen,
+                        headDim,
+                        softmaxScale,
+                        blockM));
+
+        F32Array attentionMatrix = F32Array.create(accelerator, sequenceLen * sequenceLen);
+        var outputJava = F32Array.create(accelerator, matrixSize);
+        selfAttentionV2(Q, K, V, attentionMatrix, outputJava, sequenceLen, headDim, softmaxScale);
+        checkResult(outputJava, outputF32, matrixSize);
+    }
+
+    @HatTest
+    public void testFlashAttentionF16() {
+        var lookup = MethodHandles.lookup();
+        var accelerator = new Accelerator(lookup, Backend.FIRST);
+        final int sequenceLen = 512;   // represent the number of tokens (or words)
+        final int headDim = 64;        // vector representation for a single token
+        final int blockM = 32;         // tile size
+        final float softmaxScale = (float) (1.0f / Math.sqrt(headDim));
+
+        // Inputs preparation
+        final int matrixSize = sequenceLen * headDim;
+        var Q = F32Array.create(accelerator, matrixSize);
+        var K = F32Array.create(accelerator, matrixSize);
+        var V = F32Array.create(accelerator, matrixSize);
 
         var Q16 = create(accelerator, matrixSize);
         var K16 = create(accelerator, matrixSize);
@@ -401,24 +527,8 @@ public class TestFlashAttention {
             V16.array(i).value(F16.floatToF16(V.array(i)).value());
         }
 
-        IntStream.range(0, m.length()).forEach(k -> m.array(k, 0.0f));
-        IntStream.range(0, l.length()).forEach(k -> l.array(k, 1.0f));
-        IntStream.range(0, m.length()).forEach(k -> m16.array(k).value(F16.of(0.0f).value()));
-        IntStream.range(0, m.length()).forEach(k -> l16.array(k).value(F16.of(1.0f).value()));
-
-        // HAT Accelerated Version Using FP32
-        accelerator.compute((@Reflect Compute)
-                cc -> computeFlashAttention(
-                        cc,
-                        Q,
-                        K,
-                        V,
-                        outputReference,
-                        m, l,
-                        sequenceLen,
-                        headDim,
-                        softmaxScale,
-                        blockM));
+        IntStream.range(0, m16.length()).forEach(k -> m16.array(k).value(F16.of(-100).value()));
+        IntStream.range(0, l16.length()).forEach(k -> l16.array(k).value(F16.of(0.0f).value()));
 
         // HAT Accelerated Version Using FP16
         accelerator.compute((@Reflect Compute)
@@ -434,11 +544,9 @@ public class TestFlashAttention {
                         softmaxScale,
                         blockM));
 
-        for (int i = 0; i < matrixSize; i++) {
-            float fVal = F16.f16ToFloat(outputF16.array(i));
-            if (Math.abs(outputReference.array(i) - fVal) > 0.01f) {
-                throw new HATAssertionError("Expected: " + outputReference.array(i) + " != actual: " + fVal);
-            }
-        }
+        F32Array attentionMatrix = F32Array.create(accelerator, sequenceLen * sequenceLen);
+        var outputJava = F32Array.create(accelerator, matrixSize);
+        selfAttentionV2(Q, K, V, attentionMatrix, outputJava, sequenceLen, headDim, softmaxScale);
+        checkResult(outputJava, outputF16, matrixSize);
     }
 }

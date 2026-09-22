@@ -209,13 +209,13 @@ extern "C" void releaseBackend(long backendHandle) {
     delete backend;
 }
 
-extern "C" long compile(long backendHandle, int len, char *source) {
+extern "C" long compile(long backendHandle, int len, char *source, int type) {
     if (INFO) {
         std::cout << "trampolining through backendHandle to backend.compile() "
                 << std::hex << backendHandle << std::dec << std::endl;
     }
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
-    long compilationUnitHandle = reinterpret_cast<long>(backend->compile(len, source));
+    long compilationUnitHandle = reinterpret_cast<long>(backend->compile(len, source, type));
     if (INFO) {
         std::cout << "compilationUnitHandle = " << std::hex << compilationUnitHandle << std::dec << std::endl;
     }

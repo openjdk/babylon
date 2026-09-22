@@ -65,6 +65,7 @@ import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCConstantCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCDefaultCaseLabel;
 import com.sun.tools.javac.tree.JCTree.JCExpression;
+import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression;
 import com.sun.tools.javac.tree.JCTree.JCFunctionalExpression.CodeReflectionInfo;
@@ -744,9 +745,19 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         Value coerce(Value sourceValue, Type sourceType, Type targetType) {
-            if (sourceType.isReference() && targetType.isReference() &&
-                    !types.isSubtype(types.erasure(sourceType), types.erasure(targetType))) {
-                return append(JavaOp.cast(typeToCodeType(targetType), sourceValue));
+            // primitive target requires care: if target is "int", but source
+            // expression has (after type subst) type "Integer", we should still
+            // emit a synthetic cast to "Integer" (if needed)
+            Type refTarget = targetType.isPrimitive() ?
+                    codeTypeToType(sourceValue.type()) :
+                    targetType;
+
+            if (sourceType.isReference() && refTarget.isReference() &&
+                    !types.isSubtype(types.erasure(sourceType), types.erasure(refTarget))) {
+                // the generated synthetic cast uses a raw type as type operand,
+                // but preserves full static type info in the result type
+                sourceValue = append(JavaOp.cast(typeToCodeType(refTarget),
+                        typeToCodeType(types.erasure(refTarget)), sourceValue));
             }
             return convert(sourceValue, targetType);
         }
@@ -1251,27 +1262,32 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitTypeCast(JCTree.JCTypeCast tree) {
-            Value v = toValue(tree.expr);
-
-            Type expressionType = tree.expr.type;
-            Type type = tree.type;
-            if (expressionType.isPrimitive() && type.isPrimitive()) {
-                if (expressionType.equals(type)) {
-                    // Redundant cast
-                    result = v;
-                } else {
-                    result = append(JavaOp.conv(typeToCodeType(type), v));
-                }
-            } else if (expressionType.isPrimitive() || type.isPrimitive()) {
-                result = convert(v, tree.type);
-            } else if (!expressionType.hasTag(BOT) &&
-                    types.isAssignable(expressionType, type)) {
-                // Redundant cast
-                result = v;
+            Type castTarget = tree.type;
+            List<Type> additionalTargets = new ArrayList<>();
+            if (tree.type instanceof Type.IntersectionClassType ict) {
+                // TransTypes emits a component casts following source order,
+                // but leaves the first component (the erasure of the intersection) last.
+                Type principalComponent = ict.getExplicitComponents().head;
+                castTarget = ict.getExplicitComponents().tail.head;
+                additionalTargets = ict.getExplicitComponents()
+                        .tail.tail.append(principalComponent);
+            }
+            if (tree.expr.type.hasTag(BOT)) {
+                Value v = toValue(tree.expr);
+                result = append(JavaOp.cast(
+                        typeToCodeType(tree.type),
+                        typeToCodeType(types.erasure(castTarget)),
+                        v));
             } else {
-                // Reference cast
-                JavaType jt = typeToCodeType(types.erasure(type));
-                result = append(JavaOp.cast(typeToCodeType(type), jt, v));
+                result = toValue(tree.expr, castTarget);
+            }
+            for (Type t : additionalTargets) {
+                Type ec = types.erasure(t);
+                if (!types.isSameType(ec, types.erasure(pt))) {
+                    // TransTypes skip components that have same erasure
+                    // as the outer target type
+                    result = coerce(result, codeTypeToType(result.type()), ec);
+                }
             }
         }
 
@@ -1409,6 +1425,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         @Override
+        public void visitExec(JCExpressionStatement tree) {
+            toValue(tree.expr); // no target
+            result = null;
+        }
+
+        @Override
         public void visitNewClass(JCTree.JCNewClass tree) {
             if (tree.def != null) {
                 scan(tree.def);
@@ -1419,9 +1441,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             List<Value> args = new ArrayList<>();
             if (type.tsym.hasOuterInstance()) {
                 // Obtain outer value for inner class, and add as first argument
-                JCTree.JCExpression encl = tree.encl;
                 Value outerInstance;
-                if (encl == null) {
+                if (tree.encl == null || tree.def != null) {
                     outerInstance = thisValue();
                 } else {
                     outerInstance = toValue(tree.encl);
@@ -1433,7 +1454,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             MethodRef methodRef = symbolToErasedMethodRef(tree.constructor);
             argtypes.addAll(methodRef.signature().parameterTypes());
-            args.addAll(scanMethodArguments(tree.args, tree.constructorType, tree.varargsElement));
+            // If an anonymous class is created with a qualified new expression,
+            // prepend the qualifier to the argument list, as TransTypes normally does
+            List<JCExpression> treeArgs = tree.encl != null && tree.def != null ? tree.args.prepend(tree.encl) : tree.args;
+            args.addAll(scanMethodArguments(treeArgs, tree.constructorType, tree.varargsElement));
 
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
                 for (Symbol c : localCaptures.get(tree.type.tsym)) {
@@ -2162,14 +2186,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
             popBody();
 
             result = append(JavaOp.conditionalExpression(typeToCodeType(condType), predicateBody, trueBody, falseBody));
-        }
-
-        private Type condType(JCExpression tree, Type type) {
-            if (type.hasTag(BOT)) {
-                return adaptBottom(tree.type);
-            } else {
-                return type;
-            }
         }
 
         private Type adaptBottom(Type type) {

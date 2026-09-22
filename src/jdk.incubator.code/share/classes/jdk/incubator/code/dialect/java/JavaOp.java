@@ -3213,14 +3213,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             /**
-             * Complete the if operation with an empty action body.
+             * Completes the if operation with no final action body.
              * @return the completed if operation
              */
-            public IfOp else_() {
-                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
-                body.entryBlock().add(core_yield());
-                bodies.add(body);
-
+            public IfOp noElse() {
                 return new IfOp(bodies);
             }
         }
@@ -3256,15 +3252,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             super(List.of());
 
-            // Normalize by adding an empty else action
-            // @@@ Is this needed?
-            if (bodyCs.size() % 2 == 0) {
-                bodyCs = new ArrayList<>(bodyCs);
-                Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
-                        CoreType.FUNCTION_TYPE_VOID);
-                end.entryBlock().add(core_yield());
-                bodyCs.add(end);
-            }
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
@@ -3285,25 +3272,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
-            boolean isEmptyElseActionBody = isEmptyBodyAction(bodies.getLast());
-
             // Create predicate and action blocks
             List<Block.Builder> builders = new ArrayList<>();
             for (int i = 0; i < bodies.size(); i += 2) {
                 if (i == bodies.size() - 1) {
-                    if (isEmptyElseActionBody) {
-                        builders.add(exit);
-                    } else {
-                        builders.add(b.block());
-                    }
+                    builders.add(b.block());
                 } else {
                     builders.add(i == 0 ? b : b.block());
                     builders.add(b.block());
                 }
             }
 
-            int nBodies = isEmptyElseActionBody ? bodies.size() - 1 : bodies().size();
-            for (int i = 0; i < nBodies; i += 2) {
+            for (int i = 0; i < bodies.size(); i += 2) {
                 Body actionBody;
                 Block.Builder action;
                 if (i == bodies.size() - 1) {
@@ -3315,7 +3295,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     Block.Builder pred = builders.get(i);
                     action = builders.get(i + 1);
-                    Block.Builder nextAction = builders.get(i + 2);
+                    Block.Builder nextAction = i + 2 < builders.size() ? builders.get(i + 2) : exit;
 
                     ControlFlowBooleanExpressionOp.lowerBooleanBody(pred, predBody, List.of(),
                             new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(action.reference(), nextAction.reference()),
@@ -5797,7 +5777,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         normB.add(core_yield());
                     }));
                     closeB.add(core_yield());
-                }).else_());
+                }).noElse());
                 finB.add(core_yield());
             }));
             afterAcquire.add(core_yield());
@@ -5890,14 +5870,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         action.context().mapValue(exitOp.operands().getFirst(), returnValue);
                     }
                     action.add(exitOp);
-                }).else_());
+                }).noElse());
             }
             afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
                 Value value = predicate.add(varLoad(completionVar));
                 predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, 1))))));
             }).then(action -> {
                 action.add(throw_(action.add(varLoad(exceptionVar))));
-            }).else_());
+            }).noElse());
             afterFinalizer.add(core_yield());
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
         }
@@ -6441,28 +6421,25 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             static Block.Builder lowerTypePattern(Block.Reference falseRef, Block.Builder currentBlock,
                                                   List<Value> bindings,
                                                   TypePatternOp tpOp, Value target) {
-                CodeType targetType = tpOp.targetType();
-
-                // Check if instance of target type
-                Op p; // op that perform type check
-                Op c; // op that perform conversion
                 CodeType s = target.type();
-                CodeType t = targetType;
+                CodeType t = tpOp.targetType();
                 if (t instanceof PrimitiveType pt) {
                     if (s instanceof ClassType cs) {
-                        // unboxing conversions
                         ClassType box;
                         if (cs.unbox().isEmpty()) { // s not a boxed type
                             // e.g. Number -> int, narrowing + unboxing
                             box = pt.box().orElseThrow();
-                            p = instanceOf(box, target);
+                            currentBlock = appendTypeTestOp(instanceOf(box, target), currentBlock, falseRef);
+                            // e.g. Object -> int, on true path we need to cast Object to Integer
+                            target = currentBlock.add(cast(box, target));
                         } else {
                             // e.g. Float -> float, unboxing
                             // e.g. Integer -> long, unboxing + widening
                             box = cs;
-                            p = neq(target, currentBlock.add(constant(s, null)));
+                            Op p = neq(target, currentBlock.add(constant(s, null)));
+                            currentBlock = appendTypeTestOp(p, currentBlock, falseRef);
                         }
-                        c = invoke(MethodRef.method(box, t + "Value", t), target);
+                        target = currentBlock.add(invoke(MethodRef.method(box, t + "Value", t), target));
                     } else {
                         // primitive to primitive conversion
                         PrimitiveType ps = ((PrimitiveType) s);
@@ -6472,41 +6449,36 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             // e,g. int -> float, widening with check
                             // e.g. byte -> char, widening and narrowing
                             MethodRef mref = convMethodRef(s, t);
-                            p = invoke(mref, target);
-                        } else {
-                            p = null;
+                            currentBlock = appendTypeTestOp(invoke(mref, target), currentBlock, falseRef);
                         }
-                        c = conv(targetType, target);
+                        target = currentBlock.add(conv(t, target));
                     }
                 } else if (s instanceof PrimitiveType ps) {
                     // boxing conversions
                     // e.g. int -> Number, boxing + widening
                     // e.g. byte -> Byte, boxing
-                    p = null;
                     ClassType box = ps.box().orElseThrow();
-                    c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
+                    target = currentBlock.add(invoke(MethodRef.method(box, "valueOf", box, ps), target));
                 } else {
                     // reference to reference
                     // e.g. Character -> Character
                     // e.g. Number -> Double, narrowing
                     // e.g. Short -> Object, widening
-                    p = instanceOf(targetType, target);
-                    c = s.equals(t) ? null : cast(targetType, target);
-                }
-
-                if (p != null) {
-                    // p != null, we need to perform type check at runtime
-                    Block.Builder nextBlock = currentBlock.block();
-                    currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), falseRef));
-                    currentBlock = nextBlock;
-                }
-                if (c != null) {
-                    target = currentBlock.add(c);
+                    currentBlock = appendTypeTestOp(instanceOf(t, target), currentBlock, falseRef);
+                    if (!s.equals(t)) {
+                        target = currentBlock.add(cast(t, target));
+                    }
                 }
 
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            private static Block.Builder appendTypeTestOp(Op p, Block.Builder b, Block.Reference falseBlock) {
+                Block.Builder trueBlock = b.block();
+                b.add(conditionalBranch(b.add(p), trueBlock.reference(), falseBlock));
+                return trueBlock;
             }
 
             private static boolean isWideningAndNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {

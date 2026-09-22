@@ -63,6 +63,9 @@ public class TestNestedCapturingLambda {
     }
 
     static void test(QIntSupplier s, int a) {
+         // tests captured parameter types after unreflection
+        Assertions.assertEquals(a, ((@Reflect QIntSupplier) s::getAsInt).getAsInt());
+
         @SuppressWarnings("unchecked")
         CoreOp.Var<Integer> capture = (CoreOp.Var<Integer>) Op.ofLambda(s).get().capturedValues().values().iterator().next();
         Assertions.assertEquals(a, capture.value().intValue());

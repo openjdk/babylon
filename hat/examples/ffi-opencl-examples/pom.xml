@@ -111,6 +111,11 @@ questions.
             <artifactId>hat-example-experiments</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>oracle.code</groupId>
+            <artifactId>hat-example-flash-attention</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
  <build>

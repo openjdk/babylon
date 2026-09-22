@@ -116,13 +116,14 @@ public class BoundSchema<T extends MappableIface> {
         this.rootBoundSchemaNode.memoryLayouts.add(this.groupLayout);
     }
 
+    private int nextArrayLengthIndex;
+
     int takeArrayLen() {
-        return arrayLengths[boundArrayFields.size()];
+        if (nextArrayLengthIndex < arrayLengths.length) {
+            return arrayLengths[nextArrayLengthIndex++];
+        }
+        throw new IllegalStateException("array length out of bounds");
     }
-
-
-
-
 
     public Schema<T> schema() {
         return schema;
@@ -260,17 +261,15 @@ public class BoundSchema<T extends MappableIface> {
 
     }
 
-    static public <T extends Buffer> BoundSchema<T> of (ArenaAndLookupCarrier arenaAndLookupCarrier, Schema<T> schema, int... boundLengths){
-        return new BoundSchema<>(arenaAndLookupCarrier,schema, boundLengths);
+    public static <T extends Buffer> BoundSchema<T> of(ArenaAndLookupCarrier arenaAndLookupCarrier, Schema<T> schema, int... boundLengths) {
+        return new BoundSchema<>(arenaAndLookupCarrier, schema, boundLengths);
     }
 
-
-      public T allocate() {
+    public T allocate() {
         var segmentMapper = SegmentMapper.of(arenaAndLookupCarrier.arena(), arenaAndLookupCarrier.lookup(), schema.iface, groupLayout, this);
-        T instance =  segmentMapper.allocate(this);
+        T instance = segmentMapper.allocate(this);
         MemorySegment memorySegment = MappableIface.getMemorySegment(instance);
         int[] count = new int[]{0};
-
 
         boundArrayFields().forEach(boundArrayFieldLayout -> {
             boundArrayFieldLayout.dimFields.forEach(dimLayout -> {
@@ -290,7 +289,6 @@ public class BoundSchema<T extends MappableIface> {
                 }
             });
         });
-
 
         return instance;
     }

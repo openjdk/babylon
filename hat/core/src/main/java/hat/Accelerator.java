@@ -31,7 +31,6 @@ import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import optkl.ifacemapper.MappableIface;
 
-
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -49,7 +48,6 @@ import java.util.function.Predicate;
 import static hat.backend.Backend.FIRST;
 import static optkl.OpHelper.Invoke.getTargetInvoke;
 import static optkl.OpHelper.Lambda.lambda;
-
 
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of
@@ -87,7 +85,7 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
     //    return new KernelContext(ndRange);
    // }
     public DispatchContext dispatchContext(NDRange ndRange) {
-        var dispatchContext =  DispatchContext.createDefault(this);
+        var dispatchContext =  DispatchContext.createDefaultContext(this);
         throw new RuntimeException("fill me");
       //  return dispatchContext;
     }
@@ -195,14 +193,14 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
     public void compute(Compute compute) {
         Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(compute).orElseThrow();
         JavaOp.LambdaOp lambda = quoted.op();
-        Method method = getTargetInvoke(this.lookup,lambda, ComputeContext.class).resolveMethodOrThrow();
+        Method method = getTargetInvoke(this.lookup, lambda, ComputeContext.class).resolveMethodOrThrow();
         // Create (or get cached) a compute context which closes over compute entrypoint and reachable kernels.
         // The models of all compute and kernel methods are passed to the backend during creation
         // The backend may well mutate the models.
         // It will also use this opportunity to generate ISA specific code for the kernels.
         ComputeContext computeContext = cache.computeIfAbsent(method, _ -> new ComputeContext(this, method));
         // Here we get the captured values from the lambda
-        Object[] args = lambda(lookup,lambda).getQuotedCapturedValues( quoted, method);
+        Object[] args = lambda(lookup, lambda).getQuotedCapturedValues(quoted, method);
         args[0] = computeContext;
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

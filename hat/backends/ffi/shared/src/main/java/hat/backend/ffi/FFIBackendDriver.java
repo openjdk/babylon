@@ -105,7 +105,7 @@ public abstract class FFIBackendDriver extends Backend {
 
         final Map<Long, CompilationUnitBridge> compilationUnits = new HashMap<>();
         final FFILib.LongHandleIntMethodPtr getBackend_MPtr;
-        final FFILib.LongHandleIntAddressMethodPtr compile_MPtr;
+        final FFILib.LongHandleIntAddressMethodPtrInt compile_MPtr;
         final FFILib.VoidHandleMethodPtr computeStart_MPtr;
         final FFILib.VoidHandleMethodPtr computeEnd_MPtr;
 
@@ -118,7 +118,7 @@ public abstract class FFIBackendDriver extends Backend {
                 throw new RuntimeException("No getBackend()");
             }
             this.handle = getBackend(config.bits());
-            this.compile_MPtr = ffiLib.longHandleIntAddressFunc("compile");
+            this.compile_MPtr = ffiLib.longHandleIntAddressIntFunc("compile");
             this.showDeviceInfo_MPtr = ffiLib.voidHandleFunc("showDeviceInfo");
             this.computeStart_MPtr = ffiLib.voidHandleFunc("computeStart");
             this.computeEnd_MPtr = ffiLib.voidHandleFunc("computeEnd");
@@ -137,8 +137,8 @@ public abstract class FFIBackendDriver extends Backend {
             );
         }
 
-        public CompilationUnitBridge compile(String source) {
-            var compilationUnitHandle = compile_MPtr.invoke(handle, source.length(), Arena.global().allocateFrom(source));
+        public CompilationUnitBridge compile(String source, int typeModel) {
+            var compilationUnitHandle = compile_MPtr.invoke(handle, source.length(), Arena.global().allocateFrom(source), typeModel);
             return compilationUnit(compilationUnitHandle, source);
         }
 
