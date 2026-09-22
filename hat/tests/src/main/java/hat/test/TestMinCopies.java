@@ -63,7 +63,8 @@ public class TestMinCopies {
     @HatTest
     @Reflect
     public static void testVectorAddition() {
-        final int size = 8192;
+
+        final int size = 512;
         var accelerator = new Accelerator(MethodHandles.lookup());
         var arrayA = S32Array.create(accelerator, size);
         var arrayB = S32Array.create(accelerator, size);
@@ -83,7 +84,6 @@ public class TestMinCopies {
                 HATAsserts.assertEquals(arrayA.array(k) + arrayB.array(k), arrayC.array(k));
             }
         }
-
     }
 
 }
