@@ -44,7 +44,10 @@ import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static optkl.OpHelper.Invoke.invoke;
@@ -159,7 +162,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         this.accelerator.backend.computeContextHandoff(this);
     }
 
-    public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph, Object[] capturedArgs) {}
+    public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph, Object[] capturedArgs, DispatchContext dispatchContext) {}
 
     private record ConstantArgument(int paramIndex, Class<?> type, Object value) {
         public static ConstantArgument of(int i, Class<?> type, Object capturedValue) {
@@ -230,7 +233,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                 var m = method.resolveToMethod(lookup);
                 if (kernelCallSiteCache.containsKey(location) && kernelCallSiteCache.get(location).containsKey(key)) {
                     var oldKernelCallSite = kernelCallSiteCache.get(location).get(key);
-                    kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), quotedCapturedValues);
+                    kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), quotedCapturedValues, oldKernelCallSite.dispatchContext);
                 } else {
                     kernelCallSite = kernelCallSiteCache.computeIfAbsent(location, k -> new ConcurrentHashMap<>())
                             .computeIfAbsent(key, _ -> {
@@ -247,24 +250,31 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
                                 // Compilation happens here!
                                 kcg.compile(capturedArgs);
-                                return new KernelCallSite(quoted, lambdaOp, method, kcg, capturedArgs);
+                                DispatchContext dispatchContext;
+                                if (kernelType instanceof Kernel) {
+                                    dispatchContext = DispatchContext.createDefaultContext(kernelCallGraph.computeCallGraph.computeContext.accelerator());
+                                } else if (kernelType instanceof TileKernel) {
+                                    dispatchContext = DispatchContext.createTileContext(kernelCallGraph.computeCallGraph.computeContext.accelerator());
+                                } else {
+                                    throw new IllegalStateException("Unknown KernelType " + kernelType.getClass());
+                                }
+
+                                return new KernelCallSite(quoted, lambdaOp, method, kcg, capturedArgs, dispatchContext);
                             });
                 }
-
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
 
             Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs.length + 1];
+            dispatchContextAndArgs[0] = kernelCallSite.dispatchContext;
             System.arraycopy(kernelCallSite.capturedArgs(), 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs().length);
             if (kernelType instanceof Kernel) {
-                dispatchContextAndArgs[0] = DispatchContext.createDefaultContext(kernelCallSite.kernelCallGraph().computeCallGraph.computeContext.accelerator());
                 accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph(), ndRange, dispatchContextAndArgs);
             } else if (kernelType instanceof TileKernel) {
-                dispatchContextAndArgs[0] = DispatchContext.createTileContext(kernelCallSite.kernelCallGraph().computeCallGraph.computeContext.accelerator());
                 accelerator.backend.dispatchTile(kernelCallSite.kernelCallGraph(), ndRange, dispatchContextAndArgs);
             } else {
-                throw new IllegalStateException("Unknown KernelType: "  + kernelType);
+                throw new IllegalStateException("Unknown KernelType: "  + kernelType.getClass());
             }
         }
     }
