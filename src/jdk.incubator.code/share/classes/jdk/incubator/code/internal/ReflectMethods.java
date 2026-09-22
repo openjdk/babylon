@@ -2993,9 +2993,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     RecordTypeRef symbolToRecordTypeRef(Symbol.ClassSymbol s) {
-        CodeType recordType = typeToCodeType(s.type);
+        CodeType recordType = symbolToErasedDesc(s);
         List<RecordTypeRef.ComponentRef> components = s.getRecordComponents().stream()
-                .map(rc -> new RecordTypeRef.ComponentRef(typeToCodeType(rc.type), rc.name.toString()))
+                .map(rc ->
+                        new RecordTypeRef.ComponentRef(symbolToErasedDesc(rc), rc.name.toString()))
                 .toList();
         return RecordTypeRef.recordType(recordType, components);
     }

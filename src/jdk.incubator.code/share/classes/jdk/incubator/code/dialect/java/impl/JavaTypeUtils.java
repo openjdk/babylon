@@ -564,8 +564,28 @@ public class JavaTypeUtils {
     //        '?' 'super' JavaType                                  // contravariant type argument
     //        JavaType
     private static ExternalizedCodeType parseExternalTypeString(Lexer l) {
+        return parseExternalTypeString(l, false);
+    }
+
+    //    ErasedJavaType:
+    //        ErasedClassType                                             // erased class type
+    //        PrimitiveType                                               // primitive type
+    //        ErasedJavaType '[' ']'                                      // array type
+    //
+    //    ErasedClassType:
+    //        ErasedClassTypeNoPackage
+    //        Package '.' ErasedClassTypeNoPackage
+    //
+    //    ErasedClassTypeNoPackage:
+    //        ident                                                             // simple class type
+    //        ErasedClassTypeNoPackage '::' ErasedClassTypeNoPackage            // inner class type
+    private static ExternalizedCodeType parseExternalTypeStringErased(Lexer l) {
+        return parseExternalTypeString(l, true);
+    }
+
+    private static ExternalizedCodeType parseExternalTypeString(Lexer l, boolean erased) {
         ExternalizedCodeType type = null;
-        if (l.is(Tokens.TokenKind.AMP)) {
+        if (!erased && l.is(Tokens.TokenKind.AMP)) {
             l.nextToken();
             // method or constructor type variable
             ExternalizedCodeType owner = parseExternalRefString(l);
@@ -589,7 +609,7 @@ public class JavaTypeUtils {
                         l.nextToken();
                     }
                     List<ExternalizedCodeType> typeargs = new ArrayList<>();
-                    if (l.acceptIf(Tokens.TokenKind.LT)) {
+                    if (!erased && l.acceptIf(Tokens.TokenKind.LT)) {
                         if (l.token().kind != Tokens.TokenKind.GT) {
                             typeargs.add(parseTypeArgument(l));
                             while (l.acceptIf(Tokens.TokenKind.COMMA)) {
@@ -601,7 +621,7 @@ public class JavaTypeUtils {
                     type = JavaTypeUtils.classType(className.toString(),
                             type, typeargs);
                     if (l.token(0).kind == Tokens.TokenKind.COLCOL) {
-                        if (l.token(1).kind == Tokens.TokenKind.LT) {
+                        if (!erased && l.token(1).kind == Tokens.TokenKind.LT) {
                             // class type variable
                             l.nextToken();
                             type = parseTypeVariableRest(type, l);
@@ -667,9 +687,9 @@ public class JavaTypeUtils {
         List<ExternalizedCodeType> ptypes = new ArrayList<>();
         l.accept(Tokens.TokenKind.LPAREN);
         if (l.token().kind != Tokens.TokenKind.RPAREN) {
-            ptypes.add(parseExternalTypeString(l));
+            ptypes.add(parseExternalTypeStringErased(l));
             while (l.acceptIf(Tokens.TokenKind.COMMA)) {
-                ptypes.add(parseExternalTypeString(l));
+                ptypes.add(parseExternalTypeStringErased(l));
             }
         }
         l.accept(Tokens.TokenKind.RPAREN);
@@ -677,13 +697,13 @@ public class JavaTypeUtils {
     }
 
     //    JavaRef:
-    //        JavaType `::` ident ':' JavaType                      // field reference
-    //        JavaType `::` ident '(' JavaType* ')' ':' JavaType    // method reference
-    //        JavaType `::` '(' JavaType* ')'                       // constructor reference
-    //        '(' RecordComponent* ')' JavaType                     // record reference
+    //        ErasedJavaType `::` ident ':' ErasedJavaType                            // field reference
+    //        ErasedJavaType `::` ident '(' ErasedJavaType* ')' ':' ErasedJavaType    // method reference
+    //        ErasedJavaType `::` '(' ErasedJavaType* ')'                             // constructor reference
+    //        '(' RecordComponent* ')' ErasedJavaType                                 // record reference
     //
     //    RecordComponent:
-    //        JavaType ident
+    //        ErasedJavaType ident
     private static ExternalizedCodeType parseExternalRefString(Lexer l) {
         if (l.acceptIf(Tokens.TokenKind.LPAREN)) {
             // record type reference
@@ -691,15 +711,15 @@ public class JavaTypeUtils {
             List<ExternalizedCodeType> componentTypes = new ArrayList<>();
             if (l.token().kind != Tokens.TokenKind.RPAREN) {
                 do {
-                    componentTypes.add(parseExternalTypeString(l));
+                    componentTypes.add(parseExternalTypeStringErased(l));
                     componentNames.add(l.accept(Tokens.TokenKind.IDENTIFIER).name());
                 } while(l.acceptIf(Tokens.TokenKind.COMMA));
             }
             l.accept(Tokens.TokenKind.RPAREN);
-            ExternalizedCodeType recordType = parseExternalTypeString(l);
+            ExternalizedCodeType recordType = parseExternalTypeStringErased(l);
             return JavaTypeUtils.recordRef(recordType, componentNames, componentTypes);
         }
-        ExternalizedCodeType refType = parseExternalTypeString(l);
+        ExternalizedCodeType refType = parseExternalTypeStringErased(l);
 
         l.accept(Tokens.TokenKind.COLCOL);
         if (l.is(Tokens.TokenKind.LPAREN)) {
@@ -714,12 +734,12 @@ public class JavaTypeUtils {
             // method ref
             List<ExternalizedCodeType> params = parseParameterTypes(l);
             l.accept(Tokens.TokenKind.COLON);
-            ExternalizedCodeType rtype = parseExternalTypeString(l);
+            ExternalizedCodeType rtype = parseExternalTypeStringErased(l);
             return JavaTypeUtils.methodRef(memberName, refType, rtype, params);
         } else {
             // field ref
             l.accept(Tokens.TokenKind.COLON);
-            ExternalizedCodeType ftype = parseExternalTypeString(l);
+            ExternalizedCodeType ftype = parseExternalTypeStringErased(l);
             return JavaTypeUtils.fieldRef(memberName, refType, ftype);
         }
     }
