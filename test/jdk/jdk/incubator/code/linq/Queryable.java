@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -67,7 +68,8 @@ public interface Queryable<T> {
         JavaType queryableType = parameterized(Queryable.TYPE, elementType);
         FuncOp nextQueryExpression = func("query",
                 functionType(queryableType, queryExpression.invokableSignature().parameterTypes()))
-                .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
+                .body(b -> Inliner.inlineWithContinuation(b, queryExpression, b.parameters(), (block) -> {
+                    Value query = block.parameters().getFirst();
                     Op.Result fi = block.add(lambdaOp);
 
                     MethodRef md = method(Queryable.TYPE, methodName,
@@ -98,7 +100,8 @@ public interface Queryable<T> {
         JavaType queryResultType = parameterized(QueryResult.TYPE, resultType);
         FuncOp queryResultExpression = func("queryResult",
                 functionType(queryResultType, queryExpression.invokableSignature().parameterTypes()))
-                .body(b -> Inliner.inline(b, queryExpression, b.parameters(), (block, query) -> {
+                .body(b -> Inliner.inlineWithContinuation(b, queryExpression, b.parameters(), (block) -> {
+                    Value query = block.parameters().getFirst();
                     MethodRef md = method(Queryable.TYPE, methodName,
                             functionType(QueryResult.TYPE));
                     Op.Result queryResult = block.add(JavaOp.invoke(queryResultType, md, query));
