@@ -489,6 +489,11 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                     std::cout << "copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
             } else {
+                // Still, we need to check that was written to this arg, and set the buffer state to DEVICE_OWNED if
+                // only if there is is write to it. No copy back but we need to mark as device-owned.
+                if (kernelWroteToThisArg) {
+                    bufferState->state = BufferState::DEVICE_OWNED;
+                }
                 if (compilationUnit->backend->config->traceSkippedCopies) {
                     std::cout << "NOT copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
@@ -498,6 +503,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (profilableQueue != nullptr) {
         profilableQueue->marker(Backend::ProfilableQueue::LeaveKernelDispatchBits, name);
     }
+
     compilationUnit->backend->queue->wait();
     compilationUnit->backend->queue->release();
     if (compilationUnit->backend->config->traceCalls) {

@@ -175,7 +175,7 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
     }
 
     // convenience
-    public Config config(){
+    public Config config() {
         return backend.config();
     }
 
