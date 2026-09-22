@@ -25,7 +25,6 @@
 package hat;
 
 import hat.buffer.DispatchContext;
-import hat.types.Tile;
 import optkl.OpHelper;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
@@ -42,12 +41,14 @@ import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static optkl.OpHelper.Invoke.invoke;
 import static optkl.OpHelper.Lambda.lambda;
-import static optkl.ifacemapper.MappableIface.getBoundSchema;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
@@ -244,7 +245,6 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                                 return new KernelCallSite(quoted, lambdaOp, method, kcg, capturedArgs, dispatchContext);
                             });
                 }
-
             } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
