@@ -183,8 +183,10 @@ void OpenCLBackend::OpenCLQueue::marker(int bits, const char *arg) {
 }
 
 void OpenCLBackend::OpenCLQueue::computeStart() {
-    wait(); // should be no-op
-    release(); // also ;
+    if (backend -> config -> alwaysCopy) {
+        wait(); // should be no-op
+        release(); // also ;
+    }
     marker(StartComputeBits);
 }
 
