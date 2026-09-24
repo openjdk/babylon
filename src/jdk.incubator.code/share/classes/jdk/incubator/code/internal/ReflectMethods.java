@@ -42,6 +42,7 @@ import com.sun.tools.javac.code.Type.StructuralTypeMapping;
 import com.sun.tools.javac.code.Type.UnionClassType;
 import com.sun.tools.javac.code.TypeTag;
 import com.sun.tools.javac.code.Types;
+import com.sun.tools.javac.comp.Attr;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.CaptureScanner;
 import com.sun.tools.javac.comp.DeferredAttr.FilterScanner;
@@ -155,6 +156,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private final Log log;
     private final Lower lower;
     private final TypeEnvs typeEnvs;
+    private final Attr attr;
     private final Flow flow;
     private final CodeReflectionSymbols crSyms;
     private final boolean dumpIR;
@@ -186,6 +188,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         log = Log.instance(context);
         lower = Lower.instance(context);
         typeEnvs = TypeEnvs.instance(context);
+        attr = Attr.instance(context);
         flow = Flow.instance(context);
         crSyms = new CodeReflectionSymbols(context);
     }
@@ -1445,7 +1448,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 if (tree.encl == null || tree.def != null) {
                     outerInstance = thisValue();
                 } else {
-                    outerInstance = toValue(tree.encl);
+                    outerInstance = toValue(attr.makeNullCheck(tree.encl));
                 }
                 args.add(outerInstance);
                 JavaType outerType = typeToCodeType(tree.constructor.innermostAccessibleEnclosingClass().erasure(types));
@@ -1456,7 +1459,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             argtypes.addAll(methodRef.signature().parameterTypes());
             // If an anonymous class is created with a qualified new expression,
             // prepend the qualifier to the argument list, as TransTypes normally does
-            List<JCExpression> treeArgs = tree.encl != null && tree.def != null ? tree.args.prepend(tree.encl) : tree.args;
+            List<JCExpression> treeArgs = tree.encl != null && tree.def != null ? tree.args.prepend(attr.makeNullCheck(tree.encl)) : tree.args;
             args.addAll(scanMethodArguments(treeArgs, tree.constructorType, tree.varargsElement));
 
             if (tree.type.tsym.isDirectlyOrIndirectlyLocal()) {
@@ -2440,7 +2443,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // Result is value of the operand
                     result = toValue(tree.arg, tree.type);
                 }
-                default -> throw unreachable(); // NULLCHK not possible
+                case NULLCHK -> {
+                    Value val = toValue(tree.arg, tree.type);
+                    MethodRef ref = MethodRef.method(Objects.class, "requireNonNull", Object.class, Object.class);
+                    result = append(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.STATIC, false, JavaType.J_L_OBJECT, ref, val));
+                }
+                default -> throw unreachable();
             }
         }
 

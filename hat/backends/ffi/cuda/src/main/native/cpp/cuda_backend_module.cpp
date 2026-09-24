@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,8 +28,15 @@
 #include "cuda_backend.h"
 
 
-CudaBackend::CudaModule::CudaModule(Backend *backend, char *cudaSource, char *log, const bool ok, const CUmodule module)
-    : CompilationUnit(backend, cudaSource, log, ok), cudaSource(cudaSource), ptxSource(), log(log), module(module) {
+CudaBackend::CudaModule::CudaModule(Backend *backend,
+                                    const CudaImage *cudaImage,
+                                    char *log, const bool ok,
+                                    const CUmodule module)
+    : CompilationUnit(backend, cudaImage->text, log, ok),
+      cudaSource(),
+      image(cudaImage->len, cudaImage->text, false),
+      log(log),
+      module(module) {
 }
 
 CudaBackend::CudaModule::~CudaModule() = default;
