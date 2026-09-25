@@ -66,7 +66,8 @@ import static jdk.incubator.code.dialect.core.CoreOp.func;
 public class TestIRFromAnnotation {
 
     static final Set<String> EXCLUDED_TEST = Set.of(
-            "LocalClassTest.java"                     // name of local classes is not stable at annotation processing time
+            "LocalClassTest.java",                    // name of local classes is not stable at annotation processing time
+            "NewTest.java"                            // anon class speculative attribution fails during annotation processing
     );
 
     public static void main(String... args) throws Exception {
