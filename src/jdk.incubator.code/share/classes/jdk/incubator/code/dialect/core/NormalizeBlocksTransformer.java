@@ -61,8 +61,6 @@ public final class NormalizeBlocksTransformer implements CodeTransformer {
         return (O) op.transform(CodeContext.create(), new NormalizeBlocksTransformer());
     }
 
-    ;
-
     @Override
     public void acceptBlock(Block.Builder block, Block b) {
         // Ignore merged block

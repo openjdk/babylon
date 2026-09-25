@@ -26,6 +26,7 @@
 package jdk.incubator.code.internal;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -37,7 +38,19 @@ import jdk.incubator.code.dialect.java.JavaOp;
 public class RemoveUnusedConstantTransformer implements CodeTransformer {
     private RemoveUnusedConstantTransformer() {}
 
-    public static final RemoveUnusedConstantTransformer INSTANCE = new RemoveUnusedConstantTransformer();
+    private static final RemoveUnusedConstantTransformer INSTANCE = new RemoveUnusedConstantTransformer();
+
+    /**
+     * Transforms an operation, by removing unused constants.
+     *
+     * @param op  the operation to transform
+     * @param <O> the type of operation
+     * @return the transformed operation
+     */
+    @SuppressWarnings("unchecked")
+    public static <O extends Op> O transform(Op op) {
+        return (O) op.transform(CodeContext.create(), INSTANCE);
+    }
 
     @Override
     public Block.Builder acceptOp(Block.Builder builder, Op op) {

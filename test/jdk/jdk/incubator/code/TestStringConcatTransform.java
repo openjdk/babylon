@@ -98,7 +98,7 @@ public class TestStringConcatTransform {
     @MethodSource("getClassMethods")
     public void testModelTransform(Method method) {
         CoreOp.FuncOp model = Op.ofMethod(method).orElseThrow();
-        CoreOp.FuncOp f_transformed = model.transform(new StringConcatTransformer());
+        CoreOp.FuncOp f_transformed = StringConcatTransformer.transform(model);
         Object[] args = prepArgs(method);
 
         System.out.println(model.toText());
@@ -136,9 +136,9 @@ public class TestStringConcatTransform {
 
     private void testStringConcat(Method method, Object[] args) {
         CoreOp.FuncOp model = Op.ofMethod(method).orElseThrow();
-        CoreOp.FuncOp transformed_model = model.transform(new StringConcatTransformer());
+        CoreOp.FuncOp transformed_model = StringConcatTransformer.transform(model);
         CoreOp.FuncOp ssa_model = generateSSA(model);
-        CoreOp.FuncOp ssa_transformed_model = ssa_model.transform(new StringConcatTransformer());
+        CoreOp.FuncOp ssa_transformed_model = StringConcatTransformer.transform(ssa_model);
 
         var model_interpreted = Interpreter.invoke(MethodHandles.lookup(), model, args);
         var transformed_model_interpreted = Interpreter.invoke(MethodHandles.lookup(), transformed_model, args);
