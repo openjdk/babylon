@@ -26,7 +26,13 @@
 package jdk.incubator.code;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
+import jdk.incubator.code.extern.OpWriter;
+import jdk.incubator.code.internal.OpWriterOption;
 
 /**
  * A block containing an ordered sequence of operations, where the last operation is a
@@ -659,11 +665,13 @@ public final class Block implements CodeElement<Block, Op> {
             check();
 
             if (isEntryBlock()) {
-                throw new IllegalStateException("Entry block cannot be referenced and targeted as a successor");
+                throw new IllegalStateException("Entry block cannot be referenced and targeted as a successor\n"
+                        + diagnosticText("entry block"));
             }
             for (Value operand : args) {
                 if (operand.isBuilt()) {
-                    throw new IllegalArgumentException("Argument's declaring block is built: " + operand);
+                    throw new IllegalArgumentException("Argument's declaring block is built\n"
+                            + operand.block.diagnosticText(operand, "argument"));
                 }
             }
 
@@ -854,32 +862,44 @@ public final class Block implements CodeElement<Block, Op> {
     private void bindOp(Op.Result opr, Op op) {
         // Structural checks
         if (!ops.isEmpty() && ops.getLast() instanceof Op.Terminating) {
-            throw new IllegalStateException("Operation cannot be appended, the block has a terminating operation");
+            throw new IllegalStateException(
+                    "Operation cannot be appended, the block has a terminating operation\n"
+                    + diagnosticText(ops.getLast(), "terminating operation"));
         }
 
         for (Body b : op.bodies()) {
             if (b.connectedAncestorBody != null && b.connectedAncestorBody != this.parentBody) {
-                throw new IllegalStateException("Body of operation is connected to a different ancestor body: ");
+                throw new IllegalStateException(
+                        "Operation body's connected ancestor body differs from this block's parent body\n"
+                        + b.entryBlock().diagnosticText("operation body")
+                        + diagnosticText("block receiving operation"));
             }
         }
 
         for (Value v : op.operands()) {
             if (!isReachable(v)) {
                 throw new IllegalStateException(
-                        String.format("Operand of operation %s is not defined in tree: %s", op, v));
+                        "Cannot append an operation because its operand is not reachable\n"
+                        + v.block.diagnosticText(v, "unreachable operand")
+                        + diagnosticText("operation appended here"));
             }
             assert !v.isBuilt();
         }
 
         for (Reference s : op.successors()) {
             if (s.target.parentBody != this.parentBody) {
-                throw new IllegalStateException("Target of block reference is not a sibling of this block");
+                throw new IllegalStateException(
+                        "Target of block reference is not a sibling of this block\n"
+                        + s.target.diagnosticText("reference target")
+                        + diagnosticText("append block"));
             }
 
             for (Value v : s.arguments()) {
                 if (!isReachable(v)) {
                     throw new IllegalStateException(
-                            String.format("Argument of block reference %s of terminating operation %s is not defined in tree: %s", s, op, v));
+                            "Cannot append an operation because its successor argument is not reachable\n"
+                            + v.block.diagnosticText(v, "unreachable successor argument")
+                            + diagnosticText("referencing operation appended here"));
                 }
                 assert !v.isBuilt();
             }
@@ -914,5 +934,59 @@ public final class Block implements CodeElement<Block, Op> {
 
     boolean isBuilt() {
         return index >= 0;
+    }
+
+    String diagnosticText(String label) {
+        return diagnosticText(null, label);
+    }
+
+    String diagnosticText(CodeItem pos, String label) {
+        Map<Block, String> blockNames = new IdentityHashMap<>();
+        Function<CodeItem, String> valueNamer = OpWriter.CodeItemNamerOption.defaultValue().namer();
+        Function<CodeItem, String> namer = i -> switch (i) {
+            case Block b -> blockNames.computeIfAbsent(b, _ -> "block_" + blockNames.size());
+            case Block.Reference r -> blockNames.computeIfAbsent(r.target, _ -> "block_" + blockNames.size());
+            case Value v -> valueNamer.apply(v);
+            default -> throw new IllegalArgumentException("Cannot name code item: " + i);
+        };
+        Body root = parentBody;
+        while (root.connectedAncestorBody != null) {
+            root = root.connectedAncestorBody;
+        }
+        root.elements().forEach(e -> {
+            switch (e) {
+                case Block b -> {
+                    blockNames.put(b, "block_" + blockNames.size());
+                    b.parameters().forEach(namer::apply);
+                }
+                case Op op when op.result() != null && !op.resultType().equals(JavaType.VOID) -> namer.apply(op.result());
+                default -> {
+                }
+            }
+        });
+        StringBuilder header = new StringBuilder("^").append(blockNames.computeIfAbsent(this, _ -> "block_" + blockNames.size()));
+        if (!parameters().isEmpty()) {
+            header.append(parameters().stream().map(value -> ("%" + namer.apply(value)) + " : "
+                    + JavaTypeUtils.flatten(value.type().externalize())).collect(Collectors.joining(", ", "(", ")")));
+        }
+        StringBuilder out = new StringBuilder(header).append(":\n");
+        if (pos instanceof Block.Parameter parameter) {
+            String value = "%" + namer.apply(parameter);
+            out.append(" ".repeat(header.indexOf(value)))
+               .append('^').append("~".repeat(Math.max(0, value.length() - 1))).append(' ')
+               .append(label).append('\n');
+        } else if (pos == null && label != null) {
+            out.append('^').append("~".repeat(Math.max(0, header.length() - 1))).append(' ').append(label).append('\n');
+        }
+        for (Op op : ops) {
+            String line = "  " + OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(namer),
+                                                     OpWriter.OpDescendantsOption.DROP_DESCENDANTS,
+                                                     OpWriter.WritingModeOption.LENIENT);
+            out.append(line).append('\n');
+            if (pos == op || pos instanceof Op.Result result && result.op() == op) {
+                out.append("  ^").append("~".repeat(Math.max(0, line.length() - 3))).append(' ').append(label).append('\n');
+            }
+        }
+        return out.toString();
     }
 }
