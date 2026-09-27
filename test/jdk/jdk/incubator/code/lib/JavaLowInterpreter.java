@@ -584,7 +584,7 @@ public class JavaLowInterpreter extends Interpreter {
         };
     }
 
-    private static  <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
+    static  <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
         List<Block.Parameter> parameters = op.parameters();
         List<Value> capturedValues = op.capturedValues();
         if (parameters.size() + capturedValues.size() != argsAndCaptures.size()) {

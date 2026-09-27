@@ -110,7 +110,7 @@ public abstract class Interpreter {
     }
 
     static <T extends Op & Op.Invokable> Object invoke(MethodHandles.Lookup l, T op, List<Object> argsAndCaptures) {
-        return new JavaHighInterpreter().interpret(op, argsAndCaptures, l);
+        return new JavaHighInterpreter(new JavaLowInterpreter()).interpret(op, argsAndCaptures, l);
     }
 
     /**
