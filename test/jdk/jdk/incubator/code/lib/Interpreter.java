@@ -36,8 +36,6 @@ import java.util.*;
 
 import static java.util.stream.Collectors.toMap;
 
-// with the change to the hierachy, we have some code duplication
-// see if we can improve that
 public abstract class Interpreter {
     public Interpreter() {
     }
