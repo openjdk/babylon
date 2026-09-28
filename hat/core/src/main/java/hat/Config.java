@@ -81,8 +81,8 @@ public class Config {
         }
     }
 
-    public static final Bit PLATFORM =  Bit.of(0,4, "PLATFORM","P", "FFI ONLY platform id (0-15)");
-    public static final Bit DEVICE = Bit.nextBit(PLATFORM, 4, "DEVICE","D","FFI ONLY device id (0-15)");
+    public static final Bit PLATFORM =  Bit.of(0,    3, "PLATFORM","P", "FFI ONLY platform id (0-7)");
+    public static final Bit DEVICE = Bit.nextBit(PLATFORM, 3, "DEVICE","D","FFI ONLY device id (0-7)");
 
     private static final Bit MINIMIZE_COPIES =  Bit.nextBit(DEVICE, "MINIMIZE_COPIES","MC","FFI ONLY Try to minimize copies");
     public boolean minimizeCopies() {
@@ -165,6 +165,9 @@ public class Config {
         return CHECK_SSA_LOWERING.isSet(this);
     }
 
+    public static final Bit CUDA_COMPILER_NVCC = Bit.nextBit(CHECK_SSA_LOWERING, "CUDA_NVCC","NVCC", "Select the NVCC CUDA Compiler (Default)");
+    public static final Bit CUDA_COMPILER_NVRTC = Bit.nextBit(CUDA_COMPILER_NVCC, "CUDA_NVRTC","NVRTC", "Select the NVRTC CUDA Compiler");
+
     public boolean info() {
         return INFO.isSet(this);
     }
@@ -194,7 +197,9 @@ public class Config {
             SHOW_LOWERED_KERNEL_MODEL,
             SHOW_COMPILATION_PHASES,
             SHOW_COMPUTE_MODEL_JAVA_CODE,
-            CHECK_SSA_LOWERING
+            CHECK_SSA_LOWERING,
+            CUDA_COMPILER_NVCC,
+            CUDA_COMPILER_NVRTC
     );
 
     private final int bits;
@@ -243,6 +248,11 @@ public class Config {
             if (split.length == 2) {
                 var optBit = bitList.stream().filter(bit -> bit.name().equals(split[0]) || bit.alt().equals(split[0])).findFirst();
                 if (optBit.isPresent()) {
+                    int value = Integer.parseInt(split[1]);
+                    // Don't allow devices or platforms outside the supported range
+                    if ((optBit.get().alt.equals("P") || optBit.get().alt.equals("D")) && (value < 0 || value > 7)) {
+                        throw new IllegalArgumentException("Invalid value for " + split[0] + ":" + split[1]);
+                    }
                     var bv = new BitValue(optBit.get(), Integer.parseInt(split[1]));
                     var bitz = bv.value << bv.bit().index();
                     returnValue = Optional.of(fromIntBits(bitz));
