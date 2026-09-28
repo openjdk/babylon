@@ -128,7 +128,7 @@ public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
                 cb.id("platform").paren((_) -> cb.configBitsAnd().intHexValue(0x7)).comma().nl();
                 cb.id("alwaysCopy").paren(_ -> cb.pling().camelExceptFirst("MINIMIZE_COPIES")).comma().nl();
                 cb.id("device").paren(_ ->
-                        // Device: 3 bits -> 111000 >> 3 , which is 0x38 >> 3 
+                        // Device: 3 bits -> 111000 >> 3 , which is 0x38 >> 3
                         cb.paren(_ -> cb.configBitsAnd().intHexValue(0x38)).sp().rightShift().sp().intValue(3)).braceNlIndented(_ ->
                         cb.ifKeyword().paren(_ -> cb.id("showDeviceInfo")).braceNlIndented(_ -> {
                             cb.nlSeparated(
