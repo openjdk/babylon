@@ -204,32 +204,9 @@ public class JavaLowInterpreter extends Interpreter {
         }
     }
 
-    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
-        validateTypes(op, argsAndCaptures, l);
-
-        return interpret_(op, l,
-                argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()).toArray(),
-                argsAndCaptures.subList(0, op.parameters().size()).toArray());
-    }
-
+    @Override
     protected Env newEnv(MethodHandles.Lookup l) {
         return new JavaEnv(new HashMap<>(), l, new ArrayDeque<>());
-    }
-
-    private <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        Env e = newEnv(l);
-        e = e.bind(op.capturedValues(), Arrays.asList(captures));
-        var effect = executeBody(op.body(), Arrays.asList(args), e);
-        switch (effect.terminatingOp()) {
-            case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
-            }
-            case JavaOp.ThrowOp _ -> {
-                eraseAndThrow((Throwable) effect.operands().getFirst());
-                throw new InternalError(); // @@@ shouldn't reach here
-            }
-            default -> throw new InternalError(effect.toString());
-        }
     }
 
     @Override

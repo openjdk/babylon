@@ -25,6 +25,8 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
+import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
@@ -125,4 +127,30 @@ public abstract class Interpreter {
             super(message);
         }
     }
+
+    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
+        JavaLowInterpreter.validateTypes(op, argsAndCaptures, l);
+
+        return interpret_(op, l,
+                argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()).toArray(),
+                argsAndCaptures.subList(0, op.parameters().size()).toArray());
+    }
+
+    protected  <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+        Env e = newEnv(l);
+        e = e.bind(op.capturedValues(), Arrays.asList(captures));
+        var effect = executeBody(op.body(), Arrays.asList(args), e);
+        switch (effect.terminatingOp()) {
+            case CoreOp.ReturnOp rop -> {
+                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
+            }
+            case JavaOp.ThrowOp _ -> {
+                JavaLowInterpreter.eraseAndThrow((Throwable) effect.operands().getFirst());
+                throw new InternalError(); // @@@ shouldn't reach here
+            }
+            default -> throw new InternalError(effect.toString());
+        }
+    }
+
+    abstract Env newEnv(MethodHandles.Lookup l);
 }

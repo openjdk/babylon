@@ -47,6 +47,7 @@ public class JavaHighInterpreter extends Interpreter {
         this.javaLowInterpreter = javaLowInterpreter;
     }
 
+    @Override
     protected Env newEnv(MethodHandles.Lookup l) {
         return new JavaHighEnv(new HashMap<>(), l, new ArrayDeque<>());
     }
@@ -315,30 +316,6 @@ public class JavaHighInterpreter extends Interpreter {
             case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp witn no boolean operand");
             default -> Optional.empty(); // abrupt completion
         };
-    }
-
-    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
-        JavaLowInterpreter.validateTypes(op, argsAndCaptures, l);
-
-        return interpret_(op, l,
-                argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()).toArray(),
-                argsAndCaptures.subList(0, op.parameters().size()).toArray());
-    }
-
-    private <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        Env e = newEnv(l);
-        e = e.bind(op.capturedValues(), Arrays.asList(captures));
-        var effect = executeBody(op.body(), Arrays.asList(args), e);
-        switch (effect.terminatingOp()) {
-            case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
-            }
-            case JavaOp.ThrowOp _ -> {
-                JavaLowInterpreter.eraseAndThrow((Throwable) effect.operands().getFirst());
-                throw new InternalError(); // @@@ shouldn't reach here
-            }
-            default -> throw new InternalError(effect.toString());
-        }
     }
 
     private static final MethodHandle interpretLambdaOpMH;
