@@ -336,45 +336,9 @@ public class JavaLowInterpreter extends Interpreter {
                 result = new Quoted<>(o.quotedOp(), capturedValues);
             }
             case JavaOp.LambdaOp o -> {
-                JavaEnv je = (JavaEnv) e;
-                Class<?> fi;
-                try {
-                    fi = resolveToClass(je.l, o.functionalInterface());
-                } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
-                }
-
-                SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
-                        .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
-                Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
-
-                MethodHandle fProxy = interpretLambdaOpMH.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
-                        .asCollector(Object[].class, o.parameters().size());
-                Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
-
-                // If a reflectable lambda proxy again to add method Quoted quoted()
-                if (o.isReflectable()) {
-                    result = Proxy.newProxyInstance(je.l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                            new InvocationHandler() {
-                                private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(o, capturedValuesAndArguments);
-
-                                @Override
-                                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                                    if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
-                                        return __internal_quoted();
-                                    } else {
-                                        // Delegate to FI instance
-                                        return method.invoke(fiInstance, args);
-                                    }
-                                }
-
-                                private Quoted<JavaOp.LambdaOp> __internal_quoted() {
-                                    return quoted;
-                                }
-                            });
-                } else {
-                    result = fiInstance;
-                }
+                // bind the instance on which the method interpreting the lambda body is called
+                // ensuring the body of the lambda op is interpreted using the JavaLowInterpreter
+                result = executeLambdaOp(o, e, Interpreter.lambdaBodyInterpreter.bindTo(this));
             }
             case CoreOp.TupleOp o -> {
                 List<Object> values = o.operands().stream().map(e::valueOf).toList();
@@ -601,20 +565,6 @@ public class JavaLowInterpreter extends Interpreter {
     });
     // to treat implicit and explicit exceptions the same
     protected static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
-
-    private static final MethodHandle interpretLambdaOpMH;
-    static {
-        try {
-            interpretLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "interpretLambdaOp",
-                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
-        } catch (Throwable t) {
-            throw new InternalError();
-        }
-    }
-
-    private Object interpretLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        return interpret_(op, l, captures, args);
-    }
 
     protected static final class VarBox
             implements CoreOp.Var<Object> {

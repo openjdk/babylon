@@ -21,17 +21,23 @@
  * questions.
  */
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
-import java.util.List;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.*;
 
+import static java.util.stream.Collectors.toMap;
+
+// with the change to the hierachy, we have some code duplication
+// see if we can improve that
 public abstract class Interpreter {
     public Interpreter() {
     }
@@ -150,6 +156,64 @@ public abstract class Interpreter {
             }
             default -> throw new InternalError(effect.toString());
         }
+    }
+
+    protected Object interpretLambdaBody(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+        return interpret_(lambdaOp, l, captures, args);
+    }
+
+    protected static final MethodHandle lambdaBodyInterpreter;
+    static {
+        try {
+            lambdaBodyInterpreter = MethodHandles.lookup().findVirtual(Interpreter.class, "interpretLambdaBody",
+                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
+        } catch (Throwable t) {
+            throw new InternalError();
+        }
+    }
+
+    protected OpEffect executeLambdaOp(JavaOp.LambdaOp o, Env env, MethodHandle lambdaBodyInterpreter) {
+        JavaLowInterpreter.JavaEnv je = (JavaLowInterpreter.JavaEnv) env;
+        Class<?> fi;
+        try {
+            fi = JavaLowInterpreter.resolveToClass(je.l, o.functionalInterface());
+        } catch (ReflectiveOperationException ex) {
+            return new TerminatingOpEffect(JavaLowInterpreter.fakeThrowOp, List.of(ex), env);
+        }
+
+        SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
+                .collect(toMap(v -> v, env::valueOf, (v, _) -> v, LinkedHashMap::new));
+        Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
+
+        MethodHandle fProxy = lambdaBodyInterpreter.bindTo(o).bindTo(je.l).bindTo(capturedArguments)
+                .asCollector(Object[].class, o.parameters().size());
+        Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
+
+        Object result;
+        // If a reflectable lambda proxy again to add method Quoted quoted()
+        if (o.isReflectable()) {
+            result = Proxy.newProxyInstance(je.l.lookupClass().getClassLoader(), new Class<?>[]{fi},
+                    new InvocationHandler() {
+                        private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(o, capturedValuesAndArguments);
+
+                        @Override
+                        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                            if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
+                                return __internal_quoted();
+                            } else {
+                                // Delegate to FI instance
+                                return method.invoke(fiInstance, args);
+                            }
+                        }
+
+                        private Quoted<JavaOp.LambdaOp> __internal_quoted() {
+                            return quoted;
+                        }
+                    });
+        } else {
+            result = fiInstance;
+        }
+        return new OpResultEffect(result, env);
     }
 
     abstract Env newEnv(MethodHandles.Lookup l);

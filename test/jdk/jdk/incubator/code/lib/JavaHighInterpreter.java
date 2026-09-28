@@ -86,7 +86,11 @@ public class JavaHighInterpreter extends Interpreter {
             case JavaOp.LabeledOp o -> executeLabeledOp(o, e);
             case JavaOp.ContinueOp o -> executeContinueOp(o, e);
             case JavaOp.BlockOp o -> executeBlockOp(o, e);
-            case JavaOp.LambdaOp o -> executeLambdaOp(o, e);
+            case JavaOp.LambdaOp o -> {
+                // bind the instance on which the method interpreting the lambda body is called
+                // ensuring the body of the lambda op is interpreted using the JavaHighInterpreter;
+                yield executeLambdaOp(o, e, Interpreter.lambdaBodyInterpreter.bindTo(this));
+            }
             default -> javaLowInterpreter.executeOp(op, e);
         };
     }
@@ -316,63 +320,5 @@ public class JavaHighInterpreter extends Interpreter {
             case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp witn no boolean operand");
             default -> Optional.empty(); // abrupt completion
         };
-    }
-
-    private static final MethodHandle interpretLambdaOpMH;
-    static {
-        try {
-            interpretLambdaOpMH = MethodHandles.lookup().findVirtual(JavaHighInterpreter.class, "interpretLambdaOp",
-                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
-        } catch (Throwable t) {
-            throw new InternalError();
-        }
-    }
-
-    private Object interpretLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        return interpret_(op, l, captures, args);
-    }
-
-    private OpEffect executeLambdaOp(JavaOp.LambdaOp o, Env env) {
-        JavaLowInterpreter.JavaEnv je = (JavaLowInterpreter.JavaEnv) env;
-        Class<?> fi;
-        try {
-            fi = JavaLowInterpreter.resolveToClass(je.l, o.functionalInterface());
-        } catch (ReflectiveOperationException ex) {
-            return new TerminatingOpEffect(JavaLowInterpreter.fakeThrowOp, List.of(ex), env);
-        }
-
-        SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
-                .collect(toMap(v -> v, env::valueOf, (v, _) -> v, LinkedHashMap::new));
-        Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
-
-        MethodHandle fProxy = interpretLambdaOpMH.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
-                .asCollector(Object[].class, o.parameters().size());
-        Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
-
-        Object result;
-        // If a reflectable lambda proxy again to add method Quoted quoted()
-        if (o.isReflectable()) {
-            result = Proxy.newProxyInstance(je.l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                    new InvocationHandler() {
-                        private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(o, capturedValuesAndArguments);
-
-                        @Override
-                        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                            if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
-                                return __internal_quoted();
-                            } else {
-                                // Delegate to FI instance
-                                return method.invoke(fiInstance, args);
-                            }
-                        }
-
-                        private Quoted<JavaOp.LambdaOp> __internal_quoted() {
-                            return quoted;
-                        }
-                    });
-        } else {
-            result = fiInstance;
-        }
-        return new OpResultEffect(result, env);
     }
 }
