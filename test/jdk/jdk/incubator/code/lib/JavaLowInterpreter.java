@@ -32,9 +32,6 @@ import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;

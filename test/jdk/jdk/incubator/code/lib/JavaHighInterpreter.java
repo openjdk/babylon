@@ -24,21 +24,12 @@
 import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 
-import jdk.incubator.code.Quoted;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
-
-import static java.util.stream.Collectors.toMap;
 
 public class JavaHighInterpreter extends Interpreter {
     private final JavaLowInterpreter javaLowInterpreter;
