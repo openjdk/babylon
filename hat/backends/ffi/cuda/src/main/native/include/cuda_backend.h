@@ -177,10 +177,10 @@ private:
     CUdevice device;
     CUcontext context;
     bool useNvrtcCompiler(int typeModel) const;
+    void queryComputeCapability(int &major, int &minor);
 public:
     void shortDeviceInfo() override;
     void showDeviceInfo() override;
-    std::string obtainSMVersion();
     CudaModule * compile(const CudaSource *cudaSource);
     CudaModule * compile(const CudaSource &cudaSource);
     CudaModule * compile(const CudaImage *image);
