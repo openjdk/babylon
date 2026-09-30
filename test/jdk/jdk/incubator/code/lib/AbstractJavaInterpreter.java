@@ -52,10 +52,10 @@ abstract class AbstractJavaInterpreter extends Interpreter {
         return interpret_(lambdaOp, l, captures, args);
     }
 
-    static final MethodHandle lambdaBodyInterpreter;
+    static final MethodHandle LAMBDA_BODY_INTERPRETER;
     static {
         try {
-            lambdaBodyInterpreter = MethodHandles.lookup().findVirtual(AbstractJavaInterpreter.class, "interpretLambdaBody",
+            LAMBDA_BODY_INTERPRETER = MethodHandles.lookup().findVirtual(AbstractJavaInterpreter.class, "interpretLambdaBody",
                     MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
         } catch (Throwable t) {
             throw new InternalError();
@@ -68,7 +68,7 @@ abstract class AbstractJavaInterpreter extends Interpreter {
         try {
             fi = resolveToClass(je.l, o.functionalInterface());
         } catch (ReflectiveOperationException ex) {
-            return new TerminatingOpEffect(fakeThrowOp, List.of(ex), env);
+            return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), env);
         }
 
         SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
@@ -106,12 +106,12 @@ abstract class AbstractJavaInterpreter extends Interpreter {
         return new OpResultEffect(result, env);
     }
 
-    private static final CoreOp.FuncOp fop = CoreOp.func("f",
+    private static final CoreOp.FuncOp FUNC_WITH_THROW_OP = CoreOp.func("f",
             CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
         b.add(JavaOp.throw_(b.parameters().get(0)));
     });
     // to treat implicit and explicit exceptions the same
-    static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
+    static final JavaOp.ThrowOp FAKE_THROW_OP = (JavaOp.ThrowOp) FUNC_WITH_THROW_OP.body().entryBlock().terminatingOp();
 
     @SuppressWarnings("unchecked")
     private static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
@@ -217,13 +217,13 @@ abstract class AbstractJavaInterpreter extends Interpreter {
             return bindings.get(symbolicValue);
         }
 
-        public JavaEnv registerCatchHandlers(List<CatchHandler> handlers) {
+        JavaEnv registerCatchHandlers(List<CatchHandler> handlers) {
             var stack = new ArrayDeque<>(catchHandlers);
             stack.addFirst(handlers);
             return newEnv(stack);
         }
 
-        public JavaEnv removeCatchHandlers(List<CatchHandler> handlers) {
+        JavaEnv removeCatchHandlers(List<CatchHandler> handlers) {
             var stack = new ArrayDeque<>(catchHandlers);
             if (!stack.removeFirst().equals(handlers)) {
                 throw new InternalError();
@@ -321,6 +321,7 @@ abstract class AbstractJavaInterpreter extends Interpreter {
             implements CoreOp.Var<Object> {
         Object value;
 
+        @Override
         public Object value() {
             return value;
         }

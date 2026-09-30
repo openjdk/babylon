@@ -80,7 +80,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
             case JavaOp.LambdaOp o -> {
                 // bind the instance on which the method interpreting the lambda body is called
                 // ensuring the body of the lambda op is interpreted using the JavaHighInterpreter;
-                yield executeLambdaOp(o, e, lambdaBodyInterpreter.bindTo(this));
+                yield executeLambdaOp(o, e, LAMBDA_BODY_INTERPRETER.bindTo(this));
             }
             default -> javaLowInterpreter.executeOp(op, e);
         };
@@ -252,7 +252,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
             } catch (Exception ex) {
                 if (t == null)  t = ex;
                 else            t.addSuppressed(ex);
-                effect = new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                effect = new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
             }
         }
 

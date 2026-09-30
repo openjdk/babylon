@@ -23,10 +23,7 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.TupleType;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 
@@ -34,8 +31,6 @@ import java.lang.invoke.*;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -84,7 +79,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case JavaOp.ArithmeticOperation _ -> {
@@ -94,7 +89,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case JavaOp.ConvOp _ -> {
@@ -104,7 +99,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case CoreOp.ConstantOp o -> {
@@ -112,7 +107,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                     try {
                         result = resolveToClass(((JavaEnv) e).l, (JavaType) o.value());
                     } catch (ReflectiveOperationException ex) {
-                        return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                        return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                     }
                 } else {
                     result = o.value();
@@ -137,7 +132,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                     } else {
                         ae = new AssertionError();
                     }
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ae), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ae), e);
                 }
                 result = null;
             }
@@ -163,7 +158,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                     } catch (InterpreterException ex) {
                         throw ex;
                     } catch (Throwable t) {
-                        return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                        return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                     }
                 } else {
                     throw new InterpreterException("Function " + name + " cannot be resolved: top level op is not a module");
@@ -177,7 +172,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
             case JavaOp.LambdaOp o -> {
                 // bind the instance on which the method interpreting the lambda body is called
                 // ensuring the body of the lambda op is interpreted using the JavaLowInterpreter
-                result = executeLambdaOp(o, e, lambdaBodyInterpreter.bindTo(this));
+                result = executeLambdaOp(o, e, LAMBDA_BODY_INTERPRETER.bindTo(this));
             }
             case CoreOp.TupleOp o -> {
                 List<Object> values = o.operands().stream().map(e::valueOf).toList();
@@ -188,7 +183,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     result = arr[o.index()];
                 } catch (ArrayIndexOutOfBoundsException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case CoreOp.TupleWithOp o -> {
@@ -197,7 +192,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     newArr[o.index()] = e.valueOf(o.operands().get(1));
                 } catch (ArrayIndexOutOfBoundsException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = newArr;
             }
@@ -207,7 +202,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     vh = resolveToVarHandle(je.l, o.fieldReference());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     if (o.operands().isEmpty()) {
@@ -217,7 +212,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                         result = vh.get(v);
                     }
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.FieldAccessOp.FieldStoreOp o -> {
@@ -226,7 +221,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     vh = resolveToVarHandle(je.l, o.fieldReference());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     if (o.operands().size() == 1) {
@@ -238,7 +233,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                         vh.set(r, v);
                     }
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = null;
             }
@@ -249,7 +244,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     c = resolveToClass(je.l, o.targetType());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = c.isInstance(obj);
             }
@@ -259,13 +254,13 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                     JavaEnv je = (JavaEnv) e;
                     c = resolveToClass(je.l, o.targetType());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     Object v = e.valueOf(o.operands().get(0));
                     result = c.cast(v);
                 } catch (ClassCastException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.NewOp o  -> {
@@ -275,12 +270,12 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                     JavaEnv je = (JavaEnv) e;
                     mh = resolveToConstructorHandle(je.l, o.constructorReference());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     result = mh.invokeWithArguments(values);
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case JavaOp.ArrayLengthOp o -> {
@@ -288,7 +283,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     result = Array.getLength(a);
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.ArrayAccessOp.ArrayLoadOp o -> {
@@ -297,7 +292,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     result = Array.get(a, (int) index);
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.ArrayAccessOp.ArrayStoreOp o -> {
@@ -307,7 +302,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
                 try {
                     Array.set(a, (int) index, v);
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = null;
             }
