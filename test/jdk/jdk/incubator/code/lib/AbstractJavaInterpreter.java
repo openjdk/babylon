@@ -24,40 +24,6 @@ import static java.util.stream.Collectors.toMap;
 public abstract class AbstractJavaInterpreter extends Interpreter {
     abstract Env newEnv(MethodHandles.Lookup l);
 
-    private static <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
-        List<Block.Parameter> parameters = op.parameters();
-        List<Value> capturedValues = op.capturedValues();
-        if (parameters.size() + capturedValues.size() != argsAndCaptures.size()) {
-            throw new InterpreterException(
-                    String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
-                            argsAndCaptures.size(), parameters.size(), capturedValues.size()));
-        }
-        // validate runtime args and captures types
-        List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
-        for (int i = 0; i < symbolicValues.size(); i++) {
-            Value sv = symbolicValues.get(i);
-            Object rv = argsAndCaptures.get(i);
-            try {
-                JavaType typeToResolve = switch (sv.type()) {
-                    // @@@ Deconstruct and test what the var holds
-                    case VarType _ -> JavaType.type(CoreOp.Var.class);
-                    // Allow reflection to convert between primitive values
-                    // @@@ Check conversion compatible
-                    case PrimitiveType _ -> JavaType.J_L_OBJECT;
-                    case JavaType jt -> jt;
-                    default -> throw new InterpreterException("Unexpected type: " + sv.type());
-                };
-                Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
-                if (rv != null && !c.isInstance(rv)) {
-                    throw new InterpreterException(("Runtime argument at position %d has type %s " +
-                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), sv.type()));
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new InterpreterException(e);
-            }
-        }
-    }
-
     <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
         validateTypes(op, argsAndCaptures, l);
 
@@ -66,7 +32,7 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
                 argsAndCaptures.subList(0, op.parameters().size()).toArray());
     }
 
-    protected  <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+    protected <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
         Env e = newEnv(l);
         e = e.bind(op.capturedValues(), Arrays.asList(captures));
         var effect = executeBody(op.body(), Arrays.asList(args), e);
@@ -82,11 +48,6 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
-        throw (E) e;
-    }
-
     protected Object interpretLambdaBody(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) {
         return interpret_(lambdaOp, l, captures, args);
     }
@@ -100,13 +61,6 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
             throw new InternalError();
         }
     }
-
-    private static final CoreOp.FuncOp fop = CoreOp.func("f",
-            CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
-        b.add(JavaOp.throw_(b.parameters().get(0)));
-    });
-    // to treat implicit and explicit exceptions the same
-    protected static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
 
     protected OpEffect executeLambdaOp(JavaOp.LambdaOp o, Env env, MethodHandle lambdaBodyInterpreter) {
         JavaEnv je = (JavaEnv) env;
@@ -150,6 +104,59 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
             result = fiInstance;
         }
         return new OpResultEffect(result, env);
+    }
+
+    private static final CoreOp.FuncOp fop = CoreOp.func("f",
+            CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
+        b.add(JavaOp.throw_(b.parameters().get(0)));
+    });
+    // to treat implicit and explicit exceptions the same
+    static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
+
+    @SuppressWarnings("unchecked")
+    private static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
+        throw (E) e;
+    }
+
+    private static <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
+        List<Block.Parameter> parameters = op.parameters();
+        List<Value> capturedValues = op.capturedValues();
+        if (parameters.size() + capturedValues.size() != argsAndCaptures.size()) {
+            throw new InterpreterException(
+                    String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
+                            argsAndCaptures.size(), parameters.size(), capturedValues.size()));
+        }
+        // validate runtime args and captures types
+        List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
+        for (int i = 0; i < symbolicValues.size(); i++) {
+            Value sv = symbolicValues.get(i);
+            Object rv = argsAndCaptures.get(i);
+            try {
+                JavaType typeToResolve = switch (sv.type()) {
+                    // @@@ Deconstruct and test what the var holds
+                    case VarType _ -> JavaType.type(CoreOp.Var.class);
+                    // Allow reflection to convert between primitive values
+                    // @@@ Check conversion compatible
+                    case PrimitiveType _ -> JavaType.J_L_OBJECT;
+                    case JavaType jt -> jt;
+                    default -> throw new InterpreterException("Unexpected type: " + sv.type());
+                };
+                Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
+                if (rv != null && !c.isInstance(rv)) {
+                    throw new InterpreterException(("Runtime argument at position %d has type %s " +
+                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), sv.type()));
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new InterpreterException(e);
+            }
+        }
+    }
+
+    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) throws ReflectiveOperationException {
+        if (!(d instanceof JavaType jt)) {
+            throw new InternalError(); // @@@ can be Interpreter exception
+        }
+        return (Class<?>) jt.erasure().resolve(l);
     }
 
     static class JavaEnv implements Env {
@@ -308,13 +315,6 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
                 default -> throw new InterpreterException("Unexpected catch type: " + catchType);
             };
         }
-    }
-
-    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) throws ReflectiveOperationException {
-        if (!(d instanceof JavaType jt)) {
-            throw new InternalError(); // @@@ can be Interpreter exception
-        }
-        return (Class<?>) jt.erasure().resolve(l);
     }
 
     protected static final class VarBox
