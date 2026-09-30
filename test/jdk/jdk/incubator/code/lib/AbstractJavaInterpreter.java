@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
-public abstract class AbstractJavaInterpreter extends Interpreter {
+abstract class AbstractJavaInterpreter extends Interpreter {
     abstract Env newEnv(MethodHandles.Lookup l);
 
     <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
