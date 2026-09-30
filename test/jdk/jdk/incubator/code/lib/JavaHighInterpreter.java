@@ -31,7 +31,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-public class JavaHighInterpreter extends Interpreter {
+public class JavaHighInterpreter extends AbstractJavaInterpreter {
     private final JavaLowInterpreter javaLowInterpreter;
 
     public JavaHighInterpreter(JavaLowInterpreter javaLowInterpreter) {
@@ -43,8 +43,8 @@ public class JavaHighInterpreter extends Interpreter {
         return new JavaHighEnv(new HashMap<>(), l, new ArrayDeque<>());
     }
 
-    static class JavaHighEnv extends JavaLowInterpreter.JavaEnv {
-        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<JavaLowInterpreter.CatchHandler>> catchHandlers) {
+    static class JavaHighEnv extends JavaEnv {
+        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
             super(bindings, l, catchHandlers);
         }
 
@@ -54,7 +54,7 @@ public class JavaHighInterpreter extends Interpreter {
         }
 
         @Override
-        protected JavaLowInterpreter.JavaEnv newEnv(Deque<List<JavaLowInterpreter.CatchHandler>> catchBlocks) {
+        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
             return new JavaHighEnv(bindings, l, catchBlocks);
         }
 
@@ -80,7 +80,7 @@ public class JavaHighInterpreter extends Interpreter {
             case JavaOp.LambdaOp o -> {
                 // bind the instance on which the method interpreting the lambda body is called
                 // ensuring the body of the lambda op is interpreted using the JavaHighInterpreter;
-                yield executeLambdaOp(o, e, Interpreter.lambdaBodyInterpreter.bindTo(this));
+                yield executeLambdaOp(o, e, lambdaBodyInterpreter.bindTo(this));
             }
             default -> javaLowInterpreter.executeOp(op, e);
         };
@@ -242,7 +242,7 @@ public class JavaHighInterpreter extends Interpreter {
 
         // close resources
         for (Object r : rArgs.reversed()) {
-            if (r instanceof JavaLowInterpreter.VarBox vb) {
+            if (r instanceof VarBox vb) {
                 r = vb.value();
             }
             try {
@@ -252,13 +252,13 @@ public class JavaHighInterpreter extends Interpreter {
             } catch (Exception ex) {
                 if (t == null)  t = ex;
                 else            t.addSuppressed(ex);
-                effect = new TerminatingOpEffect(JavaLowInterpreter.fakeThrowOp, List.of(t), e);
+                effect = new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
             }
         }
 
         // catch body
         if (t != null) {
-            JavaLowInterpreter.JavaEnv je = (JavaLowInterpreter.JavaEnv) e;
+            JavaEnv je = (JavaEnv) e;
             Body catchBody = findCatchBody(je.l, tryOp, t);
             if (catchBody != null) {
                 effect = executeBody(catchBody, List.of(t), e);
@@ -282,7 +282,7 @@ public class JavaHighInterpreter extends Interpreter {
     private static Body findCatchBody(MethodHandles.Lookup l, JavaOp.TryOp tryOp, Throwable t) {
         for (int i = 0; i < tryOp.catchBodies().size(); i++) {
             Body catchBody = tryOp.catchBodies().get(i);
-            JavaLowInterpreter.CatchHandler handler = new JavaLowInterpreter.CatchHandler(tryOp.catchTypes().get(i), catchBody.entryBlock());
+            CatchHandler handler = new CatchHandler(tryOp.catchTypes().get(i), catchBody.entryBlock());
             try {
                 if (handler.matches(l, t)) {
                     return catchBody;

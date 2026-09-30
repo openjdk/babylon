@@ -22,19 +22,9 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.java.JavaOp;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandleProxies;
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
-
-import static java.util.stream.Collectors.toMap;
 
 public abstract class Interpreter {
     public Interpreter() {
@@ -131,88 +121,4 @@ public abstract class Interpreter {
             super(message);
         }
     }
-
-    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
-        JavaLowInterpreter.validateTypes(op, argsAndCaptures, l);
-
-        return interpret_(op, l,
-                argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()).toArray(),
-                argsAndCaptures.subList(0, op.parameters().size()).toArray());
-    }
-
-    protected  <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        Env e = newEnv(l);
-        e = e.bind(op.capturedValues(), Arrays.asList(captures));
-        var effect = executeBody(op.body(), Arrays.asList(args), e);
-        switch (effect.terminatingOp()) {
-            case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
-            }
-            case JavaOp.ThrowOp _ -> {
-                JavaLowInterpreter.eraseAndThrow((Throwable) effect.operands().getFirst());
-                throw new InternalError(); // @@@ shouldn't reach here
-            }
-            default -> throw new InternalError(effect.toString());
-        }
-    }
-
-    protected Object interpretLambdaBody(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        return interpret_(lambdaOp, l, captures, args);
-    }
-
-    protected static final MethodHandle lambdaBodyInterpreter;
-    static {
-        try {
-            lambdaBodyInterpreter = MethodHandles.lookup().findVirtual(Interpreter.class, "interpretLambdaBody",
-                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
-        } catch (Throwable t) {
-            throw new InternalError();
-        }
-    }
-
-    protected OpEffect executeLambdaOp(JavaOp.LambdaOp o, Env env, MethodHandle lambdaBodyInterpreter) {
-        JavaLowInterpreter.JavaEnv je = (JavaLowInterpreter.JavaEnv) env;
-        Class<?> fi;
-        try {
-            fi = JavaLowInterpreter.resolveToClass(je.l, o.functionalInterface());
-        } catch (ReflectiveOperationException ex) {
-            return new TerminatingOpEffect(JavaLowInterpreter.fakeThrowOp, List.of(ex), env);
-        }
-
-        SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
-                .collect(toMap(v -> v, env::valueOf, (v, _) -> v, LinkedHashMap::new));
-        Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
-
-        MethodHandle fProxy = lambdaBodyInterpreter.bindTo(o).bindTo(je.l).bindTo(capturedArguments)
-                .asCollector(Object[].class, o.parameters().size());
-        Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
-
-        Object result;
-        // If a reflectable lambda proxy again to add method Quoted quoted()
-        if (o.isReflectable()) {
-            result = Proxy.newProxyInstance(je.l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                    new InvocationHandler() {
-                        private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(o, capturedValuesAndArguments);
-
-                        @Override
-                        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                            if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
-                                return __internal_quoted();
-                            } else {
-                                // Delegate to FI instance
-                                return method.invoke(fiInstance, args);
-                            }
-                        }
-
-                        private Quoted<JavaOp.LambdaOp> __internal_quoted() {
-                            return quoted;
-                        }
-                    });
-        } else {
-            result = fiInstance;
-        }
-        return new OpResultEffect(result, env);
-    }
-
-    abstract Env newEnv(MethodHandles.Lookup l);
 }
