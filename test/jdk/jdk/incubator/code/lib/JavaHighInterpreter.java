@@ -39,7 +39,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
     }
 
     @Override
-    protected Env newEnv(MethodHandles.Lookup l) {
+    Env newEnv(MethodHandles.Lookup l) {
         return new JavaHighEnv(new HashMap<>(), l, new ArrayDeque<>());
     }
 
@@ -49,12 +49,12 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         }
 
         @Override
-        protected Env newEnv(Map<Value, Object> m) {
+        Env newEnv(Map<Value, Object> m) {
             return new JavaHighEnv(m, l, catchHandlers);
         }
 
         @Override
-        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
+        JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
             return new JavaHighEnv(bindings, l, catchBlocks);
         }
 

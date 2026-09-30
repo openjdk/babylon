@@ -164,17 +164,17 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
         final MethodHandles.Lookup l;
         final Deque<List<CatchHandler>> catchHandlers;
 
-        protected JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
+        JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
             this.bindings = bindings;
             this.l = l;
             this.catchHandlers = catchHandlers;
         }
 
-        protected Env newEnv(Map<Value, Object> m) {
+        Env newEnv(Map<Value, Object> m) {
             return new JavaEnv(m, l, catchHandlers);
         }
 
-        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchHandlers) {
+        JavaEnv newEnv(Deque<List<CatchHandler>> catchHandlers) {
             return new JavaEnv(bindings, l, catchHandlers);
         }
 

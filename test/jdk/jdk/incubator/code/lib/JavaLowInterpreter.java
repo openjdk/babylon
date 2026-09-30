@@ -44,7 +44,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
     }
 
     @Override
-    protected Env newEnv(MethodHandles.Lookup l) {
+    Env newEnv(MethodHandles.Lookup l) {
         return new JavaEnv(new HashMap<>(), l, new ArrayDeque<>());
     }
 
