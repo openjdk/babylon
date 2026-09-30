@@ -43,30 +43,6 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return new JavaHighEnv(new HashMap<>(), l, new ArrayDeque<>());
     }
 
-    static class JavaHighEnv extends JavaEnv {
-        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
-            super(bindings, l, catchHandlers);
-        }
-
-        @Override
-        Env newEnv(Map<Value, Object> m) {
-            return new JavaHighEnv(m, l, catchHandlers);
-        }
-
-        @Override
-        JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
-            return new JavaHighEnv(bindings, l, catchBlocks);
-        }
-
-        @Override
-        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
-            if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
-                return super.onAbruptCompletion(op, eff);
-            }
-            return eff;
-        }
-    }
-
     @Override
     public OpEffect executeOp(Op op, Env e) {
         return switch (op) {
@@ -86,7 +62,17 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         };
     }
 
-    // TODO labeled ops, sw
+    @Override
+    public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
+        return switch (op) {
+            case JavaOp.StatementTargetingOp _ -> {
+                List<Object> operands = e.valuesOf(op.operands());
+                yield new TerminatingOpEffect(op, operands, e);
+            }
+            default -> javaLowInterpreter.executeTerminatingOp(op, e);
+        };
+    }
+
     OpEffect executeContinueOp(JavaOp.ContinueOp continueOp, Env e) {
         return new TerminatingOpEffect(continueOp, e.valuesOf(continueOp.operands()), e);
     }
@@ -107,18 +93,6 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
         return processVoidEffect(effect, op.body(), e);
     }
-
-    @Override
-    public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
-        return switch (op) {
-            case JavaOp.StatementTargetingOp _ -> {
-                List<Object> operands = e.valuesOf(op.operands());
-                yield new TerminatingOpEffect(op, operands, e);
-            }
-            default -> javaLowInterpreter.executeTerminatingOp(op, e);
-        };
-    }
-
 
     OpEffect executeForOp(JavaOp.ForOp op, Env e) {
         var initEffect = executeBody(op.initBody(), List.of(), e);
@@ -311,5 +285,29 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
             case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp witn no boolean operand");
             default -> Optional.empty(); // abrupt completion
         };
+    }
+
+    static class JavaHighEnv extends JavaEnv {
+        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
+            super(bindings, l, catchHandlers);
+        }
+
+        @Override
+        Env newEnv(Map<Value, Object> m) {
+            return new JavaHighEnv(m, l, catchHandlers);
+        }
+
+        @Override
+        JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
+            return new JavaHighEnv(bindings, l, catchBlocks);
+        }
+
+        @Override
+        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
+            if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
+                return super.onAbruptCompletion(op, eff);
+            }
+            return eff;
+        }
     }
 }
