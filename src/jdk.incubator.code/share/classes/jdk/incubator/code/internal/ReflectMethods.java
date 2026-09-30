@@ -3072,6 +3072,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
         }
 
-        return new DenotableProjection(t).asDenotable();
+        Type res = new DenotableProjection(t).asDenotable();
+        return res.isIntersection() || res.isUnion() ? asDenotable(res) : res;
     }
 }
