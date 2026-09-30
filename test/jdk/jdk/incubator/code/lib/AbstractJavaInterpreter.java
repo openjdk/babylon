@@ -32,7 +32,7 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
                 argsAndCaptures.subList(0, op.parameters().size()).toArray());
     }
 
-    protected <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+    <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
         Env e = newEnv(l);
         e = e.bind(op.capturedValues(), Arrays.asList(captures));
         var effect = executeBody(op.body(), Arrays.asList(args), e);
@@ -48,11 +48,11 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
         }
     }
 
-    protected Object interpretLambdaBody(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+    Object interpretLambdaBody(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) {
         return interpret_(lambdaOp, l, captures, args);
     }
 
-    protected static final MethodHandle lambdaBodyInterpreter;
+    static final MethodHandle lambdaBodyInterpreter;
     static {
         try {
             lambdaBodyInterpreter = MethodHandles.lookup().findVirtual(AbstractJavaInterpreter.class, "interpretLambdaBody",
@@ -62,7 +62,7 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
         }
     }
 
-    protected OpEffect executeLambdaOp(JavaOp.LambdaOp o, Env env, MethodHandle lambdaBodyInterpreter) {
+    OpEffect executeLambdaOp(JavaOp.LambdaOp o, Env env, MethodHandle lambdaBodyInterpreter) {
         JavaEnv je = (JavaEnv) env;
         Class<?> fi;
         try {
@@ -317,7 +317,7 @@ public abstract class AbstractJavaInterpreter extends Interpreter {
         }
     }
 
-    protected static final class VarBox
+    static final class VarBox
             implements CoreOp.Var<Object> {
         Object value;
 
