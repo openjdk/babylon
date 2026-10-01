@@ -23,213 +23,24 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
-import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.core.TupleType;
-import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.*;
 import java.lang.reflect.Array;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
 
-public class JavaLowInterpreter extends Interpreter {
+public class JavaLowInterpreter extends AbstractJavaInterpreter {
     public JavaLowInterpreter() {
     }
 
-    record CatchHandler(CodeType catchType, Block block) {
-
-        static List<CatchHandler> of(JavaOp.ExceptionRegionEnter op) {
-            List<Block.Reference> references = op.catchReferences();
-            List<CodeType> types = op.catchTypes();
-            return IntStream.range(0, references.size())
-                    .mapToObj(i -> new CatchHandler(types.get(i), references.get(i).targetBlock()))
-                    .toList().reversed();
-        }
-
-        boolean matches(MethodHandles.Lookup l, Throwable t) throws ReflectiveOperationException {
-            return matches(l, catchType, t);
-        }
-
-        private static boolean matches(MethodHandles.Lookup l, CodeType catchType, Throwable t)
-                throws ReflectiveOperationException {
-            return switch (catchType) {
-                case TupleType tt -> {
-                    boolean matched = false;
-                    for (CodeType componentType : tt.componentTypes()) {
-                        if (matches(l, componentType, t)) {
-                            matched = true;
-                            break;
-                        }
-                    }
-                    yield matched;
-                }
-                case ClassType ct -> resolveToClass(l, ct).isInstance(t);
-                case PrimitiveType pt when pt.equals(JavaType.VOID) -> true;
-                default -> throw new InterpreterException("Unexpected catch type: " + catchType);
-            };
-        }
-    }
-
-    static class JavaEnv implements Env {
-        final Map<Value, Object> bindings;
-        final MethodHandles.Lookup l;
-        final Deque<List<CatchHandler>> catchHandlers;
-
-        protected JavaEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
-            this.bindings = bindings;
-            this.l = l;
-            this.catchHandlers = catchHandlers;
-        }
-
-        protected Env newEnv(Map<Value, Object> m) {
-            return new JavaEnv(m, l, catchHandlers);
-        }
-
-        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchHandlers) {
-            return new JavaEnv(bindings, l, catchHandlers);
-        }
-
-        Map<Value, Object> newBindings() {
-            return new HashMap<>(bindings);
-        }
-
-        @Override
-        public Env bind(List<? extends Value> symbolicValues, List<Object> runtimeValues) {
-            Map<Value, Object> m = newBindings();
-            int l = symbolicValues.size();
-            for (int i = 0; i < l; i++) {
-                m.put(symbolicValues.get(i), runtimeValues.get(i));
-            }
-            return newEnv(m);
-        }
-
-        @Override
-        public Env bind(Value symbolicValue, Object runtimeValue) {
-            Map<Value, Object> m = newBindings();
-            m.put(symbolicValue, runtimeValue);
-            return newEnv(m);
-        }
-
-        @Override
-        public List<Object> valuesOf(List<? extends Value> symbolicValues) {
-            List<Object> runtimeValues = new ArrayList<>();
-            for (Value symbolicValue : symbolicValues) {
-                runtimeValues.add(valueOf(symbolicValue));
-            }
-
-            return runtimeValues;
-        }
-
-        @Override
-        public Object valueOf(Value symbolicValue) {
-            if (!bindings.containsKey(symbolicValue)) {
-                throw new IllegalArgumentException("Unknown binding for " + symbolicValue);
-            }
-            return bindings.get(symbolicValue);
-        }
-
-        public JavaEnv registerCatchHandlers(List<CatchHandler> handlers) {
-            var stack = new ArrayDeque<>(catchHandlers);
-            stack.addFirst(handlers);
-            return newEnv(stack);
-        }
-
-        public JavaEnv removeCatchHandlers(List<CatchHandler> handlers) {
-            var stack = new ArrayDeque<>(catchHandlers);
-            if (!stack.removeFirst().equals(handlers)) {
-                throw new InternalError();
-            }
-            return newEnv(stack);
-        }
-
-        @Override
-        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
-            Optional<SuccessorEffect> opt = this.findCatchBlock(op.parent(), (Throwable) eff.operands().getFirst());
-            if (opt.isPresent()) {
-                return opt.get();
-            } else {
-                JavaEnv newEnv = this.removeAllCatchBlocks();
-                return new TerminatingOpEffect(eff.terminatingOp(), eff.operands(), newEnv);
-            }
-        }
-
-        // @@@ review this area and improve the code
-        private Optional<SuccessorEffect> findCatchBlock(Block executedBlock, Throwable t) {
-            Block cb = null;
-            int handlerListsToRemove = 0;
-            l:
-            for (List<CatchHandler> handlers : catchHandlers) {
-                handlerListsToRemove++;
-                for (CatchHandler handler : handlers) {
-                    Block block = handler.block();
-                    // make sure we are searching for catch block within the same body
-                    if (block.parent() != executedBlock.parent()) {
-                        break l;
-                    }
-                    try {
-                        if (handler.matches(l, t)) {
-                            cb = block;
-                            break l;
-                        }
-                    } catch (ReflectiveOperationException ex) {
-                        throw new InterpreterException(ex);
-                    }
-                }
-            }
-
-            if (cb == null) {
-                return Optional.empty();
-            }
-
-            var rhs = new ArrayDeque<>(catchHandlers);
-            while (handlerListsToRemove-- > 0) {
-                rhs.removeFirst();
-            }
-
-            return Optional.of(new SuccessorEffect(cb, List.of(t), new JavaEnv(bindings, l, rhs)));
-        }
-
-        private JavaEnv removeAllCatchBlocks() {
-            return newEnv(new ArrayDeque<>());
-        }
-    }
-
-    public <T extends Op & Op.Invokable> Object interpret(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
-        validateTypes(op, argsAndCaptures, l);
-
-        return interpret_(op, l,
-                argsAndCaptures.subList(op.parameters().size(), argsAndCaptures.size()).toArray(),
-                argsAndCaptures.subList(0, op.parameters().size()).toArray());
-    }
-
-    protected Env newEnv(MethodHandles.Lookup l) {
+    @Override
+    Env newEnv(MethodHandles.Lookup l) {
         return new JavaEnv(new HashMap<>(), l, new ArrayDeque<>());
-    }
-
-    private <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        Env e = newEnv(l);
-        e = e.bind(op.capturedValues(), Arrays.asList(captures));
-        var effect = executeBody(op.body(), Arrays.asList(args), e);
-        switch (effect.terminatingOp()) {
-            case CoreOp.ReturnOp rop -> {
-                return rop.operands().isEmpty() ? null : effect.operands().getFirst();
-            }
-            case JavaOp.ThrowOp _ -> {
-                eraseAndThrow((Throwable) effect.operands().getFirst());
-                throw new InternalError(); // @@@ shouldn't reach here
-            }
-            default -> throw new InternalError(effect.toString());
-        }
     }
 
     @Override
@@ -268,7 +79,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case JavaOp.ArithmeticOperation _ -> {
@@ -278,7 +89,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case JavaOp.ConvOp _ -> {
@@ -288,7 +99,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     result = mh.invokeWithArguments(operands.toArray());
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case CoreOp.ConstantOp o -> {
@@ -296,7 +107,7 @@ public class JavaLowInterpreter extends Interpreter {
                     try {
                         result = resolveToClass(((JavaEnv) e).l, (JavaType) o.value());
                     } catch (ReflectiveOperationException ex) {
-                        return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                        return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                     }
                 } else {
                     result = o.value();
@@ -321,7 +132,7 @@ public class JavaLowInterpreter extends Interpreter {
                     } else {
                         ae = new AssertionError();
                     }
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ae), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ae), e);
                 }
                 result = null;
             }
@@ -347,7 +158,7 @@ public class JavaLowInterpreter extends Interpreter {
                     } catch (InterpreterException ex) {
                         throw ex;
                     } catch (Throwable t) {
-                        return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                        return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                     }
                 } else {
                     throw new InterpreterException("Function " + name + " cannot be resolved: top level op is not a module");
@@ -359,45 +170,9 @@ public class JavaLowInterpreter extends Interpreter {
                 result = new Quoted<>(o.quotedOp(), capturedValues);
             }
             case JavaOp.LambdaOp o -> {
-                JavaEnv je = (JavaEnv) e;
-                Class<?> fi;
-                try {
-                    fi = resolveToClass(je.l, o.functionalInterface());
-                } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
-                }
-
-                SequencedMap<Value, Object> capturedValuesAndArguments = o.capturedValues().stream()
-                        .collect(toMap(v -> v, e::valueOf, (v, _) -> v, LinkedHashMap::new));
-                Object[] capturedArguments = capturedValuesAndArguments.sequencedValues().toArray(Object[]::new);
-
-                MethodHandle fProxy = interpretLambdaOpMH.bindTo(this).bindTo(o).bindTo(je.l).bindTo(capturedArguments)
-                        .asCollector(Object[].class, o.parameters().size());
-                Object fiInstance = MethodHandleProxies.asInterfaceInstance(fi, fProxy);
-
-                // If a reflectable lambda proxy again to add method Quoted quoted()
-                if (o.isReflectable()) {
-                    result = Proxy.newProxyInstance(je.l.lookupClass().getClassLoader(), new Class<?>[]{fi},
-                            new InvocationHandler() {
-                                private final Quoted<JavaOp.LambdaOp> quoted = new Quoted<>(o, capturedValuesAndArguments);
-
-                                @Override
-                                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                                    if (Objects.equals(method.getName(), "quoted") && method.getParameterCount() == 0) {
-                                        return __internal_quoted();
-                                    } else {
-                                        // Delegate to FI instance
-                                        return method.invoke(fiInstance, args);
-                                    }
-                                }
-
-                                private Quoted<JavaOp.LambdaOp> __internal_quoted() {
-                                    return quoted;
-                                }
-                            });
-                } else {
-                    result = fiInstance;
-                }
+                // bind the instance on which the method interpreting the lambda body is called
+                // ensuring the body of the lambda op is interpreted using the JavaLowInterpreter
+                result = executeLambdaOp(o, e, LAMBDA_BODY_INTERPRETER.bindTo(this));
             }
             case CoreOp.TupleOp o -> {
                 List<Object> values = o.operands().stream().map(e::valueOf).toList();
@@ -408,7 +183,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     result = arr[o.index()];
                 } catch (ArrayIndexOutOfBoundsException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case CoreOp.TupleWithOp o -> {
@@ -417,7 +192,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     newArr[o.index()] = e.valueOf(o.operands().get(1));
                 } catch (ArrayIndexOutOfBoundsException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = newArr;
             }
@@ -427,7 +202,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     vh = resolveToVarHandle(je.l, o.fieldReference());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     if (o.operands().isEmpty()) {
@@ -437,7 +212,7 @@ public class JavaLowInterpreter extends Interpreter {
                         result = vh.get(v);
                     }
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.FieldAccessOp.FieldStoreOp o -> {
@@ -446,7 +221,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     vh = resolveToVarHandle(je.l, o.fieldReference());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     if (o.operands().size() == 1) {
@@ -458,7 +233,7 @@ public class JavaLowInterpreter extends Interpreter {
                         vh.set(r, v);
                     }
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = null;
             }
@@ -469,7 +244,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     c = resolveToClass(je.l, o.targetType());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = c.isInstance(obj);
             }
@@ -479,13 +254,13 @@ public class JavaLowInterpreter extends Interpreter {
                     JavaEnv je = (JavaEnv) e;
                     c = resolveToClass(je.l, o.targetType());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     Object v = e.valueOf(o.operands().get(0));
                     result = c.cast(v);
                 } catch (ClassCastException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.NewOp o  -> {
@@ -495,12 +270,12 @@ public class JavaLowInterpreter extends Interpreter {
                     JavaEnv je = (JavaEnv) e;
                     mh = resolveToConstructorHandle(je.l, o.constructorReference());
                 } catch (ReflectiveOperationException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 try {
                     result = mh.invokeWithArguments(values);
                 } catch (Throwable t) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
                 }
             }
             case JavaOp.ArrayLengthOp o -> {
@@ -508,7 +283,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     result = Array.getLength(a);
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.ArrayAccessOp.ArrayLoadOp o -> {
@@ -517,7 +292,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     result = Array.get(a, (int) index);
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
             }
             case JavaOp.ArrayAccessOp.ArrayStoreOp o -> {
@@ -527,7 +302,7 @@ public class JavaLowInterpreter extends Interpreter {
                 try {
                     Array.set(a, (int) index, v);
                 } catch (RuntimeException ex) {
-                    return new TerminatingOpEffect(fakeThrowOp, List.of(ex), e);
+                    return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
                 result = null;
             }
@@ -584,81 +359,6 @@ public class JavaLowInterpreter extends Interpreter {
         };
     }
 
-    private static  <T extends Op & Op.Invokable> void validateTypes(T op, List<Object> argsAndCaptures, MethodHandles.Lookup l) {
-        List<Block.Parameter> parameters = op.parameters();
-        List<Value> capturedValues = op.capturedValues();
-        if (parameters.size() + capturedValues.size() != argsAndCaptures.size()) {
-            throw new InterpreterException(
-                    String.format("Actual #arguments (%d) differs from #parameters (%d) plus #captured arguments (%d)",
-                            argsAndCaptures.size(), parameters.size(), capturedValues.size()));
-        }
-        // validate runtime args and captures types
-        List<Value> symbolicValues = Stream.concat(parameters.stream(), capturedValues.stream()).toList();
-        for (int i = 0; i < symbolicValues.size(); i++) {
-            Value sv = symbolicValues.get(i);
-            Object rv = argsAndCaptures.get(i);
-            try {
-                JavaType typeToResolve = switch (sv.type()) {
-                    // @@@ Deconstruct and test what the var holds
-                    case VarType _ -> JavaType.type(CoreOp.Var.class);
-                    // Allow reflection to convert between primitive values
-                    // @@@ Check conversion compatible
-                    case PrimitiveType _ -> JavaType.J_L_OBJECT;
-                    case JavaType jt -> jt;
-                    default -> throw new InterpreterException("Unexpected type: " + sv.type());
-                };
-                Class<?> c = typeToResolve.toNominalDescriptor().resolveConstantDesc(l);
-                if (rv != null && !c.isInstance(rv)) {
-                    throw new InterpreterException(("Runtime argument at position %d has type %s " +
-                            "but the corresponding symbolic value has type %s").formatted(i, rv.getClass(), sv.type()));
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new InterpreterException(e);
-            }
-        }
-    }
-
-    private static final CoreOp.FuncOp fop = CoreOp.func("f",
-            CoreType.functionType(JavaType.type(void.class), JavaType.type(Throwable.class))).body(b -> {
-        b.add(JavaOp.throw_(b.parameters().get(0)));
-    });
-    // to treat implicit and explicit exceptions the same
-    protected static final JavaOp.ThrowOp fakeThrowOp = (JavaOp.ThrowOp) fop.body().entryBlock().terminatingOp();
-
-    private static final MethodHandle interpretLambdaOpMH;
-    static {
-        try {
-            interpretLambdaOpMH = MethodHandles.lookup().findVirtual(JavaLowInterpreter.class, "interpretLambdaOp",
-                    MethodType.methodType(Object.class, JavaOp.LambdaOp.class, MethodHandles.Lookup.class, Object[].class, Object[].class));
-        } catch (Throwable t) {
-            throw new InternalError();
-        }
-    }
-
-    private Object interpretLambdaOp(JavaOp.LambdaOp op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
-        return interpret_(op, l, captures, args);
-    }
-
-    protected static final class VarBox
-            implements CoreOp.Var<Object> {
-        Object value;
-
-        public Object value() {
-            return value;
-        }
-
-        VarBox(Object value) {
-            this.value = value;
-        }
-
-        static final Object UNINITIALIZED = new Object();
-    }
-
-    @SuppressWarnings("unchecked")
-    static <E extends Throwable> void eraseAndThrow(Throwable e) throws E {
-        throw (E) e;
-    }
-
     static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
         try {
             return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
@@ -673,13 +373,6 @@ public class JavaLowInterpreter extends Interpreter {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    static Class<?> resolveToClass(MethodHandles.Lookup l, CodeType d) throws ReflectiveOperationException {
-        if (!(d instanceof JavaType jt)) {
-            throw new InternalError(); // @@@ can be Interpreter exception
-        }
-        return (Class<?>) jt.erasure().resolve(l);
     }
 
     static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {

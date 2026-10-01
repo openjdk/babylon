@@ -31,37 +31,16 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-public class JavaHighInterpreter extends JavaLowInterpreter {
-    public JavaHighInterpreter() {
+public class JavaHighInterpreter extends AbstractJavaInterpreter {
+    private final JavaLowInterpreter javaLowInterpreter;
+
+    public JavaHighInterpreter(JavaLowInterpreter javaLowInterpreter) {
+        this.javaLowInterpreter = javaLowInterpreter;
     }
 
     @Override
-    protected Env newEnv(MethodHandles.Lookup l) {
+    Env newEnv(MethodHandles.Lookup l) {
         return new JavaHighEnv(new HashMap<>(), l, new ArrayDeque<>());
-    }
-
-    static class JavaHighEnv extends JavaLowInterpreter.JavaEnv {
-        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
-            super(bindings, l, catchHandlers);
-        }
-
-        @Override
-        protected Env newEnv(Map<Value, Object> m) {
-            return new JavaHighEnv(m, l, catchHandlers);
-        }
-
-        @Override
-        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
-            return new JavaHighEnv(bindings, l, catchBlocks);
-        }
-
-        @Override
-        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
-            if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
-                return super.onAbruptCompletion(op, eff);
-            }
-            return eff;
-        }
     }
 
     @Override
@@ -74,11 +53,26 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             case JavaOp.LabeledOp o -> executeLabeledOp(o, e);
             case JavaOp.ContinueOp o -> executeContinueOp(o, e);
             case JavaOp.BlockOp o -> executeBlockOp(o, e);
-            default -> super.executeOp(op, e);
+            case JavaOp.LambdaOp o -> {
+                // bind the instance on which the method interpreting the lambda body is called
+                // ensuring the body of the lambda op is interpreted using the JavaHighInterpreter;
+                yield executeLambdaOp(o, e, LAMBDA_BODY_INTERPRETER.bindTo(this));
+            }
+            default -> javaLowInterpreter.executeOp(op, e);
         };
     }
 
-    // TODO labeled ops, sw
+    @Override
+    public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
+        return switch (op) {
+            case JavaOp.StatementTargetingOp _ -> {
+                List<Object> operands = e.valuesOf(op.operands());
+                yield new TerminatingOpEffect(op, operands, e);
+            }
+            default -> javaLowInterpreter.executeTerminatingOp(op, e);
+        };
+    }
+
     OpEffect executeContinueOp(JavaOp.ContinueOp continueOp, Env e) {
         return new TerminatingOpEffect(continueOp, e.valuesOf(continueOp.operands()), e);
     }
@@ -99,18 +93,6 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
         return processVoidEffect(effect, op.body(), e);
     }
-
-    @Override
-    public BlockEffect executeTerminatingOp(Op.Terminating op, Env e) {
-        return switch (op) {
-            case JavaOp.StatementTargetingOp _ -> {
-                List<Object> operands = e.valuesOf(op.operands());
-                yield new TerminatingOpEffect(op, operands, e);
-            }
-            default -> super.executeTerminatingOp(op, e);
-        };
-    }
-
 
     OpEffect executeForOp(JavaOp.ForOp op, Env e) {
         var initEffect = executeBody(op.initBody(), List.of(), e);
@@ -244,7 +226,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             } catch (Exception ex) {
                 if (t == null)  t = ex;
                 else            t.addSuppressed(ex);
-                effect = new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                effect = new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
             }
         }
 
@@ -300,8 +282,32 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         return switch (eff.terminatingOp()) {
             case CoreOp.YieldOp _ when !eff.operands().isEmpty()
                     && eff.operands().getFirst() instanceof Boolean b -> Optional.of(b);
-            case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp witn no boolean operand");
+            case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp with no boolean operand");
             default -> Optional.empty(); // abrupt completion
         };
+    }
+
+    static class JavaHighEnv extends JavaEnv {
+        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
+            super(bindings, l, catchHandlers);
+        }
+
+        @Override
+        Env newEnv(Map<Value, Object> m) {
+            return new JavaHighEnv(m, l, catchHandlers);
+        }
+
+        @Override
+        JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
+            return new JavaHighEnv(bindings, l, catchBlocks);
+        }
+
+        @Override
+        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
+            if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
+                return super.onAbruptCompletion(op, eff);
+            }
+            return eff;
+        }
     }
 }
