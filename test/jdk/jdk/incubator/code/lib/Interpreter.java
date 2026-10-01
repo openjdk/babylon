@@ -113,7 +113,7 @@ public abstract class Interpreter {
      * Exception thrown by the interpreter when execution fails.
      */
     @SuppressWarnings("serial")
-    public static final class InterpreterException extends RuntimeException {
+    static final class InterpreterException extends RuntimeException {
         InterpreterException(Throwable cause) {
             super(cause);
         }

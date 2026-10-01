@@ -34,7 +34,9 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-public class JavaHighInterpreter extends AbstractJavaInterpreter {
+// private, pkg-private, protected, public
+// any uses of interpreters in HAT or cr-examples ?
+class JavaHighInterpreter extends AbstractJavaInterpreter {
     private final JavaLowInterpreter javaLowInterpreter;
 
     public JavaHighInterpreter(JavaLowInterpreter javaLowInterpreter) {
@@ -186,7 +188,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return new OpResultEffect(true, e);
     }
 
-    private Object cast(CodeType type, Env e, Object value) {
+    private static Object cast(CodeType type, Env e, Object value) {
         if (!(type instanceof JavaType jt)) {
             throw new InterpreterException("The target type of a TypePatternOp must be an instance JavaType");
         }
@@ -248,15 +250,15 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return new OpResultEffect(null, e);
     }
 
-    OpEffect executeContinueOp(JavaOp.ContinueOp continueOp, Env e) {
+    private OpEffect executeContinueOp(JavaOp.ContinueOp continueOp, Env e) {
         return new TerminatingOpEffect(continueOp, e.valuesOf(continueOp.operands()), e);
     }
 
-    OpEffect executeBreakOp(JavaOp.BreakOp breakOp, Env e) {
+    private OpEffect executeBreakOp(JavaOp.BreakOp breakOp, Env e) {
         return new TerminatingOpEffect(breakOp, e.valuesOf(breakOp.operands()), e);
     }
 
-    OpEffect executeLabeledOp(JavaOp.LabeledOp op, Env e) {
+    private OpEffect executeLabeledOp(JavaOp.LabeledOp op, Env e) {
         TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
         if (effect.terminatingOp() instanceof JavaOp.BreakOp bop && bop.labelOperand().equals(op.labelIdentifier())) {
             return new OpResultEffect(null, e);
@@ -264,7 +266,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return processVoidEffect(effect, op.body(), e);
     }
 
-    OpEffect executeBlockOp(JavaOp.BlockOp op, Env e) {
+    private OpEffect executeBlockOp(JavaOp.BlockOp op, Env e) {
         TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
         if (!(effect.terminatingOp() instanceof CoreOp.YieldOp)) {
             return effect;
@@ -272,7 +274,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return new OpResultEffect(effect.operands().isEmpty() ? null : effect.operands().getFirst(), e);
     }
 
-    OpEffect executeForOp(JavaOp.ForOp op, Env e) {
+    private OpEffect executeForOp(JavaOp.ForOp op, Env e) {
         var initEffect = executeBody(op.initBody(), List.of(), e);
         switch (initEffect.terminatingOp()) {
             case CoreOp.YieldOp _ -> {}
@@ -328,7 +330,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return new OpResultEffect(op.result(), null);
     }
 
-    OpEffect executeIfOp(JavaOp.IfOp op, Env e) {
+    private OpEffect executeIfOp(JavaOp.IfOp op, Env e) {
         List<Body> bodies = op.bodies();
         Body action = null;
         for (int i = 0; action == null; i += 2) {
@@ -364,7 +366,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return new OpResultEffect(op.result(), null);
     }
 
-    OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
+    private OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
         Throwable t = null;
         TerminatingOpEffect effect = null;
 
@@ -446,7 +448,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return null;
     }
 
-    static OpEffect processVoidEffect(TerminatingOpEffect eff, Body body, Env e) {
+    private static OpEffect processVoidEffect(TerminatingOpEffect eff, Body body, Env e) {
         if (eff.terminatingOp() instanceof CoreOp.YieldOp yop) {
             if (yop.ancestorBody() == body) {
                 return new OpResultEffect(null, e);
@@ -456,7 +458,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return eff;
     }
 
-    static Optional<Boolean> processBooleanEffect(TerminatingOpEffect eff) {
+    private static Optional<Boolean> processBooleanEffect(TerminatingOpEffect eff) {
         return switch (eff.terminatingOp()) {
             case CoreOp.YieldOp _ when !eff.operands().isEmpty()
                     && eff.operands().getFirst() instanceof Boolean b -> Optional.of(b);
