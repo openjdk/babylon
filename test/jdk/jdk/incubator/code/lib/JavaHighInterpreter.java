@@ -282,7 +282,7 @@ public class JavaHighInterpreter extends AbstractJavaInterpreter {
         return switch (eff.terminatingOp()) {
             case CoreOp.YieldOp _ when !eff.operands().isEmpty()
                     && eff.operands().getFirst() instanceof Boolean b -> Optional.of(b);
-            case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp witn no boolean operand");
+            case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp with no boolean operand");
             default -> Optional.empty(); // abrupt completion
         };
     }
