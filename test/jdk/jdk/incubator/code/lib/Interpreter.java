@@ -38,7 +38,7 @@ public abstract class Interpreter {
         Block block = body.entryBlock();
         while (true) {
             // bind block parameters in new env
-            env = env.bind(block.parameters(), args);
+            env = env.bind(block.parameters(), args); // TODO type validation ?
             switch (executeBlock(block, env)) {
                 // pass control to ancestor op
                 case TerminatingOpEffect e -> {
