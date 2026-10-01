@@ -21,14 +21,10 @@
  * questions.
  */
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 
 import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public abstract class Interpreter {
     public Interpreter() {
@@ -110,7 +106,7 @@ public abstract class Interpreter {
     }
 
     static <T extends Op & Op.Invokable> Object invoke(MethodHandles.Lookup l, T op, List<Object> argsAndCaptures) {
-        return new JavaHighInterpreter().interpret(op, argsAndCaptures, l);
+        return new JavaHighInterpreter(new JavaLowInterpreter()).interpret(op, argsAndCaptures, l);
     }
 
     /**
