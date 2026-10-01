@@ -34,8 +34,6 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-// private, pkg-private, protected, public
-// any uses of interpreters in HAT or cr-examples ?
 class JavaHighInterpreter extends AbstractJavaInterpreter {
     private final JavaLowInterpreter javaLowInterpreter;
 

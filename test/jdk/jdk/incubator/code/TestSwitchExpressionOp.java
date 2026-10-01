@@ -708,11 +708,7 @@ public class TestSwitchExpressionOp {
     }
 
     private static CoreOp.FuncOp lower(CoreOp.FuncOp f) {
-        //writeModel(f, System.out, OpWriter.LocationOption.DROP_LOCATION);
-
         CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        //writeModel(lf, System.out, OpWriter.LocationOption.DROP_LOCATION);
-
         return lf;
     }
 
