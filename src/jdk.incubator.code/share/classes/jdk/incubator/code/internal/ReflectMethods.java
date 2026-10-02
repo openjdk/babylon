@@ -90,7 +90,6 @@ import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.Assert;
-import com.sun.tools.javac.util.Constants;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.ListBuffer;
@@ -1035,7 +1034,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             switch (sym.getKind()) {
                 case LOCAL_VARIABLE -> {
                     if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
-                        result = append(CoreOp.constant(typeToCodeType(tree.type), Constants.decode(variable.getConstantValue(), tree.type)));
+                        result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
                     } else {
                         result = loadVar(sym);
                     }
@@ -1054,7 +1053,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         Assert.check(sym.isFinal());
                         result = loadVar(sym);
                     } else if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
-                        result = append(CoreOp.constant(typeToCodeType(tree.type), Constants.decode(variable.getConstantValue(), tree.type)));
+                        result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
                     } else {
                         FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
                         CodeType resultType = typeToCodeType(tree.type);
@@ -1112,7 +1111,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                             result = thisValue();
                         } else if (sym.isStatic() && sym instanceof VarSymbol variable
                                 && variable.getConstantValue() != null) {
-                            result = append(CoreOp.constant(typeToCodeType(tree.type), Constants.decode(variable.getConstantValue(), tree.type)));
+                            result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
                         } else {
                             FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
