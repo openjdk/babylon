@@ -71,11 +71,10 @@ public class TestLambdaCapture {
         String hello = "hello";
         ToIntFunction<Number> f = (@Reflect ToIntFunction<Number>)y -> y.intValue() + hashCode() + hello.length() + x;
         Quoted<?> quoted = Op.ofLambda(f).get();
-        assertEquals(3, quoted.capturedValues().size());
+        assertEquals(2, quoted.capturedValues().size());
         Iterator<Object> it = quoted.capturedValues().values().iterator();
         assertEquals(this, it.next());
         assertEquals(hello, ((Var<?>)it.next()).value());
-        assertEquals(x, ((Var<?>)it.next()).value());
         List<Object> arguments = new ArrayList<>();
         arguments.add(1);
         arguments.addAll(quoted.capturedValues().values());

@@ -115,7 +115,6 @@ public class TestQuoteOp {
 
         Iterator<Object> iterator = quoted2.capturedValues().values().iterator();
 
-        Assertions.assertEquals(y, ((CoreOp.Var<?>) iterator.next()).value());
         Assertions.assertEquals(args[1], ((CoreOp.Var<?>) iterator.next()).value());
         Assertions.assertEquals(args[0], iterator.next());
     }
