@@ -148,6 +148,24 @@ public class DenotableTypesTest {
         consume(x);
     }
 
+    @Reflect
+    @IR("""
+            func @"test8" ()java.type:"&DenotableTypesTest::test8():java.lang.Object::<X>" -> {
+                %0 : java.type:"&DenotableTypesTest::test8():java.lang.Object::<X>" = constant @null;
+                %1 : Var<java.type:"&DenotableTypesTest::test8():java.lang.Object::<X>"> = var %0 @"x";
+                %2 : java.type:"&DenotableTypesTest::test8():java.lang.Object::<X>" = var.load %1;
+                %3 : java.type:"java.lang.Runnable" = cast %2 @java.type:"java.lang.Runnable";
+                invoke %3 @java.ref:"DenotableTypesTest::consume(java.lang.Runnable):void";
+                %4 : java.type:"&DenotableTypesTest::test8():java.lang.Object::<X>" = var.load %1;
+                return %4;
+            };
+            """)
+    static <X extends Object & Runnable> X test8() {
+        X x = null;
+        consume(x);
+        return x;
+    }
+
     interface Adder<X> {
         void add(Adder<X> adder);
     }

@@ -49,10 +49,9 @@ public class TestReferences {
                 {"a::b():void", "a", "b"},
                 {"a.b::c(int):int", "a.b", "c"},
                 {"a.b.c::d(int, int):int", "a.b.c", "d"},
-                {"a::b(Func<String, Number>, Entry<List<String>, val>, int, long):void", "a", "b"},
+                {"a::b(Func, Entry, int, long):void", "a", "b"},
                 {"java.io.PrintStream::println(java.lang.String):void", "java.io.PrintStream", "println"},
-                {"MethodReferenceTest$A::m(java.lang.Object):java.lang.Object", "MethodReferenceTest$A", "m"},
-                {"R<R::<T extends java.lang.Number>>::n():R::<T extends java.lang.Number>", "R<R::<T extends java.lang.Number>>", "n"}
+                {"MethodReferenceTest$A::m(java.lang.Object):java.lang.Object", "MethodReferenceTest$A", "m"}
         };
     }
 
@@ -71,10 +70,9 @@ public class TestReferences {
                 {"java.ref:\"a::b():void\"", "a", "b"},
                 {"java.ref:\"a.b::c(int):int\"", "a.b", "c"},
                 {"java.ref:\"a.b.c::d(int, int):int\"", "a.b.c", "d"},
-                {"java.ref:\"a::b(Func<String, Number>, Entry<List<String>, val>, int, long):void\"", "a", "b"},
+                {"java.ref:\"a::b(Func, Entry, int, long):void\"", "a", "b"},
                 {"java.ref:\"java.io.PrintStream::println(java.lang.String):void\"", "java.io.PrintStream", "println"},
-                {"java.ref:\"MethodReferenceTest$A::m(java.lang.Object):java.lang.Object\"", "MethodReferenceTest$A", "m"},
-                {"java.ref:\"R<R::<T extends java.lang.Number>>::n():R::<T extends java.lang.Number>\"", "R<R::<T extends java.lang.Number>>", "n"}
+                {"java.ref:\"MethodReferenceTest$A::m(java.lang.Object):java.lang.Object\"", "MethodReferenceTest$A", "m"}
         };
     }
 
@@ -126,8 +124,7 @@ public class TestReferences {
         return new Object[][]{
                 {"a.b::c:int", "a.b", "c", "int"},
                 {"a.b.c::d:int", "a.b.c", "d", "int"},
-                {"java.lang.System::out:java.io.PrintStream", "java.lang.System", "out", "java.io.PrintStream"},
-                {"R<R::<T extends java.lang.Number>>::n:R::<T extends java.lang.Number>", "R<R::<T extends java.lang.Number>>", "n", "R::<T extends java.lang.Number>"}
+                {"java.lang.System::out:java.io.PrintStream", "java.lang.System", "out", "java.io.PrintStream"}
         };
     }
 
@@ -145,8 +142,7 @@ public class TestReferences {
         return new Object[][]{
                 {"java.ref:\"a.b::c:int\"", "a.b", "c", "int"},
                 {"java.ref:\"a.b.c::d:int\"", "a.b.c", "d", "int"},
-                {"java.ref:\"java.lang.System::out:java.io.PrintStream\"", "java.lang.System", "out", "java.io.PrintStream"},
-                {"java.ref:\"R<R::<T extends java.lang.Number>>::n:R::<T extends java.lang.Number>\"", "R<R::<T extends java.lang.Number>>", "n", "R::<T extends java.lang.Number>"}
+                {"java.ref:\"java.lang.System::out:java.io.PrintStream\"", "java.lang.System", "out", "java.io.PrintStream"}
         };
     }
 
@@ -168,8 +164,7 @@ public class TestReferences {
                 {"()A"},
                 {"(B b)A"},
                 {"(B b, C c)A"},
-                {"(p.Func<String, Number> f, Entry<List<String>, val> e, int i, long l)p.A<R>"},
-                {"(R::<T extends java.lang.Number> n)R<R::<T extends java.lang.Number>>"}
+                {"(p.Func f, Entry e, int i, long l)p.A"}
         };
     }
 
@@ -185,8 +180,7 @@ public class TestReferences {
                 {"java.ref:\"()A\""},
                 {"java.ref:\"(B b)A\""},
                 {"java.ref:\"(B b, C c)A\""},
-                {"java.ref:\"(p.Func<String, Number> f, Entry<List<String>, val> e, int i, long l)p.A<R>\""},
-                {"java.ref:\"(R::<T extends java.lang.Number> n)R<R::<T extends java.lang.Number>>\""}
+                {"java.ref:\"(p.Func f, Entry e, int i, long l)p.A\""}
         };
     }
 
