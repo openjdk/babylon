@@ -105,32 +105,26 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
         return new OpResultEffect(actionEffect.operands().getFirst(), e);
     }
 
-    private OpEffect executeConditionalAndOp(JavaOp.ConditionalAndOp o, Env e) {
+    private OpEffect executeConditionalOp(JavaOp.ConditionalOp o, Env e, boolean earlyExit) {
         for (Body body : o.bodies()) {
             TerminatingOpEffect effect = executeBody(body, List.of(), e);
             Optional<Boolean> b = processBooleanEffect(effect);
             if (b.isEmpty()) {
                 return effect;
             }
-            if (!b.get()) {
-                return new OpResultEffect(false, e);
+            if (b.get() == earlyExit) {
+                return new OpResultEffect(earlyExit, e);
             }
         }
-        return new OpResultEffect(true, e);
+        return new OpResultEffect(!earlyExit, e);
+    }
+
+    private OpEffect executeConditionalAndOp(JavaOp.ConditionalAndOp o, Env e) {
+        return executeConditionalOp(o, e, false);
     }
 
     private OpEffect executeConditionalOrOp(JavaOp.ConditionalOrOp o, Env e) {
-        for (Body body : o.bodies()) {
-            TerminatingOpEffect effect = executeBody(body, List.of(), e);
-            Optional<Boolean> b = processBooleanEffect(effect);
-            if (b.isEmpty()) {
-                return effect;
-            }
-            if (b.get()) {
-                return new OpResultEffect(true, e);
-            }
-        }
-        return new OpResultEffect(false, e);
+        return executeConditionalOp(o, e, true);
     }
 
     private OpEffect executePatternMatchOp(JavaOp.PatternOps.MatchOp o, Env e) {
