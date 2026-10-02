@@ -97,6 +97,8 @@ public final class OpWriter {
                 arrayToString(o, sb);
             } else {
                 switch (o) {
+                    case Byte b -> sb.append(b);
+                    case Short s -> sb.append(s);
                     case Integer i -> sb.append(i);
                     case Long l -> sb.append(l).append('L');
                     case Float f -> sb.append(f).append('f');
