@@ -32,7 +32,7 @@ abstract class AbstractJavaInterpreter extends Interpreter {
                 argsAndCaptures.subList(0, op.parameters().size()).toArray());
     }
 
-    <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+    private <T extends Op & Op.Invokable> Object interpret_(T op, MethodHandles.Lookup l, Object[] captures, Object[] args) {
         Env e = newEnv(l);
         e = e.bind(op.capturedValues(), Arrays.asList(captures));
         var effect = executeBody(op.body(), Arrays.asList(args), e);
@@ -48,7 +48,7 @@ abstract class AbstractJavaInterpreter extends Interpreter {
         }
     }
 
-    Object interpretLambdaBody(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) {
+    private Object interpretLambdaBody(JavaOp.LambdaOp lambdaOp, MethodHandles.Lookup l, Object[] captures, Object[] args) {
         return interpret_(lambdaOp, l, captures, args);
     }
 

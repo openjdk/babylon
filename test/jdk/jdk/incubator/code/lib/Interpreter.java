@@ -38,7 +38,7 @@ public abstract class Interpreter {
         Block block = body.entryBlock();
         while (true) {
             // bind block parameters in new env
-            env = env.bind(block.parameters(), args);
+            env = env.bind(block.parameters(), args); // TODO type validation ?
             switch (executeBlock(block, env)) {
                 // pass control to ancestor op
                 case TerminatingOpEffect e -> {
@@ -113,7 +113,7 @@ public abstract class Interpreter {
      * Exception thrown by the interpreter when execution fails.
      */
     @SuppressWarnings("serial")
-    public static final class InterpreterException extends RuntimeException {
+    static final class InterpreterException extends RuntimeException {
         InterpreterException(Throwable cause) {
             super(cause);
         }
