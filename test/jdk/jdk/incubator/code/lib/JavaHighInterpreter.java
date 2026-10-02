@@ -229,13 +229,14 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
         i++;
         while (i < op.bodies().size()) {
             TerminatingOpEffect effect = executeBody(op.bodies().get(i), List.of(), e);
-            if (effect.terminatingOp() instanceof CoreOp.YieldOp || effect.terminatingOp() instanceof JavaOp.YieldOp ||
-                    effect.terminatingOp() instanceof JavaOp.BreakOp) {
-                return new OpResultEffect(effect.operands().isEmpty() ? null : effect.operands().getFirst(), e);
-            } else if (effect.terminatingOp() instanceof JavaOp.SwitchFallthroughOp) {
-                i += 2;
-            } else {
-                return effect;
+            switch (effect.terminatingOp()) {
+                case CoreOp.YieldOp _, JavaOp.YieldOp _, JavaOp.BreakOp _ -> {
+                    return new OpResultEffect(effect.operands().isEmpty() ? null : effect.operands().getFirst(), e);
+                }
+                case JavaOp.SwitchFallthroughOp _ -> i += 2;
+                default -> {
+                    return effect;
+                }
             }
         }
 
