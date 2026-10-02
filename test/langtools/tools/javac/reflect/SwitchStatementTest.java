@@ -670,7 +670,7 @@ public class SwitchStatementTest {
                         yield;
                     }
                     (%23 : java.type:"int")java.type:"boolean" -> {
-                        %24 : java.type:"long" = constant @3L;
+                        %24 : java.type:"long" = constant @3;
                         %25 : java.type:"int" = conv %24;
                         %26 : java.type:"boolean" = eq %23 %25;
                         yield %26;

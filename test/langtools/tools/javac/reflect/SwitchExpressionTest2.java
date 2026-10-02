@@ -738,7 +738,7 @@ public class SwitchExpressionTest2 {
                         yield %17;
                     }
                     (%18 : java.type:"int")java.type:"boolean" -> {
-                        %19 : java.type:"long" = constant @3L;
+                        %19 : java.type:"long" = constant @3;
                         %20 : java.type:"int" = conv %19;
                         %21 : java.type:"boolean" = eq %18 %20;
                         yield %21;
