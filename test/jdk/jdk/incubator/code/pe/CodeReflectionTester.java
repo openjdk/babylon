@@ -109,7 +109,7 @@ public class CodeReflectionTester {
     }
 
     static CoreOp.FuncOp removeUnusedOps(CoreOp.FuncOp f) {
-        Predicate<Op> unused = op -> (isOpSideEffectFree(op) || op instanceof CoreOp.VarOp) &&
+        Predicate<Op> unused = op -> (OpUtil.isOpSideEffectFree(op) || op instanceof CoreOp.VarOp) &&
                 op.result().uses().isEmpty();
         while (f.elements().skip(1).anyMatch(ce -> ce instanceof Op op && unused.test(op))) {
             f = f.transform((block, op) -> {
@@ -120,19 +120,6 @@ public class CodeReflectionTester {
             });
         }
         return f;
-    }
-
-    static boolean isOpSideEffectFree(Op op) { // a copy of ExpressionElimination.isOpSideEffectFree
-        return switch (op) {
-            case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
-                    CoreOp.ConstantOp _ -> true;
-            case JavaOp.ArithmeticOperation aop -> !(aop instanceof JavaOp.DivOp);
-            // instance field load is side effect free
-            // static field load is not, it may trigger class initialization
-            case JavaOp.FieldAccessOp.FieldLoadOp flop -> flop.receiverOperand() != null;
-            case JavaOp.InvokeOp invop -> invop.invokeReference().refType().equals(JavaType.type(Math.class));
-            default -> false;
-        };
     }
 
     // serializes dropping location information, parses, and then serializes, dropping location information
