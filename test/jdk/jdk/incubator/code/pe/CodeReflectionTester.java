@@ -27,7 +27,6 @@ import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.OpParser;
 import jdk.incubator.code.extern.OpWriter;
 
