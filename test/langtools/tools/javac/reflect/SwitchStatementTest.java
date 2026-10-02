@@ -781,7 +781,7 @@ public class SwitchStatementTest {
                         yield;
                     }
                     (%86 : java.type:"int")java.type:"boolean" -> {
-                        %87 : java.type:"int" = var.load %5;
+                        %87 : java.type:"int" = constant @11;
                         %88 : java.type:"boolean" = eq %86 %87;
                         yield %88;
                     }
@@ -793,13 +793,13 @@ public class SwitchStatementTest {
                         yield;
                     }
                     (%92 : java.type:"int")java.type:"boolean" -> {
-                        %93 : java.type:"int" = field.load @java.ref:"SwitchStatementTest$Constants::c1:int";
+                        %93 : java.type:"int" = constant @12;
                         %94 : java.type:"boolean" = eq %92 %93;
                         yield %94;
                     }
                     ()java.type:"void" -> {
                         %95 : java.type:"java.lang.String" = var.load %3;
-                        %96 : java.type:"int" = field.load @java.ref:"SwitchStatementTest$Constants::c1:int";
+                        %96 : java.type:"int" = constant @12;
                         %97 : java.type:"java.lang.String" = concat %95 %96;
                         var.store %3 %97;
                         yield;
@@ -882,7 +882,7 @@ public class SwitchStatementTest {
                 %10 : java.type:"short" = var.load %1;
                 java.switch.statement %10
                     (%11 : java.type:"short")java.type:"boolean" -> {
-                        %12 : java.type:"short" = var.load %4;
+                        %12 : java.type:"short" = constant @1;
                         %13 : java.type:"boolean" = eq %11 %12;
                         yield %13;
                     }
@@ -894,7 +894,7 @@ public class SwitchStatementTest {
                         yield;
                     }
                     (%17 : java.type:"short")java.type:"boolean" -> {
-                        %18 : java.type:"byte" = var.load %7;
+                        %18 : java.type:"byte" = constant @2;
                         %19 : java.type:"short" = conv %18;
                         %20 : java.type:"boolean" = eq %17 %19;
                         yield %20;
@@ -974,7 +974,7 @@ public class SwitchStatementTest {
                     }
                     (%16 : java.type:"java.lang.Byte")java.type:"boolean" -> {
                         %17 : java.type:"byte" = invoke %16 @java.ref:"java.lang.Byte::byteValue():byte";
-                        %18 : java.type:"byte" = var.load %4;
+                        %18 : java.type:"byte" = constant @2;
                         %19 : java.type:"boolean" = eq %17 %18;
                         yield %19;
                     }

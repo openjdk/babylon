@@ -258,7 +258,7 @@ public class ReflectableLambdaTest {
                       %2 : java.type:"int" = constant @1;
                       %3 : Var<java.type:"int"> = var %2 @"i";
                       %4 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                      %5 : java.type:"int" = var.load %3;
+                      %5 : java.type:"int" = constant @1;
                       invoke %4 %5 @java.ref:"java.io.PrintStream::println(int):void";
                       return;
                   };

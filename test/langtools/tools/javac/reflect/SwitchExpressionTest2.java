@@ -825,7 +825,7 @@ public class SwitchExpressionTest2 {
                         yield %64;
                     }
                     (%65 : java.type:"int")java.type:"boolean" -> {
-                        %66 : java.type:"int" = var.load %3;
+                        %66 : java.type:"int" = constant @11;
                         %67 : java.type:"boolean" = eq %65 %66;
                         yield %67;
                     }
@@ -834,12 +834,12 @@ public class SwitchExpressionTest2 {
                         yield %68;
                     }
                     (%69 : java.type:"int")java.type:"boolean" -> {
-                        %70 : java.type:"int" = field.load @java.ref:"SwitchExpressionTest2$Constants::c1:int";
+                        %70 : java.type:"int" = constant @12;
                         %71 : java.type:"boolean" = eq %69 %70;
                         yield %71;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %72 : java.type:"int" = field.load @java.ref:"SwitchExpressionTest2$Constants::c1:int";
+                        %72 : java.type:"int" = constant @12;
                         %73 : java.type:"java.lang.String" = invoke %72 @java.ref:"java.lang.String::valueOf(int):java.lang.String";
                         yield %73;
                     }
@@ -912,7 +912,7 @@ public class SwitchExpressionTest2 {
                 %8 : java.type:"short" = var.load %1;
                 %9 : java.type:"java.lang.String" = java.switch.expression %8
                     (%10 : java.type:"short")java.type:"boolean" -> {
-                        %11 : java.type:"short" = var.load %4;
+                        %11 : java.type:"short" = constant @1;
                         %12 : java.type:"boolean" = eq %10 %11;
                         yield %12;
                     }
@@ -921,7 +921,7 @@ public class SwitchExpressionTest2 {
                         yield %13;
                     }
                     (%14 : java.type:"short")java.type:"boolean" -> {
-                        %15 : java.type:"byte" = var.load %7;
+                        %15 : java.type:"byte" = constant @2;
                         %16 : java.type:"short" = conv %15;
                         %17 : java.type:"boolean" = eq %14 %16;
                         yield %17;
@@ -979,12 +979,12 @@ public class SwitchExpressionTest2 {
                         yield %11;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %11 : java.type:"java.lang.String" = constant @"one";
-                        yield %11;
+                        %12 : java.type:"java.lang.String" = constant @"one";
+                        yield %12;
                     }
                     (%13 : java.type:"java.lang.Byte")java.type:"boolean" -> {
                         %14 : java.type:"byte" = invoke %13 @java.ref:"java.lang.Byte::byteValue():byte";
-                        %15 : java.type:"byte" = var.load %4;
+                        %15 : java.type:"byte" = constant @2;
                         %16 : java.type:"boolean" = eq %14 %15;
                         yield %16;
                     }
