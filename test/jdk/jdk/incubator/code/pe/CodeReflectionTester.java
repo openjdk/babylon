@@ -108,7 +108,7 @@ public class CodeReflectionTester {
     }
 
     static CoreOp.FuncOp removeUnusedOps(CoreOp.FuncOp f) {
-        Predicate<Op> unused = op -> (op instanceof Op.Pure || op instanceof CoreOp.VarOp) &&
+        Predicate<Op> unused = op -> (OpUtil.isOpSideEffectFree(op) || op instanceof CoreOp.VarOp) &&
                 op.result().uses().isEmpty();
         while (f.elements().skip(1).anyMatch(ce -> ce instanceof Op op && unused.test(op))) {
             f = f.transform((block, op) -> {

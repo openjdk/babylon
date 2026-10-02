@@ -23,19 +23,15 @@
 
 import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 
 import static jdk.incubator.code.dialect.java.JavaOp.sub;
 
 public final class ExpressionElimination {
     private ExpressionElimination() {
     }
-
-    static final JavaType J_L_MATH = JavaType.type(Math.class);
 
     static Patterns.OpPattern negP(Patterns.Pattern operand) {
         return Patterns.opP(JavaOp.NegOp.class, operand);
@@ -95,16 +91,8 @@ public final class ExpressionElimination {
             return block;
         });
 
-        Predicate<Op> testPure = op -> {
-            if (op instanceof Op.Pure) {
-                return true;
-            } else {
-                return op instanceof JavaOp.InvokeOp c && c.invokeReference().refType().equals(J_L_MATH);
-            }
-        };
-
         while (true) {
-            Set<Op> unused = Patterns.matchUnusedPureOps(ef, testPure);
+            Set<Op> unused = Patterns.matchUnusedSideEffectFreeOps(ef, OpUtil::isOpSideEffectFree);
             if (unused.isEmpty()) {
                 break;
             }

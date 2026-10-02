@@ -118,12 +118,6 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
     }
 
     /**
-     * An operation characteristic indicating the operation is pure and has no side effects.
-     */
-    public interface Pure {
-    }
-
-    /**
      * An operation characteristic indicating the operation has one or more bodies.
      */
     public interface Nested {
