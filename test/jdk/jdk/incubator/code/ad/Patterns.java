@@ -43,18 +43,6 @@ public final class Patterns {
     private Patterns() {
     }
 
-
-    /**
-     * Traverses this operation and its descendant operations and returns the set of operations that are unused
-     * (have no uses) and are pure (are instances of {@code Op.Pure} and thus have no side effects).
-     *
-     * @param op the operation to traverse
-     * @return the set of used and pure operations.
-     */
-    public static Set<Op> matchUnusedPureOps(Op op) {
-        return matchUnusedPureOps(op, o -> o instanceof Op.Pure);
-    }
-
     /**
      * Traverses this operation and its descendant operations and returns the set of operations that are unused
      * (have no uses) and are pure (according to the given predicate).

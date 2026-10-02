@@ -22,6 +22,7 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import java.util.HashMap;
@@ -95,16 +96,8 @@ public final class ExpressionElimination {
             return block;
         });
 
-        Predicate<Op> testPure = op -> {
-            if (op instanceof Op.Pure) {
-                return true;
-            } else {
-                return op instanceof JavaOp.InvokeOp c && c.invokeReference().refType().equals(J_L_MATH);
-            }
-        };
-
         while (true) {
-            Set<Op> unused = Patterns.matchUnusedPureOps(ef, testPure);
+            Set<Op> unused = Patterns.matchUnusedPureOps(ef, ExpressionElimination::isOpSideEffectFree);
             if (unused.isEmpty()) {
                 break;
             }
@@ -120,5 +113,18 @@ public final class ExpressionElimination {
         @SuppressWarnings("unchecked")
         T t = (T) ef;
         return t;
+    }
+
+    static boolean isOpSideEffectFree(Op op) {
+        return switch (op) {
+            case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
+                    CoreOp.ConstantOp _ -> true;
+            case JavaOp.ArithmeticOperation aop -> !(aop instanceof JavaOp.DivOp);
+            // instance field load is side effect free
+            // static field load is not, it may trigger class initialization
+            case JavaOp.FieldAccessOp.FieldLoadOp flop -> flop.receiverOperand() != null;
+            case JavaOp.InvokeOp invop -> invop.invokeReference().refType().equals(JavaType.type(Math.class));
+            default -> false;
+        };
     }
 }
