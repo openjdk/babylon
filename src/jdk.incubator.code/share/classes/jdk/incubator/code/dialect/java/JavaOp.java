@@ -120,13 +120,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * variable.
          *</ul>
          *
+         * @apiNote Compiler-generated Java code models may inline constant-variable reads as {@link ConstantOp} operations.
+         *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
          * is not an instance of {@link Op.Result} or the operation does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
-         *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
             return new ConstantExpressionEvaluator(l).evaluate(v);
@@ -151,6 +152,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * Such a variable is modelled as a variable operation, which does not model if the variable is a final
          * variable.
          *</ul>
+         *
+         * @apiNote Compiler-generated Java code models may inline constant-variable reads as {@link ConstantOp} operations.
          *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
