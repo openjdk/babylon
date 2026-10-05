@@ -105,8 +105,8 @@ import java.lang.reflect.Method;
  * The annotation is ignored if it appears in any other valid syntactic location.
  * <p>
  * Declaring a reflectable lambda expression or method does not implicitly broaden the scope of what is reflectable to
- * methods they invoke. Furthermore, declaring a reflectable lambda expression does broaden the scope to the surrounding
- * code of final, or effectively final, variables used but not declared in the lambda expression.
+ * methods they invoke. Furthermore, declaring a reflectable lambda expression does not broaden the scope to the
+ * surrounding code of final, or effectively final, variables used but not declared in the lambda expression.
  * Declaring a reflectable method reference does not implicitly broaden the scope to the referenced method.
  * A reflectable method reference's code model is the same as the code model of an equivalent reflectable lambda
  * expression whose body invokes the referenced method.
