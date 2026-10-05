@@ -31,7 +31,6 @@ import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 /**
  * An operation and a mapping from the operation's {@link Op#operands() operands} and
@@ -229,19 +228,13 @@ public final class Quoted<T extends Op> {
             throw invalidQuotedModel(funcOp);
         }
         Block fblock = funcOp.body().entryBlock();
-        if (fblock.ops().size() < 2) {
-            throw invalidQuotedModel(funcOp);
-        }
-        if (!(fblock.ops().get(fblock.ops().size() - 2) instanceof CoreOp.QuotedOp qop)) {
-            throw invalidQuotedModel(funcOp);
-        }
-        if (!(fblock.ops().getLast() instanceof CoreOp.ReturnOp returnOp)) {
-            throw invalidQuotedModel(funcOp);
-        }
-        if (returnOp.returnValue() == null) {
-            throw invalidQuotedModel(funcOp);
-        }
-        if (!returnOp.returnValue().equals(qop.result())) {
+        List<Op> ops = fblock.ops();
+        if (ops.size() < 2
+                || !(ops.get(ops.size() - 2) instanceof CoreOp.QuotedOp qop)
+                || !(ops.getLast() instanceof CoreOp.ReturnOp returnOp)
+                || returnOp.returnValue() == null
+                || !returnOp.returnValue().equals(qop.result())) {
+
             throw invalidQuotedModel(funcOp);
         }
 
@@ -251,53 +244,30 @@ public final class Quoted<T extends Op> {
         operandsAndCaptures.addAll(op.operands());
         operandsAndCaptures.addAll(op.capturedValues());
 
-        // validation rule of block params and ConstantOp result
-        // let v be a block param or ConstantOp result
-        // if v not used -> throw
-        // if v used once and user is VarOp and VarOp not used or VarOp used in funcOp entry block -> throw
-        // if v is used once and user is not a VarOp and usage isn't as operand or capture -> throw
-        // if v is used more than once and one of the uses is in funcOp entry block -> throw
-        Consumer<Value> validate = v -> {
-            if (v.uses().isEmpty()) {
-                throw invalidQuotedModel(funcOp);
-            } else if (v.uses().size() == 1 && v.uses().iterator().next().op() instanceof CoreOp.VarOp vop
-                    && (vop.result().uses().isEmpty() ||
-                    vop.result().uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock))) {
-                throw invalidQuotedModel(funcOp);
-            } else if (v.uses().size() == 1 && !(v.uses().iterator().next().op() instanceof CoreOp.VarOp)
-                    && !operandsAndCaptures.contains(v)) {
-                throw invalidQuotedModel(funcOp);
-            } else if (v.uses().size() > 1 && v.uses().stream().anyMatch(u -> u.op().ancestorBlock() == fblock)) {
+        // each parameter supplies one quoted value, directly or through an outer VarOp
+        for (Block.Parameter p : fblock.parameters()) {
+            if (p.uses().stream().filter(u -> u.op() instanceof CoreOp.VarOp varOp
+                    && varOp.ancestorBlock() == fblock
+                    && operandsAndCaptures.contains(varOp.result())).count()
+                    != (operandsAndCaptures.contains(p) ? 0 : 1)){
                 throw invalidQuotedModel(funcOp);
             }
-        };
-
-        for (Block.Parameter p : fblock.parameters()) {
-            validate.accept(p);
         }
 
-        List<Op> ops = fblock.ops().subList(0, fblock.ops().size() - 2);
-        for (Op o : ops) {
-            switch (o) {
-                case CoreOp.VarOp varOp -> {
-                    if (varOp.isUninitialized()) {
-                        throw invalidQuotedModel(funcOp);
-                    }
-                    if (varOp.initOperand() instanceof Op.Result opr && !(opr.op() instanceof CoreOp.ConstantOp)) {
-                        throw invalidQuotedModel(funcOp);
-                    }
-                }
-                case CoreOp.ConstantOp cop -> validate.accept(cop.result());
-                default -> throw invalidQuotedModel(funcOp);
+        for (int i = 0; i < ops.size() - 2; i++) {
+            if (!(ops.get(i) instanceof CoreOp.VarOp varOp)
+                    || varOp.isUninitialized()
+                    || !(varOp.initOperand() instanceof Block.Parameter p)
+                    || p.declaringBlock() != fblock
+                    || !operandsAndCaptures.contains(varOp.result())) {
+                throw invalidQuotedModel(funcOp);
             }
         }
 
         // map operands and captures to their corresponding runtime values
         // operand and capture can be:
-        // 1- block param
-        // 2- result of VarOp whose initial value is constant
-        // 3- result of VarOp whose initial value is block param
-        // 4- result of ConstantOp
+        // 1- block param of this function
+        // 2- result of VarOp whose initial value is a block param of this function
         List<Block.Parameter> params = funcOp.parameters();
         if (params.size() != args.size()) {
             throw invalidQuotedModel(funcOp);
@@ -305,20 +275,17 @@ public final class Quoted<T extends Op> {
         SequencedMap<Value, Object> m = new LinkedHashMap<>();
         for (Value v : operandsAndCaptures) {
             switch (v) {
-                case Block.Parameter p -> {
+                // reject captures from another block
+                case Block.Parameter p when p.declaringBlock() == fblock -> {
                     Object rv = args.get(p.index());
                     m.put(v, rv);
                 }
-                case Op.Result opr when opr.op() instanceof CoreOp.VarOp varOp -> {
-                    if (varOp.initOperand() instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop) {
-                        m.put(v, CoreOp.Var.of(cop.value()));
-                    } else if (varOp.initOperand() instanceof Block.Parameter p) {
-                        Object rv = args.get(p.index());
-                        m.put(v, CoreOp.Var.of(rv));
-                    }
-                }
-                case Op.Result opr when opr.op() instanceof CoreOp.ConstantOp cop -> {
-                    m.put(v, cop.value());
+                case Op.Result opr when opr.op() instanceof CoreOp.VarOp varOp
+                                     && varOp.ancestorBlock() == fblock
+                                     && varOp.initOperand() instanceof Block.Parameter p
+                                     && p.declaringBlock() == fblock -> {
+                    Object rv = args.get(p.index());
+                    m.put(v, CoreOp.Var.of(rv));
                 }
                 default -> throw invalidQuotedModel(funcOp);
             }
