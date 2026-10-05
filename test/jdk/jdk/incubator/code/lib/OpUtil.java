@@ -9,7 +9,8 @@ class OpUtil {
             case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
                     CoreOp.ConstantOp _ -> true;
             case JavaOp.ArithmeticOperation aop -> !(aop instanceof JavaOp.DivOp);
-            case JavaOp.InvokeOp invop -> invop.invokeReference().refType().equals(JavaType.type(Math.class));
+            case JavaOp.InvokeOp invop -> invop.invokeReference().refType().equals(JavaType.type(Math.class)) &&
+                    !invop.invokeReference().name().toLowerCase().contains("div");
             default -> false;
         };
     }
