@@ -120,8 +120,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * variable.
          *</ul>
          *
-         * @apiNote Compiler-generated {@linkplain jdk.incubator.code##java-code-models-heading Java code models} may inline
-         *          constant-variable reads as {@link ConstantOp} operations.
+         * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
+         *          variable as a constant operation whose constant value is the same as the constant variable's value.
          *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param v the value to evaluate
@@ -154,8 +154,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * variable.
          *</ul>
          *
-         * @apiNote Compiler-generated {@linkplain jdk.incubator.code##java-code-models-heading Java code models} may inline
-         *          constant-variable reads as {@link ConstantOp} operations.
+         * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
+         *          variable as a constant operation whose constant value is the same as the constant variable's value.
          *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
