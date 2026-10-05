@@ -9,9 +9,6 @@ class OpUtil {
             case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
                     CoreOp.ConstantOp _ -> true;
             case JavaOp.ArithmeticOperation aop -> !(aop instanceof JavaOp.DivOp);
-            // instance field load is side effect free
-            // static field load is not, it may trigger class initialization
-            case JavaOp.FieldAccessOp.FieldLoadOp flop -> flop.receiverOperand() != null;
             case JavaOp.InvokeOp invop -> invop.invokeReference().refType().equals(JavaType.type(Math.class));
             default -> false;
         };
