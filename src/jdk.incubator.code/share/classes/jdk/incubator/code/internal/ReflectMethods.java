@@ -445,7 +445,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         // Current block to add operations
         Block.Builder block;
 
-        // Map of symbols (method arguments and local variables) to varOp values
+        // Map of symbols (method arguments and local variables) to varOp or local constant initializer values
         final Map<Symbol, Value> localToOp;
 
         // Label
@@ -824,7 +824,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             JavaType javaType = typeToCodeType(tree.type);
             if (tree.init != null) {
                 Value initOp = toValue(tree.init, tree.type);
-                result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
+                // constant locals bind to the initializer result
+                result = tree.sym.getConstantValue() != null
+                        ? initOp : append(CoreOp.var(tree.name.toString(), javaType, initOp));
             } else {
                 // Uninitialized
                 result = append(CoreOp.var(tree.name.toString(), javaType));
@@ -1034,7 +1036,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
             switch (sym.getKind()) {
                 case LOCAL_VARIABLE -> {
                     if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
-                        result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
+                        Value local = stack.localToOp.get(sym);
+                        // reuse a definition in this body, become a new literal otherwise
+                        result = local != null && !(local.type() instanceof VarType) ? local
+                                : append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
+                        stack.localToOp.put(sym, result);
                     } else {
                         result = loadVar(sym);
                     }
@@ -2047,7 +2053,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 @Override
                 public void visitVarDef(JCVariableDecl tree) {
-                    decls.add(tree);
+                    // only non-constants enter the loop's variable state
+                    if (tree.sym.getConstantValue() == null) decls.add(tree);
                 }
 
                 void mapVarsToBlockArguments() {
