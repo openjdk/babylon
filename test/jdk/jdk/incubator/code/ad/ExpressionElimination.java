@@ -92,7 +92,7 @@ public final class ExpressionElimination {
         });
 
         while (true) {
-            Set<Op> unused = Patterns.matchUnusedSideEffectFreeOps(ef, OpUtil::isOpSideEffectFree);
+            Set<Op> unused = Patterns.matchUnusedRemovableOps(ef, OpUtil::isOpRemovable);
             if (unused.isEmpty()) {
                 break;
             }

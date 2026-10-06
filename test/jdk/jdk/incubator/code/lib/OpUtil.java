@@ -4,7 +4,7 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 
 class OpUtil {
-    static boolean isOpSideEffectFree(Op op) {
+    static boolean isOpRemovable(Op op) {
         return switch (op) {
             case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
                     CoreOp.ConstantOp _ -> true;
