@@ -197,20 +197,21 @@ func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
 };
 """, new Object[]{}
                 },
-                {
-                        // param must be used
-                        """
-func @"q" (%0 : java.type:"Object")java.type:"jdk.incubator.code.Quoted" -> {
-    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
-      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
-          return;
-      };
-      yield %6;
-    };
-    return %5;
-};
-""", new Object[]{"s"}
-                },
+// @@@ unused potential receiver must by accepted
+//                {
+//                        // param must be used
+//                        """
+//func @"q" (%0 : java.type:"Object")java.type:"jdk.incubator.code.Quoted" -> {
+//    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+//      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+//          return;
+//      };
+//      yield %6;
+//    };
+//    return %5;
+//};
+//""", new Object[]{"s"}
+//                },
                 {
                         // param used more than once, all uses must be as operand or capture of quoted op
                         """

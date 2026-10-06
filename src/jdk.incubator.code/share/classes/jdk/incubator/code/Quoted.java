@@ -245,11 +245,12 @@ public final class Quoted<T extends Op> {
         operandsAndCaptures.addAll(op.capturedValues());
 
         // each parameter supplies one quoted value, directly or through an outer VarOp
+        // @@@ unused receiver is hard to identify and must be accepted
         for (Block.Parameter p : fblock.parameters()) {
-            if (p.uses().stream().filter(u -> u.op() instanceof CoreOp.VarOp varOp
+            if (!operandsAndCaptures.contains(p)
+                    && !p.uses().stream().allMatch(u -> u.op() instanceof CoreOp.VarOp varOp
                     && varOp.ancestorBlock() == fblock
-                    && operandsAndCaptures.contains(varOp.result())).count()
-                    != (operandsAndCaptures.contains(p) ? 0 : 1)){
+                    && operandsAndCaptures.contains(varOp.result()))) {
                 throw invalidQuotedModel(funcOp);
             }
         }

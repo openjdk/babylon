@@ -267,4 +267,30 @@ public class ReflectableLambdaTest {
         final int i = 1;
         System.out.println(i);
     };
+
+    static class ConstantFieldContext {
+        static final int STATIC_CONSTANT_VARIABLE = 42;
+        final int INSTANCE_CONSTANT_VARIABLE = 43;
+
+        @Reflect
+        Runnable R = () -> {
+            final int i = STATIC_CONSTANT_VARIABLE + INSTANCE_CONSTANT_VARIABLE;
+            IO.println(i);
+        };
+    }
+
+    @IR("""
+            func @"f" ()java.type:"void" -> {
+                %0 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %1 : java.type:"int" = constant @42;
+                    %2 : java.type:"int" = constant @43;
+                    %3 : java.type:"int" = add %1 %2;
+                    %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                    invoke %4 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                    return;
+                };
+                return;
+            };
+            """)
+    static final Runnable QUOTED_CONSTANT_FIELDS = new ConstantFieldContext().R;
 }
