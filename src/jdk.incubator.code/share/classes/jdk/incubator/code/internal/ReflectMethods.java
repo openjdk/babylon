@@ -1041,9 +1041,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         for (BodyStack s = stack; s != null && local == null; s = s.parent) {
                             local = s.localToOp.get(sym);
                         }
-                        result = local != null && !(local.type() instanceof VarType) ? local
-                                : append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
-                        stack.localToOp.put(sym, result);
+                        BodyStack where = local == null && isLambdaReflectable ? top : stack;
+                        result = local != null ? local
+                                : append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()), generateLocation(pos(), false), where);
+                        where.localToOp.put(sym, result);
                     } else {
                         result = loadVar(sym);
                     }
