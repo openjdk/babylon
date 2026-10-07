@@ -780,68 +780,67 @@ public class SwitchStatementTest {
                         yield;
                     }
                     (%85 : java.type:"int")java.type:"boolean" -> {
-                        %86 : java.type:"int" = constant @11;
-                        %87 : java.type:"boolean" = eq %85 %86;
-                        yield %87;
+                        %86 : java.type:"boolean" = eq %85 %4;
+                        yield %86;
                     }
                     ()java.type:"void" -> {
-                        %88 : java.type:"java.lang.String" = var.load %3;
-                        %89 : java.type:"int" = constant @11;
-                        %90 : java.type:"java.lang.String" = concat %88 %89;
-                        var.store %3 %90;
+                        %87 : java.type:"java.lang.String" = var.load %3;
+                        %88 : java.type:"int" = constant @11;
+                        %89 : java.type:"java.lang.String" = concat %87 %88;
+                        var.store %3 %89;
                         yield;
                     }
-                    (%91 : java.type:"int")java.type:"boolean" -> {
-                        %92 : java.type:"int" = constant @12;
-                        %93 : java.type:"boolean" = eq %91 %92;
-                        yield %93;
+                    (%90 : java.type:"int")java.type:"boolean" -> {
+                        %91 : java.type:"int" = constant @12;
+                        %92 : java.type:"boolean" = eq %90 %91;
+                        yield %92;
                     }
                     ()java.type:"void" -> {
-                        %94 : java.type:"java.lang.String" = var.load %3;
-                        %95 : java.type:"int" = constant @12;
-                        %96 : java.type:"java.lang.String" = concat %94 %95;
-                        var.store %3 %96;
+                        %93 : java.type:"java.lang.String" = var.load %3;
+                        %94 : java.type:"int" = constant @12;
+                        %95 : java.type:"java.lang.String" = concat %93 %94;
+                        var.store %3 %95;
                         yield;
                     }
-                    (%97 : java.type:"int")java.type:"boolean" -> {
-                        %98 : java.type:"int" = java.cexpression
+                    (%96 : java.type:"int")java.type:"boolean" -> {
+                        %97 : java.type:"int" = java.cexpression
                             ()java.type:"boolean" -> {
-                                %99 : java.type:"int" = constant @1;
-                                %100 : java.type:"int" = constant @0;
-                                %101 : java.type:"boolean" = gt %99 %100;
+                                %98 : java.type:"int" = constant @1;
+                                %99 : java.type:"int" = constant @0;
+                                %100 : java.type:"boolean" = gt %98 %99;
+                                yield %100;
+                            }
+                            ()java.type:"int" -> {
+                                %101 : java.type:"int" = constant @13;
                                 yield %101;
                             }
                             ()java.type:"int" -> {
-                                %102 : java.type:"int" = constant @13;
+                                %102 : java.type:"int" = constant @133;
                                 yield %102;
-                            }
-                            ()java.type:"int" -> {
-                                %103 : java.type:"int" = constant @133;
-                                yield %103;
                             };
-                        %104 : java.type:"boolean" = eq %97 %98;
-                        yield %104;
+                        %103 : java.type:"boolean" = eq %96 %97;
+                        yield %103;
                     }
                     ()java.type:"void" -> {
-                        %105 : java.type:"java.lang.String" = var.load %3;
-                        %106 : java.type:"int" = constant @13;
-                        %107 : java.type:"java.lang.String" = concat %105 %106;
-                        var.store %3 %107;
+                        %104 : java.type:"java.lang.String" = var.load %3;
+                        %105 : java.type:"int" = constant @13;
+                        %106 : java.type:"java.lang.String" = concat %104 %105;
+                        var.store %3 %106;
                         yield;
                     }
                     ()java.type:"boolean" -> {
-                        %108 : java.type:"boolean" = constant @true;
-                        yield %108;
+                        %107 : java.type:"boolean" = constant @true;
+                        yield %107;
                     }
                     ()java.type:"void" -> {
-                        %109 : java.type:"java.lang.String" = var.load %3;
-                        %110 : java.type:"java.lang.String" = constant @"an int";
-                        %111 : java.type:"java.lang.String" = concat %109 %110;
-                        var.store %3 %111;
+                        %108 : java.type:"java.lang.String" = var.load %3;
+                        %109 : java.type:"java.lang.String" = constant @"an int";
+                        %110 : java.type:"java.lang.String" = concat %108 %109;
+                        var.store %3 %110;
                         yield;
                     };
-                %112 : java.type:"java.lang.String" = var.load %3;
-                return %112;
+                %111 : java.type:"java.lang.String" = var.load %3;
+                return %111;
             };
             """)
     @Reflect
@@ -879,56 +878,54 @@ public class SwitchStatementTest {
                 %8 : java.type:"short" = var.load %1;
                 java.switch.statement %8
                     (%9 : java.type:"short")java.type:"boolean" -> {
-                        %10 : java.type:"short" = constant @1;
-                        %11 : java.type:"boolean" = eq %9 %10;
-                        yield %11;
+                        %10 : java.type:"boolean" = eq %9 %3;
+                        yield %10;
                     }
                     ()java.type:"void" -> {
-                        %12 : java.type:"java.lang.String" = var.load %7;
-                        %13 : java.type:"java.lang.String" = constant @"one";
-                        %14 : java.type:"java.lang.String" = concat %12 %13;
-                        var.store %7 %14;
+                        %11 : java.type:"java.lang.String" = var.load %7;
+                        %12 : java.type:"java.lang.String" = constant @"one";
+                        %13 : java.type:"java.lang.String" = concat %11 %12;
+                        var.store %7 %13;
                         yield;
                     }
-                    (%15 : java.type:"short")java.type:"boolean" -> {
-                        %16 : java.type:"byte" = constant @2;
-                        %17 : java.type:"short" = conv %16;
-                        %18 : java.type:"boolean" = eq %15 %17;
-                        yield %18;
+                    (%14 : java.type:"short")java.type:"boolean" -> {
+                        %15 : java.type:"short" = conv %5;
+                        %16 : java.type:"boolean" = eq %14 %15;
+                        yield %16;
                     }
                     ()java.type:"void" -> {
-                        %19 : java.type:"java.lang.String" = var.load %7;
-                        %20 : java.type:"java.lang.String" = constant @"two";
-                        %21 : java.type:"java.lang.String" = concat %19 %20;
-                        var.store %7 %21;
+                        %17 : java.type:"java.lang.String" = var.load %7;
+                        %18 : java.type:"java.lang.String" = constant @"two";
+                        %19 : java.type:"java.lang.String" = concat %17 %18;
+                        var.store %7 %19;
                         yield;
                     }
-                    (%22 : java.type:"short")java.type:"boolean" -> {
-                        %23 : java.type:"int" = constant @3;
-                        %24 : java.type:"short" = conv %23;
-                        %25 : java.type:"boolean" = eq %22 %24;
-                        yield %25;
+                    (%20 : java.type:"short")java.type:"boolean" -> {
+                        %21 : java.type:"int" = constant @3;
+                        %22 : java.type:"short" = conv %21;
+                        %23 : java.type:"boolean" = eq %20 %22;
+                        yield %23;
                     }
                     ()java.type:"void" -> {
-                        %26 : java.type:"java.lang.String" = var.load %7;
-                        %27 : java.type:"java.lang.String" = constant @"three";
-                        %28 : java.type:"java.lang.String" = concat %26 %27;
-                        var.store %7 %28;
+                        %24 : java.type:"java.lang.String" = var.load %7;
+                        %25 : java.type:"java.lang.String" = constant @"three";
+                        %26 : java.type:"java.lang.String" = concat %24 %25;
+                        var.store %7 %26;
                         yield;
                     }
                     ()java.type:"boolean" -> {
-                        %29 : java.type:"boolean" = constant @true;
-                        yield %29;
+                        %27 : java.type:"boolean" = constant @true;
+                        yield %27;
                     }
                     ()java.type:"void" -> {
-                        %30 : java.type:"java.lang.String" = var.load %7;
-                        %31 : java.type:"java.lang.String" = constant @"else";
-                        %32 : java.type:"java.lang.String" = concat %30 %31;
-                        var.store %7 %32;
+                        %28 : java.type:"java.lang.String" = var.load %7;
+                        %29 : java.type:"java.lang.String" = constant @"else";
+                        %30 : java.type:"java.lang.String" = concat %28 %29;
+                        var.store %7 %30;
                         yield;
                     };
-                %33 : java.type:"java.lang.String" = var.load %7;
-                return %33;
+                %31 : java.type:"java.lang.String" = var.load %7;
+                return %31;
             };
             """)
     @Reflect
@@ -970,30 +967,29 @@ public class SwitchStatementTest {
                     }
                     (%15 : java.type:"java.lang.Byte")java.type:"boolean" -> {
                         %16 : java.type:"byte" = invoke %15 @java.ref:"java.lang.Byte::byteValue():byte";
-                        %17 : java.type:"byte" = constant @2;
-                        %18 : java.type:"boolean" = eq %16 %17;
-                        yield %18;
+                        %17 : java.type:"boolean" = eq %16 %3;
+                        yield %17;
                     }
                     ()java.type:"void" -> {
-                        %19 : java.type:"java.lang.String" = var.load %5;
-                        %20 : java.type:"java.lang.String" = constant @"two";
-                        %21 : java.type:"java.lang.String" = concat %19 %20;
-                        var.store %5 %21;
+                        %18 : java.type:"java.lang.String" = var.load %5;
+                        %19 : java.type:"java.lang.String" = constant @"two";
+                        %20 : java.type:"java.lang.String" = concat %18 %19;
+                        var.store %5 %20;
                         yield;
                     }
                     ()java.type:"boolean" -> {
-                        %22 : java.type:"boolean" = constant @true;
-                        yield %22;
+                        %21 : java.type:"boolean" = constant @true;
+                        yield %21;
                     }
                     ()java.type:"void" -> {
-                        %23 : java.type:"java.lang.String" = var.load %5;
-                        %24 : java.type:"java.lang.String" = constant @"default";
-                        %25 : java.type:"java.lang.String" = concat %23 %24;
-                        var.store %5 %25;
+                        %22 : java.type:"java.lang.String" = var.load %5;
+                        %23 : java.type:"java.lang.String" = constant @"default";
+                        %24 : java.type:"java.lang.String" = concat %22 %23;
+                        var.store %5 %24;
                         yield;
                     };
-                %26 : java.type:"java.lang.String" = var.load %5;
-                return %26;
+                %25 : java.type:"java.lang.String" = var.load %5;
+                return %25;
             };
             """)
     @Reflect
