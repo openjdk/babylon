@@ -42,6 +42,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class TestNestedCapturingLambda {
@@ -81,7 +82,28 @@ public class TestNestedCapturingLambda {
         Assertions.assertEquals(f(-1), (int) mh.invoke(-1));
     }
 
-    static MethodHandle generate(CoreOp.FuncOp f) {
+    @Reflect
+    static Supplier<IntSupplier> nestedConstants() {
+        final int methodConstant = 1 + 2;
+        return () -> {
+            final int outerConstant = methodConstant * 4;
+            return () -> {
+                final int innerConstant = methodConstant + outerConstant;
+                return innerConstant + methodConstant + outerConstant;
+            };
+        };
+    }
+
+    @Test
+    void testNestedConstants() throws Throwable {
+        Supplier<IntSupplier> gen1 = (Supplier<IntSupplier>) generate(getFuncOp("nestedConstants")).invoke();
+        Assertions.assertEquals(30, gen1.get().getAsInt());
+        IntSupplier gen2 = (IntSupplier) generate(Op.ofLambda(gen1).orElseThrow().op()).invoke();
+        Assertions.assertEquals(30, gen2.getAsInt());
+        Assertions.assertEquals(30, (int)generate(Op.ofLambda(gen2).orElseThrow().op()).invoke());
+    }
+
+    static<O extends Op & Op.Invokable> MethodHandle generate(O f) {
         System.out.println(f.toText());
 
         return BytecodeGenerator.generate(MethodHandles.lookup(), f);
