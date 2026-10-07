@@ -22,7 +22,10 @@
  */
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+
 import java.util.HashMap;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -92,7 +95,7 @@ public final class ExpressionElimination {
         });
 
         while (true) {
-            Set<Op> unused = Patterns.matchUnusedRemovableOps(ef, OpUtil::isOpRemovable);
+            Set<Op> unused = Patterns.matchUnusedRemovableOps(ef, ExpressionElimination::isOpRemovable);
             if (unused.isEmpty()) {
                 break;
             }
@@ -108,5 +111,15 @@ public final class ExpressionElimination {
         @SuppressWarnings("unchecked")
         T t = (T) ef;
         return t;
+    }
+
+    private static boolean isOpRemovable(Op op) {
+        return switch (op) {
+            case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
+                    CoreOp.ConstantOp _, JavaOp.ArithmeticOperation _, CoreOp.QuotedOp _,
+                    JavaOp.FieldAccessOp.FieldLoadOp _, JavaOp.ArrayAccessOp.ArrayLoadOp _ -> true;
+            case JavaOp.InvokeOp invop -> invop.invokeReference().refType().equals(JavaType.type(Math.class));
+            default -> false;
+        };
     }
 }
