@@ -56,9 +56,13 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.internal.OpBuilder;
+import jdk.incubator.code.internal.ConstantValueAnalysis;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Lambda expansion transformer generates a module with lambda operations replaced
@@ -82,6 +86,8 @@ final class LambdaExpansionTransformer implements CodeTransformer {
     private final List<FuncOp> functions = new ArrayList<>();
     private final LinkedHashMap<String, FuncOp> modelsToBuild = new LinkedHashMap<>();
     private int nextLambdaIndex;
+    // used for expression constants evaluation only
+    private final ConstantValueAnalysis constants = new ConstantValueAnalysis(_ -> List.of());
 
     private LambdaExpansionTransformer(MethodHandles.Lookup lookup, Set<String> names) {
         this.lookup = lookup;
@@ -116,22 +122,32 @@ final class LambdaExpansionTransformer implements CodeTransformer {
     }
 
     // LambdaMetafactory implementation methods take captures before lambda parameters.
-    private static FuncOp lambdaToFuncOp(String name, JavaOp.LambdaOp lop) {
-        List<Value> captures = lop.capturedValues();
+    private FuncOp lambdaToFuncOp(String name, JavaOp.LambdaOp lop) {
+        SequencedMap<Value, Optional<Object>> captures = new LinkedHashMap<>();
+        lop.capturedValues().stream().forEach(v -> captures.put(v, constants.evaluate(v)));
         FunctionType lambdaType = lop.invokableSignature();
         ArrayList<CodeType> parameterTypes = new ArrayList<>(captures.size() + lambdaType.parameterTypes().size());
-        for (Value v : captures) {
-            parameterTypes.add(v.type() instanceof VarType vt ? vt.valueType() : v.type());
+        for (Map.Entry<Value, Optional<Object>> c : captures.sequencedEntrySet()) {
+            if (c.getValue().isEmpty()) {
+                // non-constant captures become additional parameters
+                parameterTypes.add(c.getKey().type() instanceof VarType vt ? vt.valueType() : c.getKey().type());
+            }
         }
         parameterTypes.addAll(lambdaType.parameterTypes());
         return CoreOp.func(name, CoreType.functionType(lambdaType.returnType(), parameterTypes)).body(b -> {
             int i = 0;
-            for (Value cv : captures) {
-                Value v = b.parameters().get(i++);
-                if (cv.type() instanceof VarType) {
-                    v = b.add(CoreOp.var(v));
+            for (Map.Entry<Value, Optional<Object>> c : captures.sequencedEntrySet()) {
+                Value v;
+                if (c.getValue().isPresent()) {
+                    // captured constants become literals
+                    v = b.add(CoreOp.constant(c.getKey().type(), c.getValue().orElseThrow()));
+                } else {
+                    v = b.parameters().get(i++);
+                    if (c.getKey().type() instanceof VarType) {
+                        v = b.add(CoreOp.var(v));
+                    }
                 }
-                b.context().mapValue(cv, v);
+                b.context().mapValue(c.getKey(), v);
             }
             b.transformBody(lop.body(), b.parameters().subList(i, b.parameters().size()),
                     CodeTransformer.COPYING_TRANSFORMER);
@@ -161,7 +177,8 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         try {
             Class<?> intfClass = (Class<?>) intfType.erasure().resolve(lookup);
             Method intfMethod = funcIntfMethod(intfClass, mtd);
-            List<Value> captures = lop.capturedValues();
+            // filter out constant captures
+            List<Value> captures = lop.capturedValues().stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
             int i = nextLambdaIndex++;
             String implName = uniqueName(names, "lambda$" + i);
             String intfMethodName = intfMethod.getName();

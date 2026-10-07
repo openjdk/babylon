@@ -40,11 +40,11 @@ import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 
-final class ConstantValueAnalysis {
+public final class ConstantValueAnalysis {
     private final Function<Block, List<List<Value>>> incomingArguments;
     private final Map<Value, Optional<Object>> cache = new IdentityHashMap<>();
 
-    ConstantValueAnalysis(Function<Block, List<List<Value>>> incomingArguments) {
+    public ConstantValueAnalysis(Function<Block, List<List<Value>>> incomingArguments) {
         this.incomingArguments = incomingArguments;
     }
 
