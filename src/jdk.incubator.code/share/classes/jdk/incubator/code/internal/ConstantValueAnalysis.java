@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -100,6 +101,17 @@ public final class ConstantValueAnalysis {
                     }
                     case JavaOp.CastOp co when value.type().equals(JavaType.J_L_STRING) ->
                         evaluate(co.operands().getFirst()).filter(String.class::isInstance);
+                    case JavaOp.ConditionalExpressionOp co ->
+                        yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
+                                .map(v -> yieldValue((Boolean) v ? co.trueBody() : co.falseBody()).orElse(null));
+                    case JavaOp.ConditionalOrOp co ->
+                        co.bodies().stream().map(this::yieldValue)
+                                .filter(v -> v.isEmpty() || v.get().equals(true))
+                                .findFirst().orElse(Optional.of(false));
+                    case JavaOp.ConditionalAndOp co ->
+                        co.bodies().stream().map(this::yieldValue)
+                                .filter(v -> v.isEmpty() || v.get().equals(false))
+                                .findFirst().orElse(Optional.of(true));
                     default ->  Optional.empty();
                 };
         };
@@ -109,5 +121,11 @@ public final class ConstantValueAnalysis {
 
     public Boolean booleanValue(Value value) {
         return evaluate(value).filter(Boolean.class::isInstance).map(Boolean.class::cast).orElse(null);
+    }
+
+    private Optional<Object> yieldValue(Body body) {
+        return body.blocks().size() == 1 && body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yield
+                ? evaluate(yield.yieldValue())
+                : Optional.empty();
     }
 }
