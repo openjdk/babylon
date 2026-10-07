@@ -35,8 +35,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.Block;
@@ -60,9 +64,6 @@ import jdk.incubator.code.internal.ConstantValueAnalysis;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Lambda expansion transformer generates a module with lambda operations replaced
@@ -123,31 +124,31 @@ final class LambdaExpansionTransformer implements CodeTransformer {
 
     // LambdaMetafactory implementation methods take captures before lambda parameters.
     private FuncOp lambdaToFuncOp(String name, JavaOp.LambdaOp lop) {
-        SequencedMap<Value, Optional<Object>> captures = new LinkedHashMap<>();
-        lop.capturedValues().stream().forEach(v -> captures.put(v, constants.evaluate(v)));
+        List<Value> captures = lop.capturedValues();
         FunctionType lambdaType = lop.invokableSignature();
         ArrayList<CodeType> parameterTypes = new ArrayList<>(captures.size() + lambdaType.parameterTypes().size());
-        for (Map.Entry<Value, Optional<Object>> c : captures.sequencedEntrySet()) {
-            if (c.getValue().isEmpty()) {
+        for (Value v : captures) {
+            if (constants.evaluate(v).isEmpty()) {
                 // non-constant captures become additional parameters
-                parameterTypes.add(c.getKey().type() instanceof VarType vt ? vt.valueType() : c.getKey().type());
+                parameterTypes.add(v.type() instanceof VarType vt ? vt.valueType() : v.type());
             }
         }
         parameterTypes.addAll(lambdaType.parameterTypes());
         return CoreOp.func(name, CoreType.functionType(lambdaType.returnType(), parameterTypes)).body(b -> {
             int i = 0;
-            for (Map.Entry<Value, Optional<Object>> c : captures.sequencedEntrySet()) {
+            for (Value cv : captures) {
                 Value v;
-                if (c.getValue().isPresent()) {
+                Optional<Object> cvv = constants.evaluate(cv);
+                if (cvv.isPresent()) {
                     // captured constants become literals
-                    v = b.add(CoreOp.constant(c.getKey().type(), c.getValue().orElseThrow()));
+                    v = b.add(CoreOp.constant(cv.type(), cvv.orElseThrow()));
                 } else {
                     v = b.parameters().get(i++);
-                    if (c.getKey().type() instanceof VarType) {
+                    if (cv.type() instanceof VarType) {
                         v = b.add(CoreOp.var(v));
                     }
                 }
-                b.context().mapValue(c.getKey(), v);
+                b.context().mapValue(cv, v);
             }
             b.transformBody(lop.body(), b.parameters().subList(i, b.parameters().size()),
                     CodeTransformer.COPYING_TRANSFORMER);
@@ -185,7 +186,11 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
             if (lop.isReflectable()) {
                 String modelName = uniqueName(names, "op$lambda$" + i);
-                modelsToBuild.put(modelName, Quoted.embedOp(lop));
+                Map<Value, Object> capturedConstants = lop.capturedValues().stream()
+                        .filter(c -> constants.evaluate(c).isPresent())
+                        .collect(Collectors.toMap(Function.identity(), c -> constants.evaluate(c).orElseThrow()));
+                // embed captured constants into quotation function
+                modelsToBuild.put(modelName, Quoted.embedOp(lop, capturedConstants));
                 lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
                 intfMethodName = intfMethodName + "=" + modelName;
             }

@@ -29,8 +29,11 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * An operation and a mapping from the operation's {@link Op#operands() operands} and
@@ -161,6 +164,37 @@ public final class Quoted<T extends Op> {
      * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
     public static CoreOp.FuncOp embedOp(Op op) {
+        return embedOp(op, Map.of());
+    }
+
+    /**
+     * Embeds the given operation into a quoting code model whose behavior quotes the operation.
+     * <p>
+     * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp func operation}
+     * that has one body with one block (<i>fblock</i>).
+     * <br>
+     * <i>fblock</i> will have a block parameter, in order, for every value in the key set of the map of operands and
+     * captured values.
+     * If the value is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp var operation} then the
+     * parameter's code type is the var operation's value type, and <i>fblock</i> will have a var operation whose
+     * operand is the block parameter.
+     * Otherwise, the parameter's code type is the value's code type.
+     * <br>
+     * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp quoted operation}
+     * that has one body with one block (<i>qblock</i>). Inside <i>qblock</i> there is a copy of {@code op}
+     * and a {@link jdk.incubator.code.dialect.core.CoreOp.YieldOp yield operation} whose operand is the operation
+     * result of {@code op}'s copy.
+     * <br>
+     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp return operation},
+     * whose operand is the operation result of the quoted op.
+     *
+     * @param op the operation
+     * @param embeddedConstants constants to embed
+     * @return the quoting code model.
+     * @throws IllegalArgumentException if {@code op} is not placed in a block.
+     * @throws IllegalStateException if an encountered block is being built and is not observable.
+     */
+    public static CoreOp.FuncOp embedOp(Op op, Map<Value, Object> embeddedConstants) {
         if (op.result() == null) {
             throw new IllegalArgumentException("Operation is not placed in a block");
         }
@@ -173,6 +207,7 @@ public final class Quoted<T extends Op> {
 
         // Build the function type
         List<CodeType> params = inputOperandsAndCaptures.stream()
+                .filter(Predicate.not(embeddedConstants::containsKey))
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
         FunctionType ft = CoreType.functionType(CoreOp.QuotedOp.QUOTED_OP_TYPE, params);
@@ -181,11 +216,16 @@ public final class Quoted<T extends Op> {
         return CoreOp.func("q", ft).body(b -> {
             // Create variables as needed and obtain the operands and captured values for the copied lambda
             List<Value> outputOperandsAndCaptures = new ArrayList<>();
-            for (int i = 0; i < inputOperandsAndCaptures.size(); i++) {
-                Value inputValue = inputOperandsAndCaptures.get(i);
-                Value outputValue = b.parameters().get(i);
-                if (inputValue.type() instanceof VarType) {
-                    outputValue = b.add(CoreOp.var(String.valueOf(i), outputValue));
+            int i = 0;
+            for (Value inputValue : inputOperandsAndCaptures) {
+                Value outputValue;
+                if (embeddedConstants.containsKey(inputValue)) {
+                    outputValue = b.add(CoreOp.constant(inputValue.type(), embeddedConstants.get(inputValue)));
+                } else {
+                    outputValue = b.parameters().get(i++);
+                    if (inputValue.type() instanceof VarType) {
+                        outputValue = b.add(CoreOp.var(String.valueOf(i), outputValue));
+                    }
                 }
                 outputOperandsAndCaptures.add(outputValue);
             }
@@ -256,6 +296,13 @@ public final class Quoted<T extends Op> {
         }
 
         for (int i = 0; i < ops.size() - 2; i++) {
+            if (ops.get(i) instanceof CoreOp.ConstantOp constantOp
+                    && (constantOp.resultType() instanceof PrimitiveType
+                        && !constantOp.resultType().equals(JavaType.VOID)
+                        || constantOp.resultType().equals(JavaType.J_L_STRING))
+                    && operandsAndCaptures.contains(constantOp.result())) {
+                continue;
+            }
             if (!(ops.get(i) instanceof CoreOp.VarOp varOp)
                     || varOp.isUninitialized()
                     || !(varOp.initOperand() instanceof Block.Parameter p)
@@ -269,6 +316,7 @@ public final class Quoted<T extends Op> {
         // operand and capture can be:
         // 1- block param of this function
         // 2- result of VarOp whose initial value is a block param of this function
+        // 3- result of a primitive or String ConstantOp in this function's entry block
         List<Block.Parameter> params = funcOp.parameters();
         if (params.size() != args.size()) {
             throw invalidQuotedModel(funcOp);
@@ -288,6 +336,9 @@ public final class Quoted<T extends Op> {
                     Object rv = args.get(p.index());
                     m.put(v, CoreOp.Var.of(rv));
                 }
+                case Op.Result opr when opr.op() instanceof CoreOp.ConstantOp constantOp
+                                     && constantOp.ancestorBlock() == fblock ->
+                        m.put(v, constantOp.value());
                 default -> throw invalidQuotedModel(funcOp);
             }
         }
