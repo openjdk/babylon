@@ -178,15 +178,16 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         try {
             Class<?> intfClass = (Class<?>) intfType.erasure().resolve(lookup);
             Method intfMethod = funcIntfMethod(intfClass, mtd);
+            List<Value> allCaptures = lop.capturedValues();
             // filter out constant captures
-            List<Value> captures = lop.capturedValues().stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
+            List<Value> captures = allCaptures.stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
             int i = nextLambdaIndex++;
             String implName = uniqueName(names, "lambda$" + i);
             String intfMethodName = intfMethod.getName();
             DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
             if (lop.isReflectable()) {
                 String modelName = uniqueName(names, "op$lambda$" + i);
-                Map<Value, Object> capturedConstants = lop.capturedValues().stream()
+                Map<Value, Object> capturedConstants = allCaptures.stream()
                         .filter(c -> constants.evaluate(c).isPresent())
                         .collect(Collectors.toMap(Function.identity(), c -> constants.evaluate(c).orElseThrow()));
                 // embed captured constants into quotation function

@@ -26,7 +26,7 @@
 package jdk.incubator.code.internal;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,7 +43,7 @@ import jdk.incubator.code.dialect.java.PrimitiveType;
 
 public final class ConstantValueAnalysis {
     private final Function<Block, List<List<Value>>> incomingArguments;
-    private final Map<Value, Optional<Object>> cache = new IdentityHashMap<>();
+    private final Map<Value, Optional<Object>> cache = new HashMap<>();
 
     public ConstantValueAnalysis(Function<Block, List<List<Value>>> incomingArguments) {
         this.incomingArguments = incomingArguments;

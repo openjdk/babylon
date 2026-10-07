@@ -189,12 +189,12 @@ public final class Quoted<T extends Op> {
      * whose operand is the operation result of the quoted op.
      *
      * @param op the operation
-     * @param embeddedConstants constants to embed
+     * @param capturedConstants constants to embed
      * @return the quoting code model.
      * @throws IllegalArgumentException if {@code op} is not placed in a block.
      * @throws IllegalStateException if an encountered block is being built and is not observable.
      */
-    public static CoreOp.FuncOp embedOp(Op op, Map<Value, Object> embeddedConstants) {
+    public static CoreOp.FuncOp embedOp(Op op, Map<Value, Object> capturedConstants) {
         if (op.result() == null) {
             throw new IllegalArgumentException("Operation is not placed in a block");
         }
@@ -207,7 +207,7 @@ public final class Quoted<T extends Op> {
 
         // Build the function type
         List<CodeType> params = inputOperandsAndCaptures.stream()
-                .filter(Predicate.not(embeddedConstants::containsKey))
+                .filter(Predicate.not(capturedConstants::containsKey))
                 .map(v -> v.type() instanceof VarType vt ? vt.valueType() : v.type())
                 .toList();
         FunctionType ft = CoreType.functionType(CoreOp.QuotedOp.QUOTED_OP_TYPE, params);
@@ -219,8 +219,8 @@ public final class Quoted<T extends Op> {
             int i = 0;
             for (Value inputValue : inputOperandsAndCaptures) {
                 Value outputValue;
-                if (embeddedConstants.containsKey(inputValue)) {
-                    outputValue = b.add(CoreOp.constant(inputValue.type(), embeddedConstants.get(inputValue)));
+                if (capturedConstants.containsKey(inputValue)) {
+                    outputValue = b.add(CoreOp.constant(inputValue.type(), capturedConstants.get(inputValue)));
                 } else {
                     outputValue = b.parameters().get(i++);
                     if (inputValue.type() instanceof VarType) {
