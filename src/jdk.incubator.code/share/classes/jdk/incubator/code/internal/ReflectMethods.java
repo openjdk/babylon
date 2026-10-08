@@ -806,7 +806,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             } else {
                 // we need to unbox
                 Value unboxedVal = unbox(exprVal, source, target, types.unboxedType(source));
-                return convert(unboxedVal, target); // to perform necessary conversion if needed
+                return convert(unboxedVal, target); // to perform necessary widening conversion if needed
             }
         }
 
