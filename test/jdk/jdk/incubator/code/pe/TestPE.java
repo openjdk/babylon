@@ -33,7 +33,6 @@ import java.util.function.Predicate;
 /*
  * @test
  * @modules jdk.incubator.code
- * @library ../lib
  * @build TestPE
  * @build CodeReflectionTester
  * @run main CodeReflectionTester TestPE
