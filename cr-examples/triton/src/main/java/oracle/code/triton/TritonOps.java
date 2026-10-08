@@ -447,7 +447,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(GetProgramIdOp.NAME)
-    public static class GetProgramIdOp extends TritonOp implements Op.Pure {
+    public static class GetProgramIdOp extends TritonOp {
         public static final String NAME = "tt.get_program_id";
         public static final String ATTRIBUTE_AXIS = "axis";
 
@@ -496,7 +496,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(MakeRangeOp.NAME)
-    public static class MakeRangeOp extends TritonOp implements Op.Pure {
+    public static class MakeRangeOp extends TritonOp {
         public static final String NAME = "tt.make_range";
         public static final String ATTRIBUTE_START = "start";
         public static final String ATTRIBUTE_END = "end";
@@ -557,7 +557,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ExpandOp.NAME)
-    public static class ExpandOp extends TritonOp implements Op.Pure {
+    public static class ExpandOp extends TritonOp {
         public static final String NAME = "tt.expand_dims";
         public static final String ATTRIBUTE_AXIS = "axis";
 
@@ -606,7 +606,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(SplatOp.NAME)
-    public static class SplatOp extends TritonOp implements Op.Pure {
+    public static class SplatOp extends TritonOp {
         public static final String NAME = "tt.splat";
 
         public SplatOp(ExternalizedOp def) {
@@ -628,7 +628,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(BroadcastOp.NAME)
-    public static class BroadcastOp extends TritonOp implements Op.Pure {
+    public static class BroadcastOp extends TritonOp {
         public static final String NAME = "tt.broadcast";
 
         public BroadcastOp(ExternalizedOp def) {
@@ -650,7 +650,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(AddPtrOp.NAME)
-    public static class AddPtrOp extends TritonOp implements Op.Pure {
+    public static class AddPtrOp extends TritonOp {
         public static final String NAME = "tt.addptr";
 
         public AddPtrOp(ExternalizedOp def) {
@@ -672,7 +672,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(LoadOp.NAME)
-    public static class LoadOp extends TritonOp implements Op.Pure {
+    public static class LoadOp extends TritonOp {
         public static final String NAME = "tt.load";
 
         public LoadOp(ExternalizedOp def) {
@@ -746,7 +746,7 @@ public class TritonOps {
     }
 
     @OpFactoryHelper.OpDeclaration(DotOp.NAME)
-    public static class DotOp extends TritonOp implements Op.Pure {
+    public static class DotOp extends TritonOp {
         public static final String NAME = "tt.dot";
 
         public DotOp(ExternalizedOp def) {
