@@ -49,15 +49,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Gatherer;
@@ -845,31 +837,23 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return codeElement instanceof JavaOp.LambdaOp lambdaOp ? new Impl(lookup, lambdaOp) : null;
         }
 
-        default Object[] getQuotedCapturedValues(Quoted<?> quoted, Method method) {
-            var target = Invoke.stream(lookup(), op().body().entryBlock())
-                    .filter(invoke -> method.equals(invoke.resolveMethodOrNull()))
-                    .findFirst().orElseThrow().op();
-            var captures = quoted.capturedValues();
-            Object[] args = target.operands().stream().map(value -> {
-                while (value instanceof Op.Result result && !captures.containsKey(value)) {
-                    switch (result.op()) {
-                        case CoreOp.VarAccessOp.VarLoadOp load ->
-                            value = load.operands().getFirst();
-                        case CoreOp.VarOp var ->
-                            value = var.initOperand();
-                        case CoreOp.ConstantOp constant -> {
-                            return constant.value();
-                        }
-                        default -> {
-                            return null;
-                        }
+        // Move to OpHelper.Invoke and rename to getCapturedValuesForOperands
+        static Object[] getQuotedCapturedValues(SequencedMap<Value, Object> capturedValues, OpHelper.Invoke targetInvoke) {
+            JavaOp.InvokeOp targetInvokeOp = targetInvoke.op();
+
+            Object[] args = new Object[targetInvoke.operandCount()];
+            for (int i = 0; i < args.length; i++) {
+                Value value = targetInvokeOp.operands().get(i);
+                if (value instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlop) {
+                    Object runtimeValue = capturedValues.get(vlop.varOperand());
+                    if (runtimeValue != null) {
+                        args[i] = runtimeValue instanceof CoreOp.Var<?> runtimeVariable
+                                ? runtimeVariable.value()
+                                : runtimeValue;
                     }
+                } else {
+                    args[i] = capturedValues.get(value);
                 }
-                Object captured = captures.get(value);
-                return captured instanceof CoreOp.Var<?> var ? var.value() : captured;
-            }).toArray();
-            if (args.length != method.getParameterCount()) {
-                throw new IllegalStateException("Why don't we have enough captures.!! ");
             }
             return args;
         }

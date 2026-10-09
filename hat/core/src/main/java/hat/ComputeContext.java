@@ -223,21 +223,20 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
             JavaOp.LambdaOp lambdaOp = quoted.op();
             var location = quoted.op().location();
 
-            MethodRef method = getTargetInvoke(lookup, lambdaOp).op().invokeReference();
-            OpHelper.Lambda lambda1 = lambda(lookup, lambdaOp);
+            OpHelper.Invoke targetInvoke = getTargetInvoke(lookup, lambdaOp);
+            MethodRef methodRef = targetInvoke.op().invokeReference();
+            Object[] quotedCapturedValues = OpHelper.Lambda.getQuotedCapturedValues(quoted.capturedValues(), targetInvoke);
             KernelCallSite kernelCallSite;
 
             try {
-                Object[] quotedCapturedValues = lambda1.getQuotedCapturedValues(quoted, method.resolveToMethod(lookup));
-                SpecializationKey key = SpecializationKey.of(method.resolveToMethod(lookup), quotedCapturedValues);
-                var m = method.resolveToMethod(lookup);
+                SpecializationKey key = SpecializationKey.of(methodRef.resolveToMethod(lookup), quotedCapturedValues);
+                var m = methodRef.resolveToMethod(lookup);
                 if (kernelCallSiteCache.containsKey(location) && kernelCallSiteCache.get(location).containsKey(key)) {
                     var oldKernelCallSite = kernelCallSiteCache.get(location).get(key);
                     kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), quotedCapturedValues, oldKernelCallSite.dispatchContext);
                 } else {
                     kernelCallSite = kernelCallSiteCache.computeIfAbsent(location, k -> new ConcurrentHashMap<>())
                             .computeIfAbsent(key, _ -> {
-                                MethodRef methodRef = getTargetInvoke(lookup, lambdaOp).op().invokeReference();
                                 KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
                                 if (kernelCallGraph == null) {
                                     throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
@@ -245,11 +244,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                                 // Create a new KernelCallGraph starting from the original method
                                 KernelCallGraph kcg = new KernelCallGraph(kernelCallGraph.computeCallGraph, m, kernelCallGraph.getOriginalKernelFunction());
 
-                                var lambda = lambda(lookup, lambdaOp);
-                                Object[] capturedArgs = lambda.getQuotedCapturedValues(quoted, kcg.method());
-
                                 // Compilation happens here!
-                                kcg.compile(capturedArgs);
+                                kcg.compile(quotedCapturedValues);
                                 DispatchContext dispatchContext;
                                 if (kernelType instanceof Kernel) {
                                     dispatchContext = DispatchContext.createDefaultContext(kernelCallGraph.computeCallGraph.computeContext.accelerator());
@@ -259,7 +255,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
                                     throw new IllegalStateException("Unknown KernelType " + kernelType.getClass());
                                 }
 
-                                return new KernelCallSite(quoted, lambdaOp, method, kcg, capturedArgs, dispatchContext);
+                                return new KernelCallSite(quoted, lambdaOp, methodRef, kcg, quotedCapturedValues, dispatchContext);
                             });
                 }
             } catch (ReflectiveOperationException e) {
