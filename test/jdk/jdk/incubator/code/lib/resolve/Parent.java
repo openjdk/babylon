@@ -22,10 +22,19 @@
  */
 package resolve;
 
-public class Parent {
+public class Parent extends Base<Parent> {
 
     protected static boolean test(Object value) {
         System.out.println(value);
         return value != null;
+    }
+}
+
+class Base<T extends Base<T>> {
+    public T setValue(String value) {
+        return (T) this;
+    }
+    public int length(String value) {
+        return value.length();
     }
 }

@@ -2671,7 +2671,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             this.owner = new MethodSymbol(0, names.lambda, tree.target, currentClass);
             if (tree.kind == ReferenceKind.BOUND && !TreeInfo.isThisQualifier(tree.getQualifierExpression())) {
                 // true bound method reference, hoist receiver expression out
-                Type recvType = types.asSuper(tree.getQualifierExpression().type, tree.sym.owner);
+                Type t = tree.getQualifierExpression().type;
+                Type recvType = types.skipTypeVars(t, false).isCompound() ? types.asSuper(t, tree.sym.owner) : t;
                 VarSymbol vsym = makeSyntheticVar("rec$", recvType);
                 receiverVar = make.VarDef(vsym, tree.getQualifierExpression());
             }
