@@ -842,7 +842,7 @@
 /// [Op][jdk.incubator.code.Op] with specific operation implementations, and implementing
 /// [CodeType][jdk.incubator.code.CodeType] with specific code type implementations.
 ///
-/// ## Java code models
+/// ## <a id="java-code-models-heading"/>Java code models
 ///
 /// Java code models are code models produced by `javac`, stored in class files, and accessed at run time. Such models
 /// preserve the program meaning of the Java source code they model. They consist of an arrangement of operations and

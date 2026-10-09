@@ -115,7 +115,7 @@ public class TestQuoteOp {
 
         Iterator<Object> iterator = quoted2.capturedValues().values().iterator();
 
-        Assertions.assertEquals(y, ((CoreOp.Var<?>) iterator.next()).value());
+        Assertions.assertEquals(y, iterator.next());
         Assertions.assertEquals(args[1], ((CoreOp.Var<?>) iterator.next()).value());
         Assertions.assertEquals(args[0], iterator.next());
     }
@@ -198,20 +198,21 @@ func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
 };
 """, new Object[]{}
                 },
-                {
-                        // param must be used
-                        """
-func @"q" (%0 : java.type:"Object")java.type:"jdk.incubator.code.Quoted" -> {
-    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
-      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
-          return;
-      };
-      yield %6;
-    };
-    return %5;
-};
-""", new Object[]{"s"}
-                },
+// @@@ unused potential receiver must by accepted
+//                {
+//                        // param must be used
+//                        """
+//func @"q" (%0 : java.type:"Object")java.type:"jdk.incubator.code.Quoted" -> {
+//    %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
+//      %6 : java.type:"java.lang.Runnable" = lambda ()java.type:"void" -> {
+//          return;
+//      };
+//      yield %6;
+//    };
+//    return %5;
+//};
+//""", new Object[]{"s"}
+//                },
                 {
                         // param used more than once, all uses must be as operand or capture of quoted op
                         """
@@ -259,7 +260,7 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
 """, new Object[]{3}
                 },
                 {
-                        // operations before quoted op must be ConstantOp or VarOp
+                        // operations before quoted op must be VarOp
                         """
 func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
     %0 : java.type:"java.lang.String" = new @java.ref:"java.lang.String::()";
@@ -418,9 +419,9 @@ func @"q" (%0 : java.type:"int")java.type:"jdk.incubator.code.Quoted" -> {
                 {
                         """
 func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
-    %0 : java.type:"int" = constant @1;
     %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
       %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %0 : java.type:"int" = constant @1;
             return %0;
       };
       yield %6;
@@ -432,9 +433,9 @@ func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
                 {
                         """
 func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
-    %0 : java.type:"int" = constant @1;
     %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
       %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %0 : java.type:"int" = constant @1;
             %7 : java.type:"int" = add %0 %0;
             %8 : java.type:"int" = mul %0 %0;
             %9 : java.type:"int" = sub %8 %7;
@@ -449,10 +450,10 @@ func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
                 {
                         """
 func @"q" ()java.type:"jdk.incubator.code.Quoted" -> {
-    %0 : java.type:"int" = constant @1;
-    %1 : Var<java.type:"int"> = var %0;
     %5 : java.type:"jdk.incubator.code.Quoted" = quoted ()java.type:"void" -> {
       %6 : java.type:"java.util.function.IntSupplier" = lambda ()java.type:"int" -> {
+            %0 : java.type:"int" = constant @1;
+            %1 : Var<java.type:"int"> = var %0;
             %7 : java.type:"int" = var.load %1;
             %8 : java.type:"int" = mul %7 %7;
             return %8;

@@ -23,6 +23,7 @@
 
 import jdk.incubator.code.Reflect;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -253,4 +254,72 @@ public class LambdaTest {
               };
             """)
     static Predicate<Object> test8 = v -> v instanceof String s && !s.isEmpty();
+
+    @Reflect
+    @IR("""
+            func @"constantCapture" ()java.type:"java.util.function.IntSupplier" -> {
+                %0 : java.type:"int" = constant @1;
+                %1 : java.type:"int" = constant @2;
+                %2 : java.type:"int" = add %0 %1;
+                %3 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isReflectable=true ()java.type:"int" -> {
+                    return %2;
+                };
+                return %3;
+            };
+            """)
+    static IntSupplier constantCapture() {
+        final int i = 1 + 2;
+        return () -> i;
+    }
+
+    @Reflect
+    @IR("""
+            func @"constantAndRuntimeCapture" (%0 : java.type:"int")java.type:"java.util.function.IntSupplier" -> {
+                %1 : Var<java.type:"int"> = var %0 @"arg";
+                %2 : java.type:"int" = constant @1;
+                %3 : java.type:"int" = constant @2;
+                %4 : java.type:"int" = add %2 %3;
+                %5 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isReflectable=true ()java.type:"int" -> {
+                    %6 : java.type:"int" = var.load %1;
+                    %7 : java.type:"int" = add %4 %6;
+                    return %7;
+                };
+                return %5;
+            };
+            """)
+    static IntSupplier constantAndRuntimeCapture(int arg) {
+        final int i = 1 + 2;
+        return () -> i + arg;
+    }
+
+    @Reflect
+    @IR("""
+            func @"nestedCaptures" ()java.type:"java.util.function.Supplier<java.util.function.IntSupplier>" -> {
+                %0 : java.type:"int" = constant @1;
+                %1 : java.type:"int" = constant @2;
+                %2 : java.type:"int" = add %0 %1;
+                %3 : java.type:"java.util.function.Supplier<java.util.function.IntSupplier>" = lambda @lambda.isReflectable=true ()java.type:"java.util.function.IntSupplier" -> {
+                    %4 : java.type:"int" = constant @4;
+                    %5 : java.type:"int" = mul %2 %4;
+                    %6 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isReflectable=true ()java.type:"int" -> {
+                        %7 : java.type:"int" = add %2 %5;
+                        %8 : java.type:"int" = add %7 %2;
+                        %9 : java.type:"int" = add %8 %5;
+                        return %9;
+                    };
+                    return %6;
+                };
+                return %3;
+            };
+            """)
+    static Supplier<IntSupplier> nestedCaptures() {
+        final int methodConstant = 1 + 2;
+        return () -> {
+            final int outerConstant = methodConstant * 4;
+            return () -> {
+                final int innerConstant = methodConstant + outerConstant;
+                return innerConstant + methodConstant + outerConstant;
+            };
+        };
+    }
 }

@@ -445,7 +445,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         // Current block to add operations
         Block.Builder block;
 
-        // Map of symbols (method arguments and local variables) to varOp values
+        // Map of symbols (method arguments and local variables) to varOp or local constant initializer values
         final Map<Symbol, Value> localToOp;
 
         // Label
@@ -547,15 +547,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         append(CoreOp.var(capturedSymbol.name.toString(), capturedArg)));
             }
 
-            // add captured constant mappings
-            for (Map.Entry<Symbol, Object> constantCapture : lambdaCaptureScanner.constantCaptures.entrySet()) {
-                Symbol capturedSymbol = constantCapture.getKey();
-                var capturedArg = append(CoreOp.constant(typeToCodeType(capturedSymbol.type),
-                        constantCapture.getValue()));
-                top.localToOp.put(capturedSymbol,
-                        append(CoreOp.var(capturedSymbol.name.toString(), capturedArg)));
-            }
-
             bodyTarget = tree.target.getReturnType();
         }
 
@@ -566,7 +557,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
         class ReflectableLambdaCaptureScanner extends CaptureScanner {
             boolean capturesThis;
             Set<ClassSymbol> seenClasses = new HashSet<>();
-            Map<Symbol, Object> constantCaptures = new HashMap<>();
 
             ReflectableLambdaCaptureScanner(JCLambda ownerTree) {
                 super(ownerTree);
@@ -590,8 +580,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 } else if (tree.sym instanceof VarSymbol vsym &&
                         vsym.getConstValue() != null &&
                         !isVarSeen(vsym)) {
-                    // record the constant value associated with this
-                    constantCaptures.put(tree.sym, vsym.getConstValue());
+                    return;
                 } else {
                     // might be a local capture
                     super.visitIdent(tree);
@@ -836,7 +825,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             JavaType javaType = typeToCodeType(tree.type);
             if (tree.init != null) {
                 Value initOp = toValue(tree.init, tree.type);
-                result = append(CoreOp.var(tree.name.toString(), javaType, initOp));
+                // constant locals bind to the initializer result
+                result = tree.sym.getConstantValue() != null
+                        ? initOp : append(CoreOp.var(tree.name.toString(), javaType, initOp));
             } else {
                 // Uninitialized
                 result = append(CoreOp.var(tree.name.toString(), javaType));
@@ -1044,7 +1035,22 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
             Symbol sym = tree.sym;
             switch (sym.getKind()) {
-                case LOCAL_VARIABLE, RESOURCE_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER ->
+                case LOCAL_VARIABLE -> {
+                    if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
+                        // reuse a definition
+                        Value local = null;
+                        for (BodyStack s = stack; s != null && local == null; s = s.parent) {
+                            local = s.localToOp.get(sym);
+                        }
+                        BodyStack where = local == null && isLambdaReflectable ? top : stack;
+                        result = local != null ? local
+                                : append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()), generateLocation(pos(), false), where);
+                        where.localToOp.put(sym, result);
+                    } else {
+                        result = loadVar(sym);
+                    }
+                }
+                case RESOURCE_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER ->
                         result = loadVar(sym);
                 case FIELD, ENUM_CONSTANT -> {
                     if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
@@ -1057,6 +1063,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         Assert.check(sym.isStatic());
                         Assert.check(sym.isFinal());
                         result = loadVar(sym);
+                    } else if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
+                        result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
                     } else {
                         FieldRef fr = symbolToErasedFieldRef(sym, symbolSiteType(sym));
                         CodeType resultType = typeToCodeType(tree.type);
@@ -1112,6 +1120,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     case FIELD, ENUM_CONSTANT -> {
                         if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                             result = thisValue();
+                        } else if (sym.isStatic() && sym instanceof VarSymbol variable
+                                && variable.getConstantValue() != null) {
+                            result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
                         } else {
                             FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
                                     tree.selected.type : qualifierTarget);
@@ -2047,7 +2058,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
                 @Override
                 public void visitVarDef(JCVariableDecl tree) {
-                    decls.add(tree);
+                    // only non-constants enter the loop's variable state
+                    if (tree.sym.getConstantValue() == null) decls.add(tree);
                 }
 
                 void mapVarsToBlockArguments() {
@@ -2492,7 +2504,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 Value lhs = toValue(tree.lhs, lhsType.hasTag(BOT) ? syms.stringType : lhsType);
                 Value rhs = toValue(tree.rhs, rhsType.hasTag(BOT) ? syms.stringType : rhsType);
 
-                result = append(JavaOp.concat(lhs, rhs));
+                result = append(tree.type.constValue() instanceof String constant
+                        // Preserve interned String identity
+                        ? CoreOp.constant(JavaType.J_L_STRING, constant)
+                        : JavaOp.concat(lhs, rhs));
             }
             else {
                 Type lhsType = tree.operator.type.getParameterTypes().head;

@@ -846,35 +846,32 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
 
         default Object[] getQuotedCapturedValues(Quoted<?> quoted, Method method) {
-            var block = op().body().entryBlock();
-            var ops = block.ops();
-            Object[] varLoadNames = ops.stream()
-                    .filter(op -> op instanceof CoreOp.VarAccessOp.VarLoadOp)
-                    .map(op -> (CoreOp.VarAccessOp.VarLoadOp) op)
-                    .map(varLoadOp -> (Op.Result) varLoadOp.operands().getFirst())
-                    .map(varLoadOp -> (CoreOp.VarOp) varLoadOp.op())
-                    .map(CoreOp.VarOp::varName).toArray();
-            Map<String, Object> nameValueMap = new HashMap<>();
-
-            quoted.capturedValues().forEach((k, v) -> {
-                if (k instanceof Op.Result result) {
-                    if (result.op() instanceof CoreOp.VarOp varOp) {
-                        nameValueMap.put(varOp.varName(), v);
+            var target = Invoke.stream(lookup(), op().body().entryBlock())
+                    .filter(invoke -> method.equals(invoke.resolveMethodOrNull()))
+                    .findFirst().orElseThrow().op();
+            var captures = quoted.capturedValues();
+            Object[] args = target.operands().stream().map(value -> {
+                while (value instanceof Op.Result result && !captures.containsKey(value)) {
+                    switch (result.op()) {
+                        case CoreOp.VarAccessOp.VarLoadOp load ->
+                            value = load.operands().getFirst();
+                        case CoreOp.VarOp var ->
+                            value = var.initOperand();
+                        case CoreOp.ConstantOp constant -> {
+                            return constant.value();
+                        }
+                        default -> {
+                            return null;
+                        }
                     }
                 }
-            });
-            Object[] args = new Object[method.getParameterCount()];
-            if (args.length != varLoadNames.length) {
+                Object captured = captures.get(value);
+                return captured instanceof CoreOp.Var<?> var ? var.value() : captured;
+            }).toArray();
+            if (args.length != method.getParameterCount()) {
                 throw new IllegalStateException("Why don't we have enough captures.!! ");
             }
-            for (int i = 0; i < args.length; i++) {
-                args[i] = nameValueMap.get(varLoadNames[i].toString());
-                if (args[i] instanceof CoreOp.Var<?> var) {
-                    args[i] = var.value();
-                }
-            }
             return args;
-
         }
     }
 

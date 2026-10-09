@@ -296,4 +296,58 @@ public class ConstantsTest {
         Class<?> a = A.class;
         Class<?> c = B.C.class;
     }
+
+    @Reflect
+    @IR("""
+            func @"expr1" ()java.type:"void" -> {
+                %0 : java.type:"int" = constant @1;
+                %1 : java.type:"int" = constant @2;
+                %2 : java.type:"int" = add %0 %1;
+                %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %3 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                return;
+            };
+            """)
+    static void expr1() {
+        final int i = 1 + 2;
+        IO.println(i);
+    }
+
+    static final int STATIC_CONSTANT_VARIABLE = 42;
+    final int INSTANCE_CONSTANT_VARIABLE = 43;
+
+    @Reflect
+    @IR("""
+            func @"expr2" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @42;
+                %2 : java.type:"int" = constant @43;
+                %3 : java.type:"int" = add %1 %2;
+                %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %4 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                return;
+            };
+            """)
+    void expr2() {
+        final int i = STATIC_CONSTANT_VARIABLE + INSTANCE_CONSTANT_VARIABLE;
+        IO.println(i);
+    }
+
+    @Reflect
+    @IR("""
+            func @"expr3" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @1;
+                %2 : java.type:"int" = constant @2;
+                %3 : java.type:"int" = add %1 %2;
+                %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %4 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                %5 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %5 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                return;
+            };
+            """)
+    void expr3() {
+        final int i = 1 + 2;
+        IO.println(i);
+        IO.println(i);
+    }
 }

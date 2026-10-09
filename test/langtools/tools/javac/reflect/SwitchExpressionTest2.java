@@ -712,169 +712,167 @@ public class SwitchExpressionTest2 {
             func @"caseConstantOtherKindsOfExpr" (%0 : java.type:"int")java.type:"java.lang.String" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 %2 : java.type:"int" = constant @11;
-                %3 : Var<java.type:"int"> = var %2 @"eleven";
-                %4 : java.type:"int" = var.load %1;
-                %5 : java.type:"java.lang.String" = java.switch.expression %4
-                    (%6 : java.type:"int")java.type:"boolean" -> {
-                        %7 : java.type:"int" = constant @1;
-                        %8 : java.type:"int" = constant @15;
-                        %9 : java.type:"int" = and %7 %8;
-                        %10 : java.type:"boolean" = eq %6 %9;
+                %3 : java.type:"int" = var.load %1;
+                %4 : java.type:"java.lang.String" = java.switch.expression %3
+                    (%5 : java.type:"int")java.type:"boolean" -> {
+                        %6 : java.type:"int" = constant @1;
+                        %7 : java.type:"int" = constant @15;
+                        %8 : java.type:"int" = and %6 %7;
+                        %9 : java.type:"boolean" = eq %5 %8;
+                        yield %9;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %10 : java.type:"java.lang.String" = constant @"1";
                         yield %10;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %11 : java.type:"java.lang.String" = constant @"1";
-                        yield %11;
+                    (%11 : java.type:"int")java.type:"boolean" -> {
+                        %12 : java.type:"int" = constant @4;
+                        %13 : java.type:"int" = constant @1;
+                        %14 : java.type:"int" = ashr %12 %13;
+                        %15 : java.type:"boolean" = eq %11 %14;
+                        yield %15;
                     }
-                    (%12 : java.type:"int")java.type:"boolean" -> {
-                        %13 : java.type:"int" = constant @4;
-                        %14 : java.type:"int" = constant @1;
-                        %15 : java.type:"int" = ashr %13 %14;
-                        %16 : java.type:"boolean" = eq %12 %15;
+                    ()java.type:"java.lang.String" -> {
+                        %16 : java.type:"java.lang.String" = constant @"2";
                         yield %16;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %17 : java.type:"java.lang.String" = constant @"2";
-                        yield %17;
+                    (%17 : java.type:"int")java.type:"boolean" -> {
+                        %18 : java.type:"long" = constant @3L;
+                        %19 : java.type:"int" = conv %18;
+                        %20 : java.type:"boolean" = eq %17 %19;
+                        yield %20;
                     }
-                    (%18 : java.type:"int")java.type:"boolean" -> {
-                        %19 : java.type:"long" = constant @3;
-                        %20 : java.type:"int" = conv %19;
-                        %21 : java.type:"boolean" = eq %18 %20;
+                    ()java.type:"java.lang.String" -> {
+                        %21 : java.type:"java.lang.String" = constant @"3";
                         yield %21;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %22 : java.type:"java.lang.String" = constant @"3";
-                        yield %22;
+                    (%22 : java.type:"int")java.type:"boolean" -> {
+                        %23 : java.type:"int" = constant @2;
+                        %24 : java.type:"int" = constant @1;
+                        %25 : java.type:"int" = lshl %23 %24;
+                        %26 : java.type:"boolean" = eq %22 %25;
+                        yield %26;
                     }
-                    (%23 : java.type:"int")java.type:"boolean" -> {
-                        %24 : java.type:"int" = constant @2;
-                        %25 : java.type:"int" = constant @1;
-                        %26 : java.type:"int" = lshl %24 %25;
-                        %27 : java.type:"boolean" = eq %23 %26;
+                    ()java.type:"java.lang.String" -> {
+                        %27 : java.type:"java.lang.String" = constant @"4";
                         yield %27;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %28 : java.type:"java.lang.String" = constant @"4";
-                        yield %28;
+                    (%28 : java.type:"int")java.type:"boolean" -> {
+                        %29 : java.type:"int" = constant @10;
+                        %30 : java.type:"int" = constant @2;
+                        %31 : java.type:"int" = div %29 %30;
+                        %32 : java.type:"boolean" = eq %28 %31;
+                        yield %32;
                     }
-                    (%29 : java.type:"int")java.type:"boolean" -> {
-                        %30 : java.type:"int" = constant @10;
-                        %31 : java.type:"int" = constant @2;
-                        %32 : java.type:"int" = div %30 %31;
-                        %33 : java.type:"boolean" = eq %29 %32;
+                    ()java.type:"java.lang.String" -> {
+                        %33 : java.type:"java.lang.String" = constant @"5";
                         yield %33;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %34 : java.type:"java.lang.String" = constant @"5";
-                        yield %34;
+                    (%34 : java.type:"int")java.type:"boolean" -> {
+                        %35 : java.type:"int" = constant @12;
+                        %36 : java.type:"int" = constant @6;
+                        %37 : java.type:"int" = sub %35 %36;
+                        %38 : java.type:"boolean" = eq %34 %37;
+                        yield %38;
                     }
-                    (%35 : java.type:"int")java.type:"boolean" -> {
-                        %36 : java.type:"int" = constant @12;
-                        %37 : java.type:"int" = constant @6;
-                        %38 : java.type:"int" = sub %36 %37;
-                        %39 : java.type:"boolean" = eq %35 %38;
+                    ()java.type:"java.lang.String" -> {
+                        %39 : java.type:"java.lang.String" = constant @"6";
                         yield %39;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %40 : java.type:"java.lang.String" = constant @"6";
-                        yield %40;
+                    (%40 : java.type:"int")java.type:"boolean" -> {
+                        %41 : java.type:"int" = constant @3;
+                        %42 : java.type:"int" = constant @4;
+                        %43 : java.type:"int" = add %41 %42;
+                        %44 : java.type:"boolean" = eq %40 %43;
+                        yield %44;
                     }
-                    (%41 : java.type:"int")java.type:"boolean" -> {
-                        %42 : java.type:"int" = constant @3;
-                        %43 : java.type:"int" = constant @4;
-                        %44 : java.type:"int" = add %42 %43;
-                        %45 : java.type:"boolean" = eq %41 %44;
+                    ()java.type:"java.lang.String" -> {
+                        %45 : java.type:"java.lang.String" = constant @"7";
                         yield %45;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %46 : java.type:"java.lang.String" = constant @"7";
-                        yield %46;
-                    }
-                    (%47 : java.type:"int")java.type:"boolean" -> {
+                    (%46 : java.type:"int")java.type:"boolean" -> {
+                        %47 : java.type:"int" = constant @2;
                         %48 : java.type:"int" = constant @2;
-                        %49 : java.type:"int" = constant @2;
-                        %50 : java.type:"int" = mul %48 %49;
-                        %51 : java.type:"int" = constant @2;
-                        %52 : java.type:"int" = mul %50 %51;
-                        %53 : java.type:"boolean" = eq %47 %52;
+                        %49 : java.type:"int" = mul %47 %48;
+                        %50 : java.type:"int" = constant @2;
+                        %51 : java.type:"int" = mul %49 %50;
+                        %52 : java.type:"boolean" = eq %46 %51;
+                        yield %52;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %53 : java.type:"java.lang.String" = constant @"8";
                         yield %53;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %54 : java.type:"java.lang.String" = constant @"8";
-                        yield %54;
+                    (%54 : java.type:"int")java.type:"boolean" -> {
+                        %55 : java.type:"int" = constant @8;
+                        %56 : java.type:"int" = constant @1;
+                        %57 : java.type:"int" = or %55 %56;
+                        %58 : java.type:"boolean" = eq %54 %57;
+                        yield %58;
                     }
-                    (%55 : java.type:"int")java.type:"boolean" -> {
-                        %56 : java.type:"int" = constant @8;
-                        %57 : java.type:"int" = constant @1;
-                        %58 : java.type:"int" = or %56 %57;
-                        %59 : java.type:"boolean" = eq %55 %58;
+                    ()java.type:"java.lang.String" -> {
+                        %59 : java.type:"java.lang.String" = constant @"9";
                         yield %59;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %60 : java.type:"java.lang.String" = constant @"9";
-                        yield %60;
+                    (%60 : java.type:"int")java.type:"boolean" -> {
+                        %61 : java.type:"int" = constant @10;
+                        %62 : java.type:"boolean" = eq %60 %61;
+                        yield %62;
                     }
-                    (%61 : java.type:"int")java.type:"boolean" -> {
-                        %62 : java.type:"int" = constant @10;
-                        %63 : java.type:"boolean" = eq %61 %62;
+                    ()java.type:"java.lang.String" -> {
+                        %63 : java.type:"java.lang.String" = constant @"10";
                         yield %63;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %64 : java.type:"java.lang.String" = constant @"10";
-                        yield %64;
-                    }
-                    (%65 : java.type:"int")java.type:"boolean" -> {
-                        %66 : java.type:"int" = var.load %3;
-                        %67 : java.type:"boolean" = eq %65 %66;
-                        yield %67;
+                    (%64 : java.type:"int")java.type:"boolean" -> {
+                        %65 : java.type:"boolean" = eq %64 %2;
+                        yield %65;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %68 : java.type:"java.lang.String" = constant @"11";
-                        yield %68;
+                        %66 : java.type:"java.lang.String" = constant @"11";
+                        yield %66;
                     }
-                    (%69 : java.type:"int")java.type:"boolean" -> {
-                        %70 : java.type:"int" = field.load @java.ref:"SwitchExpressionTest2$Constants::c1:int";
-                        %71 : java.type:"boolean" = eq %69 %70;
+                    (%67 : java.type:"int")java.type:"boolean" -> {
+                        %68 : java.type:"int" = constant @12;
+                        %69 : java.type:"boolean" = eq %67 %68;
+                        yield %69;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %70 : java.type:"int" = constant @12;
+                        %71 : java.type:"java.lang.String" = invoke %70 @java.ref:"java.lang.String::valueOf(int):java.lang.String";
                         yield %71;
                     }
-                    ()java.type:"java.lang.String" -> {
-                        %72 : java.type:"int" = field.load @java.ref:"SwitchExpressionTest2$Constants::c1:int";
-                        %73 : java.type:"java.lang.String" = invoke %72 @java.ref:"java.lang.String::valueOf(int):java.lang.String";
-                        yield %73;
-                    }
-                    (%74 : java.type:"int")java.type:"boolean" -> {
-                        %75 : java.type:"int" = java.cexpression
+                    (%72 : java.type:"int")java.type:"boolean" -> {
+                        %73 : java.type:"int" = java.cexpression
                             ()java.type:"boolean" -> {
-                                %76 : java.type:"int" = constant @1;
-                                %77 : java.type:"int" = constant @0;
-                                %78 : java.type:"boolean" = gt %76 %77;
+                                %74 : java.type:"int" = constant @1;
+                                %75 : java.type:"int" = constant @0;
+                                %76 : java.type:"boolean" = gt %74 %75;
+                                yield %76;
+                            }
+                            ()java.type:"int" -> {
+                                %77 : java.type:"int" = constant @13;
+                                yield %77;
+                            }
+                            ()java.type:"int" -> {
+                                %78 : java.type:"int" = constant @133;
                                 yield %78;
-                            }
-                            ()java.type:"int" -> {
-                                %79 : java.type:"int" = constant @13;
-                                yield %79;
-                            }
-                            ()java.type:"int" -> {
-                                %80 : java.type:"int" = constant @133;
-                                yield %80;
                             };
-                        %81 : java.type:"boolean" = eq %74 %75;
+                        %79 : java.type:"boolean" = eq %72 %73;
+                        yield %79;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %80 : java.type:"java.lang.String" = constant @"13";
+                        yield %80;
+                    }
+                    ()java.type:"boolean" -> {
+                        %81 : java.type:"boolean" = constant @true;
                         yield %81;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %82 : java.type:"java.lang.String" = constant @"13";
+                        %82 : java.type:"java.lang.String" = constant @"an int";
                         yield %82;
-                    }
-                    ()java.type:"boolean" -> {
-                        %83 : java.type:"boolean" = constant @true;
-                        yield %83;
-                    }
-                    ()java.type:"java.lang.String" -> {
-                        %84 : java.type:"java.lang.String" = constant @"an int";
-                        yield %84;
                     };
-                return %5;
+                return %4;
             };
             """)
     @Reflect
@@ -905,50 +903,46 @@ public class SwitchExpressionTest2 {
                 %1 : Var<java.type:"short"> = var %0 @"a";
                 %2 : java.type:"int" = constant @1;
                 %3 : java.type:"short" = conv %2;
-                %4 : Var<java.type:"short"> = var %3 @"s";
-                %5 : java.type:"int" = constant @2;
-                %6 : java.type:"byte" = conv %5;
-                %7 : Var<java.type:"byte"> = var %6 @"b";
-                %8 : java.type:"short" = var.load %1;
-                %9 : java.type:"java.lang.String" = java.switch.expression %8
-                    (%10 : java.type:"short")java.type:"boolean" -> {
-                        %11 : java.type:"short" = var.load %4;
-                        %12 : java.type:"boolean" = eq %10 %11;
-                        yield %12;
+                %4 : java.type:"int" = constant @2;
+                %5 : java.type:"byte" = conv %4;
+                %6 : java.type:"short" = var.load %1;
+                %7 : java.type:"java.lang.String" = java.switch.expression %6
+                    (%8 : java.type:"short")java.type:"boolean" -> {
+                        %9 : java.type:"boolean" = eq %8 %3;
+                        yield %9;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %13 : java.type:"java.lang.String" = constant @"one";
+                        %10 : java.type:"java.lang.String" = constant @"one";
+                        yield %10;
+                    }
+                    (%11 : java.type:"short")java.type:"boolean" -> {
+                        %12 : java.type:"short" = conv %5;
+                        %13 : java.type:"boolean" = eq %11 %12;
                         yield %13;
                     }
-                    (%14 : java.type:"short")java.type:"boolean" -> {
-                        %15 : java.type:"byte" = var.load %7;
-                        %16 : java.type:"short" = conv %15;
-                        %17 : java.type:"boolean" = eq %14 %16;
-                        yield %17;
-                    }
                     ()java.type:"java.lang.String" -> {
-                        %18 : java.type:"java.lang.String" = constant @"three";
+                        %14 : java.type:"java.lang.String" = constant @"three";
+                        yield %14;
+                    }
+                    (%15 : java.type:"short")java.type:"boolean" -> {
+                        %16 : java.type:"int" = constant @3;
+                        %17 : java.type:"short" = conv %16;
+                        %18 : java.type:"boolean" = eq %15 %17;
                         yield %18;
                     }
-                    (%19 : java.type:"short")java.type:"boolean" -> {
-                        %20 : java.type:"int" = constant @3;
-                        %21 : java.type:"short" = conv %20;
-                        %22 : java.type:"boolean" = eq %19 %21;
-                        yield %22;
-                    }
                     ()java.type:"java.lang.String" -> {
-                        %23 : java.type:"java.lang.String" = constant @"two";
-                        yield %23;
+                        %19 : java.type:"java.lang.String" = constant @"two";
+                        yield %19;
                     }
                     ()java.type:"boolean" -> {
-                        %24 : java.type:"boolean" = constant @true;
-                        yield %24;
+                        %20 : java.type:"boolean" = constant @true;
+                        yield %20;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %25 : java.type:"java.lang.String" = constant @"default";
-                        yield %25;
+                        %21 : java.type:"java.lang.String" = constant @"default";
+                        yield %21;
                     };
-                return %9;
+                return %7;
             };
             """)
     @Reflect
@@ -968,39 +962,37 @@ public class SwitchExpressionTest2 {
                 %1 : Var<java.type:"java.lang.Byte"> = var %0 @"a";
                 %2 : java.type:"int" = constant @2;
                 %3 : java.type:"byte" = conv %2;
-                %4 : Var<java.type:"byte"> = var %3 @"b";
-                %5 : java.type:"java.lang.Byte" = var.load %1;
-                %6 : java.type:"java.lang.String" = java.switch.expression %5
-                    (%7 : java.type:"java.lang.Byte")java.type:"boolean" -> {
-                        %8 : java.type:"byte" = invoke %7 @java.ref:"java.lang.Byte::byteValue():byte";
-                        %9 : java.type:"int" = constant @1;
-                        %10 : java.type:"byte" = conv %9;
-                        %11 : java.type:"boolean" = eq %8 %10;
-                        yield %11;
+                %4 : java.type:"java.lang.Byte" = var.load %1;
+                %5 : java.type:"java.lang.String" = java.switch.expression %4
+                    (%6 : java.type:"java.lang.Byte")java.type:"boolean" -> {
+                        %7 : java.type:"byte" = invoke %6 @java.ref:"java.lang.Byte::byteValue():byte";
+                        %8 : java.type:"int" = constant @1;
+                        %9 : java.type:"byte" = conv %8;
+                        %10 : java.type:"boolean" = eq %7 %9;
+                        yield %10;
                     }
                     ()java.type:"java.lang.String" -> {
                         %11 : java.type:"java.lang.String" = constant @"one";
                         yield %11;
                     }
-                    (%13 : java.type:"java.lang.Byte")java.type:"boolean" -> {
-                        %14 : java.type:"byte" = invoke %13 @java.ref:"java.lang.Byte::byteValue():byte";
-                        %15 : java.type:"byte" = var.load %4;
-                        %16 : java.type:"boolean" = eq %14 %15;
+                    (%12 : java.type:"java.lang.Byte")java.type:"boolean" -> {
+                        %13 : java.type:"byte" = invoke %12 @java.ref:"java.lang.Byte::byteValue():byte";
+                        %14 : java.type:"boolean" = eq %13 %3;
+                        yield %14;
+                    }
+                    ()java.type:"java.lang.String" -> {
+                        %15 : java.type:"java.lang.String" = constant @"two";
+                        yield %15;
+                    }
+                    ()java.type:"boolean" -> {
+                        %16 : java.type:"boolean" = constant @true;
                         yield %16;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %17 : java.type:"java.lang.String" = constant @"two";
+                        %17 : java.type:"java.lang.String" = constant @"default";
                         yield %17;
-                    }
-                    ()java.type:"boolean" -> {
-                        %18 : java.type:"boolean" = constant @true;
-                        yield %18;
-                    }
-                    ()java.type:"java.lang.String" -> {
-                        %19 : java.type:"java.lang.String" = constant @"default";
-                        yield %19;
                     };
-                return %6;
+                return %5;
             };
             """)
     @Reflect
