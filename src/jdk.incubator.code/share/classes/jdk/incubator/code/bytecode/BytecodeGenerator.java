@@ -1265,7 +1265,7 @@ public final class BytecodeGenerator {
                         throw new UnsupportedOperationException(op + " on Object");
                 };
             case FLOAT -> {
-                cob.fcmpg(); // FCMPL?
+                cob.fcmpl();
                 yield reverseIfOpcode(op);
             }
             case LONG -> {
@@ -1273,7 +1273,7 @@ public final class BytecodeGenerator {
                 yield reverseIfOpcode(op);
             }
             case DOUBLE -> {
-                cob.dcmpg(); //CMPL?
+                cob.dcmpl();
                 yield reverseIfOpcode(op);
             }
             default ->
