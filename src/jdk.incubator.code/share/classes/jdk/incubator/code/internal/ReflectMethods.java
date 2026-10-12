@@ -1120,6 +1120,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
                         if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                             result = thisValue();
                         } else if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
+                            if (!sym.isStatic()) {
+                                // receiver null check
+                                MethodRef ref = MethodRef.method(Objects.class, "requireNonNull", Object.class, Object.class);
+                                append(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.STATIC, false, JavaType.J_L_OBJECT, ref, receiver));
+                            }
                             result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
                         } else {
                             FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?

@@ -356,8 +356,9 @@ public class ConstantsTest {
             func @"expr4" (%0 : java.type:"ConstantsTest")java.type:"int" -> {
                 %1 : Var<java.type:"ConstantsTest"> = var %0 @"receiver";
                 %2 : java.type:"ConstantsTest" = var.load %1;
-                %3 : java.type:"int" = constant @43;
-                return %3;
+                %3 : java.type:"java.lang.Object" = invoke %2 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %4 : java.type:"int" = constant @43;
+                return %4;
             };
             """)
     static int expr4(ConstantsTest receiver) {
