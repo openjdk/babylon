@@ -687,6 +687,8 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
                                 ? runtimeVariable.value()
                                 : runtimeValue;
                     }
+                } else {
+                    args[i] = capturedValues.get(value);
                 }
             }
             return args;
