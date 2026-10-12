@@ -627,6 +627,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         Value varOpValue(Symbol sym) {
+            Value v = findVarOpValue(sym);
+            if (v == null) {
+                throw new NoSuchElementException(sym.toString());
+            }
+            return v;
+        }
+
+        Value findVarOpValue(Symbol sym) {
             BodyStack s = stack;
             while (s != null) {
                 Value v = s.localToOp.get(sym);
@@ -635,7 +643,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
                 s = s.parent;
             }
-            throw new NoSuchElementException(sym.toString());
+            return null;
         }
 
         Value thisValue() { // @@@: outer this?
@@ -1038,14 +1046,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 case LOCAL_VARIABLE -> {
                     if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
                         // reuse a definition
-                        Value local = null;
-                        for (BodyStack s = stack; s != null && local == null; s = s.parent) {
-                            local = s.localToOp.get(sym);
+                        Value local = isLambdaReflectable ? findVarOpValue(sym) : varOpValue(sym);
+                        if (local == null) {
+                            local = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()), generateLocation(pos(), false), top);
+                            top.localToOp.put(sym, local);
                         }
-                        BodyStack where = local == null && isLambdaReflectable ? top : stack;
-                        result = local != null ? local
-                                : append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()), generateLocation(pos(), false), where);
-                        where.localToOp.put(sym, result);
+                        result = local;
                     } else {
                         result = loadVar(sym);
                     }
