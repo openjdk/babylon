@@ -45,7 +45,7 @@ public class TestComparisonWithNaN {
     void test(Method m) throws Throwable {
         CoreOp.FuncOp op = Op.ofMethod(m).get();
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), op);
-        int arg = 1; // int -> Integer -> int -> float/double
+        int arg = 1;
         boolean expected = false;
         Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), op, arg));
         Assertions.assertEquals(expected, mh.invoke(arg));
