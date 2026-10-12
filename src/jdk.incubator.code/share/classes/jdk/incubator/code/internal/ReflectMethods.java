@@ -794,7 +794,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
             } else {
                 // we need to unbox
-                return unbox(exprVal, source, target, types.unboxedType(source));
+                Value unboxedVal = unbox(exprVal, source, target, types.unboxedType(source));
+                return convert(unboxedVal, target); // to perform necessary widening conversion if needed
             }
         }
 
@@ -3091,6 +3092,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
         }
 
-        return new DenotableProjection(t).asDenotable();
+        Type res = new DenotableProjection(t).asDenotable();
+        return res.isIntersection() || res.isUnion() ? asDenotable(res) : res;
     }
 }

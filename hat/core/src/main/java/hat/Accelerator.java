@@ -27,8 +27,6 @@ package hat;
 import hat.backend.Backend;
 
 import hat.buffer.DispatchContext;
-import jdk.incubator.code.Value;
-import jdk.incubator.code.dialect.core.CoreOp;
 import optkl.OpHelper;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
@@ -51,7 +49,6 @@ import java.util.function.Predicate;
 
 import static hat.backend.Backend.FIRST;
 import static optkl.OpHelper.Invoke.getTargetInvoke;
-import static optkl.OpHelper.Lambda.lambda;
 
 /**
  * This class provides the developer facing view of HAT, and wraps a <a href="backend/Backend.html">Backend</a> capable of
@@ -205,7 +202,7 @@ public class Accelerator implements ArenaAndLookupCarrier,  BufferTracker {
         // It will also use this opportunity to generate ISA specific code for the kernels.
         ComputeContext computeContext = cache.computeIfAbsent(method, _ -> new ComputeContext(this, method));
         // Here we get the captured values from the lambda
-        Object[] args = OpHelper.Lambda.getQuotedCapturedValues(quoted.capturedValues(), targetInvoke);
+        Object[] args = targetInvoke.getCapturedValuesForOperands(quoted.capturedValues());
         args[0] = computeContext;
         // now ask the backend to execute
         backend.dispatchCompute(computeContext, args);

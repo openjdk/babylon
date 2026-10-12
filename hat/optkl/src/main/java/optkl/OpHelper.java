@@ -28,7 +28,6 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeElement;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Quoted;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -677,6 +676,22 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return op().operands().stream().map(o -> (Op.Result) o);
         }
 
+        default Object[] getCapturedValuesForOperands(Map<Value, Object> capturedValues) {
+            Object[] args = new Object[operandCount()];
+            for (int i = 0; i < args.length; i++) {
+                Value value = op().operands().get(i);
+                if (value instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlop) {
+                    Object runtimeValue = capturedValues.get(vlop.varOperand());
+                    if (runtimeValue != null) {
+                        args[i] = runtimeValue instanceof CoreOp.Var<?> runtimeVariable
+                                ? runtimeVariable.value()
+                                : runtimeValue;
+                    }
+                }
+            }
+            return args;
+        }
+
         sealed interface Virtual extends Invoke {
             default Op.Result instance() {
                 return (Op.Result) op().operands().getFirst();
@@ -837,26 +852,6 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
             return codeElement instanceof JavaOp.LambdaOp lambdaOp ? new Impl(lookup, lambdaOp) : null;
         }
 
-        // Move to OpHelper.Invoke and rename to getCapturedValuesForOperands
-        static Object[] getQuotedCapturedValues(SequencedMap<Value, Object> capturedValues, OpHelper.Invoke targetInvoke) {
-            JavaOp.InvokeOp targetInvokeOp = targetInvoke.op();
-
-            Object[] args = new Object[targetInvoke.operandCount()];
-            for (int i = 0; i < args.length; i++) {
-                Value value = targetInvokeOp.operands().get(i);
-                if (value instanceof Op.Result r && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp vlop) {
-                    Object runtimeValue = capturedValues.get(vlop.varOperand());
-                    if (runtimeValue != null) {
-                        args[i] = runtimeValue instanceof CoreOp.Var<?> runtimeVariable
-                                ? runtimeVariable.value()
-                                : runtimeValue;
-                    }
-                } else {
-                    args[i] = capturedValues.get(value);
-                }
-            }
-            return args;
-        }
     }
 
     sealed interface Binary extends OpHelper<JavaOp.BinaryOp> {

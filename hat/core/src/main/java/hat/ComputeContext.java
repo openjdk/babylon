@@ -25,8 +25,6 @@
 package hat;
 
 import hat.buffer.DispatchContext;
-import hat.buffer.S32Array;
-import jdk.incubator.code.Reflect;
 import optkl.OpHelper;
 import optkl.ifacemapper.Buffer;
 import optkl.util.carriers.ArenaAndLookupCarrier;
@@ -51,7 +49,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static optkl.OpHelper.Invoke.invoke;
-import static optkl.OpHelper.Lambda.lambda;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
@@ -225,7 +222,7 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
             OpHelper.Invoke targetInvoke = getTargetInvoke(lookup, lambdaOp);
             MethodRef methodRef = targetInvoke.op().invokeReference();
-            Object[] quotedCapturedValues = OpHelper.Lambda.getQuotedCapturedValues(quoted.capturedValues(), targetInvoke);
+            Object[] quotedCapturedValues = targetInvoke.getCapturedValuesForOperands(quoted.capturedValues());
             KernelCallSite kernelCallSite;
 
             try {

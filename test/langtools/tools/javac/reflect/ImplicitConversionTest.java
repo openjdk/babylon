@@ -657,4 +657,36 @@ public class ImplicitConversionTest {
     static void byteIndexArrayWriteCompound(int[] arr, byte index) {
         arr[index] += 1;
     }
+
+    @IR("""
+            func @"unboxingWidening" (%0 : java.type:"java.lang.Byte")java.type:"double" -> {
+                %1 : Var<java.type:"java.lang.Byte"> = var %0 @"b";
+                %2 : java.type:"java.lang.Byte" = var.load %1;
+                %3 : java.type:"byte" = invoke %2 @java.ref:"java.lang.Byte::byteValue():byte";
+                %4 : java.type:"float" = conv %3;
+                %5 : java.type:"float" = constant @1.0f;
+                %6 : java.type:"float" = add %4 %5;
+                %7 : java.type:"double" = conv %6;
+                return %7;
+            };
+            """)
+    @Reflect
+    static double unboxingWidening(Byte b) {
+        return b + 1f;
+    }
+
+    @IR("""
+            func @"unboxingWidening" (%0 : java.type:"java.lang.Float")java.type:"double" -> {
+                %1 : Var<java.type:"java.lang.Float"> = var %0 @"x";
+                %2 : java.type:"java.lang.Float" = var.load %1;
+                %3 : java.type:"float" = invoke %2 @java.ref:"java.lang.Float::floatValue():float";
+                %4 : java.type:"double" = conv %3;
+                %5 : java.type:"double" = invoke %4 @java.ref:"java.lang.Math::sin(double):double";
+                return %5;
+            };
+            """)
+    @Reflect
+    static double unboxingWidening(Float x) {
+        return Math.sin(x);
+    }
 }
