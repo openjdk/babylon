@@ -90,8 +90,12 @@ public class ResolutionHelper {
     }
 
     public static MethodType resolveMethodType(MethodHandles.Lookup l, FunctionType ft) throws ReflectiveOperationException {
-        return MethodRef.toNominalDescriptor(ft)
-                .resolveConstantDesc(l);
+        try {
+            return MethodType.fromMethodDescriptorString(MethodRef.toNominalDescriptor(ft).descriptorString(),
+                    l.lookupClass().getClassLoader());
+        } catch (TypeNotPresentException ex) {
+            throw (ClassNotFoundException) ex.getCause();
+        }
     }
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef, InvokeKind kind) throws ReflectiveOperationException {
