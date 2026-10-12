@@ -1119,8 +1119,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     case FIELD, ENUM_CONSTANT -> {
                         if (sym.name.equals(names._this) || sym.name.equals(names._super)) {
                             result = thisValue();
-                        } else if (sym.isStatic() && sym instanceof VarSymbol variable
-                                && variable.getConstantValue() != null) {
+                        } else if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
                             result = append(CoreOp.constant(typeToCodeType(tree.type), variable.getConstantValue()));
                         } else {
                             FieldRef fr = symbolToErasedFieldRef(sym, qualifierTarget.hasTag(NONE) ?
