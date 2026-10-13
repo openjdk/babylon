@@ -16,10 +16,9 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit TestComparisonWithNaN
+ * @run junit TestCompareWithNaN
  */
-public class TestComparisonWithNaN {
-
+public class TestCompareWithNaN {
     @Reflect
     static boolean gtNaN(float f) {
         return f > Float.NaN;
@@ -31,13 +30,44 @@ public class TestComparisonWithNaN {
     }
 
     @Reflect
-    static boolean gtNaN(double d) {
-        return d > Double.NaN;
+    static boolean eqNaN(float f) {
+        return f == Float.NaN;
     }
 
     @Reflect
-    static boolean gteNaN(double d) {
-        return d >= Double.NaN;
+    static boolean ltNaN(float f) {
+        return f < Float.NaN;
+    }
+
+    @Reflect
+    static boolean lteNaN(float f) {
+        return f <= Float.NaN;
+    }
+
+
+    @Reflect
+    static boolean gtNaN(double f) {
+        return f > Double.NaN;
+    }
+
+    @Reflect
+    static boolean gteNaN(double f) {
+        return f >= Double.NaN;
+    }
+
+    @Reflect
+    static boolean eqNaN(double f) {
+        return f == Double.NaN;
+    }
+
+    @Reflect
+    static boolean ltNaN(double f) {
+        return f < Double.NaN;
+    }
+
+    @Reflect
+    static boolean lteNaN(double f) {
+        return f <= Double.NaN;
     }
 
     @ParameterizedTest
@@ -45,14 +75,17 @@ public class TestComparisonWithNaN {
     void test(Method m) throws Throwable {
         CoreOp.FuncOp op = Op.ofMethod(m).get();
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), op);
+
         int arg = 1;
-        boolean expected = false;
+        Object expected = m.invoke(null, arg);
+
         Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), op, arg));
+
         Assertions.assertEquals(expected, mh.invoke(arg));
     }
 
     static Stream<Method> cases() {
-        return Arrays.stream(TestComparisonWithNaN.class.getDeclaredMethods())
+        return Arrays.stream(TestCompareWithNaN.class.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Reflect.class));
     }
 }
