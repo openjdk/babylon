@@ -79,6 +79,15 @@ public class ResolutionHelper {
         }
     }
 
+    static MethodType toMethodType(MethodHandles.Lookup l, FunctionType ft) throws ReflectiveOperationException {
+        try {
+            return MethodType.fromMethodDescriptorString(MethodRef.toNominalDescriptor(ft).descriptorString(),
+                    l.lookupClass().getClassLoader());
+        } catch (TypeNotPresentException ex) {
+            throw (ClassNotFoundException) ex.getCause();
+        }
+    }
+
     // public API
 
     public static Class<?> resolveClass(MethodHandles.Lookup l, CodeType t) throws ReflectiveOperationException {
@@ -96,7 +105,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef, InvokeKind kind) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.signature());
+        MethodType mt = toMethodType(l, methodRef.signature());
         HandleResolver<MethodHandle, MethodType> resolver = switch (kind) {
             case INSTANCE -> HandleResolver.FIND_VIRTUAL;
             case STATIC -> HandleResolver.FIND_STATIC;
@@ -107,7 +116,7 @@ public class ResolutionHelper {
 
     public static MethodHandle resolveMethod(MethodHandles.Lookup l, MethodRef methodRef) throws ReflectiveOperationException {
         Class<?> refC = resolveClass(l, methodRef.refType());
-        MethodType mt = resolveMethodType(l, methodRef.signature());
+        MethodType mt = toMethodType(l, methodRef.signature());
         return resolveHandle(HandleResolver.FIND_STATIC, l, refC, methodRef.name(), mt)
                 .orElse(() -> resolveHandle(HandleResolver.FIND_VIRTUAL, l, refC, methodRef.name(), mt))
                 .handle();

@@ -37,6 +37,7 @@ import resolve.Parent;
  * @bug 8392556
  * @summary Test for code reflection with method reference expressions.
  * @library ../lib/
+ * @library ../
  * @modules jdk.incubator.code
  * @enablePreview
  * @run junit TestMethodReferenceAccess
@@ -68,33 +69,37 @@ public class TestMethodReferenceAccess {
     @Test
     public void testDirectCall() throws Throwable {
         var parent = new Parent();
-        var handle = BytecodeGenerator.generate(MethodHandles.lookup(),
-                Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "direct").orElseThrow()).orElseThrow());
+        var op = Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "direct").orElseThrow()).orElseThrow();
+        var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
         Assertions.assertEquals(TestMethodReferenceAccess.direct(parent), handle.invoke(parent));
+        Assertions.assertEquals(TestMethodReferenceAccess.direct(parent), Interpreter.invoke(MethodHandles.lookup(), op, parent));
     }
 
     @Test
     public void testGenericMethodReference() throws Throwable {
         var parent = new Parent();
-        var handle = BytecodeGenerator.generate(MethodHandles.lookup(),
-                Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "genericReference").orElseThrow()).orElseThrow());
+        var op = Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "genericReference").orElseThrow()).orElseThrow();
+        var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
         Assertions.assertEquals(TestMethodReferenceAccess.genericReference(parent), handle.invoke(parent));
+        Assertions.assertEquals(TestMethodReferenceAccess.genericReference(parent), Interpreter.invoke(MethodHandles.lookup(), op, parent));
     }
 
     @Test
     public void testNonGenericMethodReference() throws Throwable {
         var parent = new Parent();
-        var handle = BytecodeGenerator.generate(MethodHandles.lookup(),
-                Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "nonGenericReference").orElseThrow()).orElseThrow());
+        var op = Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "nonGenericReference").orElseThrow()).orElseThrow();
+        var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
         Assertions.assertEquals(TestMethodReferenceAccess.nonGenericReference(parent), handle.invoke(parent));
+        Assertions.assertEquals(TestMethodReferenceAccess.nonGenericReference(parent), Interpreter.invoke(MethodHandles.lookup(), op, parent));
     }
 
     @Test
     public void testGenericMethodReferenceWithTypeVarReceiver() throws Throwable {
         var parent = new Parent();
-        var handle = BytecodeGenerator.generate(MethodHandles.lookup(),
-                Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "genericReferenceWithTypeVarReceiver").orElseThrow()).orElseThrow());
+        var op = Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "genericReferenceWithTypeVarReceiver").orElseThrow()).orElseThrow();
+        var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
         Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithTypeVarReceiver(parent), handle.invoke(parent));
+        Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithTypeVarReceiver(parent), Interpreter.invoke(MethodHandles.lookup(), op, parent));
     }
 
     static Optional<Method> getMethod(Class<?> c, String name) {
