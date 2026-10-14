@@ -21,10 +21,8 @@ import java.util.function.IntConsumer;
  * @modules jdk.incubator.code
  * @library lib
  * @run junit TestTryOpWithExceptionRegion
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryOpWithExceptionRegion
  * @run main Unreflect TestTryOpWithExceptionRegion
  * @run junit TestTryOpWithExceptionRegion
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryOpWithExceptionRegion
  */
 public class TestTryOpWithExceptionRegion {
     @Reflect
