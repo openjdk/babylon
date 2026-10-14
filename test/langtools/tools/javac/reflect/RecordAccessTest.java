@@ -44,7 +44,7 @@ public class RecordAccessTest {
     @Reflect
     @IR("""
             func @"test1" (%0 : java.type:"RecordAccessTest")java.type:"void" -> {
-                %1 : java.type:"java.lang.String" = field.load @java.ref:"RecordAccessTest$R::F:java.lang.String";
+                %1 : java.type:"java.lang.String" = constant @"";
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"f";
                 return;
             };

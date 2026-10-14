@@ -106,11 +106,10 @@ public class LocalClassTest {
             func @"testLocalCaptureParamAndField" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                 %3 : java.type:"java.lang.String" = constant @"Hello!";
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"localConst";
-                %5 : java.type:"java.lang.String" = var.load %2;
-                %6 : java.type:"LocalClassTest::$3Foo" = new %0 %5 @java.ref:"LocalClassTest::$3Foo::(LocalClassTest, java.lang.String)";
-                %7 : java.type:"java.lang.String" = invoke %6 @java.ref:"LocalClassTest::$3Foo::m():java.lang.String";
-                return %7;
+                %4 : java.type:"java.lang.String" = var.load %2;
+                %5 : java.type:"LocalClassTest::$3Foo" = new %0 %4 @java.ref:"LocalClassTest::$3Foo::(LocalClassTest, java.lang.String)";
+                %6 : java.type:"java.lang.String" = invoke %5 @java.ref:"LocalClassTest::$3Foo::m():java.lang.String";
+                return %6;
             };
             """)
     String testLocalCaptureParamAndField(String s) {
@@ -126,11 +125,10 @@ public class LocalClassTest {
             func @"testAnonCaptureParamAndField" (%0 : java.type:"LocalClassTest", %1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
                 %3 : java.type:"java.lang.String" = constant @"Hello!";
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"localConst";
-                %5 : java.type:"java.lang.String" = var.load %2;
-                %6 : java.type:"LocalClassTest::$3" = new %0 %5 @java.ref:"LocalClassTest::$3::(LocalClassTest, java.lang.String)";
-                %7 : java.type:"java.lang.String" = invoke %6 @java.ref:"LocalClassTest::$3::m():java.lang.String";
-                return %7;
+                %4 : java.type:"java.lang.String" = var.load %2;
+                %5 : java.type:"LocalClassTest::$3" = new %0 %4 @java.ref:"LocalClassTest::$3::(LocalClassTest, java.lang.String)";
+                %6 : java.type:"java.lang.String" = invoke %5 @java.ref:"LocalClassTest::$3::m():java.lang.String";
+                return %6;
             };
             """)
     String testAnonCaptureParamAndField(String s) {
