@@ -620,7 +620,7 @@ public class SwitchExpressionTest {
                         yield %6;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %7 : java.type:"int" = field.load @java.ref:"java.lang.Integer::MAX_VALUE:int";
+                        %7 : java.type:"int" = constant @2147483647;
                         %8 : java.type:"java.lang.Integer" = invoke %7 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
                         java.yield %8;
                     }

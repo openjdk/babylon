@@ -89,10 +89,10 @@ public final class LoweringTransformer {
         CodeTransformer lowering = getInstance(lookup);
         List<FuncOp> functions = new ArrayList<>();
         for (FuncOp fop : module.functionTable().sequencedValues()) {
-            Op transformed = ConstantExpressionTransformer.transform(lookup, fop);
-            transformed = transformed.transform(CodeContext.create(), RemoveUnusedConstantTransformer.INSTANCE);
+            FuncOp transformed = ConstantExpressionTransformer.transform(lookup, fop);
+            transformed = RemoveUnusedConstantTransformer.transform(transformed);
             functions.add(NormalizeBlocksTransformer.transform(
-                    (FuncOp) transformed.transform(CodeContext.create(), lowering)));
+                    transformed.transform(CodeContext.create(), lowering)));
         }
         return CoreOp.module(functions);
     }

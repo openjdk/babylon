@@ -120,13 +120,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * variable.
          *</ul>
          *
+         * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
+         *          variable as a constant operation whose constant value is the same as the constant variable's value.
+         *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
          * is not an instance of {@link Op.Result} or the operation does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
-         *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
             return new ConstantExpressionEvaluator(l).evaluate(v);
@@ -151,6 +153,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * Such a variable is modelled as a variable operation, which does not model if the variable is a final
          * variable.
          *</ul>
+         *
+         * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
+         *          variable as a constant operation whose constant value is the same as the constant variable's value.
          *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
@@ -1052,7 +1057,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         static final String NAME = "conv";
 
         final CodeType resultType;
@@ -1252,7 +1257,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         @OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
-                implements Pure, JavaExpression {
+                implements JavaExpression {
             static final String NAME = "field.load";
 
             final CodeType resultType;
@@ -1428,7 +1433,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         @OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
-                implements Pure, JavaExpression {
+                implements JavaExpression {
             static final String NAME = "array.load";
             final CodeType componentType;
 
@@ -1519,7 +1524,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends AbstractOp
-            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
+            implements JavaOp, ReflectiveOp, JavaExpression {
         static final String NAME = "instanceof";
         /** The externalized attribute key for the code type modeling the instanceof target type. */
         static final String ATTRIBUTE_INSTANCEOF_TYPE = NAME + ".type";
@@ -1582,7 +1587,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(CastOp.NAME)
     public static final class CastOp extends AbstractOp
-            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
+            implements JavaOp, ReflectiveOp, JavaExpression {
         static final String NAME = "cast";
         /** The externalized attribute key for the code type modeling the target type of the cast. */
         static final String ATTRIBUTE_CAST_TYPE = NAME + ".type";
@@ -1790,7 +1795,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConcatOp.NAME)
     public static final class ConcatOp extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         static final String NAME = "concat";
 
         ConcatOp(ConcatOp that, CodeContext cc) {
@@ -1835,7 +1840,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * The arithmetic operation.
      */
     public sealed static abstract class ArithmeticOperation extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         ArithmeticOperation(ArithmeticOperation that, CodeContext cc) {
             super(that, cc);
         }
@@ -5113,9 +5118,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
         }
 
-        private static final boolean SHARED_FINALIZER_DISPATCH =
-                "sharedDispatch".equalsIgnoreCase(System.getProperty("babylon.tryFinally"));
-
         /**
          * Builder for the resource bodies and the try body of a try operation.
          */
@@ -5389,7 +5391,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
-            if (!resourcesBodies.isEmpty() || SHARED_FINALIZER_DISPATCH && finallyBody != null) {
+            if (!resourcesBodies.isEmpty()) {
                 List<Value> captures = normalizationCaptures();
                 Op normalized = normalize(captures);
                 CodeContext ctx = CodeContext.create(b.context());
@@ -5448,8 +5450,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                         return inlineFinalizer(block, enter, inherited);
@@ -5482,8 +5482,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             Block.Builder finallyEnter = null;
             if (finallyBody != null) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
@@ -5502,8 +5500,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
                 if (finallyBody != null) {
-                    assert !SHARED_FINALIZER_DISPATCH;
-
                     Block.Builder catchRegionEnter = b.block();
                     Block.Builder catchRegionExit = b.block();
 
@@ -5552,8 +5548,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // Inline the finally body as a catcher of Throwable and adjusting to throw
             if (finallyBody != null && hasTryRegionExit.get()) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 // Inline the finally body for exceptional completion and rethrow
                 finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
@@ -5566,8 +5560,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             if (finallyBody != null) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 // Inline the finally body for exceptional completion and rethrow
                 Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
                 catcherFinally.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
@@ -5601,9 +5593,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             CoreOp.FuncOp root = func("$", body);
             root = normalize(root, TryOp::isExtendedTryWithResources, TryOp::normalizeExtendedTryWithResources);
             root = normalize(root, TryOp::isBasicTryWithResources, TryOp::normalizeBasicTryWithResources);
-            if (SHARED_FINALIZER_DISPATCH) {
-                root = normalize(root, tryOp -> tryOp.finallyBody != null, TryOp::normalizeFinalizer);
-            }
 
             return root.body().entryBlock().ops().getFirst();
         }
@@ -5784,142 +5773,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
         }
 
-        private record FinallyExit(Op op, Value valueVar) {
-        }
-
-        /// Normalize `try / catch / finally` to elemental `try / catch`
-        ///
-        /// ```
-        /// completion = normal
-        /// pending = null
-        /// finalizerExit: {
-        ///     try {
-        ///         try { body } catch (...) { catches }
-        ///         record normal, return, break, continue, or yield
-        ///         break finalizerExit
-        ///     } catch (t) {
-        ///         pending = t
-        ///         completion = throw
-        ///         break finalizerExit
-        ///     }
-        /// }
-        /// finalizer
-        /// replay(completion, pending)
-        /// ```
-        ///
-        /// @jls 14.20.2 Execution of try-finally and try-catch-finally
-        private Op.Result normalizeFinalizer(Block.Builder b) {
-            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
-            Block.Builder output = normalizedBody.entryBlock();
-            Value completionVar = output.add(var(output.add(constant(INT, 0))));
-            Value exceptionVar = output.add(var(output.add(constant(type(Throwable.class), null))));
-            List<FinallyExit> exits = new ArrayList<>();
-
-            Body.Builder labeledBody = Body.Builder.of(output.parentBody(), CoreType.functionType(VOID));
-            Block.Builder labeledBlock = labeledBody.entryBlock();
-            Value exitLabel = labeledBlock.add(constant(J_L_STRING, "$finally"));
-
-            CatchBuilder protectedTry = try_(labeledBody, tryBlock -> {
-                if (handlers.isEmpty()) {
-                    tryBlock.transformBody(body, List.of(),
-                            finalizerExitTransformer(body, exitLabel, completionVar, exits, output));
-                } else {
-                    CatchBuilder innerTry = try_(tryBlock.parentBody(), innerBlock ->
-                            innerBlock.transformBody(body, List.of(),
-                                    finalizerExitTransformer(body, exitLabel, completionVar, exits, output)));
-                    List<CodeType> catchTypes = catchTypes();
-                    for (int i = 0; i < handlers.size(); i++) {
-                        Body catcher = handlers.get(i);
-                        innerTry.catch_(catchTypes.get(i), catcher.bodySignature().parameterTypes().getFirst(),
-                                catchBlock -> catchBlock.transformBody(catcher, catchBlock.parameters(),
-                                        finalizerExitTransformer(catcher, exitLabel, completionVar, exits, output)));
-                    }
-                    tryBlock.add(innerTry.noFinalizer());
-                    tryBlock.add(core_yield());
-                }
-            });
-            labeledBlock.add(protectedTry.catch_(type(Throwable.class), catchBlock -> {
-                catchBlock.add(varStore(exceptionVar, catchBlock.parameters().getFirst()));
-                completeFinalizer(catchBlock, exitLabel, completionVar, 1);
-            }).noFinalizer());
-            labeledBlock.add(core_yield());
-            output.add(labeled(labeledBody));
-
-            Block.Builder afterFinalizer = output.block();
-            output.transformBody(finallyBody, List.of(), (current, op) -> {
-                if (op instanceof CoreOp.YieldOp && op.ancestorBody() == finallyBody) {
-                    current.add(branch(afterFinalizer.reference()));
-                    return current;
-                }
-                current.add(op);
-                return current;
-            });
-
-            for (int i = 0; i < exits.size(); i++) {
-                FinallyExit exit = exits.get(i);
-                int completion = i + 2;
-                afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
-                    Value value = predicate.add(varLoad(completionVar));
-                    predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, completion))))));
-                }).then(action -> {
-                    Op exitOp = exit.op();
-                    if (exitOp instanceof TargetingOp && exit.valueVar() != null) {
-                        assert exitOp.operands().size() == 1;
-
-                        Value returnValue = action.add(varLoad(exit.valueVar()));
-                        action.context().mapValue(exitOp.operands().getFirst(), returnValue);
-                    }
-                    action.add(exitOp);
-                }).noElse());
-            }
-            afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
-                Value value = predicate.add(varLoad(completionVar));
-                predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, 1))))));
-            }).then(action -> {
-                action.add(throw_(action.add(varLoad(exceptionVar))));
-            }).noElse());
-            afterFinalizer.add(core_yield());
-            return b.add(try_(List.of(), normalizedBody, List.of(), null));
-        }
-
-        @SuppressWarnings("fallthrough")
-        private CodeTransformer finalizerExitTransformer(Body sourceBody, Value exitLabel, Value completionVar,
-                                                         List<FinallyExit> exits, Block.Builder output) {
-            return (b, op) -> {
-                switch (op) {
-                    case CoreOp.YieldOp _ when op.ancestorBody() == sourceBody -> {
-                        completeFinalizer(b, exitLabel, completionVar, 0);
-                    }
-                    case TargetingOp top when top.targetsOrAttemptsToExit(this) -> {
-                        Value valueVar = null;
-                        switch (top) {
-                            case ReturnOp _, StagedReturnOp _ when op.operands().size() == 1 :
-                            case YieldOp _, StagedYieldOp _ : {
-                                Value yieldValue = b.context().getValue(op.operands().getFirst());
-                                valueVar = output.add(var(yieldValue.type()));
-                                b.add(varStore(valueVar, yieldValue));
-                            }
-                            // Fallthrough for all targeting ops
-                            // Including StatementTargetingOp which may have an unmapped operand for its label
-                            default: {
-                                exits.add(new FinallyExit(op, valueVar));
-                                completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
-                            }
-                        }
-                    }
-                    default -> {
-                        b.add(op);
-                    }
-                };
-                return b;
-            };
-        }
-
-        private static void completeFinalizer(Block.Builder b, Value exitLabel, Value completionVar, int completion) {
-            b.add(varStore(completionVar, b.add(constant(INT, completion))));
-            b.add(break_(exitLabel));
-        }
-
         // Replace targeting operations whose targets are outside the staged model with staged forms.
         private Block.Builder stageTargetingOps(Block.Builder block, Op op) {
             block.add(switch (op) {
@@ -6070,7 +5923,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * {@link RecordPatternOp}.
          */
         public sealed static abstract class PatternOp extends AbstractOp
-                implements JavaOp, Op.Pure {
+                implements JavaOp {
             PatternOp(PatternOp that, CodeContext cc) {
                 super(that, cc);
             }

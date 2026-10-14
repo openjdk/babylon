@@ -35,8 +35,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.Block;
@@ -56,6 +60,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.internal.OpBuilder;
+import jdk.incubator.code.internal.ConstantValueAnalysis;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -82,6 +87,8 @@ final class LambdaExpansionTransformer implements CodeTransformer {
     private final List<FuncOp> functions = new ArrayList<>();
     private final LinkedHashMap<String, FuncOp> modelsToBuild = new LinkedHashMap<>();
     private int nextLambdaIndex;
+    // used for expression constants evaluation only
+    private final ConstantValueAnalysis constants = new ConstantValueAnalysis(_ -> List.of());
 
     private LambdaExpansionTransformer(MethodHandles.Lookup lookup, Set<String> names) {
         this.lookup = lookup;
@@ -116,20 +123,30 @@ final class LambdaExpansionTransformer implements CodeTransformer {
     }
 
     // LambdaMetafactory implementation methods take captures before lambda parameters.
-    private static FuncOp lambdaToFuncOp(String name, JavaOp.LambdaOp lop) {
+    private FuncOp lambdaToFuncOp(String name, JavaOp.LambdaOp lop) {
         List<Value> captures = lop.capturedValues();
         FunctionType lambdaType = lop.invokableSignature();
         ArrayList<CodeType> parameterTypes = new ArrayList<>(captures.size() + lambdaType.parameterTypes().size());
         for (Value v : captures) {
-            parameterTypes.add(v.type() instanceof VarType vt ? vt.valueType() : v.type());
+            if (constants.evaluate(v).isEmpty()) {
+                // non-constant captures become additional parameters
+                parameterTypes.add(v.type() instanceof VarType vt ? vt.valueType() : v.type());
+            }
         }
         parameterTypes.addAll(lambdaType.parameterTypes());
         return CoreOp.func(name, CoreType.functionType(lambdaType.returnType(), parameterTypes)).body(b -> {
             int i = 0;
             for (Value cv : captures) {
-                Value v = b.parameters().get(i++);
-                if (cv.type() instanceof VarType) {
-                    v = b.add(CoreOp.var(v));
+                Value v;
+                Optional<Object> cvv = constants.evaluate(cv);
+                if (cvv.isPresent()) {
+                    // captured constants become literals
+                    v = b.add(CoreOp.constant(cv.type(), cvv.orElseThrow()));
+                } else {
+                    v = b.parameters().get(i++);
+                    if (cv.type() instanceof VarType) {
+                        v = b.add(CoreOp.var(v));
+                    }
                 }
                 b.context().mapValue(cv, v);
             }
@@ -161,14 +178,20 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         try {
             Class<?> intfClass = (Class<?>) intfType.erasure().resolve(lookup);
             Method intfMethod = funcIntfMethod(intfClass, mtd);
-            List<Value> captures = lop.capturedValues();
+            List<Value> allCaptures = lop.capturedValues();
+            // filter out constant captures
+            List<Value> captures = allCaptures.stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
             int i = nextLambdaIndex++;
             String implName = uniqueName(names, "lambda$" + i);
             String intfMethodName = intfMethod.getName();
             DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
             if (lop.isReflectable()) {
                 String modelName = uniqueName(names, "op$lambda$" + i);
-                modelsToBuild.put(modelName, Quoted.embedOp(lop));
+                Map<Value, Object> capturedConstants = allCaptures.stream()
+                        .filter(c -> constants.evaluate(c).isPresent())
+                        .collect(Collectors.toMap(Function.identity(), c -> constants.evaluate(c).orElseThrow()));
+                // embed captured constants into quotation function
+                modelsToBuild.put(modelName, Quoted.embedOp(lop, capturedConstants));
                 lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
                 intfMethodName = intfMethodName + "=" + modelName;
             }

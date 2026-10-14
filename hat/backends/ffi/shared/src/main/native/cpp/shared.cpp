@@ -371,7 +371,6 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     for (int i = 1; i < argSled.argc(); i++) {
 
         KernelArg *arg = argSled.arg(i);
-   //      std::cout << "in argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
         switch (arg->variant) {
             case '&': {
                 bool readAccessor  = arg->value.buffer.access == RO_BYTE || arg->value.buffer.access == RW_BYTE || arg->value.buffer.access == UNKNOWN_BYTE;
@@ -398,8 +397,12 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 bool kernelReadsFromThisArg =  arg->value.buffer.access == RW_BYTE
                                             || arg->value.buffer.access == RO_BYTE;
 
-                bool copyToDevice = readAccessor;
+
+                // WO buffers must be copy in the first time, since it contains the metadata associated with it
+                // (object header), but those objects are only copied if they buffer state is new.
+                bool copyToDevice = readAccessor || (bufferState->state == BufferState::NEW_STATE);
                 if (!compilationUnit->backend->config->alwaysCopy) {
+                    // For minimized copies, buffers are only copied if the state is new, or host owned.
                     copyToDevice = (bufferState->state == BufferState::NEW_STATE)
                                      || ((bufferState->state == BufferState::HOST_OWNED));
                 }
@@ -464,8 +467,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
 
     for (int i = 1; i < argSled.argc(); i++) {
         // note i above = 1... we never need to copy back the KernelContext fix this for DispatchContext
-        KernelArg *arg = argSled.arg(i);
-    //       std::cout << "out argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
+        KernelArg const *arg = argSled.arg(i);
         if (arg->variant == '&') {
             BufferState *bufferState = BufferState::of(arg);
 
@@ -504,8 +506,11 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
         profilableQueue->marker(Backend::ProfilableQueue::LeaveKernelDispatchBits, name);
     }
 
-    compilationUnit->backend->queue->wait();
-    compilationUnit->backend->queue->release();
+    // We only way when alwaysCopy is enabled
+    if (compilationUnit->backend->config->alwaysCopy) {
+        compilationUnit->backend->queue->wait();
+        compilationUnit->backend->queue->release();
+    }
     if (compilationUnit->backend->config->traceCalls) {
         std::cout << "\"" << name << "\"}" << std::endl;
     }

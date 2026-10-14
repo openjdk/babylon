@@ -26,10 +26,8 @@
  * @modules jdk.incubator.code
  * @library lib
  * @run junit TestTryWithResources
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryWithResources
  * @run main Unreflect TestTryWithResources
  * @run junit TestTryWithResources
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryWithResources
  */
 
 import java.io.Closeable;

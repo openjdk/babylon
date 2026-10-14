@@ -125,10 +125,11 @@ public  class C99HATConfigBuilder extends C99CodeBuilder<C99HATConfigBuilder> {
                 Config.bitList.stream().filter(bit -> bit.size() == 1).forEach(bit ->
                         cb.camelExceptFirst(bit.name()).paren((_) -> cb.paren((_) -> cb.configBitsAndBitName(bit.name())).eq().id(bit.name() + "_BIT")).comma().nl()
                 );
-                cb.id("platform").paren((_) -> cb.configBitsAnd().intHexValue(0xf)).comma().nl();
+                cb.id("platform").paren((_) -> cb.configBitsAnd().intHexValue(0x7)).comma().nl();
                 cb.id("alwaysCopy").paren(_ -> cb.pling().camelExceptFirst("MINIMIZE_COPIES")).comma().nl();
                 cb.id("device").paren(_ ->
-                        cb.paren(_ -> cb.configBitsAnd().intHexValue(0xf0)).sp().rightShift().sp().intValue(4)).braceNlIndented(_ ->
+                        // Device: 3 bits -> 111000 >> 3 , which is 0x38 >> 3
+                        cb.paren(_ -> cb.configBitsAnd().intHexValue(0x38)).sp().rightShift().sp().intValue(3)).braceNlIndented(_ ->
                         cb.ifKeyword().paren(_ -> cb.id("showDeviceInfo")).braceNlIndented(_ -> {
                             cb.nlSeparated(
                                     Config.bitList.stream().filter(bit -> bit.size() == 1),

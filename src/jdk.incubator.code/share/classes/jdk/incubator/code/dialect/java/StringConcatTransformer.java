@@ -43,7 +43,23 @@ public final class StringConcatTransformer implements CodeTransformer {
     /**
      * Creates a new string concatenation transformer.
      */
-    public StringConcatTransformer() {}
+    private StringConcatTransformer() {}
+
+    private static final StringConcatTransformer INSTANCE = new StringConcatTransformer();
+
+    /**
+     * Transforms an operation, by replacing
+     * {@link jdk.incubator.code.dialect.java.JavaOp.ConcatOp string concatenation operations}
+     * with invocations on {@link java.lang.StringBuilder}.
+     *
+     * @param op  the operation to transform
+     * @param <O> the type of operation
+     * @return the transformed operation
+     */
+    @SuppressWarnings("unchecked")
+    public static <O extends Op> O transform(O op) {
+        return (O) op.transform(CodeContext.create(), INSTANCE);
+    }
 
     @Override
     public Block.Builder acceptOp(Block.Builder block, Op op) {
