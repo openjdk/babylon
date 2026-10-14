@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -349,5 +349,19 @@ public class ConstantsTest {
         final int i = 1 + 2;
         IO.println(i);
         IO.println(i);
+    }
+
+    @Reflect
+    @IR("""
+            func @"expr4" (%0 : java.type:"ConstantsTest")java.type:"int" -> {
+                %1 : Var<java.type:"ConstantsTest"> = var %0 @"receiver";
+                %2 : java.type:"ConstantsTest" = var.load %1;
+                %3 : java.type:"java.lang.Object" = invoke %2 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %4 : java.type:"int" = constant @43;
+                return %4;
+            };
+            """)
+    static int expr4(ConstantsTest receiver) {
+        return receiver.INSTANCE_CONSTANT_VARIABLE;
     }
 }

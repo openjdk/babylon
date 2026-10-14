@@ -302,8 +302,7 @@ public final class Quoted<T extends Op> {
                         || constantOp.resultType().equals(JavaType.J_L_STRING))
                     && operandsAndCaptures.contains(constantOp.result())) {
                 continue;
-            }
-            if (!(ops.get(i) instanceof CoreOp.VarOp varOp)
+            } else if (!(ops.get(i) instanceof CoreOp.VarOp varOp)
                     || varOp.isUninitialized()
                     || !(varOp.initOperand() instanceof Block.Parameter p)
                     || p.declaringBlock() != fblock
@@ -331,8 +330,7 @@ public final class Quoted<T extends Op> {
                 }
                 case Op.Result opr when opr.op() instanceof CoreOp.VarOp varOp
                                      && varOp.ancestorBlock() == fblock
-                                     && varOp.initOperand() instanceof Block.Parameter p
-                                     && p.declaringBlock() == fblock -> {
+                                     && varOp.initOperand() instanceof Block.Parameter p -> {
                     Object rv = args.get(p.index());
                     m.put(v, CoreOp.Var.of(rv));
                 }

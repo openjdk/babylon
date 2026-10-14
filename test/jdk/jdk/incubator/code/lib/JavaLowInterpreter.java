@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toMap;
 
-public class JavaLowInterpreter extends AbstractJavaInterpreter {
+class JavaLowInterpreter extends AbstractJavaInterpreter {
     public JavaLowInterpreter() {
     }
 
@@ -359,7 +359,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
         };
     }
 
-    static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
+    private static MethodType resolveToMethodType(MethodHandles.Lookup l, FunctionType ft) {
         try {
             return MethodRef.toNominalDescriptor(ft).resolveConstantDesc(l);
         } catch (ReflectiveOperationException e) {
@@ -367,7 +367,7 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
         }
     }
 
-    static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
+    private static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
         try {
             return d.resolveToHandle(l, kind);
         } catch (ReflectiveOperationException e) {
@@ -375,21 +375,21 @@ public class JavaLowInterpreter extends AbstractJavaInterpreter {
         }
     }
 
-    static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {
+    private static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {
         return d.resolveToHandle(l);
     }
 
-    static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
+    private static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
         return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
     }
 
-    static String externalizeOpName(Op op) {
+    private static String externalizeOpName(Op op) {
         return (op instanceof ExternalizedOp.Externalizable eop)
                 ? eop.externalizeOpName()
                 : op.getClass().getName();
     }
 
-    static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
+    private static MethodHandle opHandle(MethodHandles.Lookup l, String opName, FunctionType ft) {
         MethodType mt = resolveToMethodType(l, ft).erase();
         try {
             return MethodHandles.lookup().findStatic(ArithmeticAndConvOpImpls.class, opName, mt);
