@@ -1057,7 +1057,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         static final String NAME = "conv";
 
         final CodeType resultType;
@@ -1257,7 +1257,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         @OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
-                implements Pure, JavaExpression {
+                implements JavaExpression {
             static final String NAME = "field.load";
 
             final CodeType resultType;
@@ -1433,7 +1433,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         @OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
-                implements Pure, JavaExpression {
+                implements JavaExpression {
             static final String NAME = "array.load";
             final CodeType componentType;
 
@@ -1524,7 +1524,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends AbstractOp
-            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
+            implements JavaOp, ReflectiveOp, JavaExpression {
         static final String NAME = "instanceof";
         /** The externalized attribute key for the code type modeling the instanceof target type. */
         static final String ATTRIBUTE_INSTANCEOF_TYPE = NAME + ".type";
@@ -1587,7 +1587,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(CastOp.NAME)
     public static final class CastOp extends AbstractOp
-            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
+            implements JavaOp, ReflectiveOp, JavaExpression {
         static final String NAME = "cast";
         /** The externalized attribute key for the code type modeling the target type of the cast. */
         static final String ATTRIBUTE_CAST_TYPE = NAME + ".type";
@@ -1795,7 +1795,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConcatOp.NAME)
     public static final class ConcatOp extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         static final String NAME = "concat";
 
         ConcatOp(ConcatOp that, CodeContext cc) {
@@ -1840,7 +1840,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * The arithmetic operation.
      */
     public sealed static abstract class ArithmeticOperation extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         ArithmeticOperation(ArithmeticOperation that, CodeContext cc) {
             super(that, cc);
         }
@@ -5923,7 +5923,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * {@link RecordPatternOp}.
          */
         public sealed static abstract class PatternOp extends AbstractOp
-                implements JavaOp, Op.Pure {
+                implements JavaOp {
             PatternOp(PatternOp that, CodeContext cc) {
                 super(that, cc);
             }

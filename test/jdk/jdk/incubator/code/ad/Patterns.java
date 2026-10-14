@@ -43,35 +43,23 @@ public final class Patterns {
     private Patterns() {
     }
 
-
     /**
      * Traverses this operation and its descendant operations and returns the set of operations that are unused
-     * (have no uses) and are pure (are instances of {@code Op.Pure} and thus have no side effects).
-     *
-     * @param op the operation to traverse
-     * @return the set of used and pure operations.
-     */
-    public static Set<Op> matchUnusedPureOps(Op op) {
-        return matchUnusedPureOps(op, o -> o instanceof Op.Pure);
-    }
-
-    /**
-     * Traverses this operation and its descendant operations and returns the set of operations that are unused
-     * (have no uses) and are pure (according to the given predicate).
+     * (have no uses) and are removable (according to the given predicate).
      *
      * @param op       the operation to traverse
-     * @param testPure the predicate to test if an operation is pure
-     * @return the set of used and pure operations.
+     * @param testRemovable the predicate to test if an operation is removable
+     * @return the set of unused and removable operations.
      */
-    public static Set<Op> matchUnusedPureOps(Op op, Predicate<Op> testPure) {
+    public static Set<Op> matchUnusedRemovableOps(Op op, Predicate<Op> testRemovable) {
         return match(
                 new HashSet<>(),
-                op, opP(o -> isDeadOp(o, testPure)),
+                op, opP(o -> isDeadOp(o, testRemovable)),
                 (ms, deadOps) -> {
                     deadOps.add(ms.op());
 
                     // Dependent dead ops
-                    matchDependentDeadOps(ms.op(), deadOps, testPure);
+                    matchDependentDeadOps(ms.op(), deadOps, testRemovable);
                     // @@@ No means to control traversal and only go deeper when
                     // there is only one user
 //                    ms.op().traverseOperands(null, (_a, arg) -> {
@@ -86,12 +74,12 @@ public final class Patterns {
                 });
     }
 
-    static boolean isDeadOp(Op op, Predicate<Op> testPure) {
+    static boolean isDeadOp(Op op, Predicate<Op> testRemovable) {
         if (op instanceof Op.Terminating) {
             return false;
         }
 
-        return op.result() != null && op.result().uses().isEmpty() && testPure.test(op);
+        return op.result() != null && op.result().uses().isEmpty() && testRemovable.test(op);
     }
 
     // @@@ this could be made generic with a method traversing up the model tree,
@@ -99,14 +87,14 @@ public final class Patterns {
     // it more complex that just writing it like below for specific cases
     // A better option may be to provide a lazy stream of the values that can be filtered
     // similar to CodeElement::elements
-    static void matchDependentDeadOps(Op op, Set<Op> deadOps, Predicate<Op> testPure) {
+    static void matchDependentDeadOps(Op op, Set<Op> deadOps, Predicate<Op> testRemovable) {
         for (Value arg : op.operands()) {
             if (arg instanceof Op.Result or) {
-                if (arg.uses().size() == 1 && testPure.test(or.op())) {
+                if (arg.uses().size() == 1 && testRemovable.test(or.op())) {
                     deadOps.add(or.op());
 
                     // Traverse only when a single user
-                    matchDependentDeadOps(or.op(), deadOps, testPure);
+                    matchDependentDeadOps(or.op(), deadOps, testRemovable);
                 }
             }
         }

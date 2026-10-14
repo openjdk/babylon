@@ -448,4 +448,23 @@ public class DenotableTypesTest {
     static Object test21(Box<? super Number> box) {
         return box.x;
     }
+
+    static class Base<T extends Base<T>> {}
+
+    static <T extends Base<T>> T produce() {
+        return null;
+    }
+
+    @Reflect
+    @IR("""
+            func @"test22" ()java.type:"void" -> {
+                %0 : java.type:"DenotableTypesTest$Base<?>" = invoke @java.ref:"DenotableTypesTest::produce():DenotableTypesTest$Base";
+                %1 : java.type:"java.lang.Runnable" = cast %0 @java.type:"java.lang.Runnable";
+                invoke %1 @java.ref:"DenotableTypesTest::consume(java.lang.Runnable):void";
+                return;
+            };
+            """)
+    static void test22() {
+        consume(produce());
+    }
 }
