@@ -75,7 +75,7 @@ public class TestBinops {
     }
 
     @Reflect
-    static Integer pos(Integer i) {
+    static int pos(int i) {
         return +i;
     }
 
