@@ -16,9 +16,9 @@ import java.util.stream.Stream;
  * @test
  * @modules jdk.incubator.code
  * @library lib
- * @run junit TestCompareWithNaN
+ * @run junit TestFloatingPointComparison
  */
-public class TestCompareWithNaN {
+public class TestFloatingPointComparison {
     // float
     @Reflect
     static boolean gt(float f, float g) {
@@ -94,7 +94,7 @@ public class TestCompareWithNaN {
     }
 
     static Stream<Method> cases() {
-        return Arrays.stream(TestCompareWithNaN.class.getDeclaredMethods())
+        return Arrays.stream(TestFloatingPointComparison.class.getDeclaredMethods())
                 .filter(m -> m.isAnnotationPresent(Reflect.class));
     }
 }
