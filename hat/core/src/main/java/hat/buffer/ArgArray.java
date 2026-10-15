@@ -24,6 +24,7 @@
  */
 package hat.buffer;
 
+import hat.ComputeContext;
 import hat.annotations.Kernel;
 import hat.callgraph.KernelCallGraph;
 import optkl.ifacemapper.AccessType;
@@ -273,7 +274,9 @@ public interface ArgArray extends Buffer {
     private static void checkAnnotationArg(KernelCallGraph kernelCallGraph, AccessType accessType, Annotation annotation, int argIndex) {
         if (accessType != AccessType.NA && !isKernelAnnotationPresent(kernelCallGraph)) {
             // print warning to remove the I/O annotation from the arg parameter
-            IO.println("[WARNING]: Annotation " + annotation + " can be removed from the input parameter " + argIndex);
+            if (KernelCallGraph.SHOW_UNNECESSARY_ANNOTATION_WARNING) {
+                IO.println("[WARNING]: Annotation " + annotation + " can be removed from the input parameter " + argIndex);
+            }
         }
     }
 

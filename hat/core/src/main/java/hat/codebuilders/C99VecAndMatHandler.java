@@ -42,6 +42,7 @@ import optkl.ifacemapper.MappableIface;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -148,6 +149,7 @@ public class C99VecAndMatHandler {
                  "mix" -> nameAndArgs(invoke, bldr); // asis!
             case "abs" -> nameAndArgs(invoke, "fabs", bldr);// abs(...)->fabs(...)
             case "mod" -> mangledNameAndArgs(invoke, bldr); //mod(...) -> float_mod_float_float(...)
+            case "round" -> handleRoundInvoke(bldr, invoke);
             default -> throw new RuntimeException("unmapped F32 call " + invoke.name());
         }
     }
@@ -183,13 +185,13 @@ public class C99VecAndMatHandler {
             mangledNameAndArgs(invoke, bldr);
         } else if (invoke.nameMatchesRegex("(mul|add|sub|div)")) {
             // for opencl we can turn these into expressions. So vec3.mul(l,r) -> (l * r)
-            bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).symbol(switch (invoke.name()) {
+            bldr.paren(_ -> bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull())).symbol(switch (invoke.name()) {
                 case "mul" -> "*";
                 case "add" -> "+";
                 case "div" -> "/";
                 case "sub" -> "-";
                 default -> throw new IllegalStateException("oh my");
-            }).recurse(invoke.opFromOperandNOrNull(1)));
+            }).paren(_ -> bldr.recurse(invoke.opFromOperandNOrNull(1))));
         } else if (invoke.named("abs") && invoke.refIs(IfaceValue.vec.class)) {
             bldr.funcName("f" + invoke.name()).paren(_ ->
                     bldr.sep(invoke.op().operands(), _ -> bldr.csp(), v -> bldr.recurse(v.asResult().op()))
@@ -198,7 +200,9 @@ public class C99VecAndMatHandler {
             // return x - floor(x);
             bldr.paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull()).sub().funcName("floor")
                     .paren(_ -> bldr.recurse(invoke.opFromFirstOperandOrNull())));
-        } else if (invoke.nameMatchesRegex("(dot|length|max|mix|min|smoothstep|step|normalize|clamp|pow|cross|distance|floor|fract|round|sin|cos|abs)")) {
+        } else if (invoke.named("round")) {
+            handleRoundInvoke(bldr, invoke);
+        } else if (invoke.nameMatchesRegex("(dot|length|max|mix|min|smoothstep|step|normalize|clamp|pow|cross|distance|floor|fract|sin|cos|abs)")) {
             bldr.funcName(invoke.op()).paren(_ ->
                     bldr.sep(invoke.op().operands(), _ -> bldr.csp(), v -> bldr.recurse(v.asResult().op()))
             );
@@ -211,10 +215,11 @@ public class C99VecAndMatHandler {
     }
 
     public static <T extends C99HATKernelBuilder<T>> void handleMatInvoke(C99HATKernelBuilder<T> bldr, OpHelper.Invoke invoke) {
-        if (invoke.nameMatchesRegex("mat[234]")) {
-            bldr.paren(_ -> bldr.type(invoke.name())).brace(_ ->
-                    bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op()))
-            );
+        if (invoke.nameMatchesRegex("mat[23]")) {
+            handleMatConstructor(bldr, invoke);
+        } else if (invoke instanceof OpHelper.Invoke.Virtual && invoke.operandCount() == 1
+                && invoke.nameMatchesRegex("_[0-2][0-2]")) {
+            bldr.recurse(invoke.opFromFirstOperandOrNull()).dot().id(invoke.name());
         } else if (invoke.named("mul")) {
             mangledNameAndArgs(invoke, bldr);
         } else {
@@ -222,6 +227,24 @@ public class C99VecAndMatHandler {
             invoke.op().operands().forEach(o -> stringBuilder.append(" " + o.asResult().type()));
             stringBuilder.append(")");
             throw new RuntimeException(stringBuilder.toString());
+        }
+    }
+
+    public static <T extends C99HATKernelBuilder<T>> void handleMatConstructor(C99HATKernelBuilder<T> bldr, OpHelper.Invoke invoke) {
+        if (invoke.operandCount() == 1 && invoke.resultFromOperandNOrNull(0).type() instanceof ClassType) {
+            bldr.recurse(invoke.opFromFirstOperandOrNull());
+            return;
+        }
+        if (invoke.operandCount() == 1) {
+            nameAndArgs(invoke, invoke.name() + "_splat", bldr);
+        }else {
+            int lanes = invoke.named("mat2") ? 4 : 9;
+            if (invoke.operandCount() != lanes) {
+                throw new UnsupportedOperationException("Unsupported shader matrix constructor " + invoke.name());
+            }
+            // Maybe   bldr.type(invoke.name());
+            bldr.paren(_ -> bldr.type(invoke.name()));
+            bldr.brace(_ -> bldr.commaSpaceSeparated(invoke.operandsAsResults(), operand -> bldr.recurse(operand.op())));
         }
     }
 
@@ -258,17 +281,6 @@ public class C99VecAndMatHandler {
     }
 
     public static <T extends C99HATKernelBuilder<T>> void createVecFunctions(C99HATKernelBuilder<T> builder) {
-        record NamedMatShape(String name, IfaceValue.mat.Shape shape) {
-        }
-        List.of(new NamedMatShape("mat2", mat2.shape), new NamedMatShape("mat3", mat3.shape)).forEach(ns ->
-                builder.typedefKeyword().sp().structKeyword().sp().id(ns.name + "_s").braceNlIndented(_ -> {
-                    builder.sep(ns.shape.rowColNames(), _ -> builder.nl(), n ->
-                            builder.type((JavaType) ns.shape.codeType()).sp().id(n).semicolon()
-                    );
-                }).sp().id(ns.name).snl()
-        );
-
-
         record NamedVecShape(String name, IfaceValue.vec.Shape shape) {
         }
 
@@ -278,111 +290,106 @@ public class C99VecAndMatHandler {
         List.of(new NamedVecShape("ivec2", vec2.shape)).forEach(ns ->
                 builder.typedefKeyword().sp().type("int" + ns.shape.lanes()).sp().type(ns.name).snl()
         );
-/*
-2. Vector * Matrix (vec2 * mat2)This treats the vector as a row. Mathematically, this is equivalent to multiplying the transpose of the matrix by the vector.$$\text{result}.x = (v.x \cdot m_{0}) + (v.y \cdot m_{1})$$$$\text{result}.y = (v.x \cdot m_{2}) + (v.y \cdot m_{3})$$Javapublic static float[] multiplyVec2Mat2(float[] v, float[] m) {
-    float x = v[0] * m[0] + v[1] * m[1];
-    float y = v[0] * m[2] + v[1] * m[3];
-     l.x * r.00 + l.y * r.01,l.x * r.10 + l.y * r.11;
-    return new float[]{x, y};
-}
-        */
-        genFunc(builder, "vec2", "mul", "vec2", "mat2", _ ->
-                builder.returnKeyword().sp().paren(_ -> builder.type("vec2"))
-                        .paren(_ -> builder.preformatted("l.x*r._00+l.y*r._01,l.x*r._10+l.y*r._11"))
-                        .semicolon()
-        );
+        createMatFunctions(builder, false);
 
-        /*
-        public static float[] multiplyMat2Vec2(float[] m, float[] v) {
-    float x = m[0] * v[0] + m[2] * v[1];
-    float y = m[1] * v[0] + m[3] * v[1];
-     l.00 * r.x + l.10 * r.y,
-     l.01 * r.x + l.11 * r.y
-    return new float[]{x, y};
-}
-
-
-         */
-        genFunc(builder, "vec2", "mul", "mat2", "vec2", _ ->
-                builder.returnKeyword().sp().paren(_ -> builder.type("vec2")).paren(_ ->
-                        builder.preformatted(" l._00*r.x+l._10*r.y,l._01*r.x+l._11*r.y")
-                ).semicolon());
-
-        /*
-          public static float[] multiplyVec3Mat3(float[] v, float[] m) {
-            float x = v[0] * m[0] + v[1] * m[1] + v[2] * m[2];
-            float y = v[0] * m[3] + v[1] * m[4] + v[2] * m[5];
-            float z = v[0] * m[6] + v[1] * m[7] + v[2] * m[8];
-           l.x * r._00 + l.y * r._01 + l.z * r._02,
-           l.x * r._10 + l.y * r._11 + l.z * r._12,
-           l.x * r._20 + l.y * r._21 + l.z * r._22,
-            return new float[]{x, y, z};
-        }
-         */
-        genFunc(builder, "vec3", "mul", "vec3", "mat3", _ ->
-                builder.returnKeyword().sp().paren(_ -> builder.type("vec3")).paren(_ ->
-                builder.preformatted("l.x*r._00+l.y*r._01+l.z*r._02,l.x*r._10+l.y*r._11+l.z*r._12,l.x*r._20+l.y*r._21+l.z*r._22")).semicolon()
-        );
-        genFunc(builder, "vec3", "mul", "mat3", "vec3", _ ->
-                builder.returnKeyword().sp().paren(_ -> builder.type("vec3")).paren(_ ->
-                        builder.preformatted(
-                                "       l._00 * r.x + l._01 * r.y + l._02 * r.z," +
-                                "        l._10 * r.x + l._11 * r.y + l._12 * r.z," +
-                                "        l._20 * r.x + l._21 * r.y + l._22 * r.z")).semicolon()
-        );
-
-        /*
-          l._00() * r.x() + l._01() * r.y() + l._02() * r.z(),
-        l._10() * r.x() + l._11() * r.y() + l._12() * r.z(),
-        l._20() * r.x() + l._21() * r.y() + l._22() * r.z()
-         */
-
-
-        /*
-        public static float[] multiplyMat3Vec3(float[] m, float[] v) {
-          //  float x = m[0] * v[0] + m[3] * v[1] + m[6] * v[2];
-          //  float y = m[1] * v[0] + m[4] * v[1] + m[7] * v[2];
-          //  float z = m[2] * v[0] + m[5] * v[1] + m[8] * v[2];
-            float x = m[0] * v[0] + m[3] * v[1] + m[6] * v[2];
-            float y = m[1] * v[0] + m[4] * v[1] + m[7] * v[2];
-            float z = m[2] * v[0] + m[5] * v[1] + m[8] * v[2];
-            return new float[]{x, y, z};
-        }
-        2. Vector * Matrix (vec3 * mat3)
-        This treats the vector as a row vector on the left. Effectively, you are calculating the dot product of the vector with each column of the matrix.
-
-        Java
-        public static float[] multiplyVec3Mat3(float[] v, float[] m) {
-            float x = v[0] * m[0] + v[1] * m[1] + v[2] * m[2];
-            float y = v[0] * m[3] + v[1] * m[4] + v[2] * m[5];
-            float z = v[0] * m[6] + v[1] * m[7] + v[2] * m[8];
-            return new float[]{x, y, z};
-        }
-*/
-        genFunc(builder, "mat3", "mul", "mat3", "mat3", _ ->
-                builder.returnKeyword().sp().paren(_ -> builder.type("mat3")).brace(_ ->
-                        builder.preformatted("""
-                                    l._00*r._00,l._01*r._01,l._02*r._02,
-                                    l._10*r._10,l._11*r._11,l._12*r._12,
-                                    l._20*r._20,l._21*r._21,l._22*r._22
-                                """)
-                ).semicolon()
-        );
-        genFunc(builder, "mat2", "mul", "mat2", "mat2", _ ->
-                builder.returnKeyword().sp().paren(_ -> builder.type("mat2")).brace(_ ->
-                        builder.preformatted("l._00*r._00,l._01*r._01, l._10*r._10,l._11*r._11")
-                ).semicolon()
-        );
-
-        genFunc(builder, "float", "mod", "float", "float", _ ->
-                builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor").paren(_ ->
-                        builder.id("l").div().id("r")).semicolon());
-
-        genFunc(builder, "vec2", "mod", "vec2", "float", _ ->
-                builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor").paren(_ ->
-                        builder.id("l").div().id("r")).semicolon());
+        createModFunctions(builder);
+        createRoundFunctions(builder, false);
 
         genFunc(builder, "vec3", "reflect", "vec3", "vec3", _ ->
-                builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("l").sp().mul().floatConst(2).semicolon());
+                builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp()
+                        .funcName("dot").paren(_ -> builder.id("r").csp().id("l"))
+                        .sp().mul().floatConst(2).semicolon());
     }
+
+    public static <T extends C99HATKernelBuilder<T>> void createMatFunctions(C99HATKernelBuilder<T> builder, boolean metal) {
+        record NamedMatShape(String name, IfaceValue.mat.Shape shape) {
+        }
+        List.of(new NamedMatShape("mat2", mat2.shape), new NamedMatShape("mat3", mat3.shape)).forEach(ns -> {
+            builder.typedefKeyword().sp().structKeyword().sp().id(ns.name + "_s").braceNlIndented(_ -> {
+                builder.sep(ns.shape.rowColNames(), _ -> builder.nl(), n ->
+                        builder.type((JavaType) ns.shape.codeType()).sp().id(n).semicolon());
+            }).sp().id(ns.name).snl();
+            String elements = String.join(",", Collections.nCopies(ns.name.equals("mat2") ? 4 : 9, "s"));
+            builder.func(_ -> builder.type(ns.name), ns.name + "_splat",
+                    _ -> builder.type("float").sp().id("s"),
+                    _ -> matrixFunctionReturn(builder, ns.name, elements, metal)).semicolon();
+        });
+
+        // Matrix elements are ordered by column, then row; vectors on the left
+        // are row vectors and vectors on the right are column vectors.
+        genFunc(builder, "vec2", "mul", "vec2", "mat2", _ ->
+                matrixFunctionReturn(builder, "vec2", "l.x*r._00+l.y*r._01,l.x*r._10+l.y*r._11", metal));
+        genFunc(builder, "vec2", "mul", "mat2", "vec2", _ ->
+                matrixFunctionReturn(builder, "vec2", "l._00*r.x+l._10*r.y,l._01*r.x+l._11*r.y", metal));
+        genFunc(builder, "vec3", "mul", "vec3", "mat3", _ ->
+                matrixFunctionReturn(builder, "vec3",
+                        "l.x*r._00+l.y*r._01+l.z*r._02,l.x*r._10+l.y*r._11+l.z*r._12,l.x*r._20+l.y*r._21+l.z*r._22", metal));
+        genFunc(builder, "vec3", "mul", "mat3", "vec3", _ ->
+                matrixFunctionReturn(builder, "vec3",
+                        "l._00*r.x+l._10*r.y+l._20*r.z,l._01*r.x+l._11*r.y+l._21*r.z,l._02*r.x+l._12*r.y+l._22*r.z", metal));
+        genFunc(builder, "mat3", "mul", "mat3", "mat3", _ ->
+                matrixFunctionReturn(builder, "mat3",
+                        "l._00*r._00,l._01*r._01,l._02*r._02,l._10*r._10,l._11*r._11,l._12*r._12,l._20*r._20,l._21*r._21,l._22*r._22", metal));
+        genFunc(builder, "mat2", "mul", "mat2", "mat2", _ ->
+                matrixFunctionReturn(builder, "mat2", "l._00*r._00,l._01*r._01,l._10*r._10,l._11*r._11", metal));
+    }
+
+    private static <T extends C99HATKernelBuilder<T>> void matrixFunctionReturn(
+            C99HATKernelBuilder<T> builder, String type, String expression, boolean metal) {
+        builder.returnKeyword().sp();
+        //    builder.type(type);
+        builder.paren(_ -> builder.type(type));
+
+        if (type.startsWith("mat")) {
+            builder.brace(_ -> builder.preformatted(expression));
+        } else {
+            builder.paren(_ -> builder.preformatted(expression));
+        }
+        builder.semicolon();
+    }
+
+    private static <T extends C99HATKernelBuilder<T>> void handleRoundInvoke(
+            C99HATKernelBuilder<T> builder, OpHelper.Invoke invoke) {
+        nameAndArgs(invoke, clName(invoke.lookup(), (JavaType) invoke.returnType()) + "_round", builder);
+    }
+
+    public static <T extends C99HATKernelBuilder<T>> void createRoundFunctions(
+            C99HATKernelBuilder<T> builder, boolean metal) {
+        // F32.round uses Math.round(float): ties toward +infinity and an int result converted to float.
+        builder.func(_ -> builder.type("float"), "float_round",
+                _ -> builder.type("float").sp().id("x"),
+                _ -> builder.preformatted("""
+                        if (isnan(x)) return 0.0f;
+                        if (x >= 2147483648.0f) return 2147483648.0f;
+                        if (x <= -2147483648.0f) return -2147483648.0f;
+                        float base = floor(x);
+                        return (float)((int)base + (x - base >= 0.5f ? 1 : 0));
+                        """)).semicolon();
+        List.of("vec2", "vec3", "vec4").forEach(type -> {
+            String lanes = String.join(",", List.of("x", "y", "z", "w")
+                    .subList(0, Integer.parseInt(type.substring(3))).stream()
+                    .map(lane -> "float_round(v." + lane + ")").toList());
+            builder.func(_ -> builder.type(type), type + "_round",
+                    _ -> builder.type(type).sp().id("v"),
+                    _ -> matrixFunctionReturn(builder, type, lanes, metal)).semicolon();
+        });
+    }
+
+    public static <T extends C99HATKernelBuilder<T>> void createModFunctions(C99HATKernelBuilder<T> builder) {
+        List.of("float", "vec2", "vec3", "vec4").forEach(type -> {
+            createModFunction(builder, type, "float");
+            if (!type.equals("float")) {
+                createModFunction(builder, type, type);
+            }
+        });
+    }
+
+    private static <T extends C99HATKernelBuilder<T>> void createModFunction(
+            C99HATKernelBuilder<T> builder, String lhs, String rhs) {
+        genFunc(builder, lhs, "mod", lhs, rhs, _ ->
+                builder.returnKeyword().sp().id("l").sp().minus().id("r").sp().mul().sp().id("floor")
+                        .paren(_ -> builder.id("l").div().id("r")).semicolon());
+    }
+
+
 }
