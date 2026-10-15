@@ -45,6 +45,11 @@ public class TestFloatingPointComparison {
         return f <= g;
     }
 
+    @Reflect
+    static boolean neq(float f, float g) {
+        return f != g;
+    }
+
     // double
     @Reflect
     static boolean gt(double f, double g) {
@@ -71,21 +76,20 @@ public class TestFloatingPointComparison {
         return f <= g;
     }
 
+    @Reflect
+    static boolean neq(double f, double g) {
+        return f != g;
+    }
+
     @ParameterizedTest
     @MethodSource("cases")
     void test(Method m) throws Throwable {
         CoreOp.FuncOp op = Op.ofMethod(m).get();
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), op);
 
-        Number nan;
-        if (m.getParameterTypes()[0].equals(float.class)) {
-            nan = Float.NaN;
-        } else {
-            nan = Double.NaN;
-        }
-        Number[] args = {nan, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, +0, -0, 1};
-        for (Number a : args) {
-            for (Number b : args) {
+        float[] args = {Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, +0.0f, -0.0f, 1.0f};
+        for (float a : args) {
+            for (float b : args) {
                 Object expected = m.invoke(null, a, b);
                 Object actual = mh.invoke(a, b);
                 Assertions.assertEquals(expected, actual);
