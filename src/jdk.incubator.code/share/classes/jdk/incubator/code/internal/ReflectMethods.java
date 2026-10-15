@@ -2461,8 +2461,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     result = append(JavaOp.compl(rhs));
                 }
                 case POS -> {
-                    // Result is value of the operand
-                    result = toValue(tree.arg, tree.type);
+                    Value rhs = toValue(tree.arg, tree.type);
+                    result = append(JavaOp.pos(rhs));
                 }
                 case NULLCHK -> {
                     Value val = toValue(tree.arg, tree.type);

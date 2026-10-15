@@ -2288,6 +2288,33 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     }
 
     /**
+     * The pos operation, that can model the Java language unary {@code +} operator for numeric types
+     *
+     * @jls 15.15.3 Unary Plus Operator {@code +}
+     */
+    @OpDeclaration(PosOp.NAME)
+    public static final class PosOp extends UnaryOp {
+        static final String NAME = "pos";
+
+        PosOp(ExternalizedOp def) {
+            super(def);
+        }
+
+        PosOp(PosOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public PosOp transform(CodeContext cc, CodeTransformer ct) {
+            return new PosOp(this, cc);
+        }
+
+        PosOp(Value v) {
+            super(v);
+        }
+    }
+
+    /**
      * The bitwise complement operation, that can model the Java language unary {@code ~} operator for integral types
      *
      * @jls 15.15.5 Bitwise Complement Operator {@code ~}
@@ -6453,6 +6480,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             case "monitor.exit" -> new MonitorOp.MonitorExitOp(def);
             case "mul" -> new MulOp(def);
             case "neg" -> new NegOp(def);
+            case "pos" -> new PosOp(def);
             case "neq" -> new NeqOp(def);
             case "new" -> new NewOp(def);
             case "not" -> new NotOp(def);
@@ -7092,6 +7120,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     public static NegOp neg(Value v) {
         return new NegOp(v);
+    }
+
+    /**
+     * Creates a pos operation.
+     *
+     * @param v the operand
+     * @return the pos operation
+     */
+    public static PosOp pos(Value v) {
+        return new PosOp(v);
     }
 
     /**
