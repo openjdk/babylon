@@ -731,6 +731,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    protected CudaHATKernelBuilder generateTileDeclaration(TensorType tt) {
+        tile().ltgt(_ -> {
+            if (tt.elementType().equals(DType.TENSOR_F32_TYPE) || tt.elementType().equals(DType.TENSOR_2D_F32_TYPE)) {
+                f32Type();
+            } else {
+                throw new IllegalStateException("Expected a tensor type, but found: " + tt.elementType().getClass());
+            }
+            comma().tileShape().ltgt(_ -> commaSpaceSeparated(tt.shape(), this::intValue));
+        });
+        return self();
+    }
+
+    @Override
     protected CudaHATKernelBuilder aggregateInitializer(Consumer<CudaHATKernelBuilder> typeBuilder,
                                                         Consumer<CudaHATKernelBuilder> valueBuilder) {
         // C++ typed brace-init: T{...} rather than (T){...}.
@@ -1180,15 +1193,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             // inspect type of parameter
             CodeType type = param.parameter.type();
             if (type instanceof ConstantType c && c.value() instanceof TensorType tt) {
-                id("ct::tile<");
-                if (tt.elementType().equals(DType.TENSOR_F32_TYPE) || tt.elementType().equals(DType.TENSOR_2D_F32_TYPE)) {
-                    f32Type();
-                } else {
-                    throw new IllegalStateException("Expected a tensor type, but found: " + tt.elementType().getClass());
-                }
-                comma().id("ct::shape<");
-                commaSpaceSeparated(tt.shape(), this::intValue);
-                gt().gt();
+               generateTileDeclaration(tt);
             } else {
                 type(type).sp();
             }
@@ -1478,6 +1483,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     // CUDA Tile Constructs
     private CudaHATKernelBuilder tileContext() {
         return id("ct").colon().colon();
+    }
+
+    private CudaHATKernelBuilder tile() {
+        return tileContext().id("tile");
     }
 
     private CudaHATKernelBuilder partitionView() {

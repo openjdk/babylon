@@ -252,19 +252,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_FUNC().sp().type(javaType).sp().funcName(funcOp);
     }
 
+    protected abstract T generateTileDeclaration(TensorType tensorType);
+
     public final T functionDeclaration(ConstantType constantType, CoreOp.FuncOp funcOp) {
         HAT_FUNC().sp();
         Object value = constantType.value();
         if (value instanceof TensorType tt) {
-            id("ct::tile<");
-            if (tt.elementType().equals(DType.TENSOR_F32_TYPE) || tt.elementType().equals(DType.TENSOR_2D_F32_TYPE)) {
-                f32Type();
-            } else {
-                throw new IllegalStateException("Expected a tensor type, but found: " + tt.elementType().getClass());
-            }
-            comma().id("ct::shape<");
-            commaSpaceSeparated(tt.shape(), this::intValue);
-            gt().gt();
+            generateTileDeclaration(tt);
         } else {
             throw new IllegalStateException("Expected tensor type, got " + value.getClass());
         }
