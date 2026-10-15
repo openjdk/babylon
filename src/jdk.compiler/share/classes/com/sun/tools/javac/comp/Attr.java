@@ -442,10 +442,10 @@ public class Attr extends JCTree.Visitor {
         try {
             annotate.queueScanTreeAndTypeAnnotate(tree.body, env, tree.sym);
             annotate.flush();
-            JCBlock dupTree = (JCBlock)deferredAttr.attribSpeculative(tree.body, env, statInfo,
-                    null, DeferredAttr.AttributionMode.ATTRIB_TO_TREE,
-                    argumentAttr.withLocalCacheContext());
-            return attributedAction.apply(dupTree);
+            if ((env.enclClass.sym.flags_field & Flags.UNATTRIBUTED) != 0) {
+                attribClass(env.enclClass.sym);
+            }
+            return attributedAction.apply(tree.body);
         } finally {
             attrRecover.doRecovery();
             log.useSource(prevSource);

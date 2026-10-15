@@ -26,10 +26,8 @@
  * @modules jdk.incubator.code
  * @library lib
  * @run junit TestTryNested
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryNested
  * @run main Unreflect TestTryNested
  * @run junit TestTryNested
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryNested
  */
 
 import jdk.incubator.code.Reflect;
