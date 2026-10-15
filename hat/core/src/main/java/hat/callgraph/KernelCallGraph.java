@@ -34,6 +34,7 @@ import hat.buffer.TensorF32;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
 import hat.device.NonMappableIface;
+import hat.dialect.TileOps;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATTransformer;
 import hat.phases.TileTransformer;
@@ -48,6 +49,7 @@ import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import hat.phases.VarTable;
@@ -60,8 +62,10 @@ import optkl.util.carriers.LookupCarrier;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class KernelCallGraph implements LookupCarrier {
@@ -166,6 +170,61 @@ public class KernelCallGraph implements LookupCarrier {
         return OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class) && HAT_PROCESS_TILE_DIALECT;
     }
 
+    private List<CodeType> setCodeTypesForParameters(Class<?>[] parameterTypes, Object[] kernelParameters) {
+        ArrayList<CodeType> codeTypes = new ArrayList<>();
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class<?> parameterType = parameterTypes[i];
+            Object kernelArgument = kernelParameters[i];
+            if (parameterType.isPrimitive()) {
+                if (parameterType.equals(int.class) && kernelArgument instanceof Integer val) {
+                    codeTypes.add(new ConstantType(DType.Int, val));
+                } else {
+                    throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
+                }
+            } else {
+                // We need to inspect the type and pass the input dimensions
+                switch (kernelArgument) {
+                    case TensorF32 tensorF32 when parameterType.equals(TensorF32.class) ->
+                            codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE, tensorF32.m()));
+                    case Tensor2DF32 tensor2DF32 when parameterType.equals(Tensor2DF32.class) ->
+                            codeTypes.add(new PtrType(DType.TENSOR_2D_F32_TYPE, tensor2DF32.m(), tensor2DF32.n()));
+                    case Tensor2DF16 tensor2DF16 when parameterType.equals(Tensor2DF16.class) ->
+                            codeTypes.add(new PtrType(DType.TENSOR_2D_F16_TYPE, tensor2DF16.m(), tensor2DF16.n()));
+                    case null, default ->
+                            throw new UnsupportedOperationException("Unsupported I/O parameter type: " + parameterType);
+                }
+            }
+        }
+        return codeTypes;
+    }
+
+    private List<TileTransformer.TileFunction> dialectTileFunctions(Object[] kernelParameters) {
+        List<TileTransformer.TileFunction> tileFunctions;
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        if (kernelParameters.length != parameterTypes.length) {
+            throw new IllegalArgumentException(String.format("Expected %d arguments, got %d", parameterTypes.length, kernelParameters.length));
+        }
+        List<CodeType> codeTypes = setCodeTypesForParameters(parameterTypes, kernelParameters);
+
+        // Validate and process shapes from the Tile programming model to build a tile code model
+        // The TileTransformer receives:
+        // 1. The input function
+        // 2. The return type
+        // 3. A list of CodeTypes for each input argument to the kernel.
+        CoreOp.FuncOp funcOp = entrypoint.funcOp();
+        funcOp = TileTransformer.processConstantFields(funcOp, lookup());
+        MethodRef methodRef = MethodRef.method(method);
+        tileFunctions = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes, methodRef, lookup());
+
+        // Update the entry point: the main kernel is the last entry from the tileFunctions list
+        entrypoint = new FuncOpCarrier.Impl(tileFunctions.getLast().function());
+
+        // Check SSA lowering for the output Tile functions:
+        tileFunctions.stream().map(TileTransformer.TileFunction::function).forEach(this::checkSSALowering);
+
+        return tileFunctions;
+    }
+
     /**
      * Compile a kernel into the target device-code. The input stage for compilation is the method represented in a code-tree from code reflection.
      * Then the kernel is transformed and lowered to a OpenCL/CUDA kernel.
@@ -175,50 +234,12 @@ public class KernelCallGraph implements LookupCarrier {
      */
     public void compile(Object[] kernelParameters) {
         varTable.addFunction(entrypoint.funcOp().funcName());
+        List<TileTransformer.TileFunction> tileFunctions = new ArrayList<>();
         if (isTileDialectEnabled(inlinedEntryPoint)) {
-            Class<?>[] parameterTypes = method.getParameterTypes();
-            List<CodeType> codeTypes = new ArrayList<>();
-            if (kernelParameters.length != parameterTypes.length) {
-                throw new IllegalArgumentException(String.format("Expected %d arguments, got %d", parameterTypes.length, kernelParameters.length));
-            }
-            for (int i = 0; i < parameterTypes.length; i++) {
-                Class<?> parameterType = parameterTypes[i];
-                Object kernelArgument = kernelParameters[i];
-                if (parameterType.isPrimitive()) {
-                    if (parameterType.equals(int.class) && kernelArgument instanceof Integer val) {
-                        codeTypes.add(new ConstantType(DType.Int, val));
-                    } else {
-                        throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
-                    }
-                } else {
-                    // We need to inspect the type and pass the input dimensions
-                    if (parameterType.equals(TensorF32.class) && kernelArgument instanceof TensorF32 tensorF32) {
-                        codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE, tensorF32.m()));
-                    } else if (parameterType.equals(Tensor2DF32.class) &&  kernelArgument instanceof Tensor2DF32 tensor2DF32) {
-                        codeTypes.add(new PtrType(DType.TENSOR_2D_F32_TYPE,  tensor2DF32.m(),  tensor2DF32.n()));
-                    } else if (parameterType.equals(Tensor2DF16.class) &&  kernelArgument instanceof Tensor2DF16 tensor2DF16) {
-                        codeTypes.add(new PtrType(DType.TENSOR_2D_F16_TYPE, tensor2DF16.m(),  tensor2DF16.n()));
-                    } else {
-                        throw new UnsupportedOperationException("Unsupported I/O parameter type: " + parameterType);
-                    }
-                }
-            }
-            // Validate and process shapes from the Tile programming model to build a tile code model
-            // The TileTransformer receives:
-            // 1. The input function
-            // 2. The return type
-            // 3. A list of CodeTypes for each input argument to the kernel.
-            CoreOp.FuncOp funcOp = entrypoint.funcOp();
-            funcOp = TileTransformer.processConstantFields(funcOp, lookup());
-            funcOp = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes);
-            entrypoint = new FuncOpCarrier.Impl(funcOp);
-            checkSSALowering(entrypoint.funcOp());
+            tileFunctions = dialectTileFunctions(kernelParameters);
         }
 
-        HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
-        checkSSALowering(entrypoint.funcOp());
-
-        callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
+        callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint, tileFunctions);
         callDag.rankOrdered.forEach(f -> {
             varTable.addFunction(f.funcOp().funcName());
             HATTransformer.transform(HATTransformer.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());

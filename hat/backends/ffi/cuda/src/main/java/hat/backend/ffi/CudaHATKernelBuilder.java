@@ -217,7 +217,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_CUDA")
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())
+                .hashDefine("HAT_FUNC", _ -> externC().sp().either(!isTile, _ -> keyword("__device__"), _-> keyword("__tile__")))
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().either(!isTile, _ -> keyword("__global__"), _ -> keyword("__tile_global__")))
 
                 // threads
@@ -1179,8 +1179,20 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (this.isTile) {
             // inspect type of parameter
             CodeType type = param.parameter.type();
-            type(type).sp();
-            if (!(type instanceof PrimitiveType)) {
+            if (type instanceof ConstantType c && c.value() instanceof TensorType tt) {
+                id("ct::tile<");
+                if (tt.elementType().equals(DType.TENSOR_F32_TYPE) || tt.elementType().equals(DType.TENSOR_2D_F32_TYPE)) {
+                    f32Type();
+                } else {
+                    throw new IllegalStateException("Expected a tensor type, but found: " + tt.elementType().getClass());
+                }
+                comma().id("ct::shape<");
+                commaSpaceSeparated(tt.shape(), this::intValue);
+                gt().gt();
+            } else {
+                type(type).sp();
+            }
+            if (!(type instanceof PrimitiveType) && !(type instanceof ConstantType)) {
                 restrict().sp();
             }
             return varName(param.varOp);

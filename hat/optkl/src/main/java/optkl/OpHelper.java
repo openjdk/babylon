@@ -521,7 +521,10 @@ public sealed interface OpHelper<T extends Op> extends LookupCarrier
         }
 
         default boolean returns(Class<?> clazz) {
-            return isAssignable((JavaType) op().resultType(), clazz);
+            if (op().resultType() instanceof JavaType javaType) {
+                return isAssignable(javaType, clazz);
+            }
+            return false;
         }
 
         default boolean receives(Class<?>... classes) {
