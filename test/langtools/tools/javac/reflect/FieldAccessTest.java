@@ -709,15 +709,14 @@ public class FieldAccessTest {
         Y.s_f++;
     }
 
-    // @@@ Should propagate as constant value?
     @Reflect
     @IR("""
             func @"test23" (%0 : java.type:"FieldAccessTest")java.type:"void" -> {
-                %1 : java.type:"int" = field.load @java.ref:"java.util.Spliterator$OfInt::CONCURRENT:int";
+                %1 : java.type:"int" = constant @4096;
                 %2 : Var<java.type:"int"> = var %1 @"x";
-                %3 : java.type:"int" = field.load @java.ref:"java.util.Spliterator$OfInt::CONCURRENT:int";
+                %3 : java.type:"int" = constant @4096;
                 var.store %2 %3;
-                %4 : java.type:"int" = field.load @java.ref:"java.util.Spliterator$OfInt::CONCURRENT:int";
+                %4 : java.type:"int" = constant @4096;
                 var.store %2 %4;
                 return;
             };

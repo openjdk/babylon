@@ -91,7 +91,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class ConstantOp extends ArithMathOp implements Op.Pure, Precedence.Invoke {
+    public static class ConstantOp extends ArithMathOp implements Precedence.Invoke {
         public static final String NAME = "arith.constant";
         public static final String ATTRIBUTE_CONSTANT_VALUE = "value";
 
@@ -161,7 +161,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class AddOp extends ArithMathOp implements Op.Pure, Precedence.Additive {
+    public static class AddOp extends ArithMathOp implements Precedence.Additive {
         public static final String NAME = "arith.add";
 
         public AddOp(ExternalizedOp def) {
@@ -189,7 +189,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class TransposeOp extends ArithMathOp implements Op.Pure {
+    public static class TransposeOp extends ArithMathOp {
         public static final String NAME = "arith.transpose";
 
         public TransposeOp(ExternalizedOp def) {
@@ -217,7 +217,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class ReshapeOp extends ArithMathOp implements Op.Pure {
+    public static class ReshapeOp extends ArithMathOp {
         public static final String NAME = "arith.reshape";
 
         public ReshapeOp(ExternalizedOp def) {
@@ -245,7 +245,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class PermuteOp extends ArithMathOp implements Op.Pure {
+    public static class PermuteOp extends ArithMathOp {
         public static final String NAME = "arith.permute";
 
         public PermuteOp(ExternalizedOp def) {
@@ -273,7 +273,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class MMAOp extends ArithMathOp implements Op.Pure, Precedence.Invoke {
+    public static class MMAOp extends ArithMathOp implements Precedence.Invoke {
         public static final String NAME = "arith.mma";
 
         public MMAOp(ExternalizedOp def) {
@@ -301,7 +301,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class SubOp extends ArithMathOp implements Op.Pure {
+    public static class SubOp extends ArithMathOp {
         public static final String NAME = "arith.sub";
 
         public SubOp(ExternalizedOp def) {
@@ -322,7 +322,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class MulOp extends ArithMathOp implements Op.Pure {
+    public static class MulOp extends ArithMathOp {
         public static final String NAME = "arith.mul";
 
         public MulOp(ExternalizedOp def) {
@@ -343,7 +343,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class CDivOp extends ArithMathOp implements Op.Pure {
+    public static class CDivOp extends ArithMathOp {
         public static final String NAME = "arith.cdiv";
 
         public CDivOp(ExternalizedOp def) {
@@ -364,7 +364,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class MinOp extends ArithMathOp implements Op.Pure {
+    public static class MinOp extends ArithMathOp {
         public static final String NAME = "arith.min";
 
         public MinOp(ExternalizedOp def) {
@@ -385,7 +385,7 @@ public class ArithMathOps {
         }
     }
 
-    public static class TrueDivOp extends ArithMathOp implements Op.Pure {
+    public static class TrueDivOp extends ArithMathOp {
         public static final String NAME = "arith.truediv";
 
         public TrueDivOp(ExternalizedOp def) {

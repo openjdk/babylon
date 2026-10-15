@@ -72,7 +72,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ConstantOp.NAME)
-    public static class ConstantOp extends ArithMathOp implements Op.Pure {
+    public static class ConstantOp extends ArithMathOp {
         public static final String NAME = "arith.constant";
         public static final String ATTRIBUTE_CONSTANT_VALUE = "value";
 
@@ -148,7 +148,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(AddOp.NAME)
-    public static class AddOp extends ArithMathOp implements Op.Pure {
+    public static class AddOp extends ArithMathOp {
         public static final String NAME = "arith.add";
 
         public AddOp(ExternalizedOp def) {
@@ -170,7 +170,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(SubOp.NAME)
-    public static class SubOp extends ArithMathOp implements Op.Pure {
+    public static class SubOp extends ArithMathOp {
         public static final String NAME = "arith.sub";
 
         public SubOp(ExternalizedOp def) {
@@ -192,7 +192,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(MulOp.NAME)
-    public static class MulOp extends ArithMathOp implements Op.Pure {
+    public static class MulOp extends ArithMathOp {
         public static final String NAME = "arith.mul";
 
         public MulOp(ExternalizedOp def) {
@@ -214,7 +214,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(DivOp.NAME)
-    public static class DivOp extends ArithMathOp implements Op.Pure {
+    public static class DivOp extends ArithMathOp {
         public static final String NAME = "arith.div";
 
         public DivOp(ExternalizedOp def) {
@@ -236,7 +236,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(RemOp.NAME)
-    public static class RemOp extends ArithMathOp implements Op.Pure {
+    public static class RemOp extends ArithMathOp {
         public static final String NAME = "arith.rem";
 
         public RemOp(ExternalizedOp def) {
@@ -258,7 +258,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(AndOp.NAME)
-    public static class AndOp extends ArithMathOp implements Op.Pure {
+    public static class AndOp extends ArithMathOp {
         public static final String NAME = "arith.andi";
 
         public AndOp(ExternalizedOp def) {
@@ -280,7 +280,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(MaxOp.NAME)
-    public static class MaxOp extends ArithMathOp implements Op.Pure {
+    public static class MaxOp extends ArithMathOp {
         public static final String NAME = "arith.max";
 
         public MaxOp(ExternalizedOp def) {
@@ -303,7 +303,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(MinOp.NAME)
-    public static class MinOp extends ArithMathOp implements Op.Pure {
+    public static class MinOp extends ArithMathOp {
         public static final String NAME = "arith.min";
 
         public MinOp(ExternalizedOp def) {
@@ -326,7 +326,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ExpOp.NAME)
-    public static class TruncOp extends ArithMathOp implements Op.Pure {
+    public static class TruncOp extends ArithMathOp {
         public static final String NAME = "arith.trunc";
 
         public TruncOp(ExternalizedOp def) {
@@ -349,7 +349,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(ExpOp.NAME)
-    public static class ExpOp extends ArithMathOp implements Op.Pure {
+    public static class ExpOp extends ArithMathOp {
         public static final String NAME = "math.exp";
 
         public ExpOp(ExternalizedOp def) {
@@ -371,7 +371,7 @@ public class ArithMathOps {
     }
 
     @OpFactoryHelper.OpDeclaration(CompareOp.NAME)
-    public static class CompareOp extends ArithMathOp implements Op.Pure {
+    public static class CompareOp extends ArithMathOp {
         public static final String NAME = "arith.cmp";
         public static final String ATTRIBUTE_PREDICATE = "predicate";
 

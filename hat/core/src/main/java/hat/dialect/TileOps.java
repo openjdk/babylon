@@ -232,7 +232,7 @@ public class TileOps {
         }
     }
 
-    public static class TileIDOp extends TOp implements Op.Pure, Precedence.Invoke {
+    public static class TileIDOp extends TOp implements Precedence.Invoke {
 
         final int dimension;
 
@@ -271,7 +271,7 @@ public class TileOps {
         }
     }
 
-    public static class TileIndexOp extends TOp implements Op.Pure {
+    public static class TileIndexOp extends TOp {
 
         final int dimension;
 
@@ -300,7 +300,7 @@ public class TileOps {
         }
     }
 
-    public static class TileFullOp extends TileContextOp implements Op.Pure, Precedence.Invoke{
+    public static class TileFullOp extends TileContextOp implements Precedence.Invoke{
 
         protected TileFullOp(CodeType type, Value shapeValue, Value initValue) {
             super(type, List.of(shapeValue, initValue));
@@ -321,7 +321,7 @@ public class TileOps {
         }
     }
 
-    public static class TileZerosOp extends TileContextOp implements Op.Pure, Precedence.Invoke {
+    public static class TileZerosOp extends TileContextOp implements Precedence.Invoke {
 
         protected TileZerosOp(CodeType type, Value... shapes) {
             super(type, Arrays.stream(shapes).toList());
@@ -351,7 +351,7 @@ public class TileOps {
         }
     }
 
-    public static class TileArangeOp extends TOp implements Op.Pure {
+    public static class TileArangeOp extends TOp {
 
         protected TileArangeOp(CodeType type, Value size) {
             super(type, List.of(size));
@@ -376,7 +376,7 @@ public class TileOps {
         }
     }
 
-    public static class TileIrangeOp extends TOp implements Op.Pure {
+    public static class TileIrangeOp extends TOp {
 
         protected TileIrangeOp(CodeType type, Value startIndex, Value endIndex) {
             super(type, List.of(startIndex, endIndex));
@@ -397,7 +397,7 @@ public class TileOps {
         }
     }
 
-    public static class AsTypeOp extends TOp implements Op.Pure {
+    public static class AsTypeOp extends TOp {
 
         protected AsTypeOp(CodeType type, Value size) {
             super(type, List.of(size));
@@ -418,7 +418,7 @@ public class TileOps {
         }
     }
 
-    public static class TileShapeOp extends TOp implements Op.Pure {
+    public static class TileShapeOp extends TOp {
 
         final int dimension;
 
@@ -447,7 +447,7 @@ public class TileOps {
         }
     }
 
-    public static class TileNumOp extends TOp implements Op.Pure, Precedence.Invoke {
+    public static class TileNumOp extends TOp implements Precedence.Invoke {
 
         TileNumOp(TileNumOp that, CodeContext cc) {
             super(that, cc);
@@ -468,7 +468,7 @@ public class TileOps {
         }
     }
 
-    public static class TileSumOp extends TileContextOp implements Op.Pure, Precedence.Invoke {
+    public static class TileSumOp extends TileContextOp implements Precedence.Invoke {
 
         TileSumOp(TileSumOp that, CodeContext cc) {
             super(that, cc);
@@ -489,7 +489,7 @@ public class TileOps {
         }
     }
 
-    public static class LoadOp extends TileContextOp implements Op.Pure {
+    public static class LoadOp extends TileContextOp {
 
         private final List<Object> dims;
 
