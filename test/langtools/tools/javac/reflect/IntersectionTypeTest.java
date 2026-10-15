@@ -305,4 +305,51 @@ class IntersectionTypeTest {
         g_B(x);
         g_C(x);
     }
+
+    static class F {
+        void m_F() {
+        }
+    }
+
+    static class G extends F {
+    }
+
+    static <X extends G & A> X makeIntersection(G g, A a) {
+        return null;
+    }
+
+    @Reflect
+    @IR("""
+            func @"test9" (%0 : java.type:"IntersectionTypeTest$G", %1 : java.type:"IntersectionTypeTest$A")java.type:"void" -> {
+                %2 : Var<java.type:"IntersectionTypeTest$G"> = var %0 @"g";
+                %3 : Var<java.type:"IntersectionTypeTest$A"> = var %1 @"a";
+                %4 : java.type:"IntersectionTypeTest$G" = var.load %2;
+                %5 : java.type:"IntersectionTypeTest$A" = var.load %3;
+                %6 : java.type:"IntersectionTypeTest$G" = invoke %4 %5 @java.ref:"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$G, IntersectionTypeTest$A):IntersectionTypeTest$G";
+                %7 : Var<java.type:"IntersectionTypeTest$G"> = var %6 @"x";
+                %8 : java.type:"IntersectionTypeTest$G" = var.load %7;
+                %9 : Var<java.type:"IntersectionTypeTest$G"> = var %8 @"rec$";
+                %10 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %11 : java.type:"IntersectionTypeTest$G" = var.load %9;
+                    invoke %11 @java.ref:"IntersectionTypeTest$G::m_F():void";
+                    return;
+                };
+                %12 : Var<java.type:"java.lang.Runnable"> = var %10 @"rG";
+                %13 : java.type:"IntersectionTypeTest$G" = var.load %7;
+                %14 : java.type:"IntersectionTypeTest$A" = cast %13 @java.type:"IntersectionTypeTest$A";
+                %15 : Var<java.type:"IntersectionTypeTest$A"> = var %14 @"rec$";
+                %16 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %17 : java.type:"IntersectionTypeTest$A" = var.load %15;
+                    invoke %17 @java.ref:"IntersectionTypeTest$A::m_A():void";
+                    return;
+                };
+                %18 : Var<java.type:"java.lang.Runnable"> = var %16 @"rA";
+                return;
+            };
+            """)
+    static void test9(G g, A a) {
+        var x = makeIntersection(g, a);
+        Runnable rG = x::m_F;
+        Runnable rA = x::m_A;
+    }
 }
