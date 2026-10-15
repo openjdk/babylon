@@ -99,12 +99,12 @@ public class Viewer extends JFrame {
 
         public volatile boolean deviceOrModeModified = false;
 
-        State() {
+       // State() {
 
-        }
+       // }
     }
     final Controls controls;
-    final MainPanel mainPanel;
+    final public MainPanel mainPanel;
     public final State state;
     static final public class MainPanel extends JComponent implements ImageObserver {
         final double IN = 1.1;
@@ -271,7 +271,7 @@ public class Viewer extends JFrame {
             }
         }
     }
-    Viewer(String title, CellGrid cellGrid, State state) {
+    public Viewer(String title, CellGrid cellGrid, State state) {
         super(title);
         this.state = state;
         this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY), state);
