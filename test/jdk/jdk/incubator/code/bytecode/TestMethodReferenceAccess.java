@@ -66,6 +66,12 @@ public class TestMethodReferenceAccess {
         return p;
     }
 
+    @Reflect
+    public static <T extends Parent & Runnable> T genericReferenceWithIntersectionTypeVarReceiver(T p) {
+        Optional.of("ok").ifPresent(p::setValue);
+        return p;
+    }
+
     @Test
     public void testDirectCall() throws Throwable {
         var parent = new Parent();
@@ -100,6 +106,15 @@ public class TestMethodReferenceAccess {
         var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
         Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithTypeVarReceiver(parent), handle.invoke(parent));
         Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithTypeVarReceiver(parent), Interpreter.invoke(MethodHandles.lookup(), op, parent));
+    }
+
+    @Test
+    public void testGenericMethodReferenceWithIntersectionTypeVarReceiver() throws Throwable {
+        var parent = new Parent();
+        var op = Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "genericReferenceWithIntersectionTypeVarReceiver").orElseThrow()).orElseThrow();
+        var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
+        Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithIntersectionTypeVarReceiver(parent), handle.invoke(parent));
+        Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithIntersectionTypeVarReceiver(parent), Interpreter.invoke(MethodHandles.lookup(), op, parent));
     }
 
     static Optional<Method> getMethod(Class<?> c, String name) {

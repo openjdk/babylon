@@ -1226,8 +1226,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                                 names.clone.toString(),
                                 JavaType.J_L_OBJECT);
                     } else {
-                        mr = symbolToErasedMethodRef(sym, qualifierTarget.hasTag(NONE) ?
-                                access.selected.type : qualifierTarget);
+                        Type t = qualifierTarget.hasTag(NONE) || types.isSubtype(types.erasure(access.selected.type), types.erasure(qualifierTarget))
+                                ? access.selected.type : qualifierTarget;
+                        mr = symbolToErasedMethodRef(sym, t);
                     }
 
                     // Use the actual type of the expression, tree.type, rather than meth.type.getReturnType()
@@ -2694,8 +2695,14 @@ public class ReflectMethods extends TreeTranslatorPrev {
             this.owner = new MethodSymbol(0, names.lambda, tree.target, currentClass);
             if (tree.kind == ReferenceKind.BOUND && !TreeInfo.isThisQualifier(tree.getQualifierExpression())) {
                 // true bound method reference, hoist receiver expression out
-                Type t = tree.getQualifierExpression().type;
-                Type recvType = types.skipTypeVars(t, false).isCompound() ? types.asSuper(t, tree.sym.owner) : t;
+                Type recvType = tree.getQualifierExpression().type;
+                if (types.skipTypeVars(recvType, false).isCompound()) {
+                    Type erasedRecvType = types.erasure(recvType);
+                    Symbol sym = types.isSubtype(erasedRecvType, types.erasure(tree.sym.owner.type))
+                            ? erasedRecvType.tsym
+                            : tree.sym.owner;
+                    recvType = types.asSuper(recvType, sym);
+                }
                 VarSymbol vsym = makeSyntheticVar("rec$", recvType);
                 receiverVar = make.VarDef(vsym, tree.getQualifierExpression());
             }
