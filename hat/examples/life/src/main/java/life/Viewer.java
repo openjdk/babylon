@@ -69,7 +69,7 @@ public class Viewer extends JFrame {
         state.generationsSinceLastChange++;
     }
 
-     public void update(long now, @MappableIface.RO Main.CellGrid cellGrid, int from) {
+     public void update(long now, @MappableIface.RO CellGrid cellGrid, int from) {
 
         if (state.deviceOrModeModified) {
             state.generationsSinceLastChange = 0;
@@ -271,7 +271,7 @@ public class Viewer extends JFrame {
             }
         }
     }
-    Viewer(String title, Main.CellGrid cellGrid, State state) {
+    Viewer(String title, CellGrid cellGrid, State state) {
         super(title);
         this.state = state;
         this.mainPanel = new MainPanel(new BufferedImage(cellGrid.width(), cellGrid.height(), BufferedImage.TYPE_BYTE_GRAY), state);
