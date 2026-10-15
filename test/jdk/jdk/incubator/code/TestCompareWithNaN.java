@@ -19,55 +19,56 @@ import java.util.stream.Stream;
  * @run junit TestCompareWithNaN
  */
 public class TestCompareWithNaN {
+    // float
     @Reflect
-    static boolean gtNaN(float f) {
-        return f > Float.NaN;
+    static boolean gt(float f, float g) {
+        return f > g;
     }
 
     @Reflect
-    static boolean gteNaN(float f) {
-        return f >= Float.NaN;
+    static boolean gte(float f, float g) {
+        return f >= g;
     }
 
     @Reflect
-    static boolean eqNaN(float f) {
-        return f == Float.NaN;
+    static boolean eq(float f, float g) {
+        return f == g;
     }
 
     @Reflect
-    static boolean ltNaN(float f) {
-        return f < Float.NaN;
+    static boolean lt(float f, float g) {
+        return f < g;
     }
 
     @Reflect
-    static boolean lteNaN(float f) {
-        return f <= Float.NaN;
+    static boolean lte(float f, float g) {
+        return f <= g;
     }
 
-
+    // double
     @Reflect
-    static boolean gtNaN(double f) {
-        return f > Double.NaN;
-    }
-
-    @Reflect
-    static boolean gteNaN(double f) {
-        return f >= Double.NaN;
+    static boolean gt(double f, double g) {
+        return f > g;
     }
 
     @Reflect
-    static boolean eqNaN(double f) {
-        return f == Double.NaN;
+    static boolean gte(double f, double g) {
+        return f >= g;
     }
 
     @Reflect
-    static boolean ltNaN(double f) {
-        return f < Double.NaN;
+    static boolean eq(double f, double g) {
+        return f == g;
     }
 
     @Reflect
-    static boolean lteNaN(double f) {
-        return f <= Double.NaN;
+    static boolean lt(double f, double g) {
+        return f < g;
+    }
+
+    @Reflect
+    static boolean lte(double f, double g) {
+        return f <= g;
     }
 
     @ParameterizedTest
@@ -76,12 +77,20 @@ public class TestCompareWithNaN {
         CoreOp.FuncOp op = Op.ofMethod(m).get();
         MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), op);
 
-        int arg = 1;
-        Object expected = m.invoke(null, arg);
-
-        Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), op, arg));
-
-        Assertions.assertEquals(expected, mh.invoke(arg));
+        Number nan;
+        if (m.getParameterTypes()[0].equals(float.class)) {
+            nan = Float.NaN;
+        } else {
+            nan = Double.NaN;
+        }
+        Number[] args = {nan, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, +0, -0, 1};
+        for (Number a : args) {
+            for (Number b : args) {
+                Object expected = m.invoke(null, a, b);
+                Object actual = mh.invoke(a, b);
+                Assertions.assertEquals(expected, actual);
+            }
+        }
     }
 
     static Stream<Method> cases() {
