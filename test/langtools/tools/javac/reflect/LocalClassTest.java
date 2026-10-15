@@ -205,7 +205,7 @@ public class LocalClassTest {
                 %3 : java.type:"java.util.function.Supplier<LocalClassTest::Inner>" = lambda @lambda.isReflectable=true ()java.type:"LocalClassTest::Inner" -> {
                     %4 : java.type:"LocalClassTest" = var.load %2;
                     %5 : java.type:"java.lang.Object" = invoke %4 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
-                    %6 : java.type:"LocalClassTest::Inner" = new %5 @java.ref:"LocalClassTest::Inner::(LocalClassTest)";
+                    %6 : java.type:"LocalClassTest::Inner" = new %4 @java.ref:"LocalClassTest::Inner::(LocalClassTest)";
                     return %6;
                 };
                 %7 : Var<java.type:"java.util.function.Supplier<LocalClassTest::Inner>"> = var %3 @"aNew";
