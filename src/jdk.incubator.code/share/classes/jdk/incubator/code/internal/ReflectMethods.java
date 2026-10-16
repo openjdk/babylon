@@ -2470,9 +2470,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     result = append(JavaOp.pos(rhs));
                 }
                 case NULLCHK -> {
-                    Value val = toValue(tree.arg, tree.type);
+                    result = toValue(tree.arg, tree.type);
                     MethodRef ref = MethodRef.method(Objects.class, "requireNonNull", Object.class, Object.class);
-                    result = append(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.STATIC, false, JavaType.J_L_OBJECT, ref, val));
+                    append(JavaOp.invoke(JavaOp.InvokeOp.InvokeKind.STATIC, false, JavaType.J_L_OBJECT, ref, result));
                 }
                 default -> throw unreachable();
             }
