@@ -47,7 +47,6 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.internal.BranchTarget;
 import jdk.incubator.code.internal.ControlFlowPreparation;
-import jdk.incubator.code.internal.RemoveUnusedConstantTransformer;
 
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
@@ -87,13 +86,11 @@ public final class LoweringTransformer {
         CoreOp.ModuleOp module = LambdaExpansionTransformer.transform(lookup, ops);
         List<FuncOp> functions = new ArrayList<>();
         for (FuncOp fop : module.functionTable().sequencedValues()) {
-            // SSA may leave unused constants at dispatching blocks
-            FuncOp cleaned = RemoveUnusedConstantTransformer.transform(fop);
-            FuncOp lowered = cleaned.elements().anyMatch(op -> op instanceof Op.Lowerable
+            FuncOp lowered = fop.elements().anyMatch(op -> op instanceof Op.Lowerable
                     // lambda lowering never replaces itself
                     && !(op instanceof JavaOp.LambdaOp))
-                    ? cleaned.transform(CodeContext.create(), lowering)
-                    : cleaned;
+                    ? fop.transform(CodeContext.create(), lowering)
+                    : fop;
             functions.add(ControlFlowPreparation.transform(lowered));
         }
         return CoreOp.module(functions);
