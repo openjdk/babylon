@@ -87,7 +87,9 @@ public final class LoweringTransformer {
         List<FuncOp> functions = new ArrayList<>();
         for (FuncOp fop : module.functionTable().sequencedValues()) {
             FuncOp cleaned = RemoveUnusedConstantTransformer.transform(fop);
-            FuncOp lowered = cleaned.elements().anyMatch(Op.Lowerable.class::isInstance)
+            FuncOp lowered = cleaned.elements().anyMatch(op -> op instanceof Op.Lowerable
+                    // lambda lowering never replaces itself
+                    && !(op instanceof JavaOp.LambdaOp))
                     ? cleaned.transform(CodeContext.create(), lowering)
                     : cleaned;
             functions.add(jdk.incubator.code.internal.ControlFlowPreparation.transform(lowered));

@@ -174,6 +174,7 @@ public final class ControlFlowPreparation  implements CodeTransformer {
             Op terminator = block.terminatingOp();
             List<Op> operations = block.ops().subList(0, block.ops().size() - 1);
             List<Target> outgoing = targets(terminator);
+            // empty forwarding block with no side-used parameters
             if (operations.isEmpty() && outgoing.size() == 1
                     && (terminator instanceof CoreOp.BranchOp || terminator instanceof CoreOp.ConditionalBranchOp)
                     && block.parameters().stream().allMatch(p -> onlyUsedBy(p, terminator))) {
@@ -191,10 +192,12 @@ public final class ControlFlowPreparation  implements CodeTransformer {
                 current = new Target(outgoing.getFirst().block, forwarded);
                 continue;
             }
+            // remaining blocks with single boolean
             if (argument == null || block.parameters().size() != 1
                     || !block.parameters().getFirst().type().equals(JavaType.BOOLEAN)) break;
             Value value = block.parameters().getFirst();
             boolean valid = true;
+            // successive negations with no side uses
             for (Op operation : operations) {
                 if (!(operation instanceof JavaOp.NotOp not)
                         || not.operand() != value || !onlyUsedBy(value, operation)) {
@@ -205,6 +208,7 @@ public final class ControlFlowPreparation  implements CodeTransformer {
                 argument = !argument;
             }
             if (!valid || !onlyUsedBy(value, terminator)) break;
+            // shortcut for boolean dispatch with no-args exits
             if (terminator instanceof CoreOp.ConditionalBranchOp branch
                     && branch.predicateOperand() == value
                     && outgoing.stream().allMatch(target -> target.arguments.isEmpty())) {
@@ -220,6 +224,7 @@ public final class ControlFlowPreparation  implements CodeTransformer {
                 break;
             }
         }
+        // retain the last target
         return selected;
     }
 
