@@ -90,6 +90,7 @@ import com.sun.tools.javac.tree.TreeInfo;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.tree.TreeScanner;
 import com.sun.tools.javac.util.Assert;
+import com.sun.tools.javac.util.Constants;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.JCDiagnostic.DiagnosticPosition;
 import com.sun.tools.javac.util.ListBuffer;
@@ -1419,10 +1420,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             stack = variablesStack;
             try {
                 for (JCVariableDecl jcVar : variables) {
-                    // @@@ use uninitialized variable
-                    Value defaultValue = append(defaultValue(jcVar.type));
-                    Value init = convert(defaultValue, jcVar.type);
-                    Op.Result op = append(CoreOp.var(jcVar.name.toString(), typeToCodeType(jcVar.type), init));
+                    Op.Result op = append(CoreOp.var(jcVar.name.toString(), typeToCodeType(jcVar.type)));
                     stack.localToOp.put(jcVar.sym, op);
                 }
             } finally {
@@ -1765,9 +1763,16 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     PrimitiveType pt = ((ClassType) target.type()).unbox().get();
                     target = convert(target, codeTypeToType(pt));
                 }
-                Value expr = toValue(label.expr);
-                // conversion may be needed for primitive, e.g. label (byte) 1 and selector of type int
-                expr = convert(expr, codeTypeToType(target.type()));
+                Object constant = label.expr.type.constValue();
+                Value expr;
+                if (constant != null && (target.type().equals(JavaType.BYTE) || target.type().equals(JavaType.SHORT) ||
+                        target.type().equals(JavaType.CHAR) || target.type().equals(JavaType.INT))) {
+                    // conversion for primitive, e.g. label (byte) 1 and selector of type int
+                    expr = append(CoreOp.constant(target.type(), Constants.decode(constant, codeTypeToType(target.type()))));
+                } else {
+                    expr = toValue(label.expr);
+                    expr = convert(expr, codeTypeToType(target.type()));
+                }
                 return append(JavaOp.eq(target, expr));
             }
         }

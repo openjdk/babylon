@@ -26,6 +26,7 @@
 package jdk.incubator.code.dialect.core;
 
 import jdk.incubator.code.*;
+import jdk.incubator.code.internal.ControlFlowPreparation;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -53,6 +54,7 @@ public final class SSA {
      * @param <T> the operation type
      */
     public static <T extends Op & Op.Nested> T transform(T nestedOp) {
+        nestedOp = ControlFlowPreparation.transform(nestedOp);
         // @@@ property is used to test both impls
         if (!"cytron".equalsIgnoreCase(System.getProperty("babylon.ssa"))) {
             return SSABraun.transform(nestedOp);

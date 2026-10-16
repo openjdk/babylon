@@ -524,16 +524,8 @@ public final class BytecodeGenerator {
                         }
                     }
                     case VarOp op when op.isUninitialized() -> {
-                        if (!canDefer(op)) {
-                            switch (toTypeKind(op.resultType()).asLoadable()) {
-                                case INT -> cob.iconst_0();
-                                case LONG -> cob.lconst_0();
-                                case FLOAT -> cob.fconst_0();
-                                case DOUBLE -> cob.dconst_0();
-                                case REFERENCE -> cob.aconst_null();
-                                default -> throw new IllegalArgumentException("Bad variable type: " + toTypeKind(op.resultType()));
-                            }
-                            storeIfUsed(op.result());
+                        if (!op.result().uses().isEmpty()) {
+                            allocateSlot(op.result());
                         }
                     }
                     case VarOp op -> {
@@ -963,9 +955,14 @@ public final class BytecodeGenerator {
                     int lo = Integer.MAX_VALUE;
                     int hi = Integer.MIN_VALUE;
                     Label defTarget = null;
+                    // each switch edge needs its own argument transfer
+                    Map<Block.Reference, Label> transfers = new LinkedHashMap<>();
                     for (int i = 0; i < op.labels().size(); i++) {
                         Integer val = op.labels().get(i);
-                        Label target = getLabel(op.successors().get(i));
+                        Block.Reference reference = op.successors().get(i);
+                        Label target = needToAssignBlockArguments(reference)
+                                ? transfers.computeIfAbsent(reference, _ -> cob.newLabel())
+                                : getLabel(reference);
                         if (val == null) { // default target has null label value
                             defTarget = target;
                         } else {
@@ -982,6 +979,11 @@ public final class BytecodeGenerator {
                         cob.tableswitch(defTarget, cases);
                     } else {
                         cob.lookupswitch(defTarget, cases);
+                    }
+                    for (var transfer : transfers.entrySet()) {
+                        cob.labelBinding(transfer.getValue());
+                        assignBlockArguments(transfer.getKey());
+                        cob.goto_(getLabel(transfer.getKey()));
                     }
                 }
                 case ExceptionRegionEnter op -> {
@@ -1351,7 +1353,7 @@ public final class BytecodeGenerator {
             } else {
                 load(value);
             }
-        } else if (target.predecessors().size() > 1) {
+        } else if (target.predecessorReferences().size() > 1) {
             List<Block.Parameter> bargs = target.parameters();
             // First push successor arguments on the stack, then pop and assign
             // so as not to overwrite slots that are reused slots at different argument positions
@@ -1364,6 +1366,11 @@ public final class BytecodeGenerator {
                     } else {
                         load(value);
                     }
+                }
+            }
+            for (int i = bargs.size() - 1; i >= 0; i--) {
+                Block.Parameter barg = bargs.get(i);
+                if (!barg.equals(sargs.get(i))) {
                     storeIfUsed(barg);
                 }
             }
