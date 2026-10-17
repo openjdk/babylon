@@ -24,6 +24,7 @@
  */
 package hat.phases;
 
+import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.TileOps;
@@ -96,7 +97,7 @@ public record HATTilesPhase() implements HATPhase {
                 if (opsToProcess.contains(op) && op instanceof CoreOp.VarOp) {
                     Op.Result newVarOpResult = builder.add(op);
                     paramMap.put(op, newVarOpResult);
-                } else if (op == finalFirstOp) {
+                } else if (op == finalFirstOp && !opsToProcess.isEmpty()) {
                     // if the current op is the same object as the firstOp, then we expand this
                     // op with more ops to accommodate the alignment.
 
@@ -159,6 +160,10 @@ public record HATTilesPhase() implements HATPhase {
                 case TileOps.TileContextOp modelOp when modelOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOo ->
                         opsToProcess.add(varOo);
                 case ArithMathOps.ArithMathOp arithMathOp when arithMathOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOp ->
+                        opsToProcess.add(varOp);
+                case JavaOp.InvokeOp invokeOp when invokeOp.resultType() instanceof ConstantType
+                        && invokeOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOp ->
+                        // We need to process as Tile the result of an invoke (tile device kernel)
                         opsToProcess.add(varOp);
                 case null, default -> {
                 }

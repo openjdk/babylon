@@ -24,11 +24,15 @@
  */
 package hat.codebuilders;
 
+import hat.DType;
 import hat.KernelContext;
 import hat.TileContext;
 import hat.buffer.BF16Array;
 import hat.buffer.Tensor2DF16;
+import hat.buffer.TensorF32;
 import hat.callgraph.KernelCallGraph;
+import hat.codetypes.ConstantType;
+import hat.codetypes.TensorType;
 import hat.device.NonMappableIface;
 import hat.dialect.HATPtrOp;
 import hat.phases.HATArrayViewPhase;
@@ -39,6 +43,7 @@ import hat.types.BF16;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -247,6 +252,19 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_FUNC().sp().type(javaType).sp().funcName(funcOp);
     }
 
+    protected abstract T generateTileDeclaration(TensorType tensorType);
+
+    public final T functionDeclaration(ConstantType constantType, CoreOp.FuncOp funcOp) {
+        HAT_FUNC().sp();
+        Object value = constantType.value();
+        if (value instanceof TensorType tt) {
+            generateTileDeclaration(tt);
+        } else {
+            throw new IllegalStateException("Expected tensor type, got " + value.getClass());
+        }
+        return sp().funcName(funcOp);
+    }
+
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return ifaceType.iface.isAssignableFrom(F16.class)
                 || ifaceType.iface.isAssignableFrom(F16Impl.class);
@@ -417,7 +435,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T kernelMethod(CoreOp.FuncOp funcOp) {
         scopedCodeBuilderContext().funcScope(funcOp, () -> {
             nl();
-            functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
+            if (funcOp.body().yieldType() instanceof JavaType) {
+                functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
+            } else if (funcOp.body().yieldType() instanceof ConstantType) {
+                functionDeclaration((ConstantType) funcOp.body().yieldType(), funcOp);
+            }
             parenNlIndented(_ ->
                     commaNlSeparated(
                             new FuncOpParams(funcOp).list(),

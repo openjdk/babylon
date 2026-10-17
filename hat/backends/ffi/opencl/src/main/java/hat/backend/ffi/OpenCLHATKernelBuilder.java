@@ -27,6 +27,7 @@ package hat.backend.ffi;
 import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
+import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.TileOps;
@@ -114,6 +115,11 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
         tensorTypeTable.put("loadF16", this::f16Type);
         tensorTypeTable.put("load", this::f32Type);
         tensorTypeTable.put("loadF32", this::f32Type);
+    }
+
+    @Override
+    protected OpenCLHATKernelBuilder generateTileDeclaration(TensorType tensorType) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override

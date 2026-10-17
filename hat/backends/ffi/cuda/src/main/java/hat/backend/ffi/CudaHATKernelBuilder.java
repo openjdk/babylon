@@ -217,7 +217,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_CUDA")
                 .hashDefine("HAT_GLOBAL_MEM", _ -> {})
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _ -> externC().sp().keyword("__device__").sp())
+                .hashDefine("HAT_FUNC", _ -> externC().sp().either(!isTile, _ -> keyword("__device__"), _-> keyword("__tile__")))
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().either(!isTile, _ -> keyword("__global__"), _ -> keyword("__tile_global__")))
 
                 // threads
@@ -731,6 +731,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    protected CudaHATKernelBuilder generateTileDeclaration(TensorType tt) {
+        tile().ltgt(_ -> {
+            if (tt.elementType().equals(DType.TENSOR_F32_TYPE) || tt.elementType().equals(DType.TENSOR_2D_F32_TYPE)) {
+                f32Type();
+            } else {
+                throw new IllegalStateException("Expected a tensor type, but found: " + tt.elementType().getClass());
+            }
+            comma().tileShape().ltgt(_ -> commaSpaceSeparated(tt.shape(), this::intValue));
+        });
+        return self();
+    }
+
+    @Override
     protected CudaHATKernelBuilder aggregateInitializer(Consumer<CudaHATKernelBuilder> typeBuilder,
                                                         Consumer<CudaHATKernelBuilder> valueBuilder) {
         // C++ typed brace-init: T{...} rather than (T){...}.
@@ -1179,8 +1192,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (this.isTile) {
             // inspect type of parameter
             CodeType type = param.parameter.type();
-            type(type).sp();
-            if (!(type instanceof PrimitiveType)) {
+            if (type instanceof ConstantType c && c.value() instanceof TensorType tt) {
+               generateTileDeclaration(tt);
+            } else {
+                type(type).sp();
+            }
+            if (!(type instanceof PrimitiveType) && !(type instanceof ConstantType)) {
                 restrict().sp();
             }
             return varName(param.varOp);
@@ -1466,6 +1483,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     // CUDA Tile Constructs
     private CudaHATKernelBuilder tileContext() {
         return id("ct").colon().colon();
+    }
+
+    private CudaHATKernelBuilder tile() {
+        return tileContext().id("tile");
     }
 
     private CudaHATKernelBuilder partitionView() {
