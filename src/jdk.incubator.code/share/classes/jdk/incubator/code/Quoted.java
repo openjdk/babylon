@@ -138,61 +138,52 @@ public final class Quoted<T extends Op> {
     }
 
     /**
-     * Embeds the given operation into a quoting code model whose behavior quotes the operation.
-     * <p>
-     * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp func operation}
-     * that has one body with one block (<i>fblock</i>).
-     * <br>
-     * <i>fblock</i> will have a block parameter, in order, for every value in the key set of the map of operands and
-     * captured values.
-     * If the value is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp var operation} then the
-     * parameter's code type is the var operation's value type, and <i>fblock</i> will have a var operation whose
-     * operand is the block parameter.
-     * Otherwise, the parameter's code type is the value's code type.
-     * <br>
-     * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp quoted operation}
-     * that has one body with one block (<i>qblock</i>). Inside <i>qblock</i> there is a copy of {@code op}
-     * and a {@link jdk.incubator.code.dialect.core.CoreOp.YieldOp yield operation} whose operand is the operation
-     * result of {@code op}'s copy.
-     * <br>
-     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp return operation},
-     * whose operand is the operation result of the quoted op.
+     * Returns quoting code model whose behavior quotes the given source operation.
      *
-     * @param op the operation
-     * @return the quoting code model.
-     * @throws IllegalArgumentException if {@code op} is not placed in a block.
-     * @throws IllegalStateException if an encountered block is being built and is not observable.
+     * @param op the source operation to quote
+     * @return the quoting code model
+     * @throws IllegalArgumentException if {@code op} is not placed in a block
+     * @see #embedOp(Op, Map)
+     * @see Quoted
      */
     public static CoreOp.FuncOp embedOp(Op op) {
         return embedOp(op, Map.of());
     }
 
     /**
-     * Embeds the given operation into a quoting code model whose behavior quotes the operation.
+     * Returns quoting code model whose behavior quotes the given source operation.
      * <p>
-     * The result is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp func operation}
-     * that has one body with one block (<i>fblock</i>).
-     * <br>
-     * <i>fblock</i> will have a block parameter, in order, for every value in the key set of the map of operands and
-     * captured values.
-     * If the value is a result of a {@link jdk.incubator.code.dialect.core.CoreOp.VarOp var operation} then the
-     * parameter's code type is the var operation's value type, and <i>fblock</i> will have a var operation whose
-     * operand is the block parameter.
-     * Otherwise, the parameter's code type is the value's code type.
-     * <br>
-     * Then <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp quoted operation}
-     * that has one body with one block (<i>qblock</i>). Inside <i>qblock</i> there is a copy of {@code op}
-     * and a {@link jdk.incubator.code.dialect.core.CoreOp.YieldOp yield operation} whose operand is the operation
-     * result of {@code op}'s copy.
-     * <br>
-     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp return operation},
-     * whose operand is the operation result of the quoted op.
+     * A quoting code model is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp function operation} that has one
+     * body with one block, <i>fblock</i>, and whose behavior returns an instance of {@link Quoted} that contains a copy
+     * of the source operation.
+     * <p>
+     * The source operation has a sequence of values, <i>source values</i>, that is the operation's
+     * {@link Op#operands() operands} followed by the operation's {@link Op#capturedValues() captured values}.
+     * The quoting function operation has a sequence of values, <i>quoting values</i>, mapped from the source values.
+     * Each quoting value is a block parameter of <i>fblock</i>, the result of variable operation in <i>fblock</i>
+     * initialized with a block parameter of <i>fblock</i>, or the result of constant operation in <i>fblock</i>.
+     * <p>
+     * For each source value, if the value has an entry in the captured constants, then <i>fblock</i> will contain a
+     * constant operation whose constant value is the entry's value. The source value is mapped to a quoting value that
+     * is the result of the constant operation. Otherwise, if the value has no entry in the captured constants,
+     * <i>fblock</i> has a block parameter in the same order as the source value. If the source value is the result of a
+     * {@link jdk.incubator.code.dialect.core.CoreOp.VarOp variable operation} then the block parameter's code type is
+     * the same as variable operation's value type, and <i>fblock</i> has a variable operation whose operand is the
+     * block parameter. The source value is mapped to a quoting value that is the result of the variable operation.
+     * Otherwise, the block parameter's code type is the same as the source value's code type. The source value is
+     * mapped to a quoting value that is the block parameter.
+     * <p>
+     * <i>fblock</i> has a {@link jdk.incubator.code.dialect.core.CoreOp.QuotedOp quoted operation} that has one body
+     * with one block (<i>qblock</i>). <i>qblock</i> has a copy of the source operation, that is copied using a code
+     * context containing the mappings of source values to quoting values.
+     * <p>
+     * <i>fblock</i> terminates with a {@link jdk.incubator.code.dialect.core.CoreOp.ReturnOp return operation}, whose
+     * operand is the operation result of the quoted operation.
      *
-     * @param op the operation
-     * @param capturedConstants constants to embed
-     * @return the quoting code model.
-     * @throws IllegalArgumentException if {@code op} is not placed in a block.
-     * @throws IllegalStateException if an encountered block is being built and is not observable.
+     * @param op the source operation to quote
+     * @param capturedConstants the captured constants to embed in the quoting code model
+     * @return the quoting code model
+     * @throws IllegalArgumentException if source operation is not placed in a block
      */
     public static CoreOp.FuncOp embedOp(Op op, Map<Value, Object> capturedConstants) {
         if (op.result() == null) {
