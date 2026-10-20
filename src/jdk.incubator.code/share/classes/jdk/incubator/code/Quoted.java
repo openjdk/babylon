@@ -138,20 +138,22 @@ public final class Quoted<T extends Op> {
     }
 
     /**
-     * Returns quoting code model whose behavior quotes the given source operation.
+     * Returns a quoting code model whose behavior quotes the given source operation.
+     * <p>
+     * This method behaves as if it invokes {@link #embedOp(Op, Map)} with the source operation and an empty map
+     * as the arguments.
      *
      * @param op the source operation to quote
      * @return the quoting code model
      * @throws IllegalArgumentException if {@code op} is not placed in a block
      * @see #embedOp(Op, Map)
-     * @see Quoted
      */
     public static CoreOp.FuncOp embedOp(Op op) {
         return embedOp(op, Map.of());
     }
 
     /**
-     * Returns quoting code model whose behavior quotes the given source operation.
+     * Returns a quoting code model whose behavior quotes the given source operation.
      * <p>
      * A quoting code model is a {@link jdk.incubator.code.dialect.core.CoreOp.FuncOp function operation} that has one
      * body with one block, <i>fblock</i>, and whose behavior returns an instance of {@link Quoted} that contains a copy
