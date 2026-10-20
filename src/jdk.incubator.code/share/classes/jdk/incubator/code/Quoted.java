@@ -140,8 +140,8 @@ public final class Quoted<T extends Op> {
     /**
      * Returns a quoting code model whose behavior quotes the given source operation.
      * <p>
-     * This method behaves as if it invokes {@link #embedOp(Op, Map)} with the source operation and an empty map
-     * as the arguments.
+     * This method behaves as if it returns the result of invoking {@link #embedOp(Op, Map)} with the source operation
+     * and an empty map as the arguments.
      *
      * @param op the source operation to quote
      * @return the quoting code model
