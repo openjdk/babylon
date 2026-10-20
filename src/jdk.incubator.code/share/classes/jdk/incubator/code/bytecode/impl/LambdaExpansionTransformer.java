@@ -102,7 +102,7 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         for (var e : ops.sequencedEntrySet()) {
             functions.add(switch (e.getValue()) {
                 case FuncOp fop -> fop.transform(e.getKey(), this);
-                case JavaOp.LambdaOp lop -> lambdaToFuncOp(e.getKey(), lop, null);
+                case JavaOp.LambdaOp lop -> quotationToImpl(e.getKey(), lambdaToQuotation(lop));
                 default -> throw new IllegalArgumentException("Unsupported invokable operation: " + e.getValue());
             });
         }
@@ -120,28 +120,35 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         return CoreOp.module(functions);
     }
 
-    // LambdaMetafactory implementation methods take captures before lambda parameters.
-    private FuncOp lambdaToFuncOp(String name, JavaOp.LambdaOp lop, String builderName) {
+    // constructs lambda quotation function
+    private FuncOp lambdaToQuotation(JavaOp.LambdaOp lop) {
         Map<Value, Object> capturedConstants = new HashMap<>();
         lop.capturedValues().stream().forEach(v -> constants.evaluate(v).ifPresent(c -> capturedConstants.put(v, c)));
         // embed captured constants into quotation function
-        FuncOp quotation = Quoted.embedOp(lop, capturedConstants);
-        if (builderName != null) {
-            modelsToBuild.put(builderName, quotation);
-        }
-        Body.Builder body = Body.Builder.of(null, CoreType.functionType(lop.body().yieldType()));
-        Block.Builder b = body.entryBlock();
-        quotation.parameters().forEach(p -> b.context().mapValue(p, b.parameter(p.type())));
-        for (Op op : quotation.body().entryBlock().ops()) {
-            if (op instanceof CoreOp.QuotedOp quoted) {
-                JavaOp.LambdaOp lambda = (JavaOp.LambdaOp) quoted.quotedOp();
-                b.transformBody(lambda.body(), lambda.parameters().stream()
-                        .map(p -> b.parameter(p.type())).toList(), this);
-                break;
-            }
-            b.add(op);
-        }
-        return CoreOp.func(name, body);
+        return Quoted.embedOp(lop, capturedConstants);
+    }
+
+    // transforms lambda quotation function to its implemetnation
+    private FuncOp quotationToImpl(String name, FuncOp quotation) {
+        // @@@ extract or pass the lambda body yield type
+        CodeType retType = quotation.elements().filter(JavaOp.LambdaOp.class::isInstance).findFirst()
+                .map(e -> ((JavaOp.LambdaOp)e).body().yieldType()).orElseThrow();
+        return CoreOp.func(name, CoreType.functionType(retType)).body(b ->
+                b.transformBody(quotation.body(),
+                                quotation.parameters().stream().map(p -> b.parameter(p.type())).toList(),
+                                (block, op) -> {
+                                    switch (op) {
+                                        case CoreOp.QuotedOp qo when qo.quotedOp() instanceof JavaOp.LambdaOp lambda ->
+                                            block.transformBody(lambda.body(),
+                                                                lambda.parameters().stream().map(p -> b.parameter(p.type())).toList(),
+                                                                this);
+                                        // discard quotation return
+                                        case CoreOp.ReturnOp _ -> {}
+                                        default -> block.add(op);
+                                    }
+                                    return block;
+                                }));
+
     }
 
     private static String uniqueName(Set<String> names, String name) {
@@ -173,13 +180,14 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             String implName = uniqueName(names, "lambda$" + i);
             String intfMethodName = intfMethod.getName();
             DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
-            String modelName = null;
+            FuncOp quotation = lambdaToQuotation(lop);
             if (lop.isReflectable()) {
-                modelName = uniqueName(names, "op$lambda$" + i);
+                String modelName = uniqueName(names, "op$lambda$" + i);
+                modelsToBuild.put(modelName, quotation);
                 lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
                 intfMethodName = intfMethodName + "=" + modelName;
             }
-            functions.add(lambdaToFuncOp(implName, lop, modelName));
+            functions.add(quotationToImpl(implName, quotation));
 
             ClassDesc[] captureTypes = captures.stream()
                     .map(Value::type).map(LambdaExpansionTransformer::toClassDesc).toArray(ClassDesc[]::new);
