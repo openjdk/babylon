@@ -847,6 +847,8 @@ public final class ArithmeticAndConvOpImpls {
         }
         try {
             return mh.invokeWithArguments(evaluatedOperands);
+        } catch (ArithmeticException e) {
+            throw e;
         } catch (Throwable e) {
             throw new InternalError("Should not reach here", e);
         }
