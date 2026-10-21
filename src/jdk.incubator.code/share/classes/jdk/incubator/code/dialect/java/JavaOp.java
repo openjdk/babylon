@@ -3499,6 +3499,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     e -> e instanceof JavaOp.YieldOp yop && yop.targetsOrAttemptsToExit(this));
         }
 
+        static boolean isCaseNullBody(Body labelBody) {
+            //@@@ when op pattern matching is ready, we can use it
+            return labelBody.blocks().size() == 1 &&
+                    labelBody.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yieldOp &&
+                    yieldOp.yieldValue() instanceof Result opr &&
+                    opr.op() instanceof EqOp eqOp &&
+                    eqOp.operands().stream().anyMatch(v -> v instanceof Result r && r.op() instanceof ConstantOp cop
+                            && cop.value() == null);
+        }
+
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Value selectorExpression = b.context().getValue(operands().get(0));
@@ -3508,7 +3518,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             if (!(selectorExpression.type() instanceof PrimitiveType) && !handleNulls) {
                 Block.Builder continueBlock = b.block();
                 Block.Builder throwBlock = b.block();
-
+                // @@@ we can perform equality check using ==
                 MethodRef equalsRef = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
                 Result p = b.add(invoke(equalsRef, selectorExpression, b.add(constant(J_L_OBJECT, null))));
                 b.add(conditionalBranch(p, throwBlock.reference(), continueBlock.reference()));
@@ -3539,18 +3549,35 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // Create predicate and action blocks
             List<Block.Builder> blocks = new ArrayList<>(bodies().size());
             // Reuse incoming block for the first predicate
-            int reuseIdx = 0;
+            int caseNullIndex = -1;
+            for (int i = 0; i < bodies().size(); i += 2) {
+                if (isCaseNullBody(bodies().get(i))) {
+                    caseNullIndex = i;
+                    break;
+                }
+            }
+            if (caseNullIndex == -1 && handleNulls) {
+                caseNullIndex = defaultCaseIndex;
+            }
+
+            int reuseIndex;
+            if (caseNullIndex != -1) {
+                reuseIndex = caseNullIndex;
+            } else if (defaultCaseIndex == 0) {
+                if (bodies.size() > 2) {
+                    reuseIndex = defaultCaseIndex + 2;
+                } else {
+                    reuseIndex = defaultCaseIndex + 1;
+                }
+            } else {
+                reuseIndex = 0;
+            }
+
             for (int i = 0; i < bodies().size(); i ++) {
-                if (i == defaultCaseIndex) {
-                    // No block needed for default predicate
+                if (i == defaultCaseIndex && caseNullIndex != defaultCaseIndex) {
+                    // No block needed for default predicate (unless it's merged with case null)
                     blocks.add(null);
-                    if (i == 0) {
-                        // The first predicate is default. Reuese incoming block
-                        // for the default action block itself if the switch is
-                        // only-default, or for the next predicate otherwise
-                        reuseIdx = bodies().size() > 2 ? i + 2 : i + 1;
-                    }
-                } else if (i == reuseIdx) {
+                } else if (i == reuseIndex) {
                     blocks.add(b);
                 } else {
                     blocks.add(b.block());
@@ -3603,9 +3630,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Block.Builder actionBlock = blocks.get(i + 1);
 
                 // Lower predicate body for non-default cases
-                if (i != defaultCaseIndex) {
-                    int nextPredicateIdx = i + 2;
-                    if (nextPredicateIdx == defaultCaseIndex) {
+                if (i != defaultCaseIndex || defaultCaseIndex == caseNullIndex) {
+                    int nextPredicateIdx = i == caseNullIndex ? 0 : i + 2;
+                    while (nextPredicateIdx == defaultCaseIndex || nextPredicateIdx == caseNullIndex) {
                         nextPredicateIdx += 2;
                     }
 
@@ -3624,9 +3651,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                         noMatchBlock = exit;
                     }
 
-                    ControlFlowBooleanExpressionOp.lowerBooleanBody(predicateBlock, predicateBody, List.of(selectorExpression),
-                            new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(), noMatchBlock.reference()),
-                            inherited);
+                    if (i == caseNullIndex) {
+                        Result cnull = predicateBlock.add(constant(selectorExpression.type(), null));
+                        Result p = predicateBlock.add(eq(selectorExpression, cnull));
+                        predicateBlock.add(conditionalBranch(p, actionBlock.reference(), noMatchBlock.reference()));
+                    } else {
+                        ControlFlowBooleanExpressionOp.lowerBooleanBody(predicateBlock, predicateBody, List.of(selectorExpression),
+                                new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(), noMatchBlock.reference()),
+                                inherited);
+                    }
                 }
 
                 if (isBooleanExpression) {
@@ -3661,8 +3694,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             /*
             case null is modeled like this:
             (%4 : T)boolean -> {
-                %5 : java.lang.Object = constant @null;
-                %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                %5 : T = constant @null;
+                %6 : boolean = eq %4 %5;
                 yield %6;
             }
             * */
@@ -3675,11 +3708,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 //@@@ when op pattern matching is ready, we can use it
                 if (terminatingOp instanceof CoreOp.YieldOp yieldOp &&
                         yieldOp.yieldValue() instanceof Op.Result opr &&
-                        opr.op() instanceof InvokeOp invokeOp &&
-                        invokeOp.invokeReference().equals(
-                                MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
-                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r &&
-                                r.op() instanceof ConstantOp cop && cop.value() == null)) {
+                        opr.op() instanceof EqOp eqOp &&
+                        eqOp.operands().stream().anyMatch(v -> v instanceof Op.Result r && r.op() instanceof ConstantOp cop
+                                && cop.value() == null)) {
                     return true;
                 }
             }

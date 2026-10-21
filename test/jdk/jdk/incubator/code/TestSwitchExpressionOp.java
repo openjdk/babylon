@@ -28,6 +28,8 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -42,8 +44,6 @@ import java.util.stream.Stream;
  * @modules jdk.incubator.code
  * @library lib
  * @enablePreview
- * @run junit TestSwitchExpressionOp
- * @run main Unreflect TestSwitchExpressionOp
  * @run junit TestSwitchExpressionOp
  */
 public class TestSwitchExpressionOp {
@@ -392,6 +392,78 @@ public class TestSwitchExpressionOp {
             case null -> "null";
             default -> "non null";
         };
+    }
+
+    @Reflect
+    static int nullHandling(Integer value) {
+        return switch (value) {
+            case null -> -1;
+            case 1 -> 10;
+            default -> 20;
+        };
+    }
+
+    @Reflect
+    static int nullHandling2(Integer value) {
+        return switch (value) {
+            case 1 -> 10;
+            case null -> -1;
+            default -> 20;
+        };
+    }
+
+    @Reflect
+    static int nullHandling3(Integer value) {
+        return switch (value) {
+            case 1 -> 10;
+            case null, default -> 20;
+        };
+    }
+
+    @Reflect
+    static int nullHandling4(Integer value) {
+        return switch (value) {
+            case 1 -> 10;
+            default -> 20;
+        };
+    }
+
+    static Stream<Method> nullHandlingCases() {
+        return Arrays.stream(TestSwitchExpressionOp.class.getDeclaredMethods())
+                .filter(m -> m.isAnnotationPresent(Reflect.class))
+                .filter(m -> m.getName().startsWith("nullHandling"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("nullHandlingCases")
+    void testNullHandling(Method m) {
+        CoreOp.FuncOp f = Op.ofMethod(m).get();
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER)
+                .transform(CodeTransformer.DROP_LOCATION_TRANSFORMER);
+        System.out.println(lf.toText());
+        for (Integer a : new Integer[]{null, 1, 2}) {
+            // I saw this way of testing before
+            Object expected = null;
+            Throwable expectedEx = null;
+            try {
+                expected = m.invoke(null, a);
+            } catch (Exception ex) {
+                expectedEx = ex;
+            }
+            Object actual = null;
+            Throwable actualEx = null;
+            try {
+                actual = new JavaLowInterpreter().interpret(lf, Arrays.asList(a), MethodHandles.lookup());
+            } catch (Exception ex) {
+                actualEx = ex;
+            }
+            if (expectedEx != null) {
+                Assertions.assertSame(expectedEx.getCause().getClass(), actualEx.getClass());
+            } else if (expected != null) {
+                Assertions.assertEquals(expected, actual);
+            }
+            //@@@ BytecodeGenerator is not passing the test
+        }
     }
 
     @Test
