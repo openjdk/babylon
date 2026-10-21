@@ -53,22 +53,11 @@ public class TestSSACapture {
     public void testLambda() {
         CoreOp.FuncOp f = getFuncOp("lambda");
         CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        JavaOp.LambdaOp lop = (JavaOp.LambdaOp) lf.elements().filter(e -> e instanceof JavaOp.LambdaOp).findFirst().get();
+        JavaOp.LambdaOp lop = (JavaOp.LambdaOp) lf.elements()
+                .filter(e -> e instanceof JavaOp.LambdaOp)
+                .findFirst().get();
 
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            SSA.transform(lop);
-        });
-    }
-
-    static CoreOp.FuncOp generate(CoreOp.FuncOp f) {
-        System.out.println(f.toText());
-
-        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lf.toText());
-
-        lf = SSA.transform(lf);
-        System.out.println(lf.toText());
-        return lf;
+        Assertions.assertThrows(IllegalArgumentException.class, () -> SSA.transform(lop));
     }
 
     static CoreOp.FuncOp getFuncOp(String name) {
