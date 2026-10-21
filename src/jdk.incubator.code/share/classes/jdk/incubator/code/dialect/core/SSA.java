@@ -45,13 +45,19 @@ public final class SSA {
      * <p>
      * The operation should first be in lowered form before applying this transformation.
      * <p>
-     * Note: this implementation does not currently work correctly when a variable is stored to within an exception
-     * region and read from outside as a result of catching an exception. In such cases a complete transformation may be
-     * not possible and such variables will need to be retained.
+     * The behavior of the SSA transformation is unspecified if a variable is {@link Body#capturedValues() captured} by
+     * a descendant body and is not treated as if it is effectively final. Specifically, after capture the variable
+     * should only be loaded from.
+     *
+     * @implNote
+     * This implementation does not currently work correctly when a variable is stored to within an exception region
+     * and read from outside as a result of catching an exception. In such cases a complete transformation may be not
+     * possible and such variables will need to be retained.
      *
      * @param nestedOp the operation with bodies
      * @return the transformed operation
      * @param <T> the operation type
+     * @throws IllegalArgumentException if a required mapping for an input value or block is absent
      */
     public static <T extends Op & Op.Nested> T transform(T nestedOp) {
         nestedOp = ControlFlowPreparation.transform(nestedOp);
@@ -109,11 +115,18 @@ public final class SSA {
             nestedOp.elements().forEach(e -> {
                 switch (e) {
                     case CoreOp.VarAccessOp.VarLoadOp load -> {
+                        if (!currentDef.containsKey(load.varOp())) {
+                            throw new IllegalArgumentException("No mapping for input value: " + load.varOp());
+                        }
                         Val val = readVariable(load.varOp(), load.ancestorBlock());
                         registerLoad(load, val);
                     }
-                    case CoreOp.VarAccessOp.VarStoreOp store ->
-                            writeVariable(store.varOp(), store.ancestorBlock(), new Holder(store.storeOperand()));
+                    case CoreOp.VarAccessOp.VarStoreOp store -> {
+                        if (!currentDef.containsKey(store.varOp())) {
+                            throw new IllegalArgumentException("No mapping for input value: " + store.varOp());
+                        }
+                        writeVariable(store.varOp(), store.ancestorBlock(), new Holder(store.storeOperand()));
+                    }
                     case CoreOp.VarOp initialStore -> {
                         Val val = initialStore.isUninitialized()
                                 ? Uninitialized.VALUE
@@ -171,7 +184,7 @@ public final class SSA {
                 this.additionalParameters.computeIfAbsent(block, _ -> new ArrayList<>()).add(phi);
             } else if (block.isEntryBlock() && variable.ancestorBody() != block.ancestorBody()) {
                 // we are in an entry block but didn't find a definition yet
-                Block enclosingBlock = block.parent().parent().parent();
+                Block enclosingBlock = block.ancestorBlock();
                 assert enclosingBlock != null : "def not found in entry block, with no enclosing block";
                 value = readVariable(variable, enclosingBlock);
             } else if (this.predecessors.get(block).size() == 1) {
@@ -240,10 +253,18 @@ public final class SSA {
                     int additionalParameterIndex = phis.indexOf(phi);
                     assert additionalParameterIndex >= 0 : "phi not in parameters " + phi;
                     int index = additionalParameterIndex + phi.block().parameters().size();
-                    Block.Builder b = context.getBlock(phi.block());
-                    yield b.parameters().get(index);
+                    yield findBlockBuilder(context, phi).parameters().get(index);
                 }
             };
+        }
+
+        private Block.Builder findBlockBuilder(CodeContext context, Phi phi) {
+            Optional<Block.Builder> ob;
+            while ((ob = context.queryBlock(phi.block())).isEmpty()) {
+                context = context.parent();
+                assert context != null : "No mapping for input block: " + phi.block();
+            }
+            return ob.get();
         }
 
         @Override
