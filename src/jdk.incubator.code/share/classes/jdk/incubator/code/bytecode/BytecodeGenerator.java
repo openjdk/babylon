@@ -71,6 +71,8 @@ public final class BytecodeGenerator {
             MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType);
     private static final MethodTypeDesc MTD_FIND_SPECIAL =
             MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType, CD_Class);
+    private static final MethodTypeDesc MTD_PRIVATE_LOOKUP_IN =
+            MethodTypeDesc.of(CD_MethodHandles_Lookup, CD_Class, CD_MethodHandles_Lookup);
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -793,17 +795,19 @@ public final class BytecodeGenerator {
                                               MTD_FIND_SPECIAL);
                         } else {
                             if (!(refType instanceof ArrayType)) { // array methods (e.g. clone) are excluded
-                                try {
-                                    var info = lookup.revealDirect(md.resolveToHandle(lookup, op.invokeKind()));
-                                    protectedAccess = Modifier.isProtected(info.getModifiers())
-                                            && !info.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
-                                } catch (ReflectiveOperationException | IllegalArgumentException _) {
-                                    // @@@ protected access detection failed
+                                MethodHandles.Lookup resLookup = protectedAccessLookup(
+                                        op.invokeKind() == InvokeOp.InvokeKind.STATIC ? null : receiverClass(op.operands()),
+                                        l -> {
+                                            var info = l.revealDirect(md.resolveToHandle(l, op.invokeKind()));
+                                            return Modifier.isProtected(info.getModifiers())
+                                                    && !info.getDeclaringClass().getPackageName().equals(l.lookupClass().getPackageName());
+                                        });
+                                if (resLookup != null) {
+                                    protectedAccess = true;
+                                    specialCaller = resLookup.lookupClass().describeConstable().get();
+                                    lookupHandle(resLookup, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? refType.toNominalDescriptor() : specialCaller,
+                                            md.name(), mDesc, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
                                 }
-                            }
-                            if (protectedAccess) {
-                                lookupHandle(refType.toNominalDescriptor(), md.name(), mDesc,
-                                             op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
                             }
                         }
                         if (op.isVarArgs()) {
@@ -1025,14 +1029,57 @@ public final class BytecodeGenerator {
         exceptionRegionsChange(new Block[0]);
     }
 
-    private void lookupHandle(ClassDesc owner, String name, ConstantDesc type, String finder) {
+    private interface ProtectedAccessPredicate {
+        boolean check(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    }
+
+    private MethodHandles.Lookup protectedAccessLookup(Class<?> receiverClass, ProtectedAccessPredicate predicate) {
+        MethodHandles.Lookup l = lookup;
+        while (l != null) {
+            // Resolving a protected instance member may narrow the handle's receiver
+            // to the lookup class. Skip lookups incompatible with the model's receiver
+            // and try an enclosing class instead.
+            if (receiverClass == null || l.lookupClass().isAssignableFrom(receiverClass)) {
+                try {
+                    return predicate.check(l) ? l : null;
+                } catch (ReflectiveOperationException | IllegalArgumentException _) {}
+            }
+            Class<?> enclClass = l.lookupClass().getEnclosingClass();
+            try {
+                l = enclClass != null ? MethodHandles.privateLookupIn(enclClass, lookup) : null;
+            } catch (IllegalAccessException _) {
+                l = null;
+            }
+        }
+        return null;
+    }
+
+    private Class<?> receiverClass(List<Value> operands) {
+        try {
+            return (Class<?>) ((JavaType) operands.getFirst().type()).erasure().resolve(lookup);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
+    private void lookupHandle(MethodHandles.Lookup resLookup, ClassDesc owner, String name, ConstantDesc type, String finder) {
         // handle must precede any operand
         if (oprOnStack != null) {
             storeIfUsed(oprOnStack);
             oprOnStack = null;
         }
-        cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
-           .checkcast(CD_MethodHandles_Lookup)
+        if (resLookup != lookup) {
+            cob.ldc(resLookup.lookupClass().describeConstable().orElseThrow())
+               .ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
+               .checkcast(CD_MethodHandles_Lookup)
+               .invokestatic(CD_MethodHandles,
+                             "privateLookupIn",
+                             MTD_PRIVATE_LOOKUP_IN);
+        } else {
+            cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
+               .checkcast(CD_MethodHandles_Lookup);
+        }
+        cob
            .ldc(owner)
            .ldc(name)
            .ldc(type)
@@ -1048,16 +1095,19 @@ public final class BytecodeGenerator {
         boolean store = op instanceof FieldAccessOp.FieldStoreOp;
         boolean isStatic = op.operands().size() == (store ? 1 : 0);
         boolean protectedAccess = false;
-        try {
-            Member m = ref.resolveToField(lookup);
-            protectedAccess = Modifier.isProtected(m.getModifiers())
-                    && !m.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
-        } catch (ReflectiveOperationException | IllegalArgumentException _) {
-            // @@@ protected access detection failed
-        }
         ClassDesc caller = lookup.lookupClass().describeConstable().orElseThrow();
-        if (protectedAccess) {
-            lookupHandle(caller, ref.name(), fieldType, "find" + (isStatic ? "Static" : "") + (store ? "Setter" : "Getter"));
+        MethodHandles.Lookup resLookup = protectedAccessLookup(
+                isStatic ? null : receiverClass(op.operands()),
+                l -> {
+                    Member m = ref.resolveToField(l);
+                    return Modifier.isProtected(m.getModifiers())
+                            && !m.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
+                });
+        if (resLookup != null) {
+            protectedAccess = true;
+            caller = resLookup.lookupClass().describeConstable().orElseThrow();
+            lookupHandle(resLookup, isStatic ? refType.toNominalDescriptor() : caller, ref.name(),
+                    fieldType, "find" + (isStatic ? "Static" : "") + (store ? "Setter" : "Getter"));
         }
         processOperands(op);
         if (protectedAccess) {
