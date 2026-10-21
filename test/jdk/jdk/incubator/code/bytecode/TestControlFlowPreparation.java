@@ -22,6 +22,10 @@
  */
 
 import java.io.IOException;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.MethodModel;
+import java.lang.classfile.Opcode;
+import java.lang.classfile.instruction.BranchInstruction;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -29,6 +33,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -373,5 +378,42 @@ public class TestControlFlowPreparation {
             while (i >= 0 && ++indices[i] == pools[i].length) indices[i--] = 0;
             if (i < 0) break;
         }
+    }
+
+    static final Map<String, MethodModel> REFERENCE_METHODS = parseReferenceMethods();
+
+    static Map<String, MethodModel> parseReferenceMethods(){
+        try {
+            return ClassFile.of().parse(CASE_CLASS.getResourceAsStream("CFPTestCases.class").readAllBytes())
+                    .methods().stream().collect(Collectors.toMap(mm -> mm.methodName().stringValue(), Function.identity()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @ParameterizedTest(name = "case{index}")
+    @MethodSource("testMethods")
+    void testConstantExpressionsCleanup(Method method) throws Throwable {
+        FuncOp func = Op.ofMethod(method).orElseThrow();
+        assertConstantExpressionsCleanup(func, "direct");
+        assertConstantExpressionsCleanup(func = func.transform(CodeTransformer.LOWERING_TRANSFORMER), "lowered");
+        assertConstantExpressionsCleanup(SSA.transform(func), "SSA");
+    }
+
+    static void assertConstantExpressionsCleanup(FuncOp func, String label) {
+        MethodModel reference = REFERENCE_METHODS.get(func.funcName());
+        MethodModel actual = ClassFile.of().parse(BytecodeGenerator.generateClassData(MethodHandles.lookup(), func)).methods().getFirst();
+        // assert that our constant expression cleanup leaves no more conditional branches than javac
+        Assertions.assertTrue(countConditionalBranches(actual) <= countConditionalBranches(reference),
+                              () -> label + " conditional branches count exceeds the javac reference\n"
+                                    + "actual:" + actual.toDebugString()
+                                    + "javac reference:" + reference.toDebugString());
+    }
+
+    static int countConditionalBranches(MethodModel mm) {
+        return (int)mm.code().orElseThrow().elementStream().filter(
+                e -> e instanceof BranchInstruction bi
+                        && bi.opcode() != Opcode.GOTO
+                        && bi.opcode() != Opcode.GOTO_W).count();
     }
 }
