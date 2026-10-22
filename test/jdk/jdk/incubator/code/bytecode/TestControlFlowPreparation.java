@@ -354,7 +354,7 @@ public class TestControlFlowPreparation {
         var direct = BytecodeGenerator.generate(lookup, model);
         model = model.transform(CodeTransformer.LOWERING_TRANSFORMER);
         var lowered = BytecodeGenerator.generate(lookup, model);
-        var ssa = BytecodeGenerator.generate(lookup, SSA.transform(model));
+        var lowered_ssa = BytecodeGenerator.generate(lookup, SSA.transform(model));
         var values = Map.of(
                 boolean.class, new Object[]{false, true},
                 byte.class, new Object[]{(byte) 0, (byte) 1, (byte) 2},
