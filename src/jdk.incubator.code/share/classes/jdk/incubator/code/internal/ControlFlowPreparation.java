@@ -51,14 +51,14 @@ import jdk.incubator.code.dialect.java.JavaType;
 public final class ControlFlowPreparation  implements CodeTransformer {
 
     @SuppressWarnings("unchecked")
-    public static <O extends Op> O transform(O operation) {
+    public static <O extends Op> O transform(O operation, boolean removeUnusedConstantExpressions) {
         Objects.requireNonNull(operation);
         List<Op> branches = operation.elements().filter(e -> e instanceof CoreOp.BranchOp
                 || e instanceof CoreOp.ConditionalBranchOp).map(Op.class::cast).toList();
         if (branches.stream().noneMatch(CoreOp.ConditionalBranchOp.class::isInstance)) {
             return operation;
         }
-        ControlFlowPreparation cfp = new ControlFlowPreparation(operation, branches);
+        ControlFlowPreparation cfp = new ControlFlowPreparation(operation, branches, removeUnusedConstantExpressions);
         cfp.prepare();
         return cfp.rewrites.isEmpty() ? operation : (O) operation.transform(CodeContext.create(), cfp);
     }
@@ -75,6 +75,7 @@ public final class ControlFlowPreparation  implements CodeTransformer {
 
     final Op root;
     final List<Op> branches;
+    final boolean removeUnused;
     final Map<Op, List<Target>> rewrites = new HashMap<>();
     final Map<Op, List<Target>> originalTargets = new HashMap<>();
     final Map<Body, BitSet> reachable = new HashMap<>();
@@ -83,9 +84,10 @@ public final class ControlFlowPreparation  implements CodeTransformer {
     final Map<Block, List<List<Value>>> incoming = new HashMap<>();
     final ConstantValueAnalysis constants = new ConstantValueAnalysis(block -> incoming.getOrDefault(block, List.of()));
 
-    private ControlFlowPreparation(Op root, List<Op> branches) {
+    private ControlFlowPreparation(Op root, List<Op> branches, boolean removeUnused) {
         this.root = root;
         this.branches = branches;
+        this.removeUnused = removeUnused;
     }
 
     private void prepare() {
@@ -267,7 +269,7 @@ public final class ControlFlowPreparation  implements CodeTransformer {
                 return builder;
             }
             // drop constant expressions consumed only by folded expressions
-            if (onlyUsedBy(operation.result(), null)) {
+            if (removeUnused && onlyUsedBy(operation.result(), null)) {
                 return builder;
             }
             replacement = CoreOp.constant(operation.resultType(), constant.orElseThrow());
