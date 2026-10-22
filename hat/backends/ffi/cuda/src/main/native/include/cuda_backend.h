@@ -176,8 +176,9 @@ private:
     CUresult initStatus;
     CUdevice device;
     CUcontext context;
+    int major;
+    int minor;
     bool useNvrtcCompiler(int typeModel) const;
-    void queryComputeCapability(int &major, int &minor);
 public:
     void shortDeviceInfo() override;
     void showDeviceInfo() override;

@@ -82,11 +82,12 @@ void warnNvrtcRequiresLibjsig() {
         return;
     }
     warned = true;
-    std::cout << "[HAT] WARNING: libjsig not preloaded. NVRTC Tile "
-              << "handlers see signals first and forward them with a "
-              << "polluted state, breaking JVM signal handling. Falling "
-              << "back to nvcc for Tile kernels. This warning is issued "
-              << "once. To use NVRTC Tile, launch with:"
+    std::cout << "[HAT] WARNING: libjsig not preloaded. Loading Tile IR "
+              << "in-process processes signals first and resends them with a "
+              << "polluted state, breaking JVM signal handling. NVRTC emits "
+              << "only Tile IR for Tile kernels, so libjsig is required. "
+              << "Falling back to nvcc for Tile. This warning is issued once."
+              << "To use NVRTC Tile, launch with:"
               << std::endl;
     if (const char *javaHome = std::getenv("JAVA_HOME");
         javaHome != nullptr && javaHome[0] != '\0') {
@@ -309,7 +310,8 @@ std::string tmpFileName(uint64_t time, const std::string directoryName, const st
 }
 
 CudaBackend::CudaBackend(int configBits)
-    : Backend(new Config(configBits), new CudaQueue(this)), initStatus(cuInit(0)), device(), context() {
+    : Backend(new Config(configBits), new CudaQueue(this)),
+      initStatus(cuInit(0)), device(), context(), major(0), minor(0) {
     int deviceCount = 0;
 
     if (initStatus == CUDA_SUCCESS) {
@@ -318,6 +320,14 @@ CudaBackend::CudaBackend(int configBits)
             std::cout << "CudaBackend device count = " << deviceCount << std::endl;
         }
         CUDA_CHECK(cuDeviceGet(&device, 0), "cuDeviceGet");
+        CUDA_CHECK(cuDeviceGetAttribute(&major,
+                                        CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                                        device),
+                   "cuDeviceGetAttribute");
+        CUDA_CHECK(cuDeviceGetAttribute(&minor,
+                                        CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                                        device),
+                   "cuDeviceGetAttribute");
         #if defined(CUDA_VERSION) && CUDA_VERSION >= 12080
             CUctxCreateParams ctxCreateParams = {};
             CUDA_CHECK(cuCtxCreate_v4(&context, &ctxCreateParams, 0, device), "cuCtxCreate");
@@ -350,9 +360,6 @@ void CudaBackend::showDeviceInfo() {
     CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
 
     std::cout << "> Using device 0: " << name << std::endl;
-
-    int major = 0, minor = 0;
-    queryComputeCapability(major, minor);
     std::cout << "> GPU Device has major=" << major << " minor=" << minor << " compute capability" << std::endl;
 
     int warpSize;
@@ -374,23 +381,13 @@ void CudaBackend::showDeviceInfo() {
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
-void CudaBackend::queryComputeCapability(int &major, int &minor) {
-    CUDA_CHECK(cuDeviceGetAttribute(&major,
-                                    CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
-                                    device),
-               "cuDeviceGetAttribute");
-    CUDA_CHECK(cuDeviceGetAttribute(&minor,
-                                    CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
-                                    device),
-               "cuDeviceGetAttribute");
-}
-
 bool CudaBackend::useNvrtcCompiler(int typeModel) const {
     const bool useNvrtc = config->cudaNvrtc;
 
-    // Tile NVRTC handlers see signals first and forward them with a
-    // polluted state, breaking JVM signal handling. Preload libjsig so
-    // JVM handlers run first. SIMT NVRTC does not need libjsig.
+    // Loading Tile IR in-process registers handlers that process signals first
+    // and resend them with a polluted state, breaking JVM signal handling.
+    // NVRTC emits only Tile IR for Tile kernels, so libjsig is required.
+    // Tile cubin and SIMT PTX do not need it.
     if (useNvrtc && typeModel > 0 && !isLibjsigLoaded()) {
         warnNvrtcRequiresLibjsig();
         return false;
@@ -412,9 +409,6 @@ CudaImage *CudaBackend::nvcc(const CudaSource *cudaSource) {
     const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
     cudaSource->write(cudaPath);
 
-    int major = 0;
-    int minor = 0;
-    queryComputeCapability(major, minor);
     if (cudaSource->typeModel() > 0) {
         assertTileArchSupport(major, minor, cudaPath);
     }
@@ -488,9 +482,6 @@ CudaImage *CudaBackend::nvrtc(const CudaSource *cudaSource) {
         std::exit(1);
     }
 
-    int major = 0;
-    int minor = 0;
-    queryComputeCapability(major, minor);
     if (tile) {
         assertTileArchSupport(major, minor, cudaPath);
     }

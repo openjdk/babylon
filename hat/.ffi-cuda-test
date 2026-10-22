@@ -2,10 +2,10 @@
 --add-modules=jdk.incubator.code
 --enable-native-access=ALL-UNNAMED
 -Djava.library.path=build
---class-path='
+--class-path='\
     build/hat-optkl-1.0.jar:\
     build/hat-core-1.0.jar:\
     build/hat-backend-ffi-shared-1.0.jar:\
-    build/hat-backend-ffi-cuda-1.0.jar
+    build/hat-backend-ffi-cuda-1.0.jar:\
     build/hat-tests-1.0.jar:'
 hat.test.engine.HATTestEngine
