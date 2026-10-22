@@ -262,8 +262,7 @@ public final class ControlFlowPreparation  implements CodeTransformer {
         Op replacement;
         if (targets == null) {
             Optional<Object> constant;
-            if (operation.ancestorOp() instanceof JavaOp.LabeledOp labeled && labeled.label() == operation
-                    || !operation.bodies().isEmpty()
+            if (!operation.bodies().isEmpty()
                     || (constant = constants.evaluate(operation.result())).isEmpty()) {
                 builder.add(operation);
                 return builder;
