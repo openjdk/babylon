@@ -32,14 +32,17 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
@@ -48,7 +51,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.CoreType;
-import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.FieldRef;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -56,6 +58,7 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.internal.OpBuilder;
+import jdk.incubator.code.internal.ConstantValueAnalysis;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 import static java.lang.constant.ConstantDescs.*;
@@ -82,6 +85,8 @@ final class LambdaExpansionTransformer implements CodeTransformer {
     private final List<FuncOp> functions = new ArrayList<>();
     private final LinkedHashMap<String, FuncOp> modelsToBuild = new LinkedHashMap<>();
     private int nextLambdaIndex;
+    // used for expression constants evaluation only
+    private final ConstantValueAnalysis constants = new ConstantValueAnalysis(_ -> List.of());
 
     private LambdaExpansionTransformer(MethodHandles.Lookup lookup, Set<String> names) {
         this.lookup = lookup;
@@ -97,7 +102,7 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         for (var e : ops.sequencedEntrySet()) {
             functions.add(switch (e.getValue()) {
                 case FuncOp fop -> fop.transform(e.getKey(), this);
-                case JavaOp.LambdaOp lop -> lambdaToFuncOp(e.getKey(), lop).transform(this);
+                case JavaOp.LambdaOp lop -> quotationToImpl(e.getKey(), lambdaToQuotation(lop));
                 default -> throw new IllegalArgumentException("Unsupported invokable operation: " + e.getValue());
             });
         }
@@ -115,27 +120,35 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         return CoreOp.module(functions);
     }
 
-    // LambdaMetafactory implementation methods take captures before lambda parameters.
-    private static FuncOp lambdaToFuncOp(String name, JavaOp.LambdaOp lop) {
-        List<Value> captures = lop.capturedValues();
-        FunctionType lambdaType = lop.invokableSignature();
-        ArrayList<CodeType> parameterTypes = new ArrayList<>(captures.size() + lambdaType.parameterTypes().size());
-        for (Value v : captures) {
-            parameterTypes.add(v.type() instanceof VarType vt ? vt.valueType() : v.type());
-        }
-        parameterTypes.addAll(lambdaType.parameterTypes());
-        return CoreOp.func(name, CoreType.functionType(lambdaType.returnType(), parameterTypes)).body(b -> {
-            int i = 0;
-            for (Value cv : captures) {
-                Value v = b.parameters().get(i++);
-                if (cv.type() instanceof VarType) {
-                    v = b.add(CoreOp.var(v));
-                }
-                b.context().mapValue(cv, v);
-            }
-            b.transformBody(lop.body(), b.parameters().subList(i, b.parameters().size()),
-                    CodeTransformer.COPYING_TRANSFORMER);
-        });
+    // constructs lambda quotation function
+    private FuncOp lambdaToQuotation(JavaOp.LambdaOp lop) {
+        Map<Value, Object> capturedConstants = new HashMap<>();
+        lop.capturedValues().stream().forEach(v -> constants.evaluate(v).ifPresent(c -> capturedConstants.put(v, c)));
+        // embed captured constants into quotation function
+        return Quoted.embedOp(lop, capturedConstants);
+    }
+
+    // transforms lambda quotation function to its implemetnation
+    private FuncOp quotationToImpl(String name, FuncOp quotation) {
+        // @@@ extract or pass the lambda body yield type
+        CodeType retType = quotation.elements().filter(JavaOp.LambdaOp.class::isInstance).findFirst()
+                .map(e -> ((JavaOp.LambdaOp)e).body().yieldType()).orElseThrow();
+        return CoreOp.func(name, CoreType.functionType(retType)).body(b ->
+                b.transformBody(quotation.body(),
+                                quotation.parameters().stream().map(p -> b.parameter(p.type())).toList(),
+                                (block, op) -> {
+                                    switch (op) {
+                                        case CoreOp.QuotedOp qo when qo.quotedOp() instanceof JavaOp.LambdaOp lambda ->
+                                            block.transformBody(lambda.body(),
+                                                                lambda.parameters().stream().map(p -> b.parameter(p.type())).toList(),
+                                                                this);
+                                        // discard quotation return
+                                        case CoreOp.ReturnOp _ -> {}
+                                        default -> block.add(op);
+                                    }
+                                    return block;
+                                }));
+
     }
 
     private static String uniqueName(Set<String> names, String name) {
@@ -161,18 +174,20 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         try {
             Class<?> intfClass = (Class<?>) intfType.erasure().resolve(lookup);
             Method intfMethod = funcIntfMethod(intfClass, mtd);
-            List<Value> captures = lop.capturedValues();
+            // filter out constant captures
+            List<Value> captures = lop.capturedValues().stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
             int i = nextLambdaIndex++;
             String implName = uniqueName(names, "lambda$" + i);
             String intfMethodName = intfMethod.getName();
             DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
+            FuncOp quotation = lambdaToQuotation(lop);
             if (lop.isReflectable()) {
                 String modelName = uniqueName(names, "op$lambda$" + i);
-                modelsToBuild.put(modelName, Quoted.embedOp(lop));
+                modelsToBuild.put(modelName, quotation);
                 lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
                 intfMethodName = intfMethodName + "=" + modelName;
             }
-            functions.add(lambdaToFuncOp(implName, lop).transform(this));
+            functions.add(quotationToImpl(implName, quotation));
 
             ClassDesc[] captureTypes = captures.stream()
                     .map(Value::type).map(LambdaExpansionTransformer::toClassDesc).toArray(ClassDesc[]::new);

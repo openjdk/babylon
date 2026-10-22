@@ -44,10 +44,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @enablePreview
  * @library ../
  * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestTryWithStatementTarget
- * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestTryWithStatementTarget
  * @run main Unreflect TestTryWithStatementTarget
  * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true TestTryWithStatementTarget
- * @run junit/othervm -Djdk.invoke.MethodHandle.dumpClassFiles=true -Dbabylon.tryFinally=sharedDispatch TestTryWithStatementTarget
  */
 public final class TestTryWithStatementTarget {
 

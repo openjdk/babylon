@@ -24,37 +24,38 @@
 */
 /*
 You probably should not edit this this file!!!
-It was auto generated 2026-07-23 16:04:56.597 by hat.FFIConfigCreator
+It was auto generated 2026-09-28 12:28:36.678 by hat.FFIConfigCreator
 */
 #pragma once
 
 #include <iostream>
 
 struct BasicConfig{
-    static constexpr int MINIMIZE_COPIES_BIT              = 1<<0x8;
-    static constexpr int TRACE_BIT                        = 1<<0x9;
-    static constexpr int PROFILE_BIT                      = 1<<0xa;
-    static constexpr int SHOW_CODE_BIT                    = 1<<0xb;
-    static constexpr int SHOW_KERNEL_MODEL_BIT            = 1<<0xc;
-    static constexpr int SHOW_COMPUTE_MODEL_BIT           = 1<<0xd;
-    static constexpr int SHOW_DEVICE_INFO_BIT             = 1<<0xe;
-    static constexpr int INFO_BIT                         = 1<<0xf;
-    static constexpr int WARN_BIT                         = 1<<0x10;
-    static constexpr int UNIT_BIT                         = 1<<0x11;
-    static constexpr int TRACE_COPIES_BIT                 = 1<<0x12;
-    static constexpr int TRACE_SKIPPED_COPIES_BIT         = 1<<0x13;
-    static constexpr int TRACE_ENQUEUES_BIT               = 1<<0x14;
-    static constexpr int TRACE_CALLS_BIT                  = 1<<0x15;
-    static constexpr int SHOW_WHY_BIT                     = 1<<0x16;
-    static constexpr int SHOW_STATE_BIT                   = 1<<0x17;
-    static constexpr int PTX_BIT                          = 1<<0x18;
-    static constexpr int INTERPRET_BIT                    = 1<<0x19;
-    static constexpr int HEADLESS_BIT                     = 1<<0x1a;
-    static constexpr int SHOW_LOWERED_KERNEL_MODEL_BIT    = 1<<0x1b;
-    static constexpr int SHOW_COMPILATION_PHASES_BIT      = 1<<0x1c;
-    static constexpr int PROFILE_CUDA_KERNEL_BIT          = 1<<0x1d;
-    static constexpr int SHOW_COMPUTE_MODEL_JAVA_CODE_BIT = 1<<0x1e;
-    static constexpr int CHECK_SSA_LOWERING_BIT           = 1<<0x1f;
+    static constexpr int MINIMIZE_COPIES_BIT              = 1<<0x6;
+    static constexpr int TRACE_BIT                        = 1<<0x7;
+    static constexpr int PROFILE_BIT                      = 1<<0x8;
+    static constexpr int SHOW_CODE_BIT                    = 1<<0x9;
+    static constexpr int SHOW_KERNEL_MODEL_BIT            = 1<<0xa;
+    static constexpr int SHOW_COMPUTE_MODEL_BIT           = 1<<0xb;
+    static constexpr int SHOW_DEVICE_INFO_BIT             = 1<<0xc;
+    static constexpr int INFO_BIT                         = 1<<0xd;
+    static constexpr int WARN_BIT                         = 1<<0xe;
+    static constexpr int UNIT_BIT                         = 1<<0xf;
+    static constexpr int TRACE_COPIES_BIT                 = 1<<0x10;
+    static constexpr int TRACE_SKIPPED_COPIES_BIT         = 1<<0x11;
+    static constexpr int TRACE_ENQUEUES_BIT               = 1<<0x12;
+    static constexpr int TRACE_CALLS_BIT                  = 1<<0x13;
+    static constexpr int SHOW_WHY_BIT                     = 1<<0x14;
+    static constexpr int SHOW_STATE_BIT                   = 1<<0x15;
+    static constexpr int PTX_BIT                          = 1<<0x16;
+    static constexpr int INTERPRET_BIT                    = 1<<0x17;
+    static constexpr int HEADLESS_BIT                     = 1<<0x18;
+    static constexpr int SHOW_LOWERED_KERNEL_MODEL_BIT    = 1<<0x19;
+    static constexpr int SHOW_COMPILATION_PHASES_BIT      = 1<<0x1a;
+    static constexpr int SHOW_COMPUTE_MODEL_JAVA_CODE_BIT = 1<<0x1b;
+    static constexpr int CHECK_SSA_LOWERING_BIT           = 1<<0x1c;
+    static constexpr int CUDA_NVCC_BIT                    = 1<<0x1d;
+    static constexpr int CUDA_NVRTC_BIT                   = 1<<0x1e;
     const static char *bitNames[]; // See below for initialization
     const static char *bitDescriptions[]; // See below for initialization
     int configBits;
@@ -79,9 +80,10 @@ struct BasicConfig{
     bool headless;
     bool showLoweredKernelModel;
     bool showCompilationPhases;
-    bool profileCudaKernel;
     bool showComputeModelJavaCode;
     bool checkSsaLowering;
+    bool cudaNvcc;
+    bool cudaNvrtc;
     int platform;
     int device;
     bool alwaysCopy;
@@ -108,12 +110,13 @@ struct BasicConfig{
         headless((configBits & HEADLESS_BIT)==HEADLESS_BIT),
         showLoweredKernelModel((configBits & SHOW_LOWERED_KERNEL_MODEL_BIT)==SHOW_LOWERED_KERNEL_MODEL_BIT),
         showCompilationPhases((configBits & SHOW_COMPILATION_PHASES_BIT)==SHOW_COMPILATION_PHASES_BIT),
-        profileCudaKernel((configBits & PROFILE_CUDA_KERNEL_BIT)==PROFILE_CUDA_KERNEL_BIT),
         showComputeModelJavaCode((configBits & SHOW_COMPUTE_MODEL_JAVA_CODE_BIT)==SHOW_COMPUTE_MODEL_JAVA_CODE_BIT),
         checkSsaLowering((configBits & CHECK_SSA_LOWERING_BIT)==CHECK_SSA_LOWERING_BIT),
-        platform(configBits & 0xf),
+        cudaNvcc((configBits & CUDA_NVCC_BIT)==CUDA_NVCC_BIT),
+        cudaNvrtc((configBits & CUDA_NVRTC_BIT)==CUDA_NVRTC_BIT),
+        platform(configBits & 0x7),
         alwaysCopy(!minimizeCopies),
-        device((configBits & 0xf0) >> 4){
+        device((configBits & 0x38) >> 3){
             if(showDeviceInfo){
                 std::cout << "native minimizeCopies " << minimizeCopies << std::endl;
                 std::cout << "native trace " << trace << std::endl;
@@ -136,9 +139,10 @@ struct BasicConfig{
                 std::cout << "native headless " << headless << std::endl;
                 std::cout << "native showLoweredKernelModel " << showLoweredKernelModel << std::endl;
                 std::cout << "native showCompilationPhases " << showCompilationPhases << std::endl;
-                std::cout << "native profileCudaKernel " << profileCudaKernel << std::endl;
                 std::cout << "native showComputeModelJavaCode " << showComputeModelJavaCode << std::endl;
                 std::cout << "native checkSsaLowering " << checkSsaLowering << std::endl;
+                std::cout << "native cudaNvcc " << cudaNvcc << std::endl;
+                std::cout << "native cudaNvrtc " << cudaNvrtc << std::endl;
                 std::cout << "native platform " << platform << std::endl;
                 std::cout << "native device " << device << std::endl;
             }
@@ -169,9 +173,10 @@ const char *BasicConfig::bitNames[]={
     "HEADLESS_BIT",
     "SHOW_LOWERED_KERNEL_MODEL_BIT",
     "SHOW_COMPILATION_PHASES_BIT",
-    "PROFILE_CUDA_KERNEL_BIT",
     "SHOW_COMPUTE_MODEL_JAVA_CODE_BIT",
     "CHECK_SSA_LOWERING_BIT",
+    "CUDA_NVCC_BIT",
+    "CUDA_NVRTC_BIT",
 };
 const char *BasicConfig::bitDescriptions[]={
     "FFI ONLY Try to minimize copies",
@@ -195,8 +200,9 @@ const char *BasicConfig::bitDescriptions[]={
     "Don't show UI",
     "Show (via OpWriter) Lowered Kernel Model",
     "Show HAT compilation phases",
-    "Add -lineinfo to CUDA kernel compilation for profiling and debugging",
     "Show java code view of compute model",
     "Verify that code model can be lowered to SSA",
+    "Select the NVCC CUDA Compiler (Default)",
+    "Select the NVRTC CUDA Compiler",
 };
 #endif

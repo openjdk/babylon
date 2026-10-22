@@ -841,7 +841,7 @@ public final class TritonTransformer {
         }
         // Remove unused ops
         f = f.transform((fblock, op) -> {
-            if (op instanceof Op.Pure && op.result().uses().isEmpty()) {
+            if (isOpRemovable(op) && op.result().uses().isEmpty()) {
                 return fblock;
             } else if (op instanceof VarAccessOp.VarLoadOp && op.result().uses().isEmpty()) {
                 return fblock;
@@ -851,6 +851,19 @@ public final class TritonTransformer {
             return fblock;
         });
         return f;
+    }
+
+    private static boolean isOpRemovable(Op op) {
+        return switch (op) {
+            case ArithMathOps.ArithMathOp _ -> true;
+            case TritonOps.GetProgramIdOp _, TritonOps.MakeRangeOp _, TritonOps.ExpandOp _, TritonOps.SplatOp _,
+                    TritonOps.BroadcastOp _, TritonOps.AddPtrOp _, TritonOps.LoadOp _,
+                    TritonOps.DotOp _ -> true;
+            case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
+                    CoreOp.ConstantOp _, JavaOp.ArithmeticOperation _, CoreOp.QuotedOp _,
+                    JavaOp.FieldAccessOp.FieldLoadOp _, JavaOp.ArrayAccessOp.ArrayLoadOp _ -> true;
+            default -> false;
+        };
     }
 
     static class TritonBuilderInterpreter {

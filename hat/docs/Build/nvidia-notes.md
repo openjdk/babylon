@@ -76,18 +76,17 @@ java @.ffi-cuda-example matmul.Main --kernel=1D
 ### CUDA source compiler selection
 
 The CUDA backend compiles generated CUDA source with `nvcc` by default. To
-compile with NVRTC instead, set `HAT_CUDA_COMPILER=nvrtc`:
+compile with NVRTC instead, set `HAT=CUDA_NVRTC`:
 
 ```bash
-HAT_CUDA_COMPILER=nvrtc java @.ffi-cuda-example matmul.Main --kernel=1D
+HAT=CUDA_NVRTC java @.ffi-cuda-example matmul.Main --kernel=1D
 ```
 
-`HAT_CUDA_COMPILER` accepts `nvcc` or `nvrtc`. Any other value is a
-configuration error.
+There are two flags to select the compiler:
 
-- **`nvcc`:** compile with the `nvcc` executable. SIMT kernels are emitted as
+- **`HAT=CUDA_NVCC`:** compile with the `nvcc` executable. SIMT kernels are emitted as
   PTX, and Tile kernels as cubin.
-- **`nvrtc`:** compile in-process with NVRTC. SIMT kernels are emitted as PTX,
+- **`HAT=CUDA_NVRTC`:** compile in-process with NVRTC. SIMT kernels are emitted as PTX,
   and Tile kernels as cuda_tile IR.
 
 SIMT kernels require no extra setup. Tile kernels compiled with NVRTC do. The
@@ -98,7 +97,7 @@ so the JVM signal handlers process each signal first and then dispatch to the
 NVRTC handlers via chained handlers:
 
 ```bash
-LD_PRELOAD=$JAVA_HOME/lib/libjsig.so HAT_CUDA_COMPILER=nvrtc \
+LD_PRELOAD=$JAVA_HOME/lib/libjsig.so HAT=CUDA_NVRTC \
   java @.ffi-cuda-test hat.test.TestTileAPI
 ```
 
@@ -111,6 +110,6 @@ use a specific library, set `HAT_CUDA_NVRTC_LIBRARY` to its path or
 loader-visible name. If that library cannot be loaded, HAT exits:
 
 ```bash
-HAT_CUDA_COMPILER=nvrtc HAT_CUDA_NVRTC_LIBRARY=/path/to/libnvrtc.so java \
+HAT=CUDA_NVRTC HAT_CUDA_NVRTC_LIBRARY=/path/to/libnvrtc.so java \
   @.ffi-cuda-example matmul.Main --kernel=1D
 ```

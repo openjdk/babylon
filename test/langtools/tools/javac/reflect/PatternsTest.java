@@ -41,18 +41,17 @@ public class PatternsTest {
             func @"test1" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
                 %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"java.lang.String" = constant @null;
-                %5 : Var<java.type:"java.lang.String"> = var %4 @"s";
-                %6 : java.type:"boolean" = pattern.match %3
+                %4 : Var<java.type:"java.lang.String"> = var @"s";
+                %5 : java.type:"boolean" = pattern.match %3
                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                        yield %7;
+                        %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                        yield %6;
                     }
-                    (%8 : java.type:"java.lang.String")java.type:"void" -> {
-                        var.store %5 %8;
+                    (%7 : java.type:"java.lang.String")java.type:"void" -> {
+                        var.store %4 %7;
                         yield;
                     };
-                %9 : Var<java.type:"boolean"> = var %6 @"x";
+                %8 : Var<java.type:"boolean"> = var %5 @"x";
                 return;
             };
             """)
@@ -64,29 +63,28 @@ public class PatternsTest {
     @IR("""
             func @"test2" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"s";
+                %3 : Var<java.type:"java.lang.String"> = var @"s";
                 java.if
                     ()java.type:"boolean" -> {
-                        %5 : java.type:"java.lang.Object" = var.load %2;
-                        %6 : java.type:"boolean" = pattern.match %5
+                        %4 : java.type:"java.lang.Object" = var.load %2;
+                        %5 : java.type:"boolean" = pattern.match %4
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                yield %7;
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                yield %6;
                             }
-                            (%8 : java.type:"java.lang.String")java.type:"void" -> {
-                                var.store %4 %8;
+                            (%7 : java.type:"java.lang.String")java.type:"void" -> {
+                                var.store %3 %7;
                                 yield;
                             };
-                        yield %6;
+                        yield %5;
                     }
                     ()java.type:"void" -> {
-                        %9 : java.type:"java.lang.String" = var.load %4;
+                        %8 : java.type:"java.lang.String" = var.load %3;
+                        return %8;
+                    }
+                    ()java.type:"void" -> {
+                        %9 : java.type:"java.lang.String" = constant @"";
                         return %9;
-                    }
-                    ()java.type:"void" -> {
-                        %10 : java.type:"java.lang.String" = constant @"";
-                        return %10;
                     };
                 unreachable;
             };
@@ -103,29 +101,28 @@ public class PatternsTest {
     @IR("""
             func @"test3" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"java.lang.String" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"s";
+                %3 : Var<java.type:"java.lang.String"> = var @"s";
                 java.if
                     ()java.type:"boolean" -> {
-                        %5 : java.type:"java.lang.Object" = var.load %2;
-                        %6 : java.type:"boolean" = pattern.match %5
+                        %4 : java.type:"java.lang.Object" = var.load %2;
+                        %5 : java.type:"boolean" = pattern.match %4
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                yield %7;
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                yield %6;
                             }
-                            (%8 : java.type:"java.lang.String")java.type:"void" -> {
-                                var.store %4 %8;
+                            (%7 : java.type:"java.lang.String")java.type:"void" -> {
+                                var.store %3 %7;
                                 yield;
                             };
-                        %9 : java.type:"boolean" = not %6;
-                        yield %9;
+                        %8 : java.type:"boolean" = not %5;
+                        yield %8;
                     }
                     ()java.type:"void" -> {
-                        %10 : java.type:"java.lang.String" = constant @"";
-                        return %10;
+                        %9 : java.type:"java.lang.String" = constant @"";
+                        return %9;
                     };
-                %11 : java.type:"java.lang.String" = var.load %4;
-                return %11;
+                %10 : java.type:"java.lang.String" = var.load %3;
+                return %10;
             };
             """)
     String test3(Object o) {
@@ -154,48 +151,45 @@ public class PatternsTest {
     @IR("""
             func @"test4" (%0 : java.type:"PatternsTest", %1 : java.type:"PatternsTest$Rectangle")java.type:"void" -> {
                 %2 : Var<java.type:"PatternsTest$Rectangle"> = var %1 @"r";
-                %3 : java.type:"PatternsTest$ConcretePoint" = constant @null;
-                %4 : Var<java.type:"PatternsTest$ConcretePoint"> = var %3 @"p";
-                %5 : java.type:"PatternsTest$Color" = constant @null;
-                %6 : Var<java.type:"PatternsTest$Color"> = var %5 @"c";
-                %7 : java.type:"PatternsTest$ColoredPoint" = constant @null;
-                %8 : Var<java.type:"PatternsTest$ColoredPoint"> = var %7 @"lr";
+                %3 : Var<java.type:"PatternsTest$ConcretePoint"> = var @"p";
+                %4 : Var<java.type:"PatternsTest$Color"> = var @"c";
+                %5 : Var<java.type:"PatternsTest$ColoredPoint"> = var @"lr";
                 java.if
                     ()java.type:"boolean" -> {
-                        %9 : java.type:"PatternsTest$Rectangle" = var.load %2;
-                        %10 : java.type:"boolean" = pattern.match %9
+                        %6 : java.type:"PatternsTest$Rectangle" = var.load %2;
+                        %7 : java.type:"boolean" = pattern.match %6
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" -> {
-                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"p";
-                                %12 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$Color>" = pattern.type @"c";
-                                %13 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$ColoredPoint>" = pattern.record %11 %12 @java.ref:"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
-                                %14 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ColoredPoint>" = pattern.type @"lr";
-                                %15 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %13 %14 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
-                                yield %15;
+                                %8 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"p";
+                                %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$Color>" = pattern.type @"c";
+                                %10 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$ColoredPoint>" = pattern.record %8 %9 @java.ref:"(PatternsTest$ConcretePoint p, PatternsTest$Color c)PatternsTest$ColoredPoint";
+                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ColoredPoint>" = pattern.type @"lr";
+                                %12 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %10 %11 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                                yield %12;
                             }
-                            (%16 : java.type:"PatternsTest$ConcretePoint", %17 : java.type:"PatternsTest$Color", %18 : java.type:"PatternsTest$ColoredPoint")java.type:"void" -> {
-                                var.store %4 %16;
-                                var.store %6 %17;
-                                var.store %8 %18;
+                            (%13 : java.type:"PatternsTest$ConcretePoint", %14 : java.type:"PatternsTest$Color", %15 : java.type:"PatternsTest$ColoredPoint")java.type:"void" -> {
+                                var.store %3 %13;
+                                var.store %4 %14;
+                                var.store %5 %15;
                                 yield;
                             };
-                        yield %10;
+                        yield %7;
                     }
                     ()java.type:"void" -> {
-                        %19 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %20 : java.type:"PatternsTest$ConcretePoint" = var.load %4;
-                        invoke %19 %20 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
-                        %21 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %22 : java.type:"PatternsTest$Color" = var.load %6;
-                        invoke %21 %22 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
-                        %23 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %24 : java.type:"PatternsTest$ColoredPoint" = var.load %8;
-                        invoke %23 %24 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
+                        %16 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %17 : java.type:"PatternsTest$ConcretePoint" = var.load %3;
+                        invoke %16 %17 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
+                        %18 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %19 : java.type:"PatternsTest$Color" = var.load %4;
+                        invoke %18 %19 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
+                        %20 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %21 : java.type:"PatternsTest$ColoredPoint" = var.load %5;
+                        invoke %20 %21 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
                         yield;
                     }
                     ()java.type:"void" -> {
-                        %25 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %26 : java.type:"java.lang.String" = constant @"NO MATCH";
-                        invoke %25 %26 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
+                        %22 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %23 : java.type:"java.lang.String" = constant @"NO MATCH";
+                        invoke %22 %23 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         yield;
                     };
                 return;
@@ -219,26 +213,25 @@ public class PatternsTest {
     @IR("""
             func @"test5" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"s";
+                %3 : Var<java.type:"java.lang.String"> = var @"s";
                 java.while
                     ()java.type:"boolean" -> {
-                        %5 : java.type:"java.lang.Object" = var.load %2;
-                        %6 : java.type:"boolean" = pattern.match %5
+                        %4 : java.type:"java.lang.Object" = var.load %2;
+                        %5 : java.type:"boolean" = pattern.match %4
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                yield %7;
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                yield %6;
                             }
-                            (%8 : java.type:"java.lang.String")java.type:"void" -> {
-                                var.store %4 %8;
+                            (%7 : java.type:"java.lang.String")java.type:"void" -> {
+                                var.store %3 %7;
                                 yield;
                             };
-                        yield %6;
+                        yield %5;
                     }
                     ()java.type:"void" -> {
-                        %9 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %10 : java.type:"java.lang.String" = var.load %4;
-                        invoke %9 %10 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
+                        %8 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %9 : java.type:"java.lang.String" = var.load %3;
+                        invoke %8 %9 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                         java.continue;
                     };
                 return;
@@ -254,29 +247,28 @@ public class PatternsTest {
     @IR("""
             func @"test6" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"s";
+                %3 : Var<java.type:"java.lang.String"> = var @"s";
                 java.do.while
                     ()java.type:"void" -> {
                         java.continue;
                     }
                     ()java.type:"boolean" -> {
-                        %5 : java.type:"java.lang.Object" = var.load %2;
-                        %6 : java.type:"boolean" = pattern.match %5
+                        %4 : java.type:"java.lang.Object" = var.load %2;
+                        %5 : java.type:"boolean" = pattern.match %4
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                yield %7;
+                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                yield %6;
                             }
-                            (%8 : java.type:"java.lang.String")java.type:"void" -> {
-                                var.store %4 %8;
+                            (%7 : java.type:"java.lang.String")java.type:"void" -> {
+                                var.store %3 %7;
                                 yield;
                             };
-                        %9 : java.type:"boolean" = not %6;
-                        yield %9;
+                        %8 : java.type:"boolean" = not %5;
+                        yield %8;
                     };
-                %10 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                %11 : java.type:"java.lang.String" = var.load %4;
-                invoke %10 %11 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
+                %9 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                %10 : java.type:"java.lang.String" = var.load %3;
+                invoke %9 %10 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                 return;
             };
             """)
@@ -291,49 +283,48 @@ public class PatternsTest {
     @IR("""
             func @"test7" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"void" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
-                %3 : java.type:"java.lang.Number" = constant @null;
-                %4 : Var<java.type:"java.lang.Number"> = var %3 @"n";
+                %3 : Var<java.type:"java.lang.Number"> = var @"n";
                 java.for
                     ()Var<java.type:"int"> -> {
-                        %5 : java.type:"int" = constant @0;
-                        %6 : Var<java.type:"int"> = var %5 @"i";
-                        yield %6;
+                        %4 : java.type:"int" = constant @0;
+                        %5 : Var<java.type:"int"> = var %4 @"i";
+                        yield %5;
                     }
-                    (%7 : Var<java.type:"int">)java.type:"boolean" -> {
-                        %8 : java.type:"boolean" = java.cand
+                    (%6 : Var<java.type:"int">)java.type:"boolean" -> {
+                        %7 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
-                                %9 : java.type:"int" = var.load %7;
-                                %10 : java.type:"int" = constant @10;
-                                %11 : java.type:"boolean" = lt %9 %10;
-                                yield %11;
+                                %8 : java.type:"int" = var.load %6;
+                                %9 : java.type:"int" = constant @10;
+                                %10 : java.type:"boolean" = lt %8 %9;
+                                yield %10;
                             }
                             ()java.type:"boolean" -> {
-                                %12 : java.type:"java.lang.Object" = var.load %2;
-                                %13 : java.type:"boolean" = pattern.match %12
+                                %11 : java.type:"java.lang.Object" = var.load %2;
+                                %12 : java.type:"boolean" = pattern.match %11
                                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" -> {
-                                        %14 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
-                                        yield %14;
+                                        %13 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                        yield %13;
                                     }
-                                    (%15 : java.type:"java.lang.Number")java.type:"void" -> {
-                                        var.store %4 %15;
+                                    (%14 : java.type:"java.lang.Number")java.type:"void" -> {
+                                        var.store %3 %14;
                                         yield;
                                     };
-                                yield %13;
+                                yield %12;
                             };
-                        yield %8;
+                        yield %7;
                     }
-                    (%16 : Var<java.type:"int">)java.type:"void" -> {
-                        %17 : java.type:"int" = var.load %16;
-                        %18 : java.type:"java.lang.Number" = var.load %4;
-                        %19 : java.type:"int" = invoke %18 @java.ref:"java.lang.Number::intValue():int";
-                        %20 : java.type:"int" = add %17 %19;
-                        var.store %16 %20;
+                    (%15 : Var<java.type:"int">)java.type:"void" -> {
+                        %16 : java.type:"int" = var.load %15;
+                        %17 : java.type:"java.lang.Number" = var.load %3;
+                        %18 : java.type:"int" = invoke %17 @java.ref:"java.lang.Number::intValue():int";
+                        %19 : java.type:"int" = add %16 %18;
+                        var.store %15 %19;
                         yield;
                     }
-                    (%21 : Var<java.type:"int">)java.type:"void" -> {
-                        %22 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                        %23 : java.type:"java.lang.Number" = var.load %4;
-                        invoke %22 %23 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
+                    (%20 : Var<java.type:"int">)java.type:"void" -> {
+                        %21 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
+                        %22 : java.type:"java.lang.Number" = var.load %3;
+                        invoke %21 %22 @java.ref:"java.io.PrintStream::println(java.lang.Object):void";
                         java.continue;
                     };
                 return;
@@ -350,18 +341,17 @@ public class PatternsTest {
             func @"test8" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"boolean" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
                 %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"java.lang.String" = constant @null;
-                %5 : Var<java.type:"java.lang.String"> = var %4;
-                %6 : java.type:"boolean" = pattern.match %3
+                %4 : Var<java.type:"java.lang.String"> = var;
+                %5 : java.type:"boolean" = pattern.match %3
                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type;
-                        yield %7;
+                        %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type;
+                        yield %6;
                     }
-                    (%8 : java.type:"java.lang.String")java.type:"void" -> {
-                        var.store %5 %8;
+                    (%7 : java.type:"java.lang.String")java.type:"void" -> {
+                        var.store %4 %7;
                         yield;
                     };
-                return %6;
+                return %5;
             };
             """)
     @Reflect
@@ -373,20 +363,19 @@ public class PatternsTest {
             func @"test9" (%0 : java.type:"PatternsTest", %1 : java.type:"java.lang.Object")java.type:"boolean" -> {
                 %2 : Var<java.type:"java.lang.Object"> = var %1 @"o";
                 %3 : java.type:"java.lang.Object" = var.load %2;
-                %4 : java.type:"PatternsTest$ConcretePoint" = constant @null;
-                %5 : Var<java.type:"PatternsTest$ConcretePoint"> = var %4 @"cp";
-                %6 : java.type:"boolean" = pattern.match %3
+                %4 : Var<java.type:"PatternsTest$ConcretePoint"> = var @"cp";
+                %5 : java.type:"boolean" = pattern.match %3
                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" -> {
-                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$MatchAll" = pattern.match.all;
-                        %8 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"cp";
-                        %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %7 %8 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
-                        yield %9;
+                        %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$MatchAll" = pattern.match.all;
+                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<PatternsTest$ConcretePoint>" = pattern.type @"cp";
+                        %8 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<PatternsTest$Rectangle>" = pattern.record %6 %7 @java.ref:"(PatternsTest$Point upperLeft, PatternsTest$Point lowerRight)PatternsTest$Rectangle";
+                        yield %8;
                     }
-                    (%10 : java.type:"PatternsTest$ConcretePoint")java.type:"void" -> {
-                        var.store %5 %10;
+                    (%9 : java.type:"PatternsTest$ConcretePoint")java.type:"void" -> {
+                        var.store %4 %9;
                         yield;
                     };
-                return %6;
+                return %5;
             };
             """)
     @Reflect
@@ -398,19 +387,17 @@ public class PatternsTest {
             func @"test10" (%0 : java.type:"int")java.type:"boolean" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"int" = constant @0;
-                %4 : java.type:"byte" = conv %3;
-                %5 : Var<java.type:"byte"> = var %4 @"b";
-                %6 : java.type:"boolean" = pattern.match %2
+                %3 : Var<java.type:"byte"> = var @"b";
+                %4 : java.type:"boolean" = pattern.match %2
                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" -> {
-                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" = pattern.type @"b";
-                        yield %7;
+                        %5 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" = pattern.type @"b";
+                        yield %5;
                     }
-                    (%8 : java.type:"byte")java.type:"void" -> {
-                        var.store %5 %8;
+                    (%6 : java.type:"byte")java.type:"void" -> {
+                        var.store %3 %6;
                         yield;
                     };
-                return %6;
+                return %4;
             };
             """)
     @Reflect
@@ -422,19 +409,17 @@ public class PatternsTest {
             func @"test11" (%0 : java.type:"int")java.type:"boolean" -> {
                 %1 : Var<java.type:"int"> = var %0 @"i";
                 %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"int" = constant @0;
-                %4 : java.type:"short" = conv %3;
-                %5 : Var<java.type:"short"> = var %4 @"s";
-                %6 : java.type:"boolean" = pattern.match %2
+                %3 : Var<java.type:"short"> = var @"s";
+                %4 : java.type:"boolean" = pattern.match %2
                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<short>" -> {
-                        %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<short>" = pattern.type @"s";
-                        yield %7;
+                        %5 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<short>" = pattern.type @"s";
+                        yield %5;
                     }
-                    (%8 : java.type:"short")java.type:"void" -> {
-                        var.store %5 %8;
+                    (%6 : java.type:"short")java.type:"void" -> {
+                        var.store %3 %6;
                         yield;
                     };
-                return %6;
+                return %4;
             };
             """)
     @Reflect
@@ -444,29 +429,27 @@ public class PatternsTest {
 
     @IR("""
             func @"test12" (%0 : java.type:"int")java.type:"void" -> {
-                  %1 : Var<java.type:"int"> = var %0 @"i";
-                  %2 : java.type:"int" = constant @0;
-                  %3 : java.type:"byte" = conv %2;
-                  %4 : Var<java.type:"byte"> = var %3 @"b";
-                  java.if
-                      ()java.type:"boolean" -> {
-                          %5 : java.type:"int" = var.load %1;
-                          %6 : java.type:"boolean" = pattern.match %5
-                              ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" -> {
-                                  %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" = pattern.type @"b";
-                                  yield %7;
-                              }
-                              (%8 : java.type:"byte")java.type:"void" -> {
-                                  var.store %4 %8;
-                                  yield;
-                              };
-                          yield %6;
-                      }
-                      ()java.type:"void" -> {
-                          yield;
-                      };
-                  return;
-              };
+                %1 : Var<java.type:"int"> = var %0 @"i";
+                %2 : Var<java.type:"byte"> = var @"b";
+                java.if
+                    ()java.type:"boolean" -> {
+                        %3 : java.type:"int" = var.load %1;
+                        %4 : java.type:"boolean" = pattern.match %3
+                            ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" -> {
+                                %5 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<byte>" = pattern.type @"b";
+                                yield %5;
+                            }
+                            (%6 : java.type:"byte")java.type:"void" -> {
+                                var.store %2 %6;
+                                yield;
+                            };
+                        yield %4;
+                    }
+                    ()java.type:"void" -> {
+                        yield;
+                    };
+                return;
+            };
             """)
     @Reflect
     static void test12(int i) {
@@ -477,25 +460,24 @@ public class PatternsTest {
     @IR("""
             func @"test13" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"java.lang.String" = constant @null;
-                %3 : Var<java.type:"java.lang.String"> = var %2 @"s";
+                %2 : Var<java.type:"java.lang.String"> = var @"s";
                 java.if
                     ()java.type:"boolean" -> {
-                        %4 : java.type:"java.lang.Object" = var.load %1;
-                        %5 : java.type:"boolean" = pattern.match %4
+                        %3 : java.type:"java.lang.Object" = var.load %1;
+                        %4 : java.type:"boolean" = pattern.match %3
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                yield %6;
+                                %5 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                yield %5;
                             }
-                            (%7 : java.type:"java.lang.String")java.type:"void" -> {
-                                var.store %3 %7;
+                            (%6 : java.type:"java.lang.String")java.type:"void" -> {
+                                var.store %2 %6;
                                 yield;
                             };
-                        yield %5;
+                        yield %4;
                     }
                     ()java.type:"void" -> {
-                        %8 : java.type:"java.lang.String" = constant @"";
-                        var.store %3 %8;
+                        %7 : java.type:"java.lang.String" = constant @"";
+                        var.store %2 %7;
                         yield;
                     };
                 return;
@@ -511,25 +493,24 @@ public class PatternsTest {
     @IR("""
             func @"test14" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"int" = constant @0;
-                %3 : Var<java.type:"int"> = var %2 @"i";
+                %2 : Var<java.type:"int"> = var @"i";
                 java.if
                     ()java.type:"boolean" -> {
-                        %4 : java.type:"java.lang.Object" = var.load %1;
-                        %5 : java.type:"boolean" = pattern.match %4
+                        %3 : java.type:"java.lang.Object" = var.load %1;
+                        %4 : java.type:"boolean" = pattern.match %3
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" -> {
-                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
-                                yield %6;
+                                %5 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
+                                yield %5;
                             }
-                            (%7 : java.type:"int")java.type:"void" -> {
-                                var.store %3 %7;
+                            (%6 : java.type:"int")java.type:"void" -> {
+                                var.store %2 %6;
                                 yield;
                             };
-                        yield %5;
+                        yield %4;
                     }
                     ()java.type:"void" -> {
-                        %8 : java.type:"int" = constant @1;
-                        var.store %3 %8;
+                        %7 : java.type:"int" = constant @1;
+                        var.store %2 %7;
                         yield;
                     };
                 return;
@@ -545,27 +526,26 @@ public class PatternsTest {
     @IR("""
             func @"test15" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"int" = constant @0;
-                %3 : Var<java.type:"int"> = var %2 @"i";
+                %2 : Var<java.type:"int"> = var @"i";
                 java.if
                     ()java.type:"boolean" -> {
-                        %4 : java.type:"java.lang.Object" = var.load %1;
-                        %5 : java.type:"boolean" = pattern.match %4
+                        %3 : java.type:"java.lang.Object" = var.load %1;
+                        %4 : java.type:"boolean" = pattern.match %3
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" -> {
-                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
-                                yield %6;
+                                %5 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
+                                yield %5;
                             }
-                            (%7 : java.type:"int")java.type:"void" -> {
-                                var.store %3 %7;
+                            (%6 : java.type:"int")java.type:"void" -> {
+                                var.store %2 %6;
                                 yield;
                             };
-                        yield %5;
+                        yield %4;
                     }
                     ()java.type:"void" -> {
-                        %8 : java.type:"int" = var.load %3;
-                        %9 : java.type:"int" = constant @1;
-                        %10 : java.type:"int" = add %8 %9;
-                        var.store %3 %10;
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @1;
+                        %9 : java.type:"int" = add %7 %8;
+                        var.store %2 %9;
                         yield;
                     };
                 return;
@@ -581,27 +561,26 @@ public class PatternsTest {
     @IR("""
             func @"test16" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
-                %2 : java.type:"int" = constant @0;
-                %3 : Var<java.type:"int"> = var %2 @"i";
+                %2 : Var<java.type:"int"> = var @"i";
                 java.if
                     ()java.type:"boolean" -> {
-                        %4 : java.type:"java.lang.Object" = var.load %1;
-                        %5 : java.type:"boolean" = pattern.match %4
+                        %3 : java.type:"java.lang.Object" = var.load %1;
+                        %4 : java.type:"boolean" = pattern.match %3
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" -> {
-                                %6 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
-                                yield %6;
+                                %5 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<int>" = pattern.type @"i";
+                                yield %5;
                             }
-                            (%7 : java.type:"int")java.type:"void" -> {
-                                var.store %3 %7;
+                            (%6 : java.type:"int")java.type:"void" -> {
+                                var.store %2 %6;
                                 yield;
                             };
-                        yield %5;
+                        yield %4;
                     }
                     ()java.type:"void" -> {
-                        %8 : java.type:"int" = var.load %3;
-                        %9 : java.type:"int" = constant @1;
-                        %10 : java.type:"int" = add %8 %9;
-                        var.store %3 %10;
+                        %7 : java.type:"int" = var.load %2;
+                        %8 : java.type:"int" = constant @1;
+                        %9 : java.type:"int" = add %7 %8;
+                        var.store %2 %9;
                         yield;
                     };
                 return;

@@ -28,7 +28,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
@@ -41,15 +40,13 @@ import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
-import jdk.incubator.code.dialect.core.NormalizeBlocksTransformer;
 import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.ConstantExpressionTransformer;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.internal.BranchTarget;
-import jdk.incubator.code.internal.RemoveUnusedConstantTransformer;
+import jdk.incubator.code.internal.ControlFlowPreparation;
 
 import static jdk.incubator.code.dialect.core.CoreOp.YieldOp;
 import static jdk.incubator.code.dialect.core.CoreOp.branch;
@@ -58,10 +55,9 @@ import static jdk.incubator.code.dialect.java.JavaType.*;
 /**
  * Lowering transformer generates models supported by {@code BytecodeGenerator}.
  * It expands lambda operations into synthetic functions and dynamic function calls,
- * evaluates constant expressions, removes unused constants, lowers operations, and
- * normalizes blocks.
+ * removes unused constants, lowers operations, and prepares control flow.
  * Constant-labeled switch statements and switch expressions are lowered to
- * {@code ConstantLabelSwitchOp} with evaluated labels.
+ * {@code ConstantLabelSwitchOp} using compile-time constant label values.
  * We expect label value to be the second operand to the operation that perform equality check.
  */
 public final class LoweringTransformer {
@@ -85,14 +81,17 @@ public final class LoweringTransformer {
 
     public static <O extends Op & Op.Invokable> CoreOp.ModuleOp transform(MethodHandles.Lookup lookup,
                                                                           SequencedMap<String, ? extends O> ops) {
-        CoreOp.ModuleOp module = LambdaExpansionTransformer.transform(lookup, ops);
         CodeTransformer lowering = getInstance(lookup);
+        // lambda expansion goes first, so reflectable lambdas use the original model
+        CoreOp.ModuleOp module = LambdaExpansionTransformer.transform(lookup, ops);
         List<FuncOp> functions = new ArrayList<>();
         for (FuncOp fop : module.functionTable().sequencedValues()) {
-            FuncOp transformed = ConstantExpressionTransformer.transform(lookup, fop);
-            transformed = RemoveUnusedConstantTransformer.transform(transformed);
-            functions.add(NormalizeBlocksTransformer.transform(
-                    transformed.transform(CodeContext.create(), lowering)));
+            FuncOp lowered = fop.elements().anyMatch(op -> op instanceof Op.Lowerable
+                    // lambda lowering never replaces itself
+                    && !(op instanceof JavaOp.LambdaOp))
+                    ? fop.transform(CodeContext.create(), lowering)
+                    : fop;
+            functions.add(ControlFlowPreparation.transform(lowered));
         }
         return CoreOp.module(functions);
     }
@@ -178,7 +177,7 @@ public final class LoweringTransformer {
         var targets = new ArrayList<Block>();
         for (int i = 0; i < swOp.bodies().size(); i += 2) {
             Body label = swOp.bodies().get(i);
-            List<Integer> ls = isCaseConstantLabel(lookup, label);
+            List<Integer> ls = isCaseConstantLabel(label);
             if (ls.isEmpty()) {
                 return Optional.empty();
             }
@@ -188,7 +187,7 @@ public final class LoweringTransformer {
         return Optional.of(new LabelsAndTargets(labels, targets));
     }
 
-    private static List<Integer> isCaseConstantLabel(MethodHandles.Lookup l, Body label) {
+    private static List<Integer> isCaseConstantLabel(Body label) {
         List<Integer> empty = new ArrayList<>();
         if (label.blocks().size() != 1 || !(label.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop) ||
                 !(yop.yieldValue() instanceof Op.Result r)) {
@@ -196,19 +195,17 @@ public final class LoweringTransformer {
         }
         List<Integer> labels = new ArrayList<>();
         // we can yield a list
-        MethodRef objectsEquals = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
         switch (r.op()) {
             case JavaOp.EqOp eqOp -> {
-                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, eqOp.operands().getLast());
-                v.ifPresent(o -> labels.add(toInteger(o)));
-            }
-            case JavaOp.InvokeOp ie when ie.invokeReference().equals(objectsEquals) -> {
-                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, ie.operands().getLast());
-                v.ifPresent(o -> labels.add(toInteger(o)));
+                if (eqOp.operands().getLast() instanceof Op.Result labelResult
+                        && labelResult.op() instanceof CoreOp.ConstantOp constant) {
+                    Integer value = toInteger(constant.value());
+                    if (value != null) labels.add(value);
+                }
             }
             case JavaOp.ConditionalOrOp cor -> {
                 for (Body corb : cor.bodies()) {
-                    List<Integer> corbl = isCaseConstantLabel(l, corb);
+                    List<Integer> corbl = isCaseConstantLabel(corb);
                     if (corbl.isEmpty()) {
                         return empty;
                     }

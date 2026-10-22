@@ -37,7 +37,6 @@
 #include <vector>
 
 namespace {
-constexpr bool DEFAULT_USE_NVRTC = false;
 
 bool isCudaTileIR(const char *image, size_t len) {
     // The Tile IR bytecode magic number consumes 8 bytes and is \x7FTileIR\x00.
@@ -152,7 +151,7 @@ void *loadNvrtcLibrary() {
 
     std::cerr << "Failed to load NVRTC. Set HAT_CUDA_NVRTC_LIBRARY to "
               << "the NVRTC shared library path or name, "
-              << "or use HAT_CUDA_COMPILER=nvcc." << std::endl;
+              << "or use HAT=CUDA_NVCC." << std::endl;
     for (const std::string &error : errors) {
         std::cerr << "  " << error << std::endl;
     }
@@ -387,19 +386,8 @@ void CudaBackend::queryComputeCapability(int &major, int &minor) {
 }
 
 bool CudaBackend::useNvrtcCompiler(int typeModel) const {
-    bool useNvrtc = DEFAULT_USE_NVRTC;
-    const char *compiler = std::getenv("HAT_CUDA_COMPILER");
-    if (compiler != nullptr) {
-        if (std::strcmp(compiler, "nvcc") == 0) {
-            useNvrtc = false;
-        } else if (std::strcmp(compiler, "nvrtc") == 0) {
-            useNvrtc = true;
-        } else {
-            std::cerr << "Unknown HAT_CUDA_COMPILER='" << compiler
-                      << "', expected 'nvrtc' or 'nvcc'." << std::endl;
-            std::exit(1);
-        }
-    }
+    const bool useNvrtc = config->cudaNvrtc;
+
     // Tile NVRTC handlers see signals first and forward them with a
     // polluted state, breaking JVM signal handling. Preload libjsig so
     // JVM handlers run first. SIMT NVRTC does not need libjsig.
@@ -411,7 +399,6 @@ bool CudaBackend::useNvrtcCompiler(int typeModel) const {
 }
 
 CudaImage *CudaBackend::nvcc(const CudaSource *cudaSource) {
-
     // create var/cuda directory
     std::string localDirectory = "./var/cuda";
     std::filesystem::create_directories(localDirectory);
@@ -496,7 +483,7 @@ CudaImage *CudaBackend::nvrtc(const CudaSource *cudaSource) {
 
     if (tile && (api.getTileIR == nullptr || api.getTileIRSize == nullptr)) {
         std::cerr << "NVRTC Tile compilation requires CUDA Toolkit 13.3 or later "
-                  << "(nvrtcGetTileIR is missing). Use HAT_CUDA_COMPILER=nvcc, "
+                  << "(nvrtcGetTileIR is missing). Use HAT=CUDA_NVCC, "
                   << "or upgrade the NVRTC library." << std::endl;
         std::exit(1);
     }
