@@ -779,7 +779,7 @@ public final class BytecodeGenerator {
                         JavaType refType = (JavaType)md.refType();
                         ClassDesc specialCaller = lookup.lookupClass().describeConstable().get();
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.signature());
-                        boolean protectedAccess = false;
+                        MethodHandles.Lookup protectedAccessLookup = null;
                         if (op.invokeKind() == InvokeOp.InvokeKind.SUPER) {
                             // constructs method handle via lookup.findSpecial using the lookup's class as the specialCaller
                             // original lookup is stored in class data
@@ -795,17 +795,16 @@ public final class BytecodeGenerator {
                                               MTD_FIND_SPECIAL);
                         } else {
                             if (!(refType instanceof ArrayType)) { // array methods (e.g. clone) are excluded
-                                MethodHandles.Lookup resLookup = protectedAccessLookup(
+                                protectedAccessLookup = findProtectedAccessLookup(
                                         op.invokeKind() == InvokeOp.InvokeKind.STATIC ? null : receiverClass(op.operands()),
                                         l -> {
                                             var info = l.revealDirect(md.resolveToHandle(l, op.invokeKind()));
                                             return Modifier.isProtected(info.getModifiers())
                                                     && !info.getDeclaringClass().getPackageName().equals(l.lookupClass().getPackageName());
                                         });
-                                if (resLookup != null) {
-                                    protectedAccess = true;
-                                    specialCaller = resLookup.lookupClass().describeConstable().get();
-                                    lookupHandle(resLookup, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? refType.toNominalDescriptor() : specialCaller,
+                                if (protectedAccessLookup != null) {
+                                    specialCaller = protectedAccessLookup.lookupClass().describeConstable().get();
+                                    lookupHandle(protectedAccessLookup, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? refType.toNominalDescriptor() : specialCaller,
                                             md.name(), mDesc, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
                                 }
                             }
@@ -827,14 +826,14 @@ public final class BytecodeGenerator {
                         boolean isInterface = refClass.isInterface();
                         switch (op.invokeKind()) {
                             case STATIC -> {
-                                if (protectedAccess) {
+                                if (protectedAccessLookup != null) {
                                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mDesc);
                                 } else {
                                     cob.invokestatic(refType.toNominalDescriptor(), md.name(), mDesc, isInterface);
                                 }
                             }
                             case INSTANCE -> {
-                                if (protectedAccess) {
+                                if (protectedAccessLookup != null) {
                                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mDesc.insertParameterTypes(0, specialCaller));
                                 } else {
                                     cob.invoke(isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL,
@@ -1033,7 +1032,7 @@ public final class BytecodeGenerator {
         boolean check(MethodHandles.Lookup l) throws ReflectiveOperationException;
     }
 
-    private MethodHandles.Lookup protectedAccessLookup(Class<?> receiverClass, ProtectedAccessPredicate predicate) {
+    private MethodHandles.Lookup findProtectedAccessLookup(Class<?> receiverClass, ProtectedAccessPredicate predicate) {
         MethodHandles.Lookup l = lookup;
         while (l != null) {
             // Resolving a protected instance member may narrow the handle's receiver
@@ -1094,23 +1093,21 @@ public final class BytecodeGenerator {
         ClassDesc fieldType = ((JavaType) ref.type()).toNominalDescriptor();
         boolean store = op instanceof FieldAccessOp.FieldStoreOp;
         boolean isStatic = op.operands().size() == (store ? 1 : 0);
-        boolean protectedAccess = false;
         ClassDesc caller = lookup.lookupClass().describeConstable().orElseThrow();
-        MethodHandles.Lookup resLookup = protectedAccessLookup(
+        MethodHandles.Lookup protectedAccessLookup = findProtectedAccessLookup(
                 isStatic ? null : receiverClass(op.operands()),
                 l -> {
                     Member m = ref.resolveToField(l);
                     return Modifier.isProtected(m.getModifiers())
                             && !m.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
                 });
-        if (resLookup != null) {
-            protectedAccess = true;
-            caller = resLookup.lookupClass().describeConstable().orElseThrow();
-            lookupHandle(resLookup, isStatic ? refType.toNominalDescriptor() : caller, ref.name(),
+        if (protectedAccessLookup != null) {
+            caller = protectedAccessLookup.lookupClass().describeConstable().orElseThrow();
+            lookupHandle(protectedAccessLookup, isStatic ? refType.toNominalDescriptor() : caller, ref.name(),
                     fieldType, "find" + (isStatic ? "Static" : "") + (store ? "Setter" : "Getter"));
         }
         processOperands(op);
-        if (protectedAccess) {
+        if (protectedAccessLookup != null) {
             cob.invokevirtual(CD_MethodHandle,
                               "invokeExact",
                               isStatic ? (store ? MethodTypeDesc.of(CD_void, fieldType)
