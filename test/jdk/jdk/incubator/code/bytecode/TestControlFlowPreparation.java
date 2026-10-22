@@ -320,16 +320,21 @@ public class TestControlFlowPreparation {
                 String signature = parameters.matcher(testCase).results()
                         .map(m -> (m.group(1).equals("string") ? "String" : m.group(1)) + " " + m.group())
                         .distinct().sorted().collect(Collectors.joining(", "));
-                testCases[i] = "@Reflect\nstatic int case" + (i + 1) + "(" + signature + ") {\n"
-                        + (testCase.contains(";") ? testCase.indent(4)
-                        : "    if (((" + testCase + ") ? 1 : 0) == 1) return 1; else return 0;\n")
-                        + "}";
+                testCases[i] = """
+                               @Reflect
+                               static int case%d(%s) {
+                               %s
+                               }
+                               """.formatted(i + 1, signature, wrapExpression(testCase).indent(4)).indent(4);
             }
             Path sourceDirectory = Path.of("cfp-src");
             Files.createDirectories(sourceDirectory);
-            Files.writeString(sourceDirectory.resolve("CFPTestCases.java"),
-                    "import jdk.incubator.code.Reflect;\nclass CFPTestCases {\n"
-                            + String.join("\n", testCases) + "}\n");
+            Files.writeString(sourceDirectory.resolve("CFPTestCases.java"), """
+                    import jdk.incubator.code.Reflect;
+                    class CFPTestCases {
+                    %s
+                    }
+                    """.formatted(String.join("\n", testCases)));
             Assertions.assertTrue(CompilerUtils.compile(sourceDirectory,
                     Path.of(System.getProperty("test.classes", ".")),
                     "--enable-preview", "--source", Integer.toString(Runtime.version().feature()),
@@ -337,6 +342,17 @@ public class TestControlFlowPreparation {
             return Class.forName("CFPTestCases");
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    static String wrapExpression(String testCase) {
+        if (testCase.contains(";")) {
+            return testCase;
+        } else {
+            return """
+                   if (((%s) ? 1 : 0) == 1) return 1;
+                   return 0;
+                   """.formatted(testCase);
         }
     }
 
@@ -373,7 +389,7 @@ public class TestControlFlowPreparation {
             var expected = method.invoke(null, args);
             Assertions.assertEquals(expected, direct.invokeWithArguments(args), "direct " + Arrays.toString(args));
             Assertions.assertEquals(expected, lowered.invokeWithArguments(args), "lowered " + Arrays.toString(args));
-            Assertions.assertEquals(expected, ssa.invokeWithArguments(args), "SSA " + Arrays.toString(args));
+            Assertions.assertEquals(expected, lowered_ssa.invokeWithArguments(args), "lowered SSA " + Arrays.toString(args));
             int i = args.length - 1;
             while (i >= 0 && ++indices[i] == pools[i].length) indices[i--] = 0;
             if (i < 0) break;
@@ -397,7 +413,7 @@ public class TestControlFlowPreparation {
         FuncOp func = Op.ofMethod(method).orElseThrow();
         assertConstantExpressionsCleanup(func, "direct");
         assertConstantExpressionsCleanup(func = func.transform(CodeTransformer.LOWERING_TRANSFORMER), "lowered");
-        assertConstantExpressionsCleanup(SSA.transform(func), "SSA");
+        assertConstantExpressionsCleanup(SSA.transform(func), "lowered SSA");
     }
 
     static void assertConstantExpressionsCleanup(FuncOp func, String label) {
