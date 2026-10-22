@@ -34,7 +34,8 @@ import hat.buffer.TensorF32;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
 import hat.device.NonMappableIface;
-import hat.dialect.TileOps;
+import hat.dialect.DialectFunction;
+import hat.dialect.DialectModule;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATTransformer;
 import hat.phases.TileTransformer;
@@ -62,10 +63,8 @@ import optkl.util.carriers.LookupCarrier;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import static optkl.OpHelper.Invoke.invoke;
 
 public class KernelCallGraph implements LookupCarrier {
@@ -199,8 +198,8 @@ public class KernelCallGraph implements LookupCarrier {
         return codeTypes;
     }
 
-    private List<TileTransformer.TileFunction> dialectTileFunctions(Object[] kernelParameters) {
-        List<TileTransformer.TileFunction> tileFunctions;
+    private DialectModule dialectTileFunctions(Object[] kernelParameters) {
+        DialectModule dialectModule;
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (kernelParameters.length != parameterTypes.length) {
             throw new IllegalArgumentException(String.format("Expected %d arguments, got %d", parameterTypes.length, kernelParameters.length));
@@ -215,15 +214,15 @@ public class KernelCallGraph implements LookupCarrier {
         CoreOp.FuncOp funcOp = entrypoint.funcOp();
         funcOp = TileTransformer.processConstantFields(funcOp, lookup());
         MethodRef methodRef = MethodRef.method(method);
-        tileFunctions = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes, methodRef, lookup());
+        dialectModule = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes, methodRef, lookup());
 
         // Update the entry point: the main kernel is the last entry from the tileFunctions list
-        entrypoint = new FuncOpCarrier.Impl(tileFunctions.getLast().function());
+        entrypoint = new FuncOpCarrier.Impl(dialectModule.entryPoint().function());
 
         // Check SSA lowering for the output Tile functions:
-        tileFunctions.stream().map(TileTransformer.TileFunction::function).forEach(this::checkSSALowering);
+        dialectModule.functions().map(DialectFunction::function).forEach(this::checkSSALowering);
 
-        return tileFunctions;
+        return dialectModule;
     }
 
     /**
@@ -235,12 +234,12 @@ public class KernelCallGraph implements LookupCarrier {
      */
     public void compile(Object[] kernelParameters) {
         varTable.addFunction(entrypoint.funcOp().funcName());
-        List<TileTransformer.TileFunction> tileFunctions = new ArrayList<>();
+        DialectModule dialectModule = null;
         if (isTileDialectEnabled(inlinedEntryPoint)) {
-            tileFunctions = dialectTileFunctions(kernelParameters);
+            dialectModule = dialectTileFunctions(kernelParameters);
         }
 
-        callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint, tileFunctions);
+        callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint, dialectModule);
         callDag.rankOrdered.forEach(f -> {
             varTable.addFunction(f.funcOp().funcName());
             HATTransformer.transform(HATTransformer.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
