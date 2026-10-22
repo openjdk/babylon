@@ -489,7 +489,7 @@ public class TileOps {
         }
     }
 
-    public static class LoadOp extends TileContextOp {
+    public static class LoadOp extends TileContextOp implements Precedence.LoadOrConv {
 
         private final List<Object> dims;
 

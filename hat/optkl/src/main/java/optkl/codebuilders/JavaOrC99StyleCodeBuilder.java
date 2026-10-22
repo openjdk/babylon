@@ -116,7 +116,6 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
 
     @Override
     public T type(JavaType javaType) {
-         blockInlineComment("javaType: " + javaType);
         return type(javaType.toString());
     }
 

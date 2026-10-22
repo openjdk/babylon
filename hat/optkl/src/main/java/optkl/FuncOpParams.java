@@ -100,7 +100,7 @@ public class FuncOpParams {
 
     public FuncOpParams(CoreOp.FuncOp funcOp) {
         this.funcOp = funcOp;
-        if (funcOp!=null) {
+        if (funcOp != null) {
             funcOp.parameters().forEach(parameter -> {
                 Optional<Op.Result> optionalResult = parameter.uses().stream().findFirst();
                 optionalResult.ifPresentOrElse(result -> {

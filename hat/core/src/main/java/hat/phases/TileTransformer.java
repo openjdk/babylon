@@ -46,10 +46,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.dialect.java.ClassType;
-import jdk.incubator.code.dialect.java.JavaOp;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.PrimitiveType;
+import jdk.incubator.code.dialect.java.*;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
@@ -58,17 +55,21 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntBinaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -82,6 +83,8 @@ public class TileTransformer {
     private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA", "FALSE"));
     private static final boolean SIMPLE_SIGNATURE = Boolean.parseBoolean(System.getProperty("SIMPLE_SIGNATURE", "TRUE"));
 
+    public record TileFunction(MethodRef methodRef, CoreOp.FuncOp function) {}
+
     public static TileOps.ModuleOp dispatch(Class<?> klass, String methodName, List<? extends CodeType> argTypes, MethodHandles.Lookup lookup) {
         Optional<Method> method = Stream.of(klass.getDeclaredMethods())
                 .filter(m -> m.getName().equals(methodName))
@@ -89,11 +92,12 @@ public class TileTransformer {
                 .findFirst();
 
         CoreOp.FuncOp funcOp = Op.ofMethod(method.orElseThrow()).get();
+        MethodRef methodRef = MethodRef.method(method.orElseThrow());
         funcOp = processConstantFields(funcOp, lookup);
 
         // Verify types and shapes from the input Tile Kernel and generate a new code model (dialect for Tile)
-        // A tile kernel always returns VOID
-        return TileTransformer.tileModule(funcOp, JavaType.VOID, argTypes);
+        // A tile main kernel (entry point) always returns VOID
+        return TileTransformer.tileModule(funcOp, JavaType.VOID, argTypes, methodRef, lookup);
     }
 
     /**
@@ -106,15 +110,15 @@ public class TileTransformer {
      * @param <O>      Op type
      * @return Module {@link TileOps.ModuleOp}
      */
-    public static <O extends Op & Op.Invokable> TileOps.ModuleOp tileModule(O kernel, CodeType rType, List<? extends CodeType> argTypes) {
-        Map<String, CoreOp.FuncOp> symbolTable = new LinkedHashMap<>();
-        tileFunction(kernel, rType, argTypes, symbolTable);
-        return TileOps.module(symbolTable.values().stream().toList());
+    public static <O extends Op & Op.Invokable> TileOps.ModuleOp tileModule(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
+        Map<String, List<TileFunction>> symbolTable = new LinkedHashMap<>();
+        List<TileFunction> funcOps = tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
+        return TileOps.module(funcOps.stream().map(TileFunction::function).collect(Collectors.toList()));
     }
 
-    public static <O extends Op & Op.Invokable> CoreOp.FuncOp tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes) {
-        Map<String, CoreOp.FuncOp> symbolTable = new LinkedHashMap<>();
-        return tileFunction(kernel, rType, argTypes, symbolTable);
+    public static <O extends Op & Op.Invokable> List<TileFunction> tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
+        Map<String, List<TileFunction>> symbolTable = new LinkedHashMap<>();
+        return tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
     }
 
     /**
@@ -162,7 +166,12 @@ public class TileTransformer {
      * @param <O>
      * @return A new function which includes the code tree in the Tile format (dialect)
      */
-    private static <O extends Op & Op.Invokable> CoreOp.FuncOp tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, Map<String, CoreOp.FuncOp> symbolTable) {
+    private static <O extends Op & Op.Invokable> List<TileFunction> tileFunction(O kernel,
+                                                                                  CodeType rType,
+                                                                                  List<? extends CodeType> argTypes,
+                                                                                  Map<String, List<TileFunction>> symbolTable,
+                                                                                  MethodRef methodRef,
+                                                                                  MethodHandles.Lookup lookup) {
 
         String signature = (kernel instanceof CoreOp.FuncOp f) ? f.funcName() : "kernel";
         if (!SIMPLE_SIGNATURE) {
@@ -176,20 +185,48 @@ public class TileTransformer {
         Map<Value, CodeType> valueTypeMap = new HashMap<>();
         Map<Op, Object> opData = new HashMap<>();
 
+        Deque<O> stack = new ArrayDeque<>();
+        stack.push(kernel);
+
+        Map<O, FunctionTable> functionTable = new HashMap<>();
+        functionTable.put(kernel, new FunctionTable(rType, argTypes));
+
+        Map<O, MethodRef> methodRefMap = new HashMap<>();
+
         // Check for types and propagate the shapes across the model
-        typeCheckKernel(kernel, argTypes, valueTypeMap, opData);
+        typeCheckKernel(kernel, argTypes, valueTypeMap, opData, stack, functionTable, methodRefMap, lookup);
 
         if (PRINT_INTERNALS) {
             // Print the intermediate step
             printTypeMap(kernel, valueTypeMap);
         }
 
-        // Once we have verified the input code model to have the correct shapes and propagated those shapes for the new operations,
-        // we generate a new code model. For the new code model, it uses the symbol table built in the previous process.
-        return transformToTileFunction(kernel, signature, rType, valueTypeMap, opData, symbolTable);
+        List<TileFunction>  funcOps = new ArrayList<>();
+
+        while (!stack.isEmpty()) {
+            O k = stack.pop();
+            signature = (k instanceof CoreOp.FuncOp f) ? f.funcName() : "kernel";
+            rType = functionTable.get(k).rType();
+            Map<String, CoreOp.FuncOp> symTable = new HashMap<>();
+
+            // Once we have verified the input code model to have the correct shapes and propagated those shapes for the new operations,
+            // we generate a new code model. For the new code model, it uses the symbol table built in the previous process.
+            CoreOp.FuncOp funcOp = TileTransformer.transformToTileFunction(k, signature, rType, valueTypeMap, opData, symTable, stack.size());
+            if (symbolTable.containsKey(signature)) {
+                List<TileFunction> put = symbolTable.put(signature, symbolTable.get(signature));
+                Objects.requireNonNull(put).add(new TileFunction(null, funcOp));
+                symbolTable.put(signature, put);
+            } else {
+                List<TileFunction> list = new ArrayList<>();
+                list.add(new TileFunction(methodRefMap.get(k), funcOp));
+                symbolTable.put(signature, list);
+            }
+            funcOps.add(new TileFunction(methodRefMap.get(k), funcOp));
+        }
+        return funcOps;
     }
 
-    private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature, CodeType rType, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable) {
+    private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature, CodeType rType, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable, final int functionIndex) {
         // builds a function using the internal code reflection APIs
         CoreOp.FuncOp tileKernel = CoreOp.func(signature, CoreType.functionType(rType))
                 .body(functionBlock -> {
@@ -197,7 +234,7 @@ public class TileTransformer {
                     List<Value> args = new ArrayList<>();
                     for (Block.Parameter param : kernel.body().entryBlock().parameters()) {
                         CodeType type = valueTypeMap.get(param);
-                        if (type instanceof ConstantType c) {
+                        if (functionIndex < 1 && type instanceof ConstantType c) {
                             // For all input constants, we built the Tile ConstantOp with its value
                             Op.Result r = functionBlock.add(ArithMathOps.constant(type, c.value()));
                             args.add(r);
@@ -246,6 +283,11 @@ public class TileTransformer {
                 if (result != null) {
                     cc.mapValue(op.result(), result);
                 }
+            }
+            case JavaOp.InvokeOp iop -> {
+                JavaOp.InvokeOp invokeOp = JavaOp.invoke(valueTypeMap.get(iop.result()), iop.invokeReference(), cc.getValues(iop.operands()));
+                Op.Result result = kblock.add(invokeOp);
+                cc.mapValue(op.result(), result);
             }
             default -> kblock.add(op);
         }
@@ -578,7 +620,9 @@ public class TileTransformer {
         return resultType;
     }
 
-    private static <O extends Op & Op.Invokable> void typeCheckKernel(O kernel, List<? extends CodeType> argTypes, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData) {
+    private record FunctionTable(CodeType rType, List<? extends CodeType> argTypes) { }
+
+    private static <O extends Op & Op.Invokable> void typeCheckKernel(O kernel, List<? extends CodeType> argTypes, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Deque<O> stack, Map<O, FunctionTable> functionTable, Map<O, MethodRef> methodRefMap, MethodHandles.Lookup lookup) {
         kernel.elements().forEach(codeElement -> {
             if (!(codeElement instanceof Op op)) {
                 return;
@@ -677,7 +721,15 @@ public class TileTransformer {
                 }
                 case JavaOp.CompareOp _ -> {
                 }
-                case CoreOp.ReturnOp _ -> {
+                case CoreOp.ReturnOp returnOp -> {
+                    // if we have multiple returns for the same function, we need to check that those returns
+                    // are compatible.
+                    CodeType codeType = valueTypeMap.get(kernel.result());
+                    CodeType returnType = returnOp.operands().isEmpty()? JavaType.VOID : valueTypeMap.get(returnOp.operands().getFirst());
+                    if (codeType != null && returnType instanceof ConstantType c && c.value() instanceof CodeType ct && !c.equals(codeType)) {
+                        throw new IllegalArgumentException("incompatible types to be stored: " + returnType + " != " + codeType);
+                    }
+                    valueTypeMap.put(kernel.result(), returnType);
                 }
                 case JavaOp.ForOp forLoopOp -> {
                     // taken from the Triton experiment
@@ -699,6 +751,42 @@ public class TileTransformer {
                         }
                     } else {
                         throw new IllegalArgumentException("incompatible types to be stored: " + enhancedForOp);
+                    }
+                }
+                case JavaOp.InvokeOp invokeOp -> {
+                    O functionOp = null;
+                    try {
+                        if (invokeOp.invokeReference().resolveToMethod(lookup) instanceof Method m
+                            && Op.ofMethod(m) instanceof  Optional<CoreOp.FuncOp> optionalFuncOp
+                            && optionalFuncOp.isPresent()) {
+                            functionOp = (O) optionalFuncOp.get();
+                        }
+                        if (functionOp == null) {
+                            throw new IllegalArgumentException("Function can't be null: " + invokeOp.invokeReference().name());
+                        }
+
+                        List<CodeType> paramTypes = invokeOp.operands().stream().map(valueTypeMap::get).collect(Collectors.toList());
+                        FunctionTable cachedTable = functionTable.get(functionOp);
+                        if (cachedTable != null && !cachedTable.argTypes().equals(paramTypes)) {
+                            throw new IllegalArgumentException("function arg types do not match: " + functionOp);
+                        }
+
+                        if (!functionTable.containsKey(functionOp)) {
+                            methodRefMap.put(functionOp, invokeOp.invokeReference());
+                            functionTable.put(functionOp, null);  // we insert it into the hashmap to avoid repetitions
+                            stack.push(functionOp);   // add new function into the stack
+                            typeCheckKernel(functionOp, paramTypes, valueTypeMap, opData, stack, functionTable, methodRefMap, lookup);
+                            functionTable.put(functionOp, new FunctionTable(valueTypeMap.get(functionOp.result()), paramTypes));
+                        } else {
+                            // If the function is already in the functionTable, we need to add priority to this method.
+                            // Thus, we move it on top of the stack (no need to revisit, since the analysis has been done at this point).
+                            if (stack.remove(functionOp)) {
+                                stack.push(functionOp);
+                            }
+                        }
+                        valueTypeMap.put(invokeOp.result(), valueTypeMap.get(functionOp.result()));
+                    } catch (ReflectiveOperationException e) {
+                        throw new IllegalStateException("could not resolve function op", e);
                     }
                 }
                 case CoreOp.YieldOp _ -> {
