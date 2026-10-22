@@ -82,6 +82,7 @@ public class KernelCallGraph implements LookupCarrier {
     public static final boolean SHOW_KERNEL_CALL_DAG = Boolean.getBoolean("showKernelCallDag");
     public static final  boolean SHOW_KERNEL_IFACE_DAG = Boolean.getBoolean("showKernelIfaceDag");
     public static final boolean SHOW_KERNEL_IFACE_DAG_PROPOSED_TYPEDEFS = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
+    public static final boolean SHOW_UNNECESSARY_ANNOTATION_WARNING = Boolean.getBoolean("showUnnecessaryAnnotationWarning");
 
     public final ComputeCallGraph computeCallGraph;
     public MethodCallDag callDag;

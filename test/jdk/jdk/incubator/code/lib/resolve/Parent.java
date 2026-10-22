@@ -22,11 +22,15 @@
  */
 package resolve;
 
-public class Parent extends Base<Parent> {
+public class Parent extends Base<Parent> implements Runnable {
 
     protected static boolean test(Object value) {
         System.out.println(value);
         return value != null;
+    }
+
+    @Override
+    public void run() {
     }
 }
 

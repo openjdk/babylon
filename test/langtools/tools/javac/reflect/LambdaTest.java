@@ -188,34 +188,33 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"LambdaTest")java.type:"java.util.function.Predicate<java.lang.Object>" -> {
-                  %3 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%4 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                      %5 : Var<java.type:"java.lang.Object"> = var %4 @"v";
-                      %1 : java.type:"java.lang.String" = constant @null;
-                      %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                      %6 : java.type:"boolean" = java.cand
-                          ()java.type:"boolean" -> {
-                              %7 : java.type:"java.lang.Object" = var.load %5;
-                              %8 : java.type:"boolean" = pattern.match %7
-                                  ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                      %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                      yield %9;
-                                  }
-                                  (%10 : java.type:"java.lang.String")java.type:"void" -> {
-                                      var.store %2 %10;
-                                      yield;
-                                  };
-                              yield %8;
-                          }
-                          ()java.type:"boolean" -> {
-                              %11 : java.type:"java.lang.String" = var.load %2;
-                              %12 : java.type:"boolean" = invoke %11 @java.ref:"java.lang.String::isEmpty():boolean";
-                              %13 : java.type:"boolean" = not %12;
-                              yield %13;
-                          };
-                      return %6;
-                  };
-                  return %3;
-              };
+                %1 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%2 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                    %3 : Var<java.type:"java.lang.Object"> = var %2 @"v";
+                    %4 : Var<java.type:"java.lang.String"> = var @"s";
+                    %5 : java.type:"boolean" = java.cand
+                        ()java.type:"boolean" -> {
+                            %6 : java.type:"java.lang.Object" = var.load %3;
+                            %7 : java.type:"boolean" = pattern.match %6
+                                ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                    %8 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                    yield %8;
+                                }
+                                (%9 : java.type:"java.lang.String")java.type:"void" -> {
+                                    var.store %4 %9;
+                                    yield;
+                                };
+                            yield %7;
+                        }
+                        ()java.type:"boolean" -> {
+                            %10 : java.type:"java.lang.String" = var.load %4;
+                            %11 : java.type:"boolean" = invoke %10 @java.ref:"java.lang.String::isEmpty():boolean";
+                            %12 : java.type:"boolean" = not %11;
+                            yield %12;
+                        };
+                    return %5;
+                };
+                return %1;
+            };
             """)
     Predicate<Object> test7() {
         return v -> v instanceof String s && !s.isEmpty();
@@ -224,34 +223,33 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"f" ()java.type:"void" -> {
-                  %3 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%4 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                      %5 : Var<java.type:"java.lang.Object"> = var %4 @"v";
-                      %1 : java.type:"java.lang.String" = constant @null;
-                      %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                      %6 : java.type:"boolean" = java.cand
-                          ()java.type:"boolean" -> {
-                              %7 : java.type:"java.lang.Object" = var.load %5;
-                              %8 : java.type:"boolean" = pattern.match %7
-                                  ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                      %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                      yield %9;
-                                  }
-                                  (%10 : java.type:"java.lang.String")java.type:"void" -> {
-                                      var.store %2 %10;
-                                      yield;
-                                  };
-                              yield %8;
-                          }
-                          ()java.type:"boolean" -> {
-                              %11 : java.type:"java.lang.String" = var.load %2;
-                              %12 : java.type:"boolean" = invoke %11 @java.ref:"java.lang.String::isEmpty():boolean";
-                              %13 : java.type:"boolean" = not %12;
-                              yield %13;
-                          };
-                      return %6;
-                  };
-                  return;
-              };
+                %0 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%1 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                    %2 : Var<java.type:"java.lang.Object"> = var %1 @"v";
+                    %3 : Var<java.type:"java.lang.String"> = var @"s";
+                    %4 : java.type:"boolean" = java.cand
+                        ()java.type:"boolean" -> {
+                            %5 : java.type:"java.lang.Object" = var.load %2;
+                            %6 : java.type:"boolean" = pattern.match %5
+                                ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                    %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                    yield %7;
+                                }
+                                (%8 : java.type:"java.lang.String")java.type:"void" -> {
+                                    var.store %3 %8;
+                                    yield;
+                                };
+                            yield %6;
+                        }
+                        ()java.type:"boolean" -> {
+                            %9 : java.type:"java.lang.String" = var.load %3;
+                            %10 : java.type:"boolean" = invoke %9 @java.ref:"java.lang.String::isEmpty():boolean";
+                            %11 : java.type:"boolean" = not %10;
+                            yield %11;
+                        };
+                    return %4;
+                };
+                return;
+            };
             """)
     static Predicate<Object> test8 = v -> v instanceof String s && !s.isEmpty();
 

@@ -54,6 +54,10 @@ public final class ArithmeticAndConvOpImpls {
         return -l;
     }
 
+    public static int pos(int l) {
+        return +l;
+    }
+
     public static int compl(int l) {
         return ~l;
     }
@@ -144,6 +148,10 @@ public final class ArithmeticAndConvOpImpls {
         return (byte) -l;
     }
 
+    public static byte pos(byte l) {
+        return (byte) +l;
+    }
+
     public static byte compl(byte l) {
         return (byte) ~l;
     }
@@ -228,6 +236,10 @@ public final class ArithmeticAndConvOpImpls {
 
     public static short neg(short l) {
         return (short) -l;
+    }
+
+    public static short pos(short l) {
+        return (short) +l;
     }
 
     public static short compl(short l) {
@@ -316,6 +328,10 @@ public final class ArithmeticAndConvOpImpls {
         return (char) -l;
     }
 
+    public static char pos(char l) {
+        return (char) +l;
+    }
+
     public static char compl(char l) {
         return (char) ~l;
     }
@@ -399,6 +415,10 @@ public final class ArithmeticAndConvOpImpls {
 
     public static long neg(long l) {
         return -l;
+    }
+
+    public static long pos(long l) {
+        return +l;
     }
 
     public static long compl(long l) {
@@ -493,6 +513,10 @@ public final class ArithmeticAndConvOpImpls {
         return -l;
     }
 
+    public static float pos(float l) {
+        return +l;
+    }
+
     public static float add(float l, float r) {
         return l + r;
     }
@@ -543,6 +567,10 @@ public final class ArithmeticAndConvOpImpls {
 
     public static double neg(double l) {
         return -l;
+    }
+
+    public static double pos(double l) {
+        return +l;
     }
 
     public static double add(double l, double r) {

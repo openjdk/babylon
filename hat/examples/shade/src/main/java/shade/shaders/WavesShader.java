@@ -303,7 +303,7 @@ public class WavesShader  {
         for (int i = 0; i < iterations; i++) {
             vec2 p = vec2(F32.sin(iter), F32.cos(iter));
             vec2 res = wavedx(position, p, frequency, fTime * timeMultiplier + wavePhaseShift);
-            position = add(position, mul(position, res.y() * weight * DRAG_MULT));
+            position = add(position, mul(p, res.y() * weight * DRAG_MULT));
             sumOfValues += res.x() * weight;
             sumOfWeights += weight;
             weight = F32.mix(weight, 0.0f, 0.2f);
@@ -373,12 +373,14 @@ public class WavesShader  {
     // Some very barebones but fast atmosphere approximation
     @Reflect public static vec3 extra_cheap_atmosphere(vec3 raydir, vec3 sundir) {
         float special_trick = 1.0f / (raydir.y() + 0.1f);
+        float special_trick2 = 1.0f / (sundir.y() * 11.0f + 1.0f);
+
         float raysundt = F32.pow(F32.abs(dot(sundir, raydir)), 2.0f);
         vec3 suncolor = mix(vec3(1.0f),
                 max(vec3(0.0f), sub(
                         vec3(1.0f),
                         div(vec3(5.5f, 13.0f, 22.4f), 22.4f)
-                )), special_trick);
+                )), special_trick2);
 
 
         vec3 bluesky = mul(div(vec3(5.5f, 13.0f, 22.4f), 22.4f), suncolor);
@@ -448,11 +450,11 @@ public class WavesShader  {
             R = vec3(R.x(), abs(R.y()), R.z());
 
             vec3 reflection = add(getAtmosphere(ftime, R), getSun(ftime, R));
-            vec3 scattering = mul(vec3(0.0293f, 0.0698f, 0.1717f), 0.1f * 0.2f + (waterHitPos.y() + WATER_DEPTH) / WATER_DEPTH);
+            vec3 scattering = mul(vec3(0.0293f, 0.0698f, 0.1717f), 0.1f * (0.2f + (waterHitPos.y() + WATER_DEPTH) / WATER_DEPTH));
              C = add(mul(reflection, fresnel), scattering);
 
         }
-        return normalize(vec4(aces_tonemap(mul(C, 2.0f)), 1.0f));
+        return vec4(aces_tonemap(mul(C, 2.0f)), 1.0f);
     }
     //https://www.shadertoy.com/view/MdXyzX
     @Reflect public static vec4 mainImage(Uniforms uniforms, vec4 fragColor, vec2 fragCoord){
@@ -480,7 +482,7 @@ public class WavesShader  {
 
     static void main(String[] args) {
         var acc = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-        var shader = ShaderViewer.of(acc, WavesShader.class,512, 512);
+        var shader = ShaderViewer.of(acc, WavesShader.class,1024+512, 1024+512);
         shader.startLoop((uniforms, f32Array) -> update( acc, uniforms, f32Array, shader.view.getWidth(), shader.view.getHeight()));
     }
 }

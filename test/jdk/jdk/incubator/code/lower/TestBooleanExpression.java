@@ -157,39 +157,38 @@ public class TestBooleanExpression {
             func @"testSwitchLabel" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
                 %2 : java.type:"java.lang.Object" = var.load %1;
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"s";
-                %5 : java.type:"java.lang.Object" = constant @null;
-                %6 : java.type:"boolean" = invoke %2 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
-                cbranch %6 ^block_1 ^block_2;
+                %3 : Var<java.type:"java.lang.String"> = var @"s";
+                %4 : java.type:"java.lang.Object" = constant @null;
+                %5 : java.type:"boolean" = invoke %2 %4 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
-                %7 : java.type:"java.lang.NullPointerException" = new @java.ref:"java.lang.NullPointerException::()";
-                throw %7;
+                %6 : java.type:"java.lang.NullPointerException" = new @java.ref:"java.lang.NullPointerException::()";
+                throw %6;
 
               ^block_2:
-                %8 : java.type:"boolean" = instanceof %2 @java.type:"TestBooleanExpression$Box";
-                cbranch %8 ^block_3 ^block_6;
+                %7 : java.type:"boolean" = instanceof %2 @java.type:"TestBooleanExpression$Box";
+                cbranch %7 ^block_3 ^block_6;
 
               ^block_3:
-                %9 : java.type:"TestBooleanExpression$Box" = cast %2 @java.type:"TestBooleanExpression$Box";
-                %10 : java.type:"java.lang.Object" = invoke %9 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
-                %11 : java.type:"boolean" = instanceof %10 @java.type:"java.lang.String";
-                cbranch %11 ^block_4 ^block_6;
+                %8 : java.type:"TestBooleanExpression$Box" = cast %2 @java.type:"TestBooleanExpression$Box";
+                %9 : java.type:"java.lang.Object" = invoke %8 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
+                %10 : java.type:"boolean" = instanceof %9 @java.type:"java.lang.String";
+                cbranch %10 ^block_4 ^block_6;
 
               ^block_4:
-                %12 : java.type:"java.lang.String" = cast %10 @java.type:"java.lang.String";
-                var.store %4 %12;
+                %11 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                var.store %3 %11;
                 branch ^block_5;
 
               ^block_5:
-                %13 : java.type:"java.lang.String" = constant @"CASE";
-                invoke %13 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                %12 : java.type:"java.lang.String" = constant @"CASE";
+                invoke %12 @java.ref:"java.lang.IO::println(java.lang.Object):void";
                 branch ^block_7;
 
               ^block_6:
-                %14 : java.type:"java.lang.String" = constant @"DEFAULT";
-                invoke %14 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                %13 : java.type:"java.lang.String" = constant @"DEFAULT";
+                invoke %13 @java.ref:"java.lang.IO::println(java.lang.Object):void";
                 branch ^block_7;
 
               ^block_7:
@@ -212,53 +211,52 @@ public class TestBooleanExpression {
             func @"testSwitchLabelAndGuard" (%0 : java.type:"java.lang.Object")java.type:"void" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
                 %2 : java.type:"java.lang.Object" = var.load %1;
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"s";
-                %5 : java.type:"java.lang.Object" = constant @null;
-                %6 : java.type:"boolean" = invoke %2 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
-                cbranch %6 ^block_1 ^block_2;
+                %3 : Var<java.type:"java.lang.String"> = var @"s";
+                %4 : java.type:"java.lang.Object" = constant @null;
+                %5 : java.type:"boolean" = invoke %2 %4 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
-                %7 : java.type:"java.lang.NullPointerException" = new @java.ref:"java.lang.NullPointerException::()";
-                throw %7;
+                %6 : java.type:"java.lang.NullPointerException" = new @java.ref:"java.lang.NullPointerException::()";
+                throw %6;
 
               ^block_2:
-                %8 : java.type:"boolean" = instanceof %2 @java.type:"TestBooleanExpression$Box";
-                cbranch %8 ^block_3 ^block_8;
+                %7 : java.type:"boolean" = instanceof %2 @java.type:"TestBooleanExpression$Box";
+                cbranch %7 ^block_3 ^block_8;
 
               ^block_3:
-                %9 : java.type:"TestBooleanExpression$Box" = cast %2 @java.type:"TestBooleanExpression$Box";
-                %10 : java.type:"java.lang.Object" = invoke %9 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
-                %11 : java.type:"boolean" = instanceof %10 @java.type:"java.lang.String";
-                cbranch %11 ^block_4 ^block_8;
+                %8 : java.type:"TestBooleanExpression$Box" = cast %2 @java.type:"TestBooleanExpression$Box";
+                %9 : java.type:"java.lang.Object" = invoke %8 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
+                %10 : java.type:"boolean" = instanceof %9 @java.type:"java.lang.String";
+                cbranch %10 ^block_4 ^block_8;
 
               ^block_4:
-                %12 : java.type:"java.lang.String" = cast %10 @java.type:"java.lang.String";
-                var.store %4 %12;
+                %11 : java.type:"java.lang.String" = cast %9 @java.type:"java.lang.String";
+                var.store %3 %11;
                 branch ^block_5;
 
               ^block_5:
-                %13 : java.type:"java.lang.String" = var.load %4;
-                %14 : java.type:"int" = invoke %13 @java.ref:"java.lang.String::length():int";
-                %15 : java.type:"int" = constant @10;
-                %16 : java.type:"boolean" = gt %14 %15;
-                cbranch %16 ^block_6 ^block_8;
+                %12 : java.type:"java.lang.String" = var.load %3;
+                %13 : java.type:"int" = invoke %12 @java.ref:"java.lang.String::length():int";
+                %14 : java.type:"int" = constant @10;
+                %15 : java.type:"boolean" = gt %13 %14;
+                cbranch %15 ^block_6 ^block_8;
 
               ^block_6:
-                %17 : java.type:"java.lang.String" = var.load %4;
-                %18 : java.type:"int" = invoke %17 @java.ref:"java.lang.String::length():int";
-                %19 : java.type:"int" = constant @20;
-                %20 : java.type:"boolean" = lt %18 %19;
-                cbranch %20 ^block_7 ^block_8;
+                %16 : java.type:"java.lang.String" = var.load %3;
+                %17 : java.type:"int" = invoke %16 @java.ref:"java.lang.String::length():int";
+                %18 : java.type:"int" = constant @20;
+                %19 : java.type:"boolean" = lt %17 %18;
+                cbranch %19 ^block_7 ^block_8;
 
               ^block_7:
-                %21 : java.type:"java.lang.String" = constant @"CASE";
-                invoke %21 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                %20 : java.type:"java.lang.String" = constant @"CASE";
+                invoke %20 @java.ref:"java.lang.IO::println(java.lang.Object):void";
                 branch ^block_9;
 
               ^block_8:
-                %22 : java.type:"java.lang.String" = constant @"DEFAULT";
-                invoke %22 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                %21 : java.type:"java.lang.String" = constant @"DEFAULT";
+                invoke %21 @java.ref:"java.lang.IO::println(java.lang.Object):void";
                 branch ^block_9;
 
               ^block_9:
@@ -404,32 +402,31 @@ public class TestBooleanExpression {
             func @"testPattern" (%0 : java.type:"java.lang.Object")java.type:"boolean" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"o";
                 %2 : java.type:"java.lang.Object" = var.load %1;
-                %3 : java.type:"java.lang.String" = constant @null;
-                %4 : Var<java.type:"java.lang.String"> = var %3 @"s";
-                %5 : java.type:"boolean" = constant @true;
-                %6 : java.type:"boolean" = constant @false;
-                %7 : java.type:"boolean" = instanceof %2 @java.type:"TestBooleanExpression$Box";
-                cbranch %7 ^block_1 ^block_4(%6);
+                %3 : Var<java.type:"java.lang.String"> = var @"s";
+                %4 : java.type:"boolean" = constant @true;
+                %5 : java.type:"boolean" = constant @false;
+                %6 : java.type:"boolean" = instanceof %2 @java.type:"TestBooleanExpression$Box";
+                cbranch %6 ^block_1 ^block_4(%5);
 
               ^block_1:
-                %8 : java.type:"TestBooleanExpression$Box" = cast %2 @java.type:"TestBooleanExpression$Box";
-                %9 : java.type:"java.lang.Object" = invoke %8 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
-                %10 : java.type:"boolean" = instanceof %9 @java.type:"TestBooleanExpression$Box";
-                cbranch %10 ^block_2 ^block_4(%6);
+                %7 : java.type:"TestBooleanExpression$Box" = cast %2 @java.type:"TestBooleanExpression$Box";
+                %8 : java.type:"java.lang.Object" = invoke %7 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
+                %9 : java.type:"boolean" = instanceof %8 @java.type:"TestBooleanExpression$Box";
+                cbranch %9 ^block_2 ^block_4(%5);
 
               ^block_2:
-                %11 : java.type:"TestBooleanExpression$Box" = cast %9 @java.type:"TestBooleanExpression$Box";
-                %12 : java.type:"java.lang.Object" = invoke %11 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
-                %13 : java.type:"boolean" = instanceof %12 @java.type:"java.lang.String";
-                cbranch %13 ^block_3 ^block_4(%6);
+                %10 : java.type:"TestBooleanExpression$Box" = cast %8 @java.type:"TestBooleanExpression$Box";
+                %11 : java.type:"java.lang.Object" = invoke %10 @java.ref:"TestBooleanExpression$Box::o():java.lang.Object";
+                %12 : java.type:"boolean" = instanceof %11 @java.type:"java.lang.String";
+                cbranch %12 ^block_3 ^block_4(%5);
 
               ^block_3:
-                %14 : java.type:"java.lang.String" = cast %12 @java.type:"java.lang.String";
-                var.store %4 %14;
-                branch ^block_4(%5);
+                %13 : java.type:"java.lang.String" = cast %11 @java.type:"java.lang.String";
+                var.store %3 %13;
+                branch ^block_4(%4);
 
-              ^block_4(%15 : java.type:"boolean"):
-                return %15;
+              ^block_4(%14 : java.type:"boolean"):
+                return %14;
             };
             """)
     static boolean testPattern(Object o) {

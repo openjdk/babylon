@@ -2288,6 +2288,33 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
     }
 
     /**
+     * The pos operation, that can model the Java language unary {@code +} operator for numeric types
+     *
+     * @jls 15.15.3 Unary Plus Operator {@code +}
+     */
+    @OpDeclaration(PosOp.NAME)
+    public static final class PosOp extends UnaryOp {
+        static final String NAME = "pos";
+
+        PosOp(ExternalizedOp def) {
+            super(def);
+        }
+
+        PosOp(PosOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public PosOp transform(CodeContext cc, CodeTransformer ct) {
+            return new PosOp(this, cc);
+        }
+
+        PosOp(Value v) {
+            super(v);
+        }
+    }
+
+    /**
      * The bitwise complement operation, that can model the Java language unary {@code ~} operator for integral types
      *
      * @jls 15.15.5 Bitwise Complement Operator {@code ~}
@@ -5714,62 +5741,59 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
             Block.Builder entryBlock = normalizedBody.entryBlock();
             Body resourceBody = resourcesBodies.getFirst();
-            CodeType resourceType = resourceBody.bodySignature().returnType();
-            Block.Builder afterAcquire = entryBlock.block(resourceType);
             entryBlock.transformBody(resourceBody, List.of(), entryBlock.context(), (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yop && op.ancestorBody() == resourceBody) {
-                    block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
-                } else {
+                if (!(op instanceof CoreOp.YieldOp yield) || op.ancestorBody() != resourceBody) {
                     block.add(op);
+                    return block;
                 }
+                Value resourceArgument = block.context().getValue(yield.yieldValue());
+                // resource may be a var value if a resource declaration such as
+                //   try (AutoCloseable resource = open())  { ... }
+                // or a value if an existing resource such as
+                //   AutoCloseable resource = open()
+                //   try (resource) { ... }
+                // Operations in the resource need to distinguish between them and require
+                // a load operation for the former
+                Value primaryExceptionVar = block.add(var(block.add(constant(type(Throwable.class), null))));
+                // @@@ following builder code may be refactored into a reflected template method transformation
+                block.add(try_(entryBlock.parentBody(), tryEntry -> {
+                    tryEntry.transformBody(body, List.of(resourceArgument), tryEntry.context(), tryEntry.transformer());
+                }).catch_(type(Throwable.class), catchB -> {
+                    Block.Parameter thrown = catchB.parameters().getFirst();
+                    catchB.add(varStore(primaryExceptionVar, thrown));
+                    catchB.add(throw_(thrown));
+                }).finally_(finB -> {
+                    Value nullObj = finB.add(constant(J_L_OBJECT, null));
+                    Value resource = resourceArgument.type() instanceof VarType
+                            ? finB.add(varLoad(resourceArgument))
+                            : resourceArgument;
+                    finB.add(if_(finB.parentBody()).if_(predB -> {
+                                predB.add(core_yield(predB.add(neq(resource, nullObj))));
+                    }).then(closeB -> {
+                        Value primaryException = closeB.add(varLoad(primaryExceptionVar));
+                        closeB.add(if_(closeB.parentBody()).if_(predB -> {
+                            predB.add(core_yield(predB.add(neq(primaryException, nullObj))));
+                        }).then(suppB -> {
+                            suppB.add(try_(suppB.parentBody(), tryB -> {
+                                tryB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                                tryB.add(core_yield());
+                            }).catch_(type(Throwable.class), catchB -> {
+                                Block.Parameter closeException = catchB.parameters().getFirst();
+                                catchB.add(invoke(THROWABLE_ADD_SUPPRESSED_METHOD, primaryException, closeException));
+                                catchB.add(core_yield());
+                            }).noFinalizer());
+                            suppB.add(core_yield());
+                        }).else_(normB -> {
+                            normB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                            normB.add(core_yield());
+                        }));
+                        closeB.add(core_yield());
+                    }).noElse());
+                    finB.add(core_yield());
+                }));
+                block.add(core_yield());
                 return block;
             });
-            // resource may be a var value if a resource declaration such as
-            //   try (AutoCloseable resource = open())  { ... }
-            // or a value if an existing resource such as
-            //   AutoCloseable resource = open()
-            //   try (resource) { ... }
-            // Operations in the resource need to distinguish between them and require
-            // a load operation for the former
-            Value resourceArgument = afterAcquire.parameters().getFirst();
-            Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
-            // @@@ following builder code may be refactored into a reflected template method transformation
-            afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
-                tryEntry.transformBody(body, List.of(resourceArgument), tryEntry.context(), tryEntry.transformer());
-            }).catch_(type(Throwable.class), catchB -> {
-                Block.Parameter thrown = catchB.parameters().getFirst();
-                catchB.add(varStore(primaryExceptionVar, thrown));
-                catchB.add(throw_(thrown));
-            }).finally_(finB -> {
-                Value nullObj = finB.add(constant(J_L_OBJECT, null));
-                Value resource = resourceArgument.type() instanceof VarType
-                        ? finB.add(varLoad(resourceArgument))
-                        : resourceArgument;
-                finB.add(if_(finB.parentBody()).if_(predB -> {
-                            predB.add(core_yield(predB.add(neq(resource, nullObj))));
-                }).then(closeB -> {
-                    Value primaryException = closeB.add(varLoad(primaryExceptionVar));
-                    closeB.add(if_(closeB.parentBody()).if_(predB -> {
-                        predB.add(core_yield(predB.add(neq(primaryException, nullObj))));
-                    }).then(suppB -> {
-                        suppB.add(try_(suppB.parentBody(), tryB -> {
-                            tryB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
-                            tryB.add(core_yield());
-                        }).catch_(type(Throwable.class), catchB -> {
-                            Block.Parameter closeException = catchB.parameters().getFirst();
-                            catchB.add(invoke(THROWABLE_ADD_SUPPRESSED_METHOD, primaryException, closeException));
-                            catchB.add(core_yield());
-                        }).noFinalizer());
-                        suppB.add(core_yield());
-                    }).else_(normB -> {
-                        normB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
-                        normB.add(core_yield());
-                    }));
-                    closeB.add(core_yield());
-                }).noElse());
-                finB.add(core_yield());
-            }));
-            afterAcquire.add(core_yield());
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
         }
 
@@ -6453,6 +6477,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             case "monitor.exit" -> new MonitorOp.MonitorExitOp(def);
             case "mul" -> new MulOp(def);
             case "neg" -> new NegOp(def);
+            case "pos" -> new PosOp(def);
             case "neq" -> new NeqOp(def);
             case "new" -> new NewOp(def);
             case "not" -> new NotOp(def);
@@ -7092,6 +7117,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     public static NegOp neg(Value v) {
         return new NegOp(v);
+    }
+
+    /**
+     * Creates a pos operation.
+     *
+     * @param v the operand
+     * @return the pos operation
+     */
+    public static PosOp pos(Value v) {
+        return new PosOp(v);
     }
 
     /**
