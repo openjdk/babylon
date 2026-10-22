@@ -24,7 +24,7 @@
  */
 package hat.callgraph;
 
-import hat.phases.TileTransformer;
+import hat.dialect.DialectModule;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.OpHelper;
@@ -33,12 +33,10 @@ import optkl.util.carriers.FuncOpCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
-
-import static jdk.incubator.code.dialect.core.CoreOp.func;
+import java.util.Optional;
 
 public class MethodCallDag extends Dag<MethodCallDag.Call> {
     public abstract static class Call implements FuncOpCarrier {
@@ -125,6 +123,15 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
         );
     }
 
+    private Map<MethodRef, CoreOp.FuncOp> ofDialect(DialectModule dialectModule) {
+        if (dialectModule != null) {
+            return dialectModule.functionsByMethod();
+        } else {
+            // return an empty hashmap
+            return new HashMap<>();
+        }
+    }
+
     MethodCallDag(MethodHandles.Lookup lookup, Method method, CoreOp.FuncOp entry, CoreOp.FuncOp inlined) {
         this.inlined = inlined;
         this.entryPoint = new EntryMethodCall(method, entry);
@@ -139,28 +146,22 @@ public class MethodCallDag extends Dag<MethodCallDag.Call> {
                   Method method,
                   CoreOp.FuncOp entry,
                   CoreOp.FuncOp inlined,
-                  List<TileTransformer.TileFunction> tileFunctions) {
+                  DialectModule dialectModule) {
 
         this.inlined = inlined;
         this.entryPoint = new EntryMethodCall(method, entry);
 
         // Add the main function to the CallDag
         add(entryPoint);
-
-        Map<MethodRef, CoreOp.FuncOp> mapFunctions = tileFunctions.stream()
-                .collect(Collectors
-                        .toMap(TileTransformer.TileFunction::methodRef, TileTransformer.TileFunction::function, (a, b) -> b));
-
+        Map<MethodRef, CoreOp.FuncOp> mapFunctions = ofDialect(dialectModule);
         OpHelper.Invoke.stream(lookup, entry)
                 .filter((invoke) -> invoke.targetMethodModelOrNull() != null)
                 .forEach(invoke -> {
                     MethodRef methodRef = invoke.op().invokeReference();
-                    if (mapFunctions.containsKey(methodRef)) {
-                        // If we get a match, then we replace the body of the function
-                        addEdge(entryPoint, invoke, mapFunctions);
-                    } else {
-                        addEdge(entryPoint, invoke);
-                    }
+                    Optional.ofNullable(mapFunctions.get(methodRef))
+                            .ifPresentOrElse(_ ->
+                                    addEdge(entryPoint, invoke, mapFunctions),
+                                    () -> addEdge(entryPoint, invoke));
                 });
 
         closeRanks();

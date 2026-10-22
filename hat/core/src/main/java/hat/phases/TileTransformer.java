@@ -32,6 +32,8 @@ import hat.codetypes.PtrType;
 import hat.codetypes.ShapeType;
 import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
+import hat.dialect.DialectFunction;
+import hat.dialect.DialectModule;
 import hat.dialect.TileOps;
 import hat.types.Tile;
 import jdk.incubator.code.Block;
@@ -83,42 +85,19 @@ public class TileTransformer {
     private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA", "FALSE"));
     private static final boolean SIMPLE_SIGNATURE = Boolean.parseBoolean(System.getProperty("SIMPLE_SIGNATURE", "TRUE"));
 
-    public record TileFunction(MethodRef methodRef, CoreOp.FuncOp function) {}
-
-    public static TileOps.ModuleOp dispatch(Class<?> klass, String methodName, List<? extends CodeType> argTypes, MethodHandles.Lookup lookup) {
-        Optional<Method> method = Stream.of(klass.getDeclaredMethods())
-                .filter(m -> m.getName().equals(methodName))
-                .filter(m -> m.getAnnotation(Reflect.class) != null)
-                .findFirst();
-
-        CoreOp.FuncOp funcOp = Op.ofMethod(method.orElseThrow()).get();
-        MethodRef methodRef = MethodRef.method(method.orElseThrow());
-        funcOp = processConstantFields(funcOp, lookup);
-
-        // Verify types and shapes from the input Tile Kernel and generate a new code model (dialect for Tile)
-        // A tile main kernel (entry point) always returns VOID
-        return TileTransformer.tileModule(funcOp, JavaType.VOID, argTypes, methodRef, lookup);
-    }
-
     /**
-     * Method to perform checks on the shapes and build the corresponding tensors with the correct dimensions and shapes across
+     * Method to perform checks on the shapes and build the corresponding tiles with the correct dimensions and shapes across
      * all operations.
      *
      * @param kernel   Input Kernel
      * @param rType    Return Type
      * @param argTypes Arguments to the Tile Kernel
      * @param <O>      Op type
-     * @return Module {@link TileOps.ModuleOp}
      */
-    public static <O extends Op & Op.Invokable> TileOps.ModuleOp tileModule(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
-        Map<String, List<TileFunction>> symbolTable = new LinkedHashMap<>();
-        List<TileFunction> funcOps = tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
-        return TileOps.module(funcOps.stream().map(TileFunction::function).collect(Collectors.toList()));
-    }
-
-    public static <O extends Op & Op.Invokable> List<TileFunction> tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
-        Map<String, List<TileFunction>> symbolTable = new LinkedHashMap<>();
-        return tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
+    public static <O extends Op & Op.Invokable> DialectModule tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
+        Map<String, List<DialectFunction>> symbolTable = new LinkedHashMap<>();
+        List<DialectFunction> tileFunctions = tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
+        return new DialectModule(tileFunctions.getLast(), tileFunctions.subList(0, tileFunctions.size() - 1));
     }
 
     /**
@@ -166,10 +145,10 @@ public class TileTransformer {
      * @param <O>
      * @return A new function which includes the code tree in the Tile format (dialect)
      */
-    private static <O extends Op & Op.Invokable> List<TileFunction> tileFunction(O kernel,
+    private static <O extends Op & Op.Invokable> List<DialectFunction> tileFunction(O kernel,
                                                                                   CodeType rType,
                                                                                   List<? extends CodeType> argTypes,
-                                                                                  Map<String, List<TileFunction>> symbolTable,
+                                                                                  Map<String, List<DialectFunction>> symbolTable,
                                                                                   MethodRef methodRef,
                                                                                   MethodHandles.Lookup lookup) {
 
@@ -201,7 +180,7 @@ public class TileTransformer {
             printTypeMap(kernel, valueTypeMap);
         }
 
-        List<TileFunction>  funcOps = new ArrayList<>();
+        List<DialectFunction>  funcOps = new ArrayList<>();
 
         while (!stack.isEmpty()) {
             O k = stack.pop();
@@ -213,15 +192,15 @@ public class TileTransformer {
             // we generate a new code model. For the new code model, it uses the symbol table built in the previous process.
             CoreOp.FuncOp funcOp = TileTransformer.transformToTileFunction(k, signature, rType, valueTypeMap, opData, symTable, stack.size());
             if (symbolTable.containsKey(signature)) {
-                List<TileFunction> put = symbolTable.put(signature, symbolTable.get(signature));
-                Objects.requireNonNull(put).add(new TileFunction(null, funcOp));
+                List<DialectFunction> put = symbolTable.put(signature, symbolTable.get(signature));
+                Objects.requireNonNull(put).add(new DialectFunction(null, funcOp));
                 symbolTable.put(signature, put);
             } else {
-                List<TileFunction> list = new ArrayList<>();
-                list.add(new TileFunction(methodRefMap.get(k), funcOp));
+                List<DialectFunction> list = new ArrayList<>();
+                list.add(new DialectFunction(methodRefMap.get(k), funcOp));
                 symbolTable.put(signature, list);
             }
-            funcOps.add(new TileFunction(methodRefMap.get(k), funcOp));
+            funcOps.add(new DialectFunction(methodRefMap.get(k), funcOp));
         }
         return funcOps;
     }
