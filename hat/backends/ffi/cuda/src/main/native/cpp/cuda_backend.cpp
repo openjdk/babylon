@@ -381,18 +381,23 @@ void CudaBackend::showDeviceInfo() {
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
+// TypeModel = 0; SIMT model
+// TypeModel = 1; Tile model
 bool CudaBackend::useNvrtcCompiler(int typeModel) const {
-    const bool useNvrtc = config->cudaNvrtc;
+    // CUDA NVRTC is the default. Thus, to obtain nvrtc we need
+    // to check that NVCC flag is not enabled.
+    const bool useNVCC = config->cudaNvcc;
 
     // Loading Tile IR in-process registers handlers that process signals first
     // and resend them with a polluted state, breaking JVM signal handling.
     // NVRTC emits only Tile IR for Tile kernels, so libjsig is required.
     // Tile cubin and SIMT PTX do not need it.
-    if (useNvrtc && typeModel > 0 && !isLibjsigLoaded()) {
+    if (!useNVCC && typeModel > 0 && !isLibjsigLoaded()) {
         warnNvrtcRequiresLibjsig();
         return false;
     }
-    return useNvrtc;
+    // use NVRTC is the flag NVCC is not enabled.
+    return !useNVCC;
 }
 
 CudaImage *CudaBackend::nvcc(const CudaSource *cudaSource) {
