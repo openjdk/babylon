@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
@@ -255,18 +256,29 @@ public final class ControlFlowPreparation  implements CodeTransformer {
     @Override
     public Block.Builder acceptOp(Block.Builder builder, Op operation) {
         List<Target> targets = rewrites.get(operation);
+        CodeContext context = builder.context();
+        Op replacement;
         if (targets == null) {
-            builder.add(operation);
+            Optional<Object> constant;
+            if (!operation.bodies().isEmpty()
+                    || (constant = constants.evaluate(operation.result())).isEmpty()) {
+                builder.add(operation);
+                return builder;
+            }
+            // drop constant expressions consumed only by folded expressions
+            if (onlyUsedBy(operation.result(), null)) {
+                return builder;
+            }
+            replacement = CoreOp.constant(operation.resultType(), constant.orElseThrow());
         } else {
-            CodeContext context = builder.context();
-            Op replacement = targets.size() == 1
+            replacement = targets.size() == 1
                     ? CoreOp.branch(targets.getFirst().map(context))
                     : CoreOp.conditionalBranch(context.getValue(operation.operands().getFirst()),
                             targets.get(0).map(context), targets.get(1).map(context));
-            Op.Result result = builder.add(replacement);
-            result.op().setLocation(operation.location());
-            context.mapValue(operation.result(), result);
         }
+        Op.Result result = builder.add(replacement);
+        result.op().setLocation(operation.location());
+        context.mapValue(operation.result(), result);
         return builder;
     }
 }
