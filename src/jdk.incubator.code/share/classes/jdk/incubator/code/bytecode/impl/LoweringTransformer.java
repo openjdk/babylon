@@ -91,7 +91,7 @@ public final class LoweringTransformer {
                     && !(op instanceof JavaOp.LambdaOp))
                     ? fop.transform(CodeContext.create(), lowering)
                     : fop;
-            functions.add(ControlFlowPreparation.transform(lowered, true));
+            functions.add(ControlFlowPreparation.transform(lowered));
         }
         return CoreOp.module(functions);
     }

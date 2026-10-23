@@ -54,7 +54,7 @@ public final class SSA {
      * @param <T> the operation type
      */
     public static <T extends Op & Op.Nested> T transform(T nestedOp) {
-        nestedOp = ControlFlowPreparation.transform(nestedOp, false);
+        nestedOp = ControlFlowPreparation.transform(nestedOp);
         // @@@ property is used to test both impls
         if (!"cytron".equalsIgnoreCase(System.getProperty("babylon.ssa"))) {
             return SSABraun.transform(nestedOp);
