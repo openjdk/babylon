@@ -100,7 +100,6 @@ public class TileTransformer {
      */
     public static <O extends Op & Op.Invokable> DialectModule tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
         Map<String, List<DialectFunction>> symbolTable = new LinkedHashMap<>();
-        IO.println(kernel.toText());
         List<DialectFunction> tileFunctions = tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
         return new DialectModule(tileFunctions.getLast(), tileFunctions.subList(0, tileFunctions.size() - 1));
     }

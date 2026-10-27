@@ -25,13 +25,15 @@
 package hat.dialect;
 
 import hat.codetypes.ConstantType;
-import jdk.incubator.code.*;
+import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.ConstantOp;
 import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
