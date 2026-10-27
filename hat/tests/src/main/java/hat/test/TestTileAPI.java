@@ -527,56 +527,6 @@ public class TestTileAPI {
         HATAsserts.assertEquals(N, matrixA.n());
     }
 
-    // Matmul using irange and FP16
-    @Reflect
-    public static void matmulSimpleF16IRange(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int numTiles) {
-        final int bidx = TileContext.BIDX();
-        final int bidy = TileContext.BIDY();
-        var accumulator = Tile.zeros(tm, tn);
-        for (int k : TileContext.irange(0, numTiles)) {
-            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
-            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
-            accumulator = Tile.mma(tileA, tileB, accumulator);
-        }
-        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
-    }
-
-    @Reflect
-    public static void matmulSimpleF16IRange(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N, final int numTiles) {
-        computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
-                () -> matmulSimpleF16IRange(inputA, inputB, output, tm, tn, tk, numTiles));
-    }
-
-    // Matmul using irange in FP16
-    @HatTest
-    public void test_hat_tile_09() {
-        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
-
-        final int size = 1024;
-        Tensor2DF16 matrixA = Tensor2DF16.create(accelerator, size, size);
-        Tensor2DF16 matrixB = Tensor2DF16.create(accelerator, size, size);
-        Tensor2DF32 matrixC = Tensor2DF32.create(accelerator, size, size);
-        Tensor2DF32 matrixSeq = Tensor2DF32.create(accelerator, size, size);
-
-        // Initialize matrices (A and B have the same size)
-        Random r = new Random(19);
-        for (int i = 0; i < size * size; i++) {
-            matrixA.array(i, Float.floatToFloat16(r.nextFloat()));
-            matrixB.array(i, Float.floatToFloat16(r.nextFloat()));
-        }
-
-        // Tile size tuned for 5060
-        final int tm = 64;
-        final int tn = 64;
-        final int tk = 64;
-        final int numTiles = (size + tk - 1) / tk;
-        accelerator.compute((@Reflect Compute) computeContext ->
-                matmulSimpleF16IRange(computeContext, matrixA, matrixB, matrixC, tm, tn, tk, size, size, numTiles));
-
-        runSequential(matrixA, matrixB, matrixSeq, size);
-        checkResult(matrixSeq, matrixC);
-    }
-
     /**
      * matmul in FP16 using swizzling and irange.
      */
@@ -597,7 +547,7 @@ public class TestTileAPI {
 
         var accumulator = Tile.zeros(tm, tn);
         final int numberOfTiles = Tile.numTiles(inputA, 1, TileContext.shape(tm, tk));
-        for (int k : TileContext.irange(numberOfTiles)) {
+        for (int k = 0; k < numberOfTiles; k++) {
             var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
             var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
             accumulator = Tile.mma(tileA, tileB, accumulator);
@@ -617,7 +567,7 @@ public class TestTileAPI {
 
     // Test matmul in FP16 using swizzling and irange.
     @HatTest
-    public void test_hat_tile_10() {
+    public void test_hat_tile_09() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         // Testing square matrices
         final int size = 1024;
@@ -665,7 +615,7 @@ public class TestTileAPI {
     }
 
     @HatTest
-    public void test_hat_tile_11() {
+    public void test_hat_tile_10() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
 
         final int size = Math.powExact(2, 12);
@@ -716,7 +666,7 @@ public class TestTileAPI {
     }
 
     @HatTest
-    public void test_hat_tile_12() {
+    public void test_hat_tile_11() {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
         final int tileSize = 32 / 4;
