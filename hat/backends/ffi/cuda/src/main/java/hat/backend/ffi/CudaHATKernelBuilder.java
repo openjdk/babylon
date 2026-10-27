@@ -1593,27 +1593,25 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             // At this point, we know it is a counted loop. Otherwise, the TileInterpreter would
             // have thrown an error.
             TileForLoopInfo.LoopInfo loopInfo = TileForLoopInfo.info(forOp);
-            boolean[] step = new boolean[1];
-            step[0] = !(loopInfo.step().declaringElement() instanceof CoreOp.ConstantOp constant) || !constant.value().equals(1);
-            scopedCodeBuilderContext().forScope(forOp, () ->
-                    forKeyword().paren(_ -> {
-                        auto().sp().varName(loopInfo.inductionVar()).sp().colon().sp().
-                                tileIRange().paren(_ -> {
-                                            recurseResultOrThrow(loopInfo.initValue().result())
-                                                    .comma()
-                                                    .sp()
-                                                    .recurseResultOrThrow(loopInfo.loopBound());
-                                            if (step[0]) {
-                                                comma().recurseResultOrThrow(loopInfo.step());
-                                            }
-                                        }
-                                );
-                    }).braceNlIndented(_ ->
-                            nlSeparated(OpHelper.Statement.bodyStatements(forOp.loopBody()), this::statement))
-            );
+            if (loopInfo.inductionVar() != null) {
+                enhancedLoopTile(forOp, loopInfo);
+            }
         } else {
             super.forOp(forOp);
         }
         return self();
+    }
+
+    private void enhancedLoopTile(JavaOp.ForOp forOp, TileForLoopInfo.LoopInfo loopInfo) {
+        boolean[] step = new boolean[1];
+        step[0] = !(loopInfo.step().declaringElement() instanceof CoreOp.ConstantOp constant) || !constant.value().equals(1);
+        scopedCodeBuilderContext().forScope(forOp, () -> forKeyword().paren(_ -> {
+            auto().sp().varName(loopInfo.inductionVar()).sp().colon().sp().tileIRange().paren(_ -> {
+                recurseResultOrThrow(loopInfo.initValue().result()).comma().sp().recurseResultOrThrow(loopInfo.loopBound());
+                if (step[0]) {
+                    comma().recurseResultOrThrow(loopInfo.step());
+                }
+            });
+        }).braceNlIndented(_ -> nlSeparated(OpHelper.Statement.bodyStatements(forOp.loopBody()), this::statement)));
     }
 }

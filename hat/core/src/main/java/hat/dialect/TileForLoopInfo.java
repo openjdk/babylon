@@ -25,15 +25,13 @@
 package hat.dialect;
 
 import hat.codetypes.ConstantType;
-import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.ConstantOp;
 import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
@@ -104,30 +102,16 @@ public class TileForLoopInfo {
         Value boundValue = checkConditionalLeftOperandIsSingleLtOp(forOp);
 
         // Step
-        /*
-         (%73 : Var<java.type:"int">)java.type:"void" -> {
-            %74 : java.type:"int" = var.load %73 @loc="226:32";
-            %75 : java.type:"int" = constant @loc="226:32" @1;
-            %76 : java.type:"int" = add %74 %75 @loc="226:32";
-            var.store %73 %76 @loc="226:32";
-            yield @loc="226:9";
-        }
-        */
-        List<Op> ops = forOp.updateBody().entryBlock().ops();
-        if (!(ops.getLast() instanceof CoreOp.YieldOp)) {
-            throw new IllegalStateException("YieldOp expected");
-        }
+        JavaOp.AddOp addOp = getStepValue(forOp);
 
-        Op op = ops.get(ops.size() - 2);
-        if (!(op instanceof CoreOp.VarAccessOp.VarStoreOp varStoreOp)) {
-            throw new IllegalStateException("VarStoreOp expected");
-        }
-        Value incrementResult = varStoreOp.operands().getLast();
-        JavaOp.AddOp addOp = getStepValue(forOp, incrementResult);
-
-        // Final check
-        // no loop exit (break) nor continues
-        boolean b = forOp.loopBody().entryBlock().elements().anyMatch(e -> e instanceof JavaOp.BreakOp || e instanceof JavaOp.ContinueOp);
+        // Final check: no loop exit (break) nor continues
+        // remove last Op from the inspection list (could be a continue)
+        int size = forOp.loopBody().entryBlock().ops().size();
+        boolean b = forOp.loopBody().entryBlock()
+                .ops()
+                .subList(0, size -2)
+                .stream()
+                .anyMatch(e -> e instanceof CoreOp.ReturnOp || e instanceof JavaOp.ContinueOp);
         if (b) {
             throw new IllegalArgumentException("For-loop is not a counted loop");
         }
@@ -135,21 +119,56 @@ public class TileForLoopInfo {
         return new LoopInfo(inductionVar, initConstant, boundValue, addOp.rhsOperand());
     }
 
-    private static JavaOp.AddOp getStepValue(JavaOp.ForOp forOp, Value incrementResult) {
+    // Obtain the Op that provides the step value
+    // We need to discard non-compatible combinations
+    private static JavaOp.AddOp getStepValue(JavaOp.ForOp forOp) {
+               /* Code IR Example:
+         (%73 : Var<java.type:"int">)java.type:"void" -> {
+            %74 : java.type:"int" = var.load %73 @loc="226:32";
+            %75 : java.type:"int" = constant @loc="226:32" @1;
+            %76 : java.type:"int" = add %74 %75 @loc="226:32";
+            var.store %73 %76 @loc="226:32";
+            yield @loc="226:9";
+        }*/
+        List<Op> ops = forOp.updateBody().entryBlock().ops();
+        if (!(ops.getLast() instanceof CoreOp.YieldOp)) {
+            throw new IllegalStateException("YieldOp expected");
+        }
+
+        Op op = ops.get(ops.size() - 2);
+        // Assume a final store (i += step)
+        if (!(op instanceof CoreOp.VarAccessOp.VarStoreOp varStoreOp)) {
+            throw new IllegalStateException("VarStoreOp expected");
+        }
+        Value incrementResult = varStoreOp.operands().getLast();
+
+        // Check the induction variable is the one in the store, otherwise we launch an exception
+        // Discard: i = j step
+        if (!varStoreOp.varOperand().equals(forOp.updateBody().entryBlock().parameters().getFirst())) {
+            throw new IllegalStateException("VarLoadOp expected");
+        }
+
+        // Discard non-incrementals using +=
         if (!(incrementResult.declaringElement() instanceof JavaOp.AddOp addOp)) {
             throw new IllegalStateException("AddOp expected");
         }
+        // Step value must be a constant, otherwise, we reject
         if (!(addOp.rhsOperand().declaringElement() instanceof ConstantOp)) {
             throw new IllegalStateException("Constant expected as increment step");
         }
+
+        // Only one induction variable
         if (forOp.updateBody().entryBlock().parameters().size() != 1) {
             throw new IllegalArgumentException("Expected one induction variable");
         }
+        // We can't load any operation that is not already a load. Expressions such as i += i * k step
+        // will be rejected
         if (!(addOp.lhsOperand().declaringElement() instanceof CoreOp.VarAccessOp.VarLoadOp)) {
             throw new IllegalArgumentException("VarLoadOp expected");
         }
         return addOp;
     }
+
 
     private record BoundInfo(ConstantOp loopBound, VarOp varOpOnWrite, boolean check) {}
 
