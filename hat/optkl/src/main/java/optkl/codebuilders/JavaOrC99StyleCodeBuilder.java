@@ -372,7 +372,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T forOp( JavaOp.ForOp forOp) {
+    public T forOp( JavaOp.ForOp forOp) {
         scopedCodeBuilderContext().forScope(forOp, () ->
                 forKeyword().paren(_ -> {
                     forOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
@@ -505,7 +505,6 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     public T enhancedForOp(JavaOp.EnhancedForOp enhancedForOp){
         scopedCodeBuilderContext().enhancedForScope(enhancedForOp, () -> {
             forKeyword().paren(_ -> {
-//            enhancedForOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> recurse( o));
                 enhancedForOp.initBody().entryBlock().ops().stream().filter(o -> o instanceof CoreOp.YieldOp).forEach(o -> {
                     CoreOp.YieldOp yieldOp = (CoreOp.YieldOp) o;
                     CodeType type = yieldOp.yieldValue().type();

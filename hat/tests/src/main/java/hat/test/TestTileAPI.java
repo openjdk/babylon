@@ -505,7 +505,7 @@ public class TestTileAPI {
             matrixB.array(i, Float.floatToFloat16(r.nextFloat()));
         }
 
-        final int tm = 32;
+        final int tm = 64;
         final int tn = 64;
         final int tk = 64;
         accelerator.compute((@Reflect Compute) computeContext -> {
