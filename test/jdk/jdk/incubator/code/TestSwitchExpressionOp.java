@@ -466,6 +466,24 @@ public class TestSwitchExpressionOp {
         }
     }
 
+    @Reflect
+    static int swOnPrimitive(int value) {
+        // lowered model shouldn't check for null
+        // this case also exercise that lower use the incoming block for the default action
+        return switch (value) {
+            default -> 20;
+        };
+    }
+
+    @Test
+    void testSwOnPrimitive() {
+        CoreOp.FuncOp model = getCodeModel("swOnPrimitive");
+        CoreOp.FuncOp lmodel = model.transform(CodeTransformer.LOWERING_TRANSFORMER);
+        for (int i : new int[]{1, 2}) {
+            Assertions.assertEquals(swOnPrimitive(i), Interpreter.invoke(MethodHandles.lookup(), lmodel, i));
+        }
+    }
+
     @Test
     void testCaseConstantThrow() {
         CoreOp.FuncOp model = getCodeModel("caseConstantThrow");
