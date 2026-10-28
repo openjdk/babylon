@@ -174,6 +174,10 @@ public final class LoweringTransformer {
         if (!integralPrimitiveTypes.contains(selector.type()) && !integralReferenceTypes.contains(selector.type())) {
             return Optional.empty();
         }
+        if (swOp.handleNulls()) {
+            // a switch that has case null, default -> ... is not constant
+            return Optional.empty();
+        }
         var labels = new ArrayList<Integer>();
         var targets = new ArrayList<Block>();
         for (int i = 0; i < swOp.bodies().size(); i += 2) {

@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Stream;
@@ -44,6 +45,8 @@ import java.util.stream.Stream;
  * @modules jdk.incubator.code
  * @library lib
  * @enablePreview
+ * @run junit TestSwitchExpressionOp
+ * @run main Unreflect TestSwitchExpressionOp
  * @run junit TestSwitchExpressionOp
  */
 public class TestSwitchExpressionOp {
@@ -449,6 +452,9 @@ public class TestSwitchExpressionOp {
                 expected = m.invoke(null, a);
             } catch (Exception ex) {
                 expectedEx = ex;
+                if (ex instanceof InvocationTargetException) {
+                    expectedEx = ex.getCause();
+                }
             }
             Object actual = null;
             Throwable actualEx = null;
@@ -458,11 +464,10 @@ public class TestSwitchExpressionOp {
                 actualEx = ex;
             }
             if (expectedEx != null) {
-                Assertions.assertSame(expectedEx.getCause().getClass(), actualEx.getClass());
+                Assertions.assertSame(expectedEx.getClass(), actualEx.getClass());
             } else if (expected != null) {
                 Assertions.assertEquals(expected, actual);
             }
-            //@@@ BytecodeGenerator is not passing the test
         }
     }
 
