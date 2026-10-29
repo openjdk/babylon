@@ -52,7 +52,9 @@ sealed abstract class InternalAbstractOp implements Op permits AbstractOp, Abstr
     protected InternalAbstractOp(List<? extends Value> operands) {
         for (Value operand : operands) {
             if (operand.isBuilt()) {
-                throw new IllegalArgumentException("Operand's declaring block is built: " + operand);
+                throw new IllegalArgumentException(
+                        "Operand's declaring block is built\n"
+                        + operand.block.diagnosticText(operand, "operand"));
             }
         }
         this.operands = List.copyOf(operands);
@@ -96,7 +98,9 @@ sealed abstract class InternalAbstractOp implements Op permits AbstractOp, Abstr
         }
 
         if (!result.block.isBuilt()) {
-            throw new IllegalStateException("Parent block is unobservable");
+            throw new IllegalStateException(
+                    "Operation's parent block is unobservable\n"
+                    + result.block.diagnosticText(this, "operation with unobservable parent block"));
         }
 
         return result.block;
