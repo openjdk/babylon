@@ -245,72 +245,6 @@ public class Main {
         });
     }
 
-    /**
-     * Single-head scale-dot product attention. It is currently not invoked. We just keep it as a reference.
-     *
-     * @param Q
-     * @param K
-     * @param V
-     * @param attentionMatrix
-     * @param O
-     * @param N
-     * @param d
-     * @param softMaxScale
-     */
-    public static void selfAttention(F32Array Q, F32Array K, F32Array V,
-                                     F32Array attentionMatrix, F32Array O,
-                                     final int N, final int d, final float softMaxScale) {
-
-        // Compute attention scores: Q @ K^T and scale it to (1/sqrt(head_dim))
-        // In this example, the parameter d already computes 1/sqrt(head_dim)
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                float acc = 0.0f;
-                for (int k = 0; k < d; k++) {
-                    acc += Q.array(i * d + k) * K.array(j * d + k);
-                }
-                acc *= softMaxScale;
-                attentionMatrix.array(i * N + j, acc);
-            }
-        }
-
-        // SoftMax: apply softmax function to the attention score to normalize them
-        for (int i = 0; i < N; i++) {
-            // Compute max
-            float max = Float.MIN_VALUE;
-            for (int j = 0; j < N; j++) {
-                max = Math.max(max, attentionMatrix.array(i * N + j));
-            }
-
-            // exp(attention[i][j] - max)
-            // compute total sum
-            float sum = 0.0f;
-            for (int j = 0; j < N; j++) {
-                float p = (float) Math.exp(attentionMatrix.array(i * N + j) - max);
-                attentionMatrix.array(i * N + j, p);
-                sum += p;
-            }
-
-            // normalize:
-            // attention[i][j] /= sum
-            for (int j = 0; j < N; j++) {
-                float val = attentionMatrix.array(i * N + j) / sum;
-                attentionMatrix.array(i * N + j, val);
-            }
-        }
-
-        // Final matmul: O = attention @ V
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < d; j++) {
-                float acc = 0.0f;
-                for (int k = 0; k < N; k++) {
-                    acc += attentionMatrix.array(i * N + k) * V.array(k * d + j);
-                }
-                O.array(i * d + j, acc);
-            }
-        }
-    }
-
     @Reflect
     public static void selfAttentionCompute( ComputeContext computeContext,  F32Array Q,  F32Array K,  F32Array V,
                                              F32Array attentionMatrix,  F32Array O,
@@ -406,7 +340,7 @@ public class Main {
         // Load Q into shared memory (sQ_index)
         for (int k = 0; k < d; k++) {
             sharedArray.array((tid * d + k) + sQ_index,
-                    Q.array((startIndex + (tid * d + k) * d + k)));
+                    Q.array((startIndex + tid) * d + k));
         }
         barrier();
 
@@ -418,14 +352,14 @@ public class Main {
             // Load the tiles K and V into shared memory
             for (int k = 0; k < d; k++) {
                 sharedArray.array((tid * d + k) + sK_index, K.array(kvTileRow * d + k));
-                sharedArray.array((tid + d + k) + sV_index, V.array(kvTileRow * d + k));
+                sharedArray.array((tid * d + k) + sV_index, V.array(kvTileRow * d + k));
             }
             barrier();
 
             // m we accumulate the max values
-            float m_prev = m.array(tileId * blockN + tid);
+            float m_prev = m.array(startIndex + tid);
             // in l we accumulate the sum values
-            float l_prev = l.array(tileId * blockN + tid);
+            float l_prev = l.array(startIndex + tid);
             float m_block = Float.MIN_VALUE; // for calculating max
             float l_block = 0.0f; // for sum
 
@@ -439,7 +373,7 @@ public class Main {
                             * sharedArray.array((t * d + k) + sK_index);
                 }
                 score *= softmaxScale;
-                privateFloatArray.array((t) + sS_index, score);
+                privateFloatArray.array(t, score);
                 m_block = Math.max(m_block, score);
             }
 
@@ -474,8 +408,8 @@ public class Main {
             }
 
             // update m and l in global memory
-            m.array(tileId * blockN + tid, m_new);
-            l.array(tileId * blockN + tid, l_new);
+            m.array(startIndex + tid, m_new);
+            l.array(startIndex + tid, l_new);
 
             barrier();
         }
@@ -545,11 +479,10 @@ public class Main {
         int baseIndex = blockN * headDim;
         int sK_index = baseIndex;
         int sV_index = baseIndex * 2;
-        int sS_index = baseIndex * 3;
 
         // Load Q into shared memory (sQ_index)
         for (int k = 0; k < d; k++) {
-            F16 valQ = Q.array((startIndex + (tid * d + k) * d + k));
+            F16 valQ = Q.array((startIndex + tid) * d + k);
             sharedArray.array((tid * d + k) + sQ_index).value(valQ.value());
         }
 
@@ -565,14 +498,14 @@ public class Main {
                 F16 kVal = K.array(kvTileRow * d + k);
                 F16 vVal = V.array(kvTileRow * d + k);
                 sharedArray.array((tid * d + k) + sK_index).value(kVal.value());
-                sharedArray.array((tid + d + k) + sV_index).value(vVal.value());
+                sharedArray.array((tid * d + k) + sV_index).value(vVal.value());
             }
             barrier();
 
-            // m we accumulate the max values
-            F16 m_prev = m.array(tileId * blockN + tid);
-            // in l we accumulate the sum values
-            F16 l_prev = l.array(tileId * blockN + tid);
+            // m we accumulate the max values for all tiles per thread
+            F16 m_prev = m.array(startIndex + tid);
+            // in l we accumulate the sum values for all tiles per thread
+            F16 l_prev = l.array(startIndex + tid);
             F16 m_block = F16.of(-100f); // for calculating max
             F16 l_block = F16.of(0.0f); // for sum
 
@@ -588,7 +521,7 @@ public class Main {
                     score = F16.add(score, mul);
                 }
                 score = F16.mul(score, scale);
-                privateFloatArray.array((t) + sS_index).value(score.value());
+                privateFloatArray.array(t).value(score.value());
                 m_block = HATMath.maxf16(m_block, score);
             }
 
@@ -640,8 +573,8 @@ public class Main {
             }
 
             // update m and l in global memory
-            m.array(tileId * blockN + tid).value(m_new.value());
-            l.array(tileId * blockN + tid).value(l_new.value());
+            m.array(startIndex + tid).value(m_new.value());
+            l.array(startIndex + tid).value(l_new.value());
 
             barrier();
         }
@@ -658,8 +591,19 @@ public class Main {
 
     public static boolean checkResult(F32Array O_reference, F32Array O, final int matrixSize) {
         for (int i = 0; i < matrixSize; i++) {
-            if (Math.abs(O_reference.array(i) - O.array(i)) > 0.1f) {
+            if (Float.isNaN(O.array(i)) || Math.abs(O_reference.array(i) - O.array(i)) > 0.01f) {
                 IO.println("Iteration: #" + i + " " + O_reference.array(i) + " != " + O.array(i));
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean checkResult(F32Array O_reference, F16Array O, final int matrixSize) {
+        for (int i = 0; i < matrixSize; i++) {
+            if (Float.isNaN(F16.f16ToFloat(O.array(i)))
+                    || Math.abs(O_reference.array(i) - F16.f16ToFloat(O.array(i))) > 0.01f) {
+                IO.println("Iteration: #" + i + " " + O_reference.array(i) + " != " + F16.f16ToFloat(O.array(i)));
                 return false;
             }
         }
@@ -706,17 +650,17 @@ public class Main {
         var V = F32Array.create(accelerator, matrixSize);
         var m = F32Array.create(accelerator, matrixSize);
         var l = F32Array.create(accelerator, matrixSize);
-        var O_java = F32Array.create(accelerator, matrixSize);
-        var O_streams = F32Array.create(accelerator, matrixSize);
-        var O_selfAttention = F32Array.create(accelerator, matrixSize);
-        var O_flashAttention = F32Array.create(accelerator, matrixSize);
+        var outputJava = F32Array.create(accelerator, matrixSize);
+        var outputStreams = F32Array.create(accelerator, matrixSize);
+        var outputHATNaive = F32Array.create(accelerator, matrixSize);
+        var outputHATF32 = F32Array.create(accelerator, matrixSize);
 
         var Q16 = F16Array.create(accelerator, matrixSize);
         var K16 = F16Array.create(accelerator, matrixSize);
         var V16 = F16Array.create(accelerator, matrixSize);
         var m16 = F16Array.create(accelerator, matrixSize);
         var l16 = F16Array.create(accelerator, matrixSize);
-        var O_flashAttention16 = F16Array.create(accelerator, matrixSize);
+        var outputHATF16 = F16Array.create(accelerator, matrixSize);
 
         F32Array attentionMatrix = F32Array.create(accelerator, sequenceLen * sequenceLen);
 
@@ -731,14 +675,8 @@ public class Main {
             Q16.array(i).value(F16.floatToF16(Q.array(i)).value());
             K16.array(i).value(F16.floatToF16(K.array(i)).value());
             V16.array(i).value(F16.floatToF16(V.array(i)).value());
-
         }
 
-        IntStream.range(0, m.length()).forEach(k -> m.array(k, 0.0f));
-        IntStream.range(0, l.length()).forEach(k -> l.array(k, 1.0f));
-
-        IntStream.range(0, m.length()).forEach(k -> m16.array(k).value(F16.of(0.0f).value()));
-        IntStream.range(0, m.length()).forEach(k -> l16.array(k).value(F16.of(1.0f).value()));
 
         List<Long> timersSelfAttentionJava = new ArrayList<>();
         List<Long> timersSelfAttentionStream = new ArrayList<>();
@@ -749,7 +687,7 @@ public class Main {
         // Run the CPU version with Java:
         for (int i = 0; i < options.iterations(); i++) {
             long start = System.nanoTime();
-            selfAttentionV2(Q, K, V, attentionMatrix, O_java, sequenceLen, headDim, softmaxScale);
+            selfAttentionV2(Q, K, V, attentionMatrix, outputJava, sequenceLen, headDim, softmaxScale);
             long end = System.nanoTime();
             timersSelfAttentionJava.add((end - start));
             if (verbose) {
@@ -760,7 +698,7 @@ public class Main {
         // Run the Parallel Stream version with Java:
         for (int i = 0; i < options.iterations(); i++) {
             long start = System.nanoTime();
-            selfAttentionStreamsV2(Q, K, V, attentionMatrix, O_streams, sequenceLen, headDim, softmaxScale);
+            selfAttentionStreamsV2(Q, K, V, attentionMatrix, outputStreams, sequenceLen, headDim, softmaxScale);
             long end = System.nanoTime();
             timersSelfAttentionStream.add((end - start));
             if (verbose) {
@@ -778,7 +716,7 @@ public class Main {
                             K,
                             V,
                             attentionMatrix,
-                            O_selfAttention,
+                            outputHATNaive,
                             sequenceLen,
                             headDim,
                             softmaxScale));
@@ -792,6 +730,10 @@ public class Main {
 
         // Run flashAttention in HAT
         for (int i = 0; i < options.iterations(); i++) {
+
+            IntStream.range(0, m.length()).forEach(k -> m.array(k, Float.MIN_VALUE));
+            IntStream.range(0, l.length()).forEach(k -> l.array(k, 0.0f));
+
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute)
                     cc -> Main.computeFlashAttention(
@@ -799,7 +741,7 @@ public class Main {
                             Q,
                             K,
                             V,
-                            O_flashAttention,
+                            outputHATF32,
                             m, l,
                             sequenceLen,
                             headDim,
@@ -815,6 +757,10 @@ public class Main {
 
         // Run flashAttention in HAT
         for (int i = 0; i < options.iterations(); i++) {
+            // init m and l
+            IntStream.range(0, m.length()).forEach(k -> m16.array(k).value(F16.of(-100).value()));
+            IntStream.range(0, m.length()).forEach(k -> l16.array(k).value(F16.of(0.0f).value()));
+
             long start = System.nanoTime();
             accelerator.compute((@Reflect Compute)
                     cc -> Main.computeFlashAttentionF16(
@@ -822,7 +768,7 @@ public class Main {
                             Q16,
                             K16,
                             V16,
-                            O_flashAttention16,
+                            outputHATF16,
                             m16, l16,
                             sequenceLen,
                             headDim,
@@ -838,9 +784,10 @@ public class Main {
 
         // Check results
         if (options.checkResult()) {
-            boolean isStreamsCorrect = checkResult(O_java, O_streams, matrixSize);
-            boolean isHATSelfAttentionCorrect = checkResult(O_java, O_selfAttention, matrixSize);
-            boolean isFlashAttentionCorrect = checkResult(O_java, O_flashAttention, matrixSize);
+            boolean isStreamsCorrect = checkResult(outputJava, outputStreams, matrixSize);
+            boolean isHATSelfAttentionCorrect = checkResult(outputJava, outputHATNaive, matrixSize);
+            boolean isFlashAttentionCorrectF32 = checkResult(outputJava, outputHATF32, matrixSize);
+            boolean isFlashAttentionCorrectF16 = checkResult(outputJava, outputHATF16, matrixSize);
 
             if (isStreamsCorrect) {
                 IO.println("Self-Attention Parallel Stream is correct");
@@ -852,11 +799,15 @@ public class Main {
             } else {
                 IO.println("HAT-Self-Attention is wrong");
             }
-            if (isFlashAttentionCorrect) {
-                IO.println("HAT-Flash-Attention is correct");
+            if (isFlashAttentionCorrectF32) {
+                IO.println("HAT-Flash-Attention-F32 is correct");
             } else {
-                IO.println("HAT_Flash-Attention is wrong. Note: expected due to use of multiple Math.exp operations " +
-                        "not present in the self-attention version.");
+                IO.println("HAT-Flash-Attention-F32 is wrong");
+            }
+            if (isFlashAttentionCorrectF16) {
+                IO.println("HAT-Flash-Attention-F16 is correct");
+            } else {
+                IO.println("HAT-Flash-Attention-F16 is wrong");
             }
         }
 

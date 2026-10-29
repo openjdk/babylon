@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,26 +28,36 @@
 #include "cuda_backend.h"
 
 
-CudaBackend::CudaModule::CudaModule(Backend *backend, char *cudaSource, char  *log, const bool ok, const CUmodule module)
-        : CompilationUnit(backend, cudaSource, log, ok), cudaSource(cudaSource), ptxSource(),log(log), module(module) {
+CudaBackend::CudaModule::CudaModule(Backend *backend,
+                                    const CudaImage *cudaImage,
+                                    char *log, const bool ok,
+                                    const CUmodule module)
+    : CompilationUnit(backend, cudaImage->text, log, ok),
+      cudaSource(),
+      image(cudaImage->len, cudaImage->text, false),
+      log(log),
+      module(module) {
 }
 
 CudaBackend::CudaModule::~CudaModule() = default;
-CudaBackend::CudaModule * CudaBackend::CudaModule::of(long moduleHandle){
+
+CudaBackend::CudaModule *CudaBackend::CudaModule::of(long moduleHandle) {
     return reinterpret_cast<CudaModule *>(moduleHandle);
 }
-Backend::CompilationUnit::Kernel * CudaBackend::CudaModule::getKernel(const int nameLen, char *name) {
-    CudaKernel* cudaKernel= getCudaKernel(nameLen, name);
-    return cudaKernel;
 
+Backend::CompilationUnit::Kernel *CudaBackend::CudaModule::getKernel(const int nameLen, char *name) {
+    CudaKernel *cudaKernel = getCudaKernel(nameLen, name);
+    return cudaKernel;
 }
+
 CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(char *name) {
     return getCudaKernel(std::strlen(name), name);
 }
+
 CudaBackend::CudaModule::CudaKernel *CudaBackend::CudaModule::getCudaKernel(int nameLen, char *name) {
     CUfunction function;
     CUDA_CHECK(cuModuleGetFunction(&function, module, name), "cuModuleGetFunction");
-    return new CudaKernel(this,name, function);
+    return new CudaKernel(this, name, function);
 }
 
 bool CudaBackend::CudaModule::programOK() {

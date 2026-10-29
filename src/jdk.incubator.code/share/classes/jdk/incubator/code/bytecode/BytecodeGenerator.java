@@ -71,6 +71,8 @@ public final class BytecodeGenerator {
             MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType);
     private static final MethodTypeDesc MTD_FIND_SPECIAL =
             MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_MethodType, CD_Class);
+    private static final MethodTypeDesc MTD_PRIVATE_LOOKUP_IN =
+            MethodTypeDesc.of(CD_MethodHandles_Lookup, CD_Class, CD_MethodHandles_Lookup);
 
     /**
      * Transforms the invokable operation to bytecode encapsulated in a method of hidden class and exposed
@@ -524,16 +526,8 @@ public final class BytecodeGenerator {
                         }
                     }
                     case VarOp op when op.isUninitialized() -> {
-                        if (!canDefer(op)) {
-                            switch (toTypeKind(op.resultType()).asLoadable()) {
-                                case INT -> cob.iconst_0();
-                                case LONG -> cob.lconst_0();
-                                case FLOAT -> cob.fconst_0();
-                                case DOUBLE -> cob.dconst_0();
-                                case REFERENCE -> cob.aconst_null();
-                                default -> throw new IllegalArgumentException("Bad variable type: " + toTypeKind(op.resultType()));
-                            }
-                            storeIfUsed(op.result());
+                        if (!op.result().uses().isEmpty()) {
+                            allocateSlot(op.result());
                         }
                     }
                     case VarOp op -> {
@@ -578,6 +572,10 @@ public final class BytecodeGenerator {
                             case DOUBLE -> cob.dneg();
                             default -> throw new IllegalArgumentException("Bad type: " + op.resultType());
                         }
+                        push(op.result());
+                    }
+                    case PosOp op -> {
+                        processFirstOperand(op);
                         push(op.result());
                     }
                     case ComplOp op -> {
@@ -781,7 +779,7 @@ public final class BytecodeGenerator {
                         JavaType refType = (JavaType)md.refType();
                         ClassDesc specialCaller = lookup.lookupClass().describeConstable().get();
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.signature());
-                        boolean protectedAccess = false;
+                        MethodHandles.Lookup protectedAccessLookup = null;
                         if (op.invokeKind() == InvokeOp.InvokeKind.SUPER) {
                             // constructs method handle via lookup.findSpecial using the lookup's class as the specialCaller
                             // original lookup is stored in class data
@@ -797,17 +795,18 @@ public final class BytecodeGenerator {
                                               MTD_FIND_SPECIAL);
                         } else {
                             if (!(refType instanceof ArrayType)) { // array methods (e.g. clone) are excluded
-                                try {
-                                    var info = lookup.revealDirect(md.resolveToHandle(lookup, op.invokeKind()));
-                                    protectedAccess = Modifier.isProtected(info.getModifiers())
-                                            && !info.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
-                                } catch (ReflectiveOperationException | IllegalArgumentException _) {
-                                    // @@@ protected access detection failed
+                                protectedAccessLookup = findProtectedAccessLookup(
+                                        op.invokeKind() == InvokeOp.InvokeKind.STATIC ? null : receiverClass(op.operands()),
+                                        l -> {
+                                            var info = l.revealDirect(md.resolveToHandle(l, op.invokeKind()));
+                                            return Modifier.isProtected(info.getModifiers())
+                                                    && !info.getDeclaringClass().getPackageName().equals(l.lookupClass().getPackageName());
+                                        });
+                                if (protectedAccessLookup != null) {
+                                    specialCaller = protectedAccessLookup.lookupClass().describeConstable().get();
+                                    lookupHandle(protectedAccessLookup, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? refType.toNominalDescriptor() : specialCaller,
+                                            md.name(), mDesc, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
                                 }
-                            }
-                            if (protectedAccess) {
-                                lookupHandle(refType.toNominalDescriptor(), md.name(), mDesc,
-                                             op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
                             }
                         }
                         if (op.isVarArgs()) {
@@ -827,14 +826,14 @@ public final class BytecodeGenerator {
                         boolean isInterface = refClass.isInterface();
                         switch (op.invokeKind()) {
                             case STATIC -> {
-                                if (protectedAccess) {
+                                if (protectedAccessLookup != null) {
                                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mDesc);
                                 } else {
                                     cob.invokestatic(refType.toNominalDescriptor(), md.name(), mDesc, isInterface);
                                 }
                             }
                             case INSTANCE -> {
-                                if (protectedAccess) {
+                                if (protectedAccessLookup != null) {
                                     cob.invokevirtual(CD_MethodHandle, "invokeExact", mDesc.insertParameterTypes(0, specialCaller));
                                 } else {
                                     cob.invoke(isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL,
@@ -959,9 +958,14 @@ public final class BytecodeGenerator {
                     int lo = Integer.MAX_VALUE;
                     int hi = Integer.MIN_VALUE;
                     Label defTarget = null;
+                    // each switch edge needs its own argument transfer
+                    Map<Block.Reference, Label> transfers = new LinkedHashMap<>();
                     for (int i = 0; i < op.labels().size(); i++) {
                         Integer val = op.labels().get(i);
-                        Label target = getLabel(op.successors().get(i));
+                        Block.Reference reference = op.successors().get(i);
+                        Label target = needToAssignBlockArguments(reference)
+                                ? transfers.computeIfAbsent(reference, _ -> cob.newLabel())
+                                : getLabel(reference);
                         if (val == null) { // default target has null label value
                             defTarget = target;
                         } else {
@@ -978,6 +982,11 @@ public final class BytecodeGenerator {
                         cob.tableswitch(defTarget, cases);
                     } else {
                         cob.lookupswitch(defTarget, cases);
+                    }
+                    for (var transfer : transfers.entrySet()) {
+                        cob.labelBinding(transfer.getValue());
+                        assignBlockArguments(transfer.getKey());
+                        cob.goto_(getLabel(transfer.getKey()));
                     }
                 }
                 case ExceptionRegionEnter op -> {
@@ -1019,14 +1028,57 @@ public final class BytecodeGenerator {
         exceptionRegionsChange(new Block[0]);
     }
 
-    private void lookupHandle(ClassDesc owner, String name, ConstantDesc type, String finder) {
+    private interface ProtectedAccessPredicate {
+        boolean check(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    }
+
+    private MethodHandles.Lookup findProtectedAccessLookup(Class<?> receiverClass, ProtectedAccessPredicate predicate) {
+        MethodHandles.Lookup l = lookup;
+        while (l != null) {
+            // Resolving a protected instance member may narrow the handle's receiver
+            // to the lookup class. Skip lookups incompatible with the model's receiver
+            // and try an enclosing class instead.
+            if (receiverClass == null || l.lookupClass().isAssignableFrom(receiverClass)) {
+                try {
+                    return predicate.check(l) ? l : null;
+                } catch (ReflectiveOperationException | IllegalArgumentException _) {}
+            }
+            Class<?> enclClass = l.lookupClass().getEnclosingClass();
+            try {
+                l = enclClass != null ? MethodHandles.privateLookupIn(enclClass, lookup) : null;
+            } catch (IllegalAccessException _) {
+                l = null;
+            }
+        }
+        return null;
+    }
+
+    private Class<?> receiverClass(List<Value> operands) {
+        try {
+            return (Class<?>) ((JavaType) operands.getFirst().type()).erasure().resolve(lookup);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
+    }
+
+    private void lookupHandle(MethodHandles.Lookup resLookup, ClassDesc owner, String name, ConstantDesc type, String finder) {
         // handle must precede any operand
         if (oprOnStack != null) {
             storeIfUsed(oprOnStack);
             oprOnStack = null;
         }
-        cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
-           .checkcast(CD_MethodHandles_Lookup)
+        if (resLookup != lookup) {
+            cob.ldc(resLookup.lookupClass().describeConstable().orElseThrow())
+               .ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
+               .checkcast(CD_MethodHandles_Lookup)
+               .invokestatic(CD_MethodHandles,
+                             "privateLookupIn",
+                             MTD_PRIVATE_LOOKUP_IN);
+        } else {
+            cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
+               .checkcast(CD_MethodHandles_Lookup);
+        }
+        cob
            .ldc(owner)
            .ldc(name)
            .ldc(type)
@@ -1041,20 +1093,21 @@ public final class BytecodeGenerator {
         ClassDesc fieldType = ((JavaType) ref.type()).toNominalDescriptor();
         boolean store = op instanceof FieldAccessOp.FieldStoreOp;
         boolean isStatic = op.operands().size() == (store ? 1 : 0);
-        boolean protectedAccess = false;
-        try {
-            Member m = ref.resolveToField(lookup);
-            protectedAccess = Modifier.isProtected(m.getModifiers())
-                    && !m.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
-        } catch (ReflectiveOperationException | IllegalArgumentException _) {
-            // @@@ protected access detection failed
-        }
         ClassDesc caller = lookup.lookupClass().describeConstable().orElseThrow();
-        if (protectedAccess) {
-            lookupHandle(caller, ref.name(), fieldType, "find" + (isStatic ? "Static" : "") + (store ? "Setter" : "Getter"));
+        MethodHandles.Lookup protectedAccessLookup = findProtectedAccessLookup(
+                isStatic ? null : receiverClass(op.operands()),
+                l -> {
+                    Member m = ref.resolveToField(l);
+                    return Modifier.isProtected(m.getModifiers())
+                            && !m.getDeclaringClass().getPackageName().equals(lookup.lookupClass().getPackageName());
+                });
+        if (protectedAccessLookup != null) {
+            caller = protectedAccessLookup.lookupClass().describeConstable().orElseThrow();
+            lookupHandle(protectedAccessLookup, isStatic ? refType.toNominalDescriptor() : caller, ref.name(),
+                    fieldType, "find" + (isStatic ? "Static" : "") + (store ? "Setter" : "Getter"));
         }
         processOperands(op);
-        if (protectedAccess) {
+        if (protectedAccessLookup != null) {
             cob.invokevirtual(CD_MethodHandle,
                               "invokeExact",
                               isStatic ? (store ? MethodTypeDesc.of(CD_void, fieldType)
@@ -1265,7 +1318,17 @@ public final class BytecodeGenerator {
                         throw new UnsupportedOperationException(op + " on Object");
                 };
             case FLOAT -> {
-                cob.fcmpg(); // FCMPL?
+                // the instruction that come after fcmpg/fcmpl, branch for the false cases
+                // f < g -> fcmpg + ifge
+                // f <= g -> fcmpg + ifgt
+                // f == g -> fcmpg/fcmpl + ifne
+                // f > g -> fcmpl + ifle
+                // f >= g -> fcmpl + iflt
+                if (op instanceof GeOp || op instanceof GtOp) {
+                    cob.fcmpl();
+                } else {
+                    cob.fcmpg();
+                }
                 yield reverseIfOpcode(op);
             }
             case LONG -> {
@@ -1273,7 +1336,11 @@ public final class BytecodeGenerator {
                 yield reverseIfOpcode(op);
             }
             case DOUBLE -> {
-                cob.dcmpg(); //CMPL?
+                if (op instanceof GeOp || op instanceof GtOp) {
+                    cob.dcmpl();
+                } else {
+                    cob.dcmpg();
+                }
                 yield reverseIfOpcode(op);
             }
             default ->
@@ -1333,7 +1400,7 @@ public final class BytecodeGenerator {
             } else {
                 load(value);
             }
-        } else if (target.predecessors().size() > 1) {
+        } else if (target.predecessorReferences().size() > 1) {
             List<Block.Parameter> bargs = target.parameters();
             // First push successor arguments on the stack, then pop and assign
             // so as not to overwrite slots that are reused slots at different argument positions
@@ -1346,6 +1413,11 @@ public final class BytecodeGenerator {
                     } else {
                         load(value);
                     }
+                }
+            }
+            for (int i = bargs.size() - 1; i >= 0; i--) {
+                Block.Parameter barg = bargs.get(i);
+                if (!barg.equals(sargs.get(i))) {
                     storeIfUsed(barg);
                 }
             }

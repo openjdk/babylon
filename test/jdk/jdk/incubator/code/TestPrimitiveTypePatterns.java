@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.runtime.ExactConversionsSupport;
@@ -184,7 +185,7 @@ public class TestPrimitiveTypePatterns {
                 .findFirst().orElseThrow();
         Assertions.assertEquals(expectedConvMethod, actualConvMethod);
 
-        var mh = BytecodeGenerator.generate(MethodHandles.lookup(), lmodel);
+        var mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lmodel));
 
         for (Object v : values) {
             Assertions.assertEquals(mh.invoke(v), Interpreter.invoke(MethodHandles.lookup(), lmodel, v));
@@ -197,7 +198,7 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testIdentityPrimitive() {
+    void testIdentityPrimitive() throws Throwable {
         FuncOp f = getFuncOp("identityPrimitive");
         System.out.println(f.toText());
 
@@ -206,8 +207,13 @@ public class TestPrimitiveTypePatterns {
         // because it's an identity conversion, we expect no check performed
         Assertions.assertTrue(lf.elements().noneMatch(e -> e instanceof JavaOp.InvokeOp));
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf,
-                Short.MAX_VALUE, Integer.MAX_VALUE, Float.MAX_VALUE));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        short a = Short.MAX_VALUE;
+        int b = Integer.MAX_VALUE;
+        float c = Float.MAX_VALUE;
+        boolean expected = identityPrimitive(a, b, c);
+        Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a, b, c));
+        Assertions.assertEquals(expected, mh.invoke(a, b, c));
     }
 
     @Reflect
@@ -216,15 +222,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testWideningNarrowingPrimitive() {
+    void testWideningNarrowingPrimitive() throws Throwable {
         FuncOp f = getFuncOp("wideningNarrowingPrimitive");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MAX_VALUE));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, Byte.MIN_VALUE));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (byte b : new byte[]{Byte.MAX_VALUE, Byte.MIN_VALUE}) {
+            boolean expected = wideningNarrowingPrimitive(b);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, b));
+            Assertions.assertEquals(expected, mh.invoke(b));
+        }
     }
 
     @Reflect
@@ -233,15 +243,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testBoxing() {
+    void testBoxing() throws Throwable {
         FuncOp f = getFuncOp("boxing");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (int a : new int[]{Integer.MAX_VALUE, Integer.MIN_VALUE}) {
+            boolean expected = boxing(a);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a));
+            Assertions.assertEquals(expected, mh.invoke(a));
+        }
     }
 
     @Reflect
@@ -267,16 +281,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testNarrowingReferenceUnboxing() {
+    void testNarrowingReferenceUnboxing() throws Throwable {
         FuncOp f = getFuncOp("narrowingReferenceUnboxing");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, 1));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (short) 1));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Number) null));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (Number n : new Number[]{1, (short) 1, null}) {
+            boolean expected = narrowingReferenceUnboxing(n);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, n));
+            Assertions.assertEquals(expected, mh.invoke(n));
+        }
     }
 
     @Reflect
@@ -285,16 +302,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testUnboxing() {
+    void testUnboxing() throws Throwable {
         FuncOp f = getFuncOp("unboxing");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Integer) null));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (Integer a : new Integer[]{Integer.MAX_VALUE, Integer.MIN_VALUE, null}) {
+            boolean expected = unboxing(a);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a));
+            Assertions.assertEquals(expected, mh.invoke(a));
+        }
     }
 
     @Reflect
@@ -303,16 +323,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testUnboxingWideningPrimitive() {
+    void testUnboxingWideningPrimitive() throws Throwable {
         FuncOp f = getFuncOp("unboxingWideningPrimitive");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Integer) null));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (Integer a : new Integer[]{Integer.MAX_VALUE, Integer.MIN_VALUE, null}) {
+            boolean expected = unboxingWideningPrimitive(a);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a));
+            Assertions.assertEquals(expected, mh.invoke(a));
+        }
     }
 
     @Reflect
@@ -321,15 +344,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testWideningReference() {
+    void testWideningReference() throws Throwable {
         FuncOp f = getFuncOp("wideningReference");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Object) null));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, "str"));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (String a : new String[]{null, "str"}) {
+            boolean expected = wideningReference(a);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a));
+            Assertions.assertEquals(expected, mh.invoke(a));
+        }
     }
 
     @Reflect
@@ -338,18 +365,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testIdentityReference() {
+    void testIdentityReference() throws Throwable {
         FuncOp f = getFuncOp("identityReference");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.MIN_VALUE));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.POSITIVE_INFINITY));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Float.NEGATIVE_INFINITY));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, (Float) null));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (Float a : new Float[]{Float.MAX_VALUE, Float.MIN_VALUE, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, null}) {
+            boolean expected = identityReference(a);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a));
+            Assertions.assertEquals(expected, mh.invoke(a));
+        }
     }
 
     @Reflect
@@ -358,17 +386,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testNarrowingReference() {
+    void testNarrowingReference() throws Throwable {
         FuncOp f = getFuncOp("narrowingReference");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, Float.MAX_VALUE));
-        Assertions.assertEquals(false, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Double.POSITIVE_INFINITY));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Double.NEGATIVE_INFINITY));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (Number a : new Number[]{Float.MAX_VALUE, Integer.MIN_VALUE, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY}) {
+            boolean expected = narrowingReference(a);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a));
+            Assertions.assertEquals(expected, mh.invoke(a));
+        }
     }
 
     @Reflect
@@ -377,15 +407,19 @@ public class TestPrimitiveTypePatterns {
     }
 
     @Test
-    void testWideningPrimitive() {
+    void testWideningPrimitive() throws Throwable {
         FuncOp f = getFuncOp("wideningPrimitive");
         System.out.println(f.toText());
 
         FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER);
         System.out.println(lf.toText());
 
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MAX_VALUE));
-        Assertions.assertEquals(true, Interpreter.invoke(MethodHandles.lookup(), lf, Integer.MIN_VALUE));
+        MethodHandle mh = Assertions.assertDoesNotThrow(() -> BytecodeGenerator.generate(MethodHandles.lookup(), lf));
+        for (int a : new int[]{Integer.MIN_VALUE, Integer.MAX_VALUE}) {
+            boolean expected = wideningPrimitive(a);
+            Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), lf, a));
+            Assertions.assertEquals(expected, mh.invoke(a));
+        }
     }
 
      private CoreOp.FuncOp getFuncOp(String name) {

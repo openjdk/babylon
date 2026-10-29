@@ -21,10 +21,8 @@ import java.util.function.IntConsumer;
  * @modules jdk.incubator.code
  * @library lib
  * @run junit TestTryOpWithExceptionRegion
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryOpWithExceptionRegion
  * @run main Unreflect TestTryOpWithExceptionRegion
  * @run junit TestTryOpWithExceptionRegion
- * @run junit/othervm -Dbabylon.tryFinally=sharedDispatch TestTryOpWithExceptionRegion
  */
 public class TestTryOpWithExceptionRegion {
     @Reflect
@@ -50,7 +48,6 @@ public class TestTryOpWithExceptionRegion {
         }
     }
 
-    BiConsumer<Block.Builder, Value> IGNORE_RETURN = (rb, rv) -> {};
     @Test
     void testTryOpEnclosingExceptionRegion() throws NoSuchMethodException {
         // lower n + inline it in m
@@ -59,7 +56,7 @@ public class TestTryOpWithExceptionRegion {
         CoreOp.FuncOp m = Op.ofMethod(this.getClass().getDeclaredMethod("m", IntConsumer.class)).get();
         CoreOp.FuncOp m2 = m.transform((b, o) -> {
             if (o instanceof JavaOp.InvokeOp iop && iop.invokeReference().name().equals("n")) {
-                return Inliner.inline(b, ln, b.context().getValues(m.parameters()), IGNORE_RETURN);
+                return Inliner.inline(b, ln, b.context().getValues(m.parameters()));
             } else {
                 b.add(o);
                 return b;
@@ -88,7 +85,7 @@ public class TestTryOpWithExceptionRegion {
         CoreOp.FuncOp n = Op.ofMethod(this.getClass().getDeclaredMethod("n", IntConsumer.class)).get();
         CoreOp.FuncOp lm2 = lm.transform((b, o) -> {
             if (o instanceof JavaOp.InvokeOp iop && iop.invokeReference().name().equals("n")) {
-                return Inliner.inline(b, n, b.context().getValues(lm.parameters()), IGNORE_RETURN);
+                return Inliner.inline(b, n, b.context().getValues(lm.parameters()));
             } else {
                 b.add(o);
                 return b;

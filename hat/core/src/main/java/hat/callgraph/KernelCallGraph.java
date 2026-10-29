@@ -25,19 +25,32 @@
 package hat.callgraph;
 
 import hat.BufferTagger;
+import hat.DType;
 import hat.KernelContext;
+import hat.TileContext;
+import hat.buffer.Tensor2DF16;
+import hat.buffer.Tensor2DF32;
+import hat.buffer.TensorF32;
+import hat.codetypes.ConstantType;
+import hat.codetypes.PtrType;
 import hat.device.NonMappableIface;
+import hat.dialect.DialectFunction;
+import hat.dialect.DialectModule;
 import hat.phases.HATArrayViewPhase;
 import hat.phases.HATTransformer;
+import hat.phases.TileTransformer;
 import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
 import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import optkl.IfaceValue;
 import optkl.OpHelper;
 import hat.phases.VarTable;
@@ -49,15 +62,17 @@ import optkl.util.carriers.LookupCarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static optkl.OpHelper.Invoke.invoke;
 
 public class KernelCallGraph implements LookupCarrier {
+
+    private static final boolean HAT_PROCESS_TILE_DIALECT = true;
+    private final CoreOp.FuncOp inlinedEntryPoint;
+    private final Method method;
+    private FuncOpCarrier.Impl entrypoint;
 
     @Override public MethodHandles.Lookup lookup(){
         return computeCallGraph.lookup();
@@ -66,10 +81,11 @@ public class KernelCallGraph implements LookupCarrier {
     public static final boolean SHOW_KERNEL_CALL_DAG = Boolean.getBoolean("showKernelCallDag");
     public static final  boolean SHOW_KERNEL_IFACE_DAG = Boolean.getBoolean("showKernelIfaceDag");
     public static final boolean SHOW_KERNEL_IFACE_DAG_PROPOSED_TYPEDEFS = Boolean.getBoolean("showKernelIfaceDagProposedTypedefs");
+    public static final boolean SHOW_UNNECESSARY_ANNOTATION_WARNING = Boolean.getBoolean("showUnnecessaryAnnotationWarning");
 
     public final ComputeCallGraph computeCallGraph;
-    public final MethodCallDag callDag;
-    public final IfaceDataDag<MappableIface> iFaceDag;
+    public MethodCallDag callDag;
+    public IfaceDataDag<MappableIface> iFaceDag;
     public final List<AccessType> bufferAccessList;
     public final Set<CodeType> accessedTypes;
     public final Set<Class<?>> accessedClasses;
@@ -85,10 +101,13 @@ public class KernelCallGraph implements LookupCarrier {
     private final VarTable varTable;
     private boolean useVectors;
     private final boolean useTensors;
+    private final CoreOp.FuncOp originalKernelFunction;
 
-    KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
+    public KernelCallGraph(ComputeCallGraph computeCallGraph, Method method, CoreOp.FuncOp kernelFunction) {
+        this.method = method;
+        this.originalKernelFunction = kernelFunction;
         this.computeCallGraph = computeCallGraph;
-        var inlinedEntryPoint = inlineEntryPoint(kernelFunction);
+        this.inlinedEntryPoint = inlineEntryPoint(kernelFunction);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke instanceof OpHelper.Invoke.Static invokeStatic && invokeStatic.refIs(KernelContext.class) && invokeStatic.named("barrier"));
         // We should be able to remove these field access checks once we pivot to using direct access to KernelContext static calls.
@@ -127,7 +146,7 @@ public class KernelCallGraph implements LookupCarrier {
                                 && invoke.returnsInt()
                                 && invoke.nameMatchesRegex("(atomic.*)Inc"));
 
-        this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint);
+        this.bufferAccessList = BufferTagger.getAccessList(lookup(), inlinedEntryPoint, isTileDialectEnabled(inlinedEntryPoint));
 
         // To detect vectors: it could be either because of the use of vector types, or because
         // array views (going through arrayStoreOp/arrayLoadOp)
@@ -143,32 +162,105 @@ public class KernelCallGraph implements LookupCarrier {
         this.useTensors = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke.returns(Tensor.class));
 
-        var entrypoint = new FuncOpCarrier.Impl(kernelFunction);
+        this.entrypoint = new FuncOpCarrier.Impl(kernelFunction);
         this.varTable = new VarTable();
+    }
+
+    private boolean isTileDialectEnabled(CoreOp.FuncOp inlinedEntryPoint) {
+        return OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class) && HAT_PROCESS_TILE_DIALECT;
+    }
+
+    private List<CodeType> setCodeTypesForParameters(Class<?>[] parameterTypes, Object[] kernelParameters) {
+        ArrayList<CodeType> codeTypes = new ArrayList<>();
+        for (int i = 0; i < parameterTypes.length; i++) {
+            Class<?> parameterType = parameterTypes[i];
+            Object kernelArgument = kernelParameters[i];
+            if (parameterType.isPrimitive()) {
+                if (parameterType.equals(int.class) && kernelArgument instanceof Integer val) {
+                    codeTypes.add(new ConstantType(DType.Int, val));
+                } else {
+                    throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
+                }
+            } else {
+                // We need to inspect the type and pass the input dimensions
+                switch (kernelArgument) {
+                    case TensorF32 tensorF32 when parameterType.equals(TensorF32.class) ->
+                            codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE, tensorF32.m()));
+                    case Tensor2DF32 tensor2DF32 when parameterType.equals(Tensor2DF32.class) ->
+                            codeTypes.add(new PtrType(DType.TENSOR_2D_F32_TYPE, tensor2DF32.m(), tensor2DF32.n()));
+                    case Tensor2DF16 tensor2DF16 when parameterType.equals(Tensor2DF16.class) ->
+                            codeTypes.add(new PtrType(DType.TENSOR_2D_F16_TYPE, tensor2DF16.m(), tensor2DF16.n()));
+                    case null, default ->
+                            throw new UnsupportedOperationException("Unsupported I/O parameter type: " + parameterType);
+                }
+            }
+        }
+        return codeTypes;
+    }
+
+    private DialectModule dialectTileFunctions(Object[] kernelParameters) {
+        DialectModule dialectModule;
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        if (kernelParameters.length != parameterTypes.length) {
+            throw new IllegalArgumentException(String.format("Expected %d arguments, got %d", parameterTypes.length, kernelParameters.length));
+        }
+        List<CodeType> codeTypes = setCodeTypesForParameters(parameterTypes, kernelParameters);
+
+        // Validate and process shapes from the Tile programming model to build a tile code model
+        // The TileTransformer receives:
+        // 1. The input function
+        // 2. The return type
+        // 3. A list of CodeTypes for each input argument to the kernel.
+        CoreOp.FuncOp funcOp = entrypoint.funcOp();
+        funcOp = TileTransformer.processConstantFields(funcOp, lookup());
+        MethodRef methodRef = MethodRef.method(method);
+        dialectModule = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes, methodRef, lookup());
+
+        // Update the entry point: the main kernel is the last entry from the tileFunctions list
+        entrypoint = new FuncOpCarrier.Impl(dialectModule.entryPoint().function());
+
+        // Check SSA lowering for the output Tile functions:
+        dialectModule.functions().map(DialectFunction::function).forEach(this::checkSSALowering);
+
+        return dialectModule;
+    }
+
+    /**
+     * Compile a kernel into the target device-code. The input stage for compilation is the method represented in a code-tree from code reflection.
+     * Then the kernel is transformed and lowered to a OpenCL/CUDA kernel.
+     *
+     * @param kernelParameters
+     *     Input I/O arguments. Arguments are used for code specialization (currently only for Tile code specialization).
+     */
+    public void compile(Object[] kernelParameters) {
         varTable.addFunction(entrypoint.funcOp().funcName());
+        DialectModule dialectModule = null;
+        if (isTileDialectEnabled(inlinedEntryPoint)) {
+            dialectModule = dialectTileFunctions(kernelParameters);
+        }
 
-        HATTransformer.transform(HATTransformer.KernelPhases, lookup(), entrypoint, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
-        checkSSALowering(entrypoint.funcOp());
-
-        this.callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint);
+        callDag = new MethodCallDag(lookup(), method, entrypoint.funcOp(), inlinedEntryPoint, dialectModule);
         callDag.rankOrdered.forEach(f -> {
             varTable.addFunction(f.funcOp().funcName());
             HATTransformer.transform(HATTransformer.KernelPhases, lookup(), f, varTable, computeCallGraph.computeContext.config().showCompilationPhases());
             checkSSALowering(f.funcOp());
         });
+
         if (SHOW_KERNEL_CALL_DAG) {
             this.callDag.view("kernelCallDag", n -> n.funcOp().funcName());
         }
 
+        final FuncOpCarrier.Impl finalEntrypoint = entrypoint;
         this.iFaceDag = new IfaceDataDag<>(dag->
-            entrypoint.funcOp().elements()
-                    .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
-                    .filter(ClassType.class::isInstance).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
-                    .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
-                    .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
-                            .forEach(retType -> dag.addEdge(iface, retType))
-                    )
+                finalEntrypoint.funcOp().elements()
+                        .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
+                        .filter(ClassType.class::isInstance).map(codeType -> dag.getNode(lookup(), (ClassType) codeType))
+                        .filter(impl -> IfaceValue.class.isAssignableFrom(impl.clazz()))
+                        .forEach(iface -> dag.methodsWithIfaceReturnTypes(iface.clazz())
+                                .forEach(retType -> dag.addEdge(iface, retType))
+                        )
         );
+
         if (SHOW_KERNEL_IFACE_DAG) {
             this.iFaceDag.view("kernelDataDag", IfaceDataDag.IfaceInfo::dotName);
         }
@@ -195,6 +287,9 @@ public class KernelCallGraph implements LookupCarrier {
             if (ssaCodeModel == null) {
                 throw new IllegalStateException("SSA code model is null");
             }
+            if (computeCallGraph.computeContext.config().info()) {
+                IO.println("SSA Code Model: " + ssaCodeModel.toText());
+            }
         }
     }
 
@@ -211,18 +306,14 @@ public class KernelCallGraph implements LookupCarrier {
                         && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
                 ) {
                     var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
-                    var exitBlockBuilder = jdk.incubator.code.dialect.core.Inliner.inline(
+                    var exitBlockBuilder = Inliner.inline(
                             blockbuilder, ssaInline,
-                            blockbuilder.context().getValues(invoke.op().operands()), (_, v) -> {
-                                if (v != null) {
-                                    blockbuilder.context().mapValue(invoke.op().result(), v);
-                                }
-                            });
+                            blockbuilder.context().getValues(invoke.op().operands()));
                     if (!exitBlockBuilder.parameters().isEmpty()) {
-                        blockbuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
+                        exitBlockBuilder.context().mapValue(invoke.op().result(), exitBlockBuilder.parameters().getFirst());
                     }
                     changed.set(true);
-                    return exitBlockBuilder.withContextAndTransformer(blockbuilder.context(), blockbuilder.transformer());
+                    return exitBlockBuilder;
                 }
                 blockbuilder.add(op);
                 return blockbuilder;
@@ -255,6 +346,14 @@ public class KernelCallGraph implements LookupCarrier {
 
     public VarTable getVarTable() {
         return varTable;
+    }
+
+    public Method method() {
+        return method;
+    }
+
+    public CoreOp.FuncOp getOriginalKernelFunction() {
+        return originalKernelFunction;
     }
 
 }

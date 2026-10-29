@@ -562,7 +562,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(QuotedOp.NAME)
     public static final class QuotedOp extends AbstractOp
-            implements CoreOp, Op.Nested, Op.Lowerable, Op.Pure {
+            implements CoreOp, Op.Nested, Op.Lowerable {
         static final String NAME = "quoted";
 
         /**
@@ -904,7 +904,7 @@ public sealed interface CoreOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConstantOp.NAME)
     public static final class ConstantOp extends AbstractOp
-            implements CoreOp, Op.Pure, JavaOp.JavaExpression {
+            implements CoreOp, JavaOp.JavaExpression {
         static final String NAME = "constant";
 
         /**

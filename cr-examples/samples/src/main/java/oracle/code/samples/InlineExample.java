@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2025, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -94,10 +94,10 @@ public class InlineExample {
                     Op.Result myConstantValue = blockBuilder.add(CoreOp.constant(JavaType.FLOAT, 50.f));
 
                     // Inline the function with the new values
-                    Inliner.inline(blockBuilder,
+                    Block.Builder continueBuilder = Inliner.inline(blockBuilder,
                             fmaCodeModel,      // inline the fmaCodeModel
-                            List.of(parameter1, myConstantValue, parameter2),  // apply the 3 parameters to the function to inline
-                            Inliner.INLINE_RETURN);
+                            List.of(parameter1, myConstantValue, parameter2));  // apply the 3 parameters to the function to inline
+                    continueBuilder.add(CoreOp.return_(continueBuilder.parameters().getFirst()));
                 });
 
         // 3. Print the resulting code model

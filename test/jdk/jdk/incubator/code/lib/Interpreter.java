@@ -21,14 +21,10 @@
  * questions.
  */
 
-import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
+import jdk.incubator.code.*;
 
 import java.lang.invoke.MethodHandles;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public abstract class Interpreter {
     public Interpreter() {
@@ -42,7 +38,7 @@ public abstract class Interpreter {
         Block block = body.entryBlock();
         while (true) {
             // bind block parameters in new env
-            env = env.bind(block.parameters(), args);
+            env = env.bind(block.parameters(), args); // TODO type validation ?
             switch (executeBlock(block, env)) {
                 // pass control to ancestor op
                 case TerminatingOpEffect e -> {
@@ -110,14 +106,14 @@ public abstract class Interpreter {
     }
 
     static <T extends Op & Op.Invokable> Object invoke(MethodHandles.Lookup l, T op, List<Object> argsAndCaptures) {
-        return new JavaHighInterpreter().interpret(op, argsAndCaptures, l);
+        return new JavaHighInterpreter(new JavaLowInterpreter()).interpret(op, argsAndCaptures, l);
     }
 
     /**
      * Exception thrown by the interpreter when execution fails.
      */
     @SuppressWarnings("serial")
-    public static final class InterpreterException extends RuntimeException {
+    static final class InterpreterException extends RuntimeException {
         InterpreterException(Throwable cause) {
             super(cause);
         }

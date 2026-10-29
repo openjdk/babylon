@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,26 +80,29 @@ struct WHERE{
          }.report(); \
 }
 
-class PtxSource final : public Text  {
+// Loadable GPU image for cuModuleLoadData(Ex): PTX, cubin, or cuda_tile IR.
+class CudaImage final : public Text  {
 public:
-    PtxSource();
-    explicit PtxSource(size_t len);
-    PtxSource(size_t len, char *text);
-    PtxSource(size_t len, char *text, bool isCopy);
-    explicit PtxSource(char *text);
-    ~PtxSource() override = default;
+    CudaImage();
+    explicit CudaImage(size_t len);
+    CudaImage(size_t len, char *text);
+    CudaImage(size_t len, char *text, bool isCopy);
+    explicit CudaImage(char *text);
+    ~CudaImage() override = default;
 };
 
 class CudaSource final :public Text  {
 public:
-    CudaSource(size_t len, char *text, bool isCopy, bool lineinfo);
+    CudaSource(size_t len, char *text, bool isCopy, bool lineinfo, int typeModel);
     bool lineInfo() const;
+    int typeModel() const;
     explicit CudaSource(size_t len);
     explicit CudaSource(char* text);
     CudaSource();
     ~CudaSource() override = default;
 private:
     bool _lineInfo = false;
+    int _typeModel = 0;
 };
 
 class CudaBackend final : public Backend {
@@ -141,7 +144,7 @@ class CudaQueue final : public Backend::Queue {
     class CudaModule final : public CompilationUnit {
         CUmodule module;
         CudaSource cudaSource;
-        PtxSource ptxSource;
+        CudaImage image;
         Log log;
 
     public:
@@ -158,7 +161,8 @@ class CudaQueue final : public Backend::Queue {
             CUfunction function;
             void *argslist[100]{};
         };
-        CudaModule(Backend *backend, char *cudaSrc,   char *log, bool ok, CUmodule module);
+        CudaModule(Backend *backend, const CudaImage *image, char *log,
+                   bool ok, CUmodule module);
         ~CudaModule() override;
         static CudaModule * of(long moduleHandle);
         //static CudaModule * of(CompilationUnit *compilationUnit);
@@ -172,15 +176,19 @@ private:
     CUresult initStatus;
     CUdevice device;
     CUcontext context;
+    int major;
+    int minor;
+    bool useNvrtcCompiler(int typeModel) const;
 public:
     void shortDeviceInfo() override;
     void showDeviceInfo() override;
     CudaModule * compile(const CudaSource *cudaSource);
     CudaModule * compile(const CudaSource &cudaSource);
-    CudaModule * compile(const PtxSource *ptxSource);
-    CudaModule * compile(const PtxSource &ptxSource);
-    static PtxSource *nvcc(const CudaSource *cudaSource);
-    CompilationUnit * compile(int len, char *source) override;
+    CudaModule * compile(const CudaImage *image);
+    CudaModule * compile(const CudaImage &image);
+    CudaImage *nvcc(const CudaSource *cudaSource);
+    CudaImage *nvrtc(const CudaSource *cudaSource);
+    CompilationUnit * compile(int len, char *source, int typeModel) override;
     void computeStart() override;
     void computeEnd() override;
     CudaBuffer * getOrCreateBuffer(BufferState *bufferState) override;

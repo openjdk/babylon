@@ -136,8 +136,9 @@ public class NewTest {
     @IR("""
             func @"test6" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"NewTest::B" = field.load %0 @java.ref:"NewTest::f:NewTest::B";
-                %2 : java.type:"NewTest::B::C" = new %1 @java.ref:"NewTest::B::C::(NewTest::B)";
-                %3 : Var<java.type:"NewTest::B::C"> = var %2 @"c";
+                %2 : java.type:"java.lang.Object" = invoke %1 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %3 : java.type:"NewTest::B::C" = new %1 @java.ref:"NewTest::B::C::(NewTest::B)";
+                %4 : Var<java.type:"NewTest::B::C"> = var %3 @"c";
                 return;
             };
             """)
@@ -147,15 +148,44 @@ public class NewTest {
 
     @Reflect
     @IR("""
+            func @"test6a" (%0 : java.type:"NewTest")java.type:"void" -> {
+                %1 : java.type:"NewTest::B" = field.load %0 @java.ref:"NewTest::f:NewTest::B";
+                %2 : java.type:"java.lang.Object" = invoke %1 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %3 : java.type:"NewTest::$1" = new %0 %1 @java.ref:"NewTest::$1::(NewTest, NewTest::B)";
+                %4 : Var<java.type:"NewTest::B::C"> = var %3 @"c";
+                return;
+            };
+            """)
+    void test6a() {
+        B.C c = f.new C() {};
+    }
+
+    @Reflect
+    @IR("""
             func @"test7" (%0 : java.type:"NewTest")java.type:"void" -> {
                 %1 : java.type:"NewTest::B" = invoke %0 @java.ref:"NewTest::b():NewTest::B";
-                %2 : java.type:"NewTest::B::C" = new %1 @java.ref:"NewTest::B::C::(NewTest::B)";
-                %3 : Var<java.type:"NewTest::B::C"> = var %2 @"c";
+                %2 : java.type:"java.lang.Object" = invoke %1 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %3 : java.type:"NewTest::B::C" = new %1 @java.ref:"NewTest::B::C::(NewTest::B)";
+                %4 : Var<java.type:"NewTest::B::C"> = var %3 @"c";
                 return;
             };
             """)
     void test7() {
         B.C c = b().new C();
+    }
+
+    @Reflect
+    @IR("""
+            func @"test7a" (%0 : java.type:"NewTest")java.type:"void" -> {
+                %1 : java.type:"NewTest::B" = invoke %0 @java.ref:"NewTest::b():NewTest::B";
+                %2 : java.type:"java.lang.Object" = invoke %1 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %3 : java.type:"NewTest::$2" = new %0 %1 @java.ref:"NewTest::$2::(NewTest, NewTest::B)";
+                %4 : Var<java.type:"NewTest::B::C"> = var %3 @"c";
+                return;
+            };
+            """)
+    void test7a() {
+        B.C c = b().new C() {};
     }
 
     static class AG<T> {

@@ -181,10 +181,10 @@ OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(const OpenCLSource *
 }
 
 OpenCLBackend::OpenCLProgram *OpenCLBackend::compileProgram(int len, char *text) {
-    return dynamic_cast<OpenCLProgram *>(compile(len, text));
+    return dynamic_cast<OpenCLProgram *>(compile(len, text, 0));
 }
 
-Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source) {
+Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source, int typeModel) {
     const size_t srcLen = ::strlen(source);
     auto src = new char[srcLen + 1];
     strncpy(src, source, srcLen);

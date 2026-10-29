@@ -56,7 +56,7 @@ import static optkl.OpHelper.Invoke.invoke;
 public  abstract class Backend implements ArenaAndLookupCarrier {
     private final Config config;
 
-    public Config config(){
+    public Config config() {
         return config;
     }
 
@@ -64,7 +64,9 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
     @Override public Arena arena(){
         return arena;
     }
+
     private final MethodHandles.Lookup lookup;
+
     @Override public MethodHandles.Lookup lookup(){
         return lookup;
     }
@@ -102,6 +104,8 @@ public  abstract class Backend implements ArenaAndLookupCarrier {
     public abstract void dispatchCompute(ComputeContext computeContext, Object[] args);
 
     public abstract void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object[] args);
+
+    public abstract void dispatchTile(KernelCallGraph kernelCallGraph, NDRange kernelContext, Object... args);
 
     public static  CoreOp.FuncOp injectBufferTracking(Config config, MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp) {
         var transformer = Trxfmr.of(lookup,funcOp);

@@ -34,7 +34,7 @@ import jdk.incubator.code.CodeElement;
 
 public record BranchTarget(Block.Builder breakBlock, Block.Builder continueBlock) {
 
-    static final String BRANCH_TARGET_MAP_PROPERTY_KEY = "BRANCH_TARGET_MAP";
+    static final Object BRANCH_TARGET_MAP_PROPERTY_KEY = new Object();
 
     public static BranchTarget getBranchTarget(CodeContext cc, CodeElement<?, ?> codeElement) {
         @SuppressWarnings("unchecked")

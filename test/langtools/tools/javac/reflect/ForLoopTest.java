@@ -579,9 +579,6 @@ public class ForLoopTest {
                             }
                             ()java.type:"void" -> {
                                 java.continue;
-                            }
-                            ()java.type:"void" -> {
-                                yield;
                             };
                         java.continue;
                     };

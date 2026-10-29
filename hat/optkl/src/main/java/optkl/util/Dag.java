@@ -25,6 +25,7 @@
 package optkl.util;
 
 import optkl.jdot.ui.JDot;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -42,19 +43,20 @@ public abstract class Dag<N> extends Interner<N> {
     public final Map<N, Set<N>> toFrom = new LinkedHashMap<>();
 
     public void add(N from, N to, Consumer<N> ifAbsent) {
-        toFrom.computeIfAbsent(to,_->new LinkedHashSet<>()).add(from);
-        fromTo.computeIfAbsent(from,_->new LinkedHashSet<>()).add(to);
-        if (add(from)){
+        toFrom.computeIfAbsent(to, _ -> new LinkedHashSet<>()).add(from);
+        fromTo.computeIfAbsent(from, _ -> new LinkedHashSet<>()).add(to);
+        if (add(from)) {
             ifAbsent.accept(from);
         }
-        if (add(to)){
+        if (add(to)) {
             ifAbsent.accept(to);
         }
     }
 
     public void add(N from, N to) {
-        add(from,to,_->{});
+        add(from, to, _ -> {});
     }
+
     public final List<N> rankOrdered = new LinkedList<>();
 
     public void view(String name, Function<N, String> dotNodeLabelRenderer) {
@@ -71,9 +73,9 @@ public abstract class Dag<N> extends Interner<N> {
     }
 
     public void closeRanks() {
-        if (fromTo.isEmpty()){
+        if (fromTo.isEmpty()) {
             rankOrdered.addAll(interned.values());
-        }else {
+        } else {
             Map<N, Integer> outDegree = new HashMap<>();
             fromTo.keySet().forEach(parent -> {
                 outDegree.put(parent, fromTo.get(parent).size());

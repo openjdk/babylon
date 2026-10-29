@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -295,5 +295,73 @@ public class ConstantsTest {
     void test19() {
         Class<?> a = A.class;
         Class<?> c = B.C.class;
+    }
+
+    @Reflect
+    @IR("""
+            func @"expr1" ()java.type:"void" -> {
+                %0 : java.type:"int" = constant @1;
+                %1 : java.type:"int" = constant @2;
+                %2 : java.type:"int" = add %0 %1;
+                %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %3 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                return;
+            };
+            """)
+    static void expr1() {
+        final int i = 1 + 2;
+        IO.println(i);
+    }
+
+    static final int STATIC_CONSTANT_VARIABLE = 42;
+    final int INSTANCE_CONSTANT_VARIABLE = 43;
+
+    @Reflect
+    @IR("""
+            func @"expr2" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @42;
+                %2 : java.type:"int" = constant @43;
+                %3 : java.type:"int" = add %1 %2;
+                %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %4 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                return;
+            };
+            """)
+    void expr2() {
+        final int i = STATIC_CONSTANT_VARIABLE + INSTANCE_CONSTANT_VARIABLE;
+        IO.println(i);
+    }
+
+    @Reflect
+    @IR("""
+            func @"expr3" (%0 : java.type:"ConstantsTest")java.type:"void" -> {
+                %1 : java.type:"int" = constant @1;
+                %2 : java.type:"int" = constant @2;
+                %3 : java.type:"int" = add %1 %2;
+                %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %4 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                %5 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                invoke %5 @java.ref:"java.lang.IO::println(java.lang.Object):void";
+                return;
+            };
+            """)
+    void expr3() {
+        final int i = 1 + 2;
+        IO.println(i);
+        IO.println(i);
+    }
+
+    @Reflect
+    @IR("""
+            func @"expr4" (%0 : java.type:"ConstantsTest")java.type:"int" -> {
+                %1 : Var<java.type:"ConstantsTest"> = var %0 @"receiver";
+                %2 : java.type:"ConstantsTest" = var.load %1;
+                %3 : java.type:"java.lang.Object" = invoke %2 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %4 : java.type:"int" = constant @43;
+                return %4;
+            };
+            """)
+    static int expr4(ConstantsTest receiver) {
+        return receiver.INSTANCE_CONSTANT_VARIABLE;
     }
 }

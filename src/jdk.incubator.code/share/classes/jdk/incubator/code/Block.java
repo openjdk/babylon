@@ -28,11 +28,9 @@ package jdk.incubator.code;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import jdk.incubator.code.extern.OpWriter;
-import jdk.incubator.code.internal.OpWriterOption;
 
 /**
  * A block containing an ordered sequence of operations, where the last operation is a

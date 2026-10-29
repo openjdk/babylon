@@ -23,6 +23,7 @@
 
 import jdk.incubator.code.Reflect;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -187,34 +188,33 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"test7" (%0 : java.type:"LambdaTest")java.type:"java.util.function.Predicate<java.lang.Object>" -> {
-                  %3 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%4 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                      %5 : Var<java.type:"java.lang.Object"> = var %4 @"v";
-                      %1 : java.type:"java.lang.String" = constant @null;
-                      %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                      %6 : java.type:"boolean" = java.cand
-                          ()java.type:"boolean" -> {
-                              %7 : java.type:"java.lang.Object" = var.load %5;
-                              %8 : java.type:"boolean" = pattern.match %7
-                                  ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                      %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                      yield %9;
-                                  }
-                                  (%10 : java.type:"java.lang.String")java.type:"void" -> {
-                                      var.store %2 %10;
-                                      yield;
-                                  };
-                              yield %8;
-                          }
-                          ()java.type:"boolean" -> {
-                              %11 : java.type:"java.lang.String" = var.load %2;
-                              %12 : java.type:"boolean" = invoke %11 @java.ref:"java.lang.String::isEmpty():boolean";
-                              %13 : java.type:"boolean" = not %12;
-                              yield %13;
-                          };
-                      return %6;
-                  };
-                  return %3;
-              };
+                %1 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%2 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                    %3 : Var<java.type:"java.lang.Object"> = var %2 @"v";
+                    %4 : Var<java.type:"java.lang.String"> = var @"s";
+                    %5 : java.type:"boolean" = java.cand
+                        ()java.type:"boolean" -> {
+                            %6 : java.type:"java.lang.Object" = var.load %3;
+                            %7 : java.type:"boolean" = pattern.match %6
+                                ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                    %8 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                    yield %8;
+                                }
+                                (%9 : java.type:"java.lang.String")java.type:"void" -> {
+                                    var.store %4 %9;
+                                    yield;
+                                };
+                            yield %7;
+                        }
+                        ()java.type:"boolean" -> {
+                            %10 : java.type:"java.lang.String" = var.load %4;
+                            %11 : java.type:"boolean" = invoke %10 @java.ref:"java.lang.String::isEmpty():boolean";
+                            %12 : java.type:"boolean" = not %11;
+                            yield %12;
+                        };
+                    return %5;
+                };
+                return %1;
+            };
             """)
     Predicate<Object> test7() {
         return v -> v instanceof String s && !s.isEmpty();
@@ -223,34 +223,101 @@ public class LambdaTest {
     @Reflect
     @IR("""
             func @"f" ()java.type:"void" -> {
-                  %3 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%4 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                      %5 : Var<java.type:"java.lang.Object"> = var %4 @"v";
-                      %1 : java.type:"java.lang.String" = constant @null;
-                      %2 : Var<java.type:"java.lang.String"> = var %1 @"s";
-                      %6 : java.type:"boolean" = java.cand
-                          ()java.type:"boolean" -> {
-                              %7 : java.type:"java.lang.Object" = var.load %5;
-                              %8 : java.type:"boolean" = pattern.match %7
-                                  ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                      %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                      yield %9;
-                                  }
-                                  (%10 : java.type:"java.lang.String")java.type:"void" -> {
-                                      var.store %2 %10;
-                                      yield;
-                                  };
-                              yield %8;
-                          }
-                          ()java.type:"boolean" -> {
-                              %11 : java.type:"java.lang.String" = var.load %2;
-                              %12 : java.type:"boolean" = invoke %11 @java.ref:"java.lang.String::isEmpty():boolean";
-                              %13 : java.type:"boolean" = not %12;
-                              yield %13;
-                          };
-                      return %6;
-                  };
-                  return;
-              };
+                %0 : java.type:"java.util.function.Predicate<java.lang.Object>" = lambda @lambda.isReflectable=true (%1 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                    %2 : Var<java.type:"java.lang.Object"> = var %1 @"v";
+                    %3 : Var<java.type:"java.lang.String"> = var @"s";
+                    %4 : java.type:"boolean" = java.cand
+                        ()java.type:"boolean" -> {
+                            %5 : java.type:"java.lang.Object" = var.load %2;
+                            %6 : java.type:"boolean" = pattern.match %5
+                                ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
+                                    %7 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                    yield %7;
+                                }
+                                (%8 : java.type:"java.lang.String")java.type:"void" -> {
+                                    var.store %3 %8;
+                                    yield;
+                                };
+                            yield %6;
+                        }
+                        ()java.type:"boolean" -> {
+                            %9 : java.type:"java.lang.String" = var.load %3;
+                            %10 : java.type:"boolean" = invoke %9 @java.ref:"java.lang.String::isEmpty():boolean";
+                            %11 : java.type:"boolean" = not %10;
+                            yield %11;
+                        };
+                    return %4;
+                };
+                return;
+            };
             """)
     static Predicate<Object> test8 = v -> v instanceof String s && !s.isEmpty();
+
+    @Reflect
+    @IR("""
+            func @"constantCapture" ()java.type:"java.util.function.IntSupplier" -> {
+                %0 : java.type:"int" = constant @1;
+                %1 : java.type:"int" = constant @2;
+                %2 : java.type:"int" = add %0 %1;
+                %3 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isReflectable=true ()java.type:"int" -> {
+                    return %2;
+                };
+                return %3;
+            };
+            """)
+    static IntSupplier constantCapture() {
+        final int i = 1 + 2;
+        return () -> i;
+    }
+
+    @Reflect
+    @IR("""
+            func @"constantAndRuntimeCapture" (%0 : java.type:"int")java.type:"java.util.function.IntSupplier" -> {
+                %1 : Var<java.type:"int"> = var %0 @"arg";
+                %2 : java.type:"int" = constant @1;
+                %3 : java.type:"int" = constant @2;
+                %4 : java.type:"int" = add %2 %3;
+                %5 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isReflectable=true ()java.type:"int" -> {
+                    %6 : java.type:"int" = var.load %1;
+                    %7 : java.type:"int" = add %4 %6;
+                    return %7;
+                };
+                return %5;
+            };
+            """)
+    static IntSupplier constantAndRuntimeCapture(int arg) {
+        final int i = 1 + 2;
+        return () -> i + arg;
+    }
+
+    @Reflect
+    @IR("""
+            func @"nestedCaptures" ()java.type:"java.util.function.Supplier<java.util.function.IntSupplier>" -> {
+                %0 : java.type:"int" = constant @1;
+                %1 : java.type:"int" = constant @2;
+                %2 : java.type:"int" = add %0 %1;
+                %3 : java.type:"java.util.function.Supplier<java.util.function.IntSupplier>" = lambda @lambda.isReflectable=true ()java.type:"java.util.function.IntSupplier" -> {
+                    %4 : java.type:"int" = constant @4;
+                    %5 : java.type:"int" = mul %2 %4;
+                    %6 : java.type:"java.util.function.IntSupplier" = lambda @lambda.isReflectable=true ()java.type:"int" -> {
+                        %7 : java.type:"int" = add %2 %5;
+                        %8 : java.type:"int" = add %7 %2;
+                        %9 : java.type:"int" = add %8 %5;
+                        return %9;
+                    };
+                    return %6;
+                };
+                return %3;
+            };
+            """)
+    static Supplier<IntSupplier> nestedCaptures() {
+        final int methodConstant = 1 + 2;
+        return () -> {
+            final int outerConstant = methodConstant * 4;
+            return () -> {
+                final int innerConstant = methodConstant + outerConstant;
+                return innerConstant + methodConstant + outerConstant;
+            };
+        };
+    }
 }

@@ -26,6 +26,7 @@ package hat;
 
 import hat.buffer.DispatchContext;
 import optkl.OpHelper;
+import optkl.ifacemapper.Buffer;
 import optkl.util.carriers.ArenaAndLookupCarrier;
 import optkl.ifacemapper.BufferTracker;
 import hat.callgraph.ComputeCallGraph;
@@ -40,12 +41,14 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.foreign.Arena;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
-import java.util.HashMap;
+import java.lang.reflect.Parameter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static optkl.OpHelper.Invoke.invoke;
-import static optkl.OpHelper.Lambda.lambda;
 
 /**
  * A ComputeContext is created by an Accelerator to capture and control compute and kernel
@@ -85,6 +88,20 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     public void invokeWithArgs(Object[] args) {
         computeCallGraph.invokeWithArgs(args);
+    }
+
+    /**
+     *  Suggest copy out on exit of the compute layer for the specified buffers. This
+     *  is mainly used when HAT is run with minimized copies (MC) flag.
+     *
+     *  <p>This call has no effect if minimized copies is not used.</p>
+     */
+    public void copyOutOnExit(Buffer ... buffers) {
+        if (buffers != null && buffers.length > 0) {
+            for (Buffer buffer : buffers) {
+                accelerator.preAccess(buffer);
+            }
+        }
     }
 
     public enum WRAPPER {
@@ -141,51 +158,142 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
         this.computeCallGraph = new ComputeCallGraph(this, computeMethod, funcOp.get());
         this.accelerator.backend.computeContextHandoff(this);
     }
-    record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph) {}
 
-    private final Map<Op.Location, KernelCallSite> kernelCallSiteCache = new HashMap<>();
+    public record KernelCallSite(Quoted<JavaOp.LambdaOp> quoted, JavaOp.LambdaOp lambdaOp, MethodRef methodRef, KernelCallGraph kernelCallGraph, Object[] capturedArgs, DispatchContext dispatchContext) {}
+
+    private record ConstantArgument(int paramIndex, Class<?> type, Object value) {
+        public static ConstantArgument of(int i, Class<?> type, Object capturedValue) {
+            // We only specialized for a small set of types
+            if (type == int.class && capturedValue instanceof Number value) {
+                return new ConstantArgument(i, type, value);
+            } else if (type == float.class && capturedValue instanceof Float value) {
+                return new ConstantArgument(i, type, value);
+            }
+            throw new IllegalStateException("Input constant of type: " + type.getName() + " not supported");
+        }
+    }
+
+    private record SpecializationKey(List<ConstantArgument> arguments) {
+        public SpecializationKey {
+            arguments = List.copyOf(arguments);
+        }
+
+        public static SpecializationKey of(Method kernelMethod, Object[] quotedCapturedValues) {
+            Parameter[] parameters = kernelMethod.getParameters();
+            List<ConstantArgument> arguments = new ArrayList<>();
+            for (int i = 0; i < quotedCapturedValues.length; i++) {
+                if (parameters[i].getType().isPrimitive()) {
+                    arguments.add(ConstantArgument.of(i, parameters[i].getType(), quotedCapturedValues[i]));
+                }
+            }
+            if (arguments.isEmpty()) {
+                return empty();
+            }
+            return new SpecializationKey(arguments);
+        }
+
+        public static SpecializationKey empty() {
+            return new SpecializationKey(List.of());
+        }
+    }
+
+    private final Map<Op.Location, Map<SpecializationKey, KernelCallSite>> kernelCallSiteCache = new ConcurrentHashMap<>();
 
     static OpHelper.Invoke getTargetInvoke(MethodHandles.Lookup lookup, JavaOp.LambdaOp lambdaOp) {
         return lambdaOp.body().entryBlock().ops().stream()
                 .filter(ce -> ce instanceof JavaOp.InvokeOp)
                 .map(ce -> (OpHelper.Invoke)invoke(lookup, ce))
-                .filter(i->!i.refIs(ComputeContext.class))
+                .filter(invoke->!invoke.refIs(ComputeContext.class))
                 .findFirst()
                 .orElseThrow();
     }
+
+    private static class Dispatcher {
+        private final Runnable kernelType;
+
+        private Dispatcher(Runnable kernelType) {
+            this.kernelType = kernelType;
+        }
+
+        private void dispatch(Map<Op.Location, Map<SpecializationKey, KernelCallSite>> kernelCallSiteCache, MethodHandles.Lookup lookup, ComputeCallGraph computeCallGraph, Accelerator accelerator, NDRange ndRange) {
+            Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernelType).orElseThrow();
+            JavaOp.LambdaOp lambdaOp = quoted.op();
+            var location = quoted.op().location();
+
+            OpHelper.Invoke targetInvoke = getTargetInvoke(lookup, lambdaOp);
+            MethodRef methodRef = targetInvoke.op().invokeReference();
+            Object[] quotedCapturedValues = targetInvoke.getCapturedValuesForOperands(quoted.capturedValues());
+            KernelCallSite kernelCallSite;
+
+            try {
+                SpecializationKey key = SpecializationKey.of(methodRef.resolveToMethod(lookup), quotedCapturedValues);
+                var m = methodRef.resolveToMethod(lookup);
+                if (kernelCallSiteCache.containsKey(location) && kernelCallSiteCache.get(location).containsKey(key)) {
+                    var oldKernelCallSite = kernelCallSiteCache.get(location).get(key);
+                    kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph(), quotedCapturedValues, oldKernelCallSite.dispatchContext);
+                } else {
+                    kernelCallSite = kernelCallSiteCache.computeIfAbsent(location, k -> new ConcurrentHashMap<>())
+                            .computeIfAbsent(key, _ -> {
+                                KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
+                                if (kernelCallGraph == null) {
+                                    throw new IllegalStateException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
+                                }
+                                // Create a new KernelCallGraph starting from the original method
+                                KernelCallGraph kcg = new KernelCallGraph(kernelCallGraph.computeCallGraph, m, kernelCallGraph.getOriginalKernelFunction());
+
+                                // Compilation happens here!
+                                kcg.compile(quotedCapturedValues);
+                                DispatchContext dispatchContext;
+                                if (kernelType instanceof Kernel) {
+                                    dispatchContext = DispatchContext.createDefaultContext(kernelCallGraph.computeCallGraph.computeContext.accelerator());
+                                } else if (kernelType instanceof TileKernel) {
+                                    dispatchContext = DispatchContext.createTileContext(kernelCallGraph.computeCallGraph.computeContext.accelerator());
+                                } else {
+                                    throw new IllegalStateException("Unknown KernelType " + kernelType.getClass());
+                                }
+
+                                return new KernelCallSite(quoted, lambdaOp, methodRef, kcg, quotedCapturedValues, dispatchContext);
+                            });
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+
+            Object[] dispatchContextAndArgs = new Object[kernelCallSite.capturedArgs.length + 1];
+            dispatchContextAndArgs[0] = kernelCallSite.dispatchContext;
+            System.arraycopy(kernelCallSite.capturedArgs(), 0, dispatchContextAndArgs, 1, kernelCallSite.capturedArgs().length);
+            if (kernelType instanceof Kernel) {
+                accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph(), ndRange, dispatchContextAndArgs);
+            } else if (kernelType instanceof TileKernel) {
+                accelerator.backend.dispatchTile(kernelCallSite.kernelCallGraph(), ndRange, dispatchContextAndArgs);
+            } else {
+                throw new IllegalStateException("Unknown KernelType: "  + kernelType.getClass());
+            }
+        }
+    }
+
+
     /** Creating the kernel callsite involves
          walking the code model of the lambda
-         analysing the callgraph and transforming to HATDialect
+         analyzing the callgraph and transforming to HATDialect
      So we cache the callsite against the location from the lambdaop.
      */
     public void dispatchKernel(NDRange ndRange, Kernel kernel) {
-        Quoted<JavaOp.LambdaOp> quoted = Op.ofLambda(kernel).orElseThrow();
-
-        var location = quoted.op().location();
-
-        KernelCallSite kernelCallSite;
-        if (kernelCallSiteCache.containsKey(location)) {
-            var oldKernelCallSite = kernelCallSiteCache.get(location);
-            kernelCallSite = new KernelCallSite(quoted, oldKernelCallSite.lambdaOp(), oldKernelCallSite.methodRef(), oldKernelCallSite.kernelCallGraph());
-        } else {
-            kernelCallSite = kernelCallSiteCache.compute(location, (_, _)-> {
-                JavaOp.LambdaOp lambdaOp = quoted.op();
-                MethodRef methodRef = getTargetInvoke(this.lookup(), lambdaOp).op().invokeReference();
-                KernelCallGraph kernelCallGraph = computeCallGraph.kernelCallGraphMap.get(methodRef);
-                if (kernelCallGraph == null) {
-                    throw new RuntimeException("Failed to create KernelCallGraph (did you miss @Reflect annotation?).");
-                }
-                return new KernelCallSite(quoted, lambdaOp, methodRef, kernelCallGraph);
-            });
-        }
-        var method =  kernelCallSite.kernelCallGraph.callDag.entryPoint.method();
-        var lambda = lambda(lookup(),kernelCallSite.lambdaOp);
-        Object[] capturedArgs = lambda.getQuotedCapturedValues(kernelCallSite.quoted,method);
-        Object[] dispatchContextAndArgs = new Object[capturedArgs.length+1];
-        System.arraycopy(capturedArgs,0,dispatchContextAndArgs,1,capturedArgs.length);
-        dispatchContextAndArgs[0]=DispatchContext.createDefault(kernelCallSite.kernelCallGraph.computeCallGraph.computeContext.accelerator());
-        accelerator.backend.dispatchKernel(kernelCallSite.kernelCallGraph, ndRange, dispatchContextAndArgs);
+        Dispatcher dispatcher = new Dispatcher(kernel);
+        dispatcher.dispatch(kernelCallSiteCache, lookup(), computeCallGraph, accelerator, ndRange);
     }
+
+    /**
+     * Function to dispatch a TileKernel in HAT. The dispatch takes the following parameters:
+     *
+     * @param ndRange    A Tile Range that specified the total number of tiles and the tile-size
+     * @param tileKernel The tile kernel of offload and run on the hardware accelerator
+     */
+    public void dispatchTile(NDRange ndRange, TileKernel tileKernel) {
+        Dispatcher dispatcher = new Dispatcher(tileKernel);
+        dispatcher.dispatch(kernelCallSiteCache, lookup(), computeCallGraph, accelerator, ndRange);
+    }
+
     @Override
     public void preMutate(MappableIface b) {
         if (accelerator.backend instanceof BufferTracker bufferTracker) {
@@ -218,5 +326,8 @@ public class ComputeContext implements ArenaAndLookupCarrier, BufferTracker {
 
     @FunctionalInterface
     public interface Kernel extends Runnable { }
+
+    @FunctionalInterface
+    public interface TileKernel extends Runnable { }
 
 }

@@ -32,10 +32,12 @@
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -70,6 +72,26 @@ public class TestBinops {
         System.out.println(f.toText());
 
         Assertions.assertEquals(neg(42), Interpreter.invoke(MethodHandles.lookup(), f, 42));
+    }
+
+    @Reflect
+    static int pos(int i) {
+        return +i;
+    }
+
+    @Test
+    public void testPos() throws Throwable {
+        CoreOp.FuncOp f = getFuncOp("pos");
+
+        System.out.println(f.toText());
+
+        int arg = 42;
+        Integer expected = pos(arg);
+
+        Assertions.assertEquals(expected, Interpreter.invoke(MethodHandles.lookup(), f, arg));
+
+        MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), f);
+        Assertions.assertEquals(expected, mh.invoke(arg));
     }
 
     @Reflect

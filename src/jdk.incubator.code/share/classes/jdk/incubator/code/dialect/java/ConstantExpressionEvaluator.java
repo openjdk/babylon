@@ -21,7 +21,7 @@ import static jdk.incubator.code.dialect.java.JavaType.VOID;
 
 final class ConstantExpressionEvaluator {
     private final MethodHandles.Lookup l;
-    private final Map<Value, Object> m = new HashMap<>();
+    private final Map<Op, Object> m = new HashMap<>();
 
     ConstantExpressionEvaluator(MethodHandles.Lookup l) {
         this.l = l;
@@ -46,8 +46,8 @@ final class ConstantExpressionEvaluator {
     }
 
     private Object eval(Op op) {
-        if (m.containsKey(op.result())) {
-            return m.get(op.result());
+        if (m.containsKey(op)) {
+            return m.get(op);
         }
         Object r = switch (op) {
             case CoreOp.ConstantOp cop when isConstant(cop) -> {
@@ -137,7 +137,7 @@ final class ConstantExpressionEvaluator {
             }
             default -> throw new ArithmeticAndConvOpImpls.NonConstantExpression();
         };
-        m.put(op.result(), r);
+        m.put(op, r);
         return r;
     }
 

@@ -26,6 +26,7 @@
 package jdk.incubator.code.internal;
 
 import jdk.incubator.code.Block;
+import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.dialect.core.CoreOp;
@@ -37,15 +38,35 @@ import jdk.incubator.code.dialect.java.JavaOp;
 public class RemoveUnusedConstantTransformer implements CodeTransformer {
     private RemoveUnusedConstantTransformer() {}
 
-    public static final RemoveUnusedConstantTransformer INSTANCE = new RemoveUnusedConstantTransformer();
+    private static final RemoveUnusedConstantTransformer INSTANCE = new RemoveUnusedConstantTransformer();
 
-    @Override
-    public Block.Builder acceptOp(Block.Builder builder, Op op) {
-        if (op instanceof CoreOp.ConstantOp
+    /**
+     * Transforms an operation, by removing unused constants.
+     *
+     * @param op  the operation to transform
+     * @param <O> the type of operation
+     * @return the transformed operation
+     */
+    @SuppressWarnings("unchecked")
+    public static <O extends Op> O transform(Op op) {
+        // skip copying the model unless a removable constant exists
+        if (op.elements().noneMatch(element -> element instanceof Op operation && removable(operation))) {
+            return (O) op;
+        }
+        return (O) op.transform(CodeContext.create(), INSTANCE);
+    }
+
+    private static boolean removable(Op op) {
+        return op instanceof CoreOp.ConstantOp
                 && op.result() != null
                 && op.result().uses().isEmpty()
                 // label constant cannot be removed
-                && !(op.ancestorOp() instanceof JavaOp.LabeledOp labeled && labeled.label() == op)) {
+                && !(op.ancestorOp() instanceof JavaOp.LabeledOp labeled && labeled.label() == op);
+    }
+
+    @Override
+    public Block.Builder acceptOp(Block.Builder builder, Op op) {
+        if (removable(op)) {
             return builder;
         }
         builder.add(op);

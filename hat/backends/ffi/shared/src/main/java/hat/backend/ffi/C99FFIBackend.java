@@ -86,7 +86,7 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
             switch (ndRange.global()) {
                 case NDRange.Global1D global1D -> {
                     dispatchContext.gsx(global1D.x());
-                    dispatchContext.gsx(global1D.x());
+                    dispatchContext.dimensions(global1D.dimension());
                 }
                 case NDRange.Global2D global2D -> {
                     dispatchContext.gsx(global2D.x());
@@ -177,6 +177,9 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
                             throw new IllegalArgumentException("Unknown global range " + ndRange.warp().getClass());
                 }
             }
+            // Set the tile Model
+            dispatchContext.type(dispatchContext.type());
+
             dispatchContextAndArgs[0] = this.dispatchContext;
             ArgArray.update(argArray, kernelCallGraph, dispatchContextAndArgs);
             kernelBridge.ndRange(this.argArray);
@@ -186,27 +189,28 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
 
     public Map<KernelCallGraph, CompiledKernel> kernelCallGraphCompiledCodeMap = new HashMap<>();
 
-
-    public abstract String createCode(KernelCallGraph kernelCallGraph,  Object... justArgs);
+    public abstract String createCode(KernelCallGraph kernelCallGraph, Object... justArgs);
 
     @Override
     public void computeContextHandoff(ComputeContext computeContext) {
-        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(),lookup(),computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
+        computeContext.computeCallGraph().callDag.entryPoint.funcOp(injectBufferTracking(config(), computeContext.lookup(), computeContext.computeCallGraph().callDag.entryPoint.funcOp()));
     }
+
     @Override
     public void dispatchCompute(ComputeContext computeContext, Object... args) {
         backendBridge.computeStart();
         computeContext.invokeWithArgs(args);
         backendBridge.computeEnd();
     }
+
     @Override
     public final void dispatchKernel(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... dispatchContextAndArgs) {
         CompiledKernel compiledKernel = kernelCallGraphCompiledCodeMap.computeIfAbsent(kernelCallGraph, (_) -> {
             String code = createCode(kernelCallGraph,Arrays.copyOfRange(dispatchContextAndArgs,1,dispatchContextAndArgs.length));
             if (config().showCode()) {
-                System.out.println(code);
+                IO.println(code);
             }
-            var compilationUnit = backendBridge.compile(code);
+            var compilationUnit = backendBridge.compile(code, 0);
             if (compilationUnit.ok()) {
                 var kernel = compilationUnit.getKernel(kernelCallGraph.callDag.entryPoint.method().getName());
                 return new CompiledKernel(this, kernelCallGraph,  kernel, dispatchContextAndArgs);
@@ -220,6 +224,7 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
     public <T extends C99HATKernelBuilder<T>> String createCode(KernelCallGraph kernelCallGraph, T builder, Object... args) {
         builder.defines().types();
 
+        var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
         var visitedAlready = new HashSet<Schema.IfaceType>();
         Arrays.stream(args)
                 .filter(arg -> arg instanceof Buffer)
@@ -228,7 +233,9 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
                     BoundSchema<?> boundSchema = MappableIface.getBoundSchema(ifaceBuffer);
                     boundSchema.schema().rootIfaceType.visitUniqueTypes(t -> {
                         if (visitedAlready.add(t)) { // true first time we see this type
-                            builder.typedef(boundSchema, t);
+                            if (preformattedAnnotation == null) {
+                                builder.typedef(boundSchema, t);
+                            }
                         }
                     });
                 });
@@ -246,7 +253,6 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
                 builder.lineComment("Preformatted typedef body from @Typedef annotation");
                 builder.typedefStruct(typedefAnnotation.name(), _ -> builder.preformatted(typedefAnnotation.body())).semicolon().nl();
             }
-            var preformattedAnnotation = kernelCallGraph.callDag.entryPoint.method().getAnnotation(Preformatted.class);
             if (preformattedAnnotation != null) {
                 builder.lineComment("Preformatted text from @Preformatted annotation");
                 builder.preformatted(preformattedAnnotation.value());
@@ -254,11 +260,11 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
             builder.lineComment("Preformatted code body from @Kernel annotation");
             builder.preformatted(kernelAnnotation.value());
         } else {
-            Set<Class<?>> typedeffed = new HashSet<>();
-            typedeffed.add(F16.class);
-            typedeffed.add(BF16.class);
+            Set<Class<?>> typeDefined = new HashSet<>();
+            typeDefined.add(F16.class);
+            typeDefined.add(BF16.class);
             kernelCallGraph.accessedNonMappableIfaceClasses.stream()
-                    .filter(c->!typedeffed.contains(c))
+                    .filter(c->!typeDefined.contains(c))
                     .map(c->(Class<NonMappableIface>) c) // why do we need to do this.
                     .forEach(c -> {
                         // We create a dag of iface references rooted at c
@@ -271,13 +277,13 @@ public abstract class C99FFIBackend extends FFIBackendDriver implements BufferTr
                         // Now we can generate typedefs in rankOrder (so inner typedefs first)
                         if (ifaceDataDag.isDag()) {
                             ifaceDataDag.rankOrdered.stream()
-                                    .filter(ifaceInfo -> !typedeffed.contains(ifaceInfo.clazz()))
-                                    .forEach(ifaceInfo -> typedeffed.add(
+                                    .filter(ifaceInfo -> !typeDefined.contains(ifaceInfo.clazz()))
+                                    .forEach(ifaceInfo -> typeDefined.add(
                                             DeviceSchema.getDeviceSchemaOrThrow(ifaceInfo.clazz()).typedef(builder).clazz()
                                     )
                             );
                         } else  {
-                            typedeffed.add(DeviceSchema.getDeviceSchemaOrThrow(c).typedef(builder).clazz());
+                            typeDefined.add(DeviceSchema.getDeviceSchemaOrThrow(c).typedef(builder).clazz());
                         }
                     });
 

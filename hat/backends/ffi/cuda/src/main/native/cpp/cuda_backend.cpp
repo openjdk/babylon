@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,28 +24,251 @@
  */
 
 #include <sys/wait.h>
+#include <unistd.h>
 #include <chrono>
 #include "cuda_backend.h"
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
+#include <dlfcn.h>
 #include <filesystem>
+#include <sstream>
+#include <string>
+#include <vector>
 
-PtxSource::PtxSource()
+namespace {
+
+bool isCudaTileIR(const char *image, size_t len) {
+    // The Tile IR bytecode magic number consumes 8 bytes and is \x7FTileIR\x00.
+    // The magic number must be present at the beginning of the bytecode file to
+    // be accepted by the driver.
+    // See: https://docs.nvidia.com/cuda/tile-ir/13.3/sections/bytecode.html#magic-number
+    static constexpr char kMagic[] = "\x7f" "TileIR";
+    return image != nullptr && len >= sizeof(kMagic) &&
+           std::memcmp(image, kMagic, sizeof(kMagic)) == 0;
+}
+
+// Tile code generation starts at sm_80 for both nvcc and NVRTC. sm_7x,
+// including the nvcc default sm_75, does not generate Tile code.
+// https://docs.nvidia.com/cuda/cuda-tile-cpp-api-reference/general_principles.html
+void assertTileArchSupport(int major, int minor, const std::string &cudaPath) {
+    if (major >= 8) {
+        return;
+    }
+    std::cerr << "Tile compilation requires sm_80 or newer, got sm_"
+              << major << minor << ". CUDA source saved to " << cudaPath
+              << std::endl;
+    std::exit(1);
+}
+
+bool isLibjsigLoaded() {
+    static const bool loaded = [] {
+        void *handle = dlopen(nullptr, RTLD_LAZY);
+        if (handle == nullptr) {
+            return false;
+        }
+        dlerror();
+        const bool found =
+                dlsym(handle, "JVM_begin_signal_setting") != nullptr;
+        dlclose(handle);
+        return found;
+    }();
+    return loaded;
+}
+
+void warnNvrtcRequiresLibjsig() {
+    static bool warned = false;
+    if (warned) {
+        return;
+    }
+    warned = true;
+    std::cout << "[HAT] WARNING: libjsig not preloaded. Loading Tile IR "
+              << "in-process processes signals first and resends them with a "
+              << "polluted state, breaking JVM signal handling. NVRTC emits "
+              << "only Tile IR for Tile kernels, so libjsig is required. "
+              << "Falling back to nvcc for Tile. This warning is issued once."
+              << "To use NVRTC Tile, launch with:"
+              << std::endl;
+    if (const char *javaHome = std::getenv("JAVA_HOME");
+        javaHome != nullptr && javaHome[0] != '\0') {
+        std::cout << "  LD_PRELOAD=" << javaHome << "/lib/libjsig.so java ..."
+                  << std::endl;
+    } else {
+        std::cout << "  LD_PRELOAD=$JAVA_HOME/lib/libjsig.so java ..."
+                  << std::endl;
+    }
+}
+
+using nvrtcProgram = void *;
+using nvrtcResult = int;
+constexpr nvrtcResult NVRTC_SUCCESS = 0;
+
+template <typename T>
+T loadNvrtcSymbol(void *handle, const char *name, bool required = true) {
+    dlerror();
+    void *symbol = dlsym(handle, name);
+    if (const char *error = dlerror()) {
+        if (!required) {
+            return nullptr;
+        }
+        std::cerr << "Failed to load NVRTC symbol " << name << ": " << error << std::endl;
+        std::exit(1);
+    }
+    return reinterpret_cast<T>(symbol);
+}
+
+void *loadNvrtcLibrary() {
+    std::vector<std::string> candidates;
+    if (const char *envLibrary = std::getenv("HAT_CUDA_NVRTC_LIBRARY")) {
+        dlerror();
+        if (void *handle = dlopen(envLibrary, RTLD_NOW | RTLD_LOCAL)) {
+            return handle;
+        }
+        std::cerr << "Failed to load NVRTC from HAT_CUDA_NVRTC_LIBRARY='"
+                  << envLibrary << "'";
+        if (const char *error = dlerror()) {
+            std::cerr << ": " << error;
+        }
+        std::cerr << std::endl;
+        std::exit(1);
+    }
+    // First try the CUDA toolkit library directory found by CMake.
+    // Then let dlopen search the system loader path.
+#ifdef HAT_CUDA_LIBRARY_DIR
+    candidates.emplace_back(std::string(HAT_CUDA_LIBRARY_DIR) +
+                            "/libnvrtc.so");
+#endif
+    candidates.emplace_back("libnvrtc.so");
+
+    std::vector<std::string> errors;
+    for (const std::string &candidate : candidates) {
+        if (void *handle = dlopen(candidate.c_str(), RTLD_NOW | RTLD_LOCAL)) {
+            return handle;
+        }
+        if (const char *error = dlerror()) {
+            errors.emplace_back(candidate + ": " + error);
+        }
+    }
+
+    std::cerr << "Failed to load NVRTC. Set HAT_CUDA_NVRTC_LIBRARY to "
+              << "the NVRTC shared library path or name, "
+              << "or use HAT=CUDA_NVCC." << std::endl;
+    for (const std::string &error : errors) {
+        std::cerr << "  " << error << std::endl;
+    }
+    std::exit(1);
+}
+
+std::vector<std::string> splitDelimited(const char *value,
+                                        const char delimiter) {
+    std::vector<std::string> result;
+    if (value == nullptr || *value == '\0') {
+        return result;
+    }
+
+    std::stringstream stream(value);
+    std::string item;
+    while (std::getline(stream, item, delimiter)) {
+        if (!item.empty()) {
+            result.push_back(item);
+        }
+    }
+    return result;
+}
+
+// Minimal NVRTC ABI surface used through dlsym. This avoids a build-time
+// dependency on nvrtc.h and a link-time dependency on libnvrtc.so.
+struct NvrtcApi {
+    using CreateProgram = nvrtcResult (*)(nvrtcProgram *,
+                                          const char *,
+                                          const char *,
+                                          int,
+                                          const char * const *,
+                                          const char * const *);
+    using CompileProgram = nvrtcResult (*)(nvrtcProgram, int, const char * const *);
+    using DestroyProgram = nvrtcResult (*)(nvrtcProgram *);
+    using GetErrorString = const char *(*)(nvrtcResult);
+    using GetPTX = nvrtcResult (*)(nvrtcProgram, char *);
+    using GetPTXSize = nvrtcResult (*)(nvrtcProgram, size_t *);
+    using GetProgramLog = nvrtcResult (*)(nvrtcProgram, char *);
+    using GetProgramLogSize = nvrtcResult (*)(nvrtcProgram, size_t *);
+    using GetTileIR = nvrtcResult (*)(nvrtcProgram, char *);
+    using GetTileIRSize = nvrtcResult (*)(nvrtcProgram, size_t *);
+
+    void *handle;
+    CreateProgram createProgram;
+    CompileProgram compileProgram;
+    DestroyProgram destroyProgram;
+    GetErrorString getErrorString;
+    GetPTX getPTX;
+    GetPTXSize getPTXSize;
+    GetProgramLog getProgramLog;
+    GetProgramLogSize getProgramLogSize;
+    GetTileIR getTileIR;
+    GetTileIRSize getTileIRSize;
+
+    explicit NvrtcApi(void *handle)
+        : handle(handle),
+          createProgram(loadNvrtcSymbol<CreateProgram>(handle, "nvrtcCreateProgram")),
+          compileProgram(loadNvrtcSymbol<CompileProgram>(handle, "nvrtcCompileProgram")),
+          destroyProgram(loadNvrtcSymbol<DestroyProgram>(handle, "nvrtcDestroyProgram")),
+          getErrorString(loadNvrtcSymbol<GetErrorString>(handle, "nvrtcGetErrorString")),
+          getPTX(loadNvrtcSymbol<GetPTX>(handle, "nvrtcGetPTX")),
+          getPTXSize(loadNvrtcSymbol<GetPTXSize>(handle, "nvrtcGetPTXSize")),
+          getProgramLog(loadNvrtcSymbol<GetProgramLog>(handle, "nvrtcGetProgramLog")),
+          getProgramLogSize(loadNvrtcSymbol<GetProgramLogSize>(handle, "nvrtcGetProgramLogSize")),
+          getTileIR(loadNvrtcSymbol<GetTileIR>(handle, "nvrtcGetTileIR", false)),
+          getTileIRSize(loadNvrtcSymbol<GetTileIRSize>(handle, "nvrtcGetTileIRSize", false)) {
+    }
+};
+
+// Load and cache NVRTC API entry points on first use
+NvrtcApi &nvrtcApi() {
+    static NvrtcApi api(loadNvrtcLibrary());
+    return api;
+}
+
+void nvrtcCheck(const NvrtcApi &api, const nvrtcResult result,
+                const char *functionName) {
+    if (result != NVRTC_SUCCESS) {
+        std::cerr << functionName << " NVRTC error = " << result << " "
+                  << api.getErrorString(result) << std::endl;
+        std::exit(1);
+    }
+}
+
+std::string getNvrtcLog(const NvrtcApi &api, nvrtcProgram program) {
+    size_t logSize = 0;
+    nvrtcCheck(api,
+               api.getProgramLogSize(program, &logSize),
+               "nvrtcGetProgramLogSize");
+    std::string log;
+    if (logSize > 1) {
+        log.resize(logSize, '\0');
+        nvrtcCheck(api,
+                   api.getProgramLog(program, log.data()),
+                   "nvrtcGetProgramLog");
+    }
+    return log;
+}
+}
+
+CudaImage::CudaImage()
     : Text(0L) {
 }
 
-PtxSource::PtxSource(size_t len)
+CudaImage::CudaImage(size_t len)
     : Text(len) {
 }
 
-PtxSource::PtxSource(char *text)
+CudaImage::CudaImage(char *text)
     : Text(text, false) {
 }
 
-PtxSource::PtxSource(size_t len, char *text)
+CudaImage::CudaImage(size_t len, char *text)
     : Text(len, text, true) {
 }
-PtxSource::PtxSource(size_t len, char *text, bool isCopy)
+CudaImage::CudaImage(size_t len, char *text, bool isCopy)
     : Text(len, text, isCopy) {
 }
 
@@ -57,9 +280,10 @@ CudaSource::CudaSource(char *text)
     : Text(text, false) {
 }
 
-CudaSource::CudaSource(size_t len, char *text, bool isCopy, bool lineinfo)
+CudaSource::CudaSource(size_t len, char *text, bool isCopy, bool lineinfo, int typeModel)
     : Text(len, text, isCopy) {
     _lineInfo = lineinfo;
+    _typeModel = typeModel;
 }
 
 CudaSource::CudaSource()
@@ -68,6 +292,10 @@ CudaSource::CudaSource()
 
 bool CudaSource::lineInfo() const {
     return _lineInfo;
+}
+
+int CudaSource::typeModel() const {
+    return _typeModel;
 }
 
 uint64_t timeSinceEpochMillisec() {
@@ -82,7 +310,8 @@ std::string tmpFileName(uint64_t time, const std::string directoryName, const st
 }
 
 CudaBackend::CudaBackend(int configBits)
-    : Backend(new Config(configBits), new CudaQueue(this)), initStatus(cuInit(0)), device(), context() {
+    : Backend(new Config(configBits), new CudaQueue(this)),
+      initStatus(cuInit(0)), device(), context(), major(0), minor(0) {
     int deviceCount = 0;
 
     if (initStatus == CUDA_SUCCESS) {
@@ -91,6 +320,14 @@ CudaBackend::CudaBackend(int configBits)
             std::cout << "CudaBackend device count = " << deviceCount << std::endl;
         }
         CUDA_CHECK(cuDeviceGet(&device, 0), "cuDeviceGet");
+        CUDA_CHECK(cuDeviceGetAttribute(&major,
+                                        CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR,
+                                        device),
+                   "cuDeviceGetAttribute");
+        CUDA_CHECK(cuDeviceGetAttribute(&minor,
+                                        CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR,
+                                        device),
+                   "cuDeviceGetAttribute");
         #if defined(CUDA_VERSION) && CUDA_VERSION >= 12080
             CUctxCreateParams ctxCreateParams = {};
             CUDA_CHECK(cuCtxCreate_v4(&context, &ctxCreateParams, 0, device), "cuCtxCreate");
@@ -123,11 +360,6 @@ void CudaBackend::showDeviceInfo() {
     CUDA_CHECK(cuDeviceGetName(name, sizeof(name), device), "cuDeviceGetName");
 
     std::cout << "> Using device 0: " << name << std::endl;
-
-    // get compute capabilities and the device name
-    int major = 0, minor = 0;
-    CUDA_CHECK(cuDeviceGetAttribute(&major, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, device), "cuDeviceGetAttribute");
-    CUDA_CHECK(cuDeviceGetAttribute(&minor, CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, device), "cuDeviceGetAttribute");
     std::cout << "> GPU Device has major=" << major << " minor=" << minor << " compute capability" << std::endl;
 
     int warpSize;
@@ -149,39 +381,77 @@ void CudaBackend::showDeviceInfo() {
             ((totalGlobalMem > static_cast<unsigned long long>(4) * 1024 * 1024 * 1024L) ? "YES" : "NO") << std::endl;
 }
 
-PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
+// TypeModel = 0; SIMT model
+// TypeModel = 1; Tile model
+bool CudaBackend::useNvrtcCompiler(int typeModel) const {
+    // CUDA NVRTC is the default. Thus, to obtain nvrtc we need
+    // to check that NVCC flag is not enabled.
+    const bool useNVCC = config->cudaNvcc;
 
+    // Loading Tile IR in-process registers handlers that process signals first
+    // and resend them with a polluted state, breaking JVM signal handling.
+    // NVRTC emits only Tile IR for Tile kernels, so libjsig is required.
+    // Tile cubin and SIMT PTX do not need it.
+    if (!useNVCC && typeModel > 0 && !isLibjsigLoaded()) {
+        warnNvrtcRequiresLibjsig();
+        return false;
+    }
+    // use NVRTC is the flag NVCC is not enabled.
+    return !useNVCC;
+}
+
+CudaImage *CudaBackend::nvcc(const CudaSource *cudaSource) {
     // create var/cuda directory
     std::string localDirectory = "./var/cuda";
     std::filesystem::create_directories(localDirectory);
-    // create temp file for cuda generarated code
+    // create temp file for cuda generated code
     const uint64_t time = timeSinceEpochMillisec();
-    const std::string ptxPath = tmpFileName(time, localDirectory, ".ptx");
+    std::string suffix = ".ptx";
+    if (cudaSource->typeModel() > 0) {
+        suffix = ".cubin";
+    }
+    const std::string ptxPath = tmpFileName(time, localDirectory, suffix);
     const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
+    cudaSource->write(cudaPath);
+
+    if (cudaSource->typeModel() > 0) {
+        assertTileArchSupport(major, minor, cudaPath);
+    }
+    const std::string smVersion =
+            std::string("sm_") + std::to_string(major) + std::to_string(minor);
 
     // compile the generated code
     int pid;
-    cudaSource->write(cudaPath);
     if ((pid = fork()) == 0) { //child
-        const auto path = "nvcc";
+        const auto cudaCompiler = "nvcc";
         std::vector<std::string> command;
-        command.push_back(path);
-        command.push_back("-ptx");
-        command.push_back("-Wno-deprecated-gpu-targets");
+        command.push_back(cudaCompiler);
+
+        if (cudaSource->typeModel() > 0) {
+            command.push_back("--tilecubin");
+            command.push_back("--std=c++20");
+            command.push_back("--enable-tile");
+        } else {
+            command.push_back("-ptx");
+        }
+        command.push_back("-arch");
+        command.push_back(smVersion);
+
         command.push_back(cudaPath);
         if (cudaSource->lineInfo()) {
             command.push_back("-lineinfo");
         }
+
         command.push_back("-o");
         command.push_back(ptxPath);
 
-        // conver to char*[]
+        // conver to char*[] fr the execvp function
         const char* args[command.size() + 1];
         for (int i = 0; i < command.size(); i++) {
             args[i] = command[i].c_str();
         }
         args[command.size()] = nullptr;
-        const int stat = execvp(path, (char *const *) args);
+        const int stat = execvp(cudaCompiler, (char *const *) args);
         std::cerr << " nvcc stat = " << stat << " errno=" << errno << " '" << std::strerror(errno) << "'" << std::endl;
         std::exit(errno);
     } else if (pid < 0) {// fork failed.
@@ -190,10 +460,128 @@ PtxSource *CudaBackend::nvcc(const CudaSource *cudaSource) {
     } else { //parent
         int status;
         pid_t result = wait(&status);
-        auto *ptx = new PtxSource();
+        auto *ptx = new CudaImage();
         ptx->read(ptxPath);
         return ptx;
     }
+}
+
+CudaImage *CudaBackend::nvrtc(const CudaSource *cudaSource) {
+    NvrtcApi &api = nvrtcApi();
+    const bool tile = cudaSource->typeModel() > 0;
+    std::string source(cudaSource->text, cudaSource->len);
+
+    // Keep generated CUDA/PTX artifacts under the same directory as the nvcc path.
+    std::string localDirectory = "./var/cuda";
+    std::filesystem::create_directories(localDirectory);
+    const uint64_t time = timeSinceEpochMillisec();
+    const std::string imagePath =
+            tmpFileName(time, localDirectory, tile ? ".tileir" : ".ptx");
+    const std::string cudaPath = tmpFileName(time, localDirectory, ".cu");
+    cudaSource->write(cudaPath);
+
+    if (tile && (api.getTileIR == nullptr || api.getTileIRSize == nullptr)) {
+        std::cerr << "NVRTC Tile compilation requires CUDA Toolkit 13.3 or later "
+                  << "(nvrtcGetTileIR is missing). Use HAT=CUDA_NVCC, "
+                  << "or upgrade the NVRTC library." << std::endl;
+        std::exit(1);
+    }
+
+    if (tile) {
+        assertTileArchSupport(major, minor, cudaPath);
+    }
+
+    nvrtcProgram program;
+    nvrtcCheck(api,
+               api.createProgram(&program,
+                                 source.c_str(),
+                                 cudaPath.c_str(),
+                                 0,
+                                 nullptr,
+                                 nullptr),
+               "nvrtcCreateProgram");
+
+    std::vector<std::string> options;
+    if (tile) {
+        options.emplace_back("--std=c++20");
+        options.emplace_back("--enable-tile");
+    } else {
+        options.emplace_back("--std=c++17");
+    }
+    options.emplace_back("--gpu-architecture=compute_" +
+                         std::to_string(major) +
+                         std::to_string(minor));
+#ifdef HAT_CUDA_INCLUDE_DIRS
+    // CMake serializes the CUDA include list with '|' so it can be passed as a
+    // single compile definition.
+    for (const std::string &includeDir :
+            splitDelimited(HAT_CUDA_INCLUDE_DIRS, '|')) {
+        options.emplace_back("-I" + includeDir);
+    }
+#endif
+    if (cudaSource->lineInfo()) {
+        options.emplace_back("--generate-line-info");
+    }
+
+    std::vector<const char *> optionPtrs;
+    optionPtrs.reserve(options.size());
+    for (const std::string &option : options) {
+        optionPtrs.push_back(option.c_str());
+    }
+
+    nvrtcResult compileResult =
+            api.compileProgram(program,
+                               static_cast<int>(optionPtrs.size()),
+                               optionPtrs.data());
+    if (compileResult != NVRTC_SUCCESS) {
+        std::cerr << "NVRTC compilation failed: "
+                  << api.getErrorString(compileResult)
+                  << ". CUDA source saved to " << cudaPath << std::endl;
+        std::string log = getNvrtcLog(api, program);
+        if (!log.empty()) {
+            std::cerr << "> NVRTC log:" << std::endl << log << std::endl;
+        }
+        nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+        std::exit(1);
+    } else if (config->info || config->trace) {
+        std::string log = getNvrtcLog(api, program);
+        if (!log.empty()) {
+            std::cout << "> NVRTC log:" << std::endl << log << std::endl;
+        }
+    }
+
+    size_t imageSize = 0;
+    if (tile) {
+        nvrtcCheck(api, api.getTileIRSize(program, &imageSize), "nvrtcGetTileIRSize");
+        if (imageSize == 0) {
+            std::cerr << "NVRTC returned empty Tile IR. CUDA source saved to "
+                      << cudaPath << std::endl;
+            nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+            std::exit(1);
+        }
+        auto *image = new CudaImage(imageSize);
+        nvrtcCheck(api, api.getTileIR(program, image->text), "nvrtcGetTileIR");
+        image->write(imagePath);
+        nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+        return image;
+    }
+
+    nvrtcCheck(api, api.getPTXSize(program, &imageSize), "nvrtcGetPTXSize");
+    auto *ptx = new CudaImage(imageSize);
+    nvrtcCheck(api, api.getPTX(program, ptx->text), "nvrtcGetPTX");
+    if (imageSize == 0 || ptx->text[imageSize - 1] != '\0') {
+        std::cerr << "NVRTC returned invalid PTX buffer" << std::endl;
+        nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+        std::exit(1);
+    }
+
+    // nvrtcGetPTXSize includes the trailing NUL. Keep it in memory for the
+    // driver API, but omit it from the debug artifact to match nvcc output.
+    CudaImage ptxFile(imageSize > 0 ? imageSize - 1 : 0, ptx->text, false);
+    ptxFile.write(imagePath);
+
+    nvrtcCheck(api, api.destroyProgram(&program), "nvrtcDestroyProgram");
+    return ptx;
 }
 
 CudaBackend::CudaModule *CudaBackend::compile(const CudaSource &cudaSource) {
@@ -201,17 +589,28 @@ CudaBackend::CudaModule *CudaBackend::compile(const CudaSource &cudaSource) {
 }
 
 CudaBackend::CudaModule *CudaBackend::compile(const CudaSource *cudaSource) {
-    const PtxSource *ptxSource = nvcc(cudaSource);
-    return compile(ptxSource);
+    const bool useNvrtc = useNvrtcCompiler(cudaSource->typeModel());
+    if (config->info) {
+        std::cout << "[INFO] CUDA source compiler: "
+                  << (useNvrtc ? "NVRTC" : "NVCC") << std::endl;
+    }
+    const CudaImage *image = useNvrtc ? nvrtc(cudaSource) : nvcc(cudaSource);
+    return compile(image);
 }
 
-CudaBackend::CudaModule *CudaBackend::compile(const PtxSource &ptxSource) {
-    return compile(&ptxSource);
+CudaBackend::CudaModule *CudaBackend::compile(const CudaImage &image) {
+    return compile(&image);
 }
 
-CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
+CudaBackend::CudaModule *CudaBackend::compile(const CudaImage *image) {
     CUmodule module;
-    if (ptx->text != nullptr) {
+    if (image->text != nullptr) {
+        CUDA_CHECK(cuCtxSetCurrent(context), "cuCtxSetCurrent");
+        if (isCudaTileIR(image->text, image->len)) {
+            CUDA_CHECK(cuModuleLoadData(&module, image->text), "cuModuleLoadData");
+            return new CudaModule(this, image, new char[1]{'\0'}, true, module);
+        }
+
         const Log *infLog = new Log(8192);
         const Log *errLog = new Log(8192);
         constexpr unsigned int optc = 5;
@@ -229,27 +628,23 @@ CudaBackend::CudaModule *CudaBackend::compile(const  PtxSource *ptx) {
         jitOptions[4] = CU_JIT_GENERATE_LINE_INFO;
         jitOptVals[4] = reinterpret_cast<void *>(1);
 
-        CUDA_CHECK(cuCtxSetCurrent(context), "cuCtxSetCurrent");
-        CUDA_CHECK(cuModuleLoadDataEx(&module, ptx->text, optc, jitOptions, (void **) jitOptVals), "cuModuleLoadDataEx");
+        CUDA_CHECK(cuModuleLoadDataEx(&module, image->text, optc, jitOptions, (void **) jitOptVals), "cuModuleLoadDataEx");
 
         if (*infLog->text!='\0'){
-           std::cout << "> PTX JIT inflog:" << std::endl << infLog->text << std::endl;
+            std::cout << "> PTX JIT inflog:" << std::endl << infLog->text << std::endl;
         }
         if (*errLog->text!='\0'){
-           std::cout << "> PTX JIT errlog:" << std::endl << errLog->text << std::endl;
+            std::cout << "> PTX JIT errlog:" << std::endl << errLog->text << std::endl;
         }
-        return new CudaModule(this, ptx->text, infLog->text, true, module);
-
+        return new CudaModule(this, image, infLog->text, true, module);
         //delete ptx;
-    } else {
-        std::cout << "no ptx content!" << std::endl;
-        exit(1);
     }
+    std::cout << "no ptx content!" << std::endl;
+    exit(1);
 }
 
 //Entry point from HAT.  We use the config PTX bit to determine which Source type
-
-Backend::CompilationUnit *CudaBackend::compile(const int len, char *source) {
+Backend::CompilationUnit *CudaBackend::compile(const int len, char *source, int typeModel) {
     if (config->traceCalls) {
         std::cout << "inside compileProgram" << std::endl;
     }
@@ -258,13 +653,13 @@ Backend::CompilationUnit *CudaBackend::compile(const int len, char *source) {
         if (config->trace) {
             std::cout << "compiling from provided  ptx " << std::endl;
         }
-        PtxSource ptxSource(len, source, false);
-        return compile(ptxSource);
+        CudaImage image(len, source, false);
+        return compile(image);
     }else{
         if (config->trace) {
             std::cout << "compiling from provided  cuda " << std::endl;
         }
-        CudaSource cudaSource(len , source, false, config->profile);
+        CudaSource cudaSource(len , source, false, config->profile, typeModel);
         return compile(cudaSource);
     }
 }

@@ -90,8 +90,7 @@ public class TestStringConstantExpressionInterning {
 
     @Reflect
     static boolean t_localVariable() {
-        // in the model, we broaden the notion of JLS constant variable to include effectively final variable
-        String s = "A";
+        final String s = "A";
         return s + 1 == "A1";
     }
 
@@ -126,7 +125,7 @@ public class TestStringConstantExpressionInterning {
         MethodHandles.Lookup l = MethodHandles.lookup();
 
         FuncOp lop = op.transform(CodeTransformer.LOWERING_TRANSFORMER);
-        FuncOp cfop = (FuncOp) ConstantExpressionTransformer.transform(l, lop);
+        FuncOp cfop = ConstantExpressionTransformer.transform(l, lop);
         Assertions.assertEquals(expected, Interpreter.invoke(l, cfop));
 
         Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invoke());

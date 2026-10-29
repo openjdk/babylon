@@ -51,7 +51,8 @@ public class UnaryopTest {
             func @"test2" (%0 : java.type:"int")java.type:"int" -> {
                 %1 : Var<java.type:"int"> = var %0 @"v";
                 %2 : java.type:"int" = var.load %1;
-                return %2;
+                %3 : java.type:"int" = pos %2;
+                return %3;
             };
             """)
     static int test2(int v) {
@@ -60,11 +61,39 @@ public class UnaryopTest {
 
     @Reflect
     @IR("""
+            func @"test2" (%0 : java.type:"byte")java.type:"int" -> {
+                %1 : Var<java.type:"byte"> = var %0 @"v";
+                %2 : java.type:"byte" = var.load %1;
+                %3 : java.type:"int" = conv %2;
+                %4 : java.type:"int" = pos %3;
+                return %4;
+            };
+            """)
+    static int test2(byte v) {
+        return +v;
+    }
+
+    @Reflect
+    @IR("""
+            func @"test2" (%0 : java.type:"long")java.type:"long" -> {
+                %1 : Var<java.type:"long"> = var %0 @"v";
+                %2 : java.type:"long" = var.load %1;
+                %3 : java.type:"long" = pos %2;
+                return %3;
+            };
+            """)
+    static long test2(long v) {
+        return +v;
+    }
+
+    @Reflect
+    @IR("""
             func @"test3" (%0 : java.type:"int")java.type:"java.lang.Integer" -> {
                 %1 : Var<java.type:"int"> = var %0 @"v";
                 %2 : java.type:"int" = var.load %1;
-                %3 : java.type:"java.lang.Integer" = invoke %2 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                return %3;
+                %3 : java.type:"int" = pos %2;
+                %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                return %4;
             };
             """)
     // Tests that numeric promotion occurs
@@ -78,8 +107,9 @@ public class UnaryopTest {
                 %1 : Var<java.type:"java.lang.Integer"> = var %0 @"v";
                 %2 : java.type:"java.lang.Integer" = var.load %1;
                 %3 : java.type:"int" = invoke %2 @java.ref:"java.lang.Integer::intValue():int";
-                %4 : java.type:"java.lang.Integer" = invoke %3 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
-                return %4;
+                %4 : java.type:"int" = pos %3;
+                %5 : java.type:"java.lang.Integer" = invoke %4 @java.ref:"java.lang.Integer::valueOf(int):java.lang.Integer";
+                return %5;
             };
             """)
     // Tests that numeric promotion is retained

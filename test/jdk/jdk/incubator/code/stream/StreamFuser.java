@@ -138,11 +138,12 @@ public final class StreamFuser {
 
             StreamOp sop = streamOps.get(i);
             if (sop instanceof MapStreamOp) {
-                Inliner.inline(body, sop.op(), List.of(element), (block, value) -> {
+                Inliner.inlineWithContinuation(body, sop.op(), List.of(element), (block) -> {
+                    Value value = block.parameters().getFirst();
                     fuseIntermediateOperation(i + 1, block, value, continueBlock, terminalConsumer);
                 });
             } else if (sop instanceof FilterStreamOp) {
-                Inliner.inline(body, sop.op(), List.of(element), (block, p) -> {
+                Inliner.inlineWithContinuation(body, sop.op(), List.of(element), (block) -> {
                     Block.Builder _if = block.block();
                     Block.Builder _else = continueBlock;
                     if (continueBlock == null) {
@@ -150,12 +151,14 @@ public final class StreamFuser {
                         _else.add(JavaOp.continue_());
                     }
 
+                    Value p = block.parameters().getFirst();
                     block.add(conditionalBranch(p, _if.reference(), _else.reference()));
 
                     fuseIntermediateOperation(i + 1, _if, element, _else, terminalConsumer);
                 });
             } else if (sop instanceof FlatMapStreamOp) {
-                Inliner.inline(body, sop.op(), List.of(element), (block, iterable) -> {
+                Inliner.inlineWithContinuation(body, sop.op(), List.of(element), (block) -> {
+                    Value iterable = block.parameters().getFirst();
                     EnhancedForOp forOp = enhancedFor(block.parentBody(),
                             iterable.type(), ((ClassType) iterable.type()).typeArguments().get(0))
                             .expression(b -> {
@@ -191,10 +194,8 @@ public final class StreamFuser {
                         Op sourceLoop = loopSupplier.apply(b.parentBody(), source)
                                 .apply(loopBlock -> {
                                     fuseIntermediateOperations(loopBlock, (terminalBlock, resultValue) -> {
-                                        Inliner.inline(terminalBlock, consumer, List.of(resultValue),
-                                                (_, _) -> {
-                                                });
-                                        terminalBlock.add(JavaOp.continue_());
+                                        Block.Builder continueBlock = Inliner.inline(terminalBlock, consumer, List.of(resultValue));
+                                        continueBlock.add(JavaOp.continue_());
                                     });
 
                                 });
@@ -220,14 +221,13 @@ public final class StreamFuser {
                     .body(b -> {
                         Value source = b.parameters().get(0);
 
-                        Inliner.inline(b, supplier, List.of(), (block, collect) -> {
+                        Inliner.inlineWithContinuation(b, supplier, List.of(), (block) -> {
+                            Value collect = block.parameters().getFirst();
                             Op sourceLoop = loopSupplier.apply(block.parentBody(), source)
                                     .apply(loopBlock -> {
                                         fuseIntermediateOperations(loopBlock, (terminalBlock, resultValue) -> {
-                                            Inliner.inline(terminalBlock, accumulator, List.of(collect, resultValue),
-                                                    (_, _) -> {
-                                                    });
-                                            terminalBlock.add(JavaOp.continue_());
+                                            Block.Builder continueBlock = Inliner.inline(terminalBlock, accumulator, List.of(collect, resultValue));
+                                            continueBlock.add(JavaOp.continue_());
                                         });
                                     });
                             block.add(sourceLoop);

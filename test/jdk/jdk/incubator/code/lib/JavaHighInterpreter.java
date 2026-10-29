@@ -22,46 +22,28 @@
  */
 
 import jdk.incubator.code.Body;
+import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
 
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-public class JavaHighInterpreter extends JavaLowInterpreter {
-    public JavaHighInterpreter() {
+class JavaHighInterpreter extends AbstractJavaInterpreter {
+    private final JavaLowInterpreter javaLowInterpreter;
+
+    public JavaHighInterpreter(JavaLowInterpreter javaLowInterpreter) {
+        this.javaLowInterpreter = javaLowInterpreter;
     }
 
     @Override
-    protected Env newEnv(MethodHandles.Lookup l) {
+    Env newEnv(MethodHandles.Lookup l) {
         return new JavaHighEnv(new HashMap<>(), l, new ArrayDeque<>());
-    }
-
-    static class JavaHighEnv extends JavaLowInterpreter.JavaEnv {
-        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
-            super(bindings, l, catchHandlers);
-        }
-
-        @Override
-        protected Env newEnv(Map<Value, Object> m) {
-            return new JavaHighEnv(m, l, catchHandlers);
-        }
-
-        @Override
-        protected JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
-            return new JavaHighEnv(bindings, l, catchBlocks);
-        }
-
-        @Override
-        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
-            if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
-                return super.onAbruptCompletion(op, eff);
-            }
-            return eff;
-        }
     }
 
     @Override
@@ -74,30 +56,18 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             case JavaOp.LabeledOp o -> executeLabeledOp(o, e);
             case JavaOp.ContinueOp o -> executeContinueOp(o, e);
             case JavaOp.BlockOp o -> executeBlockOp(o, e);
-            default -> super.executeOp(op, e);
+            case JavaOp.LambdaOp o -> {
+                // bind the instance on which the method interpreting the lambda body is called
+                // ensuring the body of the lambda op is interpreted using the JavaHighInterpreter;
+                yield executeLambdaOp(o, e, LAMBDA_BODY_INTERPRETER.bindTo(this));
+            }
+            case JavaOp.SwitchOp o -> executeSwitchOp(o, e);
+            case JavaOp.ConditionalAndOp o -> executeConditionalAndOp(o, e);
+            case JavaOp.ConditionalOrOp o -> executeConditionalOrOp(o, e);
+            case JavaOp.PatternOps.MatchOp o -> executePatternMatchOp(o, e);
+            case JavaOp.ConditionalExpressionOp o -> executeConditionalExpressionOp(o, e);
+            default -> javaLowInterpreter.executeOp(op, e);
         };
-    }
-
-    // TODO labeled ops, sw
-    OpEffect executeContinueOp(JavaOp.ContinueOp continueOp, Env e) {
-        return new TerminatingOpEffect(continueOp, e.valuesOf(continueOp.operands()), e);
-    }
-
-    OpEffect executeBreakOp(JavaOp.BreakOp breakOp, Env e) {
-        return new TerminatingOpEffect(breakOp, e.valuesOf(breakOp.operands()), e);
-    }
-
-    OpEffect executeLabeledOp(JavaOp.LabeledOp op, Env e) {
-        TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
-        if (effect.terminatingOp() instanceof JavaOp.BreakOp bop && bop.labelOperand().equals(op.labelIdentifier())) {
-            return new OpResultEffect(null, e);
-        }
-        return processVoidEffect(effect, op.body(), e);
-    }
-
-    OpEffect executeBlockOp(JavaOp.BlockOp op, Env e) {
-        TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
-        return processVoidEffect(effect, op.body(), e);
     }
 
     @Override
@@ -107,12 +77,197 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
                 List<Object> operands = e.valuesOf(op.operands());
                 yield new TerminatingOpEffect(op, operands, e);
             }
-            default -> super.executeTerminatingOp(op, e);
+            case JavaOp.YieldOp _ -> {
+                if (op.ancestorBody().ancestorBody() == null) {
+                    throw new IllegalStateException("Yielding to no parent body");
+                }
+                yield new TerminatingOpEffect(op, e.valuesOf(op.operands()), e);
+            }
+            case JavaOp.SwitchFallthroughOp _ -> new TerminatingOpEffect(op, List.of(), e);
+            default -> javaLowInterpreter.executeTerminatingOp(op, e);
         };
     }
 
+    private OpEffect executeConditionalExpressionOp(JavaOp.ConditionalExpressionOp o, Env e) {
+        TerminatingOpEffect predEffect = executeBody(o.predicateBody(), List.of(), e);
+        Optional<Boolean> p = processBooleanEffect(predEffect);
+        if (p.isEmpty()) {
+            return predEffect;
+        }
+        Body bodyToExecute = p.get() ? o.trueBody() : o.falseBody();
+        TerminatingOpEffect actionEffect = executeBody(bodyToExecute, List.of(), e);
+        if (!(actionEffect.terminatingOp() instanceof CoreOp.YieldOp)) {
+            return actionEffect;
+        }
+        if (actionEffect.operands().isEmpty()) {
+            throw new InterpreterException("Action body of ConditionalExpressionOp must terminate with an operand");
+        }
+        return new OpResultEffect(actionEffect.operands().getFirst(), e);
+    }
 
-    OpEffect executeForOp(JavaOp.ForOp op, Env e) {
+    private OpEffect executeConditionalOp(JavaOp.ConditionalOp o, Env e, boolean earlyExit) {
+        for (Body body : o.bodies()) {
+            TerminatingOpEffect effect = executeBody(body, List.of(), e);
+            Optional<Boolean> b = processBooleanEffect(effect);
+            if (b.isEmpty()) {
+                return effect;
+            }
+            if (b.get() == earlyExit) {
+                return new OpResultEffect(earlyExit, e);
+            }
+        }
+        return new OpResultEffect(!earlyExit, e);
+    }
+
+    private OpEffect executeConditionalAndOp(JavaOp.ConditionalAndOp o, Env e) {
+        return executeConditionalOp(o, e, false);
+    }
+
+    private OpEffect executeConditionalOrOp(JavaOp.ConditionalOrOp o, Env e) {
+        return executeConditionalOp(o, e, true);
+    }
+
+    private OpEffect executePatternMatchOp(JavaOp.PatternOps.MatchOp o, Env e) {
+        if (!(o.patternBody().entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop)) {
+            throw new InternalError("A pattern body must terminate with a YieldOp");
+        }
+        if (yop.operands().isEmpty()) {
+            throw new InternalError("The YieldOp of a pattern body must have one operand");
+        }
+        if (!(yop.operands().getFirst() instanceof Op.Result opr) ||
+                !(opr.op() instanceof JavaOp.PatternOps.PatternOp po)) {
+            throw new InternalError("YieldOp of pattern body must have an operand that's the result of a PatternOp");
+        }
+        Deque<Object> values = new ArrayDeque<>();
+        Deque<JavaOp.PatternOps.PatternOp> patterns = new ArrayDeque<>();
+        values.addLast(e.valueOf(o.targetOperand()));
+        patterns.addLast(po);
+        ArrayList<Object> patternVariablesValues = new ArrayList<>();
+        while (!patterns.isEmpty()) {
+            JavaOp.PatternOps.PatternOp patternOp = patterns.removeFirst();
+            Object value = values.removeFirst();
+            if (patternOp instanceof JavaOp.PatternOps.TypePatternOp typePatternOp) {
+                Object castedValue = cast(typePatternOp.targetType(), e, value);
+                if (castedValue == null) {
+                    return new OpResultEffect(false, e);
+                }
+                patternVariablesValues.add(castedValue); // we don't have a Var for match all pattern, for type pattern we always have it
+            } else if (patternOp instanceof JavaOp.PatternOps.RecordPatternOp recordPatternOp) {
+                Object castedValue = cast(recordPatternOp.targetType(), e, value);
+                if (castedValue == null) {
+                    return new OpResultEffect(false, e);
+                }
+                for (int i = 0; i < recordPatternOp.recordReference().components().size(); i++) {
+                    MethodRef compGetter = recordPatternOp.recordReference().methodForComponent(i);
+                    Object compValue;
+                    try {
+                        compValue = compGetter.resolveToMethod(((JavaLowInterpreter.JavaEnv) e).l).invoke(value);
+                    } catch (ReflectiveOperationException ex) {
+                        throw new InternalError(ex);
+                    }
+                    JavaOp.PatternOps.PatternOp compPattern = (JavaOp.PatternOps.PatternOp) recordPatternOp.operands().get(i).asResult().op();
+                    patterns.addLast(compPattern);
+                    values.addLast(compValue);
+                }
+            }
+        }
+
+        TerminatingOpEffect effect = executeBody(o.matchBody(), patternVariablesValues, e);
+        if (!(effect.terminatingOp() instanceof CoreOp.YieldOp)) {
+            return effect;
+        }
+
+        return new OpResultEffect(true, e);
+    }
+
+    private static Object cast(CodeType type, Env e, Object value) {
+        if (!(type instanceof JavaType jt)) {
+            throw new InterpreterException("The target type of a TypePatternOp must be an instance JavaType");
+        }
+        Class c;
+        try {
+            c = (Class) jt.resolve(((JavaLowInterpreter.JavaEnv) e).l);
+        } catch (ReflectiveOperationException ex) {
+            throw new InterpreterException(ex);
+        }
+        try {
+            return c.cast(value);
+        } catch (ClassCastException ex) {
+            return null;
+        }
+    }
+
+    private static boolean isDefaultLabel(Body body) {
+        return body.blocks().size() == 1 &&
+                body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop &&
+                yop.operands().getFirst() instanceof Op.Result opr &&
+                opr.op() instanceof CoreOp.ConstantOp cop &&
+                cop.value() instanceof Boolean b && b;
+    }
+
+    private OpEffect executeSwitchOp(JavaOp.SwitchOp op, Env e) {
+        int i;
+        int defLabelIndex = -1;
+        for (i = 0; i < op.bodies().size(); i+=2) {
+            if (isDefaultLabel(op.bodies().get(i))) {
+                defLabelIndex = i;
+                continue;
+            }
+            TerminatingOpEffect effect = executeBody(op.bodies().get(i), e.valuesOf(op.operands()), e);
+            Optional<Boolean> b = processBooleanEffect(effect);
+            if (b.isEmpty()) {
+                return effect;
+            }
+            if (b.get()) {
+                break;
+            }
+        }
+
+        if (i >= op.bodies().size() && defLabelIndex != -1) {
+            i = defLabelIndex;
+        }
+        i++;
+        while (i < op.bodies().size()) {
+            TerminatingOpEffect effect = executeBody(op.bodies().get(i), List.of(), e);
+            switch (effect.terminatingOp()) {
+                case CoreOp.YieldOp _, JavaOp.YieldOp _, JavaOp.BreakOp _ -> {
+                    return new OpResultEffect(effect.operands().isEmpty() ? null : effect.operands().getFirst(), e);
+                }
+                case JavaOp.SwitchFallthroughOp _ -> i += 2;
+                default -> {
+                    return effect;
+                }
+            }
+        }
+
+        return new OpResultEffect(null, e);
+    }
+
+    private OpEffect executeContinueOp(JavaOp.ContinueOp continueOp, Env e) {
+        return new TerminatingOpEffect(continueOp, e.valuesOf(continueOp.operands()), e);
+    }
+
+    private OpEffect executeBreakOp(JavaOp.BreakOp breakOp, Env e) {
+        return new TerminatingOpEffect(breakOp, e.valuesOf(breakOp.operands()), e);
+    }
+
+    private OpEffect executeLabeledOp(JavaOp.LabeledOp op, Env e) {
+        TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
+        if (effect.terminatingOp() instanceof JavaOp.BreakOp bop && bop.labelOperand().equals(op.labelIdentifier())) {
+            return new OpResultEffect(null, e);
+        }
+        return processVoidEffect(effect, op.body(), e);
+    }
+
+    private OpEffect executeBlockOp(JavaOp.BlockOp op, Env e) {
+        TerminatingOpEffect effect = executeBody(op.body(), List.of(), e);
+        if (!(effect.terminatingOp() instanceof CoreOp.YieldOp)) {
+            return effect;
+        }
+        return new OpResultEffect(effect.operands().isEmpty() ? null : effect.operands().getFirst(), e);
+    }
+
+    private OpEffect executeForOp(JavaOp.ForOp op, Env e) {
         var initEffect = executeBody(op.initBody(), List.of(), e);
         switch (initEffect.terminatingOp()) {
             case CoreOp.YieldOp _ -> {}
@@ -168,12 +323,15 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         return new OpResultEffect(op.result(), null);
     }
 
-    OpEffect executeIfOp(JavaOp.IfOp op, Env e) {
+    private OpEffect executeIfOp(JavaOp.IfOp op, Env e) {
         List<Body> bodies = op.bodies();
         Body action = null;
         for (int i = 0; action == null; i += 2) {
             if (i == bodies.size() - 1) {
                 action = bodies.get(i);
+            } else if (i > bodies.size() - 1) {
+                // no action to execute and no else
+                return new OpResultEffect(null, e);
             } else {
                 Body pred = bodies.get(i);
                 var condEffect = executeBody(pred, List.of(), e);
@@ -201,7 +359,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         return new OpResultEffect(op.result(), null);
     }
 
-    OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
+    private OpEffect executeTryOp(JavaOp.TryOp tryOp, Env e) {
         Throwable t = null;
         TerminatingOpEffect effect = null;
 
@@ -241,7 +399,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
             } catch (Exception ex) {
                 if (t == null)  t = ex;
                 else            t.addSuppressed(ex);
-                effect = new TerminatingOpEffect(fakeThrowOp, List.of(t), e);
+                effect = new TerminatingOpEffect(FAKE_THROW_OP, List.of(t), e);
             }
         }
 
@@ -283,7 +441,7 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         return null;
     }
 
-    static OpEffect processVoidEffect(TerminatingOpEffect eff, Body body, Env e) {
+    private static OpEffect processVoidEffect(TerminatingOpEffect eff, Body body, Env e) {
         if (eff.terminatingOp() instanceof CoreOp.YieldOp yop) {
             if (yop.ancestorBody() == body) {
                 return new OpResultEffect(null, e);
@@ -293,12 +451,36 @@ public class JavaHighInterpreter extends JavaLowInterpreter {
         return eff;
     }
 
-    static Optional<Boolean> processBooleanEffect(TerminatingOpEffect eff) {
+    private static Optional<Boolean> processBooleanEffect(TerminatingOpEffect eff) {
         return switch (eff.terminatingOp()) {
             case CoreOp.YieldOp _ when !eff.operands().isEmpty()
                     && eff.operands().getFirst() instanceof Boolean b -> Optional.of(b);
-            case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp witn no boolean operand");
+            case CoreOp.YieldOp _ -> throw new InterpreterException("YieldOp with no boolean operand");
             default -> Optional.empty(); // abrupt completion
         };
+    }
+
+    static class JavaHighEnv extends JavaEnv {
+        private JavaHighEnv(Map<Value, Object> bindings, MethodHandles.Lookup l, Deque<List<CatchHandler>> catchHandlers) {
+            super(bindings, l, catchHandlers);
+        }
+
+        @Override
+        Env newEnv(Map<Value, Object> m) {
+            return new JavaHighEnv(m, l, catchHandlers);
+        }
+
+        @Override
+        JavaEnv newEnv(Deque<List<CatchHandler>> catchBlocks) {
+            return new JavaHighEnv(bindings, l, catchBlocks);
+        }
+
+        @Override
+        public BlockEffect onAbruptCompletion(Op op, TerminatingOpEffect eff) {
+            if (eff.terminatingOp() instanceof JavaOp.ThrowOp) {
+                return super.onAbruptCompletion(op, eff);
+            }
+            return eff;
+        }
     }
 }

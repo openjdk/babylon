@@ -28,9 +28,10 @@ import jdk.incubator.code.dialect.core.CoreOp;
 
 public interface FuncOpCarrier {
     CoreOp.FuncOp funcOp();
+
     void funcOp(CoreOp.FuncOp funcOp);
 
-      class Impl implements FuncOpCarrier {
+    class Impl implements FuncOpCarrier {
         private CoreOp.FuncOp funcOp;
 
         @Override
@@ -42,7 +43,8 @@ public interface FuncOpCarrier {
         public void funcOp(CoreOp.FuncOp funcOp) {
             this.funcOp = funcOp;
         }
-        public Impl(CoreOp.FuncOp funcOp){
+
+        public Impl(CoreOp.FuncOp funcOp) {
             this.funcOp = funcOp;
         }
     }

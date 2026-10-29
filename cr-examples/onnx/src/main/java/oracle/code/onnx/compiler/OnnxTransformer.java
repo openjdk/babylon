@@ -163,7 +163,8 @@ public final class OnnxTransformer {
                     bb.context().mapValue(op.result(), bb.add(CoreOp.funcCall(fo, bb.context().getValues(op.operands()))));
                 } else {
                     LOG.log(System.Logger.Level.DEBUG, "Inlining " + fo.funcName() + " into " + fname);
-                    Inliner.inline(bb, mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()), (_, v) -> bb.context().mapValue(io.result(), v));
+                    bb = Inliner.inline(bb, mapOrInline(fo, funcs, doNotInline), bb.context().getValues(io.operands()));
+                    bb.context().mapValue(io.result(), bb.parameters().getFirst());
                 }
             } else {
                 bb.add(op);
@@ -268,7 +269,7 @@ public final class OnnxTransformer {
     }
 
     static CoreOp.FuncOp removeUnusedOps(CoreOp.FuncOp f) {
-        Predicate<Op> unused = op -> (op instanceof Op.Pure || op instanceof CoreOp.VarOp) &&
+        Predicate<Op> unused = op -> (isOpRemovable(op) || op instanceof CoreOp.VarOp) &&
                 op.result().uses().isEmpty();
         while (f.elements().skip(1).anyMatch(ce -> ce instanceof Op op && unused.test(op))) {
             f = f.transform((block, op) -> {
@@ -279,6 +280,15 @@ public final class OnnxTransformer {
             });
         }
         return f;
+    }
+
+    private static boolean isOpRemovable(Op op) {
+        return switch (op) {
+            case JavaOp.ConvOp _, JavaOp.InstanceOfOp _, JavaOp.ConcatOp _, JavaOp.PatternOps.PatternOp _,
+                    CoreOp.ConstantOp _, JavaOp.ArithmeticOperation _, CoreOp.QuotedOp _,
+                    JavaOp.FieldAccessOp.FieldLoadOp _, JavaOp.ArrayAccessOp.ArrayLoadOp _ -> true;
+            default -> false;
+        };
     }
 
     static CoreOp.ModuleOp transformModule(TypeConvertor tc, CoreOp.ModuleOp module, Map<Value, String> namesMap) {
@@ -299,6 +309,9 @@ public final class OnnxTransformer {
             throw new RuntimeException(e);
         }
 
+        // Normalize to produce a single entry block with a return operation
+        // Such structure is assumed by the partial evaluator and subsequent functionality
+        func = NormalizeBlocksTransformer.transform(func);
         OnnxPartialEvaluator pe = new OnnxPartialEvaluator();
         pe.evaluate(tc.l, func);
 

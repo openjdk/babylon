@@ -120,13 +120,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * variable.
          *</ul>
          *
+         * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
+         *          variable as a constant operation whose constant value is the same as the constant variable's value.
+         *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
          * is not an instance of {@link Op.Result} or the operation does not model a constant expression
          * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
-         *}
          */
         static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
             return new ConstantExpressionEvaluator(l).evaluate(v);
@@ -151,6 +153,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * Such a variable is modelled as a variable operation, which does not model if the variable is a final
          * variable.
          *</ul>
+         *
+         * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
+         *          variable as a constant operation whose constant value is the same as the constant variable's value.
          *
          * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
@@ -723,30 +728,27 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder exit = b.block();
             Block.Builder throwBlock = b.block();
 
-            b.transformBody(bodies.get(0), List.of(), loweringTransformer(inherited, (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yo) {
-                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            exit.reference(), throwBlock.reference()));
-                    return block;
-                } else {
-                    return null;
-                }
-            }));
+            ControlFlowBooleanExpressionOp.lowerBooleanBody(b, predicateBody(), List.of(),
+                    new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(exit.reference(), throwBlock.reference()),
+                    inherited);
 
-            if (bodies.size() == 2) {
-                throwBlock.transformBody(bodies.get(1), List.of(), loweringTransformer(inherited, (block, op) -> {
+            Body detailsBody = detailsBody();
+            if (detailsBody != null) {
+                throwBlock.transformBody(detailsBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yo) {
                         Value detailValue = block.context().getValue(yo.yieldValue());
-                        block.add(throw_(block.add(new_(MethodRef.constructor(JavaType.type(AssertionError.class), switch (detailValue.type()) {
+                        MethodRef assertConstructor = MethodRef.constructor(type(AssertionError.class),
+                                switch (detailValue.type()) {
                                     case PrimitiveType pt -> {
-                                        if (pt == JavaType.BYTE || pt == JavaType.SHORT) {
+                                        if (pt == BYTE || pt == SHORT) {
                                             detailValue = block.add(conv(INT, detailValue));
-                                            yield JavaType.INT;
+                                            yield INT;
                                         }
                                         yield pt;
                                     }
-                                    default -> JavaType.J_L_OBJECT;
-                                }), detailValue))
+                                    default -> J_L_OBJECT;
+                                });
+                        block.add(throw_(block.add(new_(assertConstructor, detailValue))
                         ));
                         return block;
                     } else {
@@ -1055,7 +1057,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConvOp.NAME)
     public static final class ConvOp extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         static final String NAME = "conv";
 
         final CodeType resultType;
@@ -1255,7 +1257,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         @OpDeclaration(FieldLoadOp.NAME)
         public static final class FieldLoadOp extends FieldAccessOp
-                implements Pure, JavaExpression {
+                implements JavaExpression {
             static final String NAME = "field.load";
 
             final CodeType resultType;
@@ -1431,7 +1433,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         @OpDeclaration(ArrayLoadOp.NAME)
         public static final class ArrayLoadOp extends ArrayAccessOp
-                implements Pure, JavaExpression {
+                implements JavaExpression {
             static final String NAME = "array.load";
             final CodeType componentType;
 
@@ -1522,7 +1524,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(InstanceOfOp.NAME)
     public static final class InstanceOfOp extends AbstractOp
-            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
+            implements JavaOp, ReflectiveOp, JavaExpression {
         static final String NAME = "instanceof";
         /** The externalized attribute key for the code type modeling the instanceof target type. */
         static final String ATTRIBUTE_INSTANCEOF_TYPE = NAME + ".type";
@@ -1585,7 +1587,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(CastOp.NAME)
     public static final class CastOp extends AbstractOp
-            implements JavaOp, Op.Pure, ReflectiveOp, JavaExpression {
+            implements JavaOp, ReflectiveOp, JavaExpression {
         static final String NAME = "cast";
         /** The externalized attribute key for the code type modeling the target type of the cast. */
         static final String ATTRIBUTE_CAST_TYPE = NAME + ".type";
@@ -1793,7 +1795,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConcatOp.NAME)
     public static final class ConcatOp extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         static final String NAME = "concat";
 
         ConcatOp(ConcatOp that, CodeContext cc) {
@@ -1838,7 +1840,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * The arithmetic operation.
      */
     public sealed static abstract class ArithmeticOperation extends AbstractOp
-            implements JavaOp, Op.Pure, JavaExpression {
+            implements JavaOp, JavaExpression {
         ArithmeticOperation(ArithmeticOperation that, CodeContext cc) {
             super(that, cc);
         }
@@ -2281,6 +2283,33 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         NegOp(Value v) {
+            super(v);
+        }
+    }
+
+    /**
+     * The pos operation, that can model the Java language unary {@code +} operator for numeric types
+     *
+     * @jls 15.15.3 Unary Plus Operator {@code +}
+     */
+    @OpDeclaration(PosOp.NAME)
+    public static final class PosOp extends UnaryOp {
+        static final String NAME = "pos";
+
+        PosOp(ExternalizedOp def) {
+            super(def);
+        }
+
+        PosOp(PosOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public PosOp transform(CodeContext cc, CodeTransformer ct) {
+            return new PosOp(this, cc);
+        }
+
+        PosOp(Value v) {
             super(v);
         }
     }
@@ -3216,14 +3245,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             /**
-             * Complete the if operation with an empty action body.
+             * Completes the if operation with no final action body.
              * @return the completed if operation
              */
-            public IfOp else_() {
-                Body.Builder body = Body.Builder.of(connectedAncestorBody, ACTION_SIGNATURE);
-                body.entryBlock().add(core_yield());
-                bodies.add(body);
-
+            public IfOp noElse() {
                 return new IfOp(bodies);
             }
         }
@@ -3259,21 +3284,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             super(List.of());
 
-            // Normalize by adding an empty else action
-            // @@@ Is this needed?
-            if (bodyCs.size() % 2 == 0) {
-                bodyCs = new ArrayList<>(bodyCs);
-                Body.Builder end = Body.Builder.of(bodyCs.get(0).connectedAncestorBody(),
-                        CoreType.FUNCTION_TYPE_VOID);
-                end.entryBlock().add(core_yield());
-                bodyCs.add(end);
-            }
             this.bodies = bodyCs.stream().map(bc -> bc.build(this)).toList();
         }
 
         @Override
         public List<Body> bodies() {
             return bodies;
+        }
+
+        static boolean isEmptyBodyAction(Body body) {
+            Block block = body.entryBlock();
+            return body.blocks().size() == 1
+                    && block.ops().size() == 1
+                    && block.terminatingOp() instanceof CoreOp.YieldOp;
         }
 
         @Override
@@ -3304,17 +3327,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                     Block.Builder pred = builders.get(i);
                     action = builders.get(i + 1);
-                    Block.Builder next = builders.get(i + 2);
+                    Block.Builder nextAction = i + 2 < builders.size() ? builders.get(i + 2) : exit;
 
-                    pred.transformBody(predBody, List.of(), loweringTransformer(inherited, (block, op) -> {
-                        if (op instanceof CoreOp.YieldOp yo) {
-                            block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                                    action.reference(), next.reference()));
-                            return block;
-                        } else {
-                            return null;
-                        }
-                    }));
+                    ControlFlowBooleanExpressionOp.lowerBooleanBody(pred, predBody, List.of(),
+                            new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(action.reference(), nextAction.reference()),
+                            inherited);
                 }
 
                 action.transformBody(actionBody, List.of(), loweringTransformer(inherited, (block, op) -> {
@@ -3477,6 +3494,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     Map.of();
         }
 
+        boolean hasYieldStatements() {
+            return this.elements().anyMatch(
+                    e -> e instanceof JavaOp.YieldOp yop && yop.targetsOrAttemptsToExit(this));
+        }
+
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             Value selectorExpression = b.context().getValue(operands().get(0));
@@ -3514,104 +3536,115 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 }
             }
 
-            // Reorder bodies with default case at the end
-            // @@@ Model this as the last case
-            List<Body> reorderedBodies;
-            if (defaultCaseIndex != -1 && defaultCaseIndex != bodies().size() - 2) {
-                reorderedBodies = new ArrayList<>(bodies().size());
-                for (int i = 0; i < bodies().size(); i += 2) {
-                    if (i != defaultCaseIndex) {
-                        reorderedBodies.add(bodies().get(i));
-                        reorderedBodies.add(bodies().get(i + 1));
-                    }
-                }
-                reorderedBodies.add(bodies().get(defaultCaseIndex));
-                reorderedBodies.add(bodies().get(defaultCaseIndex + 1));
-                defaultCaseIndex = bodies().size() - 2;
-            } else {
-                reorderedBodies = bodies();
-            }
-
             // Create predicate and action blocks
-            List<Block.Builder> blocks = new ArrayList<>(reorderedBodies.size());
-            blocks.add(b);
-            for (int i = 1; i < reorderedBodies.size(); i ++) {
-                blocks.add(b.block());
+            List<Block.Builder> blocks = new ArrayList<>(bodies().size());
+            // Reuse incoming block for the first predicate
+            int reuseIdx = 0;
+            for (int i = 0; i < bodies().size(); i ++) {
+                if (i == defaultCaseIndex) {
+                    // No block needed for default predicate
+                    blocks.add(null);
+                    if (i == 0) {
+                        // The first predicate is default. Reuese incoming block
+                        // for the default action block itself if the switch is
+                        // only-default, or for the next predicate otherwise
+                        reuseIdx = bodies().size() > 2 ? i + 2 : i + 1;
+                    }
+                } else if (i == reuseIdx) {
+                    blocks.add(b);
+                } else {
+                    blocks.add(b.block());
+                }
             }
 
-            Block.Builder exit = b.block();
-            if (resultType() != VOID) {
-                Value r = exit.parameter(resultType());
-                exit.context().mapValue(result(), r);
+            boolean hasYieldStatements = hasYieldStatements();
+            boolean isBooleanExpression = resultType().equals(BOOLEAN);
+            // Poll for implicit boolean continuation parameter
+            ControlFlowBooleanExpressionOp.BooleanResultContinuation continuation = isBooleanExpression
+                    ? ControlFlowBooleanExpressionOp.BOOLEAN_CONTINUATION_ARG.poll(b.context())
+                    : null;
+            Block.Builder exit;
+            if (isBooleanExpression) {
+                if (continuation == null) {
+                    exit = b.block();
+                    b.context().mapValue(result(), exit.parameter(resultType()));
+                    continuation = new ControlFlowBooleanExpressionOp.BranchWithArgumentContinuation(exit);
+                } else if (hasYieldStatements) {
+                    exit = b.block();
+                    Value value = exit.parameter(resultType());
+                    continuation.continueWith(exit, value);
+                } else {
+                    exit = b;
+                }
+
+                if (hasYieldStatements) {
+                    BranchTarget.setBranchTarget(b.context(), this, exit, null);
+                }
+            } else {
+                exit = b.block();
+                if (resultType() != VOID) {
+                    Value r = exit.parameter(resultType());
+                    exit.context().mapValue(result(), r);
+                }
+                BranchTarget.setBranchTarget(b.context(), this, exit, null);
             }
 
-            // Set this body's break target to the exit block
-            BranchTarget.setBranchTarget(b.context(), this, exit, null);
             // Set action body's continue target to next action block for lowering of SwitchFallThroughOp
-            for (int i = 1; i < reorderedBodies.size() - 2; i += 2) {
-                Body actionBody = reorderedBodies.get(i);
+            for (int i = 1; i < bodies().size() - 2; i += 2) {
+                Body actionBody = bodies().get(i);
                 Block.Builder nextActionBlock = blocks.get(i + 2);
                 BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
             }
 
-            if (defaultCaseIndex == 0) {
-                // If there is only the default case branch to the action block
-                Block.Builder actionBlock = blocks.get(1);
-                b.add(branch(actionBlock.reference()));
-            }
-            for (int i = 0; i < reorderedBodies.size(); i += 2) {
-                Body predicateBody = reorderedBodies.get(i);
+            for (int i = 0; i < bodies().size(); i += 2) {
+                Body predicateBody = bodies().get(i);
                 Block.Builder predicateBlock = blocks.get(i);
-                Body actionBody = reorderedBodies.get(i + 1);
+                Body actionBody = bodies().get(i + 1);
                 Block.Builder actionBlock = blocks.get(i + 1);
 
                 // Lower predicate body for non-default cases
                 if (i != defaultCaseIndex) {
-                    boolean isLastCaseNoDefault = i == reorderedBodies.size() - 2;
-                    boolean isLastCaseWithDefault = defaultCaseIndex == i + 2;
+                    int nextPredicateIdx = i + 2;
+                    if (nextPredicateIdx == defaultCaseIndex) {
+                        nextPredicateIdx += 2;
+                    }
+
                     Block.Builder noMatchBlock;
-                    if (isLastCaseNoDefault) {
+                    if (nextPredicateIdx < bodies().size()) {
+                        noMatchBlock = blocks.get(nextPredicateIdx);
+                    } else if (defaultCaseIndex != -1) {
+                        noMatchBlock = blocks.get(defaultCaseIndex + 1);
+                    } else if (this instanceof SwitchExpressionOp) {
                         // If switch expression, the last predicate body should be unconditional
                         // and no conditional branch should be required. Rather than verifying
                         // that create a no match block that terminates with unreachable
-                        if (this instanceof SwitchExpressionOp) {
-                            Block.Builder unreachableBlock = b.block();
-                            unreachableBlock.add(unreachable());
-                            noMatchBlock = unreachableBlock;
-                        } else {
-                            noMatchBlock = exit;
-                        }
-                    } else if (isLastCaseWithDefault) {
-                        Block.Builder defaultActionBlock = blocks.get(defaultCaseIndex + 1);
-                        noMatchBlock = defaultActionBlock;
+                        noMatchBlock = b.block();
+                        noMatchBlock.add(unreachable());
                     } else {
-                        Block.Builder nextPredicateBlock = blocks.get(i + 2);
-                        noMatchBlock = nextPredicateBlock;
+                        noMatchBlock = exit;
                     }
 
-                    predicateBlock.transformBody(predicateBody, List.of(selectorExpression), loweringTransformer(inherited,
+                    ControlFlowBooleanExpressionOp.lowerBooleanBody(predicateBlock, predicateBody, List.of(selectorExpression),
+                            new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(), noMatchBlock.reference()),
+                            inherited);
+                }
+
+                if (isBooleanExpression) {
+                    ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, actionBody, List.of(), continuation, inherited);
+                } else {
+                    // Lower action body for all cases
+                    actionBlock.transformBody(actionBody, List.of(), loweringTransformer(inherited,
                             (block, op) -> switch (op) {
                                 case CoreOp.YieldOp yop -> {
-                                    block.add(conditionalBranch(block.context().getValue(yop.yieldValue()),
-                                            actionBlock.reference(), noMatchBlock.reference()));
+                                    List<Value> args = yop.yieldValue() == null
+                                            ? List.of()
+                                            : List.of(block.context().getValue(yop.yieldValue()));
+                                    block.add(branch(exit.reference(args)));
                                     yield block;
                                 }
                                 default -> null;
                             }));
                 }
-
-                // Lower action body for all cases
-                actionBlock.transformBody(actionBody, List.of(), loweringTransformer(inherited,
-                        (block, op) -> switch (op) {
-                            case CoreOp.YieldOp yop -> {
-                                List<Value> args = yop.yieldValue() == null
-                                        ? List.of()
-                                        : List.of(block.context().getValue(yop.yieldValue()));
-                                block.add(branch(exit.reference(args)));
-                                yield block;
-                            }
-                            default -> null;
-                        }));
             }
 
             return exit;
@@ -3643,8 +3676,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 if (terminatingOp instanceof CoreOp.YieldOp yieldOp &&
                         yieldOp.yieldValue() instanceof Op.Result opr &&
                         opr.op() instanceof InvokeOp invokeOp &&
-            invokeOp.invokeReference().equals(MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
-                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r && r.op() instanceof ConstantOp cop && cop.value() == null)) {
+                        invokeOp.invokeReference().equals(
+                                MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
+                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r &&
+                                r.op() instanceof ConstantOp cop && cop.value() == null)) {
                     return true;
                 }
             }
@@ -3662,7 +3697,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(SwitchExpressionOp.NAME)
     public static final class SwitchExpressionOp extends SwitchOp
-            implements JavaExpression {
+            implements ControlFlowBooleanExpressionOp, JavaExpression {
         static final String NAME = "java.switch.expression";
 
         final CodeType resultType;
@@ -4045,21 +4080,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 default -> null;
             }));
 
-            header.transformBody(condBody, initValues, loweringTransformer(inherited, (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yo) {
-                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            body.reference(), exit.reference()));
-                    return block;
-                } else {
-                    return null;
-                }
-            }));
+            ControlFlowBooleanExpressionOp.lowerBooleanBody(header, condBody, initValues,
+                    new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(body.reference(), exit.reference()),
+                    inherited);
 
             BranchTarget.setBranchTarget(b.context(), this, exit, update);
 
-            body.transformBody(this.loopBody, initValues, loweringTransformer(inherited, (_, _) -> null));
+            body.transformBody(loopBody, initValues, loweringTransformer(inherited, (_, _) -> null));
 
-            update.transformBody(this.updateBody, initValues, loweringTransformer(inherited, (block, op) -> {
+            update.transformBody(updateBody, initValues, loweringTransformer(inherited, (block, op) -> {
                 if (op instanceof CoreOp.YieldOp) {
                     block.add(branch(header.reference()));
                     return block;
@@ -4464,15 +4493,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             b.add(branch(header.reference()));
 
-            header.transformBody(predicateBody(), List.of(), loweringTransformer(inherited, (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yo) {
-                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            body.reference(), exit.reference()));
-                    return block;
-                } else {
-                    return null;
-                }
-            }));
+            ControlFlowBooleanExpressionOp.lowerBooleanBody(header, predicateBody(), List.of(),
+                    new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(body.reference(), exit.reference()),
+                    inherited);
 
             BranchTarget.setBranchTarget(b.context(), this, exit, header);
 
@@ -4613,15 +4636,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             body.transformBody(loopBody(), List.of(), loweringTransformer(inherited, (_, _) -> null));
 
-            header.transformBody(predicateBody(), List.of(), loweringTransformer(inherited, (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yo) {
-                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            body.reference(), exit.reference()));
-                    return block;
-                } else {
-                    return null;
-                }
-            }));
+            ControlFlowBooleanExpressionOp.lowerBooleanBody(header, predicateBody(), List.of(),
+                    new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(body.reference(), exit.reference()),
+                    inherited);
 
             return exit;
         }
@@ -4641,7 +4658,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @jls 15.24 Conditional-Or Operator {@code ||}
      */
     public sealed static abstract class ConditionalOp extends AbstractOp
-            implements JavaOp, Op.Nested, Op.Lowerable, JavaExpression
+            implements JavaOp, Op.Nested, ControlFlowBooleanExpressionOp, JavaExpression
             permits ConditionalAndOp, ConditionalOrOp {
 
         static final FunctionType BODY_TYPE = CoreType.functionType(BOOLEAN);
@@ -4668,46 +4685,44 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         @Override
+        public CodeType resultType() {
+            return BOOLEAN;
+        }
+
+        @Override
         public Block.Builder lower(Block.Builder lhs, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-            Block.Builder exit = lhs.block();
-            lhs.context().mapValue(result(), exit.parameter(resultType()));
+            // Poll for implicit boolean continuation parameter
+            BooleanResultContinuation continuation = BOOLEAN_CONTINUATION_ARG.poll(lhs.context());
+            Block.Builder exit = lhs;
+            if (continuation == null) {
+                exit = lhs.block();
+                lhs.context().mapValue(result(), exit.parameter(resultType()));
+                continuation = new BranchWithArgumentContinuation(exit);
+            }
+            lowerTo(lhs, inherited, continuation);
+            return exit;
+        }
+
+        void lowerTo(Block.Builder lhs, BiFunction<Block.Builder, Op, Block.Builder> inherited,
+                     BooleanResultContinuation continuation) {
+            boolean isAnd = this instanceof ConditionalAndOp;
+            Block.Reference shortCircuitRef = continuation.referenceFor(lhs, !isAnd);
 
             // Lower all but the last body
             for (int i = 0; i < bodies().size() - 1; i++) {
                 Block.Builder rhs = lhs.block();
-                lhs.transformBody(bodies().get(i), List.of(), loweringTransformer(inherited, (block, op) -> {
-                    if (op instanceof CoreOp.YieldOp yop) {
-                        Value p = block.context().getValue(yop.yieldValue());
-                        if (this instanceof ConditionalAndOp) {
-                            block.add(conditionalBranch(p, rhs.reference(), exit.reference(p)));
-                        } else {
-                            block.add(conditionalBranch(p, exit.reference(p), rhs.reference()));
-                        }
-                        return block;
-                    } else {
-                        return null;
-                    }
-                }));
+
+                ConditionalBranchContinuation bodyContinuation = isAnd
+                        ? new ConditionalBranchContinuation(rhs.reference(), shortCircuitRef)
+                        : new ConditionalBranchContinuation(shortCircuitRef, rhs.reference());
+
+                ControlFlowBooleanExpressionOp.lowerBooleanBody(lhs, bodies().get(i), List.of(), bodyContinuation, inherited);
+
                 lhs = rhs;
             }
 
             // Lower the last body
-            lhs.transformBody(bodies().getLast(), List.of(), loweringTransformer(inherited, (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yop) {
-                    Value p = block.context().getValue(yop.yieldValue());
-                    block.add(branch(exit.reference(p)));
-                    return block;
-                } else {
-                    return null;
-                }
-            }));
-
-            return exit;
-        }
-
-        @Override
-        public CodeType resultType() {
-            return BOOLEAN;
+            ControlFlowBooleanExpressionOp.lowerBooleanBody(lhs, bodies().getLast(),List.of(), continuation, inherited);
         }
     }
 
@@ -4853,7 +4868,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     @OpDeclaration(ConditionalExpressionOp.NAME)
     public static final class ConditionalExpressionOp extends AbstractOp
-            implements JavaOp, Op.Nested, Op.Lowerable, JavaExpression {
+            implements JavaOp, Op.Nested, ControlFlowBooleanExpressionOp, JavaExpression {
 
         static final String NAME = "java.cexpression";
 
@@ -4918,34 +4933,51 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-            Block.Builder exit = b.block(resultType());
-            exit.context().mapValue(result(), exit.parameters().get(0));
+            boolean isBooleanExpression = resultType().equals(BOOLEAN);
+            // Poll for implicit boolean continuation parameter
+            BooleanResultContinuation continuation = isBooleanExpression
+                    ? BOOLEAN_CONTINUATION_ARG.poll(b.context())
+                    : null;
 
-            BranchTarget.setBranchTarget(b.context(), this, exit, null);
+            // Lower predicate body
+            Block.Builder trueBlock = b.block();
+            Block.Builder falseBlock = b.block();
+            ControlFlowBooleanExpressionOp.lowerBooleanBody(b, predicateBody(), List.of(),
+                    new ConditionalBranchContinuation(trueBlock.reference(), falseBlock.reference()),
+                    inherited);
 
-            List<Block.Builder> builders = List.of(b.block(), b.block());
-            b.transformBody(bodies.get(0), List.of(), loweringTransformer(inherited, (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yo) {
-                    block.add(conditionalBranch(block.context().getValue(yo.yieldValue()),
-                            builders.get(0).reference(), builders.get(1).reference()));
-                    return block;
+            // Lower true/false bodies depending on if a boolean expression or a value expression
+            if (isBooleanExpression) {
+                Block.Builder exit;
+                if (continuation == null) {
+                    exit = b.block();
+                    b.context().mapValue(result(), exit.parameter(resultType()));
+                    continuation = new BranchWithArgumentContinuation(exit);
                 } else {
-                    return null;
+                    exit = b;
                 }
-            }));
 
-            for (int i = 0; i < 2; i++) {
-                builders.get(i).transformBody(bodies.get(i + 1), List.of(), loweringTransformer(inherited, (block, op) -> {
+                ControlFlowBooleanExpressionOp.lowerBooleanBody(trueBlock, trueBody(), List.of(), continuation, inherited);
+                ControlFlowBooleanExpressionOp.lowerBooleanBody(falseBlock, falseBody(), List.of(), continuation, inherited);
+                return exit;
+            } else {
+                Block.Builder exit = b.block();
+                b.context().mapValue(result(), exit.parameter(resultType()));
+
+                BranchTarget.setBranchTarget(b.context(), this, exit, null);
+
+                CodeTransformer exitTransformer = loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp yop) {
                         block.add(branch(exit.reference(block.context().getValue(yop.yieldValue()))));
                         return block;
                     } else {
                         return null;
                     }
-                }));
+                });
+                trueBlock.transformBody(trueBody(), List.of(), exitTransformer);
+                falseBlock.transformBody(falseBody(), List.of(), exitTransformer);
+                return exit;
             }
-
-            return exit;
         }
 
         @Override
@@ -5112,9 +5144,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 return source.lower(b, inherited);
             }
         }
-
-        private static final boolean SHARED_FINALIZER_DISPATCH =
-                "sharedDispatch".equalsIgnoreCase(System.getProperty("babylon.tryFinally"));
 
         /**
          * Builder for the resource bodies and the try body of a try operation.
@@ -5389,7 +5418,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Block.Builder exit = b.block();
             BranchTarget.setBranchTarget(b.context(), this, exit, null);
 
-            if (!resourcesBodies.isEmpty() || SHARED_FINALIZER_DISPATCH && finallyBody != null) {
+            if (!resourcesBodies.isEmpty()) {
                 List<Value> captures = normalizationCaptures();
                 Op normalized = normalize(captures);
                 CodeContext ctx = CodeContext.create(b.context());
@@ -5448,8 +5477,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             BiFunction<Block.Builder, Op, Block.Builder> tryExitTransformer;
             if (finallyBody != null) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 tryExitTransformer = composeFirst(inherited, (block, op) -> {
                     if (op instanceof TargetingOp top && top.targetsOrAttemptsToExit(this)) {
                         return inlineFinalizer(block, enter, inherited);
@@ -5482,8 +5509,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             Block.Builder finallyEnter = null;
             if (finallyBody != null) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 finallyEnter = b.block();
                 if (hasTryRegionExit.get()) {
                     // Exit the try exception region
@@ -5502,8 +5527,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 Block.Parameter t = catcher.parameter(catcherBody.bodySignature().parameterTypes().get(0));
 
                 if (finallyBody != null) {
-                    assert !SHARED_FINALIZER_DISPATCH;
-
                     Block.Builder catchRegionEnter = b.block();
                     Block.Builder catchRegionExit = b.block();
 
@@ -5552,8 +5575,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // Inline the finally body as a catcher of Throwable and adjusting to throw
             if (finallyBody != null && hasTryRegionExit.get()) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 // Inline the finally body for exceptional completion and rethrow
                 finallyEnter.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
@@ -5566,8 +5587,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             if (finallyBody != null) {
-                assert !SHARED_FINALIZER_DISPATCH;
-
                 // Inline the finally body for exceptional completion and rethrow
                 Block.Parameter t = catcherFinally.parameter(type(Throwable.class));
                 catcherFinally.transformBody(finallyBody, List.of(), loweringTransformer(inherited, (block, op) -> {
@@ -5601,9 +5620,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             CoreOp.FuncOp root = func("$", body);
             root = normalize(root, TryOp::isExtendedTryWithResources, TryOp::normalizeExtendedTryWithResources);
             root = normalize(root, TryOp::isBasicTryWithResources, TryOp::normalizeBasicTryWithResources);
-            if (SHARED_FINALIZER_DISPATCH) {
-                root = normalize(root, tryOp -> tryOp.finallyBody != null, TryOp::normalizeFinalizer);
-            }
 
             return root.body().entryBlock().ops().getFirst();
         }
@@ -5684,7 +5700,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         TryOp normalizeExtendedTryWithResources(Body.Builder anc, List<Value> res) {
             Body resource = resourcesBodies.get(res.size());
             Body.Builder resourceBody = Body.Builder.of(anc, CoreType.functionType(resource.yieldType()));
-            resourceBody.entryBlock().transformBody(resource, res);
+            resourceBody.entryBlock().transformBody(resource, res, resourceBody.entryBlock().context(), resourceBody.entryBlock().transformer());
             Body.Builder basicBody = Body.Builder.of(anc, CoreType.functionType(VOID, List.of(resource.yieldType())));
             Block.Builder bodyBlock = basicBody.entryBlock();
             res.add(bodyBlock.parameters().getFirst());
@@ -5692,7 +5708,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 bodyBlock.add(normalizeExtendedTryWithResources(basicBody, res));
                 bodyBlock.add(core_yield());
             } else {
-                bodyBlock.transformBody(body, res);
+                bodyBlock.transformBody(body, res, bodyBlock.context(), bodyBlock.transformer());
             }
             return try_(List.of(resourceBody), basicBody, List.of(), null);
         }
@@ -5725,199 +5741,60 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
             Block.Builder entryBlock = normalizedBody.entryBlock();
             Body resourceBody = resourcesBodies.getFirst();
-            CodeType resourceType = resourceBody.bodySignature().returnType();
-            Block.Builder afterAcquire = entryBlock.block(resourceType);
-            entryBlock.transformBody(resourceBody, List.of(), (block, op) -> {
-                if (op instanceof CoreOp.YieldOp yop && op.ancestorBody() == resourceBody) {
-                    block.add(branch(afterAcquire.reference(block.context().getValue(yop.yieldValue()))));
-                } else {
+            entryBlock.transformBody(resourceBody, List.of(), entryBlock.context(), (block, op) -> {
+                if (!(op instanceof CoreOp.YieldOp yield) || op.ancestorBody() != resourceBody) {
                     block.add(op);
+                    return block;
                 }
+                Value resourceArgument = block.context().getValue(yield.yieldValue());
+                // resource may be a var value if a resource declaration such as
+                //   try (AutoCloseable resource = open())  { ... }
+                // or a value if an existing resource such as
+                //   AutoCloseable resource = open()
+                //   try (resource) { ... }
+                // Operations in the resource need to distinguish between them and require
+                // a load operation for the former
+                Value primaryExceptionVar = block.add(var(block.add(constant(type(Throwable.class), null))));
+                // @@@ following builder code may be refactored into a reflected template method transformation
+                block.add(try_(entryBlock.parentBody(), tryEntry -> {
+                    tryEntry.transformBody(body, List.of(resourceArgument), tryEntry.context(), tryEntry.transformer());
+                }).catch_(type(Throwable.class), catchB -> {
+                    Block.Parameter thrown = catchB.parameters().getFirst();
+                    catchB.add(varStore(primaryExceptionVar, thrown));
+                    catchB.add(throw_(thrown));
+                }).finally_(finB -> {
+                    Value nullObj = finB.add(constant(J_L_OBJECT, null));
+                    Value resource = resourceArgument.type() instanceof VarType
+                            ? finB.add(varLoad(resourceArgument))
+                            : resourceArgument;
+                    finB.add(if_(finB.parentBody()).if_(predB -> {
+                                predB.add(core_yield(predB.add(neq(resource, nullObj))));
+                    }).then(closeB -> {
+                        Value primaryException = closeB.add(varLoad(primaryExceptionVar));
+                        closeB.add(if_(closeB.parentBody()).if_(predB -> {
+                            predB.add(core_yield(predB.add(neq(primaryException, nullObj))));
+                        }).then(suppB -> {
+                            suppB.add(try_(suppB.parentBody(), tryB -> {
+                                tryB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                                tryB.add(core_yield());
+                            }).catch_(type(Throwable.class), catchB -> {
+                                Block.Parameter closeException = catchB.parameters().getFirst();
+                                catchB.add(invoke(THROWABLE_ADD_SUPPRESSED_METHOD, primaryException, closeException));
+                                catchB.add(core_yield());
+                            }).noFinalizer());
+                            suppB.add(core_yield());
+                        }).else_(normB -> {
+                            normB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
+                            normB.add(core_yield());
+                        }));
+                        closeB.add(core_yield());
+                    }).noElse());
+                    finB.add(core_yield());
+                }));
+                block.add(core_yield());
                 return block;
             });
-            // resource may be a var value if a resource declaration such as
-            //   try (AutoCloseable resource = open())  { ... }
-            // or a value if an existing resource such as
-            //   AutoCloseable resource = open()
-            //   try (resource) { ... }
-            // Operations in the resource need to distinguish between them and require
-            // a load operation for the former
-            Value resourceArgument = afterAcquire.parameters().getFirst();
-            Value primaryExceptionVar = afterAcquire.add(var(afterAcquire.add(constant(type(Throwable.class), null))));
-            // @@@ following builder code may be refactored into a reflected template method transformation
-            afterAcquire.add(try_(entryBlock.parentBody(), tryEntry -> {
-                tryEntry.transformBody(body, List.of(resourceArgument));
-            }).catch_(type(Throwable.class), catchB -> {
-                Block.Parameter thrown = catchB.parameters().getFirst();
-                catchB.add(varStore(primaryExceptionVar, thrown));
-                catchB.add(throw_(thrown));
-            }).finally_(finB -> {
-                Value nullObj = finB.add(constant(J_L_OBJECT, null));
-                Value resource = resourceArgument.type() instanceof VarType
-                        ? finB.add(varLoad(resourceArgument))
-                        : resourceArgument;
-                finB.add(if_(finB.parentBody()).if_(predB -> {
-                            predB.add(core_yield(predB.add(neq(resource, nullObj))));
-                }).then(closeB -> {
-                    Value primaryException = closeB.add(varLoad(primaryExceptionVar));
-                    closeB.add(if_(closeB.parentBody()).if_(predB -> {
-                        predB.add(core_yield(predB.add(neq(primaryException, nullObj))));
-                    }).then(suppB -> {
-                        suppB.add(try_(suppB.parentBody(), tryB -> {
-                            tryB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
-                            tryB.add(core_yield());
-                        }).catch_(type(Throwable.class), catchB -> {
-                            Block.Parameter closeException = catchB.parameters().getFirst();
-                            catchB.add(invoke(THROWABLE_ADD_SUPPRESSED_METHOD, primaryException, closeException));
-                            catchB.add(core_yield());
-                        }).noFinalizer());
-                        suppB.add(core_yield());
-                    }).else_(normB -> {
-                        normB.add(invoke(AUTO_CLOSEABLE_CLOSE_METHOD, resource));
-                        normB.add(core_yield());
-                    }));
-                    closeB.add(core_yield());
-                }).else_());
-                finB.add(core_yield());
-            }));
-            afterAcquire.add(core_yield());
             return b.add(try_(List.of(), normalizedBody, List.of(), null));
-        }
-
-        private record FinallyExit(Op op, Value valueVar) {
-        }
-
-        /// Normalize `try / catch / finally` to elemental `try / catch`
-        ///
-        /// ```
-        /// completion = normal
-        /// pending = null
-        /// finalizerExit: {
-        ///     try {
-        ///         try { body } catch (...) { catches }
-        ///         record normal, return, break, continue, or yield
-        ///         break finalizerExit
-        ///     } catch (t) {
-        ///         pending = t
-        ///         completion = throw
-        ///         break finalizerExit
-        ///     }
-        /// }
-        /// finalizer
-        /// replay(completion, pending)
-        /// ```
-        ///
-        /// @jls 14.20.2 Execution of try-finally and try-catch-finally
-        private Op.Result normalizeFinalizer(Block.Builder b) {
-            Body.Builder normalizedBody = Body.Builder.of(b.parentBody(), CoreType.functionType(VOID));
-            Block.Builder output = normalizedBody.entryBlock();
-            Value completionVar = output.add(var(output.add(constant(INT, 0))));
-            Value exceptionVar = output.add(var(output.add(constant(type(Throwable.class), null))));
-            List<FinallyExit> exits = new ArrayList<>();
-
-            Body.Builder labeledBody = Body.Builder.of(output.parentBody(), CoreType.functionType(VOID));
-            Block.Builder labeledBlock = labeledBody.entryBlock();
-            Value exitLabel = labeledBlock.add(constant(J_L_STRING, "$finally"));
-
-            CatchBuilder protectedTry = try_(labeledBody, tryBlock -> {
-                if (handlers.isEmpty()) {
-                    tryBlock.transformBody(body, List.of(),
-                            finalizerExitTransformer(body, exitLabel, completionVar, exits, output));
-                } else {
-                    CatchBuilder innerTry = try_(tryBlock.parentBody(), innerBlock ->
-                            innerBlock.transformBody(body, List.of(),
-                                    finalizerExitTransformer(body, exitLabel, completionVar, exits, output)));
-                    List<CodeType> catchTypes = catchTypes();
-                    for (int i = 0; i < handlers.size(); i++) {
-                        Body catcher = handlers.get(i);
-                        innerTry.catch_(catchTypes.get(i), catcher.bodySignature().parameterTypes().getFirst(),
-                                catchBlock -> catchBlock.transformBody(catcher, catchBlock.parameters(),
-                                        finalizerExitTransformer(catcher, exitLabel, completionVar, exits, output)));
-                    }
-                    tryBlock.add(innerTry.noFinalizer());
-                    tryBlock.add(core_yield());
-                }
-            });
-            labeledBlock.add(protectedTry.catch_(type(Throwable.class), catchBlock -> {
-                catchBlock.add(varStore(exceptionVar, catchBlock.parameters().getFirst()));
-                completeFinalizer(catchBlock, exitLabel, completionVar, 1);
-            }).noFinalizer());
-            labeledBlock.add(core_yield());
-            output.add(labeled(labeledBody));
-
-            Block.Builder afterFinalizer = output.block();
-            output.transformBody(finallyBody, List.of(), (current, op) -> {
-                if (op instanceof CoreOp.YieldOp && op.ancestorBody() == finallyBody) {
-                    current.add(branch(afterFinalizer.reference()));
-                    return current;
-                }
-                current.add(op);
-                return current;
-            });
-
-            for (int i = 0; i < exits.size(); i++) {
-                FinallyExit exit = exits.get(i);
-                int completion = i + 2;
-                afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
-                    Value value = predicate.add(varLoad(completionVar));
-                    predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, completion))))));
-                }).then(action -> {
-                    Op exitOp = exit.op();
-                    if (exitOp instanceof TargetingOp && exit.valueVar() != null) {
-                        assert exitOp.operands().size() == 1;
-
-                        Value returnValue = action.add(varLoad(exit.valueVar()));
-                        action.context().mapValue(exitOp.operands().getFirst(), returnValue);
-                    }
-                    action.add(exitOp);
-                }).else_());
-            }
-            afterFinalizer.add(if_(afterFinalizer.parentBody()).if_(predicate -> {
-                Value value = predicate.add(varLoad(completionVar));
-                predicate.add(core_yield(predicate.add(eq(value, predicate.add(constant(INT, 1))))));
-            }).then(action -> {
-                action.add(throw_(action.add(varLoad(exceptionVar))));
-            }).else_());
-            afterFinalizer.add(core_yield());
-            return b.add(try_(List.of(), normalizedBody, List.of(), null));
-        }
-
-        @SuppressWarnings("fallthrough")
-        private CodeTransformer finalizerExitTransformer(Body sourceBody, Value exitLabel, Value completionVar,
-                                                         List<FinallyExit> exits, Block.Builder output) {
-            return (b, op) -> {
-                switch (op) {
-                    case CoreOp.YieldOp _ when op.ancestorBody() == sourceBody -> {
-                        completeFinalizer(b, exitLabel, completionVar, 0);
-                    }
-                    case TargetingOp top when top.targetsOrAttemptsToExit(this) -> {
-                        Value valueVar = null;
-                        switch (top) {
-                            case ReturnOp _, StagedReturnOp _ when op.operands().size() == 1 :
-                            case YieldOp _, StagedYieldOp _ : {
-                                Value yieldValue = b.context().getValue(op.operands().getFirst());
-                                valueVar = output.add(var(yieldValue.type()));
-                                b.add(varStore(valueVar, yieldValue));
-                            }
-                            // Fallthrough for all targeting ops
-                            // Including StatementTargetingOp which may have an unmapped operand for its label
-                            default: {
-                                exits.add(new FinallyExit(op, valueVar));
-                                completeFinalizer(b, exitLabel, completionVar, exits.size() + 1);
-                            }
-                        }
-                    }
-                    default -> {
-                        b.add(op);
-                    }
-                };
-                return b;
-            };
-        }
-
-        private static void completeFinalizer(Block.Builder b, Value exitLabel, Value completionVar, int completion) {
-            b.add(varStore(completionVar, b.add(constant(INT, completion))));
-            b.add(break_(exitLabel));
         }
 
         // Replace targeting operations whose targets are outside the staged model with staged forms.
@@ -6070,7 +5947,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * {@link RecordPatternOp}.
          */
         public sealed static abstract class PatternOp extends AbstractOp
-                implements JavaOp, Op.Pure {
+                implements JavaOp {
             PatternOp(PatternOp that, CodeContext cc) {
                 super(that, cc);
             }
@@ -6278,7 +6155,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         @OpDeclaration(MatchOp.NAME)
         public static final class MatchOp extends AbstractOp
-                implements JavaOp, Op.Isolated, Op.Lowerable {
+                implements JavaOp, Op.Isolated, ControlFlowBooleanExpressionOp {
             static final String NAME = "pattern.match";
 
             final Body patternBody;
@@ -6342,57 +6219,55 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             @Override
             public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-                // No match block
-                Block.Builder endNoMatchBlock = b.block();
-                // Match block
-                Block.Builder endMatchBlock = b.block();
-                // End block
-                Block.Builder endBlock = b.block();
-                Block.Parameter matchResult = endBlock.parameter(resultType());
-                // Map match operation result
-                b.context().mapValue(result(), matchResult);
+                // Poll for implicit boolean continuation parameter
+                BooleanResultContinuation continuation = BOOLEAN_CONTINUATION_ARG.poll(b.context());
+                Block.Builder exit = b;
+                if (continuation == null) {
+                    exit = b.block();
+                    b.context().mapValue(result(), exit.parameter(resultType()));
+                    continuation = new BranchWithArgumentContinuation(exit);
+                }
+                lowerTo(b, inherited, continuation);
+                return exit;
+            }
+
+            void lowerTo(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited,
+                         BooleanResultContinuation continuation) {
+                Block.Reference trueRef = continuation.referenceFor(b, true);
+                Block.Reference falseRef = continuation.referenceFor(b, false);
 
                 List<Value> patternValues = new ArrayList<>();
                 Op patternYieldOp = patternBody.entryBlock().terminatingOp();
                 Op.Result rootPatternValue = (Op.Result) patternYieldOp.operands().get(0);
-                Block.Builder currentBlock = lower(endNoMatchBlock, b,
+                Block.Builder matchedBlock = lower(
+                        falseRef,
+                        b,
                         patternValues,
                         rootPatternValue.op(),
                         b.context().getValue(targetOperand()));
-                currentBlock.add(branch(endMatchBlock.reference()));
 
-                // No match block
-                // Pass false
-                endNoMatchBlock.add(branch(endBlock.reference(
-                        endNoMatchBlock.add(constant(BOOLEAN, false)))));
-
-                // Match block
-                // Lower match body and pass true
-                endMatchBlock.transformBody(matchBody, patternValues, loweringTransformer(inherited, (block, op) -> {
+                matchedBlock.transformBody(matchBody, patternValues, loweringTransformer(inherited, (block, op) -> {
                     if (op instanceof CoreOp.YieldOp) {
-                        block.add(branch(endBlock.reference(
-                                block.add(constant(BOOLEAN, true)))));
+                        block.add(branch(trueRef));
                         return block;
                     } else {
                         return null;
                     }
                 }));
-
-                return endBlock;
             }
 
-            static Block.Builder lower(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+            static Block.Builder lower(Block.Reference falseRef, Block.Builder currentBlock,
                                        List<Value> bindings,
                                        Op pattern, Value target) {
                 return switch (pattern) {
-                    case RecordPatternOp rp -> lowerRecordPattern(endNoMatchBlock, currentBlock, bindings, rp, target);
-                    case TypePatternOp tp -> lowerTypePattern(endNoMatchBlock, currentBlock, bindings, tp, target);
+                    case RecordPatternOp rp -> lowerRecordPattern(falseRef, currentBlock, bindings, rp, target);
+                    case TypePatternOp tp -> lowerTypePattern(falseRef, currentBlock, bindings, tp, target);
                     case MatchAllPatternOp map -> lowerMatchAllPattern(currentBlock);
                     case null, default -> throw new UnsupportedOperationException("Unknown pattern op: " + pattern);
                 };
             }
 
-            static Block.Builder lowerRecordPattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+            static Block.Builder lowerRecordPattern(Block.Reference falseRef, Block.Builder currentBlock,
                                                     List<Value> bindings,
                                                     JavaOp.PatternOps.RecordPatternOp rpOp, Value target) {
                 CodeType targetType = rpOp.targetType();
@@ -6401,7 +6276,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
                 // Check if instance of target type
                 Op.Result isInstance = currentBlock.add(instanceOf(targetType, target));
-                currentBlock.add(conditionalBranch(isInstance, nextBlock.reference(), endNoMatchBlock.reference()));
+                currentBlock.add(conditionalBranch(isInstance, nextBlock.reference(), falseRef));
 
                 currentBlock = nextBlock;
 
@@ -6412,39 +6287,36 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 for (int i = 0; i < dArgs.size(); i++) {
                     Op.Result nestedPattern = (Op.Result) dArgs.get(i);
                     // @@@ Handle exceptions?
-            Value nestedTarget = currentBlock.add(invoke(rpOp.recordReference().methodForComponent(i), target));
+                    Value nestedTarget = currentBlock.add(invoke(rpOp.recordReference().methodForComponent(i), target));
 
-                    currentBlock = lower(endNoMatchBlock, currentBlock, bindings, nestedPattern.op(), nestedTarget);
+                    currentBlock = lower(falseRef, currentBlock, bindings, nestedPattern.op(), nestedTarget);
                 }
 
                 return currentBlock;
             }
 
-            static Block.Builder lowerTypePattern(Block.Builder endNoMatchBlock, Block.Builder currentBlock,
+            static Block.Builder lowerTypePattern(Block.Reference falseRef, Block.Builder currentBlock,
                                                   List<Value> bindings,
                                                   TypePatternOp tpOp, Value target) {
-                CodeType targetType = tpOp.targetType();
-
-                // Check if instance of target type
-                Op p; // op that perform type check
-                Op c; // op that perform conversion
                 CodeType s = target.type();
-                CodeType t = targetType;
+                CodeType t = tpOp.targetType();
                 if (t instanceof PrimitiveType pt) {
                     if (s instanceof ClassType cs) {
-                        // unboxing conversions
                         ClassType box;
                         if (cs.unbox().isEmpty()) { // s not a boxed type
                             // e.g. Number -> int, narrowing + unboxing
                             box = pt.box().orElseThrow();
-                            p = instanceOf(box, target);
+                            currentBlock = appendTypeTestOp(instanceOf(box, target), currentBlock, falseRef);
+                            // e.g. Object -> int, on true path we need to cast Object to Integer
+                            target = currentBlock.add(cast(box, target));
                         } else {
                             // e.g. Float -> float, unboxing
                             // e.g. Integer -> long, unboxing + widening
                             box = cs;
-                            p = neq(target, currentBlock.add(constant(s, null)));
+                            Op p = neq(target, currentBlock.add(constant(s, null)));
+                            currentBlock = appendTypeTestOp(p, currentBlock, falseRef);
                         }
-                        c = invoke(MethodRef.method(box, t + "Value", t), target);
+                        target = currentBlock.add(invoke(MethodRef.method(box, t + "Value", t), target));
                     } else {
                         // primitive to primitive conversion
                         PrimitiveType ps = ((PrimitiveType) s);
@@ -6454,41 +6326,36 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             // e,g. int -> float, widening with check
                             // e.g. byte -> char, widening and narrowing
                             MethodRef mref = convMethodRef(s, t);
-                            p = invoke(mref, target);
-                        } else {
-                            p = null;
+                            currentBlock = appendTypeTestOp(invoke(mref, target), currentBlock, falseRef);
                         }
-                        c = conv(targetType, target);
+                        target = currentBlock.add(conv(t, target));
                     }
                 } else if (s instanceof PrimitiveType ps) {
                     // boxing conversions
                     // e.g. int -> Number, boxing + widening
                     // e.g. byte -> Byte, boxing
-                    p = null;
                     ClassType box = ps.box().orElseThrow();
-                    c = invoke(MethodRef.method(box, "valueOf", box, ps), target);
+                    target = currentBlock.add(invoke(MethodRef.method(box, "valueOf", box, ps), target));
                 } else {
                     // reference to reference
                     // e.g. Character -> Character
                     // e.g. Number -> Double, narrowing
                     // e.g. Short -> Object, widening
-                    p = instanceOf(targetType, target);
-                    c = s.equals(t) ? null : cast(targetType, target);
-                }
-
-                if (p != null) {
-                    // p != null, we need to perform type check at runtime
-                    Block.Builder nextBlock = currentBlock.block();
-                    currentBlock.add(conditionalBranch(currentBlock.add(p), nextBlock.reference(), endNoMatchBlock.reference()));
-                    currentBlock = nextBlock;
-                }
-                if (c != null) {
-                    target = currentBlock.add(c);
+                    currentBlock = appendTypeTestOp(instanceOf(t, target), currentBlock, falseRef);
+                    if (!s.equals(t)) {
+                        target = currentBlock.add(cast(t, target));
+                    }
                 }
 
                 bindings.add(target);
 
                 return currentBlock;
+            }
+
+            private static Block.Builder appendTypeTestOp(Op p, Block.Builder b, Block.Reference falseBlock) {
+                Block.Builder trueBlock = b.block();
+                b.add(conditionalBranch(b.add(p), trueBlock.reference(), falseBlock));
+                return trueBlock;
             }
 
             private static boolean isWideningAndNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
@@ -6610,6 +6477,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             case "monitor.exit" -> new MonitorOp.MonitorExitOp(def);
             case "mul" -> new MulOp(def);
             case "neg" -> new NegOp(def);
+            case "pos" -> new PosOp(def);
             case "neq" -> new NeqOp(def);
             case "new" -> new NewOp(def);
             case "not" -> new NotOp(def);
@@ -7249,6 +7117,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      */
     public static NegOp neg(Value v) {
         return new NegOp(v);
+    }
+
+    /**
+     * Creates a pos operation.
+     *
+     * @param v the operand
+     * @return the pos operation
+     */
+    public static PosOp pos(Value v) {
+        return new PosOp(v);
     }
 
     /**

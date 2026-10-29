@@ -377,7 +377,7 @@ public class OpBuilder {
                         t.add(throw_(
                                 t.add(new_(MethodRef.constructor(UnsupportedOperationException.class, String.class), errMessage))
                         ));
-                    }).else_();
+                    }).noElse();
                     b.add(ifop);
                     b.add(return_());
                 })

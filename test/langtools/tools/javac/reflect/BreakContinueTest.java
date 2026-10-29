@@ -65,9 +65,6 @@ public class BreakContinueTest {
                             }
                             ()java.type:"void" -> {
                                 java.continue;
-                            }
-                            ()java.type:"void" -> {
-                                yield;
                             };
                         java.if
                             ()java.type:"boolean" -> {
@@ -76,9 +73,6 @@ public class BreakContinueTest {
                             }
                             ()java.type:"void" -> {
                                 java.break;
-                            }
-                            ()java.type:"void" -> {
-                                yield;
                             };
                         java.for
                             ()Var<java.type:"int"> -> {
@@ -107,9 +101,6 @@ public class BreakContinueTest {
                                     }
                                     ()java.type:"void" -> {
                                         java.continue;
-                                    }
-                                    ()java.type:"void" -> {
-                                        yield;
                                     };
                                 java.if
                                     ()java.type:"boolean" -> {
@@ -118,9 +109,6 @@ public class BreakContinueTest {
                                     }
                                     ()java.type:"void" -> {
                                         java.break;
-                                    }
-                                    ()java.type:"void" -> {
-                                        yield;
                                     };
                                 java.continue;
                             };
@@ -180,9 +168,6 @@ public class BreakContinueTest {
                                 }
                                 ()java.type:"void" -> {
                                     java.continue %1;
-                                }
-                                ()java.type:"void" -> {
-                                    yield;
                                 };
                             java.if
                                 ()java.type:"boolean" -> {
@@ -191,9 +176,6 @@ public class BreakContinueTest {
                                 }
                                 ()java.type:"void" -> {
                                     java.break %1;
-                                }
-                                ()java.type:"void" -> {
-                                    yield;
                                 };
                             java.labeled ()java.type:"void" -> {
                                 %15 : java.type:"java.lang.String" = constant @"inner";
@@ -224,9 +206,6 @@ public class BreakContinueTest {
                                             }
                                             ()java.type:"void" -> {
                                                 java.continue;
-                                            }
-                                            ()java.type:"void" -> {
-                                                yield;
                                             };
                                         java.if
                                             ()java.type:"boolean" -> {
@@ -235,9 +214,6 @@ public class BreakContinueTest {
                                             }
                                             ()java.type:"void" -> {
                                                 java.break;
-                                            }
-                                            ()java.type:"void" -> {
-                                                yield;
                                             };
                                         java.if
                                             ()java.type:"boolean" -> {
@@ -246,9 +222,6 @@ public class BreakContinueTest {
                                             }
                                             ()java.type:"void" -> {
                                                 java.continue %1;
-                                            }
-                                            ()java.type:"void" -> {
-                                                yield;
                                             };
                                         java.if
                                             ()java.type:"boolean" -> {
@@ -257,9 +230,6 @@ public class BreakContinueTest {
                                             }
                                             ()java.type:"void" -> {
                                                 java.break %1;
-                                            }
-                                            ()java.type:"void" -> {
-                                                yield;
                                             };
                                         java.continue;
                                     };
@@ -315,9 +285,6 @@ public class BreakContinueTest {
                                     }
                                     ()java.type:"void" -> {
                                         java.break %1;
-                                    }
-                                    ()java.type:"void" -> {
-                                        yield;
                                     };
                                 java.if
                                     ()java.type:"boolean" -> {
@@ -326,9 +293,6 @@ public class BreakContinueTest {
                                     }
                                     ()java.type:"void" -> {
                                         java.break %2;
-                                    }
-                                    ()java.type:"void" -> {
-                                        yield;
                                     };
                                 yield;
                             };

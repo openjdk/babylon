@@ -209,13 +209,13 @@ extern "C" void releaseBackend(long backendHandle) {
     delete backend;
 }
 
-extern "C" long compile(long backendHandle, int len, char *source) {
+extern "C" long compile(long backendHandle, int len, char *source, int type) {
     if (INFO) {
         std::cout << "trampolining through backendHandle to backend.compile() "
                 << std::hex << backendHandle << std::dec << std::endl;
     }
     auto *backend = reinterpret_cast<Backend *>(backendHandle);
-    long compilationUnitHandle = reinterpret_cast<long>(backend->compile(len, source));
+    long compilationUnitHandle = reinterpret_cast<long>(backend->compile(len, source, type));
     if (INFO) {
         std::cout << "compilationUnitHandle = " << std::hex << compilationUnitHandle << std::dec << std::endl;
     }
@@ -371,7 +371,6 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     for (int i = 1; i < argSled.argc(); i++) {
 
         KernelArg *arg = argSled.arg(i);
-   //      std::cout << "in argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
         switch (arg->variant) {
             case '&': {
                 bool readAccessor  = arg->value.buffer.access == RO_BYTE || arg->value.buffer.access == RW_BYTE || arg->value.buffer.access == UNKNOWN_BYTE;
@@ -398,8 +397,12 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                 bool kernelReadsFromThisArg =  arg->value.buffer.access == RW_BYTE
                                             || arg->value.buffer.access == RO_BYTE;
 
-                bool copyToDevice = readAccessor;
+
+                // WO buffers must be copy in the first time, since it contains the metadata associated with it
+                // (object header), but those objects are only copied if they buffer state is new.
+                bool copyToDevice = readAccessor || (bufferState->state == BufferState::NEW_STATE);
                 if (!compilationUnit->backend->config->alwaysCopy) {
+                    // For minimized copies, buffers are only copied if the state is new, or host owned.
                     copyToDevice = (bufferState->state == BufferState::NEW_STATE)
                                      || ((bufferState->state == BufferState::HOST_OWNED));
                 }
@@ -464,8 +467,7 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
 
     for (int i = 1; i < argSled.argc(); i++) {
         // note i above = 1... we never need to copy back the KernelContext fix this for DispatchContext
-        KernelArg *arg = argSled.arg(i);
-    //       std::cout << "out argsled loop id = "<< i<< " and arg->idx = " << arg->idx << std::endl;
+        KernelArg const *arg = argSled.arg(i);
         if (arg->variant == '&') {
             BufferState *bufferState = BufferState::of(arg);
 
@@ -489,6 +491,11 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
                     std::cout << "copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
             } else {
+                // Still, we need to check that was written to this arg, and set the buffer state to DEVICE_OWNED if
+                // only if there is is write to it. No copy back but we need to mark as device-owned.
+                if (kernelWroteToThisArg) {
+                    bufferState->state = BufferState::DEVICE_OWNED;
+                }
                 if (compilationUnit->backend->config->traceSkippedCopies) {
                     std::cout << "NOT copying arg " << arg->idx-1 << " device->host " << std::endl;
                 }
@@ -498,8 +505,12 @@ long Backend::CompilationUnit::Kernel::ndrange(void *argArray) {
     if (profilableQueue != nullptr) {
         profilableQueue->marker(Backend::ProfilableQueue::LeaveKernelDispatchBits, name);
     }
-    compilationUnit->backend->queue->wait();
-    compilationUnit->backend->queue->release();
+
+    // We only way when alwaysCopy is enabled
+    if (compilationUnit->backend->config->alwaysCopy) {
+        compilationUnit->backend->queue->wait();
+        compilationUnit->backend->queue->release();
+    }
     if (compilationUnit->backend->config->traceCalls) {
         std::cout << "\"" << name << "\"}" << std::endl;
     }

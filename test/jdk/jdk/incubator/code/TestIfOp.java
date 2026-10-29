@@ -24,10 +24,13 @@
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.CodeTransformer;
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -83,6 +86,44 @@ public class TestIfOp {
         for (int i = 0; i < 6; i++) {
             Assertions.assertEquals(f(i), Interpreter.invoke(MethodHandles.lookup(), lf, i));
             Assertions.assertEquals(f(i), Interpreter.invoke(MethodHandles.lookup(), f, i));
+        }
+    }
+
+    @Reflect
+    static String g(int i) {
+        if (i == 1) {
+            return "1";
+        } else if (i == 2) {
+            return "2";
+        }
+        return "3+";
+    }
+
+    @Test
+    void testIFWithNoElse() throws Throwable {
+        CoreOp.FuncOp op = Op.ofMethod(this.getClass().getDeclaredMethod("g", int.class)).get();
+        JavaOp.IfOp ifOp = (JavaOp.IfOp) op.elements().filter(e -> e instanceof JavaOp.IfOp).findFirst().get();
+        Assertions.assertEquals(0, ifOp.bodies().size() % 2); //expect  even number of bodies
+
+        int[] args = {1, 2, 3};
+        for (int a : args) {
+            Assertions.assertEquals(g(a), Interpreter.invoke(MethodHandles.lookup(), op, a));
+        }
+
+        CoreOp.FuncOp lop = op.transform(CodeTransformer.LOWERING_TRANSFORMER);
+        System.out.println(lop.toText());
+        for (int a : args) {
+            Assertions.assertEquals(g(a), Interpreter.invoke(MethodHandles.lookup(), lop, a));
+        }
+
+        MethodHandle mh = BytecodeGenerator.generate(MethodHandles.lookup(), op);
+        for (int a : args) {
+            Assertions.assertEquals(g(a), mh.invoke(a));
+        }
+
+        MethodHandle lmh = BytecodeGenerator.generate(MethodHandles.lookup(), lop);
+        for (int a : args) {
+            Assertions.assertEquals(g(a), lmh.invoke(a));
         }
     }
 }

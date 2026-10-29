@@ -25,12 +25,8 @@
 
 package hat.backend.java;
 
-import hat.KernelContext;
 import hat.NDRange;
-import hat.buffer.DispatchContext;
 import hat.callgraph.KernelCallGraph;
-
-import java.lang.reflect.InvocationTargetException;
 
 public class JavaSequentialBackend extends JavaBackend {
     @Override
@@ -46,6 +42,11 @@ public class JavaSequentialBackend extends JavaBackend {
             }
 
         }*/
+    }
+
+    @Override
+    public void dispatchTile(KernelCallGraph kernelCallGraph, NDRange ndRange, Object... args) {
+        throw new UnsupportedOperationException();
     }
 
 }

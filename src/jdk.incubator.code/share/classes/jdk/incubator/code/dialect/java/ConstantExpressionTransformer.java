@@ -63,9 +63,11 @@ public class ConstantExpressionTransformer implements CodeTransformer {
      *
      * @param l  the lookup to use for reflective access
      * @param op the operation to transform
+     * @param <O> the type of the operation
      * @return the transformed operation
      */
-    public static Op transform(MethodHandles.Lookup l, Op op) {
-        return op.transform(CodeContext.create(), new ConstantExpressionTransformer(new ConstantExpressionEvaluator(l)));
+    @SuppressWarnings("unchecked")
+    public static <O extends Op> O transform(MethodHandles.Lookup l, O op) {
+        return (O) op.transform(CodeContext.create(), new ConstantExpressionTransformer(new ConstantExpressionEvaluator(l)));
     }
 }

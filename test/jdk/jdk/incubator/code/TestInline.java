@@ -27,6 +27,7 @@ import jdk.incubator.code.dialect.core.Inliner;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.function.IntBinaryOperator;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
+import static jdk.incubator.code.dialect.core.CoreType.FUNCTION_TYPE_VOID;
 import static jdk.incubator.code.dialect.core.CoreType.functionType;
 import static jdk.incubator.code.dialect.java.JavaType.INT;
 
@@ -50,18 +52,19 @@ public class TestInline {
 
     @Test
     public void testInline() {
-        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
+        @Reflect
+        IntBinaryOperator q = (int a, int b) -> a + b;
         JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
 
         // functional type = (int)int
-        CoreOp.FuncOp f = func("f", functionType(INT, INT))
+        FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
                     Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
-                    var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
-                    Assertions.assertEquals(cb, fblock);
+                    var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo));
+                    cb.add(return_(cb.parameters().getFirst()));
                 });
 
         System.out.println(f.toText());
@@ -69,39 +72,11 @@ public class TestInline {
         int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
         Assertions.assertEquals(43, ir);
     }
-
-    @Test
-    public void testInlineVar() {
-        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) -> a + b;
-        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
-
-        // functional type = (int)int
-        CoreOp.FuncOp f = func("f", functionType(INT, INT))
-                .body(fblock -> {
-                    Block.Parameter i = fblock.parameters().get(0);
-
-                    Op.Result fortyTwo = fblock.add(constant(INT, 42));
-
-                    Op.Result v = fblock.add(var(fblock.add(constant(INT, 0))));
-
-                    var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), (b, value) -> {
-                        b.add(varStore(v, value));
-                    });
-                    Assertions.assertEquals(cb, fblock);
-
-                    fblock.add(return_(fblock.add(varLoad(v))));
-                });
-
-        System.out.println(f.toText());
-
-        int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assertions.assertEquals(43, ir);
-    }
-
 
     @Test
     public void testInlineLowerMultipleReturn() {
-        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) ->  {
+        @Reflect
+        IntBinaryOperator q = (int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -113,49 +88,14 @@ public class TestInline {
         System.out.println(lcop.toText());
 
         // functional type = (int)int
-        CoreOp.FuncOp f = func("f", functionType(INT, INT))
+        FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
                     Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
-                    var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
-                    Assertions.assertNotEquals(fblock, cb);
-                });
-        System.out.println(f.toText());
-
-        int ir = (int) Interpreter.invoke(MethodHandles.lookup(), f, 1);
-        Assertions.assertEquals(43, ir);
-    }
-
-    @Test
-    public void testInlineLowerMultipleReturnVar() {
-        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) ->  {
-            if (a < 10) {
-                return a + b;
-            }
-            return a - b;
-        };
-        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
-        System.out.println(cop.toText());
-        JavaOp.LambdaOp lcop = cop.transform(CodeContext.create(), CodeTransformer.LOWERING_TRANSFORMER);
-        System.out.println(lcop.toText());
-
-        // functional type = (int)int
-        CoreOp.FuncOp f = func("f", functionType(INT, INT))
-                .body(fblock -> {
-                    Block.Parameter i = fblock.parameters().get(0);
-
-                    Op.Result fortyTwo = fblock.add(constant(INT, 42));
-
-                    Op.Result v = fblock.add(var(fblock.add(constant(INT, 0))));
-
-                    var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo), (b, value) -> {
-                        b.add(varStore(v, value));
-                    });
-                    Assertions.assertNotEquals(fblock, cb);
-
-                    cb.add(return_(cb.add(varLoad(v))));
+                    var cb = Inliner.inline(fblock, lcop, List.of(i, fortyTwo));
+                    cb.add(return_(cb.parameters().getFirst()));
                 });
         System.out.println(f.toText());
 
@@ -165,7 +105,8 @@ public class TestInline {
 
     @Test
     public void testInlineMultipleReturnLower() {
-        IntBinaryOperator q = (@Reflect IntBinaryOperator)(int a, int b) ->  {
+        @Reflect
+        IntBinaryOperator q = (int a, int b) ->  {
             if (a < 10) {
                 return a + b;
             }
@@ -174,14 +115,18 @@ public class TestInline {
         JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
         System.out.println(cop.toText());
 
-        CoreOp.FuncOp f = func("f", functionType(INT, INT))
+        FuncOp f = func("f", functionType(INT, INT))
                 .body(fblock -> {
                     Block.Parameter i = fblock.parameters().get(0);
 
                     Op.Result fortyTwo = fblock.add(constant(INT, 42));
 
-                    var cb = Inliner.inline(fblock, cop, List.of(i, fortyTwo), Inliner.INLINE_RETURN);
-                    Assertions.assertEquals(cb, fblock);
+                    Inliner.inlineWithContinuation(fblock, cop, List.of(i, fortyTwo), (block) -> {
+                        Value returnValue = block.parameters().isEmpty()
+                                ? null
+                                : block.parameters().getFirst();
+                        block.add(returnValue != null ? return_(returnValue) : return_());
+                    });
                 });
         System.out.println(f.toText());
 
@@ -193,20 +138,21 @@ public class TestInline {
     }
 
     @Test
-    public void testInlineVoid() {
-        Consumer<int[]> q = (@Reflect Consumer<int[]>) (int[] a) -> {
+    public void testInlineReturnVoid() {
+        @Reflect
+        Consumer<int[]> q = (int[] a) -> {
             a[0] = 42;
             return;
         };
         JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
 
         // functional type = (int)int
-        CoreOp.FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))
+        FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))
                 .body(fblock -> {
                     Block.Parameter a = fblock.parameters().get(0);
 
-                    var cb = Inliner.inline(fblock, cop, List.of(a), Inliner.INLINE_RETURN);
-                    Assertions.assertEquals(cb, fblock);
+                    var cb = Inliner.inline(fblock, cop, List.of(a));
+                    cb.add(return_());
                 });
 
         System.out.println(f.toText());
@@ -215,6 +161,37 @@ public class TestInline {
         Interpreter.invoke(MethodHandles.lookup(), f, a);
         Assertions.assertEquals(42, a[0]);
     }
+
+    @Test
+    public void testInlineMultipleReturnVoid() {
+        @Reflect
+        Consumer<int[]> q = (int[] a) -> {
+            if (a.length == 1) {
+                a[0] = 42;
+                return;
+            } else if (a.length == 2) {
+                a[1] = 42;
+                return;
+            }
+        };
+        JavaOp.LambdaOp cop = Op.ofLambda(q).get().op();
+
+        // functional type = (int)int
+        FuncOp f = func("f", functionType(JavaType.VOID, JavaType.type(int[].class)))
+                .body(fblock -> {
+                    Block.Parameter a = fblock.parameters().get(0);
+
+                    Inliner.inlineWithContinuation(fblock, cop, List.of(a),
+                            continueBlock -> continueBlock.add(return_()));
+                });
+
+        System.out.println(f.toText());
+
+        int[] a = new int[1];
+        Interpreter.invoke(MethodHandles.lookup(), f, a);
+        Assertions.assertEquals(42, a[0]);
+    }
+
 
     @Reflect
     static void n() {
@@ -231,11 +208,78 @@ public class TestInline {
         FuncOp n = Op.ofMethod(this.getClass().getDeclaredMethod("n")).get();
         m.transform((b, o) -> {
             if (o instanceof JavaOp.InvokeOp iop && iop.invokeReference().name().equals("n")) {
-                return Inliner.inline(b, n, List.of(), (b2, o2) -> {});
+                return Inliner.inline(b, n, List.of());
             }
             b.add(o);
             return b;
         });
     }
+
+    @Test
+    public void testNoInlinableReturns() {
+        Body.Builder body = Body.Builder.of(null, FUNCTION_TYPE_VOID);
+        Block.Builder block = body.entryBlock();
+
+        @Reflect
+        Runnable noReturn = () -> {
+            while (true) {}
+        };
+        JavaOp.LambdaOp noReturnLambda = Op.ofLambda(noReturn).get().op();
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> Inliner.inline(block, noReturnLambda, List.of()));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> Inliner.inlineWithContinuation(block, noReturnLambda, List.of(), (_) -> { }));
+
+        @Reflect
+        Runnable noInlinableReturn = () -> {
+            if (true) {
+                return;
+            } else {
+                return;
+            }
+        };
+        JavaOp.LambdaOp noInlinableReturnLambda = Op.ofLambda(noInlinableReturn).get().op();
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> Inliner.inline(block, noInlinableReturnLambda, List.of()));
+    }
+
+    @Test
+    public void testNonTargetingReturn() {
+        @Reflect
+        Runnable nonTargetingReturn = () -> {
+            Runnable nested = () -> { return; };
+        };
+        JavaOp.LambdaOp nonTargetingReturnLambda = Op.ofLambda(nonTargetingReturn).get().op();
+
+        {
+            FuncOp f = func("f", FUNCTION_TYPE_VOID).body(block -> {
+                block = Inliner.inline(block, nonTargetingReturnLambda, List.of());
+                block.add(JavaOp.throw_
+                        (block.add(JavaOp.new_(MethodRef.constructor(RuntimeException.class)))));
+            });
+
+            List<Op> returnOps = f.elements().filter(e -> e instanceof ReturnOp)
+                    .map(e -> (Op) e)
+                    .toList();
+            Assertions.assertEquals(1, returnOps.size());
+            Assertions.assertInstanceOf(JavaOp.LambdaOp.class, returnOps.getFirst().ancestorOp());
+        }
+
+        {
+            FuncOp f = func("f", FUNCTION_TYPE_VOID).body(block -> {
+                Inliner.inlineWithContinuation(block, nonTargetingReturnLambda, List.of(), (continueBlock) -> {
+                    continueBlock.add(JavaOp.throw_(
+                            continueBlock.add(JavaOp.new_(MethodRef.constructor(RuntimeException.class)))));
+                });
+            });
+
+            List<Op> returnOps = f.elements().filter(e -> e instanceof ReturnOp)
+                    .map(e -> (Op) e)
+                    .toList();
+            Assertions.assertEquals(1, returnOps.size());
+            Assertions.assertInstanceOf(JavaOp.LambdaOp.class, returnOps.getFirst().ancestorOp());
+        }
+    }
+
 
 }
