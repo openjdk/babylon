@@ -3634,7 +3634,11 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             if (isCaseDefaultLabel(bodiesReordered.get(n - 2)) && bodiesReordered.getFirst() != null) {
                 Body actionBody = bodiesReordered.getLast();
                 Block.Builder actionBlock = blocks.get(actionBody);
-                lowerActionBody(actionBlock, actionBody, inherited, exit);
+                if (isBooleanExpression) {
+                    ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, actionBody, List.of(), continuation, inherited);
+                } else {
+                    lowerActionBody(actionBlock, actionBody, inherited, exit);
+                }
             }
 
             return exit;
