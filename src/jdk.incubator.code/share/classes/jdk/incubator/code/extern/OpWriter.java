@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import jdk.incubator.code.internal.OpWriterInternalOption;
 
 /**
  * A writer of code model to code model text.
@@ -283,7 +284,8 @@ public final class OpWriter {
     /**
      * An option that affects the writing of code model text.
      */
-    public sealed interface Option {
+    public sealed interface Option permits CodeItemNamerOption, LocationOption,
+            OpDescendantsOption, VoidOpResultOption, OpWriterInternalOption {
     }
 
     /**
@@ -367,23 +369,6 @@ public final class OpWriter {
         }
     }
 
-    /**
-     * An option to specify writing mode.
-     */
-    public enum WritingModeOption implements Option {
-        /** Attempts to write incomplete code models. */
-        LENIENT,
-        /** Writes complete code models only. */
-        STRICT;
-
-        /**
-         * {@return the default writing mode option}
-         */
-        public static WritingModeOption defaultValue() {
-            return STRICT;
-        }
-    }
-
     final Function<CodeItem, String> namer;
     final IndentWriter w;
     final boolean dropLocation;
@@ -433,9 +418,10 @@ public final class OpWriter {
                 case VoidOpResultOption voidOpResultOption -> {
                     writeVoidOpResult = voidOpResultOption == VoidOpResultOption.WRITE_VOID;
                 }
-                case WritingModeOption writingModeOption -> {
-                    writeIncomplete = writingModeOption == WritingModeOption.LENIENT;
+                case OpWriterInternalOption _ -> {
+                    writeIncomplete = true;
                 }
+
             }
         }
 
@@ -490,9 +476,11 @@ public final class OpWriter {
             }
         }
         Map<String, Object> attributes = (op instanceof ExternalizedOp.Externalizable eop)
-                ? eop.externalize()
+                ? getOrElse(eop::externalize, null)
                 : Map.of();
-        if (!attributes.isEmpty()) {
+        if (attributes == null && writeIncomplete) {
+            write(" /* attributes unavailable */");
+        } else if (!attributes.isEmpty()) {
             write(" ");
             writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
         }

@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.impl.JavaTypeUtils;
 import jdk.incubator.code.extern.OpWriter;
+import jdk.incubator.code.internal.OpWriterInternalOption;
 
 /**
  * A block containing an ordered sequence of operations, where the last operation is a
@@ -979,7 +980,7 @@ public final class Block implements CodeElement<Block, Op> {
         for (Op op : ops) {
             String line = "  " + OpWriter.toText(op, OpWriter.CodeItemNamerOption.of(namer),
                                                      OpWriter.OpDescendantsOption.DROP_DESCENDANTS,
-                                                     OpWriter.WritingModeOption.LENIENT);
+                                                     OpWriterInternalOption.WRITE_INCOMPLETE);
             out.append(line).append('\n');
             if (pos == op || pos instanceof Op.Result result && result.op() == op) {
                 out.append("  ^").append("~".repeat(Math.max(0, line.length() - 3))).append(' ').append(label).append('\n');
