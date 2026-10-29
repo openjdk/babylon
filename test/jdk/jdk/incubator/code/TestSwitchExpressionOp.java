@@ -28,11 +28,14 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Stream;
@@ -392,6 +395,98 @@ public class TestSwitchExpressionOp {
             case null -> "null";
             default -> "non null";
         };
+    }
+
+    @Reflect
+    static int nullHandling(Integer value) {
+        return switch (value) {
+            case null -> -1;
+            case 1 -> 10;
+            default -> 20;
+        };
+    }
+
+    @Reflect
+    static int nullHandling2(Integer value) {
+        return switch (value) {
+            case 1 -> 10;
+            case null -> -1;
+            default -> 20;
+        };
+    }
+
+    @Reflect
+    static int nullHandling3(Integer value) {
+        return switch (value) {
+            case 1 -> 10;
+            case null, default -> 20;
+        };
+    }
+
+    @Reflect
+    static int nullHandling4(Integer value) {
+        return switch (value) {
+            case 1 -> 10;
+            default -> 20;
+        };
+    }
+
+    static Stream<Method> nullHandlingCases() {
+        return Arrays.stream(TestSwitchExpressionOp.class.getDeclaredMethods())
+                .filter(m -> m.isAnnotationPresent(Reflect.class))
+                .filter(m -> m.getName().startsWith("nullHandling"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("nullHandlingCases")
+    void testNullHandling(Method m) {
+        CoreOp.FuncOp f = Op.ofMethod(m).get();
+        CoreOp.FuncOp lf = f.transform(CodeTransformer.LOWERING_TRANSFORMER)
+                .transform(CodeTransformer.DROP_LOCATION_TRANSFORMER);
+        System.out.println(lf.toText());
+        for (Integer a : new Integer[]{null, 1, 2}) {
+            // I saw this way of testing before
+            Object expected = null;
+            Throwable expectedEx = null;
+            try {
+                expected = m.invoke(null, a);
+            } catch (Exception ex) {
+                expectedEx = ex;
+                if (ex instanceof InvocationTargetException) {
+                    expectedEx = ex.getCause();
+                }
+            }
+            Object actual = null;
+            Throwable actualEx = null;
+            try {
+                actual = new JavaLowInterpreter().interpret(lf, Arrays.asList(a), MethodHandles.lookup());
+            } catch (Exception ex) {
+                actualEx = ex;
+            }
+            if (expectedEx != null) {
+                Assertions.assertSame(expectedEx.getClass(), actualEx.getClass());
+            } else if (expected != null) {
+                Assertions.assertEquals(expected, actual);
+            }
+        }
+    }
+
+    @Reflect
+    static int swOnPrimitive(int value) {
+        // lowered model shouldn't check for null
+        // this case also exercise that lower use the incoming block for the default action
+        return switch (value) {
+            default -> 20;
+        };
+    }
+
+    @Test
+    void testSwOnPrimitive() {
+        CoreOp.FuncOp model = getCodeModel("swOnPrimitive");
+        CoreOp.FuncOp lmodel = model.transform(CodeTransformer.LOWERING_TRANSFORMER);
+        for (int i : new int[]{1, 2}) {
+            Assertions.assertEquals(swOnPrimitive(i), Interpreter.invoke(MethodHandles.lookup(), lmodel, i));
+        }
     }
 
     @Test
