@@ -34,6 +34,7 @@ import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.DialectFunction;
 import hat.dialect.DialectModule;
+import hat.dialect.TileForLoopInfo;
 import hat.dialect.TileOps;
 import hat.types.Tile;
 import jdk.incubator.code.Block;
@@ -42,13 +43,16 @@ import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
@@ -711,7 +715,16 @@ public class TileTransformer {
                     valueTypeMap.put(kernel.result(), returnType);
                 }
                 case JavaOp.ForOp forLoopOp -> {
-                    // taken from the Triton experiment
+                    // Check for counted loops.
+                    // We can process:
+                    // - Init value is a constant
+                    // - Loop bound is an invariant, and we assume a constant value
+                    // - Induction variable is not modified by the body (only the update block)
+                    boolean check = TileForLoopInfo.check(forLoopOp, valueTypeMap);
+                    if (!check) {
+                        throw new IllegalArgumentException("Counted loop not found");
+                    }
+
                     CodeType t = forLoopOp.initBody().yieldType();
                     if (t instanceof VarType varType && varType.valueType().equals(JavaType.INT)) {
                         for (Body b : List.of(forLoopOp.condBody(), forLoopOp.updateBody(), forLoopOp.loopBody())) {

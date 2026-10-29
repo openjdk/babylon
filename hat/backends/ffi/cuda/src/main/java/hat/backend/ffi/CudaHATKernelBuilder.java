@@ -30,13 +30,13 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
 import hat.codetypes.TensorType;
-import hat.dialect.ArithMathOps;
-import hat.dialect.BinaryOpEnum;
-import hat.dialect.TileOps;
+import hat.dialect.*;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.CodeType;
+import jdk.incubator.code.Op;
+import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.ClassType;
@@ -49,8 +49,6 @@ import optkl.OpHelper;
 import optkl.OpHelper.Invoke;
 import optkl.codebuilders.ScopedCodeBuilderContext;
 import hat.types.BF16;
-import jdk.incubator.code.Op;
-import jdk.incubator.code.Value;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -842,7 +840,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder varOpTile(VarOp varOp) {
-        return id("auto")
+        return auto()
                 .sp()
                 .varName(varOp)
                 .assign()
@@ -1551,6 +1549,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return tileContext().id("irange");
     }
 
+    private CudaHATKernelBuilder auto() {
+        return keyword("auto");
+    }
+
     private CudaHATKernelBuilder tileLoad() {
         return id("load");
     }
@@ -1583,5 +1585,33 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .comma()
                 .sp()
                 .recurseResultOrThrow(endIndex));
+    }
+
+    @Override
+    public CudaHATKernelBuilder forOp(JavaOp.ForOp forOp) {
+        if (isTile) {
+            // At this point, we know it is a counted loop. Otherwise, the TileInterpreter would
+            // have thrown an error.
+            TileForLoopInfo.LoopInfo loopInfo = TileForLoopInfo.info(forOp);
+            if (loopInfo.inductionVar() != null) {
+                enhancedLoopTile(forOp, loopInfo);
+            }
+        } else {
+            super.forOp(forOp);
+        }
+        return self();
+    }
+
+    private void enhancedLoopTile(JavaOp.ForOp forOp, TileForLoopInfo.LoopInfo loopInfo) {
+        boolean[] step = new boolean[1];
+        step[0] = !(loopInfo.step().declaringElement() instanceof CoreOp.ConstantOp constant) || !constant.value().equals(1);
+        scopedCodeBuilderContext().forScope(forOp, () -> forKeyword().paren(_ -> {
+            auto().sp().varName(loopInfo.inductionVar()).sp().colon().sp().tileIRange().paren(_ -> {
+                recurseResultOrThrow(loopInfo.initValue().result()).comma().sp().recurseResultOrThrow(loopInfo.loopBound());
+                if (step[0]) {
+                    comma().recurseResultOrThrow(loopInfo.step());
+                }
+            });
+        }).braceNlIndented(_ -> nlSeparated(OpHelper.Statement.bodyStatements(forOp.loopBody()), this::statement)));
     }
 }
