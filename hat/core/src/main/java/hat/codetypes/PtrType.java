@@ -37,24 +37,22 @@ import java.util.Objects;
 public final class PtrType implements TileType {
 
     private final CodeType rType;
-    private final List<Object> dims;
+    private final List<Integer> dims;
 
-    public PtrType(CodeType rType) {
-        this.rType = rType;
-        this.dims = List.of();
-    }
-
-    public PtrType(CodeType rType, Object dim1) {
+    // 1D Ptrs
+    public PtrType(CodeType rType, Integer dim1) {
         this.rType = rType;
         this.dims = List.of(dim1);
     }
 
-    public PtrType(CodeType rType, Object dim1, Object dim2) {
+    // 2D Ptrs
+    public PtrType(CodeType rType, Integer dim1, Integer dim2) {
         this.rType = rType;
         this.dims = List.of(dim1, dim2);
     }
 
-    public PtrType(CodeType rType, Object dim1, Object dim2, Object dim3) {
+    // 3D Ptrs
+    public PtrType(CodeType rType, Integer dim1, Integer dim2, Integer dim3) {
         this.rType = rType;
         this.dims = List.of(dim1, dim2, dim3);
     }
@@ -86,7 +84,7 @@ public final class PtrType implements TileType {
         return externalize().toString();
     }
 
-    public List<Object> dims() {
+    public List<Integer> dims() {
         return dims;
     }
 }
