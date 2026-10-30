@@ -62,11 +62,11 @@ public class TileOps {
         return new TileIDOp(dimension);
     }
 
-    public static Op load(CodeType type, Value ptr, Value dimension, Value shape, List<Object> dims) {
+    public static Op load(CodeType type, Value ptr, Value dimension, Value shape, List<Integer> dims) {
         return new LoadOp(type, ptr, dimension, shape, dims);
     }
 
-    public static Op store(Value ptr, Value id, Value tensor, List<Object> dims) {
+    public static Op store(Value ptr, Value id, Value tensor, List<Integer> dims) {
         return new StoreOp(ptr, id, tensor, dims);
     }
 
@@ -86,8 +86,8 @@ public class TileOps {
         return new TileShapeOp(index0, index1, index2);
     }
 
-    public static Op numTiles(Value ptr, Value dimension, Value shape) {
-        return new TileNumOp(ptr, dimension, shape);
+    public static Op numTiles(CodeType typeResult, Value ptr, Value dimension, Value shape) {
+        return new TileNumOp(typeResult, ptr, dimension, shape);
     }
 
     public static Op full(CodeType type, Value shapeValue, Value initValue) {
@@ -447,7 +447,7 @@ public class TileOps {
         }
     }
 
-    public static class TileNumOp extends TOp implements Precedence.Invoke {
+    public static class TileNumOp extends TileContextOp implements Precedence.Invoke {
 
         TileNumOp(TileNumOp that, CodeContext cc) {
             super(that, cc);
@@ -458,8 +458,8 @@ public class TileOps {
             return new TileNumOp(this, cc);
         }
 
-        TileNumOp(Value ptr, Value dimension, Value shape) {
-            super(JavaType.INT, List.of(ptr, dimension, shape));
+        TileNumOp(CodeType codeType, Value ptr, Value dimension, Value shape) {
+            super(codeType, List.of(ptr, dimension, shape));
         }
 
         @Override
@@ -491,7 +491,7 @@ public class TileOps {
 
     public static class LoadOp extends TileContextOp implements Precedence.LoadOrConv {
 
-        private final List<Object> dims;
+        private final List<Integer> dims;
 
         LoadOp(LoadOp that, CodeContext cc) {
             super(that, cc);
@@ -503,7 +503,7 @@ public class TileOps {
             return new LoadOp(this, cc);
         }
 
-        LoadOp(CodeType tensorType, Value ptr, Value mask, Value other, List<Object> dims) {
+        LoadOp(CodeType tensorType, Value ptr, Value mask, Value other, List<Integer> dims) {
             super(tensorType, List.of(ptr, mask, other));
             this.dims = dims;
         }
@@ -513,14 +513,14 @@ public class TileOps {
             return Map.of("tile.load  ", resultType + " -- " + Arrays.toString(dims.toArray()));
         }
 
-        public List<Object> dims() {
+        public List<Integer> dims() {
             return dims;
         }
     }
 
     public static class StoreOp extends TOp {
 
-        private final List<Object> dims;
+        private final List<Integer> dims;
 
         StoreOp(StoreOp that, CodeContext cc) {
             super(that, cc);
@@ -532,7 +532,7 @@ public class TileOps {
             return new StoreOp(this, cc);
         }
 
-        StoreOp(Value ptr, Value id, Value tensor, List<Object> dims) {
+        StoreOp(Value ptr, Value id, Value tensor, List<Integer> dims) {
             super(JavaType.VOID, List.of(ptr, id, tensor));
             this.dims = dims;
         }
@@ -553,7 +553,7 @@ public class TileOps {
             return Map.of("tile.store  ", builder.toString());
         }
 
-        public List<Object> dims() {
+        public List<Integer> dims() {
             return dims;
         }
     }

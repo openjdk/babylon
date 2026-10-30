@@ -118,7 +118,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    protected OpenCLHATKernelBuilder generateTileDeclaration(TensorType tensorType) {
+    protected OpenCLHATKernelBuilder tileDeviceKernelDeclaration(TensorType tensorType) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
