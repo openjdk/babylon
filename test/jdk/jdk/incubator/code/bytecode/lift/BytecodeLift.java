@@ -75,9 +75,6 @@ public final class BytecodeLift {
     private static final JavaType MH = JavaType.type(ConstantDescs.CD_MethodHandle);
     private static final JavaType MT = JavaType.type(ConstantDescs.CD_MethodType);
     private static final JavaType CLASS_ARRAY = JavaType.array(JavaType.J_L_CLASS);
-    private static final MethodRef LCMP = MethodRef.method(JavaType.J_L_LONG, "compare", JavaType.INT, JavaType.LONG, JavaType.LONG);
-    private static final MethodRef FCMP = MethodRef.method(JavaType.J_L_FLOAT, "compare", JavaType.INT, JavaType.FLOAT, JavaType.FLOAT);
-    private static final MethodRef DCMP = MethodRef.method(JavaType.J_L_DOUBLE, "compare", JavaType.INT, JavaType.DOUBLE, JavaType.DOUBLE);
     private static final MethodRef LOOKUP = MethodRef.method(JavaType.type(ConstantDescs.CD_MethodHandles), "lookup", MHS_LOOKUP);
     private static final MethodRef FIND_STATIC = MethodRef.method(MHS_LOOKUP, "findStatic", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
     private static final MethodRef FIND_VIRTUAL = MethodRef.method(MHS_LOOKUP, "findVirtual", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
@@ -254,7 +251,25 @@ public final class BytecodeLift {
         }
 
         for (int i = 0; i < elements.size(); i++) {
-            switch (elements.get(i)) {
+            CodeElement element = elements.get(i);
+            Opcode numericCompare = null;
+            if (element instanceof OperatorInstruction inst
+                    && switch (inst.opcode()) {
+                        case LCMP, FCMPL, FCMPG, DCMPL, DCMPG -> true;
+                        default -> false;
+                    }) {
+                if (i + 1 >= elements.size()
+                        || !(elements.get(i + 1) instanceof BranchInstruction branch)
+                        || !switch (branch.opcode()) {
+                            case IFEQ, IFNE, IFLT, IFLE, IFGT, IFGE -> true;
+                            default -> false;
+                        }) {
+                    throw new UnsupportedOperationException("Numeric compare without an adjacent unary branch");
+                }
+                numericCompare = inst.opcode();
+                element = elements.get(++i);
+            }
+            switch (element) {
                 case ExceptionCatch _ -> {
                     // Exception blocks are inserted by label target (below)
                 }
@@ -288,31 +303,64 @@ public final class BytecodeLift {
                 }
                 case BranchInstruction inst -> {
                     // Conditional branch
-                    Value operand = stack.pop();
+                    Value right = stack.pop();
+                    Value left;
+                    switch (inst.opcode()) {
+                        case IFNULL, IFNONNULL -> {
+                            left = right;
+                            right = liftConstant(null);
+                        }
+                        case IFEQ, IFNE, IFLT, IFLE, IFGT, IFGE -> {
+                            if (numericCompare == null) {
+                                left = right;
+                                right = liftConstant(0);
+                            } else {
+                                left = stack.pop();
+                            }
+                        }
+                        default -> left = stack.pop();
+                    }
+                    boolean branchOnTrue = false;
                     Op cop = switch (inst.opcode()) {
-                        case IFNE -> JavaOp.eq(operand, liftConstant(0));
-                        case IFEQ -> JavaOp.neq(operand, liftConstant(0));
-                        case IFGE -> JavaOp.lt(operand, liftConstant(0));
-                        case IFLE -> JavaOp.gt(operand, liftConstant(0));
-                        case IFGT -> JavaOp.le(operand, liftConstant(0));
-                        case IFLT -> JavaOp.ge(operand, liftConstant(0));
-                        case IFNULL -> JavaOp.neq(operand, liftConstant(null));
-                        case IFNONNULL -> JavaOp.eq(operand, liftConstant(null));
-                        case IF_ICMPNE -> JavaOp.eq(stack.pop(), operand);
-                        case IF_ICMPEQ -> JavaOp.neq(stack.pop(), operand);
-                        case IF_ICMPGE -> JavaOp.lt(stack.pop(), operand);
-                        case IF_ICMPLE -> JavaOp.gt(stack.pop(), operand);
-                        case IF_ICMPGT -> JavaOp.le(stack.pop(), operand);
-                        case IF_ICMPLT -> JavaOp.ge(stack.pop(), operand);
-                        case IF_ACMPEQ -> JavaOp.neq(stack.pop(), operand);
-                        case IF_ACMPNE -> JavaOp.eq(stack.pop(), operand);
+                        case IFNE, IF_ICMPNE, IF_ACMPNE, IFNONNULL -> JavaOp.eq(left, right);
+                        case IFEQ, IF_ICMPEQ, IF_ACMPEQ, IFNULL -> JavaOp.neq(left, right);
+                        case IFGE, IF_ICMPGE -> {
+                            if (numericCompare == Opcode.FCMPL || numericCompare == Opcode.DCMPL) {
+                                branchOnTrue = true;
+                                yield JavaOp.ge(left, right);
+                            }
+                            yield JavaOp.lt(left, right);
+                        }
+                        case IFLE, IF_ICMPLE -> {
+                            if (numericCompare == Opcode.FCMPG || numericCompare == Opcode.DCMPG) {
+                                branchOnTrue = true;
+                                yield JavaOp.le(left, right);
+                            }
+                            yield JavaOp.gt(left, right);
+                        }
+                        case IFGT, IF_ICMPGT -> {
+                            if (numericCompare == Opcode.FCMPL || numericCompare == Opcode.DCMPL) {
+                                branchOnTrue = true;
+                                yield JavaOp.gt(left, right);
+                            }
+                            yield JavaOp.le(left, right);
+                        }
+                        case IFLT, IF_ICMPLT -> {
+                            if (numericCompare == Opcode.FCMPG || numericCompare == Opcode.DCMPG) {
+                                branchOnTrue = true;
+                                yield JavaOp.lt(left, right);
+                            }
+                            yield JavaOp.ge(left, right);
+                        }
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder branch = transitionBlockForTarget(actualEreStack, label2Bci.applyAsInt(inst.target()));
                     Block.Builder next = entryBlock.block();
+                    Block.Reference taken = successorWithStack(branch);
+                    Block.Reference fallthrough = next.reference();
                     op(CoreOp.conditionalBranch(op(cop),
-                            next.reference(),
-                            successorWithStack(branch)));
+                            branchOnTrue ? taken : fallthrough,
+                            branchOnTrue ? fallthrough : taken));
                     currentBlock = next;
                 }
                 case LookupSwitchInstruction si -> {
@@ -389,12 +437,6 @@ public final class BytecodeLift {
                                 JavaOp.ashr(stack.pop(), operand);
                         case IUSHR, LUSHR ->
                                 JavaOp.lshr(stack.pop(), operand);
-                        case LCMP ->
-                                JavaOp.invoke(LCMP, stack.pop(), operand);
-                        case FCMPL, FCMPG ->
-                                JavaOp.invoke(FCMP, stack.pop(), operand);
-                        case DCMPL, DCMPG ->
-                                JavaOp.invoke(DCMP, stack.pop(), operand);
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));

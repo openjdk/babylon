@@ -728,7 +728,14 @@ public final class BytecodeGenerator {
                     }
                     case CompareOp op -> {
                         if (!isConditionForCondBrOp(op)) {
-                            cob.ifThenElse(prepareConditionalBranch(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
+                            Label falseLabel = cob.newLabel();
+                            Label endLabel = cob.newLabel();
+                            cob.branch(prepareConditionalBranch(op), falseLabel)
+                               .iconst_1()
+                               .goto_(endLabel)
+                               .labelBinding(falseLabel)
+                               .iconst_0()
+                               .labelBinding(endLabel);
                             push(op.result());
                         }
                         // Processing is deferred to the CondBrOp, do not process the op result
@@ -1255,17 +1262,19 @@ public final class BytecodeGenerator {
     }
 
     private void conditionalBranch(Opcode reverseOpcode, Block.Reference trueBlock, Block.Reference falseBlock) {
-        if (!needToAssignBlockArguments(falseBlock)) {
-            cob.branch(reverseOpcode, getLabel(falseBlock));
+        if (needToAssignBlockArguments(falseBlock)) {
+            Label falseLabel = cob.newLabel();
+            cob.branch(reverseOpcode, falseLabel);
+            assignBlockArguments(trueBlock);
+            cob.goto_(getLabel(trueBlock))
+               .labelBinding(falseLabel);
+            assignBlockArguments(falseBlock);
+            cob.goto_(getLabel(falseBlock));
         } else {
-            cob.ifThen(reverseOpcode,
-                bb -> {
-                    assignBlockArguments(falseBlock);
-                    bb.goto_(getLabel(falseBlock));
-                });
+            cob.branch(reverseOpcode, getLabel(falseBlock));
+            assignBlockArguments(trueBlock);
+            cob.goto_(getLabel(trueBlock));
         }
-        assignBlockArguments(trueBlock);
-        cob.goto_(getLabel(trueBlock));
     }
 
     private Opcode prepareConditionalBranch(CompareOp op) {
@@ -1324,10 +1333,10 @@ public final class BytecodeGenerator {
                 // f == g -> fcmpg/fcmpl + ifne
                 // f > g -> fcmpl + ifle
                 // f >= g -> fcmpl + iflt
-                if (op instanceof GeOp || op instanceof GtOp) {
-                    cob.fcmpl();
-                } else {
+                if (op instanceof LtOp || op instanceof LeOp) {
                     cob.fcmpg();
+                } else {
+                    cob.fcmpl();
                 }
                 yield reverseIfOpcode(op);
             }
@@ -1336,10 +1345,10 @@ public final class BytecodeGenerator {
                 yield reverseIfOpcode(op);
             }
             case DOUBLE -> {
-                if (op instanceof GeOp || op instanceof GtOp) {
-                    cob.dcmpl();
-                } else {
+                if (op instanceof LtOp || op instanceof LeOp) {
                     cob.dcmpg();
+                } else {
+                    cob.dcmpl();
                 }
                 yield reverseIfOpcode(op);
             }

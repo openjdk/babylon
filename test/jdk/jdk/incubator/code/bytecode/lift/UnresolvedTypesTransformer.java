@@ -321,7 +321,7 @@ final class UnresolvedTypesTransformer {
     private static CodeTransformer unifyOperandsTransformer() {
         return (block, op) -> {
             switch (op) {
-                case JavaOp.CompareOp _ ->
+                case JavaOp.CompareOp _ when INT_TYPES.contains(op.operands().getFirst().type()) ->
                     unify(block, op, JavaType.INT, JavaType.INT);
                 case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
                     unify(block, op, op.resultType(), JavaType.INT);
