@@ -178,7 +178,7 @@ public final class BytecodeLift {
     }
 
     // Cache key for a handler reached from a concrete region stack
-    record CatchTargetKey(int handler, List<Op.Result> enteredRegions) {}
+    record CatchTargetKey(int handler, List<Op.Result> enteredRegions, List<Map.Entry<Integer, CodeType>> handlers) {}
 
     // Handlers block references with related catch types
     record CatchEntries(List<CodeType> types, List<Block.Reference> references) {}
@@ -1047,7 +1047,8 @@ public final class BytecodeLift {
         List<CodeType> types = new ArrayList<>();
         List<Op.Result> enteredRegions = List.copyOf(initialEreStack);
         for (Group group : groups.reversed()) {
-            CatchTargetKey key = new CatchTargetKey(group.firstHandler(), enteredRegions);
+            CatchTargetKey key = new CatchTargetKey(group.handlerBci(), enteredRegions,
+                    enteredRegion.handlers().stream().map(h -> Map.entry(handlerBcis.get(h), catchTypes.get(h))).toList());
             Block.Builder target = exceptionHandlerBlocks.get(key);
             if (target == null) { // Avoid ConcurrentModificationException
                 target = transitionBlockForTarget(enteredRegions, group.handlerBci());
