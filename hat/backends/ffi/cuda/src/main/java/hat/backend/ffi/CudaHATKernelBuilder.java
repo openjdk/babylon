@@ -1098,21 +1098,21 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("_ic");
     }
 
-    private CudaHATKernelBuilder genTileConstantShape(Value value, int argIndex) {
-        if (value.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("shape")) {
-            return genTileConstantShape(invokeOp.operands().get(argIndex), argIndex);
-        } else if (value.declaringElement() instanceof CoreOp.ConstantOp constant) {
-            Object val = constant.value();
-            if (val instanceof Integer i) {
-                intValue(i).ic();
-            } else {
-                throw new IllegalStateException("Expected a integer value to specify a tile shape");
-            }
-        } else {
-            throw new IllegalStateException("Expected a ConstantOp for obtaining the Tile Shape, but found: " + value.declaringElement().getClass());
-        }
-        return self();
-    }
+//    private CudaHATKernelBuilder genTileConstantShape(Value value, int argIndex) {
+//        if (value.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals("shape")) {
+//            return genTileConstantShape(invokeOp.operands().get(argIndex), argIndex);
+//        } else if (value.declaringElement() instanceof CoreOp.ConstantOp constant) {
+//            Object val = constant.value();
+//            if (val instanceof Integer i) {
+//                intValue(i).ic();
+//            } else {
+//                throw new IllegalStateException("Expected a integer value to specify a tile shape");
+//            }
+//        } else {
+//            throw new IllegalStateException("Expected a ConstantOp for obtaining the Tile Shape, but found: " + value.declaringElement().getClass());
+//        }
+//        return self();
+//    }
 
     private CudaHATKernelBuilder tileBlockId() {
         return tileContext().id("bid").ocparen();
@@ -1404,7 +1404,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder tileShapeOp(TileOps.TileShapeOp tileShapeOp) {
-        return commaSpaceSeparated(tileShapeOp.operands(), v -> recurseResultOrThrow(v).ic());
+        return commaSpaceSeparated(tileShapeOp.operands(), this::genConstValueForShape);
     }
 
     @Override
@@ -1526,6 +1526,18 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return tileContext().id("irange");
     }
 
+    private CudaHATKernelBuilder reshape() {
+        return tileContext().id("reshape");
+    }
+
+    private CudaHATKernelBuilder permute() {
+        return tileContext().id("permute");
+    }
+
+    private CudaHATKernelBuilder dimensionMap() {
+        return tileContext().id("dimension_map");
+    }
+
     private CudaHATKernelBuilder auto() {
         return keyword("auto");
     }
@@ -1565,6 +1577,29 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
+    public CudaHATKernelBuilder reshapeOp(ArithMathOps.ReshapeOp reshapeOp) {
+        List<Value> operands = reshapeOp.operands();
+        final Value tensorValue = operands.getFirst();
+        final Value shape = operands.getLast();
+        return reshape().paren( _ ->
+                recurseResultOrThrow(tensorValue).comma().tileShape().brace(_ -> recurseResultOrThrow(shape)));
+    }
+
+    @Override
+    public CudaHATKernelBuilder permuteOp(ArithMathOps.PermuteOp permuteOp) {
+        List<Value> operands = permuteOp.operands();
+        final Value tensorValue = operands.getFirst();
+        final Value shape = operands.getLast();
+        return permute().paren( _ ->
+                recurseResultOrThrow(tensorValue).comma().dimensionMap().brace(_ -> recurseResultOrThrow(shape)));
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileDimOp(TileOps.TileDimOp tileDimOp) {
+        return commaSpaceSeparated(tileDimOp.operands(), this::genConstValueForShape);
+    }
+
+    @Override
     public CudaHATKernelBuilder forOp(JavaOp.ForOp forOp) {
         if (isTile) {
             // At this point, we know it is a counted loop. Otherwise, the TileInterpreter would
@@ -1590,5 +1625,28 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 }
             });
         }).braceNlIndented(_ -> nlSeparated(OpHelper.Statement.bodyStatements(forOp.loopBody()), this::statement)));
+    }
+
+    private Integer isValueShapeAConstantFromVarLoad(Value v) {
+        if (v.asResult() instanceof Op.Result r
+                && r.op() instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp
+                && varLoadOp.resultType() instanceof ConstantType ct
+                && ct.value() instanceof Integer i){
+            return i;
+        }
+        return null;
+    }
+
+    private void genConstValueForShape(Value v) {
+        // If the value shape is a constant value, but we need a varLoad (usually because it is coming
+        // from a parameter), then we can generate the value directly from the resultType that was
+        // inserted during the Tile Transformation
+        Integer dim = isValueShapeAConstantFromVarLoad(v);
+        if (dim != null) {
+            intConst(dim);
+        } else {
+            recurseResultOrThrow(v);
+        }
+        ic();
     }
 }

@@ -26,11 +26,7 @@ package hat.phases;
 
 import hat.DType;
 import hat.TileContext;
-import hat.codetypes.ConstantType;
-import hat.codetypes.IndexType;
-import hat.codetypes.PtrType;
-import hat.codetypes.ShapeType;
-import hat.codetypes.TensorType;
+import hat.codetypes.*;
 import hat.dialect.ArithMathOps;
 import hat.dialect.DialectFunction;
 import hat.dialect.DialectModule;
@@ -364,6 +360,27 @@ public class TileTransformer {
                     block.context().getValue(shapeC)));
         }
 
+        public Value dimensionMap(CodeType type, Op.Result result,
+                           CodeType shapeAType, Value shapeA) {
+            return block.add(TileOps.dim(block.context().getValue(shapeA)));
+        }
+
+        public Value dimensionMap(CodeType type, Op.Result result,
+                           CodeType shapeAType, Value shapeA,
+                           CodeType shapeBType, Value shapeB) {
+            return block.add(TileOps.dim(block.context().getValue(shapeA), block.context().getValue(shapeB)));
+        }
+
+        public Value dimensionMap(CodeType type, Op.Result result,
+                           CodeType shapeAType, Value shapeA,
+                           CodeType shapeBType, Value shapeB,
+                           CodeType shapeCType, Value shapeC) {
+            return block.add(TileOps.dim(
+                    block.context().getValue(shapeA),
+                    block.context().getValue(shapeB),
+                    block.context().getValue(shapeC)));
+        }
+
         public Value load(CodeType type, Op.Result result,
                           PtrType ptrType, Value ptr,
                           CodeType dimensionType, Value dimension,
@@ -532,13 +549,16 @@ public class TileTransformer {
         public Value reshape(CodeType type, Op.Result result,
                              CodeType tensorType, Value tensor,
                              CodeType shapeType, Value shape) {
-            return block.add(ArithMathOps.reshape(type, block.context().getValue(tensor)));
+            return block.add(ArithMathOps.reshape(
+                    type,
+                    block.context().getValue(tensor),
+                    block.context().getValue(shape)));
         }
 
         public Value permute(CodeType type, Op.Result result,
                              CodeType tensorType, Value tensor,
                              CodeType shapeType, Value shape) {
-            return block.add(ArithMathOps.permute(type, block.context().getValue(tensor)));
+            return block.add(ArithMathOps.permute(type, block.context().getValue(tensor), block.context().getValue(shape)));
         }
 
         public Value mma(CodeType typeResult, Op.Result result,
@@ -875,7 +895,7 @@ public class TileTransformer {
     }
 
     static CodeType checkWithTypeInterpreter(Op op, String name, Map<Value, CodeType> valueTypeMap) {
-        MethodHandle mh;
+        final MethodHandle mh;
         try {
             Optional<Method> optionalMethod = Stream.of(TileTypeInterpreter.class.getDeclaredMethods())
                     .filter(m -> m.getName().equals(name))
@@ -931,10 +951,24 @@ public class TileTransformer {
             return new ShapeType(shapeA, shapeB, shapeC);
         }
 
+        public static DimType dimensionMap(ConstantType shapeA) {
+            return new DimType(shapeA);
+        }
+
+        public static DimType dimensionMap(ConstantType shapeA, ConstantType shapeB) {
+            return new DimType(shapeA, shapeB);
+        }
+
+        public static DimType dimensionMap(ConstantType shapeA, ConstantType shapeB, ConstantType shapeC) {
+            return new DimType(shapeA, shapeB, shapeC);
+        }
+
         public static TensorType load(PtrType ptr, CodeType dimension, CodeType shape) {
             if (shape instanceof ShapeType shapeType) {
+                check(ptr.dims().size(), shapeType.list().size(), "load");
                 return new TensorType(ptr.rType(), shapeType.list());
             } else if (shape instanceof ConstantType constantType) {
+                check(ptr.dims().size(), 1, "load");
                 return new TensorType(ptr.rType(), List.of((Integer) constantType.value()));
             } else {
                 throw new IllegalArgumentException("shape for a load operation must be a constant type or a shape type");
@@ -943,7 +977,11 @@ public class TileTransformer {
 
         // store(arrayBuffer, id, tensor)
         public static void store(PtrType ptr, CodeType id, CodeType tensor) {
-
+            if (tensor instanceof TensorType tensorType) {
+                check(ptr.dims().size(), tensorType.shape().size(), "load");
+            } else {
+                throw new IllegalArgumentException("tensor must be a TensorType");
+            }
         }
 
         public static JavaType irange(CodeType startIndex, CodeType endIndex) {
@@ -1081,12 +1119,12 @@ public class TileTransformer {
             }
         }
 
-        public static TensorType reshape(CodeType codeType, ConstantType reshapeDims) {
+        public static TensorType reshape(CodeType codeType, CodeType reshapeDims) {
             var tensor = inferConstantType(codeType);
-            ShapeType shapeDims = inferReshapeDims(reshapeDims);
+            var dims = inferReshapeDims(reshapeDims);
             if (tensor instanceof TensorType tensorType) {
                 List<Integer> shape = tensorType.shape();
-                List<Integer> newShape = shapeDims.list();
+                List<Integer> newShape = dims.list();
                 int originalShape = shape.stream().reduce(1, (a, b) -> a * b);
                 int newShapeSize = newShape.stream().reduce(1, (a, b) -> a * b);
                 if (originalShape != newShapeSize) {
@@ -1097,9 +1135,9 @@ public class TileTransformer {
             throw new IllegalArgumentException("Reshape input must be a tensor type, but found " + tensor.getClass());
         }
 
-        public static TensorType permute(CodeType codeType, ConstantType reshapeDims) {
+        public static TensorType permute(CodeType codeType, CodeType reshapeDims) {
             var tensor = inferConstantType(codeType);
-            var permuteShape = inferReshapeDims(reshapeDims);
+            var permuteShape = inferDims(reshapeDims);
             if (tensor instanceof TensorType tensorType) {
                 List<Integer> shape = tensorType.shape();
                 List<Integer> permuteList = permuteShape.list();
@@ -1272,6 +1310,21 @@ public class TileTransformer {
                 return ct;
             }
             throw new IllegalStateException("Input CodeType not recognized: " + reshapeDims.getClass());
+        }
+
+        static DimType inferDims(CodeType reshapeDims) {
+            if (reshapeDims instanceof DimType shapeDims) {
+                return shapeDims;
+            } else if (reshapeDims instanceof ConstantType constantType && constantType.value() instanceof DimType ct) {
+                return ct;
+            }
+            throw new IllegalStateException("Input CodeType not recognized: " + reshapeDims.getClass());
+        }
+
+        private static void check(int bufferDims, int shapeDim, String op) {
+            if (bufferDims != shapeDim) {
+                throw new IllegalArgumentException("Shape dimensions between the memory buffer and shape do not match in the " + op + " operation");
+            }
         }
     }
 }

@@ -233,8 +233,8 @@ public class ArithMathOps {
             return new ReshapeOp(this, cc);
         }
 
-        ReshapeOp(CodeType type, Value a) {
-            super(NAME, type, List.of(a));
+        ReshapeOp(CodeType type, Value tensor, Value shape) {
+            super(NAME, type, List.of(tensor, shape));
         }
 
         @Override
@@ -261,8 +261,8 @@ public class ArithMathOps {
             return new PermuteOp(this, cc);
         }
 
-        PermuteOp(CodeType type, Value a) {
-            super(NAME, type, List.of(a));
+        PermuteOp(CodeType type, Value tensor, Value shape) {
+            super(NAME, type, List.of(tensor, shape));
         }
 
         @Override
@@ -444,12 +444,12 @@ public class ArithMathOps {
         return new TransposeOp(type, a);
     }
 
-    public static ReshapeOp reshape(CodeType type, Value a) {
-        return new ReshapeOp(type, a);
+    public static ReshapeOp reshape(CodeType type, Value tensor, Value shape) {
+        return new ReshapeOp(type, tensor, shape);
     }
 
-    public static PermuteOp permute(CodeType type, Value a) {
-        return new PermuteOp(type, a);
+    public static PermuteOp permute(CodeType type, Value tensor, Value shape) {
+        return new PermuteOp(type, tensor, shape);
     }
 
     public static MMAOp mma(Value tensorA, Value tensorB, Value tensorC) {
