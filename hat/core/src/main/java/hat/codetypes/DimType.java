@@ -33,8 +33,7 @@ import java.util.stream.Collectors;
 
 /**
  * Internal Type to the TypeInterpreter for providing/passing through the
- * tile shapes. This facilites shapes checking at runtime, before specializing
- * the code model.
+ * dimensions after a permute operation.
  */
 public final class DimType implements TileType {
 
