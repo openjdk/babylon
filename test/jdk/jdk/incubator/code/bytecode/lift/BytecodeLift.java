@@ -844,6 +844,15 @@ public final class BytecodeLift {
                 c = null;
                 yield liftConstant(null);
             }
+            case DynamicConstantDesc<?> dcd when dcd.bootstrapMethod().equals(ConstantDescs.BSM_INVOKE)
+                    && dcd.constantType().equals(ConstantDescs.CD_MethodHandle)
+                    && !dcd.bootstrapArgsList().isEmpty()
+                    && dcd.bootstrapArgsList().getFirst() instanceof DirectMethodHandleDesc finder
+                    && finder.owner().equals(ConstantDescs.CD_MethodHandles_Lookup)
+                    && Arrays.asList("findSpecial", "findVirtual", "findStatic",
+                            "findGetter", "findSetter", "findStaticGetter", "findStaticSetter")
+                            .contains(finder.methodName())
+                    -> op(CoreOp.constant(MH, dcd));
             case DynamicConstantDesc<?> dcd -> {
                 DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
                 MethodTypeDesc bsmDesc = bsm.invocationType();
