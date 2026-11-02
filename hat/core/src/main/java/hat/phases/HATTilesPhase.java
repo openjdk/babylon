@@ -24,8 +24,8 @@
  */
 package hat.phases;
 
-import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
+import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.TileOps;
 import hat.types.Tile;
@@ -153,7 +153,8 @@ public record HATTilesPhase() implements HATPhase {
         // Load operation returns a new Tile (view of the input data in a tile)
         Set<Op> opsToProcess = new HashSet<>();
 
-        // Process nodes after Tile dialect
+        // Process operations after Tile dialect is inserted.
+        // We need to propagate a side table for all tile var declarations.
         funcOp.elements().forEach(element -> {
             switch (element) {
                 // Two types of Tile Ops: a) TileContextOp for context operations, and arithmetic ops
@@ -161,7 +162,7 @@ public record HATTilesPhase() implements HATPhase {
                         opsToProcess.add(varOo);
                 case ArithMathOps.ArithMathOp arithMathOp when arithMathOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOp ->
                         opsToProcess.add(varOp);
-                case JavaOp.InvokeOp invokeOp when invokeOp.resultType() instanceof ConstantType
+                case JavaOp.InvokeOp invokeOp when invokeOp.resultType() instanceof TensorType
                         && invokeOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOp ->
                         // We need to process as Tile the result of an invoke (tile device kernel)
                         opsToProcess.add(varOp);

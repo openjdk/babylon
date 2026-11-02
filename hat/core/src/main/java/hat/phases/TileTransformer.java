@@ -344,20 +344,20 @@ public class TileTransformer {
         }
 
         public Value shape(CodeType type, Op.Result result,
-                           ConstantType shapeAType, Value shapeA) {
+                           CodeType shapeAType, Value shapeA) {
             return block.add(TileOps.shape(block.context().getValue(shapeA)));
         }
 
         public Value shape(CodeType type, Op.Result result,
-                           ConstantType shapeAType, Value shapeA,
-                           ConstantType shapeBType, Value shapeB) {
+                           CodeType shapeAType, Value shapeA,
+                           CodeType shapeBType, Value shapeB) {
             return block.add(TileOps.shape(block.context().getValue(shapeA), block.context().getValue(shapeB)));
         }
 
         public Value shape(CodeType type, Op.Result result,
-                           ConstantType shapeAType, Value shapeA,
-                           ConstantType shapeBType, Value shapeB,
-                           ConstantType shapeCType, Value shapeC) {
+                           CodeType shapeAType, Value shapeA,
+                           CodeType shapeBType, Value shapeB,
+                           CodeType shapeCType, Value shapeC) {
             return block.add(TileOps.shape(
                     block.context().getValue(shapeA),
                     block.context().getValue(shapeB),
@@ -367,16 +367,20 @@ public class TileTransformer {
         public Value load(CodeType type, Op.Result result,
                           PtrType ptrType, Value ptr,
                           CodeType dimensionType, Value dimension,
-                          ConstantType shapeType, Value shape) {
+                          CodeType shapeType, Value shape) {
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
-            return block.add(TileOps.load(type, block.context().getValue(ptr), block.context().getValue(dimension), block.context().getValue(shape), ptrType.dims()));
+            return block.add(TileOps.load(type,
+                    block.context().getValue(ptr),
+                    block.context().getValue(dimension),
+                    block.context().getValue(shape),
+                    ptrType.dims()));
         }
 
         public Value store(CodeType type, Op.Result result,
                            PtrType ptrType, Value ptr,
                            CodeType idType, Value id,
-                           ConstantType tensorType, Value tensor) {
+                           CodeType tensorType, Value tensor) {
             // Here we can perform some checks, for example, check shapes, check dimensions, etc.
             return block.add(TileOps.store(block.context().getValue(ptr),
                     block.context().getValue(id),
@@ -384,13 +388,13 @@ public class TileTransformer {
         }
 
         public Value irange(CodeType resultType, Op.Result result,
-                            ConstantType startIndex, Value start,
-                            ConstantType endIndex, Value end) {
+                            CodeType startIndex, Value start,
+                            CodeType endIndex, Value end) {
             return block.add(TileOps.irange(resultType, block.context().getValue(start), block.context().getValue(end)));
         }
 
         public Value irange(CodeType resultType, Op.Result result,
-                            ConstantType endIndex, Value end) {
+                            CodeType endIndex, Value end) {
             CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, 0);
             block.add(constantOp);
             return block.add(TileOps.irange(resultType, constantOp.result(), block.context().getValue(end)));
@@ -482,17 +486,17 @@ public class TileTransformer {
 
         public Value numTiles(CodeType type, Op.Result result,
                               PtrType ptrType, Value ptr,
-                              ConstantType dimensionType, Value dimension,
-                              ConstantType shapeType, Value shape) {
-            return block.add(TileOps.numTiles(
+                              CodeType dimensionType, Value dimension,
+                              CodeType shapeType, Value shape) {
+            return block.add(TileOps.numTiles(type,
                     block.context().getValue(ptr),
                     block.context().getValue(dimension),
                     block.context().getValue(shape)));
         }
 
         public Value full(CodeType typeResult, Op.Result result,
-                          ConstantType shapeType, Value shape,
-                          ConstantType valueType, Value val) {
+                          CodeType shapeType, Value shape,
+                          CodeType valueType, Value val) {
             // TODO: We might need to inspect the shape to pass the dimensions as a field too.
             return block.add(TileOps.full(typeResult,
                     block.context().getValue(shape),
@@ -506,8 +510,8 @@ public class TileTransformer {
         }
 
         public Value zeros(CodeType typeResult, Op.Result result,
-                           ConstantType shapeTypeA, Value shapeA,
-                           ConstantType shapeTypeB, Value shapeB) {
+                           CodeType shapeTypeA, Value shapeA,
+                           CodeType shapeTypeB, Value shapeB) {
             return block.add(TileOps.zeros(typeResult,
                     block.context().getValue(shapeA),
                     block.context().getValue(shapeB)));
@@ -515,7 +519,7 @@ public class TileTransformer {
 
         public Value sum(CodeType typeResult, Op.Result result,
                          CodeType tileType, Value tile,
-                         ConstantType dimensionType, Value dimension) {
+                         CodeType dimensionType, Value dimension) {
             return block.add(TileOps.sum(typeResult,
                     block.context().getValue(tile),
                     block.context().getValue(dimension)));
@@ -527,13 +531,13 @@ public class TileTransformer {
 
         public Value reshape(CodeType type, Op.Result result,
                              CodeType tensorType, Value tensor,
-                             ConstantType shapeType, Value shape) {
+                             CodeType shapeType, Value shape) {
             return block.add(ArithMathOps.reshape(type, block.context().getValue(tensor)));
         }
 
         public Value permute(CodeType type, Op.Result result,
                              CodeType tensorType, Value tensor,
-                             ConstantType shapeType, Value shape) {
+                             CodeType shapeType, Value shape) {
             return block.add(ArithMathOps.permute(type, block.context().getValue(tensor)));
         }
 
@@ -547,20 +551,20 @@ public class TileTransformer {
         }
 
         public Value arange(CodeType typeResult, Op.Result result,
-                            ConstantType sizeType, Value size,
+                            CodeType sizeType, Value size,
                             CodeType dType, Value dTypeValue) {
             return block.add(TileOps.arange(typeResult, block.context().getValue(size)));
         }
 
         public Value arange(CodeType typeResult, Op.Result result,
-                            ConstantType sizeType, Value size) {
+                            CodeType sizeType, Value size) {
             return block.add(TileOps.arange(typeResult, block.context().getValue(size)));
         }
 
         public Value arange(CodeType typeResult, Op.Result result,
-                            ConstantType sizeType, Value size,
-                            ConstantType startType, Value start,
-                            ConstantType stepType, Value step) {
+                            CodeType sizeType, Value size,
+                            CodeType startType, Value start,
+                            CodeType stepType, Value step) {
             return block.add(TileOps.arange(typeResult,
                     block.context().getValue(size),
                     block.context().getValue(start),
@@ -568,9 +572,9 @@ public class TileTransformer {
         }
 
         public Value arange(CodeType typeResult, Op.Result result,
-                            ConstantType sizeType, Value size,
-                            ConstantType startType, Value start,
-                            ConstantType stepType, Value step,
+                            CodeType sizeType, Value size,
+                            CodeType startType, Value start,
+                            CodeType stepType, Value step,
                             CodeType arangeType, Value arangeValue) {
             return block.add(TileOps.arange(typeResult,
                     block.context().getValue(size),
@@ -629,7 +633,7 @@ public class TileTransformer {
                     CodeType vType = valueTypeMap.get(v);
 
                     // check type promotion for Tensors
-                    if (varType instanceof ConstantType c && c.value() instanceof TensorType t1 && vType instanceof ConstantType c2 && c2.value() instanceof TensorType t2) {
+                    if (varType instanceof TensorType t1 && vType instanceof TensorType t2) {
                         CodeType toType = t1.elementType();
                         CodeType fromType = t2.elementType();
                         // Promotion: F16 to F32
@@ -645,11 +649,11 @@ public class TileTransformer {
                 }
                 case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE_CONTEXT) -> {
                     CodeType t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
-                    valueTypeMap.put(op.result(), new ConstantType(op.result().type(), t));
+                    valueTypeMap.put(op.result(), t);
                 }
                 case JavaOp.InvokeOp iop when iop.invokeReference().refType().equals(TYPE_TILE) -> {
                     CodeType t = checkWithTypeInterpreter(op, iop.invokeReference().name(), valueTypeMap);
-                    valueTypeMap.put(op.result(), new ConstantType(op.result().type(), t));
+                    valueTypeMap.put(op.result(), t);
                 }
                 case JavaOp.BinaryOp binaryOp -> {
                     Value left = binaryOp.lhsOperand();
@@ -927,16 +931,18 @@ public class TileTransformer {
             return new ShapeType(shapeA, shapeB, shapeC);
         }
 
-        public static TensorType load(PtrType ptr, CodeType dimension, ConstantType shape) {
-            if (shape.value() instanceof ShapeType shapeType) {
+        public static TensorType load(PtrType ptr, CodeType dimension, CodeType shape) {
+            if (shape instanceof ShapeType shapeType) {
                 return new TensorType(ptr.rType(), shapeType.list());
+            } else if (shape instanceof ConstantType constantType) {
+                return new TensorType(ptr.rType(), List.of((Integer) constantType.value()));
             } else {
-                return new TensorType(ptr.rType(), List.of((Integer) shape.value()));
+                throw new IllegalArgumentException("shape for a load operation must be a constant type or a shape type");
             }
         }
 
         // store(arrayBuffer, id, tensor)
-        public static void store(PtrType ptr, CodeType id, ConstantType tensor) {
+        public static void store(PtrType ptr, CodeType id, CodeType tensor) {
 
         }
 
@@ -977,16 +983,42 @@ public class TileTransformer {
         }
 
 
-        public static JavaType numTiles(PtrType ptr, ConstantType dimension, ConstantType tileSize) {
-            return JavaType.INT;
+        public static CodeType numTiles(PtrType ptr, CodeType dimension, CodeType tileSize) {
+            int numDimensionsInputData = ptr.dims().size();
+            int dimAccess;
+            if (dimension instanceof ConstantType constantType && constantType.value() instanceof Integer i) {
+                dimAccess = i;
+            } else {
+                throw new IllegalArgumentException("Invalid dimension type: " + dimension);
+            }
+            if (numDimensionsInputData < dimAccess) {
+                throw new IllegalArgumentException("Invalid dimension size: " + numDimensionsInputData);
+            }
+            if (tileSize instanceof ShapeType shapeType) {
+                // Compute the num tiles as constant value
+                // using the input shape
+                List<Integer> list = shapeType.list();
+                Integer tensorSize = list.get(dimAccess);
+                int val = ptr.dims().get(dimAccess);
+                return new ConstantType(JavaType.INT, val / tensorSize);
+            } else if (tileSize instanceof ConstantType c) {
+                // compute the num tiles using the input constant value
+                Integer tensorSize = (Integer) c.value();
+                int val = ptr.dims().get(dimAccess);
+                return new ConstantType(JavaType.INT, val / tensorSize);
+            } else {
+                throw new IllegalArgumentException("[Error in numTile operation] Expected a ShapeType, but found: " + tileSize.getClass());
+            }
         }
 
-        public static CodeType full(ConstantType dimension, ConstantType value) {
+        public static CodeType full(CodeType dimension, CodeType value) {
             CodeType codeType = inferConstantType(dimension);
             if (codeType instanceof ShapeType shapeType) {
                 return new TensorType(JavaType.FLOAT, shapeType.list());
+            } else if (codeType instanceof ConstantType constantType && constantType.value() instanceof Integer i) {
+                return new TensorType(JavaType.FLOAT, List.of(i));
             } else {
-                return new TensorType(JavaType.FLOAT, List.of((Integer) dimension.value()));
+                throw new IllegalArgumentException("Invalid dimension type for the full operation " + dimension.getClass());
             }
         }
 
@@ -1051,7 +1083,8 @@ public class TileTransformer {
 
         public static TensorType reshape(CodeType codeType, ConstantType reshapeDims) {
             var tensor = inferConstantType(codeType);
-            if (tensor instanceof TensorType tensorType && reshapeDims.value() instanceof ShapeType shapeDims) {
+            ShapeType shapeDims = inferReshapeDims(reshapeDims);
+            if (tensor instanceof TensorType tensorType) {
                 List<Integer> shape = tensorType.shape();
                 List<Integer> newShape = shapeDims.list();
                 int originalShape = shape.stream().reduce(1, (a, b) -> a * b);
@@ -1066,7 +1099,8 @@ public class TileTransformer {
 
         public static TensorType permute(CodeType codeType, ConstantType reshapeDims) {
             var tensor = inferConstantType(codeType);
-            if (tensor instanceof TensorType tensorType && reshapeDims.value() instanceof ShapeType permuteShape) {
+            var permuteShape = inferReshapeDims(reshapeDims);
+            if (tensor instanceof TensorType tensorType) {
                 List<Integer> shape = tensorType.shape();
                 List<Integer> permuteList = permuteShape.list();
                 List<Integer> resultShape = new ArrayList<>();
@@ -1229,6 +1263,15 @@ public class TileTransformer {
                 transposeShape.add(inputShape.get(i));
             }
             return transposeShape;
+        }
+
+        static ShapeType inferReshapeDims(CodeType reshapeDims) {
+            if (reshapeDims instanceof ShapeType shapeDims) {
+                return shapeDims;
+            } else if (reshapeDims instanceof ConstantType constantType && constantType.value() instanceof ShapeType ct) {
+                return ct;
+            }
+            throw new IllegalStateException("Input CodeType not recognized: " + reshapeDims.getClass());
         }
     }
 }

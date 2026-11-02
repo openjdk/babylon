@@ -30,7 +30,10 @@ import hat.codebuilders.C99HATKernelBuilder;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
 import hat.codetypes.TensorType;
-import hat.dialect.*;
+import hat.dialect.ArithMathOps;
+import hat.dialect.BinaryOpEnum;
+import hat.dialect.TileForLoopInfo;
+import hat.dialect.TileOps;
 import hat.phases.HATFP16Phase;
 import hat.types.F16;
 import hat.types.Tensor;
@@ -213,9 +216,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder defines() {
         return self()
                 .hashDefine("HAT_CUDA")
-                .hashDefine("HAT_GLOBAL_MEM", _ -> {})
+                .hashDefine("HAT_GLOBAL_MEM", _ -> {
+                })
                 .hashDefine("HAT_LOCAL_MEM", _ -> keyword("__shared__"))
-                .hashDefine("HAT_FUNC", _ -> externC().sp().either(!isTile, _ -> keyword("__device__"), _-> keyword("__tile__")))
+                .hashDefine("HAT_FUNC", _ -> externC().sp().either(!isTile, _ -> keyword("__device__"), _ -> keyword("__tile__")))
                 .hashDefine("HAT_KERNEL", _ -> externC().sp().either(!isTile, _ -> keyword("__global__"), _ -> keyword("__tile_global__")))
 
                 // threads
@@ -237,7 +241,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .hashDefine("HAT_BSX", _ -> gridDimX())
                 .hashDefine("HAT_BSY", _ -> gridDimY())
                 .hashDefine("HAT_BSZ", _ -> gridDimZ())
-                .hashDefine("HAT_WRS", _ -> paren( _ -> intValue(CUDA_WARP_SIZE)))
+                .hashDefine("HAT_WRS", _ -> paren(_ -> intValue(CUDA_WARP_SIZE)))
 
                 // Barrier
                 .when(useBarrier(), _ -> hashDefine("HAT_BARRIER", _ -> keyword("__syncthreads").ocparen()))
@@ -251,8 +255,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useVectors(), _ -> concatMacro().prefixMacro())
 
                 // Vectors
-                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_0",false))
-                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_1",true))
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_0", false))
+                .when(useVectors(), _ -> defineVectorAccessMacro("VECTOR_1", true))
                 .when(useVectors(), _ -> defineMacroVLoadN())
                 .when(useVectors(), _ -> defineMacroVStoreN())
                 .when(useVectors(), _ -> defineMacroVectorOf(2))
@@ -294,7 +298,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     /**
      * <code>
-     *     #define VLOADN(N, addr, index, isLocal) reinterpret_cast<CONCAT(float, N) *>(CONCAT(VECTOR_, isLocal)(addr, index))[0]
+     * #define VLOADN(N, addr, index, isLocal) reinterpret_cast<CONCAT(float, N) *>(CONCAT(VECTOR_, isLocal)(addr, index))[0]
      * </code>
      *
      * @return {@link CudaHATKernelBuilder}
@@ -303,14 +307,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<String> params = getMacroVectorParamsLoad();
         return macroNoParenthesis(VLOADN, params, _ ->
                 reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
-                .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
-                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
-                .sbrace( _ -> intConstZero()));
+                        .paren(_ -> id(CONCAT).paren(_ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                                .paren(_ -> id(ADDDR).comma().sp().id(INDEX)))
+                        .sbrace(_ -> intConstZero()));
     }
 
     /**
      * <code>
-     *     #define VSTOREN(N, a, index, isLocal, vectorVal) reinterpret_cast<CONCAT(float, N)*>(CONCAT(VECTOR_, isLocal)(a, index))[0] = vectorVal
+     * #define VSTOREN(N, a, index, isLocal, vectorVal) reinterpret_cast<CONCAT(float, N)*>(CONCAT(VECTOR_, isLocal)(a, index))[0] = vectorVal
      * </code>
      *
      * @return {@link CudaHATKernelBuilder}
@@ -319,20 +323,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<String> params = getMacroVectorParamsStore();
         return macroNoParenthesis(VSTOREN, params, _ ->
                 reinterpretCast().lt().id(CONCAT).paren(_ -> f32Type().comma().sp().id(N)).sp().asterisk().gt()
-                        .paren( _ -> id(CONCAT).paren( _ -> id(VECTOR).comma().sp().id(IS_LOCAL))
-                                .paren( _ -> id(ADDDR).comma().sp().id(INDEX)))
-                        .sbrace( _ -> intConstZero()).sp().equals().sp().id(VECTOR_VAL));
+                        .paren(_ -> id(CONCAT).paren(_ -> id(VECTOR).comma().sp().id(IS_LOCAL))
+                                .paren(_ -> id(ADDDR).comma().sp().id(INDEX)))
+                        .sbrace(_ -> intConstZero()).sp().equals().sp().id(VECTOR_VAL));
     }
 
     /**
      * <code>
-     *    #define VECTOR_OF2(elementType, p0, p1) (PREFIX(make_,CONCAT(elementType,2)))(p0,p1)
-     *    #define VECTOR_OF3(elementType, p0, p1, p2) (PREFIX(make_,CONCAT(elementType,3)))(p0,p1,p2)
-     *    #define VECTOR_OF4(elementType, p0, p1, p2, p3) (PREFIX(make_,CONCAT(elementType,4)))(p0,p1,p2,p3)
+     * #define VECTOR_OF2(elementType, p0, p1) (PREFIX(make_,CONCAT(elementType,2)))(p0,p1)
+     * #define VECTOR_OF3(elementType, p0, p1, p2) (PREFIX(make_,CONCAT(elementType,3)))(p0,p1,p2)
+     * #define VECTOR_OF4(elementType, p0, p1, p2, p3) (PREFIX(make_,CONCAT(elementType,4)))(p0,p1,p2,p3)
      * </code>
-     * @param lanes
-     *    Vector width
      *
+     * @param lanes Vector width
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroVectorOf(int lanes) {
@@ -364,10 +367,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     /**
      * <code>
-     *    #define F16_OF(val) F16_t{__float2half(val)}
+     * #define F16_OF(val) F16_t{__float2half(val)}
      * </code>
-     * @param name
-     *     Name of the CUDA Macro
+     *
+     * @param name Name of the CUDA Macro
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroF16Of(String name) {
@@ -376,10 +379,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     /**
      * <code>
-     *    #define BF16_OF(val) BF16_t{__nv_bfloat16(val)}
+     * #define BF16_OF(val) BF16_t{__nv_bfloat16(val)}
      * </code>
-     * @param name
-     *    Name of the CUDA Macro
+     *
+     * @param name Name of the CUDA Macro
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroBF16Of(String name) {
@@ -390,20 +393,19 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<String> params = List.of("val");
         return macroNoParenthesis(name, params, _ ->
                 paren(_ -> type.accept(self()))
-                        .paren(_-> id("val")
+                        .paren(_ -> id("val")
                                 .dotOrArrow(isLocal)
                                 .id(VALUE)));
     }
 
     /**
      * <code>
-     *    #define F16_TO_FLOAT_0(val) (__half2float)(val->value)
-     *    #define F16_TO_FLOAT_1(val) (__half2float)(val.value)
+     * #define F16_TO_FLOAT_0(val) (__half2float)(val->value)
+     * #define F16_TO_FLOAT_1(val) (__half2float)(val.value)
      * </code>
-     * @param name
-     *    Name of the CUDA Macro
-     * @param isLocal
-     *    Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     *
+     * @param name    Name of the CUDA Macro
+     * @param isLocal Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroF162Float(String name, boolean isLocal) {
@@ -412,13 +414,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     /**
      * <code>
-     *     #define BF16_TO_FLOAT_0(val) (__bfloat162float(val->value))
-     *     #define BF16_TO_FLOAT_1(val) (__bfloat162float(val.value))
+     * #define BF16_TO_FLOAT_0(val) (__bfloat162float(val->value))
+     * #define BF16_TO_FLOAT_1(val) (__bfloat162float(val.value))
      * </code>
-     * @param name
-     *     Name of the CUDA Macro
-     * @param isLocal
-     *     Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
+     *
+     * @param name    Name of the CUDA Macro
+     * @param isLocal Flag to indicate if the parameter corresponds to a variable in private/shared or global region.
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroBF162Float(String name, boolean isLocal) {
@@ -444,23 +445,23 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     public CudaHATKernelBuilder defineFragmentCreate(String macroName) {
-        List<String> params = List.of("type",  "name", "size");
+        List<String> params = List.of("type", "name", "size");
         macroNoParenthesis(macroName + "_3", params, _ ->
                 id(params.getFirst()).sp().id(params.get(1)).sbrace(_ -> id(params.get(2))));
 
-        List<String> params1  = List.of("kind", "size", "m", "n", "k", "type", "name");
+        List<String> params1 = List.of("kind", "size", "m", "n", "k", "type", "name");
         macroNoParenthesis(macroName + "_7", params1, _ ->
                 id(WMMA_FRAGMENT_BASE)
-                    .ltgt(_ ->
-                        id(WMMA_PREFIX).id("kind")
-                            .comma().sp()
-                            .id("m")
-                            .comma().sp()
-                            .id("n")
-                            .comma().sp()
-                            .id("k")
-                            .comma().sp()
-                            .id("type")).sp().id("name"));
+                        .ltgt(_ ->
+                                id(WMMA_PREFIX).id("kind")
+                                        .comma().sp()
+                                        .id("m")
+                                        .comma().sp()
+                                        .id("n")
+                                        .comma().sp()
+                                        .id("k")
+                                        .comma().sp()
+                                        .id("type")).sp().id("name"));
 
         List<String> params2 = List.of("kind", "size", "m", "n", "k", "type", "layout", "name");
         macroNoParenthesis(macroName + "_8", params2, _ ->
@@ -492,35 +493,34 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                                         .id(INVALID).comma()
                                         .id(INVALID).comma()
                                         .id("FRAGMENT_CREATE_3"))
-                        .paren( _ -> id("__VA_ARGS__")));
+                        .paren(_ -> id("__VA_ARGS__")));
         return self();
     }
 
     /**
      * Example of code being generated:
      * <code>
-     *   nvcuda::wmma::fill_fragment(acc, initValue);
+     * nvcuda::wmma::fill_fragment(acc, initValue);
      * </code>
      *
      * @param name
-     *
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroTensorFill(String name) {
         List<String> params = paramsOfTensorFillMacro();
         return macroNoParenthesis(name, params, _ ->
-                paren( _ ->
-                        id(WMMA_FILL_TENSOR).paren( _->
+                paren(_ ->
+                        id(WMMA_FILL_TENSOR).paren(_ ->
                                 id(params.get(2)).comma().id(params.get(5)))));
     }
 
     /**
      * Example of code being generated:
      * <code>
-     *  nvcuda::wmma::mma_sync(acc,tensorA,tensorB,acc);
+     * nvcuda::wmma::mma_sync(acc,tensorA,tensorB,acc);
      * </code>
-     * @param macroName
      *
+     * @param macroName
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroTensorMMA(String macroName) {
@@ -532,8 +532,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         cudaMMAArgs.add(params.get(5)); // tensorB
         cudaMMAArgs.add(params.get(6)); // tensorC
         return macroNoParenthesis(macroName, params, _ ->
-                paren( _ ->
-                        id(WMMA_MMA_TENSOR).paren( _-> commaSeparated(cudaMMAArgs, this::id))));
+                paren(_ ->
+                        id(WMMA_MMA_TENSOR).paren(_ -> commaSeparated(cudaMMAArgs, this::id))));
     }
 
     /**
@@ -568,8 +568,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     /**
      * Example of code being generated:
      * <code>
-     *  nvcuda::wmma::store_matrix_sync(matrixC->array + cCol+(cRow*ldc), acc,ldc,nvcuda::wmma::mem_row_major);
+     * nvcuda::wmma::store_matrix_sync(matrixC->array + cCol+(cRow*ldc), acc,ldc,nvcuda::wmma::mem_row_major);
      * </code>
+     *
      * @param macroName
      * @return {@link CudaHATKernelBuilder}
      */
@@ -577,16 +578,16 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
         return macroNoParenthesis(macroName, params, _ ->
                 sp().backslash().nl()
-                .id(WMMA_STORE_TENSOR).paren(_ ->
-                id("reference").rarrow().id(ARRAY)
-                        .sp().plus().sp()
-                        .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
-                        .comma()
-                        .id("tensorToStore")
-                        .comma()
-                        .id("leadingDimension")
-                        .comma()
-                        .id("memAccessLayout")));
+                        .id(WMMA_STORE_TENSOR).paren(_ ->
+                                id("reference").rarrow().id(ARRAY)
+                                        .sp().plus().sp()
+                                        .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
+                                        .comma()
+                                        .id("tensorToStore")
+                                        .comma()
+                                        .id("leadingDimension")
+                                        .comma()
+                                        .id("memAccessLayout")));
     }
 
     private void recurseVectorOperand(JavaOp.InvokeOp invokeOp, String postfix) {
@@ -729,7 +730,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    protected CudaHATKernelBuilder generateTileDeclaration(TensorType tt) {
+    protected CudaHATKernelBuilder tileDeviceKernelDeclaration(TensorType tt) {
         tile().ltgt(_ -> {
             if (tt.elementType().equals(DType.TENSOR_F32_TYPE) || tt.elementType().equals(DType.TENSOR_2D_F32_TYPE)) {
                 f32Type();
@@ -840,6 +841,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder varOpTile(VarOp varOp) {
+        if (varOp.resultType().valueType() instanceof ConstantType) {
+            constKeyword().sp();
+        }
         return auto()
                 .sp()
                 .varName(varOp)
@@ -892,9 +896,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
 
     private static final Map<String, String> tensorTypeTable = new HashMap<>();
+
     static {
         tensorTypeTable.put("loadF16", "half");
-        tensorTypeTable.put("load",    "float");
+        tensorTypeTable.put("load", "float");
         tensorTypeTable.put("loadF32", "float");
     }
 
@@ -910,7 +915,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         String tensorType = null;
         if (klass != null) {
             switch (klass) {
-                case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) -> tensorType = "half";
+                case ClassType classType when OpHelper.isAssignable(scopedCodeBuilderContext.lookup(), classType, F16.class) ->
+                        tensorType = "half";
                 case PrimitiveType primitiveType when primitiveType.equals(PrimitiveType.FLOAT) -> tensorType = "float";
                 default -> throw new IllegalStateException("Type class not supported for Tensors: " + klass);
             }
@@ -973,13 +979,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * <p>
      * <code>
-     *     wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
+     * wmma::load_matrix_sync(a_frag, matrix->array + headSize + aRow + aCol * lda, lda);
      * </code>
      * </p>
      *
-     * @param tensorLoad
-     *      Invoke node that represents the tensor load operation
-     *
+     * @param tensorLoad Invoke node that represents the tensor load operation
      * @return {@link CudaHATKernelBuilder}
      */
     @Override
@@ -1057,10 +1061,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     protected CudaHATKernelBuilder hatTileAlignOperation(Invoke invoke) {
-        return tileContext().id("assume_aligned").paren( _ ->
+        return tileContext().id("assume_aligned").paren(_ ->
                 recurseResultOrThrow(invoke.op().operands().getFirst()).rarrow().id(ARRAY)
-                .comma().sp()
-                .recurseResultOrThrow(invoke.op().operands().get(1)).ic());
+                        .comma().sp()
+                        .recurseResultOrThrow(invoke.op().operands().get(1)).ic());
     }
 
     private int obtainShapeDimensions(Value value) {
@@ -1119,13 +1123,11 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      *
      * <p>
      * <code>
-     *     store_matrix_sync(matrix->array + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
+     * store_matrix_sync(matrix->array + cRow + cCol * ldc, c_frag, ldc, wmma::mem_col_major);
      * </code>
      * </p>
      *
-     * @param tensorStore
-     *      Invoke node that represents the tensor store operation
-     *
+     * @param tensorStore Invoke node that represents the tensor store operation
      * @return {@link CudaHATKernelBuilder}
      */
     @Override
@@ -1165,18 +1167,18 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value finalJIndex = jIndex;
         return id(MACRO_FRAGMENT_STORE).paren(_ ->
                 intValue(M).comma().sp()
-                .intValue(N).comma().sp()
-                .id(varA).comma().sp()
-                .id(varB).comma().sp()
-                .recurseResultOrThrow(finalIIndex).comma().sp()
-                .recurseResultOrThrow(finalJIndex).comma().sp()
-                .id(String.valueOf(isColumnMajor)).comma().sp()
-                .recurseResultOrThrow(ldSize).comma().sp()
-                .recurseResultOrThrow(reference).comma().sp()
-                .id(tensorVarOp.varName()).comma().sp()
-                .either(isColumnMajor,
-                _ -> id(WMMA_MEM_COL_MAJOR),
-                _ -> id(WMMA_MEM_ROW_MAJOR)));
+                        .intValue(N).comma().sp()
+                        .id(varA).comma().sp()
+                        .id(varB).comma().sp()
+                        .recurseResultOrThrow(finalIIndex).comma().sp()
+                        .recurseResultOrThrow(finalJIndex).comma().sp()
+                        .id(String.valueOf(isColumnMajor)).comma().sp()
+                        .recurseResultOrThrow(ldSize).comma().sp()
+                        .recurseResultOrThrow(reference).comma().sp()
+                        .id(tensorVarOp.varName()).comma().sp()
+                        .either(isColumnMajor,
+                                _ -> id(WMMA_MEM_COL_MAJOR),
+                                _ -> id(WMMA_MEM_ROW_MAJOR)));
     }
 
     protected static final String ARRAY = "array";
@@ -1190,12 +1192,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (this.isTile) {
             // inspect type of parameter
             CodeType type = param.parameter.type();
-            if (type instanceof ConstantType c && c.value() instanceof TensorType tt) {
-               generateTileDeclaration(tt);
+            if (type instanceof TensorType tt) {
+                tileDeviceKernelDeclaration(tt);
             } else {
                 type(type).sp();
             }
-            if (!(type instanceof PrimitiveType) && !(type instanceof ConstantType)) {
+            if (!(type instanceof PrimitiveType)
+                    && !(type instanceof TensorType)
+                    && !(type instanceof ConstantType)) {
                 restrict().sp();
             }
             return varName(param.varOp);
@@ -1242,8 +1246,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         throw new IllegalStateException("Reference not supported: " + ref);
     }
 
-    private CudaHATKernelBuilder genTileSize(CodeType resultType, Value ptr) {
-        if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tensorType) {
+    private void genTileSize(CodeType resultType, Value ptr) {
+        if (resultType instanceof TensorType tensorType) {
             CodeType tt = tensorType.elementType();
             if (tt.equals(DType.TENSOR_F32_TYPE) || tt.equals(DType.Float)) { // this check is due to type equivalence
                 generateAlignedReference(ptr).rarrow().id("m");
@@ -1253,7 +1257,6 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 throw new UnsupportedOperationException("Tensor Type not supported yet: " + tt);
             }
         }
-        return self();
     }
 
     private static final String ALIGN = "align";
@@ -1262,8 +1265,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (ptr.declaringElement() instanceof JavaOp.InvokeOp invokeOp && invokeOp.invokeReference().name().equals(ALIGN)) {
             generateAlignedReference(ptr).rarrow();
             switch (dim) {
-                case 0 -> { return id("m"); }
-                case 1 -> { return id("n"); }
+                case 0 -> {
+                    return id("m");
+                }
+                case 1 -> {
+                    return id("n");
+                }
                 default -> throw new IllegalStateException("Unexpected value: " + dim);
             }
         } else {
@@ -1274,19 +1281,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return self();
     }
 
-    private boolean isInputDivisible(List<Object> dims) {
-        boolean isDivisible = true;
-        for (Object dim : dims) {
-            if (dim instanceof Integer value) {
-                if (value % 16 != 0) {
-                    isDivisible = false;
-                    break;
-                }
-            } else {
-                throw new IllegalArgumentException("Invalid type for dimension. Integer expected but found " + dim.getClass());
-            }
-        }
-        return isDivisible;
+    private boolean isInputDivisible(List<Integer> dims, final int val) {
+        return dims.stream().noneMatch(dim -> dim % val != 0);
     }
 
     @Override
@@ -1294,38 +1290,24 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Value> operands = tileLoadOp.operands();
         Value ptr = operands.get(0);
         Value dimension = operands.get(1);
-        List<Object> dims = tileLoadOp.dims();
+        List<Integer> dims = tileLoadOp.dims();
         CodeType resultType = tileLoadOp.resultType();
 
-        boolean isDivisible16 = isInputDivisible(dims);
-
-        partitionView().brace(_ -> {
-                tensorSpan().brace(_ -> {
-                    recurseResultOrThrow(ptr);
-                    comma().sp().tensorExtent().paren(_ -> {
-                        if (isDivisible16) {
-                            // if input is divisible by 16, then we can emit the following optimization
-                            commaSpaceSeparated(dims, x -> { tensorAssumeDivisible(16).paren(_ -> id(x.toString())); });
-                        } else {
-                            genTileSize(resultType, ptr);
-                        }
-                    });
-                }).comma();
-
-            // Process shapes: We assume shapes are constants: after type attribution, this has been checked already
-            if (resultType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
-                tileShape().brace(_ -> {
-                    List<Integer> shapeList = tt.shape();
-                    literalIC(shapeList.getFirst());
-                    for (int i = 1; i < shapeList.size(); i++) {
-                        comma().literalIC(shapeList.get(i));
-                    }
-                });
-            } else {
-                throw new IllegalStateException("Result Type not supported yet: " + resultType);
-            }
-        });
-        return dot().tileLoad().paren( _ -> recurseResultOrThrow(dimension));
+        if (!(resultType instanceof TensorType tt)) {
+            throw new IllegalStateException("Result Type not supported yet: " + resultType);
+        }
+        final boolean isDivisible16 = isInputDivisible(dims, 16);
+        return partitionView().brace(_ ->
+                        tensorSpan().brace(_ -> {
+                            recurseResultOrThrow(ptr);
+                            comma().sp().tensorExtent().paren(_ ->
+                                    either(isDivisible16,
+                                            _ -> commaSpaceSeparated(dims, x -> tensorAssumeDivisible(16).paren(_ -> id(x.toString()))),
+                                            _ -> genTileSize(resultType, ptr)));
+                        }).comma().tileShape().brace(_ -> commaSpaceSeparated(tt.shape(), this::literalIC)))
+                .dot()
+                .tileLoad()
+                .paren(_ -> recurseResultOrThrow(dimension));
     }
 
     @Override
@@ -1341,36 +1323,41 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value inputReference = operands.get(0);
         Value blockId = operands.get(1);
         Value tensor = operands.get(2);
-        List<Object> dims = tileStoreOp.dims();
+        List<Integer> dims = tileStoreOp.dims();
 
-        boolean isDivisible16 = isInputDivisible(dims);
-        return partitionView().brace( _ -> {
-                tensorSpan().brace( _ -> {
+        if (!(tensor.type() instanceof TensorType tt)) {
+            // At this point, since the Tile Dialect was built after the type check and shape propagation,
+            // we know this error can't occur. If something unexpected happens, we throw an error.
+            throw new UnsupportedOperationException("[codegen] tensor store shape not supported yet.");
+        }
+
+        final boolean isDivisible16 = isInputDivisible(dims, 16);
+        return partitionView().brace(_ -> {
+            tensorSpan().brace(_ -> {
                 recurseResultOrThrow(inputReference);
-                comma().tensorExtent().brace(_ -> {
-                    if (isDivisible16) {
-                        // if input is divisible by 16, then we can emit the following optimization
-                        commaSpaceSeparated(dims, x -> tensorAssumeDivisible(16).paren(_ -> id(x.toString())));
-                    } else {
-                        genTileSize(tensor.type(), inputReference);
-                    }
-                });
-            }).comma();
-            CodeType tensorType = tensor.type();
-            if (tensorType instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
-                tileShape().brace(_ -> {
-                    List<Integer> shape = tt.shape();
-                    literalIC(shape.getFirst());
-                    for (int i = 1; i < shape.size(); i++) {
-                        comma().literalIC(shape.get(i));
-                    }
-                });
-            } else {
-                // At this point, since the Tile Dialect was built after the type check and shape propagation,
-                // we know this error can't occur. If something unexpected happens, we throw an error.
-                throw new UnsupportedOperationException("[codegen] tensor store shape not supported yet.");
+                comma().tensorExtent().brace(_ ->
+                        either(isDivisible16,
+                                _ -> commaSpaceSeparated(dims, x -> tensorAssumeDivisible(16).paren(_ -> id(x.toString()))),
+                                _ -> genTileSize(tensor.type(), inputReference)));
+            }).comma().tileShape().brace(_ -> commaSpaceSeparated(tt.shape(), this::literalIC));
+        }).dot().tileStore().paren(_ -> recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(blockId));
+    }
+
+    private int getDimValue(Value dimension) {
+        if (dimension.declaringElement() instanceof CoreOp.ConstantOp constantOp && constantOp.value() instanceof Integer dim) {
+            return dim;
+        }
+        throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
+    }
+
+    private Value getTileExtend(Value shape, int dimValue) {
+        if (shape.declaringElement() instanceof TileOps.TileShapeOp shapeOp) {
+            if (dimValue < 0 || dimValue >= shapeOp.operands().size()) {
+                throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
             }
-        }).dot().tileStore().paren( _ -> recurseResultOrThrow(tensor).comma().sp().recurseResultOrThrow(blockId));
+            return shapeOp.operands().get(dimValue);
+        }
+        return shape;
     }
 
     @Override
@@ -1380,23 +1367,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value dimension = operands.get(1);
         Value shape = operands.get(2);
 
-        int dimValue;
-        if (dimension.declaringElement() instanceof CoreOp.ConstantOp constantOp && constantOp.value() instanceof Integer dim) {
-            dimValue = dim;
-        } else {
-            throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
+        if (tileNumOp.resultType() instanceof ConstantType c) {
+            return intValue((Integer) c.value());
         }
-
-        final Value tileExtent;
-        if (shape.declaringElement() instanceof TileOps.TileShapeOp shapeOp) {
-            if (dimValue < 0 || dimValue >= shapeOp.operands().size()) {
-                throw new UnsupportedOperationException("[codegen] dimension number not supported yet.");
-            }
-            tileExtent = shapeOp.operands().get(dimValue);
-        } else {
-            tileExtent = shape;
-        }
-
+        // Otherwise, we do the whole computation
+        int dimValue = getDimValue(dimension);
+        final Value tileExtent = getTileExtend(shape, dimValue);
         return paren(_ ->
                 genTileSize(ptr, dimValue)
                         .sp()
@@ -1404,8 +1380,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         .recurseResultOrThrow(tileExtent)
                         .sp()
                         .minus()
-                        .intConst(1)
-        ).div().recurseResultOrThrow(tileExtent);
+                        .intConst(1))
+                .div().recurseResultOrThrow(tileExtent);
     }
 
     @Override
@@ -1416,7 +1392,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return tileFull()
                 .ltgt(_ -> {
                     cudaTile().ltgt(_ -> {
-                        if (tileFullOp.resultType() instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
+                        if (tileFullOp.resultType() instanceof TensorType tt) {
                             type(tt.elementType().toString());
                         } else {
                             throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileFullOp.resultType());
@@ -1447,33 +1423,34 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder tileTransposeOp(ArithMathOps.TransposeOp tileTransposeOp) {
-        return tileTranspose().paren(_-> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
+        return tileTranspose().paren(_ -> recurseResultOrThrow(tileTransposeOp.operands().getFirst()));
     }
 
     @Override
     public CudaHATKernelBuilder tileZerosOp(TileOps.TileZerosOp tileZerosOp) {
         tileZeros().ltgt(_ -> {
             cudaTile().ltgt(_ -> {
-            if (tileZerosOp.resultType() instanceof ConstantType constantType && constantType.value() instanceof TensorType tt) {
-                if (tt.elementType().equals(DType.TENSOR_2D_F32_TYPE) || tt.elementType().equals(DType.TENSOR_F32_TYPE)) {
-                    f32Type();
+                if (tileZerosOp.resultType() instanceof TensorType tt) {
+                    if (tt.elementType().equals(DType.TENSOR_2D_F32_TYPE) || tt.elementType().equals(DType.TENSOR_F32_TYPE)) {
+                        f32Type();
+                    } else {
+                        type(tt.elementType().toString());
+                    }
                 } else {
-                    type(tt.elementType().toString());
+                    throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileZerosOp.resultType());
                 }
-            } else {
-                throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileZerosOp.resultType());
-            }
-            comma().sp().tileShape().ltgt(_ -> {
-                CodeType codeType = tileZerosOp.resultType();
-                if (codeType instanceof ConstantType constantType1 && constantType1.value() instanceof TensorType tensorType) {
-                    List<Integer> shape = tensorType.shape();
-                    commaSpaceSeparated(shape, this::intValue);
-                } else {
-                    throw new IllegalStateException("[codegen] ct::zero shape not recognized");
-                }
+                comma().sp().tileShape().ltgt(_ -> {
+                    CodeType codeType = tileZerosOp.resultType();
+                    if (codeType instanceof TensorType tensorType) {
+                        List<Integer> shape = tensorType.shape();
+                        commaSpaceSeparated(shape, this::intValue);
+                    } else {
+                        throw new IllegalStateException("[codegen] ct::zero shape not recognized");
+                    }
                 });
             });
-        }).paren( _ ->{});
+        }).paren(_ -> {
+        });
 
         return self();
     }
@@ -1582,9 +1559,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value endIndex = tileIrangeOp.operands().getLast();
         return tileIRange().paren(_ ->
                 recurseResultOrThrow(startIndex)
-                .comma()
-                .sp()
-                .recurseResultOrThrow(endIndex));
+                        .comma()
+                        .sp()
+                        .recurseResultOrThrow(endIndex));
     }
 
     @Override
