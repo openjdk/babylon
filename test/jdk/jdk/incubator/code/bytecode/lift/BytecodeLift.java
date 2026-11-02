@@ -852,7 +852,10 @@ public final class BytecodeLift {
                                                     bsm.methodName(),
                                                     JavaType.type(bsmDesc.returnType()),
                                                     bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
-                yield op(JavaOp.invoke(bsmRef, bootstrapArgs));
+                Op.Result call = op(JavaOp.invoke(bsmRef, bootstrapArgs));
+                JavaType target = JavaType.type(dcd.constantType());
+                yield target.equals(call.type()) || dcd.constantType().isPrimitive()
+                        ? call : op(JavaOp.cast(target, call));
             }
             case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
             case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
