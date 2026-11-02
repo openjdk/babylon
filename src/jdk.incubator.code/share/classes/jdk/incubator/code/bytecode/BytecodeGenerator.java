@@ -269,7 +269,7 @@ public final class BytecodeGenerator {
         v = singlePredecessorsValues.getOrDefault(v, v);
         if (v instanceof Op.Result or &&
                 or.op() instanceof ConstantOp constantOp &&
-                !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
+                canDefer(constantOp)) {
             cob.loadConstant(switch (constantOp.value()) {
                 case null -> null;
                 case Boolean b -> {
@@ -349,7 +349,8 @@ public final class BytecodeGenerator {
 
     // Constant can be deferred, except for loading of a class constant, which  may throw an exception
     private static boolean canDefer(ConstantOp op) {
-        return !op.resultType().equals(JavaType.J_L_CLASS);
+        return !op.resultType().equals(JavaType.J_L_CLASS)
+                && !(op.value() instanceof DynamicConstantDesc<?>);
     }
 
     private static boolean canDefer(VarOp op) {
@@ -517,7 +518,9 @@ public final class BytecodeGenerator {
                         if (!canDefer(op)) {
                             // Constant can be deferred, except for a class constant, which  may throw an exception
                             Object v = op.value();
-                            if (v == null) {
+                            if (v instanceof DynamicConstantDesc<?> dcd) {
+                                cob.ldc(dcd);
+                            } else if (v == null) {
                                 cob.aconst_null();
                             } else {
                                 cob.ldc(((JavaType)v).toNominalDescriptor());
