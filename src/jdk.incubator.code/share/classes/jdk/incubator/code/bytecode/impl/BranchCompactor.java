@@ -33,7 +33,7 @@ import java.lang.classfile.PseudoInstruction;
 import java.lang.classfile.instruction.BranchInstruction;
 import java.lang.classfile.instruction.ExceptionCatch;
 import java.lang.classfile.instruction.LabelTarget;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,7 +44,7 @@ import java.util.Set;
 public final class BranchCompactor implements CodeTransform {
 
     private BranchInstruction branch;
-    private final List<PseudoInstruction> buffer = new ArrayList<>();
+    private final List<CodeElement> buffer = new LinkedList<>();
     private final Set<Label> barriers = new HashSet<>();
 
     public BranchCompactor() {
@@ -74,13 +74,9 @@ public final class BranchCompactor implements CodeTransform {
                     //pass the target
                     cob.with(lt);
                 }
-                case LabelTarget lt when branch.target() == lt.label() -> {
-                    //skip branch to immediate target
-                    branch = null;
-                    //flush the buffer
-                    atEnd(cob);
-                    //pass the target
-                    cob.with(lt);
+                case BranchInstruction bi when isUnconditionalBranch(bi.opcode()) -> {
+                    //buffer branches until the complete run can be compacted
+                    buffer.add(bi);
                 }
                 case PseudoInstruction pi -> {
                     //buffer pseudo instructions
@@ -98,9 +94,23 @@ public final class BranchCompactor implements CodeTransform {
 
     @Override
     public void atEnd(CodeBuilder cob) {
+        Set<Label> targets = new HashSet<>();
+        for (var it = buffer.listIterator(buffer.size()); it.hasPrevious();) {
+            switch (it.previous()) {
+                case LabelTarget lt -> targets.add(lt.label());
+                case BranchInstruction bi -> {
+                    if (targets.contains(bi.target())) {
+                        it.remove();
+                    } else {
+                        targets.clear();
+                    }
+                }
+                default -> {}
+            }
+        }
         if (branch != null) {
-            //flush the branch
-            cob.with(branch);
+            //flush the branch unless its target is now immediate
+            if (!targets.contains(branch.target())) cob.with(branch);
             branch = null;
         }
         //flush the buffer
