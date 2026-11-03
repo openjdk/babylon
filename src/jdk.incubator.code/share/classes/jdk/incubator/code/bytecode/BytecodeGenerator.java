@@ -528,11 +528,7 @@ public final class BytecodeGenerator {
                             push(op.result());
                         }
                     }
-                    case VarOp op when op.isUninitialized() -> {
-                        if (!op.result().uses().isEmpty()) {
-                            allocateSlot(op.result());
-                        }
-                    }
+                    case VarOp op when op.isUninitialized() -> {}
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
