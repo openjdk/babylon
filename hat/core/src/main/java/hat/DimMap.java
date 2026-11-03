@@ -24,5 +24,11 @@
  */
 package hat;
 
-public record DimensionMap(int tm, int tn, int tk) {
+import java.util.List;
+
+/**
+ * Class to represent the dimensions indices of a tile
+ *
+ */
+public record DimMap(List<Integer> dimensions) {
 }

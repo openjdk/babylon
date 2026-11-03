@@ -43,6 +43,8 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Random;
 
+import static hat.TileContext.*;
+
 /**
  * How to run?
  *
@@ -64,11 +66,11 @@ public class TestTileAPI {
 
     @Reflect
     public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
-        final var pid = TileContext.BIDX();
-        var tileA = TileContext.load(inputA, pid, tileSize);
-        var tileB = TileContext.load(inputB, pid, tileSize);
+        final var pid = BIDX();
+        var tileA = load(inputA, pid, tileSize);
+        var tileB = load(inputB, pid, tileSize);
         var result = Tile.add(tileA, tileB);
-        TileContext.store(output, pid, result);
+        store(output, pid, result);
     }
 
     @Reflect
@@ -139,7 +141,7 @@ public class TestTileAPI {
     public static void matmul(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
 
         // Calculate bidx and bidy using swizzle
-        final int bid = TileContext.BIDX();
+        final int bid = BIDX();
         final int num_bid_m = Tile.ceildiv(M, tm);
         final int num_bid_n = Tile.ceildiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
@@ -152,17 +154,17 @@ public class TestTileAPI {
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
-        final int numberOfTiles = Tile.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
         var accumulator = Tile.zeros(tm, tn);
 
         for (int k = 0; k < numberOfTiles; k++) {
-            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
-            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
+            var tileA = load(inputA, index(bidx, k), shape(tm, tk));
+            var tileB = load(inputB, index(k, bidy), shape(tk, tn));
             accumulator = Tile.mma(tileA, tileB, accumulator);
         }
-        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
+        store(output, index(bidx, bidy), accumulator);
     }
 
     @Reflect
@@ -239,12 +241,12 @@ public class TestTileAPI {
         final int numTiles = Tile.numTiles(input, 0, tileSize);
 
         // Initialize a tile
-        var acc = Tile.full(TileContext.shape(1), 0.0f);
+        var acc = Tile.full(shape(1), 0.0f);
 
         // Perform the sum for all blocks of tiles
         for (int i = 0; i < numTiles; i++) {
             // load tile
-            var tileA = TileContext.load(input, i, tileSize);
+            var tileA = load(input, i, tileSize);
             // Perform a sum over the tile
             var res = Tile.sum(tileA, 0);
             // Store the result into the accumulator
@@ -252,7 +254,7 @@ public class TestTileAPI {
         }
 
         // Store the final accumulator into global memory
-        TileContext.store(output, 0, acc);
+        store(output, 0, acc);
     }
 
     @Reflect
@@ -293,18 +295,18 @@ public class TestTileAPI {
         // In this example we get a 2D block.
         // The block id 0 maps to a row from the input matrix.
         // the block id 1 maps to a column from the input matrix.
-        final int bidx = TileContext.BIDX();
-        final int bidy = TileContext.BIDY();
+        final int bidx = BIDX();
+        final int bidy = BIDY();
 
         // Load the tile with shape tm x tn into memory
-        var inputTile = TileContext.load(inputMatrix, TileContext.index(bidx, bidy), TileContext.shape(tm, tn));
+        var inputTile = load(inputMatrix, index(bidx, bidy), shape(tm, tn));
 
         // compute the transpose function.
         var transposedTile = Tile.transpose(inputTile);
 
         // store the resulting transposedTile into global memory.
         // Note that the index used are swapped.
-        TileContext.store(transposedMatrix, TileContext.index(bidy, bidx), transposedTile);
+        store(transposedMatrix, index(bidy, bidx), transposedTile);
     }
 
     @Reflect
@@ -347,7 +349,7 @@ public class TestTileAPI {
     public static void matmulF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
 
         // Calculate bidx and bidy using swizzling
-        final int bid = TileContext.BIDX();
+        final int bid = BIDX();
         final int num_bid_m = Tile.ceildiv(M, tm);
         final int num_bid_n = Tile.ceildiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
@@ -359,17 +361,17 @@ public class TestTileAPI {
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
-        final int numberOfTiles = Tile.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
         var accumulator = Tile.zeros(tm, tn);
         for (int k = 0; k < numberOfTiles; k++) {
-            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
-            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
+            var tileA = load(inputA, index(bidx, k), shape(tm, tk));
+            var tileB = load(inputB, index(k, bidy), shape(tk, tn));
             accumulator = Tile.mma(tileA, tileB, accumulator);
         }
 
-        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
+        store(output, index(bidx, bidy), accumulator);
     }
 
     @Reflect
@@ -430,16 +432,16 @@ public class TestTileAPI {
 
     @Reflect
     public static void matmulSimple(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
-        final int bidx = TileContext.BIDX();
-        final int bidy = TileContext.BIDY();
+        final int bidx = BIDX();
+        final int bidy = BIDY();
         var accumulator = Tile.zeros(tm, tn);
-        final int numberOfTiles = Tile.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
-            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
-            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
+            var tileA = load(inputA, index(bidx, k), shape(tm, tk));
+            var tileB = load(inputB, index(k, bidy), shape(tk, tn));
             accumulator = Tile.mma(tileA, tileB, accumulator);
         }
-        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
+        store(output, index(bidx, bidy), accumulator);
     }
 
     @Reflect
@@ -478,16 +480,16 @@ public class TestTileAPI {
 
     @Reflect
     public static void matmulSimpleF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
-        final int bidx = TileContext.BIDX();
-        final int bidy = TileContext.BIDY();
+        final int bidx = BIDX();
+        final int bidy = BIDY();
         var accumulator = Tile.zeros(tm, tn);
-        final int numberOfTiles = Tile.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
-            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
-            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
+            var tileA = load(inputA, index(bidx, k), shape(tm, tk));
+            var tileB = load(inputB, index(k, bidy), shape(tk, tn));
             accumulator = Tile.mma(tileA, tileB, accumulator);
         }
-        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
+        store(output, index(bidx, bidy), accumulator);
     }
 
     @Reflect
@@ -541,7 +543,7 @@ public class TestTileAPI {
     @Reflect
     public static void matmulSimpleF16IRangeSwizzling(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int M, final int N, final int tm, final int tn, final int tk) {
         // Calculate bidx and bidy using swizzle
-        final int bid = TileContext.BIDX();
+        final int bid = BIDX();
         final int num_bid_m = Tile.ceildiv(M, tm);
         final int num_bid_n = Tile.ceildiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
@@ -554,13 +556,13 @@ public class TestTileAPI {
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         var accumulator = Tile.zeros(tm, tn);
-        final int numberOfTiles = Tile.numTiles(inputA, 1, TileContext.shape(tm, tk));
+        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
-            var tileA = TileContext.load(inputA, TileContext.index(bidx, k), TileContext.shape(tm, tk));
-            var tileB = TileContext.load(inputB, TileContext.index(k, bidy), TileContext.shape(tk, tn));
+            var tileA = load(inputA, index(bidx, k), shape(tm, tk));
+            var tileB = load(inputB, index(k, bidy), shape(tk, tn));
             accumulator = Tile.mma(tileA, tileB, accumulator);
         }
-        TileContext.store(output, TileContext.index(bidx, bidy), accumulator);
+        store(output, index(bidx, bidy), accumulator);
     }
 
     @Reflect
@@ -605,16 +607,16 @@ public class TestTileAPI {
     public static void partialReduction(TensorF32 input, TensorF32 output, final int tileSize) {
 
         // Obtain the block-thread ID
-        final int pid = TileContext.BIDX();
+        final int pid = BIDX();
 
         // Perform the sum for all blocks of tiles
-        var tileA = TileContext.load(input, pid, tileSize);
+        var tileA = load(input, pid, tileSize);
 
         // Perform a sum over the tile
         var partial = Tile.sum(tileA, 0);
 
         // Store the partial result into global memory
-        TileContext.store(output, pid, partial);
+        store(output, pid, partial);
     }
 
     @Reflect
@@ -660,11 +662,11 @@ public class TestTileAPI {
 
     @Reflect
     public static void vectorAddTileWithConstant(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
-        final var pid = TileContext.BIDX();
-        var tileA = TileContext.load(inputA, pid, tileSize * 4);
-        var tileB = TileContext.load(inputB, pid, tileSize * 4);
+        final var pid = BIDX();
+        var tileA = load(inputA, pid, tileSize * 4);
+        var tileB = load(inputB, pid, tileSize * 4);
         var result = Tile.add(tileA, tileB);
-        TileContext.store(output, pid, result);
+        store(output, pid, result);
     }
 
     @Reflect
@@ -695,13 +697,13 @@ public class TestTileAPI {
 
     @Reflect
     public static void reshapeAndPermute01(TensorF32 inputMatrix, TensorF32 output, final int tileSize) {
-        final int pid = TileContext.BIDX();
+        final int pid = BIDX();
 
         // 1D shape if size: tileSize
-        var tile = TileContext.load(inputMatrix, pid, tileSize);
+        var tile = load(inputMatrix, pid, tileSize);
 
         // Reshape a 1D tile to a 2D tile with shape 2x4
-        Tile reshape = Tile.reshape(tile, TileContext.shape(4, 2));
+        Tile reshape = Tile.reshape(tile, shape(4, 2));
         // To follow this example, let's consider the following input tile:
         // tile = [0, 1, 2, 3, 4, 5, 6, 7]
         // Then, after reshape with shape: [2, 4], we obtain the following tile:
@@ -711,20 +713,20 @@ public class TestTileAPI {
         // 6, 7,
 
         // Permute rows <-> columns
-        Tile permute = Tile.permute(reshape, TileContext.dimensionMap(1, 0));
+        Tile permute = Tile.permute(reshape, dimMap(1, 0));
         // In this case, the tile with shape [4, 2] is permuted to [1, 0]
         // After permute with 1, 0
         // 0, 2, 4, 6,
         // 1, 3, 5, 7
 
         // Flatten again to pass the result to a 1D Tensor
-        Tile flattened = Tile.reshape(permute, TileContext.shape(8));
+        Tile flattened = Tile.reshape(permute, shape(8));
         // from tile[1, 0 ] => tile[8]
         // After it gets flatten
         // [ 0, 2, 4, 6, 1, 3, 5, 7 ]
 
         // Store the final flattened tile into the output tensor buffer
-        TileContext.store(output, pid, flattened);
+        store(output, pid, flattened);
     }
 
     @Reflect
@@ -756,12 +758,12 @@ public class TestTileAPI {
 
     @Reflect
     public static void reshapeAndPermute02(TensorF32 inputMatrix, TensorF32 output, final int tileSize) {
-        final int pid = TileContext.BIDX();
+        final int pid = BIDX();
 
         // 1D shape if size: tileSize
-        var tile = TileContext.load(inputMatrix, pid, tileSize);
+        var tile = load(inputMatrix, pid, tileSize);
 
-        Tile reshape = Tile.reshape(tile, TileContext.shape(1, 2, 4));
+        Tile reshape = Tile.reshape(tile, shape(1, 2, 4));
         // tensor reshapes from tile[tileSize] -> tile[1, 2, 4]
         // The HAT runtime checks for compatibility of the new shape.
 
@@ -771,7 +773,7 @@ public class TestTileAPI {
         // 0, 1, 2, 3,
         // 4, 5, 6, 7,
 
-        Tile permute = Tile.permute(reshape, TileContext.dimensionMap(2, 0, 1));
+        Tile permute = Tile.permute(reshape, dimMap(2, 0, 1));
         // The permute operation permutes the axes of the input tile.
         // In this case, the tile with shape [1, 2, 4] is permuted to [4, 1, 2]
         // After permute with 4, 1, 2
@@ -780,7 +782,7 @@ public class TestTileAPI {
         // 2, 6,
         // 3, 7
 
-        Tile flattened = Tile.reshape(permute, TileContext.shape(tileSize));
+        Tile flattened = Tile.reshape(permute, shape(tileSize));
         // Reshape again to flat the tile from 3D to 1D
         // from tile[4, 1, 2] => tile[8]
         // After it gets flatten
@@ -788,7 +790,7 @@ public class TestTileAPI {
         // Thus, these are the indexes to check for the output
 
         // Store the final flattened tile into the output tensor buffer
-        TileContext.store(output, pid, flattened);
+        store(output, pid, flattened);
     }
 
     @Reflect

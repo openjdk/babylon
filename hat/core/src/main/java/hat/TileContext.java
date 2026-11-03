@@ -29,6 +29,8 @@ import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.types.Tile;
 
+import java.util.Arrays;
+
 /**
  * Interface to provide an execution-context and memory operations for the
  * implementation of a Tile Programming Model in HAT.
@@ -119,7 +121,7 @@ public interface TileContext {
      * @return the loaded {@link Tile}
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
-    static Tile load(Tensor2DF32 buffer, TileIndex2D tileIndex2D, Shape tileSize) {
+    static Tile load(Tensor2DF32 buffer, TileIndex tileIndex2D, Shape tileSize) {
         throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
@@ -127,13 +129,13 @@ public interface TileContext {
      * Loads a tile from a two-dimensional single precision tensor {@link hat.buffer.TensorF16}.
      *
      * @param buffer: tensor from which to load the tile
-     * @param tileIndex2D: the two-dimension coordinates of the tile
-     * @param tileSize: indicates the shape (size for each dimension) of the tile to load.
+     * @param tileIndex: the two-dimension coordinates of the tile
+     * @param shape: indicates the shape (size for each dimension) of the tile to load.
      *                For better performance, use a multiple of 16 for each dimension.
      * @return the loaded {@link Tile}
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
-    static Tile load(Tensor2DF16 buffer, TileIndex2D tileIndex2D, Shape tileSize) {
+    static Tile load(Tensor2DF16 buffer, TileIndex tileIndex, Shape shape) {
         throw new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
@@ -157,83 +159,31 @@ public interface TileContext {
      * @param result the tile to store
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
-    static void store(Tensor2DF32 buffer, TileIndex2D tileIndex, Tile result) {
+    static void store(Tensor2DF32 buffer, TileIndex tileIndex, Tile result) {
         throw  new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
+
+    static TileIndex index(int...index) {
+        return new TileIndex(Arrays.stream(index).boxed().toList());
+    }
+
     /**
-     * Creates a two-dimensional thread-index.
+     * Creates a n-dimensional tile shape.
      *
-     * @param bidx the thread-block index for the first dimension.
-     * @param bidy the thread-block index for the second dimension.
-     * @return result two-dimension thread-block index.
-     * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
+     * @return {@link Shape}
      */
-    static TileIndex2D index(int bidx, int bidy) {
-        return new TileIndex2D(bidx, bidy);
+    static Shape shape(int ... shape) {
+        return new Shape(Arrays.stream(shape).boxed().toList());
     }
 
     /**
-     * Creates a one-dimensional tile shape.
-     *
-     * @param tm the extent of the first dimension
-     * @return the shape {@code (tm, 1, 1)}
+     * List of indices of a tile
+     * @param dimMap
+     * @return {@link DimMap}
      */
-    static Shape shape(int tm) {
-        return new Shape(tm, 1, 1);
+    static DimMap dimMap(int ... dimMap) {
+        return new DimMap(Arrays.stream(dimMap).boxed().toList());
     }
 
-    /**
-     * Creates a two-dimensional tile shape.
-     *
-     * @param tm the extent of the first dimension
-     * @param tn the extent of the second dimension
-     * @return the shape {@code (tm, tn, 1)}
-     */
-    static Shape shape(int tm, int tn) {
-        return new Shape(tm, tn, 1);
-    }
-
-    /**
-     * Creates a three-dimensional tile shape.
-     *
-     * @param tm the extent of the first dimension
-     * @param tn the extent of the second dimension
-     * @param tk the extent of the third dimension
-     * @return the shape {@code (tm, tn, tk)}
-     */
-    static Shape shape(int tm, int tn, int tk) {
-        return new Shape(tm, tn, tk);
-    }
-
-    /**
-     * Permute first axis with tm
-     * @param tm
-     * @return {@link DimensionMap}
-     */
-    static DimensionMap dimensionMap(final int tm) {
-        return new DimensionMap(tm, 1, 1);
-    }
-
-    /**
-     * Permutes first and second axis with tm, tn axes.
-     *
-     * @param tm
-     * @param tn
-     * @return  {@link DimensionMap}
-     */
-    static DimensionMap dimensionMap(final int tm, final int tn) {
-        return new DimensionMap(tm, tn, 1);
-    }
-
-    /**
-     * Permutes first, second and third axis with tm, tn and tk axes.
-     * @param tm
-     * @param tn
-     * @param tk
-     * @return  {@link DimensionMap}
-     */
-    static DimensionMap dimensionMap(final int tm, final int tn, final int tk) {
-        return new DimensionMap(tm, tn, tk);
-    }
 }

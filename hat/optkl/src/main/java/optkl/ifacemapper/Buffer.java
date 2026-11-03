@@ -24,7 +24,6 @@
  */
 package optkl.ifacemapper;
 
-
 public interface Buffer extends MappableIface {
 
 }

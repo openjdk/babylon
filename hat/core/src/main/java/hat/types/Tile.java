@@ -24,7 +24,7 @@
  */
 package hat.types;
 
-import hat.DimensionMap;
+import hat.DimMap;
 import hat.Shape;
 import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
@@ -254,10 +254,10 @@ public record Tile() implements IfaceValue {
     }
 
     /**
-     * Arbitrary reordering of the axis of the input tensor according to the {@link DimensionMap} object.
+     * Arbitrary reordering of the axis of the input tensor according to the {@link DimMap} object.
      *
      * @param tile
-     * @param dimensionMap
+     * @param dimMap
      *
      * {@snippet :
      *  // if inputTile is of shape:
@@ -273,7 +273,7 @@ public record Tile() implements IfaceValue {
      *
      * @return {@link Tile}
      */
-    public static Tile permute(Tile tile, DimensionMap dimensionMap) {
+    public static Tile permute(Tile tile, DimMap dimMap) {
         throw new UnsupportedOperationException("Tile.permute is a compiler intrinsic.");
     }
 }
