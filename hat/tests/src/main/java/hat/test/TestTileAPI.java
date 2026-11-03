@@ -28,7 +28,6 @@ import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
-import hat.TileContext;
 import hat.backend.Backend;
 import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
@@ -43,7 +42,24 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Random;
 
-import static hat.TileContext.*;
+import static hat.TileContext.BIDX;
+import static hat.TileContext.BIDY;
+import static hat.TileContext.dimMap;
+import static hat.TileContext.index;
+import static hat.TileContext.load;
+import static hat.TileContext.shape;
+import static hat.TileContext.store;
+import static hat.types.Tile.add;
+import static hat.types.Tile.ceildiv;
+import static hat.types.Tile.full;
+import static hat.types.Tile.min;
+import static hat.types.Tile.mma;
+import static hat.types.Tile.numTiles;
+import static hat.types.Tile.permute;
+import static hat.types.Tile.reshape;
+import static hat.types.Tile.sum;
+import static hat.types.Tile.transpose;
+import static hat.types.Tile.zeros;
 
 /**
  * How to run?
@@ -69,7 +85,7 @@ public class TestTileAPI {
         final var pid = BIDX();
         var tileA = load(inputA, pid, tileSize);
         var tileB = load(inputB, pid, tileSize);
-        var result = Tile.add(tileA, tileB);
+        var result = add(tileA, tileB);
         store(output, pid, result);
     }
 
@@ -142,27 +158,27 @@ public class TestTileAPI {
 
         // Calculate bidx and bidy using swizzle
         final int bid = BIDX();
-        final int num_bid_m = Tile.ceildiv(M, tm);
-        final int num_bid_n = Tile.ceildiv(N, tn);
+        final int num_bid_m = ceildiv(M, tm);
+        final int num_bid_n = ceildiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
 
         final int group_id = bid / num_bid_in_group;
         final int first_bid_m = group_id * GROUP_SIZE_M;
-        final int group_size_m = Tile.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
+        final int group_size_m = min(num_bid_m - first_bid_m, GROUP_SIZE_M);
 
         final int bidx = first_bid_m + (bid % group_size_m);
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
-        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
+        final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
-        var accumulator = Tile.zeros(tm, tn);
+        var accumulator = zeros(tm, tn);
 
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
             var tileB = load(inputB, index(k, bidy), shape(tk, tn));
-            accumulator = Tile.mma(tileA, tileB, accumulator);
+            accumulator = mma(tileA, tileB, accumulator);
         }
         store(output, index(bidx, bidy), accumulator);
     }
@@ -238,19 +254,19 @@ public class TestTileAPI {
     public static void tileReduction(TensorF32 input, TensorF32 output, final int tileSize) {
 
         // Obtain the number of tiles
-        final int numTiles = Tile.numTiles(input, 0, tileSize);
+        final int numTiles = numTiles(input, 0, tileSize);
 
         // Initialize a tile
-        var acc = Tile.full(shape(1), 0.0f);
+        var acc = full(shape(1), 0.0f);
 
         // Perform the sum for all blocks of tiles
         for (int i = 0; i < numTiles; i++) {
             // load tile
             var tileA = load(input, i, tileSize);
             // Perform a sum over the tile
-            var res = Tile.sum(tileA, 0);
+            var res = sum(tileA, 0);
             // Store the result into the accumulator
-            acc = Tile.add(acc, res);
+            acc = add(acc, res);
         }
 
         // Store the final accumulator into global memory
@@ -302,7 +318,7 @@ public class TestTileAPI {
         var inputTile = load(inputMatrix, index(bidx, bidy), shape(tm, tn));
 
         // compute the transpose function.
-        var transposedTile = Tile.transpose(inputTile);
+        var transposedTile = transpose(inputTile);
 
         // store the resulting transposedTile into global memory.
         // Note that the index used are swapped.
@@ -350,25 +366,25 @@ public class TestTileAPI {
 
         // Calculate bidx and bidy using swizzling
         final int bid = BIDX();
-        final int num_bid_m = Tile.ceildiv(M, tm);
-        final int num_bid_n = Tile.ceildiv(N, tn);
+        final int num_bid_m = ceildiv(M, tm);
+        final int num_bid_n = ceildiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
 
         final int group_id = bid / num_bid_in_group;
         final int first_bid_m = group_id * GROUP_SIZE_M;
-        final int group_size_m = Tile.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
+        final int group_size_m = min(num_bid_m - first_bid_m, GROUP_SIZE_M);
         final int bidx = first_bid_m + (bid % group_size_m);
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
         // Calculate the total number of tiles
-        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
+        final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
-        var accumulator = Tile.zeros(tm, tn);
+        var accumulator = zeros(tm, tn);
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
             var tileB = load(inputB, index(k, bidy), shape(tk, tn));
-            accumulator = Tile.mma(tileA, tileB, accumulator);
+            accumulator = mma(tileA, tileB, accumulator);
         }
 
         store(output, index(bidx, bidy), accumulator);
@@ -434,12 +450,12 @@ public class TestTileAPI {
     public static void matmulSimple(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
         final int bidx = BIDX();
         final int bidy = BIDY();
-        var accumulator = Tile.zeros(tm, tn);
-        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
+        var accumulator = zeros(tm, tn);
+        final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
             var tileB = load(inputB, index(k, bidy), shape(tk, tn));
-            accumulator = Tile.mma(tileA, tileB, accumulator);
+            accumulator = mma(tileA, tileB, accumulator);
         }
         store(output, index(bidx, bidy), accumulator);
     }
@@ -482,12 +498,12 @@ public class TestTileAPI {
     public static void matmulSimpleF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
         final int bidx = BIDX();
         final int bidy = BIDY();
-        var accumulator = Tile.zeros(tm, tn);
-        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
+        var accumulator = zeros(tm, tn);
+        final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
             var tileB = load(inputB, index(k, bidy), shape(tk, tn));
-            accumulator = Tile.mma(tileA, tileB, accumulator);
+            accumulator = mma(tileA, tileB, accumulator);
         }
         store(output, index(bidx, bidy), accumulator);
     }
@@ -544,23 +560,23 @@ public class TestTileAPI {
     public static void matmulSimpleF16IRangeSwizzling(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int M, final int N, final int tm, final int tn, final int tk) {
         // Calculate bidx and bidy using swizzle
         final int bid = BIDX();
-        final int num_bid_m = Tile.ceildiv(M, tm);
-        final int num_bid_n = Tile.ceildiv(N, tn);
+        final int num_bid_m = ceildiv(M, tm);
+        final int num_bid_n = ceildiv(N, tn);
         final int num_bid_in_group = GROUP_SIZE_M * num_bid_n;
 
         final int group_id = bid / num_bid_in_group;
         final int first_bid_m = group_id * GROUP_SIZE_M;
-        final int group_size_m = Tile.min(num_bid_m - first_bid_m, GROUP_SIZE_M);
+        final int group_size_m = min(num_bid_m - first_bid_m, GROUP_SIZE_M);
 
         final int bidx = first_bid_m + (bid % group_size_m);
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
-        var accumulator = Tile.zeros(tm, tn);
-        final int numberOfTiles = Tile.numTiles(inputA, 1, shape(tm, tk));
+        var accumulator = zeros(tm, tn);
+        final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
             var tileB = load(inputB, index(k, bidy), shape(tk, tn));
-            accumulator = Tile.mma(tileA, tileB, accumulator);
+            accumulator = mma(tileA, tileB, accumulator);
         }
         store(output, index(bidx, bidy), accumulator);
     }
@@ -613,7 +629,7 @@ public class TestTileAPI {
         var tileA = load(input, pid, tileSize);
 
         // Perform a sum over the tile
-        var partial = Tile.sum(tileA, 0);
+        var partial = sum(tileA, 0);
 
         // Store the partial result into global memory
         store(output, pid, partial);
@@ -665,7 +681,7 @@ public class TestTileAPI {
         final var pid = BIDX();
         var tileA = load(inputA, pid, tileSize * 4);
         var tileB = load(inputB, pid, tileSize * 4);
-        var result = Tile.add(tileA, tileB);
+        var result = add(tileA, tileB);
         store(output, pid, result);
     }
 
@@ -703,7 +719,7 @@ public class TestTileAPI {
         var tile = load(inputMatrix, pid, tileSize);
 
         // Reshape a 1D tile to a 2D tile with shape 2x4
-        Tile reshape = Tile.reshape(tile, shape(4, 2));
+        Tile reshape = reshape(tile, shape(4, 2));
         // To follow this example, let's consider the following input tile:
         // tile = [0, 1, 2, 3, 4, 5, 6, 7]
         // Then, after reshape with shape: [2, 4], we obtain the following tile:
@@ -713,14 +729,14 @@ public class TestTileAPI {
         // 6, 7,
 
         // Permute rows <-> columns
-        Tile permute = Tile.permute(reshape, dimMap(1, 0));
+        Tile permute = permute(reshape, dimMap(1, 0));
         // In this case, the tile with shape [4, 2] is permuted to [1, 0]
         // After permute with 1, 0
         // 0, 2, 4, 6,
         // 1, 3, 5, 7
 
         // Flatten again to pass the result to a 1D Tensor
-        Tile flattened = Tile.reshape(permute, shape(8));
+        Tile flattened = reshape(permute, shape(8));
         // from tile[1, 0 ] => tile[8]
         // After it gets flatten
         // [ 0, 2, 4, 6, 1, 3, 5, 7 ]
@@ -763,7 +779,7 @@ public class TestTileAPI {
         // 1D shape if size: tileSize
         var tile = load(inputMatrix, pid, tileSize);
 
-        Tile reshape = Tile.reshape(tile, shape(1, 2, 4));
+        Tile reshape = reshape(tile, shape(1, 2, 4));
         // tensor reshapes from tile[tileSize] -> tile[1, 2, 4]
         // The HAT runtime checks for compatibility of the new shape.
 
@@ -773,7 +789,7 @@ public class TestTileAPI {
         // 0, 1, 2, 3,
         // 4, 5, 6, 7,
 
-        Tile permute = Tile.permute(reshape, dimMap(2, 0, 1));
+        Tile permute = permute(reshape, dimMap(2, 0, 1));
         // The permute operation permutes the axes of the input tile.
         // In this case, the tile with shape [1, 2, 4] is permuted to [4, 1, 2]
         // After permute with 4, 1, 2
@@ -782,7 +798,7 @@ public class TestTileAPI {
         // 2, 6,
         // 3, 7
 
-        Tile flattened = Tile.reshape(permute, shape(tileSize));
+        Tile flattened = reshape(permute, shape(tileSize));
         // Reshape again to flat the tile from 3D to 1D
         // from tile[4, 1, 2] => tile[8]
         // After it gets flatten
