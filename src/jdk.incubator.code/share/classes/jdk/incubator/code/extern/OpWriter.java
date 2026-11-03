@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import jdk.incubator.code.internal.OpWriterInternalOption;
 
 /**
  * A writer of code model to code model text.
@@ -282,7 +284,8 @@ public final class OpWriter {
     /**
      * An option that affects the writing of code model text.
      */
-    public sealed interface Option {
+    public sealed interface Option permits CodeItemNamerOption, LocationOption,
+            OpDescendantsOption, VoidOpResultOption, OpWriterInternalOption {
     }
 
     /**
@@ -371,6 +374,7 @@ public final class OpWriter {
     final boolean dropLocation;
     final boolean dropOpDescendants;
     final boolean writeVoidOpResult;
+    final boolean writeIncomplete;
 
     /**
      * Creates a writer of code model to code model text.
@@ -383,6 +387,7 @@ public final class OpWriter {
         this.dropLocation = false;
         this.dropOpDescendants = false;
         this.writeVoidOpResult = false;
+        this.writeIncomplete = false;
     }
 
     /**
@@ -396,6 +401,7 @@ public final class OpWriter {
         boolean dropLocation = false;
         boolean dropOpDescendants = false;
         boolean writeVoidOpResult = false;
+        boolean writeIncomplete = false;
         for (Option option : options) {
             switch (option) {
                 case CodeItemNamerOption namerOption -> {
@@ -412,6 +418,10 @@ public final class OpWriter {
                 case VoidOpResultOption voidOpResultOption -> {
                     writeVoidOpResult = voidOpResultOption == VoidOpResultOption.WRITE_VOID;
                 }
+                case OpWriterInternalOption _ -> {
+                    writeIncomplete = true;
+                }
+
             }
         }
 
@@ -420,6 +430,7 @@ public final class OpWriter {
         this.dropLocation = dropLocation;
         this.dropOpDescendants = dropOpDescendants;
         this.writeVoidOpResult = writeVoidOpResult;
+        this.writeIncomplete = writeIncomplete;
     }
 
     /**
@@ -435,9 +446,10 @@ public final class OpWriter {
      * @param op the operation
      */
     public void writeOp(Op op) {
-        if (op.parent() != null) {
-            Op.Result opr = op.result();
-            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID) || !opr.uses().isEmpty()) {
+        Op.Result opr = writeIncomplete || op.parent() != null ? op.result() : null;
+        if (opr != null) {
+            if (writeVoidOpResult || !opr.type().equals(JavaType.VOID)
+                    || getOrElse(() -> !opr.uses().isEmpty(), false)) {
                 writeValueDeclaration(opr);
                 write(" = ");
             }
@@ -464,9 +476,11 @@ public final class OpWriter {
             }
         }
         Map<String, Object> attributes = (op instanceof ExternalizedOp.Externalizable eop)
-                ? eop.externalize()
+                ? getOrElse(eop::externalize, null)
                 : Map.of();
-        if (!attributes.isEmpty()) {
+        if (attributes == null && writeIncomplete) {
+            write(" /* attributes unavailable */");
+        } else if (!attributes.isEmpty()) {
             write(" ");
             writeSpaceSeparatedList(attributes.entrySet(), e -> writeAttribute(e.getKey(), e.getValue()));
         }
@@ -507,11 +521,24 @@ public final class OpWriter {
     }
 
     void writeSuccessor(Block.Reference successor) {
-        writeBlockName(successor.targetBlock());
+        CodeItem target = getOrElse(successor::targetBlock, successor);
+        write("^");
+        write(namer.apply(target));
         if (!successor.arguments().isEmpty()) {
             write("(");
             writeCommaSeparatedList(successor.arguments(), this::writeValueUse);
             write(")");
+        }
+    }
+
+    private <T> T getOrElse(Supplier<T> action, T fallback) {
+        if (!writeIncomplete) {
+            return action.get();
+        }
+        try {
+            return action.get();
+        } catch (IllegalStateException _) {
+            return fallback;
         }
     }
 
