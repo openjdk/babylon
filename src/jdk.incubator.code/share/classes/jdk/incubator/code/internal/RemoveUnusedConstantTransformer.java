@@ -49,16 +49,24 @@ public class RemoveUnusedConstantTransformer implements CodeTransformer {
      */
     @SuppressWarnings("unchecked")
     public static <O extends Op> O transform(Op op) {
+        // skip copying the model unless a removable constant exists
+        if (op.elements().noneMatch(element -> element instanceof Op operation && removable(operation))) {
+            return (O) op;
+        }
         return (O) op.transform(CodeContext.create(), INSTANCE);
+    }
+
+    private static boolean removable(Op op) {
+        return op instanceof CoreOp.ConstantOp
+                && op.result() != null
+                && op.result().uses().isEmpty()
+                // label constant cannot be removed
+                && !(op.ancestorOp() instanceof JavaOp.LabeledOp labeled && labeled.label() == op);
     }
 
     @Override
     public Block.Builder acceptOp(Block.Builder builder, Op op) {
-        if (op instanceof CoreOp.ConstantOp
-                && op.result() != null
-                && op.result().uses().isEmpty()
-                // label constant cannot be removed
-                && !(op.ancestorOp() instanceof JavaOp.LabeledOp labeled && labeled.label() == op)) {
+        if (removable(op)) {
             return builder;
         }
         builder.add(op);

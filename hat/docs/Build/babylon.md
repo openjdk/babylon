@@ -68,7 +68,7 @@ You now should have:
 github
 ├── babylon
 │   ├── build
-│   │   └── XXXX-server-release
+│   │   └── XXX-server-release
 │   │       ├── Makefile
 │   │       ├── jdk
 │   │       ├── images
@@ -78,22 +78,20 @@ github
 │   │   ├── ...
 ```
 
-Where XXXX will depend on your architecture AARCH64 or X64_86
+Where XXX will depend on your architecture `AARCH64` or `X64_86`
 
 ### Run can now JTREG Tests
-If we included `jtreg` above we can run the `babylon` code reflection tests using
+If we included `jtreg` above we can run the `babylon` code reflection tests using:
+
 ```bash
 cd ${GITHUB}/babylon
-make test TEST=jdk_lang_reflect_code
+make test TEST=jdk_incubator_code
 ```
-This works because babylon added added:
+This works because Babylon added the following groups in the file `${GITHUB}/babylon/test/jdk/TEST.groups`:
 ```txt
-8<-
-jdk_lang_reflect_code = \
-   java/lang/reflect/code
-->8
+jdk_incubator_code = \
+   jdk/incubator/code
 ```
-To the file `${GITHUB}/babylon/test/jdk/TEST.groups`
 
 For the curious...the tests themselves can be found in this directory
 ```bash

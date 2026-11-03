@@ -337,53 +337,51 @@ public class SwitchExpressionTest {
             func @"patternCaseLabel" (%0 : java.type:"java.lang.Object")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"r";
                 %2 : java.type:"java.lang.Object" = var.load %1;
-                %3 : java.type:"java.lang.Number" = constant @null;
-                %4 : Var<java.type:"java.lang.Number"> = var %3 @"n";
-                %5 : java.type:"java.lang.String" = constant @null;
-                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
-                %7 : java.type:"java.lang.Object" = java.switch.expression %2
-                    (%8 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = pattern.match %8
+                %3 : Var<java.type:"java.lang.Number"> = var @"n";
+                %4 : Var<java.type:"java.lang.String"> = var @"s";
+                %5 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%6 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %7 : java.type:"boolean" = pattern.match %6
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" -> {
-                                %10 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
-                                %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %10 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
-                                yield %11;
+                                %8 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %8 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
+                                yield %9;
                             }
-                            (%12 : java.type:"java.lang.Number")java.type:"void" -> {
-                                var.store %4 %12;
+                            (%10 : java.type:"java.lang.Number")java.type:"void" -> {
+                                var.store %3 %10;
                                 yield;
                             };
-                        yield %9;
+                        yield %7;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %13 : java.type:"java.lang.Number" = var.load %4;
-                        java.yield %13;
+                        %11 : java.type:"java.lang.Number" = var.load %3;
+                        java.yield %11;
                     }
-                    (%14 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                        %15 : java.type:"boolean" = pattern.match %14
+                    (%12 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %13 : java.type:"boolean" = pattern.match %12
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                %16 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                yield %16;
+                                %14 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                yield %14;
                             }
-                            (%17 : java.type:"java.lang.String")java.type:"void" -> {
-                                var.store %6 %17;
+                            (%15 : java.type:"java.lang.String")java.type:"void" -> {
+                                var.store %4 %15;
                                 yield;
                             };
-                        yield %15;
+                        yield %13;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %18 : java.type:"java.lang.String" = var.load %6;
-                        java.yield %18;
+                        %16 : java.type:"java.lang.String" = var.load %4;
+                        java.yield %16;
                     }
                     ()java.type:"boolean" -> {
-                        %19 : java.type:"boolean" = constant @true;
-                        yield %19;
+                        %17 : java.type:"boolean" = constant @true;
+                        yield %17;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %20 : java.type:"java.lang.String" = constant @"";
-                        java.yield %20;
+                        %18 : java.type:"java.lang.String" = constant @"";
+                        java.yield %18;
                     };
-                return %7;
+                return %5;
             };
             """)
     public static Object patternCaseLabel(Object r) {
@@ -405,93 +403,90 @@ public class SwitchExpressionTest {
             func @"patternCaseLabelGuard" (%0 : java.type:"java.lang.Object")java.type:"java.lang.Object" -> {
                 %1 : Var<java.type:"java.lang.Object"> = var %0 @"r";
                 %2 : java.type:"java.lang.Object" = var.load %1;
-                %3 : java.type:"java.lang.Number" = constant @null;
-                %4 : Var<java.type:"java.lang.Number"> = var %3 @"n";
-                %5 : java.type:"java.lang.String" = constant @null;
-                %6 : Var<java.type:"java.lang.String"> = var %5 @"s";
-                %7 : java.type:"java.lang.String" = constant @null;
-                %8 : Var<java.type:"java.lang.String"> = var %7 @"s";
-                %9 : java.type:"java.lang.Object" = java.switch.expression %2
-                    (%10 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                        %11 : java.type:"boolean" = pattern.match %10
+                %3 : Var<java.type:"java.lang.Number"> = var @"n";
+                %4 : Var<java.type:"java.lang.String"> = var @"s";
+                %5 : Var<java.type:"java.lang.String"> = var @"s";
+                %6 : java.type:"java.lang.Object" = java.switch.expression %2
+                    (%7 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %8 : java.type:"boolean" = pattern.match %7
                             ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" -> {
-                                %12 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
-                                %13 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %12 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
-                                yield %13;
+                                %9 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Number>" = pattern.type @"n";
+                                %10 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Record<SwitchExpressionTest$A>" = pattern.record %9 @java.ref:"(java.lang.Number n)SwitchExpressionTest$A";
+                                yield %10;
                             }
-                            (%14 : java.type:"java.lang.Number")java.type:"void" -> {
-                                var.store %4 %14;
+                            (%11 : java.type:"java.lang.Number")java.type:"void" -> {
+                                var.store %3 %11;
                                 yield;
                             };
-                        yield %11;
+                        yield %8;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %15 : java.type:"java.lang.Number" = var.load %4;
-                        java.yield %15;
+                        %12 : java.type:"java.lang.Number" = var.load %3;
+                        java.yield %12;
                     }
-                    (%16 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                        %17 : java.type:"boolean" = java.cand
+                    (%13 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %14 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
-                                %18 : java.type:"boolean" = pattern.match %16
+                                %15 : java.type:"boolean" = pattern.match %13
                                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                        %19 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                        yield %19;
+                                        %16 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                        yield %16;
                                     }
-                                    (%20 : java.type:"java.lang.String")java.type:"void" -> {
-                                        var.store %6 %20;
+                                    (%17 : java.type:"java.lang.String")java.type:"void" -> {
+                                        var.store %4 %17;
                                         yield;
                                     };
-                                yield %18;
+                                yield %15;
                             }
                             ()java.type:"boolean" -> {
-                                %21 : java.type:"java.lang.String" = var.load %6;
-                                %22 : java.type:"int" = invoke %21 @java.ref:"java.lang.String::length():int";
-                                %23 : java.type:"int" = constant @5;
-                                %24 : java.type:"boolean" = lt %22 %23;
-                                yield %24;
+                                %18 : java.type:"java.lang.String" = var.load %4;
+                                %19 : java.type:"int" = invoke %18 @java.ref:"java.lang.String::length():int";
+                                %20 : java.type:"int" = constant @5;
+                                %21 : java.type:"boolean" = lt %19 %20;
+                                yield %21;
                             };
-                        yield %17;
+                        yield %14;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %25 : java.type:"java.lang.String" = var.load %6;
-                        java.yield %25;
+                        %22 : java.type:"java.lang.String" = var.load %4;
+                        java.yield %22;
                     }
-                    (%26 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                        %27 : java.type:"boolean" = java.cand
+                    (%23 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %24 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
-                                %28 : java.type:"boolean" = pattern.match %26
+                                %25 : java.type:"boolean" = pattern.match %23
                                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" -> {
-                                        %29 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
-                                        yield %29;
+                                        %26 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.String>" = pattern.type @"s";
+                                        yield %26;
                                     }
-                                    (%30 : java.type:"java.lang.String")java.type:"void" -> {
-                                        var.store %8 %30;
+                                    (%27 : java.type:"java.lang.String")java.type:"void" -> {
+                                        var.store %5 %27;
                                         yield;
                                     };
-                                yield %28;
+                                yield %25;
                             }
                             ()java.type:"boolean" -> {
-                                %31 : java.type:"java.lang.String" = var.load %8;
-                                %32 : java.type:"int" = invoke %31 @java.ref:"java.lang.String::length():int";
-                                %33 : java.type:"int" = constant @10;
-                                %34 : java.type:"boolean" = lt %32 %33;
-                                yield %34;
+                                %28 : java.type:"java.lang.String" = var.load %5;
+                                %29 : java.type:"int" = invoke %28 @java.ref:"java.lang.String::length():int";
+                                %30 : java.type:"int" = constant @10;
+                                %31 : java.type:"boolean" = lt %29 %30;
+                                yield %31;
                             };
-                        yield %27;
+                        yield %24;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %35 : java.type:"java.lang.String" = var.load %8;
-                        java.yield %35;
+                        %32 : java.type:"java.lang.String" = var.load %5;
+                        java.yield %32;
                     }
                     ()java.type:"boolean" -> {
-                        %36 : java.type:"boolean" = constant @true;
-                        yield %36;
+                        %33 : java.type:"boolean" = constant @true;
+                        yield %33;
                     }
                     ()java.type:"java.lang.Object" -> {
-                        %37 : java.type:"java.lang.String" = constant @"";
-                        java.yield %37;
+                        %34 : java.type:"java.lang.String" = constant @"";
+                        java.yield %34;
                     };
-                return %9;
+                return %6;
             };
             """)
     public static Object patternCaseLabelGuard(Object r) {
@@ -516,43 +511,42 @@ public class SwitchExpressionTest {
                 %2 : Var<java.type:"java.lang.Object"> = var %0 @"o";
                 %3 : Var<java.type:"java.lang.Boolean"> = var %1 @"B";
                 %4 : java.type:"java.lang.Object" = var.load %2;
-                %5 : java.type:"java.lang.Object" = constant @null;
-                %6 : Var<java.type:"java.lang.Object"> = var %5;
-                %7 : java.type:"java.lang.String" = java.switch.expression %4
-                    (%8 : java.type:"java.lang.Object")java.type:"boolean" -> {
-                        %9 : java.type:"boolean" = java.cand
+                %5 : Var<java.type:"java.lang.Object"> = var;
+                %6 : java.type:"java.lang.String" = java.switch.expression %4
+                    (%7 : java.type:"java.lang.Object")java.type:"boolean" -> {
+                        %8 : java.type:"boolean" = java.cand
                             ()java.type:"boolean" -> {
-                                %10 : java.type:"boolean" = pattern.match %8
+                                %9 : java.type:"boolean" = pattern.match %7
                                     ()java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Object>" -> {
-                                        %11 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Object>" = pattern.type;
-                                        yield %11;
+                                        %10 : java.type:"jdk.incubator.code.dialect.java.JavaOp$Pattern$Type<java.lang.Object>" = pattern.type;
+                                        yield %10;
                                     }
-                                    (%12 : java.type:"java.lang.Object")java.type:"void" -> {
-                                        var.store %6 %12;
+                                    (%11 : java.type:"java.lang.Object")java.type:"void" -> {
+                                        var.store %5 %11;
                                         yield;
                                     };
-                                yield %10;
+                                yield %9;
                             }
                             ()java.type:"boolean" -> {
-                                %13 : java.type:"java.lang.Boolean" = var.load %3;
-                                %14 : java.type:"boolean" = invoke %13 @java.ref:"java.lang.Boolean::booleanValue():boolean";
-                                yield %14;
+                                %12 : java.type:"java.lang.Boolean" = var.load %3;
+                                %13 : java.type:"boolean" = invoke %12 @java.ref:"java.lang.Boolean::booleanValue():boolean";
+                                yield %13;
                             };
-                        yield %9;
+                        yield %8;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %15 : java.type:"java.lang.String" = constant @"match";
-                        yield %15;
+                        %14 : java.type:"java.lang.String" = constant @"match";
+                        yield %14;
                     }
                     ()java.type:"boolean" -> {
-                        %16 : java.type:"boolean" = constant @true;
-                        yield %16;
+                        %15 : java.type:"boolean" = constant @true;
+                        yield %15;
                     }
                     ()java.type:"java.lang.String" -> {
-                        %17 : java.type:"java.lang.String" = constant @"no match";
-                        yield %17;
+                        %16 : java.type:"java.lang.String" = constant @"no match";
+                        yield %16;
                     };
-                return %7;
+                return %6;
             };
             """)
     @Reflect

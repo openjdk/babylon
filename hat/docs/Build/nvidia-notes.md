@@ -84,17 +84,17 @@ HAT=CUDA_NVRTC java @.ffi-cuda-example matmul.Main --kernel=1D
 
 There are two flags to select the compiler:
 
-- **`HAT=CUDA_NVCC`:** compile with the `nvcc` executable. SIMT kernels are emitted as
-  PTX, and Tile kernels as cubin.
-- **`HAT=CUDA_NVRTC`:** compile in-process with NVRTC. SIMT kernels are emitted as PTX,
-  and Tile kernels as cuda_tile IR.
+- **`HAT=CUDA_NVCC`:** compile with the `nvcc` executable. SIMT kernels are
+  emitted as PTX, and Tile kernels as cubin.
+- **`HAT=CUDA_NVRTC`:** compile in-process with NVRTC. SIMT kernels are emitted
+  as PTX, and Tile kernels as cuda_tile IR.
 
-SIMT kernels require no extra setup. Tile kernels compiled with NVRTC do. The
-NVRTC library registers signal handlers while compiling and executing Tile
-kernels. Those handlers receive the signals first and forward them with a
-polluted signal state, which breaks JVM signal handling. Preload JDK `libjsig`
-so the JVM signal handlers process each signal first and then dispatch to the
-NVRTC handlers via chained handlers:
+SIMT PTX and nvcc Tile cubin need no extra setup. Loading Tile IR in-process
+registers signal handlers. Those handlers process the signals first and resend
+them with a polluted signal state, which breaks JVM signal handling. NVRTC emits
+Tile IR only, so `libjsig` is required. Preload JDK `libjsig` so the JVM signal
+handlers process each signal first and then dispatch to those handlers via
+chained handlers:
 
 ```bash
 LD_PRELOAD=$JAVA_HOME/lib/libjsig.so HAT=CUDA_NVRTC \

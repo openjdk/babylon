@@ -78,6 +78,11 @@ public class TestInvokeInnerCtor {
         }
     }
 
+    @Reflect
+    static Base.Inner makeQualifiedInner(Base b, String s) {
+        return b.new Inner(s);
+    }
+
     @Test
     public void test() {
         CoreOp.FuncOp f = getFuncOp(Sub.class, "make");
@@ -90,6 +95,13 @@ public class TestInvokeInnerCtor {
         CoreOp.FuncOp f = getFuncOp(Sub.class, "localCaptureParam");
         System.out.println(f.toText());
         Assertions.assertEquals(new Sub().localCaptureParam("Test"), Interpreter.invoke(MethodHandles.lookup(), f, new Sub(), "Test"));
+    }
+
+    @Test
+    public void testQualifiedInner() {
+        CoreOp.FuncOp f = getFuncOp(TestInvokeInnerCtor.class, "makeQualifiedInner");
+        System.out.println(f.toText());
+        Assertions.assertEquals(makeQualifiedInner(new Base(), "Test"), Interpreter.invoke(MethodHandles.lookup(), f, new Base(), "Test"));
     }
 
     static CoreOp.FuncOp getFuncOp(Class<?> c, String name) {

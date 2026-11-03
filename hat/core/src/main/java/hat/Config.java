@@ -165,8 +165,8 @@ public class Config {
         return CHECK_SSA_LOWERING.isSet(this);
     }
 
-    public static final Bit CUDA_COMPILER_NVCC = Bit.nextBit(CHECK_SSA_LOWERING, "CUDA_NVCC","NVCC", "Select the NVCC CUDA Compiler (Default)");
-    public static final Bit CUDA_COMPILER_NVRTC = Bit.nextBit(CUDA_COMPILER_NVCC, "CUDA_NVRTC","NVRTC", "Select the NVRTC CUDA Compiler");
+    public static final Bit CUDA_COMPILER_NVCC = Bit.nextBit(CHECK_SSA_LOWERING, "CUDA_NVCC","NVCC", "Select the NVCC CUDA Compiler");
+    public static final Bit CUDA_COMPILER_NVRTC = Bit.nextBit(CUDA_COMPILER_NVCC, "CUDA_NVRTC","NVRTC", "Select the NVRTC CUDA Compiler (Default)");
 
     public boolean info() {
         return INFO.isSet(this);

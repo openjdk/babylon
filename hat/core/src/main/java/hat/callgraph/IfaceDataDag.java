@@ -38,31 +38,34 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class IfaceDataDag<I extends IfaceValue> extends Dag<IfaceDataDag.IfaceInfo<I>> {
-     public IfaceDataDag.IfaceInfo<I>  getNode(Class<I> clazz) {
+    public IfaceDataDag.IfaceInfo<I> getNode(Class<I> clazz) {
         return new IfaceDataDag.IfaceInfo.Impl<>((ClassType) JavaType.type(clazz.describeConstable().get()), clazz);
     }
 
-      public IfaceInfo<I>  getNode(MethodHandles.Lookup lookup, ClassType classType) {
+    public IfaceInfo<I> getNode(MethodHandles.Lookup lookup, ClassType classType) {
         return getNode((Class<I>) OpHelper.classTypeToTypeOrThrow(lookup, classType));
     }
 
-    public Stream<IfaceInfo<I>> methodsWithIfaceReturnTypes(Class<I>clazz) {
+    public Stream<IfaceInfo<I>> methodsWithIfaceReturnTypes(Class<I> clazz) {
         return Arrays.stream(clazz.getDeclaredMethods())
                 .map(Method::getReturnType)
                 .filter(IfaceValue.class::isAssignableFrom)
-                .map(ifaceClass->getNode(((Class<I>)ifaceClass)));
+                .map(ifaceClass -> getNode(((Class<I>) ifaceClass)));
     }
 
     public interface IfaceInfo<I extends IfaceValue> {
         ClassType classType();
+
         Class<I> clazz();
+
         record Impl<I extends IfaceValue>(ClassType classType, Class<I> clazz) implements IfaceInfo<I> {
         }
+
         default String dotName() {
             if (IfaceValue.Struct.class.isAssignableFrom(clazz())) {
-                return clazz().getSimpleName()+"_s";
+                return clazz().getSimpleName() + "_s";
             } else if (IfaceValue.Union.class.isAssignableFrom(clazz())) {
-                return clazz().getSimpleName()+"_u";
+                return clazz().getSimpleName() + "_u";
             }
             return clazz().getSimpleName();
         }
@@ -71,15 +74,13 @@ public class IfaceDataDag<I extends IfaceValue> extends Dag<IfaceDataDag.IfaceIn
     // recursive
     public void addEdge(IfaceInfo<I> from, IfaceInfo<I> to) {
         if (!from.equals(to)) {
-            methodsWithIfaceReturnTypes(to.clazz()).forEach(retType ->
-                    addEdge(to, retType)
-            );
+            methodsWithIfaceReturnTypes(to.clazz()).forEach(retType -> addEdge(to, retType));
             add(from, to);
         }
     }
 
-    public IfaceDataDag(Consumer<IfaceDataDag<I>> init){
-       init.accept(this);
-       closeRanks();
+    public IfaceDataDag(Consumer<IfaceDataDag<I>> init) {
+        init.accept(this);
+        closeRanks();
     }
 }

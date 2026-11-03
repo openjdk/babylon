@@ -29,6 +29,7 @@ import hat.TileContext;
 import hat.buffer.BF16Array;
 import hat.buffer.Tensor2DF16;
 import hat.callgraph.KernelCallGraph;
+import hat.codetypes.TensorType;
 import hat.device.NonMappableIface;
 import hat.dialect.HATPtrOp;
 import hat.phases.HATArrayViewPhase;
@@ -247,6 +248,15 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_FUNC().sp().type(javaType).sp().funcName(funcOp);
     }
 
+    protected abstract T tileDeviceKernelDeclaration(TensorType tensorType);
+
+    public final T functionDeclaration(TensorType tt, CoreOp.FuncOp funcOp) {
+        return HAT_FUNC().sp()
+                .tileDeviceKernelDeclaration(tt)
+                .sp()
+                .funcName(funcOp);
+    }
+
     public final boolean isHalfType(Schema.IfaceType ifaceType) {
         return ifaceType.iface.isAssignableFrom(F16.class)
                 || ifaceType.iface.isAssignableFrom(F16Impl.class);
@@ -417,7 +427,11 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
     public final T kernelMethod(CoreOp.FuncOp funcOp) {
         scopedCodeBuilderContext().funcScope(funcOp, () -> {
             nl();
-            functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
+            if (funcOp.body().yieldType() instanceof JavaType) {
+                functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
+            } else if (funcOp.body().yieldType() instanceof TensorType) {
+                functionDeclaration((TensorType) funcOp.body().yieldType(), funcOp);
+            }
             parenNlIndented(_ ->
                     commaNlSeparated(
                             new FuncOpParams(funcOp).list(),

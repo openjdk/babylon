@@ -208,24 +208,4 @@ public interface TileContext {
         return new Shape(tm, tn, tk);
     }
 
-    /**
-     * Returns a range of size (endIndex - startIndex).
-     *
-     * @param startIndex the inclusive lower bound
-     * @param endIndex the exclusive upper bound
-     * @return the integers in the half-open range {@code [starIndex, endIndex)}
-     */
-    static int[] irange(int startIndex, int endIndex) {
-        return IntStream.range(startIndex, endIndex).toArray();
-    }
-
-    /**
-     * Returns a range of size endIndex.
-     *
-     * @param endIndex the exclusive upper bound
-     * @return the integers in the half-open range {@code [0, endIndex)}
-     */
-    static int[] irange(int endIndex) {
-        return irange(0, endIndex);
-    }
 }

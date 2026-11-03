@@ -72,7 +72,9 @@ class JavaLowInterpreter extends AbstractJavaInterpreter {
                     case STATIC, INSTANCE -> je.l;
                     case SUPER -> je.l.in(target.parameterType(0));
                 };
-                MethodHandle mh = resolveToMethodHandle(il, o.invokeReference(), o.invokeKind());
+                MethodHandle mh = resolveToMethodHandle(il, o.invokeKind() == JavaOp.InvokeOp.InvokeKind.STATIC
+                        ? null : receiverClass(je.l, o.operands()),
+                        o.invokeReference(), o.invokeKind());
 
                 mh = mh.asType(target).asFixedArity();
                 List<Object> operands = e.valuesOf(o.operands());
@@ -200,7 +202,9 @@ class JavaLowInterpreter extends AbstractJavaInterpreter {
                 JavaEnv je = (JavaEnv) e;
                 VarHandle vh;
                 try {
-                    vh = resolveToVarHandle(je.l, o.fieldReference());
+                    vh = resolveToVarHandle(je.l, o.operands().isEmpty()
+                            ? null : receiverClass(je.l, o.operands()),
+                            o.fieldReference());
                 } catch (ReflectiveOperationException ex) {
                     return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
@@ -219,7 +223,9 @@ class JavaLowInterpreter extends AbstractJavaInterpreter {
                 JavaEnv je = (JavaEnv) e;
                 VarHandle vh;
                 try {
-                    vh = resolveToVarHandle(je.l, o.fieldReference());
+                    vh = resolveToVarHandle(je.l, o.operands().size() == 1
+                            ? null : receiverClass(je.l, o.operands()),
+                            o.fieldReference());
                 } catch (ReflectiveOperationException ex) {
                     return new TerminatingOpEffect(FAKE_THROW_OP, List.of(ex), e);
                 }
@@ -367,20 +373,63 @@ class JavaLowInterpreter extends AbstractJavaInterpreter {
         }
     }
 
-    private static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
+    private static MethodHandle resolveToMethodHandle(MethodHandles.Lookup l, Class<?> receiverClass, MethodRef d, JavaOp.InvokeOp.InvokeKind kind) {
         try {
-            return d.resolveToHandle(l, kind);
+            return resolveToHandle(l, lkp -> {
+                MethodHandle mh = d.resolveToHandle(lkp, kind);
+                if (receiverClass != null && !mh.type().parameterType(0).isAssignableFrom(receiverClass)) {
+                    throw new IllegalAccessException("Incompatible receiver");
+                }
+                return mh;
+            });
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static VarHandle resolveToVarHandle(MethodHandles.Lookup l, FieldRef d) throws ReflectiveOperationException {
-        return d.resolveToHandle(l);
+    private static VarHandle resolveToVarHandle(MethodHandles.Lookup l, Class<?> receiverClass, FieldRef d) throws ReflectiveOperationException {
+        return resolveToHandle(l, lkp -> {
+            VarHandle vh = d.resolveToHandle(lkp);
+            if (receiverClass != null && !vh.coordinateTypes().get(0).isAssignableFrom(receiverClass)) {
+                throw new IllegalAccessException("Incompatible receiver");
+            }
+            return vh;
+        });
     }
 
     private static MethodHandle resolveToConstructorHandle(MethodHandles.Lookup l, MethodRef d) throws ReflectiveOperationException {
         return d.resolveToHandle(l, JavaOp.InvokeOp.InvokeKind.SUPER);
+    }
+
+    private interface Resolver<T> {
+        T resolve(MethodHandles.Lookup l) throws ReflectiveOperationException;
+    }
+
+    private static <T> T resolveToHandle(MethodHandles.Lookup l, Resolver<T> r) throws ReflectiveOperationException {
+        MethodHandles.Lookup lkp = l;
+        while (true) {
+            try {
+                return r.resolve(lkp);
+            } catch (ReflectiveOperationException e) {
+                Class<?> enclClass = lkp.lookupClass().getEnclosingClass();
+                if (enclClass == null) {
+                    throw e;
+                }
+                try {
+                    lkp = MethodHandles.privateLookupIn(enclClass, l);
+                } catch (IllegalAccessException _) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static Class<?> receiverClass(MethodHandles.Lookup l, List<Value> operands) {
+        try {
+            return (Class<?>) ((JavaType) operands.getFirst().type()).erasure().resolve(l);
+        } catch (ReflectiveOperationException ex) {
+            return null;
+        }
     }
 
     private static String externalizeOpName(Op op) {

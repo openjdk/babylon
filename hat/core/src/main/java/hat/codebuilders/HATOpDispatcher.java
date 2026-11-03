@@ -110,7 +110,6 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case TileOps.TileIrangeOp tileIrangeOp -> tileIrangeOp(tileIrangeOp);
                 default -> throw new IllegalStateException("handle nesting of Tile TileOps.TOp " + op);
             }
-
         } else {
             BabylonOpDispatcher.super.recurse(op);
         }

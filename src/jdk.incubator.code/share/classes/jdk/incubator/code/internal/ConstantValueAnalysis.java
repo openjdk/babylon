@@ -97,7 +97,11 @@ public final class ConstantValueAnalysis {
                             }
                             operands.add(constant.orElseThrow());
                         }
-                        yield Optional.of(ArithmeticAndConvOpImpls.evaluate(result.op(), operands));
+                        try {
+                            yield Optional.of(ArithmeticAndConvOpImpls.evaluate(result.op(), operands));
+                        } catch (ArithmeticException _) {
+                            yield Optional.empty();
+                        }
                     }
                     case JavaOp.CastOp co when value.type().equals(JavaType.J_L_STRING) ->
                         evaluate(co.operands().getFirst()).filter(String.class::isInstance);

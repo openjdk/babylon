@@ -327,6 +327,37 @@ public class TestSSA {
         Assertions.assertArrayEquals(arr2, arr1);
     }
 
+    @Reflect
+    static int lambdaCapture(boolean flag) {
+        int cap1;
+        if (flag) {
+            cap1 = 1;
+        } else {
+            cap1 = 2;
+        }
+        IntSupplier outer = () -> {
+            int cap2;
+            if (flag) {
+                cap2 = 3;
+            } else {
+                cap2 = 4;
+            }
+            IntSupplier inner = () -> cap1 + cap2;
+            return inner.getAsInt();
+        };
+        return outer.getAsInt();
+    }
+
+    @Test
+    public void testLambdaCapture() {
+        CoreOp.FuncOp f = getFuncOp("lambdaCapture");
+
+        CoreOp.FuncOp lf = generate(f);
+
+        Assertions.assertEquals(lambdaCapture(false), (int) Interpreter.invoke(MethodHandles.lookup(), lf, false));
+        Assertions.assertEquals(lambdaCapture(true), (int) Interpreter.invoke(MethodHandles.lookup(), lf, true));
+    }
+
     static CoreOp.FuncOp generate(CoreOp.FuncOp f) {
         System.out.println(f.toText());
 
