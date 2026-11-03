@@ -309,7 +309,7 @@ public class TestConstantExpressionEvaluation {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
-        Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (Op & JavaOp.JavaExpression) op);
+        Optional<Object> v = JavaOp.JavaExpression.evaluate((Op & JavaOp.JavaExpression) op);
         if (m.getName().startsWith("fc")) {
             Assertions.assertTrue(v.isEmpty(), m.getName());
         } else {
@@ -395,7 +395,7 @@ public class TestConstantExpressionEvaluation {
                 CoreOp.FuncOp f = conversionModel(from, to);
                 Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
                 MethodHandles.Lookup l = MethodHandles.lookup();
-                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (JavaOp.ConvOp) op);
+                Optional<Object> v = JavaOp.JavaExpression.evaluate((JavaOp.ConvOp) op);
                 if ((to.equals(BOOLEAN) && !from.equals(BOOLEAN)) || (from.equals(BOOLEAN) && !to.equals(BOOLEAN))) {
                     Assertions.assertTrue(v.isEmpty(), from + " -> " + to);
                 } else {
@@ -419,7 +419,7 @@ public class TestConstantExpressionEvaluation {
 
         List<Op> convOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.ConvOp).toList();
         for (Op convOp : convOps) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (JavaOp.ConvOp) convOp);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate((JavaOp.ConvOp) convOp);
             Assertions.assertTrue(opt.isEmpty());
         }
     }
@@ -438,7 +438,7 @@ public class TestConstantExpressionEvaluation {
 
         List<Op> constantOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.ConstantOp).toList();
         for (Op cop : constantOps) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (CoreOp.ConstantOp) cop);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate((CoreOp.ConstantOp) cop);
             Assertions.assertTrue(opt.isEmpty());
         }
     }
@@ -456,7 +456,7 @@ public class TestConstantExpressionEvaluation {
         List<JavaOp.CastOp> castOps = iv.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
                 .map(op -> (JavaOp.CastOp) op).toList();
         for (JavaOp.CastOp castOp : castOps) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), castOp);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(castOp);
             Assertions.assertTrue(opt.isEmpty());
         }
 
@@ -473,7 +473,7 @@ public class TestConstantExpressionEvaluation {
         List<JavaOp.CastOp> castOps2 = v.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
                 .map(op -> (JavaOp.CastOp) op).toList();
         for (JavaOp.CastOp castOp : castOps2) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), castOp);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(castOp);
             Assertions.assertTrue(opt.isPresent());
         }
     }

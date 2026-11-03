@@ -7,10 +7,6 @@ import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.internal.ArithmeticAndConvOpImpls;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +16,7 @@ import static jdk.incubator.code.dialect.java.JavaType.J_L_STRING;
 import static jdk.incubator.code.dialect.java.JavaType.VOID;
 
 final class ConstantExpressionEvaluator {
-    private final MethodHandles.Lookup l;
     private final Map<Op, Object> m = new HashMap<>();
-
-    ConstantExpressionEvaluator(MethodHandles.Lookup l) {
-        this.l = l;
-    }
 
     <T extends Op & JavaOp.JavaExpression> Optional<Object> evaluate(T op) {
         try {
@@ -77,43 +68,6 @@ final class ConstantExpressionEvaluator {
                 Object first = eval(concatOp.operands().getFirst());
                 Object second = eval(concatOp.operands().getLast());
                 yield (first.toString() + second).intern();
-            }
-            case JavaOp.FieldAccessOp.FieldLoadOp fieldLoadOp -> {
-                Field field;
-                VarHandle vh;
-                try {
-                    field = fieldLoadOp.fieldReference().resolveToField(l);
-                    vh = fieldLoadOp.fieldReference().resolveToHandle(l);
-                } catch (ReflectiveOperationException | IllegalArgumentException _) {
-                    // we cann't reflectivelly get the field
-                    throw new ArithmeticAndConvOpImpls.NonConstantExpression();
-                }
-                // Requirement: the field must be a constant variable.
-                // Current checks:
-                // 1) The field is declared final.
-                // 2) The field type is a primitive or String.
-                // Missing check:
-                // 3) Verify the field is initialized and the initializer is a constant expression.
-                if ((field.getModifiers() & Modifier.FINAL) == 0 ||
-                        !isConstantType(fieldLoadOp.fieldReference().type())) {
-                    throw new ArithmeticAndConvOpImpls.NonConstantExpression();
-                }
-                if ((field.getModifiers() & Modifier.STATIC) != 0) {
-                    Object v;
-                    try {
-                        v = vh.get();
-                    } catch (Throwable t) {
-                        throw new ArithmeticAndConvOpImpls.NonConstantExpression();
-                    }
-                    if (!isConstantValue(v)) {
-                        throw new ArithmeticAndConvOpImpls.NonConstantExpression();
-                    }
-                    yield v instanceof String s ? s.intern() : v;
-                } else {
-                    // we can't get the value of an instance field from the model
-                    // we need the value of the receiver
-                    throw new ArithmeticAndConvOpImpls.NonConstantExpression();
-                }
             }
             case JavaOp.ArithmeticOperation _ -> {
                 List<Object> values = op.operands().stream().map(this::eval).toList();

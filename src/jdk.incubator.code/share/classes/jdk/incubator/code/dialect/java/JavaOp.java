@@ -35,7 +35,6 @@ import jdk.incubator.code.internal.BranchTarget;
 import jdk.incubator.code.internal.OpDeclaration;
 
 import java.lang.constant.ClassDesc;
-import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
@@ -105,16 +104,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * <p>
          * This method deviates from the language specification of a constant expression in the following cases.
          * <ul>
-         * <li>A name that refers to a final class variable of primitive type or type String, is evaluated as if a constant variable.
-         * Such referral is modeled as field load operation to a static final field. At runtime, it is not possible to
-         * determine if that class variable, the static final field, is initialized with a constant expression.
-         * <li>A name that refers to constant variable that is an instance variable is evaluated as if it is a
-         * non-constant variable, and therefore any expression referring to such a variable is not considered a constant
-         * expression.
-         * Such referral is modeled as field load operation to a non-static final field. At runtime, it is not possible
-         * to access the value of the field, since the instance of the class that has the field that is the instance
-         * variable is unknown. And, same as the first case, at runtime it is not possible to determine if the variable
-         * is initialized with a constant expression, whose value is independent of the class instance.
+         * <li> A name that refers to a class or instance variable is evaluated as if it is non-constant variable
+         * and therefore any expression referring to such a variable is not considered a constant expression.
          * <li>An effectively final local variable is evaluated as if a constant variable.
          * Such a variable is modelled as a variable operation, which does not model if the variable is a final
          * variable.
@@ -123,15 +114,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
          *          variable as a constant operation whose constant value is the same as the constant variable's value.
          *
-         * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
          * is not an instance of {@link Op.Result} or the operation does not model a constant expression
-         * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
          */
-        static Optional<Object> evaluate(MethodHandles.Lookup l, Value v) {
-            return new ConstantExpressionEvaluator(l).evaluate(v);
+        static Optional<Object> evaluate(Value v) {
+            return new ConstantExpressionEvaluator().evaluate(v);
         }
 
         /**
@@ -139,16 +128,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * <p>
          * This method deviates from the language specification of a constant expression in the following cases.
          * <ul>
-         * <li>A name that refers to a final class variable of primitive type or type String, is evaluated as if a constant variable.
-         * Such referral is modeled as field load operation to a static final field. At runtime, it is not possible to
-         * determine if that class variable, the static final field, is initialized with a constant expression.
-         * <li>A name that refers to constant variable that is an instance variable is evaluated as if it is a
-         * non-constant variable, and therefore any expression referring to such a variable is not considered a constant
-         * expression.
-         * Such referral is modeled as field load operation to a non-static final field. At runtime, it is not possible
-         * to access the value of the field, since the instance of the class that has the field that is the instance
-         * variable is unknown. And, same as the first case, at runtime it is not possible to determine if the variable
-         * is initialized with a constant expression, whose value is independent of the class instance.
+         * <li>A name that refers to a class or instance variable is evaluated as if it is non-constant variable,
+         * and therefore any expression referring to such a variable is not considered a constant expression.
          * <li>An effectively final local variable is evaluated as if a constant variable.
          * Such a variable is modelled as a variable operation, which does not model if the variable is a final
          * variable.
@@ -157,16 +138,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
          *          variable as a constant operation whose constant value is the same as the constant variable's value.
          *
-         * @param l the {@link MethodHandles.Lookup} to provide name resolution and access control context
          * @param op the operation to evaluate
          * @param <T> the type of the operation
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the
          * operation does not model a constant expression
-         * @throws IllegalArgumentException if a failure to resolve
          * @jls 15.29 Constant Expressions
          */
-        static <T extends Op & JavaExpression> Optional<Object> evaluate(MethodHandles.Lookup l, T op) {
-            return new ConstantExpressionEvaluator(l).evaluate(op);
+        static <T extends Op & JavaExpression> Optional<Object> evaluate(T op) { // TODO update the doc
+            return new ConstantExpressionEvaluator().evaluate(op);
         }
 
     }
