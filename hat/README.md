@@ -10,12 +10,13 @@ HAT is a toolkit that allows developers to express data-parallel applications in
 HAT uses the code reflection API from the [Project Babylon](https://github.com/openjdk/babylon).
 
 The toolkit offers:
-- An API for Kernel Programming on Accelerators from Java.
+- An API for SIMT (Single Instruction Multiple Thread) Kernel Programming on Accelerators from Java.
+- An API for Tile Kernel Programming on Accelerators from Java. Currently only available to target NVIDIA GPUs (Ampere or later).
 - An API for Combining multiple kernels into a compute-graph.
 - An API for Java object mapping to hardware accelerators using Panama FFM.
 - An extensible backend system for multiple accelerators:
   - OpenCL C
-  - CUDA C
+  - CUDA C/C++
   - Java
 
 ## Prerequisites
@@ -53,13 +54,22 @@ make images
 ### 2. Update JAVA_HOME and PATH
 
 ```bash
+cd hat/
+source env.bash
+```
+
+The env.bash script will setup the `JAVA_HOME` and the `PATH` to use the Babylon JDK.
+
+Alternatively, you can run it manually:
+
+```bash
 export JAVA_HOME=<BABYLON-DIR>/build/macosx-aarch64-server-release/images/jdk
 export PATH=$JAVA_HOME/bin:$PATH
 ```
 
 ### 3. Install HAT specific tools (cmake and maven)
 
-Either
+Either:
 
 ```bash
 brew install maven
@@ -67,14 +77,19 @@ brew install cmake
 ```
 
 Or
+
 ```bash
+## Debian-based distros
 sudo apt-get install maven cmake
+
+## For RHEL-based distros
+sudo dnf install maven cmake
 ```
 
 ### 4. Build HAT
 
 ```bash
-cd hat
+cd <path-to>/babylon/hat
 mvn clean package
 ```
 
@@ -112,7 +127,7 @@ CUDA backed:
 java @.ffi-cuda-test-suite
 ```
 
-## Full Example Explained
+## Full Example Explained (SMIT Model)
 
 The following example compute the square value of an input vector.
 The example is self-contained and it can be directly run with the `java` command.
