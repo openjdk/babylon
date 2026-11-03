@@ -1084,4 +1084,19 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder tileIrangeOp(TileOps.TileIrangeOp tileIrangeOp) {
         throw new UnsupportedOperationException("Tile Irange Operation is not supported yet.");
     }
+
+    @Override
+    public OpenCLHATKernelBuilder reshapeOp(ArithMathOps.ReshapeOp reshapeOp) {
+        throw new  UnsupportedOperationException("Reshape Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder permuteOp(ArithMathOps.PermuteOp permuteOp) {
+        throw new UnsupportedOperationException("Permute Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileDimOp(TileOps.TileDimOp tileDimOp) {
+        throw  new UnsupportedOperationException("Tile Dimension Operation is not supported yet.");
+    }
 }

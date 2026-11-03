@@ -40,6 +40,7 @@ import hat.types.Tile;
 import jdk.incubator.code.Reflect;
 
 import java.lang.invoke.MethodHandles;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -53,6 +54,13 @@ import java.util.Random;
  *
  */
 public class TestTileAPI {
+
+    private void initRandom(TensorF32 input) {
+        Random r = new Random(71);
+        for (int i = 0; i < input.m(); i++) {
+            input.array(i, r.nextFloat());
+        }
+    }
 
     @Reflect
     public static void vectorAddTile(TensorF32 inputA, TensorF32 inputB, TensorF32 output, final int tileSize) {
@@ -672,15 +680,9 @@ public class TestTileAPI {
         final int tileSize = 32 / 4;
         TensorF32 inputA = TensorF32.create(accelerator, size);
         TensorF32 inputB = TensorF32.create(accelerator, size);
-
-        // Fill data
-        Random r = new Random(71);
-        for (int i = 0; i < size; i++) {
-            inputA.array(i, r.nextFloat());
-            inputB.array(i, r.nextFloat());
-        }
-
         TensorF32 result = TensorF32.create(accelerator, size);
+        initRandom(inputA);
+        initRandom(inputB);
 
         // Invoking the kernel multiple times to check the code cache
         accelerator.compute((@Reflect Compute) computeContext ->
@@ -688,6 +690,131 @@ public class TestTileAPI {
 
         for (int i = 0; i < size; i++) {
             HATAsserts.assertEquals((inputA.array(i) + inputB.array(i)), result.array(i), 0.01f);
+        }
+    }
+
+    @Reflect
+    public static void reshapeAndPermute01(TensorF32 inputMatrix, TensorF32 output, final int tileSize) {
+        final int pid = TileContext.BIDX();
+
+        // 1D shape if size: tileSize
+        var tile = TileContext.load(inputMatrix, pid, tileSize);
+
+        // Reshape a 1D tile to a 2D tile with shape 2x4
+        Tile reshape = Tile.reshape(tile, TileContext.shape(4, 2));
+        // To follow this example, let's consider the following input tile:
+        // tile = [0, 1, 2, 3, 4, 5, 6, 7]
+        // Then, after reshape with shape: [2, 4], we obtain the following tile:
+        // 0, 1,
+        // 2, 3,
+        // 4, 5,
+        // 6, 7,
+
+        // Permute rows <-> columns
+        Tile permute = Tile.permute(reshape, TileContext.dimensionMap(1, 0));
+        // In this case, the tile with shape [4, 2] is permuted to [1, 0]
+        // After permute with 1, 0
+        // 0, 2, 4, 6,
+        // 1, 3, 5, 7
+
+        // Flatten again to pass the result to a 1D Tensor
+        Tile flattened = Tile.reshape(permute, TileContext.shape(8));
+        // from tile[1, 0 ] => tile[8]
+        // After it gets flatten
+        // [ 0, 2, 4, 6, 1, 3, 5, 7 ]
+
+        // Store the final flattened tile into the output tensor buffer
+        TileContext.store(output, pid, flattened);
+    }
+
+    @Reflect
+    public static void reshapeAndPermute01(ComputeContext computeContext, TensorF32 inputMatrix, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(inputMatrix.m(), tileSize), () -> reshapeAndPermute01(inputMatrix, output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_12() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        // We keep tileSize to 8 for simplification for the output checks
+        final int tileSize = 8;
+        TensorF32 input = TensorF32.create(accelerator, size);
+        TensorF32 output = TensorF32.create(accelerator, size);
+        initRandom(input);
+
+        // Invoking the kernel multiple times to check the code cache
+        accelerator.compute((@Reflect Compute) computeContext -> reshapeAndPermute01(computeContext, input, output, tileSize));
+
+        // output must be identical to the input
+        List<Integer> indicesAfterTransform = List.of(0, 2, 4, 6, 1, 3, 5, 7);
+        for (int i = 0; i < size; i += tileSize) {
+            for (int j = 0; j < tileSize; j++) {
+                HATAsserts.assertEquals(input.array(i + indicesAfterTransform.get(j)), output.array(i + j), 0.01f);
+            }
+        }
+    }
+
+    @Reflect
+    public static void reshapeAndPermute02(TensorF32 inputMatrix, TensorF32 output, final int tileSize) {
+        final int pid = TileContext.BIDX();
+
+        // 1D shape if size: tileSize
+        var tile = TileContext.load(inputMatrix, pid, tileSize);
+
+        Tile reshape = Tile.reshape(tile, TileContext.shape(1, 2, 4));
+        // tensor reshapes from tile[tileSize] -> tile[1, 2, 4]
+        // The HAT runtime checks for compatibility of the new shape.
+
+        // To follow this example, let's consider the following input tile:
+        // tile = [0, 1, 2, 3, 4, 5, 6, 7]
+        // Then, after reshape with shape: [1, 2, 4], we obtain the following tile:
+        // 0, 1, 2, 3,
+        // 4, 5, 6, 7,
+
+        Tile permute = Tile.permute(reshape, TileContext.dimensionMap(2, 0, 1));
+        // The permute operation permutes the axes of the input tile.
+        // In this case, the tile with shape [1, 2, 4] is permuted to [4, 1, 2]
+        // After permute with 4, 1, 2
+        // 0, 4,
+        // 1, 5,
+        // 2, 6,
+        // 3, 7
+
+        Tile flattened = Tile.reshape(permute, TileContext.shape(tileSize));
+        // Reshape again to flat the tile from 3D to 1D
+        // from tile[4, 1, 2] => tile[8]
+        // After it gets flatten
+        // [ 0, 4, 1, 5, 2, 6, 3, 7 ]
+        // Thus, these are the indexes to check for the output
+
+        // Store the final flattened tile into the output tensor buffer
+        TileContext.store(output, pid, flattened);
+    }
+
+    @Reflect
+    public static void reshapeAndPermute02(ComputeContext computeContext, TensorF32 inputMatrix, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(inputMatrix.m(), tileSize), () -> reshapeAndPermute02(inputMatrix, output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_13() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        // We keep tileSize to 8 for simplification for the output checks
+        final int tileSize = 8;
+        TensorF32 input = TensorF32.create(accelerator, size);
+        TensorF32 output = TensorF32.create(accelerator, size);
+        initRandom(input);
+
+        // Invoking the kernel multiple times to check the code cache
+        accelerator.compute((@Reflect Compute) computeContext -> reshapeAndPermute02(computeContext, input, output, tileSize));
+
+        // output must be identical to the input
+        List<Integer> indicesAfterTransform = List.of(0, 4, 1, 5, 2, 6, 3, 7);
+        for (int i = 0; i < size; i += tileSize) {
+            for (int j = 0; j < tileSize; j++) {
+                HATAsserts.assertEquals(input.array(i + indicesAfterTransform.get(j)), output.array(i + j), 0.01f);
+            }
         }
     }
 }

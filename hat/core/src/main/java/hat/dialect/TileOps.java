@@ -86,6 +86,18 @@ public class TileOps {
         return new TileShapeOp(index0, index1, index2);
     }
 
+    public static Op dim(Value index0) {
+        return new TileDimOp(index0);
+    }
+
+    public static Op dim(Value index0, Value index1) {
+        return new TileDimOp(index0, index1);
+    }
+
+    public static Op dim(Value index0, Value index1, Value index2) {
+        return new TileDimOp(index0, index1, index2);
+    }
+
     public static Op numTiles(CodeType typeResult, Value ptr, Value dimension, Value shape) {
         return new TileNumOp(typeResult, ptr, dimension, shape);
     }
@@ -444,6 +456,35 @@ public class TileOps {
         @Override
         public Map<String, Object> externalize() {
             return Map.of("tile.shape ", dimension);
+        }
+    }
+
+    public static class TileDimOp extends TOp {
+
+        final int dimension;
+
+        protected TileDimOp(Value... values) {
+            super(JavaType.INT, Arrays.stream(values).toList());
+            this.dimension = values.length;
+        }
+
+        protected TileDimOp(TileDimOp that, CodeContext cc, CodeTransformer ot) {
+            super(that, cc);
+            this.dimension = that.dimension;
+        }
+
+        @Override
+        public TileDimOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new TileDimOp(this, codeContext, codeTransformer);
+        }
+
+        public int dimension() {
+            return dimension;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("tile.dimMap ", dimension);
         }
     }
 

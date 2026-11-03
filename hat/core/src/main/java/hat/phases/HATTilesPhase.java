@@ -50,99 +50,106 @@ public record HATTilesPhase() implements HATPhase {
 
     private static final int TENSOR_BUFFER_ALIGNMENT = 16;
 
+    private CoreOp.FuncOp transformTileProgramWithAlignment(CoreOp.FuncOp funcOp, Set<Op> opsToProcess, List<CoreOp.VarOp> tileArgs, final Op firstOp, VarTable varTable) {
+        Map<Op, Op.Result> paramMap = new HashMap<>();
+        Map<Op, Op.Result> useVarOps = new HashMap<>();
+        return funcOp.transform((builder, op) -> {
+            if (opsToProcess.contains(op) && op instanceof CoreOp.VarOp) {
+                Op.Result newVarOpResult = builder.add(op);
+                paramMap.put(op, newVarOpResult);
+            } else if (op == firstOp && !opsToProcess.isEmpty()) {
+                // if the current op is the same object as the firstOp, then we expand this
+                // op with more ops to accommodate the alignment.
+
+                // Add the current op
+                builder.add(op);
+
+                // place new invoke ops here: we need to expand the alignment for all parameters that read/write to global memory
+                CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, TENSOR_BUFFER_ALIGNMENT);  // Alignment is always to 16 bytes.
+                Op.Result constantValue = builder.add(constantOp);
+
+                // For each parameter, we add a varLoadOp with the varOp to align, an InvokeOp with the alignment, and a VarOp with the result
+                // to be propagated for the rest of the code tree
+                for (CoreOp.VarOp varTile : tileArgs) {
+                    // Insert a varLoadOp for the tile variable
+                    Op.Result varLoadOp = builder.add(CoreOp.varLoad(paramMap.get(varTile)));
+                    // Insert a new invoke with the alignment
+                    JavaOp.InvokeOp invoke = JavaOp.invoke(TILE_ARRAY_ALIGN, List.of(varLoadOp, constantValue));
+                    Op.Result invokeResult = builder.add(invoke);
+                    // Insert the new varOp
+                    CoreOp.VarOp varOp = CoreOp.var(varTile.varName().concat("_"), invokeResult);
+                    Op.Result varOpResult = builder.add(varOp);
+                    for (Op.Result u : varTile.result().uses()) {
+                        useVarOps.put(u.op(), varOpResult);
+                        opsToProcess.add(u.op());
+                    }
+                    varTable.addIfNeededOrThrow(funcOp.funcName(), varOp, VarTable.HATOpAttribute.TILE);
+                }
+            } else if (opsToProcess.contains(op) && op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
+                // For the rest of the varLoads that loads a Read/Write buffer, we replace it with the new VarOp created during the
+                // op expansion
+                CoreOp.VarAccessOp.VarLoadOp vloadOp = CoreOp.varLoad(useVarOps.get(varLoadOp));
+                Op.Result newVarLoad = builder.add(vloadOp);
+                builder.context().mapValue(varLoadOp.result(), newVarLoad);
+            } else {
+                builder.add(op);
+            }
+            return builder;
+        });
+    }
+
+    private Op analyzeTileArgs(CoreOp.FuncOp funcOp, List<CoreOp.VarOp> tileArgs, Set<Op> opsToProcess ) {
+        List<Block.Parameter> parameters = funcOp.body().entryBlock().parameters();
+        Op firstOp = funcOp.bodies().getFirst().blocks().getFirst().firstOp();
+        for (Block.Parameter param : parameters) {
+            Op.Result paramUsage = param.uses().getFirst();
+            if (paramUsage.declaringElement() instanceof CoreOp.VarOp varOp) {
+                if (varOp.resultType().valueType() instanceof PtrType) {
+                    tileArgs.add(varOp);
+                    opsToProcess.add(varOp);
+                }
+                firstOp = varOp;
+            }
+        }
+        if (firstOp != null && tileArgs.contains(firstOp)) {
+            // If this is the case, we need to move firstOp to next Op
+            // Otherwise, the subsequence transform phase will not expand
+            // with the new Ops for performing the alignment.
+            boolean wasFound = false;
+            for (CodeElement<?, ?> codeElement : funcOp.elements().sequential().toList()) {
+                if (wasFound) {
+                    firstOp = (Op) codeElement;
+                    break;
+                }
+                if (codeElement == firstOp) {
+                    wasFound = true;
+                }
+            }
+        }
+        return firstOp;
+    }
+
     private CoreOp.FuncOp appendAlignment(MethodHandles.Lookup lookup, CoreOp.FuncOp funcOp, VarTable varTable) {
         Set<Op> opsToProcess = new HashSet<>();
 
         // Also check the tile dialect was introduced
         final boolean isTileUsed = funcOp.elements().anyMatch(element -> element instanceof TileOps.TOp || element instanceof ArithMathOps.ArithMathOp);
-        if (isTileUsed) {
-            // We need to transform the code tree to insert a Invoke for the alignment associated with a new var
-            // to carry for all loads/store operations after the alignment.
-            List<Block.Parameter> parameters = funcOp.body().entryBlock().parameters();
-            Op firstOp = funcOp.bodies().getFirst().blocks().getFirst().firstOp();
-            // analyze each parameter
-            List<CoreOp.VarOp> tileArgs = new ArrayList<>();
-            for (Block.Parameter param : parameters) {
-                Op.Result paramUsage = param.uses().getFirst();
-                if (paramUsage.declaringElement() instanceof CoreOp.VarOp varOp) {
-                    if (varOp.resultType().valueType() instanceof PtrType) {
-                        tileArgs.add(varOp);
-                        opsToProcess.add(varOp);
-                    }
-                    firstOp = varOp;
-                }
-            }
+        if (!isTileUsed) return funcOp;
 
-            if (firstOp != null && tileArgs.contains(firstOp)) {
-                // If this is the case, we need to move firstOp to next Op
-                // Otherwise, the subsequence transform phase will not expand
-                // with the new Ops for performing the alignment.
-                boolean wasFound = false;
-                for (CodeElement<?, ?> codeElement : funcOp.elements().sequential().toList()) {
-                    if (wasFound) {
-                        firstOp = (Op) codeElement;
-                        break;
-                    }
-                    if (codeElement == firstOp) {
-                        wasFound = true;
-                    }
-                }
-            }
+        // We need to transform the code tree to insert a Invoke for the alignment associated with a new var
+        // to carry for all loads/store operations after the alignment.
+        // analyze each parameter
+        List<CoreOp.VarOp> tileArgs = new ArrayList<>();
+        Op firstOp = analyzeTileArgs(funcOp, tileArgs, opsToProcess);
 
-            Map<Op, Op.Result> paramMap = new HashMap<>();
-            final Op finalFirstOp = firstOp;
-            Map<Op, Op.Result> useVarOps = new HashMap<>();
-            CoreOp.FuncOp finalFuncOp = funcOp;
-            funcOp = funcOp.transform((builder, op) -> {
-                if (opsToProcess.contains(op) && op instanceof CoreOp.VarOp) {
-                    Op.Result newVarOpResult = builder.add(op);
-                    paramMap.put(op, newVarOpResult);
-                } else if (op == finalFirstOp && !opsToProcess.isEmpty()) {
-                    // if the current op is the same object as the firstOp, then we expand this
-                    // op with more ops to accommodate the alignment.
-
-                    // Add the current op
-                    builder.add(op);
-
-                    // place new invoke ops here: we need to expand the alignment for all parameters that read/write to global memory
-                    CoreOp.ConstantOp constantOp = CoreOp.constant(JavaType.INT, TENSOR_BUFFER_ALIGNMENT);  // Alignment is always to 16 bytes.
-                    Op.Result constantValue = builder.add(constantOp);
-
-                    // For each parameter, we add a varLoadOp with the varOp to align, an InvokeOp with the alignment, and a VarOp with the result
-                    // to be propagated for the rest of the code tree
-                    for (CoreOp.VarOp varTile : tileArgs) {
-                        // Insert a varLoadOp for the tile variable
-                        Op.Result varLoadOp = builder.add(CoreOp.varLoad(paramMap.get(varTile)));
-                        // Insert a new invoke with the alignment
-                        JavaOp.InvokeOp invoke = JavaOp.invoke(TILE_ARRAY_ALIGN, List.of(varLoadOp, constantValue));
-                        Op.Result invokeResult = builder.add(invoke);
-                        // Insert the new varOp
-                        CoreOp.VarOp varOp = CoreOp.var(varTile.varName().concat("_"), invokeResult);
-                        Op.Result varOpResult = builder.add(varOp);
-                        for (Op.Result u : varTile.result().uses()) {
-                            useVarOps.put(u.op(), varOpResult);
-                            opsToProcess.add(u.op());
-                        }
-                        varTable.addIfNeededOrThrow(finalFuncOp.funcName(), varOp, VarTable.HATOpAttribute.TILE);
-                    }
-                } else if (opsToProcess.contains(op) && op instanceof CoreOp.VarAccessOp.VarLoadOp varLoadOp) {
-                    // For the rest of the varLoads that loads a Read/Write buffer, we replace it with the new VarOp created during the
-                    // op expansion
-                    CoreOp.VarAccessOp.VarLoadOp vloadOp = CoreOp.varLoad(useVarOps.get(varLoadOp));
-                    Op.Result newVarLoad = builder.add(vloadOp);
-                    builder.context().mapValue(varLoadOp.result(), newVarLoad);
-                } else {
-                    builder.add(op);
-                }
-                return builder;
-            });
-        }
-        return funcOp;
+        // Transform the function to insert alignment after the firstOp marker
+        return transformTileProgramWithAlignment(funcOp, opsToProcess, tileArgs, firstOp, varTable);
     }
 
     private static final MethodRef TILE_ARRAY_ALIGN = MethodRef.method(TileAlign.class, "align", Tile.class, Object.class, int.class);
 
     public static class TileAlign {
+        private TileAlign() {}
         public static Tile align(Object inputRef, final int alignment) {
             return null;
         }
@@ -167,6 +174,7 @@ public record HATTilesPhase() implements HATPhase {
                         // We need to process as Tile the result of an invoke (tile device kernel)
                         opsToProcess.add(varOp);
                 case null, default -> {
+                    // do not register var into the ops to process otherwise.
                 }
             }
         });

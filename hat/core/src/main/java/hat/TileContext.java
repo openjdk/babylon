@@ -29,8 +29,6 @@ import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
 import hat.types.Tile;
 
-import java.util.stream.IntStream;
-
 /**
  * Interface to provide an execution-context and memory operations for the
  * implementation of a Tile Programming Model in HAT.
@@ -208,4 +206,34 @@ public interface TileContext {
         return new Shape(tm, tn, tk);
     }
 
+    /**
+     * Permute first axis with tm
+     * @param tm
+     * @return {@link DimensionMap}
+     */
+    static DimensionMap dimensionMap(final int tm) {
+        return new DimensionMap(tm, 1, 1);
+    }
+
+    /**
+     * Permutes first and second axis with tm, tn axes.
+     *
+     * @param tm
+     * @param tn
+     * @return  {@link DimensionMap}
+     */
+    static DimensionMap dimensionMap(final int tm, final int tn) {
+        return new DimensionMap(tm, tn, 1);
+    }
+
+    /**
+     * Permutes first, second and third axis with tm, tn and tk axes.
+     * @param tm
+     * @param tn
+     * @param tk
+     * @return  {@link DimensionMap}
+     */
+    static DimensionMap dimensionMap(final int tm, final int tn, final int tk) {
+        return new DimensionMap(tm, tn, tk);
+    }
 }
