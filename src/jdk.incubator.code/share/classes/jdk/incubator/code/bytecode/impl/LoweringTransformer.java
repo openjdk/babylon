@@ -175,6 +175,7 @@ public final class LoweringTransformer {
         }
         if (swOp.handleNulls()) {
             // a switch that has case null, default -> ... is not constant
+            // if the switch has case null -> ... it will be rejected by the below check
             return Optional.empty();
         }
         var labels = new ArrayList<Integer>();
