@@ -781,18 +781,14 @@ public final class BytecodeGenerator {
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.signature());
                         MethodHandles.Lookup protectedAccessLookup = null;
                         if (op.invokeKind() == InvokeOp.InvokeKind.SUPER) {
-                            // constructs method handle via lookup.findSpecial using the lookup's class as the specialCaller
-                            // original lookup is stored in class data
-                            // @@@ performance can be improved by storing a list of the resolved method handles instead
-                            cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
-                               .checkcast(CD_MethodHandles_Lookup)
-                               .ldc(refType.toNominalDescriptor())
-                               .ldc(md.name())
-                               .ldc(mDesc)
-                               .ldc(specialCaller)
-                               .invokevirtual(CD_MethodHandles_Lookup,
-                                              "findSpecial",
-                                              MTD_FIND_SPECIAL);
+                            // resolve the method handle with lookup.findSpecial using the lookup's class as the specialCaller
+                            // and cache it in a dynamic constant
+                            // the original lookup is stored in class data.
+                            cob.ldc(DynamicConstantDesc.ofNamed(BSM_INVOKE, DEFAULT_NAME, CD_MethodHandle,
+                                    MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.VIRTUAL,
+                                            CD_MethodHandles_Lookup, "findSpecial", MTD_FIND_SPECIAL),
+                                    DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_MethodHandles_Lookup),
+                                    refType.toNominalDescriptor(), md.name(), mDesc, specialCaller));
                         } else {
                             if (!(refType instanceof ArrayType)) { // array methods (e.g. clone) are excluded
                                 protectedAccessLookup = findProtectedAccessLookup(
@@ -1067,24 +1063,20 @@ public final class BytecodeGenerator {
             storeIfUsed(oprOnStack);
             oprOnStack = null;
         }
-        if (resLookup != lookup) {
-            cob.ldc(resLookup.lookupClass().describeConstable().orElseThrow())
-               .ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
-               .checkcast(CD_MethodHandles_Lookup)
-               .invokestatic(CD_MethodHandles,
-                             "privateLookupIn",
-                             MTD_PRIVATE_LOOKUP_IN);
-        } else {
-            cob.ldc(DynamicConstantDesc.of(BSM_CLASS_DATA))
-               .checkcast(CD_MethodHandles_Lookup);
-        }
-        cob
-           .ldc(owner)
-           .ldc(name)
-           .ldc(type)
-           .invokevirtual(CD_MethodHandles_Lookup,
-                          finder,
-                          type instanceof MethodTypeDesc ? MTD_FIND_METHOD : MTD_FIND_FIELD);
+
+        // resolve the method handle with the specified finder and lookup and cache it
+        // in a dynamic constant
+        cob.ldc(DynamicConstantDesc.ofNamed(BSM_INVOKE, DEFAULT_NAME, CD_MethodHandle,
+                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.VIRTUAL, CD_MethodHandles_Lookup,
+                        finder, type instanceof MethodTypeDesc ? MTD_FIND_METHOD : MTD_FIND_FIELD),
+                resLookup == lookup
+                        ? DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_MethodHandles_Lookup)
+                        : DynamicConstantDesc.ofNamed(BSM_INVOKE, DEFAULT_NAME, CD_MethodHandles_Lookup,
+                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                        CD_MethodHandles, "privateLookupIn", MTD_PRIVATE_LOOKUP_IN),
+                                resLookup.lookupClass().describeConstable().orElseThrow(),
+                                DynamicConstantDesc.ofNamed(BSM_CLASS_DATA, DEFAULT_NAME, CD_MethodHandles_Lookup)),
+                owner, name, type));
     }
 
     private void fieldAccess(FieldAccessOp op) {
