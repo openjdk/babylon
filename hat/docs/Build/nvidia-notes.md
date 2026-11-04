@@ -73,21 +73,21 @@ For example, to run the Matrix Multiplication example:
 java @.ffi-cuda-example matmul.Main --kernel=1D
 ```
 
-### CUDA source compiler selection
+### CUDA source compiler selection (NVRTC, NVCC)
 
-The CUDA backend compiles generated CUDA source with `nvcc` by default. To
-compile with NVRTC instead, set `HAT=CUDA_NVRTC`:
+The CUDA backend compiles generated CUDA source with `nvrtc` by default. To
+compile with `NVCC` instead, set `HAT=CUDA_NVCC`:
 
 ```bash
-HAT=CUDA_NVRTC java @.ffi-cuda-example matmul.Main --kernel=1D
+HAT=CUDA_NVCC java @.ffi-cuda-example matmul.Main --kernel=1D
 ```
 
 There are two flags to select the compiler:
 
+- **`HAT=CUDA_NVRTC`:** compile in-process with NVRTC. SIMT kernels are emitted
+  as PTX, and Tile kernels as cuda_tile IR. This is the default option.
 - **`HAT=CUDA_NVCC`:** compile with the `nvcc` executable. SIMT kernels are
   emitted as PTX, and Tile kernels as cubin.
-- **`HAT=CUDA_NVRTC`:** compile in-process with NVRTC. SIMT kernels are emitted
-  as PTX, and Tile kernels as cuda_tile IR.
 
 SIMT PTX and nvcc Tile cubin need no extra setup. Loading Tile IR in-process
 registers signal handlers. Those handlers process the signals first and resend
@@ -101,8 +101,8 @@ LD_PRELOAD=$JAVA_HOME/lib/libjsig.so HAT=CUDA_NVRTC \
   java @.ffi-cuda-test hat.test.TestTileAPI
 ```
 
-If `libjsig` is not preloaded, HAT warns once and compiles Tile kernels with
-`nvcc`.
+**IMPORTANT:** If the `libjsig` is not preloaded, HAT warns once and compiles Tile kernels with
+`nvcc` instead.
 
 When NVRTC is selected, HAT loads `libnvrtc.so` from the CUDA Toolkit library
 directory recorded at build time, then from the default library search path. To
