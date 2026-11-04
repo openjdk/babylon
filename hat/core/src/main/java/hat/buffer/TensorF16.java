@@ -26,7 +26,6 @@ package hat.buffer;
 
 import hat.Accelerator;
 import optkl.ifacemapper.BoundSchema;
-import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
 public interface TensorF16 extends Tensor, Half {
