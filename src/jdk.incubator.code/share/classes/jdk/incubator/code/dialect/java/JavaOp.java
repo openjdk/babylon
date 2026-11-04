@@ -129,7 +129,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * operation does not model a constant expression
          * @jls 15.29 Constant Expressions
          */
-        static <T extends Op & JavaExpression> Optional<Object> evaluate(T op) { // TODO update the doc
+        static <T extends Op & JavaExpression> Optional<Object> evaluate(T op) {
             return new ConstantValueAnalysis().evaluate(op.result());
         }
 
