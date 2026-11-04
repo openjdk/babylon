@@ -26,9 +26,7 @@ package hat.types;
 
 import hat.DimMap;
 import hat.Shape;
-import hat.buffer.Tensor2DF16;
-import hat.buffer.Tensor2DF32;
-import hat.buffer.TensorF32;
+import hat.buffer.Tensor;
 import jdk.incubator.code.CodeType;
 import optkl.IfaceValue;
 
@@ -54,39 +52,108 @@ import optkl.IfaceValue;
  */
 public record Tile() implements IfaceValue {
 
+    /**
+     * Add two tiles.
+     * @param aTile tile A
+     * @param bTile tile B
+     *
+     * @return {@link Tile}
+     */
     public static Tile add(Tile aTile, Tile bTile) {
         throw new UnsupportedOperationException("Tile.add is a compiler intrinsic.");
     }
 
+    /**
+     * Add a tile with a scalar value.
+     *
+     * @param aTile tile
+     * @param val scalar value
+     * @return {@link Tile}
+     * @param <T extends Number>
+     */
     public static <T extends Number> Tile add(Tile aTile, T val) {
         throw new UnsupportedOperationException("Tile.add is a compiler intrinsic.");
     }
 
-    public static <T extends Number> Tile add(T val, Tile aTile) {
+    /**
+     * Add a scalar value with a tile.
+     *
+     * @param val scalar value
+     * @param tile tile
+     * @return {@link Tile}
+     * @param <T extends Number>
+     */
+    public static <T extends Number> Tile add(T val, Tile tile) {
         throw new UnsupportedOperationException("Tile.add is a compiler intrinsic.");
     }
 
+    /**
+     * Subtract two tiles
+     *
+     * @param aTile tile A
+     * @param bTile tile B
+     * @return {@link Tile}
+     */
     public static Tile sub(Tile aTile, Tile bTile) {
         throw new UnsupportedOperationException("Tile.sub is a compiler intrinsic.");
     }
 
-    public static <T extends Number> Tile sub(Tile aTile, T val) {
+    /**
+     * Subtract a scalar value from a tile
+     *
+     * @param tile tile
+     * @param val scalar value
+     * @return {@link Tile}
+     * @param <T extends Number>
+     */
+    public static <T extends Number> Tile sub(Tile tile, T val) {
         throw new UnsupportedOperationException("Tile.sub is a compiler intrinsic.");
     }
 
-    public static <T extends Number> Tile sub(T val, Tile aTile) {
+    /**
+     * Subtract a tile from a scalar value. The value is broadcasted to the tile size.
+     *
+     * @param val value
+     * @param tile tile
+     * @return {@link Tile}
+     * @param <T extends Number>
+     */
+    public static <T extends Number> Tile sub(T val, Tile tile) {
         throw new UnsupportedOperationException("Tile.sub is a compiler intrinsic.");
     }
 
+    /**
+     * Multiply two tiles
+     *
+     * @param aTile tile A
+     * @param bTile tile B
+     * @return {@link Tile}
+     */
     public static Tile mul(Tile aTile, Tile bTile) {
         throw new UnsupportedOperationException("Tile.mul is a compiler intrinsic.");
     }
 
-    public static <T extends Number> Tile mul(Tile aTile, T val) {
+    /**
+     * Multiply a tile by a scalar value
+     *
+     * @param tile tile
+     * @param val scalar value
+     * @return {@link Tile}
+     * @param <T extends Number>
+     */
+    public static <T extends Number> Tile mul(Tile tile, T val) {
         throw new UnsupportedOperationException("Tile.mul is a compiler intrinsic.");
     }
 
-    public static <T extends Number> Tile mul(T val, Tile aTile) {
+    /**
+     * Multiply a value by a tile.
+     *
+     * @param tile tile
+     * @param val scalar value
+     * @return {@link Tile}
+     * @param <T extends Number>
+     */
+    public static <T extends Number> Tile mul(T val, Tile tile) {
         throw new UnsupportedOperationException("Tile.mul is a compiler intrinsic.");
     }
 
@@ -132,7 +199,15 @@ public record Tile() implements IfaceValue {
         throw new UnsupportedOperationException("Tile.ceildiv is a compiler intrinsic.");
     }
 
-    public static Tile transpose(Tile aTile) {
+    /**
+     * Transpose the two axes of the input tile. If the input tile is 2-dimensional,
+     * then the axes are transposed. If the input tile is n-dimensional (n > 2),
+     * then this operation only transposes the first two axes.
+     *
+     * @param tile
+     * @return {@link Tile}
+     */
+    public static Tile transpose(Tile tile) {
         throw new UnsupportedOperationException("Tile.transpose is a compiler intrinsic.");
     }
 
@@ -160,43 +235,64 @@ public record Tile() implements IfaceValue {
         throw new UnsupportedOperationException("Tile.min is a compiler intrinsic.");
     }
 
-    public static Tile max(Tile aTile, int axis) {
+    public static Tile max(Tile tile, int axis) {
         throw new UnsupportedOperationException("Tile.max is a compiler intrinsic.");
     }
 
-    public static int numTiles(TensorF32 input, int dimension, int tileSize) {
+    /**
+     * Computes the number of tiles for an input tensor using the axis (second parameter)
+     * with the tile size.
+     * @param input Inpute tensor from global memory.
+     * @param axis dimension to compute
+     * @param tileSize input tile size. This is equivalent to shape(value).
+     * @return {@link Tile}
+     */
+    public static int numTiles(Tensor input, int axis, int tileSize) {
         throw new UnsupportedOperationException("Tile.numTiles is a compiler intrinsic.");
     }
 
-    public static int numTiles(TensorF32 input, int dimension, Shape shape) {
+    /**
+     * Computes the number of tiles for an input tensor using the axis (second parameter)
+     * with the specified shape.
+     * @param input Inpute tensor from global memory.
+     * @param axis dimension to compute
+     * @param shape a sequence of int values to specify the shape of the tile
+     * @return {@link Tile}
+     */
+    public static int numTiles(Tensor input, int axis, Shape shape) {
         throw new UnsupportedOperationException("Tile.numTiles is a compiler intrinsic.");
     }
 
-    public static int numTiles(Tensor2DF32 input, int dimension, Shape shape) {
-        throw new UnsupportedOperationException("Tile.numTiles is a compiler intrinsic.");
-    }
-
-    public static int numTiles(Tensor2DF16 input, int dimension, Shape shape) {
-        throw new UnsupportedOperationException("Tile.numTiles is a compiler intrinsic.");
-    }
-
+    /**
+     * Creates and initializes a tile with a specific shape to a given float (F32) value.
+     * @param shape input shape
+     * @param value init value
+     * @return {@link Tile}
+     */
     public static Tile full(Shape shape, float value) {
         throw new UnsupportedOperationException("Tile.full is a compiler intrinsic.");
     }
 
+    /**
+     * Perform a Matrix-Multiple-Accumulate operation (a * b + c)
+     * @param tileA tile A
+     * @param tileB tile B
+     * @param accumulator accumulator
+     * @return {@link Tile}
+     */
     public static Tile mma(Tile tileA, Tile tileB, Tile accumulator) {
         throw new UnsupportedOperationException("Tile.mma is a compiler intrinsic.");
     }
 
-    public static Tile zeros(final int axis0) {
-        throw new UnsupportedOperationException("Tile.zeros is a compiler intrinsic.");
-    }
-
-    public static Tile zeros(final int axis0, final int axis1) {
-        throw new UnsupportedOperationException("Tile.zeros is a compiler intrinsic.");
-    }
-
-    public static Tile zeros(final int axis0, final int axis1, final int axis2) {
+    /**
+     * It creates a new tile and set the initial value to zeros.
+     * By default, the tensor type is {@link hat.DType#TENSOR_F32_TYPE} for 1D and
+     * {@link hat.DType#TENSOR_2D_F32_TYPE} for a 2D tile.
+     *
+     * @param shape
+     * @return {@link Tile}
+     */
+    public static Tile zeros(Shape shape) {
         throw new UnsupportedOperationException("Tile.zeros is a compiler intrinsic.");
     }
 

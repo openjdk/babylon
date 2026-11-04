@@ -35,7 +35,7 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface Tensor2DF16 extends Buffer, Half {
+public interface Tensor2DF16 extends Tensor, Half {
 
     int m();
     int n();

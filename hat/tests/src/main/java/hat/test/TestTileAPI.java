@@ -173,7 +173,7 @@ public class TestTileAPI {
         final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
-        var accumulator = zeros(tm, tn);
+        var accumulator = zeros(shape(tm, tn));
 
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
@@ -380,7 +380,7 @@ public class TestTileAPI {
         final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
 
         // declare the accumulator using the shapes describes as arguments
-        var accumulator = zeros(tm, tn);
+        var accumulator = zeros(shape(tm, tn));
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
             var tileB = load(inputB, index(k, bidy), shape(tk, tn));
@@ -450,7 +450,7 @@ public class TestTileAPI {
     public static void matmulSimple(Tensor2DF32 inputA, Tensor2DF32 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
         final int bidx = BIDX();
         final int bidy = BIDY();
-        var accumulator = zeros(tm, tn);
+        var accumulator = zeros(shape(tm, tn));
         final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
@@ -498,7 +498,7 @@ public class TestTileAPI {
     public static void matmulSimpleF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
         final int bidx = BIDX();
         final int bidy = BIDY();
-        var accumulator = zeros(tm, tn);
+        var accumulator = zeros(shape(tm, tn));
         final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
@@ -571,7 +571,7 @@ public class TestTileAPI {
         final int bidx = first_bid_m + (bid % group_size_m);
         final int bidy = (bid % num_bid_in_group) / group_size_m;
 
-        var accumulator = zeros(tm, tn);
+        var accumulator = zeros(shape(tm, tn));
         final int numberOfTiles = numTiles(inputA, 1, shape(tm, tk));
         for (int k = 0; k < numberOfTiles; k++) {
             var tileA = load(inputA, index(bidx, k), shape(tm, tk));
