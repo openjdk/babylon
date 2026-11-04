@@ -323,9 +323,9 @@ public class KernelCallGraph implements LookupCarrier {
                 if (invoke(lookup(), op) instanceof OpHelper.Invoke invoke                         // always but pattern friendly
                         && invoke.resolvedMethodOrNull() instanceof Method m
                         && Op.ofMethod(m) instanceof Optional<CoreOp.FuncOp> optionalFuncOp // always but pattern friendly
-                        && optionalFuncOp.isPresent()
-                        && optionalFuncOp.get() instanceof CoreOp.FuncOp inline                  // always we just want var in scope
+                        && optionalFuncOp.isPresent()                  // always we just want var in scope
                 ) {
+                    CoreOp.FuncOp inline = optionalFuncOp.get();
                     var ssaInline = SSA.transform(inline.transform(CodeTransformer.LOWERING_TRANSFORMER));
                     var exitBlockBuilder = Inliner.inline(
                             blockbuilder, ssaInline,
