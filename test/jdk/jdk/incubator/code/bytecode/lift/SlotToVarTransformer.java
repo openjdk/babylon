@@ -216,7 +216,7 @@ final class SlotToVarTransformer {
                     } else if (var.value == null) {
                         CodeType varType = switch (val.type()) {
                             case UnresolvedType.Ref _ -> UnresolvedType.unresolvedRef();
-                            case UnresolvedType.Int _ -> UnresolvedType.unresolvedInt();
+                            case CodeType _ when var.typeKind == TypeKind.INT -> UnresolvedType.unresolvedInt();
                             default -> val.type();
                         };
                         var.value = block.add(CoreOp.var(null, varType, val));
