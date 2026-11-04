@@ -29,7 +29,7 @@ import optkl.ifacemapper.BoundSchema;
 import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.Schema;
 
-public interface TensorF16 extends Buffer, Half {
+public interface TensorF16 extends Tensor, Half {
 
     int m();
     short array(long index);

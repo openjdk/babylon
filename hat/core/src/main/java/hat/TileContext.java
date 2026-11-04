@@ -24,9 +24,7 @@
  */
 package hat;
 
-import hat.buffer.Tensor2DF16;
-import hat.buffer.Tensor2DF32;
-import hat.buffer.TensorF32;
+import hat.buffer.Tensor;
 import hat.types.Tile;
 
 import java.util.Arrays;
@@ -98,72 +96,64 @@ public interface TileContext {
     }
 
     /**
-     * Loads one dimensional tile from a single precision tensor {@link TensorF32}.
+     * Loads an n-dimensional tile from an input tensor in global memory..
      *
-     * @param buffer: tensor from which to load the tile
+     * @param buffer: tensor from which to load the tile from.
      * @param pid: index of the tile within the input tensor
      * @param tileSize: indicates the number of elements in the tile.
      *                For better performance, use a multiple of 16.
      * @return the loaded {@link Tile}
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
-    static Tile load(TensorF32 buffer, int pid, int tileSize) {
+    static Tile load(Tensor buffer, int pid, int tileSize) {
         throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     /**
-     * Loads a tile from a two-dimensional single precision tensor {@link TensorF32}.
+     * Loads an n-dimensional tile from an input tensor in global memory.
      *
-     * @param buffer: tensor from which to load the tile
-     * @param tileIndex2D: the two-dimension coordinates of the tile
-     * @param tileSize: indicates the shape (size for each dimension) of the tile to load.
-     *                For better performance, use a multiple of 16 for each dimension.
-     * @return the loaded {@link Tile}
-     * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
-     */
-    static Tile load(Tensor2DF32 buffer, TileIndex tileIndex2D, Shape tileSize) {
-        throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
-    }
-
-    /**
-     * Loads a tile from a two-dimensional single precision tensor {@link hat.buffer.TensorF16}.
-     *
-     * @param buffer: tensor from which to load the tile
-     * @param tileIndex: the two-dimension coordinates of the tile
+     * @param buffer: tensor from which to load the tile from.
+     * @param tileIndex: the coordinates of the tile to load
      * @param shape: indicates the shape (size for each dimension) of the tile to load.
      *                For better performance, use a multiple of 16 for each dimension.
      * @return the loaded {@link Tile}
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
-    static Tile load(Tensor2DF16 buffer, TileIndex tileIndex, Shape shape) {
-        throw new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
+    static Tile load(Tensor buffer, TileIndex tileIndex, Shape shape) {
+        throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     /**
-     * Stores a tile in single-precision (float) into a single precision tensor.
+     * Stores a tile into a Tensor in global memory.
      *
      * @param buffer the destination tensor.
      * @param pid the thread-block id
      * @param result the resulting tile to store.
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
-    static void store(TensorF32 buffer, int pid, Tile result) {
+    static void store(Tensor buffer, int pid, Tile result) {
         throw  new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
     /**
-     * Stores a two-dimensional in single precision (float) into a two-dimensional tensor.
+     * Stores a tile into a Tensor in global memory.
      *
      * @param buffer the destination tensor
-     * @param tileIndex the two-dimensional thread-block index in which store the tile
+     * @param tileIndex the n-dimensional thread-block index in which store the tile
      * @param result the tile to store
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
-    static void store(Tensor2DF32 buffer, TileIndex tileIndex, Tile result) {
+    static void store(Tensor buffer, TileIndex tileIndex, Tile result) {
         throw  new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
 
+    /**
+     * Provide a list of indexes to be used to load/store tiles.
+     *
+     * @param index list of indexes
+     * @return {@link TileIndex}
+     */
     static TileIndex index(int...index) {
         return new TileIndex(Arrays.stream(index).boxed().toList());
     }
@@ -178,7 +168,9 @@ public interface TileContext {
     }
 
     /**
-     * List of indices of a tile
+     * List of indices of a tile to be used in operations such as
+     * {@link Tile#permute(Tile, DimMap)}
+     *
      * @param dimMap
      * @return {@link DimMap}
      */

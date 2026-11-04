@@ -529,11 +529,9 @@ public class TileTransformer {
         }
 
         public Value zeros(CodeType typeResult, Op.Result result,
-                           CodeType shapeTypeA, Value shapeA,
-                           CodeType shapeTypeB, Value shapeB) {
+                           CodeType shapeType, Value shape) {
             return block.add(TileOps.zeros(typeResult,
-                    block.context().getValue(shapeA),
-                    block.context().getValue(shapeB)));
+                    block.context().getValue(shape)));
         }
 
         public Value sum(CodeType typeResult, Op.Result result,
@@ -1078,8 +1076,16 @@ public class TileTransformer {
             }
         }
 
-        public static CodeType zeros(ConstantType tileShapeA, ConstantType tileShapeB) {
-            return new TensorType(DType.TENSOR_2D_F32_TYPE, List.of((Integer) tileShapeA.value(), (Integer) tileShapeB.value()));
+        public static CodeType zeros(CodeType shape) {
+            if (shape instanceof ShapeType shapeType) {
+                int dimensions = shapeType.dimensions();
+                List<Integer> list = shapeType.list();
+                switch (dimensions) {
+                    case 1: return new TensorType(DType.TENSOR_F32_TYPE, list);
+                    case 2: return new TensorType(DType.TENSOR_2D_F32_TYPE, list);
+                }
+            }
+            throw new IllegalArgumentException("Tile.zeros operation, first argument expected to be of type ShapeType but found : " + shape.getClass());
         }
 
         public static CodeType asType(CodeType tensor, CodeType toType) {

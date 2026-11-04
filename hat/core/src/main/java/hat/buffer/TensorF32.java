@@ -35,7 +35,7 @@ import java.lang.foreign.MemorySegment;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-public interface TensorF32 extends Buffer {
+public interface TensorF32 extends Tensor {
 
     int m();
     float array(long idx);
