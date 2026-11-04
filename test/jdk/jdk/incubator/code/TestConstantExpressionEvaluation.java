@@ -32,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
@@ -232,8 +233,7 @@ public class TestConstantExpressionEvaluation {
     }
 
     @Reflect
-    static int effectivelyFinalVar() {
-        // the op evaluation API broaden the JLS notion of constant variable to include effectively final variable
+    static int fc_effectivelyFinalVar() {
         int x = 1;
         return x;
     }
@@ -244,9 +244,8 @@ public class TestConstantExpressionEvaluation {
         return Y1;
     }
     final String V = "X";
-    //@Reflect
+    @Reflect
     String instanceField() {
-        // V is constant variable, but we can't get its value from the model
         return V;
     }
     static final Integer Y2 = 3;
@@ -267,22 +266,16 @@ public class TestConstantExpressionEvaluation {
         return Y4;
     }
     static final int Y3 = Math.max(1, 2);
-    //@Reflect
+    @Reflect
     static int fcFieldInitializedWithNonConstantExpr() {
-        // according to JLS, access to Y3 is not a constant expression
-        // because Y3 is not a constant variable, because it's initilaized with a non-constant expression,
-        // but we currently have a limitation in the API
         return Y3;
     }
     static final String S;
     static {
         S = "A";
     }
-    //@Reflect
+    @Reflect
     static String fcFieldBlankFinal() {
-        // according to JLS, access to S is not a constant expression
-        // because S is not a constant variable, because it lacks an initializer,
-        // but we currently have a limitation in the API
         return S;
     }
 
@@ -314,7 +307,7 @@ public class TestConstantExpressionEvaluation {
             Assertions.assertTrue(v.isEmpty(), m.getName());
         } else {
             Assertions.assertTrue(v.isPresent(), m.getName());
-            Object expected = m.invoke(null);
+            Object expected = m.invoke(m.accessFlags().contains(AccessFlag.STATIC) ? null : this);
             Assertions.assertEquals(expected, v.get());
         }
     }
@@ -356,6 +349,17 @@ public class TestConstantExpressionEvaluation {
     @Reflect
     static String fc9() {
         return null;
+    }
+
+    @Reflect
+    static boolean fcConditionalOr() {
+        return true || Math.max(1, 2) > 0;
+    }
+
+    @Reflect
+    static boolean fcConditionalAnd() {
+        int i = 0;
+        return false && i++ > 0;
     }
 
     static CoreOp.FuncOp conversionModel(CodeType source, CodeType target) {

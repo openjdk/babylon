@@ -49,6 +49,10 @@ public final class ConstantValueAnalysis {
         this.incomingArguments = incomingArguments;
     }
 
+    public ConstantValueAnalysis() {
+        this.incomingArguments = _ -> List.of();
+    }
+
     void clearUnknowns() {
         cache.values().removeIf(Optional::isEmpty);
     }
@@ -86,8 +90,8 @@ public final class ConstantValueAnalysis {
             }
             case Op.Result result ->
                 switch (result.op()) {
-                    case CoreOp.ConstantOp constant ->
-                            Optional.ofNullable(constant.value());
+                    case CoreOp.ConstantOp constant when isConstantValue(constant.value()) ->
+                            Optional.of(constant.value() instanceof String s ? s.intern() : constant.value());
                     case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
                         List<Object> operands = new ArrayList<>(result.op().operands().size());
                         for (Value operand : result.op().operands()) {
@@ -98,24 +102,38 @@ public final class ConstantValueAnalysis {
                             operands.add(constant.orElseThrow());
                         }
                         try {
-                            yield Optional.of(ArithmeticAndConvOpImpls.evaluate(result.op(), operands));
+                            yield Optional.ofNullable(ArithmeticAndConvOpImpls.evaluate(result.op(), operands));
                         } catch (ArithmeticException _) {
                             yield Optional.empty();
                         }
                     }
                     case JavaOp.CastOp co when value.type().equals(JavaType.J_L_STRING) ->
                         evaluate(co.operands().getFirst()).filter(String.class::isInstance);
+                    case JavaOp.ConcatOp co -> {
+                        Optional<Object> first = evaluate(co.operands().getFirst());
+                        Optional<Object> second = evaluate(co.operands().getLast());
+                        if (first.isEmpty() || second.isEmpty()) {
+                            yield Optional.empty();
+                        }
+                        yield Optional.of((first.toString() + second).intern());
+                    }
                     case JavaOp.ConditionalExpressionOp co ->
                         yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
-                                .map(v -> yieldValue((Boolean) v ? co.trueBody() : co.falseBody()).orElse(null));
-                    case JavaOp.ConditionalOrOp co ->
-                        co.bodies().stream().map(this::yieldValue)
-                                .filter(v -> v.isEmpty() || v.get().equals(true))
-                                .findFirst().orElse(Optional.of(false));
-                    case JavaOp.ConditionalAndOp co ->
-                        co.bodies().stream().map(this::yieldValue)
-                                .filter(v -> v.isEmpty() || v.get().equals(false))
-                                .findFirst().orElse(Optional.of(true));
+                                .map(v -> yieldValue((Boolean) v ? co.trueBody() : co.falseBody())).orElse(null);
+                    case JavaOp.ConditionalOrOp co -> {
+                        List<Optional<Object>> values = co.bodies().stream().map(this::yieldValue).toList();
+                        if (values.stream().anyMatch(Optional::isEmpty)) {
+                            yield Optional.empty();
+                        }
+                        yield Optional.of(values.stream().anyMatch(v -> v.get().equals(true)));
+                    }
+                    case JavaOp.ConditionalAndOp co -> {
+                        List<Optional<Object>> values = co.bodies().stream().map(this::yieldValue).toList();
+                        if (values.stream().anyMatch(Optional::isEmpty)) {
+                            yield Optional.empty();
+                        }
+                        yield Optional.of(values.stream().noneMatch(v -> v.get().equals(false)));
+                    }
                     default ->  Optional.empty();
                 };
         };
@@ -131,5 +149,13 @@ public final class ConstantValueAnalysis {
         return body.blocks().size() == 1 && body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yield
                 ? evaluate(yield.yieldValue())
                 : Optional.empty();
+    }
+
+    private static boolean isConstantValue(Object o) {
+        return switch (o) {
+            case String _ -> true;
+            case Boolean _, Byte _, Short _, Character _, Integer _, Long _, Float _, Double _ -> true;
+            case null, default -> false;
+        };
     }
 }

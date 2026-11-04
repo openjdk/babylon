@@ -32,6 +32,7 @@ import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.extern.ExternalizedOp;
 import jdk.incubator.code.extern.OpFactory;
 import jdk.incubator.code.internal.BranchTarget;
+import jdk.incubator.code.internal.ConstantValueAnalysis;
 import jdk.incubator.code.internal.OpDeclaration;
 
 import java.lang.constant.ClassDesc;
@@ -101,18 +102,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         /**
          * Evaluates an operation result whose operation models a constant expression.
-         * <p>
-         * This method deviates from the language specification of a constant expression in the following cases.
-         * <ul>
-         * <li> A name that refers to a class or instance variable is evaluated as if it is non-constant variable
-         * and therefore any expression referring to such a variable is not considered a constant expression.
-         * <li>An effectively final local variable is evaluated as if a constant variable.
-         * Such a variable is modelled as a variable operation, which does not model if the variable is a final
-         * variable.
-         *</ul>
          *
          * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
          *          variable as a constant operation whose constant value is the same as the constant variable's value.
+         *          This makes the evaluation fully compatible with JLS definition of constant expressions.
          *
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
@@ -120,23 +113,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * @jls 15.29 Constant Expressions
          */
         static Optional<Object> evaluate(Value v) {
-            return new ConstantExpressionEvaluator().evaluate(v);
+            return new ConstantValueAnalysis().evaluate(v);
         }
 
         /**
          * Evaluates an operation that models a constant expression.
-         * <p>
-         * This method deviates from the language specification of a constant expression in the following cases.
-         * <ul>
-         * <li>A name that refers to a class or instance variable is evaluated as if it is non-constant variable,
-         * and therefore any expression referring to such a variable is not considered a constant expression.
-         * <li>An effectively final local variable is evaluated as if a constant variable.
-         * Such a variable is modelled as a variable operation, which does not model if the variable is a final
-         * variable.
-         *</ul>
          *
          * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
          *          variable as a constant operation whose constant value is the same as the constant variable's value.
+         *          This makes the evaluation fully compatible with JLS definition of constant expressions.
          *
          * @param op the operation to evaluate
          * @param <T> the type of the operation
@@ -145,7 +130,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          * @jls 15.29 Constant Expressions
          */
         static <T extends Op & JavaExpression> Optional<Object> evaluate(T op) { // TODO update the doc
-            return new ConstantExpressionEvaluator().evaluate(op);
+            return new ConstantValueAnalysis().evaluate(op.result());
         }
 
     }

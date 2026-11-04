@@ -843,10 +843,12 @@ public final class ArithmeticAndConvOpImpls {
         }
         MethodHandle mh = opHandle(mn, op.opSignature());
         if (mh == null) {
-            throw new NonConstantExpression();
+            return null;
         }
         try {
             return mh.invokeWithArguments(evaluatedOperands);
+        } catch (ArithmeticException e) {
+            throw e;
         } catch (Throwable e) {
             throw new InternalError("Should not reach here", e);
         }
