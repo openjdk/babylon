@@ -74,28 +74,12 @@ public class TileOps {
         return new TileIndexOp(values);
     }
 
-    public static Op shape(Value index0) {
-        return new TileShapeOp(index0);
+    public static Op shape(Value... values) {
+        return new TileShapeOp(values);
     }
 
-    public static Op shape(Value index0, Value index1) {
-        return new TileShapeOp(index0, index1);
-    }
-
-    public static Op shape(Value index0, Value index1, Value index2) {
-        return new TileShapeOp(index0, index1, index2);
-    }
-
-    public static Op dim(Value index0) {
-        return new TileDimOp(index0);
-    }
-
-    public static Op dim(Value index0, Value index1) {
-        return new TileDimOp(index0, index1);
-    }
-
-    public static Op dim(Value index0, Value index1, Value index2) {
-        return new TileDimOp(index0, index1, index2);
+    public static Op dim(Value...dims) {
+        return new TileDimOp(dims);
     }
 
     public static Op numTiles(CodeType typeResult, Value ptr, Value dimension, Value shape) {

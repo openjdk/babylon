@@ -24,5 +24,7 @@
  */
 package hat;
 
-public record TileIndex2D(int x, int y) {
+import java.util.List;
+
+public record TileIndex(List<Integer> idxList) {
 }

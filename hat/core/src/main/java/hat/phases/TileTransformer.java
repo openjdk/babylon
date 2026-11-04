@@ -26,7 +26,12 @@ package hat.phases;
 
 import hat.DType;
 import hat.TileContext;
-import hat.codetypes.*;
+import hat.codetypes.ConstantType;
+import hat.codetypes.DimType;
+import hat.codetypes.IndexType;
+import hat.codetypes.PtrType;
+import hat.codetypes.ShapeType;
+import hat.codetypes.TensorType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.DialectFunction;
 import hat.dialect.DialectModule;
@@ -360,18 +365,18 @@ public class TileTransformer {
                     block.context().getValue(shapeC)));
         }
 
-        public Value dimensionMap(CodeType type, Op.Result result,
+        public Value dimMap(CodeType type, Op.Result result,
                            CodeType shapeAType, Value shapeA) {
             return block.add(TileOps.dim(block.context().getValue(shapeA)));
         }
 
-        public Value dimensionMap(CodeType type, Op.Result result,
+        public Value dimMap(CodeType type, Op.Result result,
                            CodeType shapeAType, Value shapeA,
                            CodeType shapeBType, Value shapeB) {
             return block.add(TileOps.dim(block.context().getValue(shapeA), block.context().getValue(shapeB)));
         }
 
-        public Value dimensionMap(CodeType type, Op.Result result,
+        public Value dimMap(CodeType type, Op.Result result,
                            CodeType shapeAType, Value shapeA,
                            CodeType shapeBType, Value shapeB,
                            CodeType shapeCType, Value shapeC) {
@@ -385,8 +390,6 @@ public class TileTransformer {
                           PtrType ptrType, Value ptr,
                           CodeType dimensionType, Value dimension,
                           CodeType shapeType, Value shape) {
-            // Here we can perform some checks, for example, check shapes, check dimensions, etc.
-            // Here we can perform some checks, for example, check shapes, check dimensions, etc.
             return block.add(TileOps.load(type,
                     block.context().getValue(ptr),
                     block.context().getValue(dimension),
@@ -398,7 +401,6 @@ public class TileTransformer {
                            PtrType ptrType, Value ptr,
                            CodeType idType, Value id,
                            CodeType tensorType, Value tensor) {
-            // Here we can perform some checks, for example, check shapes, check dimensions, etc.
             return block.add(TileOps.store(block.context().getValue(ptr),
                     block.context().getValue(id),
                     block.context().getValue(tensor), ptrType.dims()));
@@ -811,6 +813,9 @@ public class TileTransformer {
                 case JavaOp.ContinueOp _ -> {
 
                 }
+                case JavaOp.ConvOp _ -> {
+
+                }
                 default -> throw new IllegalStateException("Unexpected value: " + op);
             }
         });
@@ -931,36 +936,49 @@ public class TileTransformer {
             return JavaType.INT;
         }
 
-        public static IndexType index(ConstantType indexA) {
-            return new IndexType(indexA);
+        public static IndexType index(CodeType...index) {
+            if (index.length == 0) {
+                throw new IllegalArgumentException("Call to TileContext.index() can't be empty");
+            }
+            // check
+            for (CodeType ct : index) {
+                if (!(ct instanceof PrimitiveType)) {
+                    throw new IllegalArgumentException("Call to TileContext.index() must have primitive values");
+                }
+            }
+            return new IndexType(index);
         }
 
-        public static IndexType index(CodeType indexA, CodeType indexB) {
-            return new IndexType(indexA, indexB);
+        public static ShapeType shape(CodeType... shape) {
+            if (shape.length == 0) {
+                throw new IllegalArgumentException("Shape must not be empty");
+            }
+            ConstantType[] shapeDims = new ConstantType[shape.length];
+            int i = 0;
+            for (CodeType codeType : shape) {
+                if (codeType instanceof ConstantType c) {
+                    shapeDims[i++] = c;
+                } else {
+                    throw new IllegalArgumentException("shape is not a list type: " + shape);
+                }
+            }
+            return new ShapeType(shapeDims);
         }
 
-        public static ShapeType shape(ConstantType shapeA) {
-            return new ShapeType(shapeA);
-        }
-
-        public static ShapeType shape(ConstantType shapeA, ConstantType shapeB) {
-            return new ShapeType(shapeA, shapeB);
-        }
-
-        public static ShapeType shape(ConstantType shapeA, ConstantType shapeB, ConstantType shapeC) {
-            return new ShapeType(shapeA, shapeB, shapeC);
-        }
-
-        public static DimType dimensionMap(ConstantType shapeA) {
-            return new DimType(shapeA);
-        }
-
-        public static DimType dimensionMap(ConstantType shapeA, ConstantType shapeB) {
-            return new DimType(shapeA, shapeB);
-        }
-
-        public static DimType dimensionMap(ConstantType shapeA, ConstantType shapeB, ConstantType shapeC) {
-            return new DimType(shapeA, shapeB, shapeC);
+        public static DimType dimMap(CodeType... dim) {
+            if (dim.length == 0) {
+                throw new IllegalArgumentException("Shape must not be empty");
+            }
+            ConstantType[] dimMap = new ConstantType[dim.length];
+            int i = 0;
+            for (CodeType codeType : dim) {
+                if (codeType instanceof ConstantType c) {
+                    dimMap[i++] = c;
+                } else {
+                    throw new IllegalArgumentException("shape is not a list type: " + dim);
+                }
+            }
+            return new DimType(dimMap);
         }
 
         public static TensorType load(PtrType ptr, CodeType dimension, CodeType shape) {
