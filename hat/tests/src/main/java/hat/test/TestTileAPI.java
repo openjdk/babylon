@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.Tensor;
 import hat.buffer.Tensor2DF16;
 import hat.buffer.Tensor2DF32;
 import hat.buffer.TensorF32;
@@ -495,7 +496,7 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16(Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk) {
+    public static void matmulSimpleF16(Tensor inputA, Tensor inputB, Tensor output, final int tm, final int tn, final int tk) {
         final int bidx = BIDX();
         final int bidy = BIDY();
         var accumulator = zeros(shape(tm, tn));
@@ -509,7 +510,10 @@ public class TestTileAPI {
     }
 
     @Reflect
-    public static void matmulSimpleF16(ComputeContext computeContext, Tensor2DF16 inputA, Tensor2DF16 inputB, Tensor2DF32 output, final int tm, final int tn, final int tk, final int M, final int N) {
+    public static void matmulSimpleF16(ComputeContext computeContext,
+                                       Tensor inputA, Tensor inputB, Tensor output,
+                                       final int tm, final int tn, final int tk,
+                                       final int M, final int N) {
         computeContext.dispatchTile(NDRange.of2D(M, N, tm, tn),
                 () -> matmulSimpleF16(inputA, inputB, output, tm, tn, tk));
     }

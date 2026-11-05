@@ -172,38 +172,37 @@ public class KernelCallGraph implements LookupCarrier {
         return OpHelper.isKlassUsed(lookup(), inlinedEntryPoint, TileContext.class) && HAT_PROCESS_TILE_DIALECT;
     }
 
-    private static void handlePrimitiveType(Object kernelArgument, Class<?> parameterType, ArrayList<CodeType> codeTypes) {
-        switch (kernelArgument) {
-            case Integer val when parameterType.equals(int.class) -> codeTypes.add(new ConstantType(DType.Int, val));
-            case Long val when parameterType.equals(long.class) -> codeTypes.add(new ConstantType(DType.Long, val));
-            case Float val when parameterType.equals(float.class) -> codeTypes.add(new ConstantType(DType.Float, val));
-            case Double val when parameterType.equals(double.class) ->
-                    codeTypes.add(new ConstantType(DType.Double, val));
-            case Boolean val when parameterType.equals(boolean.class) ->
-                    codeTypes.add(new ConstantType(DType.Boolean, val));
-            case Character val when parameterType.equals(char.class) ->
-                    codeTypes.add(new ConstantType(DType.Char, val));
-            case Short val when parameterType.equals(short.class) -> codeTypes.add(new ConstantType(DType.Short, val));
-            case Byte val when parameterType.equals(byte.class) -> codeTypes.add(new ConstantType(DType.Byte, val));
+    private static CodeType handlePrimitiveType(Object kernelArgument, Class<?> parameterType) {
+        return switch (kernelArgument) {
+            case Integer val when parameterType.equals(int.class) -> new ConstantType(DType.Int, val);
+            case Long val when parameterType.equals(long.class) -> new ConstantType(DType.Long, val);
+            case Float val when parameterType.equals(float.class) -> new ConstantType(DType.Float, val);
+            case Double val when parameterType.equals(double.class) -> new ConstantType(DType.Double, val);
+            case Boolean val when parameterType.equals(boolean.class) -> new ConstantType(DType.Boolean, val);
+            case Character val when parameterType.equals(char.class) -> new ConstantType(DType.Char, val);
+            case Short val when parameterType.equals(short.class) -> new ConstantType(DType.Short, val);
+            case Byte val when parameterType.equals(byte.class) -> new ConstantType(DType.Byte, val);
             case null, default ->
                     throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
-        }
+        };
     }
 
-    private static void handleTensorType(Object kernelArgument, Class<?> parameterType, ArrayList<CodeType> codeTypes) {
+    private static CodeType handleTensorType(Object kernelArgument) {
         // We need to inspect the type and pass the input dimensions
+        CodeType ct;
         switch (kernelArgument) {
-            case TensorF32 tensorF32 when parameterType.equals(TensorF32.class) -> // 1D
-                    codeTypes.add(new PtrType(DType.TENSOR_F32_TYPE, tensorF32.m()));
-            case Tensor2DF32 tensor2DF32 when parameterType.equals(Tensor2DF32.class) -> // 2D
-                    codeTypes.add(new PtrType(DType.TENSOR_2D_F32_TYPE, tensor2DF32.m(), tensor2DF32.n()));
-            case TensorF16 tensorF16 when parameterType.equals(TensorF16.class) -> // 1D
-                    codeTypes.add(new PtrType(DType.TENSOR_F16_TYPE, tensorF16.m()));
-            case Tensor2DF16 tensor2DF16 when parameterType.equals(Tensor2DF16.class) -> // 2D
-                    codeTypes.add(new PtrType(DType.TENSOR_2D_F16_TYPE, tensor2DF16.m(), tensor2DF16.n()));
+            case hat.buffer.Tensor t -> ct = switch (t) {
+                case TensorF16 tf16 -> new PtrType(DType.TENSOR_F16_TYPE, tf16.m());
+                case Tensor2DF16 tf162D -> new PtrType(DType.TENSOR_2D_F16_TYPE, tf162D.m(), tf162D.n());
+                case TensorF32 tf32 -> new PtrType(DType.TENSOR_F32_TYPE, tf32.m());
+                case Tensor2DF32 tf322D -> new PtrType(DType.TENSOR_2D_F32_TYPE, tf322D.m(), tf322D.n());
+                default ->
+                        throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
+            };
             case null, default ->
-                    throw new UnsupportedOperationException("Unsupported I/O parameter type: " + parameterType);
+                    throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
         }
+        return ct;
     }
 
     private List<CodeType> setCodeTypesForParameters(Class<?>[] parameterTypes, Object[] kernelParameters) {
@@ -211,11 +210,8 @@ public class KernelCallGraph implements LookupCarrier {
         for (int i = 0; i < parameterTypes.length; i++) {
             Class<?> parameterType = parameterTypes[i];
             Object kernelArgument = kernelParameters[i];
-            if (parameterType.isPrimitive()) {
-                handlePrimitiveType(kernelArgument, parameterType, codeTypes);
-            } else {
-                handleTensorType(kernelArgument, parameterType, codeTypes);
-            }
+            CodeType codeType = parameterType.isPrimitive()? handlePrimitiveType(kernelArgument, parameterType) : handleTensorType(kernelArgument);
+            codeTypes.add(codeType);
         }
         return codeTypes;
     }
