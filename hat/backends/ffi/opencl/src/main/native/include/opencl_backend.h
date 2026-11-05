@@ -25,6 +25,7 @@
 #pragma once
 // The following looks like it is not used (at least to CLION) but it is. ;) don't remove
 #define CL_TARGET_OPENCL_VERSION 120
+#include <memory>
 #ifdef __APPLE__
 #include <opencl/opencl.h>
 #else
@@ -51,7 +52,11 @@ extern void __checkOpenclErrors(cl_int status, const char *functionName, const c
 
 #define OPENCL_CHECK(err, functionName) __checkOpenclErrors (err, functionName, __FILE__, __LINE__)
 
+struct PlatformInfo;
+
 class OpenCLBackend final : public Backend {
+private:
+    std::unique_ptr<PlatformInfo> platformInfo;
 public:
     class OpenCLBuffer final : public Backend::Buffer {
     public:
@@ -168,6 +173,8 @@ public:
     void showDeviceInfo() override;
 
     static const char *errorMsg(cl_int status);
+
+    const PlatformInfo& getPlatformInfo() const;
 };
 
 

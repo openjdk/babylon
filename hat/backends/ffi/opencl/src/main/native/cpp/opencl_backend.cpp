@@ -145,6 +145,7 @@ OpenCLBackend::OpenCLBackend(int configBits)
     device_id = device_ids[config->device];
     delete[] device_ids;
     delete[] platforms;
+    platformInfo = std::make_unique<PlatformInfo>(this);
 }
 
 OpenCLBackend::~OpenCLBackend() {
