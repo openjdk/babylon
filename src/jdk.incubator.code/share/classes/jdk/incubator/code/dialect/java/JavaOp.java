@@ -105,7 +105,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          *
          * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
          *          variable as a constant operation whose constant value is the same as the constant variable's value.
-         *          This makes the evaluation fully compatible with JLS definition of constant expressions.
          *
          * @param v the value to evaluate
          * @return an {@code Optional} containing the evaluated result, otherwise an empty {@code Optional} if the value
@@ -121,7 +120,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          *
          * @apiNote {@linkplain jdk.incubator.code##java-code-models-heading Java code models} will model access to a constant
          *          variable as a constant operation whose constant value is the same as the constant variable's value.
-         *          This makes the evaluation fully compatible with JLS definition of constant expressions.
          *
          * @param op the operation to evaluate
          * @param <T> the type of the operation

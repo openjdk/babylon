@@ -120,20 +120,7 @@ public final class ConstantValueAnalysis {
                     case JavaOp.ConditionalExpressionOp co ->
                         yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
                                 .map(v -> yieldValue((Boolean) v ? co.trueBody() : co.falseBody())).orElse(null);
-                    case JavaOp.ConditionalOrOp co -> {
-                        List<Optional<Object>> values = co.bodies().stream().map(this::yieldValue).toList();
-                        if (values.stream().anyMatch(Optional::isEmpty)) {
-                            yield Optional.empty();
-                        }
-                        yield Optional.of(values.stream().anyMatch(v -> v.get().equals(true)));
-                    }
-                    case JavaOp.ConditionalAndOp co -> {
-                        List<Optional<Object>> values = co.bodies().stream().map(this::yieldValue).toList();
-                        if (values.stream().anyMatch(Optional::isEmpty)) {
-                            yield Optional.empty();
-                        }
-                        yield Optional.of(values.stream().noneMatch(v -> v.get().equals(false)));
-                    }
+                    case JavaOp.ConditionalOp co -> evaluateConditionalOp(co);
                     default ->  Optional.empty();
                 };
         };
@@ -149,6 +136,21 @@ public final class ConstantValueAnalysis {
         return body.blocks().size() == 1 && body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yield
                 ? evaluate(yield.yieldValue())
                 : Optional.empty();
+    }
+
+    private Optional<Object> evaluateConditionalOp(JavaOp.ConditionalOp co) {
+        boolean r = true;
+        for (Optional<Object> v : co.bodies().stream().map(this::yieldValue).toList()) {
+            if (v.isEmpty() || !(v.get() instanceof Boolean b)) {
+                return Optional.empty();
+            }
+            if (co instanceof JavaOp.ConditionalOrOp) {
+                r |= b;
+            } else {
+                r &= b;
+            }
+        }
+        return Optional.of(r);
     }
 
     private static boolean isConstantValue(Object o) {
