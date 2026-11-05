@@ -639,6 +639,12 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         Value varOpValue(Symbol sym) {
+            Value value = getValue(sym);
+            Assert.check(value.type() instanceof VarType);
+            return value;
+        }
+
+        Value getValue(Symbol sym) {
             BodyStack s = stack;
             while (s != null) {
                 Value v = s.localToOp.get(sym);
@@ -1049,7 +1055,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
             switch (sym.getKind()) {
                 case LOCAL_VARIABLE -> {
                     if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
-                        result = varOpValue(sym);
+                        // we can't expect value to be result of ConstantOp
+                        // as constant expression can be broder than just a literal
+                        result = getValue(sym);
                     } else {
                         result = loadVar(sym);
                     }
@@ -1088,7 +1096,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         private Value loadVar(Symbol sym) {
             Value varOp = varOpValue(sym);
-            Assert.check(varOp.type() instanceof VarType);
             return append(CoreOp.varLoad(varOp));
         }
 
