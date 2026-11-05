@@ -148,7 +148,7 @@ public class TestSynchronized {
                 %3 : Var<java.type:"int"> = var %1 @"i";
                 %4 : java.type:"java.lang.Object" = var.load %2;
                 %5 : java.type:"java.lang.Object" = constant @null;
-                %6 : java.type:"boolean" = invoke %4 %5 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                %6 : java.type:"boolean" = eq %4 %5;
                 cbranch %6 ^block_1 ^block_2;
 
               ^block_1:
