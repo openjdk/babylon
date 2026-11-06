@@ -247,9 +247,8 @@ void printWarningLocalGroupResized(const size_t local_work_size[]) {
 }
 
 void checkThreadBlockFits(OpenCLBackend *backend, const DispatchContext *dispatchContext, const size_t global_work_size[], size_t *local_work_size) {
-    const PlatformInfo platformInfo(backend);
-    size_t max_group_size = platformInfo.deviceInfo.maxWorkGroupSize;
     size_t totalThreads = dispatchContext->lsx * dispatchContext->lsy * dispatchContext->lsz;
+    size_t max_group_size = backend->getPlatformInfo().deviceInfo.maxWorkGroupSize;
 
     // Adjust depending on the total number of threads in the local-work-group
     while (totalThreads > max_group_size) {
