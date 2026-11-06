@@ -347,7 +347,8 @@ public final class BytecodeGenerator {
         return can;
     }
 
-    // Constant can be deferred, except for loading of a class constant, which  may throw an exception
+    // Class and dynamic constants cannot be deferred, resolution may throw
+    // and dynamic constant bootstrap methods may have side effects
     private static boolean canDefer(ConstantOp op) {
         return !op.resultType().equals(JavaType.J_L_CLASS)
                 && !(op.value() instanceof DynamicConstantDesc<?>);
@@ -516,7 +517,7 @@ public final class BytecodeGenerator {
                 switch (o) {
                     case ConstantOp op -> {
                         if (!canDefer(op)) {
-                            // Constant can be deferred, except for a class constant, which  may throw an exception
+                            // Emit class and dynamic constants at their original position
                             Object v = op.value();
                             if (v instanceof DynamicConstantDesc<?> dcd) {
                                 cob.ldc(dcd);
