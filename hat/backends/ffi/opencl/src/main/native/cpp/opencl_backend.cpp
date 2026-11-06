@@ -145,7 +145,8 @@ OpenCLBackend::OpenCLBackend(int configBits)
     device_id = device_ids[config->device];
     delete[] device_ids;
     delete[] platforms;
-    platformInfo = std::make_unique<PlatformInfo>(this);
+    PlatformInfo platformInfo(this);
+    maxWorkGroupSize = platformInfo.deviceInfo.maxWorkGroupSize;
 }
 
 OpenCLBackend::~OpenCLBackend() {

@@ -56,7 +56,7 @@ struct PlatformInfo;
 
 class OpenCLBackend final : public Backend {
 private:
-    std::unique_ptr<PlatformInfo> platformInfo;
+    size_t maxWorkGroupSize;
 public:
     class OpenCLBuffer final : public Backend::Buffer {
     public:
@@ -174,7 +174,7 @@ public:
 
     static const char *errorMsg(cl_int status);
 
-    const PlatformInfo& getPlatformInfo() const;
+    const size_t getMaxWorkGroupSize() const;
 };
 
 
