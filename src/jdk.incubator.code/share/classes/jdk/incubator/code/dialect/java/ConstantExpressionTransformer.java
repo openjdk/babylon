@@ -28,8 +28,9 @@ import jdk.incubator.code.Block;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
+import jdk.incubator.code.internal.ConstantValueAnalysis;
 
-import java.lang.invoke.MethodHandles;
+import java.util.List;
 import java.util.Optional;
 
 import static jdk.incubator.code.dialect.core.CoreOp.constant;
@@ -39,15 +40,15 @@ import static jdk.incubator.code.dialect.core.CoreOp.constant;
  * whose value is the result of evaluating that constant expression.
  */
 public class ConstantExpressionTransformer implements CodeTransformer {
-    private final ConstantExpressionEvaluator constantExpressionEvaluator;
+    private final ConstantValueAnalysis constants;
 
-    private ConstantExpressionTransformer(ConstantExpressionEvaluator constantExpressionEvaluator) {
-        this.constantExpressionEvaluator = constantExpressionEvaluator;
+    private ConstantExpressionTransformer() {
+        this.constants = new ConstantValueAnalysis(_ -> List.of());
     }
 
     @Override
     public Block.Builder acceptOp(Block.Builder b, Op op) {
-        Optional<Object> v = constantExpressionEvaluator.evaluate(op.result());
+        Optional<Object> v = constants.evaluate(op.result());
         if (v.isPresent()) {
             Op.Result c = b.add(constant(op.resultType(), v.get()));
             b.context().mapValue(op.result(), c);
@@ -61,13 +62,12 @@ public class ConstantExpressionTransformer implements CodeTransformer {
      * Transforms an operation, replacing an operation that models a constant expression with a constant operation
      * whose value is the result of evaluating that constant expression.
      *
-     * @param l  the lookup to use for reflective access
      * @param op the operation to transform
      * @param <O> the type of the operation
      * @return the transformed operation
      */
     @SuppressWarnings("unchecked")
-    public static <O extends Op> O transform(MethodHandles.Lookup l, O op) {
-        return (O) op.transform(CodeContext.create(), new ConstantExpressionTransformer(new ConstantExpressionEvaluator(l)));
+    public static <O extends Op> O transform(O op) {
+        return (O) op.transform(CodeContext.create(), new ConstantExpressionTransformer());
     }
 }
