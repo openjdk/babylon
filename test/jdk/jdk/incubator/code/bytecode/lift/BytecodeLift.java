@@ -128,7 +128,6 @@ public final class BytecodeLift {
         this.enteredRegionMap = new IdentityHashMap<>();
         this.actualEreStack = List.of();
         this.newStack = new ArrayDeque<>();
-        this.elements = codeModel.elementList();
         this.label2Bci = ((CodeAttribute)codeModel)::labelToBci;
         this.stack = new ArrayDeque<>();
         this.blockMap = codeModel.findAttribute(Attributes.stackMapTable()).map(sma ->
@@ -152,6 +151,7 @@ public final class BytecodeLift {
         }
         this.exceptionRegionsMap = new HashMap<>();
         List<ExceptionRegion> previous = List.of();
+        List<CodeElement> elements = codeModel.elementList();
         for (CodeElement e : elements) {
             if (e instanceof LabelTarget lt) {
                 int bci = label2Bci.applyAsInt(lt.label());
@@ -165,6 +165,10 @@ public final class BytecodeLift {
                 previous = next;
             }
         }
+        // filter out pseudo instructions that may interfere with expected instructions sequence
+        this.elements = elements.stream().filter(e ->
+                e instanceof Instruction || e instanceof LabelTarget lt
+                        && exceptionRegionsMap.containsKey(label2Bci.applyAsInt(lt.label()))).toList();
     }
 
     // One bytecode try range and its exception table handler indexes
