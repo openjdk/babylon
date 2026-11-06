@@ -1533,7 +1533,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitLambda(JCTree.JCLambda tree) {
-            final FunctionType lambdaType = typeToFunctionType(types.findDescriptorType(tree.target));
+            final Type descriptorType = types.findDescriptorType(tree.target);
+            final FunctionType lambdaType = typeToFunctionType(descriptorType);
 
             // Push quoted body for a reflectable lambda
 
@@ -1561,7 +1562,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // Scan the lambda body
-            Type lambdaReturnType = tree.getDescriptorType(types).getReturnType();
+            Type lambdaReturnType = descriptorType.getReturnType();
             if (tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
                 Value exprVal = toValue(((JCExpression) tree.body), lambdaReturnType);
                 if (!lambdaReturnType.hasTag(TypeTag.VOID)) {
@@ -1581,9 +1582,21 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // Get the functional interface type
-            JavaType fiType = typeToCodeType(tree.target);
+            Type fiType = tree.target;
+            List<Type> miTypes = new ArrayList<>();
+            if (fiType.isIntersection()) {
+                Symbol descriptor = types.findDescriptorSymbol(fiType.tsym);
+                fiType = types.asSuper(tree.target, descriptor.owner);
+                for (Type t : types.directSupertypes(tree.target)) {
+                    if (t.tsym != fiType.tsym && t.tsym != syms.objectType.tsym) {
+                        miTypes.add(t);
+                    }
+                }
+            }
             // build functional lambda
-            Op lambdaOp = JavaOp.lambda(fiType, stack.body, true);
+            Op lambdaOp = JavaOp.lambda(typeToCodeType(fiType), stack.body,
+                    miTypes.stream().map(t -> typeToCodeType(t)).toList(),
+                    true);
 
             // Pop lambda body
             popBody();
