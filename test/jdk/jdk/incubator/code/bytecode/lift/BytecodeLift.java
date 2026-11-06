@@ -86,6 +86,9 @@ public final class BytecodeLift {
     private static final MethodRef METHOD_TYPE_0 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS);
     private static final MethodRef METHOD_TYPE_1 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, JavaType.J_L_CLASS);
     private static final MethodRef METHOD_TYPE_L = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, CLASS_ARRAY);
+    private static final MethodRef COMPARE_LONG = MethodRef.method(Long.class, "compare", int.class, long.class, long.class);
+    private static final MethodRef COMPARE_FLOAT = MethodRef.method(Float.class, "compare", int.class, float.class, float.class);
+    private static final MethodRef COMPARE_DOUBLE = MethodRef.method(Double.class, "compare", int.class, double.class, double.class);
 
     private final Block.Builder entryBlock;
     private final List<Value> initialValues;
@@ -256,16 +259,14 @@ public final class BytecodeLift {
             if (element instanceof OperatorInstruction inst
                     && switch (inst.opcode()) {
                         case LCMP, FCMPL, FCMPG, DCMPL, DCMPG -> true;
+                        default -> false;}
+                    && i + 1 < elements.size()
+                    && (elements.get(i + 1) instanceof BranchInstruction branch)
+                    && switch (branch.opcode()) {
+                        case IFEQ, IFNE, IFLT, IFLE, IFGT, IFGE -> true;
                         default -> false;
                     }) {
-                if (i + 1 >= elements.size()
-                        || !(elements.get(i + 1) instanceof BranchInstruction branch)
-                        || !switch (branch.opcode()) {
-                            case IFEQ, IFNE, IFLT, IFLE, IFGT, IFGE -> true;
-                            default -> false;
-                        }) {
-                    throw new UnsupportedOperationException("Numeric compare without an adjacent unary branch");
-                }
+                // pre-scan if a numeric compare preceeds conditional branch
                 numericCompare = inst.opcode();
                 element = elements.get(++i);
             }
@@ -408,7 +409,6 @@ public final class BytecodeLift {
                     }, stack.pop())));
                 }
                 case OperatorInstruction inst -> {
-                    TypeKind tk = inst.typeKind();
                     Value operand = stack.pop();
                     stack.push(op(switch (inst.opcode()) {
                         case IADD, LADD, FADD, DADD ->
@@ -437,6 +437,20 @@ public final class BytecodeLift {
                                 JavaOp.ashr(stack.pop(), operand);
                         case IUSHR, LUSHR ->
                                 JavaOp.lshr(stack.pop(), operand);
+                        // standalone numeric compares are not reguraly produced by javac
+                        case LCMP ->
+                                // LCMP is equivalent to Long::compare
+                                JavaOp.invoke(COMPARE_LONG, stack.pop(), operand);
+                        case FCMPL, FCMPG ->
+                                // @@@ no suitable operator or API equivalent, NaN operands produce different results
+                                // comparison of negative zero is compensated
+                                JavaOp.invoke(COMPARE_FLOAT, op(JavaOp.add(stack.pop(), liftConstant(0f))),
+                                                             op(JavaOp.add(operand, liftConstant(0f))));
+                        case DCMPL, DCMPG ->
+                                // @@@ no suitable operator or API equivalent, NaN operands produce different results
+                                // comparison of negative zero is compensated
+                                JavaOp.invoke(COMPARE_DOUBLE, op(JavaOp.add(stack.pop(), liftConstant(0d))),
+                                                              op(JavaOp.add(operand, liftConstant(0d))));
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
