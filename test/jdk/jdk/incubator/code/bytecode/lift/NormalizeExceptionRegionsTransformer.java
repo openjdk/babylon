@@ -84,10 +84,11 @@ final class NormalizeExceptionRegionsTransformer implements CodeTransformer {
         Block exitTarget = exit.endReference().targetBlock();
         BranchOp adapterBranch = asBranchAdapter(exitTarget);
         Block enterBlock = adapterBranch == null ? exitTarget : adapterBranch.branch().targetBlock();
-        if (enterBlock.ops().size() != 1
-                || !(enterBlock.terminatingOp() instanceof ExceptionRegionEnter reenter)
+        if (!(enterBlock.terminatingOp() instanceof ExceptionRegionEnter reenter)
+                || !onlyNullCatchConstants(enterBlock, reenter)
                 || !isExitTargetOf(exitTarget, exitedEnter)
                 || (adapterBranch != null && !isOnlyReachedByExitAdapters(enterBlock, exitedEnter))
+                || !exitedEnter.catchTypes().equals(reenter.catchTypes())
                 || !sameCatchTargets(exitedEnter, reenter)
                 || !reenter.result().isDominatedBy(exitedEnter.result())) {
             return false;
@@ -105,6 +106,17 @@ final class NormalizeExceptionRegionsTransformer implements CodeTransformer {
         }
         modified = true;
         return true;
+    }
+
+    // Identify block with only synthetic null constants exclusively used as ERE catch blocks arguments
+    private static boolean onlyNullCatchConstants(Block block, ExceptionRegionEnter enter) {
+        return block.ops().stream()
+                .allMatch(op -> op == enter || op instanceof ConstantOp c
+                        && c.value() == null
+                        // null constant cannot be used as a start block argument
+                        && !enter.startReference().arguments().contains(c.result())
+                        // all uses must be on ERE (catch) blocks
+                        && c.result().uses().stream().allMatch(use -> use.op() == enter));
     }
 
     // Return a branch adapter, if this block is one

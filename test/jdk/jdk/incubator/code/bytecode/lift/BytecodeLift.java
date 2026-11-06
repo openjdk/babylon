@@ -75,9 +75,6 @@ public final class BytecodeLift {
     private static final JavaType MH = JavaType.type(ConstantDescs.CD_MethodHandle);
     private static final JavaType MT = JavaType.type(ConstantDescs.CD_MethodType);
     private static final JavaType CLASS_ARRAY = JavaType.array(JavaType.J_L_CLASS);
-    private static final MethodRef LCMP = MethodRef.method(JavaType.J_L_LONG, "compare", JavaType.INT, JavaType.LONG, JavaType.LONG);
-    private static final MethodRef FCMP = MethodRef.method(JavaType.J_L_FLOAT, "compare", JavaType.INT, JavaType.FLOAT, JavaType.FLOAT);
-    private static final MethodRef DCMP = MethodRef.method(JavaType.J_L_DOUBLE, "compare", JavaType.INT, JavaType.DOUBLE, JavaType.DOUBLE);
     private static final MethodRef LOOKUP = MethodRef.method(JavaType.type(ConstantDescs.CD_MethodHandles), "lookup", MHS_LOOKUP);
     private static final MethodRef FIND_STATIC = MethodRef.method(MHS_LOOKUP, "findStatic", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
     private static final MethodRef FIND_VIRTUAL = MethodRef.method(MHS_LOOKUP, "findVirtual", MH, JavaType.J_L_CLASS, JavaType.J_L_STRING, MT);
@@ -89,6 +86,9 @@ public final class BytecodeLift {
     private static final MethodRef METHOD_TYPE_0 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS);
     private static final MethodRef METHOD_TYPE_1 = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, JavaType.J_L_CLASS);
     private static final MethodRef METHOD_TYPE_L = MethodRef.method(MT, "methodType", MT, JavaType.J_L_CLASS, CLASS_ARRAY);
+    private static final MethodRef COMPARE_LONG = MethodRef.method(Long.class, "compare", int.class, long.class, long.class);
+    private static final MethodRef COMPARE_FLOAT = MethodRef.method(Float.class, "compare", int.class, float.class, float.class);
+    private static final MethodRef COMPARE_DOUBLE = MethodRef.method(Double.class, "compare", int.class, double.class, double.class);
 
     private final Block.Builder entryBlock;
     private final List<Value> initialValues;
@@ -128,7 +128,6 @@ public final class BytecodeLift {
         this.enteredRegionMap = new IdentityHashMap<>();
         this.actualEreStack = List.of();
         this.newStack = new ArrayDeque<>();
-        this.elements = codeModel.elementList();
         this.label2Bci = ((CodeAttribute)codeModel)::labelToBci;
         this.stack = new ArrayDeque<>();
         this.blockMap = codeModel.findAttribute(Attributes.stackMapTable()).map(sma ->
@@ -152,6 +151,7 @@ public final class BytecodeLift {
         }
         this.exceptionRegionsMap = new HashMap<>();
         List<ExceptionRegion> previous = List.of();
+        List<CodeElement> elements = codeModel.elementList();
         for (CodeElement e : elements) {
             if (e instanceof LabelTarget lt) {
                 int bci = label2Bci.applyAsInt(lt.label());
@@ -165,6 +165,10 @@ public final class BytecodeLift {
                 previous = next;
             }
         }
+        // filter out pseudo instructions that may interfere with expected instructions sequence
+        this.elements = elements.stream().filter(e ->
+                e instanceof Instruction || e instanceof LabelTarget lt
+                        && exceptionRegionsMap.containsKey(label2Bci.applyAsInt(lt.label()))).toList();
     }
 
     // One bytecode try range and its exception table handler indexes
@@ -181,7 +185,7 @@ public final class BytecodeLift {
     }
 
     // Cache key for a handler reached from a concrete region stack
-    record CatchTargetKey(int handler, List<Op.Result> enteredRegions) {}
+    record CatchTargetKey(int handler, List<Op.Result> enteredRegions, List<Map.Entry<Integer, CodeType>> handlers) {}
 
     // Handlers block references with related catch types
     record CatchEntries(List<CodeType> types, List<Block.Reference> references) {}
@@ -254,7 +258,23 @@ public final class BytecodeLift {
         }
 
         for (int i = 0; i < elements.size(); i++) {
-            switch (elements.get(i)) {
+            CodeElement element = elements.get(i);
+            Opcode numericCompare = null;
+            if (element instanceof OperatorInstruction inst
+                    && switch (inst.opcode()) {
+                        case LCMP, FCMPL, FCMPG, DCMPL, DCMPG -> true;
+                        default -> false;}
+                    && i + 1 < elements.size()
+                    && (elements.get(i + 1) instanceof BranchInstruction branch)
+                    && switch (branch.opcode()) {
+                        case IFEQ, IFNE, IFLT, IFLE, IFGT, IFGE -> true;
+                        default -> false;
+                    }) {
+                // pre-scan if a numeric compare preceeds conditional branch
+                numericCompare = inst.opcode();
+                element = elements.get(++i);
+            }
+            switch (element) {
                 case ExceptionCatch _ -> {
                     // Exception blocks are inserted by label target (below)
                 }
@@ -288,31 +308,64 @@ public final class BytecodeLift {
                 }
                 case BranchInstruction inst -> {
                     // Conditional branch
-                    Value operand = stack.pop();
+                    Value right = stack.pop();
+                    Value left;
+                    switch (inst.opcode()) {
+                        case IFNULL, IFNONNULL -> {
+                            left = right;
+                            right = liftConstant(null);
+                        }
+                        case IFEQ, IFNE, IFLT, IFLE, IFGT, IFGE -> {
+                            if (numericCompare == null) {
+                                left = right;
+                                right = liftConstant(0);
+                            } else {
+                                left = stack.pop();
+                            }
+                        }
+                        default -> left = stack.pop();
+                    }
+                    boolean branchOnTrue = false;
                     Op cop = switch (inst.opcode()) {
-                        case IFNE -> JavaOp.eq(operand, liftConstant(0));
-                        case IFEQ -> JavaOp.neq(operand, liftConstant(0));
-                        case IFGE -> JavaOp.lt(operand, liftConstant(0));
-                        case IFLE -> JavaOp.gt(operand, liftConstant(0));
-                        case IFGT -> JavaOp.le(operand, liftConstant(0));
-                        case IFLT -> JavaOp.ge(operand, liftConstant(0));
-                        case IFNULL -> JavaOp.neq(operand, liftConstant(null));
-                        case IFNONNULL -> JavaOp.eq(operand, liftConstant(null));
-                        case IF_ICMPNE -> JavaOp.eq(stack.pop(), operand);
-                        case IF_ICMPEQ -> JavaOp.neq(stack.pop(), operand);
-                        case IF_ICMPGE -> JavaOp.lt(stack.pop(), operand);
-                        case IF_ICMPLE -> JavaOp.gt(stack.pop(), operand);
-                        case IF_ICMPGT -> JavaOp.le(stack.pop(), operand);
-                        case IF_ICMPLT -> JavaOp.ge(stack.pop(), operand);
-                        case IF_ACMPEQ -> JavaOp.neq(stack.pop(), operand);
-                        case IF_ACMPNE -> JavaOp.eq(stack.pop(), operand);
+                        case IFNE, IF_ICMPNE, IF_ACMPNE, IFNONNULL -> JavaOp.eq(left, right);
+                        case IFEQ, IF_ICMPEQ, IF_ACMPEQ, IFNULL -> JavaOp.neq(left, right);
+                        case IFGE, IF_ICMPGE -> {
+                            if (numericCompare == Opcode.FCMPL || numericCompare == Opcode.DCMPL) {
+                                branchOnTrue = true;
+                                yield JavaOp.ge(left, right);
+                            }
+                            yield JavaOp.lt(left, right);
+                        }
+                        case IFLE, IF_ICMPLE -> {
+                            if (numericCompare == Opcode.FCMPG || numericCompare == Opcode.DCMPG) {
+                                branchOnTrue = true;
+                                yield JavaOp.le(left, right);
+                            }
+                            yield JavaOp.gt(left, right);
+                        }
+                        case IFGT, IF_ICMPGT -> {
+                            if (numericCompare == Opcode.FCMPL || numericCompare == Opcode.DCMPL) {
+                                branchOnTrue = true;
+                                yield JavaOp.gt(left, right);
+                            }
+                            yield JavaOp.le(left, right);
+                        }
+                        case IFLT, IF_ICMPLT -> {
+                            if (numericCompare == Opcode.FCMPG || numericCompare == Opcode.DCMPG) {
+                                branchOnTrue = true;
+                                yield JavaOp.lt(left, right);
+                            }
+                            yield JavaOp.ge(left, right);
+                        }
                         default -> throw new UnsupportedOperationException("Unsupported branch instruction: " + inst);
                     };
                     Block.Builder branch = transitionBlockForTarget(actualEreStack, label2Bci.applyAsInt(inst.target()));
                     Block.Builder next = entryBlock.block();
+                    Block.Reference taken = successorWithStack(branch);
+                    Block.Reference fallthrough = next.reference();
                     op(CoreOp.conditionalBranch(op(cop),
-                            next.reference(),
-                            successorWithStack(branch)));
+                            branchOnTrue ? taken : fallthrough,
+                            branchOnTrue ? fallthrough : taken));
                     currentBlock = next;
                 }
                 case LookupSwitchInstruction si -> {
@@ -360,7 +413,6 @@ public final class BytecodeLift {
                     }, stack.pop())));
                 }
                 case OperatorInstruction inst -> {
-                    TypeKind tk = inst.typeKind();
                     Value operand = stack.pop();
                     stack.push(op(switch (inst.opcode()) {
                         case IADD, LADD, FADD, DADD ->
@@ -389,12 +441,20 @@ public final class BytecodeLift {
                                 JavaOp.ashr(stack.pop(), operand);
                         case IUSHR, LUSHR ->
                                 JavaOp.lshr(stack.pop(), operand);
+                        // standalone numeric compares are not reguraly produced by javac
                         case LCMP ->
-                                JavaOp.invoke(LCMP, stack.pop(), operand);
+                                // LCMP is equivalent to Long::compare
+                                JavaOp.invoke(COMPARE_LONG, stack.pop(), operand);
                         case FCMPL, FCMPG ->
-                                JavaOp.invoke(FCMP, stack.pop(), operand);
+                                // @@@ no suitable operator or API equivalent, NaN operands produce different results
+                                // comparison of negative zero is compensated
+                                JavaOp.invoke(COMPARE_FLOAT, op(JavaOp.add(stack.pop(), liftConstant(0f))),
+                                                             op(JavaOp.add(operand, liftConstant(0f))));
                         case DCMPL, DCMPG ->
-                                JavaOp.invoke(DCMP, stack.pop(), operand);
+                                // @@@ no suitable operator or API equivalent, NaN operands produce different results
+                                // comparison of negative zero is compensated
+                                JavaOp.invoke(COMPARE_DOUBLE, op(JavaOp.add(stack.pop(), liftConstant(0d))),
+                                                              op(JavaOp.add(operand, liftConstant(0d))));
                         default ->
                             throw new IllegalArgumentException("Unsupported operator opcode: " + inst.opcode());
                     }));
@@ -802,6 +862,15 @@ public final class BytecodeLift {
                 c = null;
                 yield liftConstant(null);
             }
+            case DynamicConstantDesc<?> dcd when dcd.bootstrapMethod().equals(ConstantDescs.BSM_INVOKE)
+                    && dcd.constantType().equals(ConstantDescs.CD_MethodHandle)
+                    && !dcd.bootstrapArgsList().isEmpty()
+                    && dcd.bootstrapArgsList().getFirst() instanceof DirectMethodHandleDesc finder
+                    && finder.owner().equals(ConstantDescs.CD_MethodHandles_Lookup)
+                    && Arrays.asList("findSpecial", "findVirtual", "findStatic",
+                            "findGetter", "findSetter", "findStaticGetter", "findStaticSetter")
+                            .contains(finder.methodName())
+                    -> op(CoreOp.constant(MH, dcd));
             case DynamicConstantDesc<?> dcd -> {
                 DirectMethodHandleDesc bsm = dcd.bootstrapMethod();
                 MethodTypeDesc bsmDesc = bsm.invocationType();
@@ -810,7 +879,10 @@ public final class BytecodeLift {
                                                     bsm.methodName(),
                                                     JavaType.type(bsmDesc.returnType()),
                                                     bsmDesc.parameterList().stream().map(JavaType::type).toArray(CodeType[]::new));
-                yield op(JavaOp.invoke(bsmRef, bootstrapArgs));
+                Op.Result call = op(JavaOp.invoke(bsmRef, bootstrapArgs));
+                JavaType target = JavaType.type(dcd.constantType());
+                yield target.equals(call.type()) || dcd.constantType().isPrimitive()
+                        ? call : op(JavaOp.cast(target, call));
             }
             case Boolean b -> op(CoreOp.constant(JavaType.BOOLEAN, b));
             case Byte b -> op(CoreOp.constant(JavaType.BYTE, b));
@@ -993,7 +1065,8 @@ public final class BytecodeLift {
         List<CodeType> types = new ArrayList<>();
         List<Op.Result> enteredRegions = List.copyOf(initialEreStack);
         for (Group group : groups.reversed()) {
-            CatchTargetKey key = new CatchTargetKey(group.firstHandler(), enteredRegions);
+            CatchTargetKey key = new CatchTargetKey(group.handlerBci(), enteredRegions,
+                    enteredRegion.handlers().stream().map(h -> Map.entry(handlerBcis.get(h), catchTypes.get(h))).toList());
             Block.Builder target = exceptionHandlerBlocks.get(key);
             if (target == null) { // Avoid ConcurrentModificationException
                 target = transitionBlockForTarget(enteredRegions, group.handlerBci());
