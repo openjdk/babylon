@@ -56,7 +56,7 @@ struct PlatformInfo;
 
 class OpenCLBackend final : public Backend {
 private:
-    std::unique_ptr<PlatformInfo> platformInfo;
+    std::unique_ptr<PlatformInfo> _platform_info;
 public:
     class OpenCLBuffer final : public Backend::Buffer {
     public:
@@ -138,7 +138,6 @@ public:
 
         void copyFromDevice(Buffer *buffer) override;
 
-
         void dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) override;
 
         ~OpenCLQueue() override;
@@ -176,7 +175,6 @@ public:
 
     const PlatformInfo& getPlatformInfo() const;
 };
-
 
 struct PlatformInfo {
     struct DeviceInfo {
