@@ -246,6 +246,7 @@ public final class LocalsCompactor {
                                 slotMap[slot]--;
                             }
                         }
+                        sourceSlot--;
                     }
                 } else if (source.flags == 1 && sourceSlot > targetSlot + 1) {
                     Slot source2 = maps.get(sourceSlot + 1);
@@ -268,6 +269,7 @@ public final class LocalsCompactor {
                                     slotMap[slot] -= 2;
                                 }
                             }
+                            sourceSlot--;
                         }
                     }
                 }

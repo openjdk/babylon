@@ -102,9 +102,8 @@ public class TestSmallCorpus {
         max stack:   %3$,10d %6$,10d
         """.formatted((Object[])stats));
 
-        // 3-rounds stability is actually 85%, target is 95%
-        int stability = 100 * stable / (stable + unstable);
-        Assertions.assertTrue(stability > 95, "3-rounds stability is " + stability + "%");
+        // 3-rounds full stability reached
+        Assertions.assertEquals(0, unstable, "unstable models found after 3 rounds");
     }
 
     private void testRoundTrips(Path path, boolean testStability, int rounds) throws Exception {
