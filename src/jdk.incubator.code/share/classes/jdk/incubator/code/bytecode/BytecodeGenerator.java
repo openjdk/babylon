@@ -269,7 +269,7 @@ public final class BytecodeGenerator {
         v = singlePredecessorsValues.getOrDefault(v, v);
         if (v instanceof Op.Result or &&
                 or.op() instanceof ConstantOp constantOp &&
-                !constantOp.resultType().equals(JavaType.J_L_CLASS)) {
+                canDefer(constantOp)) {
             cob.loadConstant(switch (constantOp.value()) {
                 case null -> null;
                 case Boolean b -> {
@@ -347,9 +347,11 @@ public final class BytecodeGenerator {
         return can;
     }
 
-    // Constant can be deferred, except for loading of a class constant, which  may throw an exception
+    // Class and dynamic constants cannot be deferred, resolution may throw
+    // and dynamic constant bootstrap methods may have side effects
     private static boolean canDefer(ConstantOp op) {
-        return !op.resultType().equals(JavaType.J_L_CLASS);
+        return !op.resultType().equals(JavaType.J_L_CLASS)
+                && !(op.value() instanceof DynamicConstantDesc<?>);
     }
 
     private static boolean canDefer(VarOp op) {
@@ -515,9 +517,11 @@ public final class BytecodeGenerator {
                 switch (o) {
                     case ConstantOp op -> {
                         if (!canDefer(op)) {
-                            // Constant can be deferred, except for a class constant, which  may throw an exception
+                            // Emit class and dynamic constants at their original position
                             Object v = op.value();
-                            if (v == null) {
+                            if (v instanceof DynamicConstantDesc<?> dcd) {
+                                cob.ldc(dcd);
+                            } else if (v == null) {
                                 cob.aconst_null();
                             } else {
                                 cob.ldc(((JavaType)v).toNominalDescriptor());
@@ -525,11 +529,7 @@ public final class BytecodeGenerator {
                             push(op.result());
                         }
                     }
-                    case VarOp op when op.isUninitialized() -> {
-                        if (!op.result().uses().isEmpty()) {
-                            allocateSlot(op.result());
-                        }
-                    }
+                    case VarOp op when op.isUninitialized() -> {}
                     case VarOp op -> {
                         //     %1 : Var<int> = var %0 @"i";
                         if (canDefer(op)) {
@@ -728,7 +728,14 @@ public final class BytecodeGenerator {
                     }
                     case CompareOp op -> {
                         if (!isConditionForCondBrOp(op)) {
-                            cob.ifThenElse(prepareConditionalBranch(op), CodeBuilder::iconst_0, CodeBuilder::iconst_1);
+                            Label falseLabel = cob.newLabel();
+                            Label endLabel = cob.newLabel();
+                            cob.branch(prepareConditionalBranch(op), falseLabel)
+                               .iconst_1()
+                               .goto_(endLabel)
+                               .labelBinding(falseLabel)
+                               .iconst_0()
+                               .labelBinding(endLabel);
                             push(op.result());
                         }
                         // Processing is deferred to the CondBrOp, do not process the op result
@@ -1247,17 +1254,19 @@ public final class BytecodeGenerator {
     }
 
     private void conditionalBranch(Opcode reverseOpcode, Block.Reference trueBlock, Block.Reference falseBlock) {
-        if (!needToAssignBlockArguments(falseBlock)) {
-            cob.branch(reverseOpcode, getLabel(falseBlock));
+        if (needToAssignBlockArguments(falseBlock)) {
+            Label falseLabel = cob.newLabel();
+            cob.branch(reverseOpcode, falseLabel);
+            assignBlockArguments(trueBlock);
+            cob.goto_(getLabel(trueBlock))
+               .labelBinding(falseLabel);
+            assignBlockArguments(falseBlock);
+            cob.goto_(getLabel(falseBlock));
         } else {
-            cob.ifThen(reverseOpcode,
-                bb -> {
-                    assignBlockArguments(falseBlock);
-                    bb.goto_(getLabel(falseBlock));
-                });
+            cob.branch(reverseOpcode, getLabel(falseBlock));
+            assignBlockArguments(trueBlock);
+            cob.goto_(getLabel(trueBlock));
         }
-        assignBlockArguments(trueBlock);
-        cob.goto_(getLabel(trueBlock));
     }
 
     private Opcode prepareConditionalBranch(CompareOp op) {
@@ -1316,10 +1325,10 @@ public final class BytecodeGenerator {
                 // f == g -> fcmpg/fcmpl + ifne
                 // f > g -> fcmpl + ifle
                 // f >= g -> fcmpl + iflt
-                if (op instanceof GeOp || op instanceof GtOp) {
-                    cob.fcmpl();
-                } else {
+                if (op instanceof LtOp || op instanceof LeOp) {
                     cob.fcmpg();
+                } else {
+                    cob.fcmpl();
                 }
                 yield reverseIfOpcode(op);
             }
@@ -1328,10 +1337,10 @@ public final class BytecodeGenerator {
                 yield reverseIfOpcode(op);
             }
             case DOUBLE -> {
-                if (op instanceof GeOp || op instanceof GtOp) {
-                    cob.dcmpl();
-                } else {
+                if (op instanceof LtOp || op instanceof LeOp) {
                     cob.dcmpg();
+                } else {
+                    cob.dcmpl();
                 }
                 yield reverseIfOpcode(op);
             }

@@ -22,11 +22,11 @@
  */
 
 import jdk.incubator.code.*;
-import jdk.incubator.code.CodeTransformer;
-import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.core.*;
 import jdk.incubator.code.dialect.java.*;
-import jdk.incubator.code.dialect.core.VarType;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,306 +52,241 @@ final class UnresolvedTypesTransformer {
     }
 
     private CoreOp.FuncOp resolve(CoreOp.FuncOp func) {
-        List<Value> unresolved = func.elements().<Value>mapMulti((e, c) -> {
-            switch (e) {
-                case Block b -> b.parameters().forEach(v -> {
-                    if (toResolve(v) != null) c.accept(v);
-                });
-                case Op op when toResolve(op.result()) != null ->
-                        c.accept(op.result());
-                default -> {}
-            }
-
-        }).toList();
-
-        boolean changed = true;
-        while (changed) {
+        List<Op> ops = func.elements().filter(Op.class::isInstance).map(Op.class::cast).toList();
+        boolean changed;
+        do {
             changed = false;
-            for (Value v : unresolved) {
-                changed |= resolve(v);
-            }
-        }
-
-        // Remaining types are resolved to defaults
-        for (Value v : unresolved) {
-            resolvedMap.computeIfAbsent(toResolve(v), ut ->
-                switch (ut) {
-                    case UnresolvedType.Int _ -> JavaType.INT;
-                    case UnresolvedType.Ref _ -> JavaType.J_L_OBJECT;
-                });
-        }
-
-        return func.transform(blockParamTypesTransformer())
-                   .transform(opTypesTransformer())
-                   .transform(unifyOperandsTransformer());
-    }
-
-    private static UnresolvedType toResolve(Value v) {
-        return v == null ? null : switch (v.type()) {
-            case UnresolvedType ut -> ut;
-            case VarType vt when vt.valueType() instanceof UnresolvedType ut  -> ut;
-            default -> null;
-        };
-    }
-
-    private CodeType toComponent(CodeType te) {
-        if (te instanceof UnresolvedType ut) {
-            te = resolvedMap.get(ut);
-        }
-        return te instanceof ArrayType at ? at.componentType() : null;
-    }
-
-    private CodeType toArray(CodeType te) {
-        if (te instanceof UnresolvedType ut) {
-            te = resolvedMap.get(ut);
-        }
-        return te instanceof JavaType jt ? JavaType.array(jt) : null;
-    }
-
-    private boolean resolve(Value v) {
-        UnresolvedType ut = toResolve(v);
-        if (ut == null) return false;
-        boolean changed = false;
-        for (Op.Result useRes : v.uses()) {
-            Op op = useRes.op();
-            int i = op.operands().indexOf(v);
-            if (i >= 0) {
+            for (Op op : ops) {
+                List<CodeType> expected = operandTypes(op);
+                for (int i = 0; i < expected.size(); i++) {
+                    changed |= resolveTo(op.operands().get(i).type(), expected.get(i));
+                }
                 changed |= switch (op) {
-                    case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
-                        i == 0 && resolveTo(ut, op.resultType());
-                    case JavaOp.BinaryOp bo ->
-                        resolveTo(ut, bo.resultType());
-                    case JavaOp.InvokeOp io -> {
-                        MethodRef id = io.invokeReference();
-                        if (io.hasReceiver()) {
-                            if (i == 0) yield resolveTo(ut, id.refType());
-                            i--;
-                        }
-                        yield resolveTo(ut, id.signature().parameterTypes().get(i));
-                    }
-                    case JavaOp.FieldAccessOp fao ->
-                        resolveTo(ut, fao.fieldReference().refType());
-                    case CoreOp.ReturnOp ro ->
-                        resolveTo(ut, ro.ancestorBody().bodySignature().returnType());
-                    case CoreOp.VarOp vo ->
-                        resolveTo(ut, vo.varValueType());
+                    case CoreOp.VarOp vo when !vo.isUninitialized() ->
+                        resolveFrom(vo.varValueType(), vo.initOperand().type());
                     case CoreOp.VarAccessOp.VarStoreOp vso ->
-                        resolveTo(ut, vso.varType().valueType());
-                    case JavaOp.NewOp no ->
-                        resolveTo(ut, no.constructorReference().signature().parameterTypes().get(i));
+                        resolveFrom(vso.varType().valueType(), vso.storeOperand().type());
+                    case JavaOp.BinaryOp bo ->
+                        resolveFrom(bo.resultType(), bo.operands().get(1).type());
                     case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
-                        resolveTo(ut, toArray(alo.resultType()));
+                        resolveFrom(alo.resultType(), knownComponentType(alo.operands().getFirst().type()));
                     case JavaOp.ArrayAccessOp.ArrayStoreOp aso ->
-                        switch (i) {
-                            case 0 -> resolveFrom(ut, toArray(aso.operands().get(2).type()));
-                            case 2 -> resolveTo(ut, toComponent(aso.operands().get(0).type()));
-                            default -> false;
-                        };
+                        resolveFrom(aso.operands().getFirst().type(), knownArrayType(aso.operands().get(2).type()));
                     default -> false;
                 };
-            }
-            // Pull block parameter type when used as block argument
-            for (Block.Reference sucRef : useRes.op().successors()) {
-                i = sucRef.arguments().indexOf(v);
-                if (i >= 0) {
-                    changed |= resolveTo(ut, sucRef.targetBlock().parameters().get(i).type());
-                }
-            }
-        }
-        if (v instanceof Block.Parameter bp) {
-            int bi = bp.index();
-            Block b = bp.declaringBlock();
-            for (Block pb : b.predecessors()) {
-                for (Block.Reference r : pb.successors()) {
-                    if (r.targetBlock() == b) {
-                        var args = r.arguments();
-                        if (args.size() > bi && resolveFrom(ut, args.get(bi).type())) {
-                            return true;
-                        }
+                for (Block.Reference ref : op.successors()) {
+                    for (int i = 0; i < ref.arguments().size(); i++) {
+                        CodeType argument = ref.arguments().get(i).type();
+                        CodeType parameter = ref.targetBlock().parameters().get(i).type();
+                        changed |= resolveTo(argument, parameter) | resolveFrom(parameter, argument);
                     }
                 }
             }
-        } else if (v instanceof Op.Result or) {
-            changed |= switch (or.op()) {
-                case JavaOp.UnaryOp uo ->
-                    resolveFrom(ut, uo.operands().getFirst().type());
-                case JavaOp.BinaryOp bo ->
-                    resolveFrom(ut, bo.operands().getFirst().type())
-                    || resolveFrom(ut, bo.operands().get(1).type());
-                case CoreOp.VarAccessOp.VarLoadOp vlo ->
-                    resolveFrom(ut, vlo.varType().valueType());
-                case CoreOp.VarOp vo ->
-                    resolveVarOpType(ut, vo);
-                case JavaOp.ArrayAccessOp.ArrayLoadOp alo ->
-                    resolveFrom(ut, toComponent(alo.operands().getFirst().type()));
-                default -> false;
-            };
-        }
-        return changed;
-    }
+        } while (changed);
 
-    private boolean resolveFrom(UnresolvedType unresolved, CodeType from) {
-        CodeType type = from instanceof UnresolvedType utt ? resolvedMap.get(utt) : from;
-        JavaType resolved = resolvedMap.get(unresolved);
-        return switch (unresolved) {
-            // Only care about arrays
-            case UnresolvedType.Ref _ when (resolved == null || resolved.equals(JavaType.J_L_OBJECT)) && type instanceof ArrayType at -> {
-                resolvedMap.put(unresolved, at);
-                yield true;
-            }
-            // Only care about booleans
-            case UnresolvedType.Int _ when JavaType.BOOLEAN.equals(type) && !JavaType.BOOLEAN.equals(resolved) -> {
-                resolvedMap.put(unresolved, JavaType.BOOLEAN);
-                yield true;
-            }
-            default -> false;
-        };
-    }
-
-    private static final List<PrimitiveType> INT_TYPES = List.of(JavaType.INT, JavaType.CHAR, JavaType.SHORT, JavaType.BYTE, JavaType.BOOLEAN);
-
-    private boolean resolveTo(UnresolvedType unresolved, CodeType to) {
-        CodeType type = to instanceof UnresolvedType utt ? resolvedMap.get(utt) : to;
-        JavaType resolved = resolvedMap.get(unresolved);
-        return switch (unresolved) {
-            case UnresolvedType.Ref _ when (resolved == null || resolved.equals(JavaType.J_L_OBJECT)) && type instanceof JavaType jt && !jt.equals(resolved) -> {
-                resolvedMap.put(unresolved, jt);
-                yield true;
-            }
-            case UnresolvedType.Int _ when type instanceof PrimitiveType pt && (INT_TYPES.indexOf(pt) > (resolved == null ? -1 : INT_TYPES.indexOf(resolved))) -> {
-                resolvedMap.put(unresolved, pt);
-                yield true;
-            }
-            default -> false;
-        };
-    }
-
-    private boolean resolveVarOpType(UnresolvedType ut, CoreOp.VarOp vo) {
-        boolean changed = vo.isUninitialized() ? false : resolveFrom(ut, vo.initOperand().type());
-        for (Op.Result varUses : vo.result().uses()) {
-            changed |= switch (varUses.op()) {
-                case CoreOp.VarAccessOp.VarLoadOp vlo ->
-                    resolveTo(ut, vlo.resultType());
-                case CoreOp.VarAccessOp.VarStoreOp vso ->
-                    resolveFrom(ut, vso.storeOperand().type());
-                default -> false;
-            };
-        }
-        return changed;
-    }
-
-    private Object convertValue(UnresolvedType ut, Object value) {
-        return switch (INT_TYPES.indexOf(resolvedMap.get(ut))) {
-            case 0 -> toNumber(value).intValue();
-            case 1 -> (char)toNumber(value).intValue();
-            case 2 -> toNumber(value).shortValue();
-            case 3 -> toNumber(value).byteValue();
-            case 4 -> value instanceof Number n ? n.intValue() != 0 : (Boolean)value;
-            default -> value;
-        };
-    }
-
-    private static Number toNumber(Object value) {
-        return switch (value) {
-            case Boolean b -> b ? 1 : 0;
-            case Character c -> (int)c;
-            case Number n -> n;
-            default -> throw new IllegalStateException("Unexpected " + value);
-        };
-    }
-
-    private CodeTransformer blockParamTypesTransformer() {
-        return new CodeTransformer() {
+        return func.transform(new CodeTransformer() {
             @Override
             public void acceptBlock(Block.Builder block, Block b) {
-                if (block.isEntryBlock()) {
+                if (b.isEntryBlock()) {
                     CodeContext cc = block.context();
-                    List<Block> sourceBlocks = b.ancestorBody().blocks();
-
-                    // Override blocks with changed parameter types
-                    for (int i = 1; i < sourceBlocks.size(); i++) {
-                        Block sourceBlock = sourceBlocks.get(i);
-                        List<CodeType> paramTypes = sourceBlock.parameterTypes();
-                        if (paramTypes.stream().anyMatch(UnresolvedType.class::isInstance)) {
-                            Block.Builder newBlock = block.block(paramTypes.stream()
-                                    .map(pt -> pt instanceof UnresolvedType ut  ? resolvedMap.get(ut) : pt)
-                                    .toList());
-                            cc.mapBlock(sourceBlock, newBlock);
-                            cc.mapValues(sourceBlock.parameters(), newBlock.parameters());
+                    for (Block source : b.ancestorBody().blocks()) {
+                        List<CodeType> types = source.parameterTypes().stream()
+                                .map(UnresolvedTypesTransformer.this::resolvedType).toList();
+                        if (!source.isEntryBlock() && !types.equals(source.parameterTypes())) {
+                            Block.Builder target = block.block(types);
+                            cc.mapBlock(source, target);
+                            cc.mapValues(source.parameters(), target.parameters());
                         }
                     }
-
                 }
                 CodeTransformer.super.acceptBlock(block, b);
             }
 
             @Override
             public Block.Builder acceptOp(Block.Builder block, Op op) {
-                block.add(op);
+                CodeContext cc = block.context();
+                List<CodeType> expected = operandTypes(op);
+                List<Value> operands = new ArrayList<>(cc.getValues(op.operands()));
+                boolean changed = !resolvedType(op.resultType()).equals(op.resultType());
+                for (int i = 0; i < expected.size(); i++) {
+                    CodeType type = expected.get(i);
+                    Value value = cc.getValue(op.operands().get(i));
+                    if (type instanceof PrimitiveType && value.type() instanceof PrimitiveType && !type.equals(value.type())) {
+                        if (value instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp c) {
+                            Object constant = ArithmeticAndConvOpImpls.evaluate(JavaOp.conv(type, value), List.of(c.value()));
+                            value = block.add(CoreOp.constant(type, constant));
+                        } else  if (type.equals(JavaType.BOOLEAN) && ((PrimitiveType)value.type()).toBasicType().equals(JavaType.INT)) {
+                            if (!value.type().equals(JavaType.INT)) {
+                                value = block.add(JavaOp.conv(JavaType.INT, value));
+                            }
+                            value = block.add(JavaOp.neq(
+                                    block.add(JavaOp.and(value, block.add(CoreOp.constant(JavaType.INT, 1)))),
+                                    block.add(CoreOp.constant(JavaType.INT, 0))));
+                        } else {
+                            value = block.add(JavaOp.conv(type, value));
+                        }
+                        changed |= value != operands.set(i, value);
+                    }
+                }
+                if (!changed) {
+                    block.add(op);
+                    return block;
+                }
+                Op adaptedCopy = switch (op) {
+                    // explicit constant type required
+                    case CoreOp.ConstantOp c -> {
+                        CodeType type = resolvedType(c.resultType());
+                        Object value = type.equals(JavaType.BOOLEAN) && c.value() instanceof Number n
+                                ? n.intValue() != 0 : c.value();
+                        yield CoreOp.constant(type, value);
+                    }
+                    // explicit var type required
+                    case CoreOp.VarOp vo ->
+                        CoreOp.var(vo.varName(),
+                                   resolvedType(vo.varValueType()),
+                                   vo.isUninitialized() ? null : operands.getFirst());
+                    // @@@ copy constructor preserves old component type
+                    case JavaOp.ArrayAccessOp.ArrayLoadOp _ ->
+                        JavaOp.arrayLoadOp(operands.get(0),
+                                           operands.get(1));
+                    // repeated operands may need individual type conversions
+                    case JavaOp.ArrayAccessOp.ArrayStoreOp _ ->
+                        JavaOp.arrayStoreOp(operands.get(0),
+                                            operands.get(1),
+                                            operands.get(2));
+                    // repeated operands may need individual type conversions
+                    case JavaOp.InvokeOp io ->
+                        JavaOp.invoke(io.invokeKind(),
+                                      io.isVarArgs(),
+                                      resolvedType(io.resultType()),
+                                      io.invokeReference(),
+                                      operands);
+                    // repeated operands may need individual type conversions
+                    case JavaOp.NewOp no ->
+                        JavaOp.new_(no.isVarargs(),
+                                    resolvedType(no.resultType()),
+                                    no.constructorReference(),
+                                    operands);
+                    default -> {
+                        CodeContext opContext = CodeContext.create(cc);
+                        opContext.mapValues(op.operands(), operands);
+                        if (!operands.stream().map(Value::type).toList().equals(
+                                opContext.getValues(op.operands()).stream().map(Value::type).toList())) {
+                            // remaining ops should use the same operand types for every occurrence of a given operand
+                            throw new IllegalStateException("Conflicting operand types for " + op.getClass().getName());
+                        }
+                        yield op.transform(opContext, this);
+                    }
+                };
+                adaptedCopy.setLocation(op.location());
+                cc.mapValue(op.result(), block.add(adaptedCopy));
                 return block;
             }
+        });
+    }
+
+    private CodeType knownType(CodeType type) {
+        return type instanceof UnresolvedType ut ? resolvedMap.get(ut) : type;
+    }
+
+    private CodeType resolvedType(CodeType type) {
+        return switch (type) {
+            case VarType vt ->
+                CoreType.varType(resolvedType(vt.valueType()));
+            case UnresolvedType.Int uti ->
+                resolvedMap.getOrDefault(uti, JavaType.INT);
+            case UnresolvedType ut ->
+                resolvedMap.getOrDefault(ut, JavaType.J_L_OBJECT);
+            default ->
+                type;
         };
     }
 
-    private CodeTransformer opTypesTransformer() {
-        return (block, op) -> {
-            CodeContext cc = block.context();
-            switch (op) {
-                case CoreOp.ConstantOp cop when op.resultType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.add(CoreOp.constant(resolvedMap.get(ut), convertValue(ut, cop.value()))));
-                case CoreOp.VarOp vop when vop.varValueType() instanceof UnresolvedType ut ->
-                    cc.mapValue(op.result(), block.add(vop.isUninitialized()
-                            ? CoreOp.var(vop.varName(), resolvedMap.get(ut))
-                            : CoreOp.var(vop.varName(), resolvedMap.get(ut), cc.queryValue(vop.initOperand()).orElse(vop.initOperand()))));
-                case JavaOp.ArrayAccessOp.ArrayLoadOp alop when op.resultType() instanceof UnresolvedType -> {
-                    List<Value> opers = alop.operands();
-                    Value array = opers.getFirst();
-                    Value index = opers.getLast();
-                    cc.mapValue(op.result(), block.add(JavaOp.arrayLoadOp(
-                            cc.queryValue(array).orElse(array),
-                            cc.queryValue(index).orElse(index))));
+    private CodeType knownComponentType(CodeType type) {
+        return knownType(type) instanceof ArrayType at ? at.componentType() : null;
+    }
+
+    private CodeType knownArrayType(CodeType type) {
+        return knownType(type) instanceof JavaType jt ? JavaType.array(jt) : null;
+    }
+
+    private boolean resolveFrom(CodeType unresolved, CodeType from) {
+        CodeType type = knownType(from);
+        return (JavaType.BOOLEAN.equals(type) || type instanceof ArrayType) && resolveTo(unresolved, type);
+    }
+
+    private boolean resolveTo(CodeType unresolved, CodeType to) {
+        return switch (unresolved) {
+            case UnresolvedType.Int ui when JavaType.BOOLEAN.equals(knownType(to)) ->
+                resolvedMap.putIfAbsent(ui, JavaType.BOOLEAN) == null;
+            case UnresolvedType.Ref ur when knownType(to) instanceof JavaType jt && !(jt instanceof PrimitiveType) -> {
+                CodeType prev = resolvedMap.get(ur);
+                if (!jt.equals(prev) && (prev == null || prev.equals(JavaType.J_L_OBJECT))) {
+                    resolvedMap.put(ur, jt);
+                    yield true;
                 }
-                default ->
-                    block.add(op);
+                yield false;
             }
-            return block;
+            default ->
+                false;
         };
     }
 
-    private static CodeTransformer unifyOperandsTransformer() {
-        return (block, op) -> {
-            switch (op) {
-                case JavaOp.CompareOp _ ->
-                    unify(block, op, JavaType.INT, JavaType.INT);
-                case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
-                    unify(block, op, op.resultType(), JavaType.INT);
-                case JavaOp.BinaryOp _ ->
-                    unify(block, op, op.resultType(), op.resultType());
-                default ->
-                    block.add(op);
-            }
-            return block;
-        };
+    private CodeType arithmeticType(JavaOp.ArithmeticOperation op) {
+        CodeType type = resolvedType(op.resultType());
+        if (type.equals(JavaType.BOOLEAN)) {
+            return type;
+        }
+        return type instanceof PrimitiveType pt ? pt.toBasicType() : type;
     }
 
-    private static void unify(Block.Builder block, Op op, CodeType firstType, CodeType secondType) {
-        List<Value> operands = op.operands();
-        CodeContext cc = CodeContext.create(block.context());
-        Value first = operands.getFirst();
-        boolean changed = false;
-        if (first.type() instanceof PrimitiveType && !first.type().equals(firstType)) {
-            cc.mapValue(first, block.add(JavaOp.conv(firstType, cc.queryValue(first).orElse(first))));
-            changed = true;
-        }
-        Value second = operands.get(1);
-        if (second.type() instanceof PrimitiveType && !second.type().equals(secondType)) {
-            cc.mapValue(second, block.add(JavaOp.conv(secondType, cc.queryValue(second).orElse(second))));
-            changed = true;
-        }
-        if (changed) {
-            block.context().mapValue(op.result(), block.add(op.transform(cc, CodeTransformer.COPYING_TRANSFORMER)));
-        } else {
-            block.add(op);
-        }
+    private List<CodeType> operandTypes(Op op) {
+        return switch (op) {
+            case JavaOp.CompareOp co -> {
+                CodeType type = resolvedType(co.operands().getFirst().type());
+                if (type instanceof PrimitiveType pt) type = pt.toBasicType();
+                yield List.of(type, type);
+            }
+            case JavaOp.LshlOp _, JavaOp.LshrOp _, JavaOp.AshrOp _ ->
+                List.of(arithmeticType((JavaOp.BinaryOp)op),
+                        JavaType.INT);
+            case JavaOp.BinaryOp bo -> {
+                CodeType type = arithmeticType(bo);
+                yield List.of(type, type);
+            }
+            case JavaOp.NegOp no ->
+                List.of(arithmeticType(no));
+            case JavaOp.InvokeOp io -> {
+                List<CodeType> types = new ArrayList<>();
+                if (io.hasReceiver()) types.add(io.invokeReference().refType());
+                types.addAll(io.invokeReference().signature().parameterTypes());
+                yield types;
+            }
+            case JavaOp.NewOp no ->
+                no.constructorReference().signature().parameterTypes();
+            case JavaOp.FieldAccessOp.FieldLoadOp fo when !fo.operands().isEmpty() ->
+                List.of(fo.fieldReference().refType());
+            case JavaOp.FieldAccessOp.FieldStoreOp fo when fo.operands().size() == 1 ->
+                List.of(fo.fieldReference().type());
+            case JavaOp.FieldAccessOp.FieldStoreOp fo ->
+                List.of(fo.fieldReference().refType(),
+                        fo.fieldReference().type());
+            case CoreOp.ReturnOp ro when !ro.operands().isEmpty() ->
+                List.of(ro.ancestorBody().bodySignature().returnType());
+            case CoreOp.VarOp vo when !vo.isUninitialized() ->
+                List.of(resolvedType(vo.varValueType()));
+            case CoreOp.VarAccessOp.VarStoreOp vo ->
+                List.of(vo.varType(),
+                        resolvedType(vo.varType().valueType()));
+            case JavaOp.ArrayAccessOp.ArrayLoadOp ao ->
+                Arrays.asList(knownArrayType(ao.resultType()), // may be null
+                              JavaType.INT);
+            case JavaOp.ArrayAccessOp.ArrayStoreOp ao ->
+                Arrays.asList(ao.operands().getFirst().type(),
+                              JavaType.INT,
+                              knownComponentType(ao.operands().getFirst().type())); // may be null
+            default ->
+                List.of();
+        };
     }
 }

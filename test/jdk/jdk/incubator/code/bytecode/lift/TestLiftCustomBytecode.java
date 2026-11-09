@@ -21,15 +21,19 @@
  * questions.
  */
 
+import jdk.incubator.code.bytecode.BytecodeGenerator;
 import jdk.incubator.code.dialect.core.CoreOp;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.Label;
+import java.lang.classfile.Opcode;
+import java.lang.classfile.instruction.OperatorInstruction;
 import java.lang.constant.*;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.StringConcatFactory;
+import java.util.List;
 
 /*
  * @test
@@ -132,6 +136,39 @@ public class TestLiftCustomBytecode {
 
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         Assertions.assertEquals("ABC", (String)Interpreter.invoke(lookup, concatMethod));
+    }
+
+    @Test
+    public void testStandaloneNumericCompare() throws Throwable {
+        var lookup = MethodHandles.lookup();
+        for (var opcode : List.of(Opcode.LCMP, Opcode.FCMPL, Opcode.FCMPG, Opcode.DCMPL, Opcode.DCMPG)) {
+            var compare = OperatorInstruction.of(opcode);
+            var kind = compare.typeKind();
+            var signature = MethodTypeDesc.of(ConstantDescs.CD_int, kind.upperBound(), kind.upperBound());
+            byte[] data = ClassFile.of().build(ClassDesc.of("StandaloneNumericCompare"), clb -> clb
+                    .withMethodBody("compare", signature, ClassFile.ACC_STATIC, cob -> cob
+                            .loadLocal(kind, 0)
+                            .loadLocal(kind, kind.slotSize())
+                            .with(compare).ireturn()));
+            var hidden = lookup.defineHiddenClass(data, true);
+            var original = hidden.findStatic(hidden.lookupClass(), "compare", signature.resolveConstantDesc(lookup));
+            var model = getFuncOp(data, "compare");
+            var generated = BytecodeGenerator.generate(lookup, model);
+            var values = switch (kind) {
+                case LONG -> List.of(Long.MIN_VALUE, 0L, Long.MAX_VALUE);
+                // @@@ Float.NaN is excluded
+                case FLOAT -> List.of(Float.NEGATIVE_INFINITY, -Float.MIN_VALUE, -0.0f, 0.0f, Float.MIN_VALUE, Float.POSITIVE_INFINITY);
+                // @@@ Double.NaN is excluded
+                default -> List.of(Double.NEGATIVE_INFINITY, -Double.MIN_VALUE, -0.0, 0.0, Double.MIN_VALUE, Double.POSITIVE_INFINITY);
+            };
+            for (Object a : values) {
+                for (Object b : values) {
+                    Object expected = original.invokeWithArguments(a, b);
+                    Assertions.assertEquals(expected, Interpreter.invoke(lookup, model, a, b));
+                    Assertions.assertEquals(expected, generated.invokeWithArguments(a, b));
+                }
+            }
+        }
     }
 
     static CoreOp.FuncOp getFuncOp(byte[] classdata, String method) {
