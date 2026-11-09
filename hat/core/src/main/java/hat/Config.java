@@ -168,6 +168,8 @@ public class Config {
     public static final Bit CUDA_COMPILER_NVCC = Bit.nextBit(CHECK_SSA_LOWERING, "CUDA_NVCC","NVCC", "Select the NVCC CUDA Compiler");
     public static final Bit CUDA_COMPILER_NVRTC = Bit.nextBit(CUDA_COMPILER_NVCC, "CUDA_NVRTC","NVRTC", "Select the NVRTC CUDA Compiler (Default)");
 
+    public static final Bit OUT_OF_ORDER_COMMANDS = Bit.nextBit(CUDA_COMPILER_NVRTC, "OUT_OF_ORDER","OOO", "Select Out Of Order (OOO) for the dispatch of command queues/wtreams. Off by default.");
+
     public boolean info() {
         return INFO.isSet(this);
     }
@@ -199,7 +201,8 @@ public class Config {
             SHOW_COMPUTE_MODEL_JAVA_CODE,
             CHECK_SSA_LOWERING,
             CUDA_COMPILER_NVCC,
-            CUDA_COMPILER_NVRTC
+            CUDA_COMPILER_NVRTC,
+            OUT_OF_ORDER_COMMANDS
     );
 
     private final int bits;
