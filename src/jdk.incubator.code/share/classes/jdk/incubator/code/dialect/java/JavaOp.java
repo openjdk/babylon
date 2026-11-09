@@ -3522,6 +3522,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+            // put case null first
+            // put default last
+            // other cases in between
             List<Body> bodiesReordered = reorderBodies(bodies, handleNulls);
 
             // map bodies to blocks
@@ -3534,6 +3537,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             Body firstLabel = bodiesReordered.getFirst();
             if (!selectorCanBeNull) {
                 if (isCaseDefaultLabel(firstLabel)) {
+                    // case default doesn't have a predicate, so incoming block is used by default action
                     blocks.put(bodiesReordered.getLast(), b);
                 } else {
                     blocks.put(firstLabel, b);
@@ -3577,6 +3581,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
 
             // Set action body's continue target to next action block for lowering of SwitchFallThroughOp
+            // uses the original order to preserve the correct behaviour
             for (int i = 1; i < bodies.size() - 2; i += 2) {
                 Body actionBody = bodies.get(i);
                 Body nextActionBody = bodies.get(i + 2);
@@ -3584,17 +3589,20 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
             }
 
+            // lower case null
             if (selectorCanBeNull) {
                 Block.Builder actionBlock;
                 Block.Builder noMatchBlock;
+
+                // null action
                 if (handleNulls) {
-                    Body caseDefaultAction = bodiesReordered.get(1);
-                    actionBlock = blocks.get(caseDefaultAction);
+                    Body caseNullAction = bodiesReordered.get(1);
+                    actionBlock = blocks.get(caseNullAction);
                     if (isBooleanExpression) {
-                        ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, caseDefaultAction, List.of(),
+                        ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, caseNullAction, List.of(),
                                 continuation, inherited);
                     } else {
-                        lowerActionBody(actionBlock, caseDefaultAction, inherited, exit);
+                        lowerActionBody(actionBlock, caseNullAction, inherited, exit);
                     }
                     noMatchBlock = findNoMatchBlock(bodiesReordered, blocks, 0, exit);
                 } else {
@@ -3603,6 +3611,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     // case null not in the sw, that's why we pass -2 as index
                     noMatchBlock = findNoMatchBlock(bodiesReordered, blocks, -2, exit);
                 }
+
+                // null check
                 Result cnull = b.add(constant(selectorExpression.type(), null));
                 Result p = b.add(eq(selectorExpression, cnull));
                 b.add(conditionalBranch(p, actionBlock.reference(), noMatchBlock.reference()));
