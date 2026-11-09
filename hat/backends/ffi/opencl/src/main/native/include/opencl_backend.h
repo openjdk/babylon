@@ -56,7 +56,7 @@ struct PlatformInfo;
 
 class OpenCLBackend final : public Backend {
 private:
-    size_t maxWorkGroupSize;
+    std::unique_ptr<PlatformInfo> _platform_info;
 public:
     class OpenCLBuffer final : public Backend::Buffer {
     public:
@@ -138,7 +138,6 @@ public:
 
         void copyFromDevice(Buffer *buffer) override;
 
-
         void dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) override;
 
         ~OpenCLQueue() override;
@@ -174,9 +173,8 @@ public:
 
     static const char *errorMsg(cl_int status);
 
-    const size_t getMaxWorkGroupSize() const;
+    const PlatformInfo& getPlatformInfo() const;
 };
-
 
 struct PlatformInfo {
     struct DeviceInfo {
