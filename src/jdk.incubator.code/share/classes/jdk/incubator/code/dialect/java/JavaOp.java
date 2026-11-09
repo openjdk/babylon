@@ -3544,8 +3544,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 }
             }
             for (int i = 0; i < n; i += 2) {
-                blocks.putIfAbsent(bodiesReordered.get(i), b.block());
-                blocks.putIfAbsent(bodiesReordered.get(i + 1), b.block());
+                blocks.computeIfAbsent(bodiesReordered.get(i), _ -> b.block());
+                blocks.computeIfAbsent(bodiesReordered.get(i + 1), _ -> b.block());
             }
 
             boolean hasYieldStatements = hasYieldStatements();
