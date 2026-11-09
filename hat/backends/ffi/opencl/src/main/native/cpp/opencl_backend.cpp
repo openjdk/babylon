@@ -26,7 +26,7 @@
 #include "opencl_backend.h"
 
 OpenCLBackend::OpenCLBuffer *OpenCLBackend::getOrCreateBuffer(BufferState *bufferState) {
-    OpenCLBuffer *openclBuffer = nullptr;
+    OpenCLBuffer *openclBuffer;
     if (bufferState->vendorPtr == nullptr || bufferState->state == BufferState::NEW_STATE) {
         openclBuffer = new OpenCLBuffer(this, bufferState);
         if (config->trace) {
@@ -131,7 +131,37 @@ OpenCLBackend::OpenCLBackend(int configBits)
         return;
     }
 
-    cl_command_queue_properties queue_props = CL_QUEUE_PROFILING_ENABLE;
+    cl_command_queue_properties queue_props = 0;
+    char vendor[256] = {0};
+    status = clGetDeviceInfo(device_ids[config->device], CL_DEVICE_VENDOR, sizeof(vendor), &vendor, nullptr);
+    if (status != CL_SUCCESS) {
+        std::cerr << "clGetDeviceInfo failed " << errorMsg(status) << std::endl;
+        delete[] platforms;
+        delete[] device_ids;
+        return;
+    }
+
+    // We set the profile on if platform is Apple
+    if (std::strstr(vendor, "Apple") != nullptr) {
+        isPlatformProfileOn = true;
+    } else {
+        isPlatformProfileOn = false;
+
+    }
+    if (config->profile || isPlatformProfileOn) {
+        queue_props = CL_QUEUE_PROFILING_ENABLE;
+    }
+    if (config->outOfOrder) {
+        // Check if the device supports Out Or Order first
+        cl_command_queue_properties queue_properties = 0;
+        status = clGetDeviceInfo(device_ids[config->device],
+            CL_DEVICE_QUEUE_PROPERTIES,
+            sizeof(queue_properties), &queue_properties,
+            nullptr);
+        if (queue_properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) {
+            queue_props |= CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+        }
+    }
     const auto openCLQueue = dynamic_cast<OpenCLQueue *>(queue);
     if ((openCLQueue->command_queue = clCreateCommandQueue(context, device_ids[config->device], queue_props, &status))
         == nullptr || status != CL_SUCCESS) {

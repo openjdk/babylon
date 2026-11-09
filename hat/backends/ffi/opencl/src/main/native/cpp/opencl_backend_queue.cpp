@@ -152,33 +152,37 @@ void OpenCLBackend::OpenCLQueue::showEvents(const int width) {
 }
 
 void OpenCLBackend::OpenCLQueue::wait() {
-    if (eventc > 0) {
+    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
+    if ((isProfileOrOutOfOrder() || backendInstance -> isPlatformOnProfile()) && (eventc > 0)) {
         OPENCL_CHECK(clWaitForEvents(eventc, events), "clWaitForEvents");
+    } else {
+        OPENCL_CHECK(clFinish(command_queue), "clFinish");
     }
 }
 
 void OpenCLBackend::OpenCLQueue::marker(int bits) {
-    cl_int status = clEnqueueMarkerWithWaitList(
-        command_queue,
-        this->eventc,
-        this->eventListPtr(),
-        this->nextEventPtr()
-    );
-    if (status != CL_SUCCESS) {
-        std::cerr << "failed to clEnqueueMarkerWithWaitList " << errorMsg(status) << std::endl;
-        std::exit(1);
+    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
+    if (isProfileOrOutOfOrder() || backendInstance -> isPlatformOnProfile()) {
+        OPENCL_CHECK(clEnqueueMarkerWithWaitList(
+            command_queue,
+            this->eventc,
+            this->eventListPtr(),
+            this->nextEventPtr()
+        ), "clEnqueueMarkerWithWaitList");
     }
     inc(bits);
 }
 
 void OpenCLBackend::OpenCLQueue::marker(int bits, const char *arg) {
-    OPENCL_CHECK(clEnqueueMarkerWithWaitList(
-                     command_queue,
-                     this->eventc,
-                     this->eventListPtr(),
-                     this->nextEventPtr()),
-                 "clEnqueueMarkerWithWaitList");
-
+    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
+    if (isProfileOrOutOfOrder() || backendInstance -> isPlatformOnProfile()) {
+        OPENCL_CHECK(clEnqueueMarkerWithWaitList(
+                         command_queue,
+                         this->eventc,
+                         this->eventListPtr(),
+                         this->nextEventPtr()),
+                     "clEnqueueMarkerWithWaitList");
+    }
     inc(bits, arg);
 }
 
@@ -231,8 +235,11 @@ void OpenCLBackend::OpenCLQueue::markAsLeaveKernelDispatchAndInc() {
 
 void OpenCLBackend::OpenCLQueue::release() {
     // TODO: possible check ALL events before return from the macro
-    for (int i = 0; i < eventc; i++) {
-        OPENCL_CHECK(clReleaseEvent(events[i]), "clReleaseEvent");
+    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
+    if (isProfileOrOutOfOrder() || backendInstance -> isPlatformOnProfile()) {
+        for (int i = 0; i < eventc; i++) {
+            OPENCL_CHECK(clReleaseEvent(events[i]), "clReleaseEvent");
+        }
     }
     eventc = 0;
 }
@@ -240,6 +247,10 @@ void OpenCLBackend::OpenCLQueue::release() {
 OpenCLBackend::OpenCLQueue::~OpenCLQueue() {
     OPENCL_CHECK(clReleaseCommandQueue(command_queue), "clReleaseCommandQueue");
     delete []events;
+}
+
+bool OpenCLBackend::OpenCLQueue::isProfileOrOutOfOrder() const {
+    return (backend->config -> profile || backend->config -> outOfOrder);
 }
 
 void printWarningLocalGroupResized(const size_t local_work_size[]) {
@@ -322,6 +333,15 @@ void OpenCLBackend::OpenCLQueue::dispatch(DispatchContext *dispatchContext, Comp
         }
     }
 
+    cl_uint numWaitQueues = 0;
+    cl_event* waitEvents = nullptr;
+    cl_event* nextEvents = nullptr;
+    if (isProfileOrOutOfOrder() || backendInstance -> isPlatformOnProfile()) {
+        numWaitQueues = eventc;
+        waitEvents = eventListPtr();
+        nextEvents = nextEventPtr();
+    }
+
     const cl_int status = clEnqueueNDRangeKernel(
         command_queue,
         dynamic_cast<OpenCLProgram::OpenCLKernel *>(kernel)->kernel,
@@ -329,9 +349,9 @@ void OpenCLBackend::OpenCLQueue::dispatch(DispatchContext *dispatchContext, Comp
         nullptr,
         global_work_size,
         dispatchContext->lsx > 0 ? local_work_size : nullptr,
-        eventc,
-        eventListPtr(),
-        nextEventPtr());
+        numWaitQueues,
+        waitEvents,
+        nextEvents);
 
     inc(NDRangeBits);
     // markAsNDRangeAndInc();
@@ -344,6 +364,15 @@ void OpenCLBackend::OpenCLQueue::dispatch(DispatchContext *dispatchContext, Comp
 }
 
 void OpenCLBackend::OpenCLQueue::copyToDevice(Buffer *buffer) {
+    cl_uint numWaitQueues = 0;
+    cl_event* waitEvents = nullptr;
+    cl_event* nextEvents = nullptr;
+    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
+    if (isProfileOrOutOfOrder() || backendInstance -> isPlatformOnProfile()) {
+        numWaitQueues = eventc;
+        waitEvents = eventListPtr();
+        nextEvents = nextEventPtr();
+    }
     auto openclBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
     cl_int status = clEnqueueWriteBuffer(
         command_queue,
@@ -352,9 +381,9 @@ void OpenCLBackend::OpenCLQueue::copyToDevice(Buffer *buffer) {
         0,
         buffer->bufferState->length,
         buffer->bufferState->ptr,
-        eventc,
-        eventListPtr(),
-        nextEventPtr()
+        numWaitQueues,
+        waitEvents,
+        nextEvents
     );
 
     OPENCL_CHECK(status, "clEnqueueWriteBuffer");
@@ -364,6 +393,16 @@ void OpenCLBackend::OpenCLQueue::copyToDevice(Buffer *buffer) {
 }
 
 void OpenCLBackend::OpenCLQueue::copyFromDevice(Buffer *buffer) {
+    cl_uint numWaitQueues = 0;
+    cl_event* waitEvents = nullptr;
+    cl_event* nextEvents = nullptr;
+    auto backendInstance = dynamic_cast<OpenCLBackend *>(this->backend);
+    if (isProfileOrOutOfOrder() || backendInstance -> isPlatformOnProfile()) {
+        numWaitQueues = eventc;
+        waitEvents = eventListPtr();
+        nextEvents = nextEventPtr();
+    }
+
     auto openclBuffer = dynamic_cast<OpenCLBuffer *>(buffer);
     cl_int status = clEnqueueReadBuffer(
         command_queue,
@@ -372,9 +411,9 @@ void OpenCLBackend::OpenCLQueue::copyFromDevice(Buffer *buffer) {
         0,
         buffer->bufferState->length,
         buffer->bufferState->ptr,
-        eventc,
-        eventListPtr(),
-        nextEventPtr()
+        numWaitQueues,
+        waitEvents,
+        nextEvents
     );
     OPENCL_CHECK(status, "clEnqueueReadBuffer");
     inc(CopyFromDeviceBits);

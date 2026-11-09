@@ -117,6 +117,10 @@ const PlatformInfo& OpenCLBackend::getPlatformInfo() const {
     return *_platform_info;
 }
 
+const bool OpenCLBackend::isPlatformOnProfile() const {
+    return isPlatformProfileOn;
+}
+
 void OpenCLBackend::shortDeviceInfo() {
     std::cerr << "[INFO] Platform :\"" << _platform_info->vendorName <<"\""<< std::endl;
     std::cerr << "[INFO]   Version      :\"" << _platform_info->versionName <<"\"" <<std::endl;
