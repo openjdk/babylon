@@ -3503,9 +3503,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
          For a switch expression or enhanced switch statement whose SwitchBlock contains no "default",
          "case null, default", or "case CasePattern" for an unconditional pattern label, a synthesized pair of bodies
-         occurs at the end of the sequence of bodies. The first body in the pair, the synthetic predicate body, has the
-         same form as the predicate body modeling "default", and the second synthesized body, the action body, models
-         the throwing of a MatchException.
+         occurs at the end of the sequence of bodies. The first synthesized body in the pair, the predicate body, has
+         the same form as the predicate body modeling "default", and the second synthesized body, the action body,
+         models the throwing of a MatchException.
          */
 
         SwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
