@@ -1145,7 +1145,7 @@ public final class BytecodeGenerator {
     }
 
     private void loadArray(JavaType compType, List<Value> array) {
-       cob.loadConstant(array.size());
+        cob.loadConstant(array.size());
         var compTypeDesc = compType.toNominalDescriptor();
         var typeKind = TypeKind.from(compTypeDesc);
         if (compTypeDesc.isPrimitive()) {
@@ -1214,6 +1214,7 @@ public final class BytecodeGenerator {
         if (uses.size() == 1
                 && uses.getFirst().declaringBlock() == res.declaringBlock()
                 && !canDefer(op = uses.getFirst().op())
+                // one value can be used in mutliple operands of a single op
                 && Stream.concat(op.operands().stream(), op.successors().stream()
                         .flatMap(r -> r.arguments().stream()))
                         .filter(res::equals).limit(2).count() == 1) {
