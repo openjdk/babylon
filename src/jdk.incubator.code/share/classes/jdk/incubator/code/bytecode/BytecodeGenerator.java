@@ -344,9 +344,8 @@ public final class BytecodeGenerator {
             firstToLoad--;
         }
         int remainingOnStack = oprOnStack.size() - firstToLoad;
-        if ((keepPrefix || remainingOnStack == 0)
-                && Collections.disjoint(oprOnStack.subList(0, remainingOnStack),
-                                        operands.subList(firstToLoad, operands.size()))) {
+        if (remainingOnStack == 0 || (keepPrefix && Collections.disjoint(oprOnStack.subList(0, remainingOnStack),
+                                                                         operands.subList(firstToLoad, operands.size())))) {
             // no operand burried in the remaining stack
             oprOnStack.subList(remainingOnStack, oprOnStack.size()).clear();
         } else if ((keepPrefix || remainingOnStack == 1)
@@ -421,8 +420,8 @@ public final class BytecodeGenerator {
     // Var load can be deferred when do not dominate a var store (conservative deferral refusal)
     private boolean canDefer(VarAccessOp.VarLoadOp op) {
         return op.varOperand().uses().stream()
-                .filter(u -> u.op() instanceof VarAccessOp.VarStoreOp)
-                .noneMatch(store -> store.isDominatedBy(op.result()));
+                 .filter(u -> u.op() instanceof VarAccessOp.VarStoreOp)
+                 .noneMatch(store -> store.isDominatedBy(op.result()));
     }
 
     private static boolean isConditionForCondBrOp(CompareOp op) {
