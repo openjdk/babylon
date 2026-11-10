@@ -367,7 +367,7 @@ public final class BytecodeGenerator {
             oprOnStack.subList(remainingOnStack - 1, oprOnStack.size()).clear();
             firstToLoad = 2;
         } else {
-            // operands must digged and made reloadable
+            // operands must be digged and made reloadable
             if (keepPrefix) {
                 storeOperandsOnStack(operands);
             } else {
