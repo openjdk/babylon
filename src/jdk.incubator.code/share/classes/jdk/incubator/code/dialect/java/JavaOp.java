@@ -307,7 +307,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
-                this.additionalInterfaces = new ArrayList<>();
+                this.additionalInterfaces = List.of();
                 this.isReflectable = false;
             }
 
@@ -316,7 +316,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
-                this.additionalInterfaces = new ArrayList<>(additionalInterfaces);
+                this.additionalInterfaces = List.copyOf(additionalInterfaces);
                 this.isReflectable = isReflectable;
             }
 
@@ -336,17 +336,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
              * Adds an additional interface to a lambda operation.
              *
              * @param additionalInterface lambda operation's additional interface type
-             * @return this builder
+             * @return the new builder
              */
             public Builder additionalInterface(CodeType additionalInterface) {
-                additionalInterfaces.add(additionalInterface);
-                return this;
+                List<CodeType> interfaces = new ArrayList<>(additionalInterfaces);
+                interfaces.add(additionalInterface);
+                return new Builder(connectedAncestorBody, signature, functionalInterface, interfaces, isReflectable);
             }
 
             /**
              * Returns a builder that constructs a reflectable lambda operation.
              *
-             * @return this builder
+             * @return the new builder
              * @see Reflect
              */
             public Builder reflectable() {
