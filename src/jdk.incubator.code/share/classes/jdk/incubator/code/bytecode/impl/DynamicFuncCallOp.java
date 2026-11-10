@@ -24,6 +24,7 @@
  */
 package jdk.incubator.code.bytecode.impl;
 
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.LinkedHashMap;
@@ -45,6 +46,7 @@ public final class DynamicFuncCallOp extends AbstractOp implements ExternalizedO
     private final MethodTypeDesc invocationType;
     private final MethodTypeDesc interfaceMethodType;
     private final MethodTypeDesc dynamicMethodType;
+    private final List<ConstantDesc> additionalBootstapArgs;
 
     public DynamicFuncCallOp(CodeType resultType,
                              List<Value> operands,
@@ -53,7 +55,8 @@ public final class DynamicFuncCallOp extends AbstractOp implements ExternalizedO
                              String invocationName,
                              MethodTypeDesc invocationType,
                              MethodTypeDesc interfaceMethodType,
-                             MethodTypeDesc dynamicMethodType) {
+                             MethodTypeDesc dynamicMethodType,
+                             List<ConstantDesc> additionalBootstapArgs) {
         super(operands);
         this.resultType = resultType;
         this.funcName = funcName;
@@ -62,6 +65,7 @@ public final class DynamicFuncCallOp extends AbstractOp implements ExternalizedO
         this.invocationType = invocationType;
         this.interfaceMethodType = interfaceMethodType;
         this.dynamicMethodType = dynamicMethodType;
+        this.additionalBootstapArgs = additionalBootstapArgs;
     }
 
     DynamicFuncCallOp(DynamicFuncCallOp that, CodeContext cc) {
@@ -73,6 +77,7 @@ public final class DynamicFuncCallOp extends AbstractOp implements ExternalizedO
         this.invocationType = that.invocationType;
         this.interfaceMethodType = that.interfaceMethodType;
         this.dynamicMethodType = that.dynamicMethodType;
+        this.additionalBootstapArgs = that.additionalBootstapArgs;
     }
 
     @Override
@@ -95,6 +100,7 @@ public final class DynamicFuncCallOp extends AbstractOp implements ExternalizedO
         attributes.put("invocationType", invocationType);
         attributes.put("interfaceMethodType", interfaceMethodType);
         attributes.put("dynamicMethodType", dynamicMethodType);
+        attributes.put("additionalBootstapArgs", additionalBootstapArgs);
         return attributes;
     }
 
@@ -120,5 +126,9 @@ public final class DynamicFuncCallOp extends AbstractOp implements ExternalizedO
 
     public MethodTypeDesc dynamicMethodType() {
         return dynamicMethodType;
+    }
+
+    public List<ConstantDesc> additionalBootstapArgs() {
+        return additionalBootstapArgs;
     }
 }

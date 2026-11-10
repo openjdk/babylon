@@ -300,20 +300,23 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             final Body.Builder connectedAncestorBody;
             final FunctionType signature;
             final CodeType functionalInterface;
+            final List<CodeType> additionalInterfaces;
             final boolean isReflectable;
 
             Builder(Body.Builder connectedAncestorBody, FunctionType signature, CodeType functionalInterface) {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
+                this.additionalInterfaces = List.of();
                 this.isReflectable = false;
             }
 
             Builder(Body.Builder connectedAncestorBody, FunctionType signature, CodeType functionalInterface,
-                    boolean isReflectable) {
+                    List<CodeType> additionalInterfaces, boolean isReflectable) {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
+                this.additionalInterfaces = List.copyOf(additionalInterfaces);
                 this.isReflectable = isReflectable;
             }
 
@@ -326,29 +329,47 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             public LambdaOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(connectedAncestorBody, signature);
                 c.accept(body.entryBlock());
-                return new LambdaOp(functionalInterface, body, isReflectable);
+                return new LambdaOp(functionalInterface, body, additionalInterfaces, isReflectable);
+            }
+
+            /**
+             * Adds an additional interface to a lambda operation.
+             *
+             * @param additionalInterface lambda operation's additional interface type
+             * @return the new builder
+             */
+            public Builder additionalInterface(CodeType additionalInterface) {
+                List<CodeType> interfaces = new ArrayList<>(additionalInterfaces);
+                interfaces.add(additionalInterface);
+                return new Builder(connectedAncestorBody, signature, functionalInterface, interfaces, isReflectable);
             }
 
             /**
              * Returns a builder that constructs a reflectable lambda operation.
              *
-             * @return this builder
+             * @return the new builder
              * @see Reflect
              */
             public Builder reflectable() {
-                return new Builder(connectedAncestorBody, signature, functionalInterface, true);
+                return new Builder(connectedAncestorBody, signature, functionalInterface, additionalInterfaces, true);
             }
         }
 
         static final String NAME = "lambda";
+        static final String ATTRIBUTE_LAMBDA_ADDITIONAL_INTERFACES = NAME + ".additionalInterfaces";
         static final String ATTRIBUTE_LAMBDA_IS_REFLECTABLE = NAME + ".isReflectable";
 
         final CodeType functionalInterface;
         final Body body;
+        final List<CodeType> additionalInterfaces;
         final boolean isReflectable;
 
         LambdaOp(ExternalizedOp def) {
-            this(def.resultType(), requireSingleBody(def), optionalBooleanAttribute(def, ATTRIBUTE_LAMBDA_IS_REFLECTABLE));
+            this(def.resultType(),
+                 requireSingleBody(def),
+                 optionalAttribute(def, ATTRIBUTE_LAMBDA_ADDITIONAL_INTERFACES, false, TupleType.class)
+                         .map(TupleType::componentTypes).orElse(List.of()),
+                 optionalBooleanAttribute(def, ATTRIBUTE_LAMBDA_IS_REFLECTABLE));
         }
 
         LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ct) {
@@ -356,6 +377,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             this.functionalInterface = that.functionalInterface;
             this.body = that.body.transform(cc, ct).build(this);
+            this.additionalInterfaces = that.additionalInterfaces;
             this.isReflectable = that.isReflectable;
         }
 
@@ -364,10 +386,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return new LambdaOp(this, cc, ct);
         }
 
-        LambdaOp(CodeType functionalInterface, Body.Builder bodyC, boolean isReflectable) {
+        LambdaOp(CodeType functionalInterface, Body.Builder bodyC, List<? extends CodeType> additionalInterfaces,
+                 boolean isReflectable) {
             super(List.of());
 
             this.functionalInterface = functionalInterface;
+            this.additionalInterfaces = List.copyOf(additionalInterfaces);
             this.body = bodyC.build(this);
             this.isReflectable = isReflectable;
         }
@@ -382,6 +406,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         public CodeType functionalInterface() {
             return functionalInterface;
+        }
+
+        /**
+         * {@return the additional interface types modeled by this lambda operation}
+         */
+        public List<CodeType> additionalInterfaces() {
+            return additionalInterfaces;
         }
 
         @Override
@@ -411,7 +442,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of(ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable);
+            return additionalInterfaces.isEmpty()
+                    ? Map.of(ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable)
+                    : Map.of(ATTRIBUTE_LAMBDA_ADDITIONAL_INTERFACES, CoreType.tupleType(additionalInterfaces),
+                             ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable);
         }
 
         /**
@@ -6533,7 +6567,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the lambda operation
      */
     public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body) {
-        return new LambdaOp(functionalInterface, body, false);
+        return new LambdaOp(functionalInterface, body, List.of(), false);
     }
 
     /**
@@ -6545,7 +6579,22 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the lambda operation
      */
     public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body, boolean isReflectable) {
-        return new LambdaOp(functionalInterface, body, isReflectable);
+        return new LambdaOp(functionalInterface, body, List.of(), isReflectable);
+    }
+
+    /**
+     * Creates a lambda operation.
+     *
+     * @param functionalInterface  the lambda operation's functional interface type
+     * @param body                 the body of the lambda operation
+     * @param additionalInterfaces the lambda operation's additional interface types
+     * @param isReflectable        true if the lambda is reflectable
+     * @return the lambda operation
+     */
+    public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body,
+                                  List<? extends CodeType> additionalInterfaces,
+                                  boolean isReflectable) {
+        return new LambdaOp(functionalInterface, body, additionalInterfaces, isReflectable);
     }
 
     /**
