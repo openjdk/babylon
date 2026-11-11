@@ -53,6 +53,7 @@ import static java.lang.classfile.ClassFile.ACC_STATIC;
 import static java.lang.classfile.ClassFile.ACC_SYNCHRONIZED;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.constant.DynamicConstantDesc;
+import java.lang.invoke.MethodHandleInfo;
 import java.util.function.Function;
 
 /**
@@ -123,9 +124,9 @@ public class ReflectableLambdaMetafactory {
                                        MethodHandle implementation,
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
-        DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), decodedName.opHandle);
-        return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
+        MethodHandle opHandle = findReflectableOpGetter(caller, implementation);
+        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), opHandle);
+        return JLI_ACCESS.metafactoryInternal(caller, interfaceMethodName, factoryType, interfaceMethodType,
                 implementation, dynamicMethodType, finisher);
     }
 
@@ -174,25 +175,19 @@ public class ReflectableLambdaMetafactory {
                                           MethodType factoryType,
                                           Object... args)
             throws LambdaConversionException {
-        DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), decodedName.opHandle);
-        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, finisher, args);
+        LambdaFinisher finisher = (args.length > 1 && args[1] instanceof MethodHandle impl)
+                ? new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), findReflectableOpGetter(caller, impl))
+                : null;
+        return JLI_ACCESS.altMetafactoryInternal(caller, interfaceMethodName, factoryType, finisher, args);
     }
 
     static final JavaLangInvokeAccess JLI_ACCESS = SharedSecrets.getJavaLangInvokeAccess();
 
-    record DecodedName(String name, MethodHandle opHandle) { }
-
-    private static DecodedName findReflectableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) throws LambdaConversionException {
-        String[] implNameParts = interfaceMethodName.split("=");
-        if (implNameParts.length != 2) {
-            throw new LambdaConversionException("Bad method name: " + interfaceMethodName);
-        }
+    private static MethodHandle findReflectableOpGetter(MethodHandles.Lookup lookup, MethodHandle implementation) throws LambdaConversionException {
         try {
-            return new DecodedName(
-                    implNameParts[0],
-                    lookup.findStatic(lookup.lookupClass(), implNameParts[1], MethodType.methodType(Op.class)));
-        } catch (ReflectiveOperationException ex) {
+            MethodHandleInfo info = lookup.revealDirect(implementation);
+            return lookup.findStatic(info.getDeclaringClass(), "op$" + info.getName(), MethodType.methodType(Op.class));
+        } catch (ReflectiveOperationException | IllegalArgumentException ex) {
             throw new LambdaConversionException(ex);
         }
     }

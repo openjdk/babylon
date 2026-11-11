@@ -163,13 +163,13 @@ final class LambdaExpansionTransformer implements CodeTransformer {
 
     }
 
-    private static String uniqueName(Set<String> names, String name) {
-        if (names.add(name)) {
+    private static String uniqueName(Set<String> names, String name, boolean reflectable) {
+        if (names.add(name) && (!reflectable || names.add("op$" + name))) {
             return name;
         }
         for (int i = 0; ; i++) {
             String n = name + "$" + i;
-            if (names.add(n)) {
+            if (names.add(n) && (!reflectable || names.add("op$" + n))) {
                 return n;
             }
         }
@@ -194,7 +194,7 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             // filter out constant captures
             List<Value> captures = lop.capturedValues().stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
             int i = nextLambdaIndex++;
-            String implName = uniqueName(names, "lambda$" + i);
+            String implName = uniqueName(names, "lambda$" + i, lop.isReflectable());
             String intfMethodName = intfMethod.getName();
             List<ConstantDesc> additionalBootstrapArgs = new ArrayList<>();
             if (!additionalIntfClasses.isEmpty()) {
@@ -209,12 +209,11 @@ final class LambdaExpansionTransformer implements CodeTransformer {
                     ? DMHD_LAMBDA_METAFACTORY : DMHD_LAMBDA_ALT_METAFACTORY;
             FuncOp quotation = lambdaToQuotation(lop);
             if (lop.isReflectable()) {
-                String modelName = uniqueName(names, "op$lambda$" + i);
+                String modelName = "op$" + implName;
                 modelsToBuild.put(modelName, quotation);
                 lambdaMetafactory = additionalBootstrapArgs.isEmpty()
                         ? DMHD_REFLECTABLE_LAMBDA_METAFACTORY
                         : DMHD_REFLECTABLE_LAMBDA_ALT_METAFACTORY;
-                intfMethodName = intfMethodName + "=" + modelName;
             }
             functions.add(quotationToImpl(implName, quotation));
 

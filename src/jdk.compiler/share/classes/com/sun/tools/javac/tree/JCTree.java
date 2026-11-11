@@ -830,7 +830,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
             return target != null ? types.findDescriptorType(target) : types.createErrorType(null);
         }
 
-        public record CodeReflectionInfo(MethodSymbol codeModel, Type reflectableLambdaMetafactory) { }
+        public record CodeReflectionInfo(JCMethodDecl codeModel, Type reflectableLambdaMetafactory) { }
     }
 
     /**
