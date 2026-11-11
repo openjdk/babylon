@@ -80,6 +80,12 @@ public class ReflectableLambdaMetafactory {
 
     /**
      * Metafactory used to create a reflectable lambda.
+     * <p>
+     * Clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
+     * to access the code model of the lambda expression dynamically.
+     * <p>
+     * The functionality provided by this metafactory is identical to that in
+     * {@link LambdaMetafactory#metafactory(Lookup, String, MethodType, MethodType, MethodHandle, MethodType)}.
      *
      * @param caller The lookup
      * @param interfaceMethodName The name of the method to implement.
@@ -117,6 +123,12 @@ public class ReflectableLambdaMetafactory {
 
     /**
      * Metafactory used to create a reflectable lambda.
+     * <p>
+     * Clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
+     * to access the code model of the lambda expression dynamically.
+     * <p>
+     * The functionality provided by this metafactory is identical to that in
+     * {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}.
      *
      * @param caller The lookup
      * @param interfaceMethodName The name of the method to implement.
