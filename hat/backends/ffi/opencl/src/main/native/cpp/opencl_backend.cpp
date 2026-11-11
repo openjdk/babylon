@@ -239,15 +239,12 @@ Backend::CompilationUnit *OpenCLBackend::compile(int len, char *source, int type
     OpenCLProgram *openclProgram = nullptr;
     if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logLen)) != CL_SUCCESS) {
         std::cerr << "clGetBuildInfo (getting log size) failed" << std::endl;
-        //openclProgram->buildInfo = new Backend::CompilationUnit::BuildInfo(openclProgram, src, nullptr, false);
         openclProgram = new OpenCLProgram(this, src, nullptr, buildStatus == CL_SUCCESS, program);
     } else {
-        //  cl_build_status buildStatus;
         clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_STATUS, sizeof(buildStatus), &buildStatus, nullptr);
-        if (logLen > 0) {
+        if (config -> info && logLen > 0) {
             char *log = new char[logLen + 1];
-            if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, (void *) log,
-                                                nullptr)) != CL_SUCCESS) {
+            if ((status = clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, logLen + 1, log, nullptr)) != CL_SUCCESS) {
                 std::cerr << "clGetBuildInfo (getting log) failed" << std::endl;
                 delete[] log;
                 log = nullptr;
