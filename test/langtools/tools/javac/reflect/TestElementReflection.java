@@ -28,7 +28,6 @@
  * @modules java.compiler
  *          jdk.compiler
  *          jdk.incubator.code
- * @enablePreview
  * @build   JavacTestingAbstractProcessor TestElementReflection
  * @compile -processor TestElementReflection -proc:only TestElementReflection.java
  */
