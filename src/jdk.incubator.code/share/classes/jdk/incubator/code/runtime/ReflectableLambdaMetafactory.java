@@ -183,7 +183,8 @@ public class ReflectableLambdaMetafactory {
 
     static final JavaLangInvokeAccess JLI_ACCESS = SharedSecrets.getJavaLangInvokeAccess();
 
-    private static MethodHandle findReflectableOpGetter(MethodHandles.Lookup lookup, MethodHandle implementation) throws LambdaConversionException {
+    static MethodHandle findReflectableOpGetter(MethodHandles.Lookup lookup, MethodHandle implementation)
+            throws LambdaConversionException {
         try {
             MethodHandleInfo info = lookup.revealDirect(implementation);
             return lookup.findStatic(info.getDeclaringClass(), "op$" + info.getName(), MethodType.methodType(Op.class));
@@ -198,7 +199,8 @@ public class ReflectableLambdaMetafactory {
         final ClassDesc[] argDescs;
         final MethodHandle opHandle;
 
-        public LambdaFinisher(Class<?> callerClass, List<Class<?>> parameterTypes, MethodHandle opHandle) throws LambdaConversionException {
+        public LambdaFinisher(Class<?> callerClass, List<Class<?>> parameterTypes, MethodHandle opHandle)
+                throws LambdaConversionException {
             this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(callerClass).concat("$$Lambda"));
             this.argDescs = parameterTypes.stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
             this.opHandle = opHandle;

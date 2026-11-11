@@ -164,13 +164,13 @@ public final class CodeModelBootstraps {
                                              MethodType interfaceMethodType,
                                              MethodHandle implementation,
                                              MethodType dynamicMethodType) throws LambdaConversionException {
-        MethodHandle generatedImpl = linkLambdaImplementation(caller, interfaceMethodName);
-        CallSite site = ReflectableLambdaMetafactory.metafactory(caller,
-                                                                 interfaceMethodName,
-                                                                 generatedFactoryType(factoryType, generatedImpl),
-                                                                 interfaceMethodType,
-                                                                 generatedImpl,
-                                                                 dynamicMethodType);
+        MethodHandle opHandle = ReflectableLambdaMetafactory.findReflectableOpGetter(caller, implementation);
+        MethodHandle generatedImpl = linkLambdaImplementation(caller, opHandle);
+        MethodType generatedFactoryType = generatedFactoryType(factoryType, generatedImpl);
+        var finisher = new ReflectableLambdaMetafactory.LambdaFinisher(caller.lookupClass(),
+                generatedFactoryType.parameterList(), opHandle);
+        CallSite site = ReflectableLambdaMetafactory.JLI_ACCESS.metafactoryInternal(caller, interfaceMethodName,
+                generatedFactoryType, interfaceMethodType, generatedImpl, dynamicMethodType, finisher);
         return new ConstantCallSite(site.getTarget().asType(factoryType));
     }
 
@@ -228,12 +228,20 @@ public final class CodeModelBootstraps {
                                                 String interfaceMethodName,
                                                 MethodType factoryType,
                                                 Object... args) throws LambdaConversionException {
-        MethodHandle generatedImpl = linkLambdaImplementation(caller, interfaceMethodName);
+        if (args.length < 2) {
+            throw new IllegalArgumentException("missing argument");
+        }
+        if (!(args[1] instanceof MethodHandle impl)) {
+            throw new IllegalArgumentException("argument has wrong type");
+        }
+        MethodHandle opHandle = ReflectableLambdaMetafactory.findReflectableOpGetter(caller, impl);
+        MethodHandle generatedImpl = linkLambdaImplementation(caller, opHandle);
         args[1] = generatedImpl;
-        CallSite site = ReflectableLambdaMetafactory.altMetafactory(caller,
-                                                                    interfaceMethodName,
-                                                                    generatedFactoryType(factoryType, generatedImpl),
-                                                                    args);
+        MethodType generatedFactoryType = generatedFactoryType(factoryType, generatedImpl);
+        var finisher = new ReflectableLambdaMetafactory.LambdaFinisher(caller.lookupClass(),
+                generatedFactoryType.parameterList(), opHandle);
+        CallSite site = ReflectableLambdaMetafactory.JLI_ACCESS.altMetafactoryInternal(caller, interfaceMethodName,
+                generatedFactoryType, finisher, args);
         return new ConstantCallSite(site.getTarget().asType(factoryType));
     }
 
@@ -244,13 +252,9 @@ public final class CodeModelBootstraps {
     }
 
     private static MethodHandle linkLambdaImplementation(MethodHandles.Lookup caller,
-                                                         String interfaceMethodName)
+                                                         MethodHandle opHandle)
             throws LambdaConversionException {
-        String modelMethodName = interfaceMethodName.split("=")[1];
         try {
-            MethodHandle opHandle = caller.findStatic(caller.lookupClass(),
-                                                      modelMethodName,
-                                                      MethodType.methodType(Op.class));
             MethodHandle methodHandle = BytecodeGenerator.generate(caller,
                                                                    unquoteLambda((CoreOp.FuncOp)opHandle.invoke()));
             return methodHandle;
