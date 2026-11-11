@@ -131,6 +131,10 @@ else
          echo "Adding \${JAVA_HOME}/bin prefix to PATH, SAFE_PATH contains previous value"
          export PATH=${JAVA_HOME}/bin:${PATH}
       fi
+      if [[ $OSTYPE == "linux-gnu" ]]; then
+         export LD_PRELOAD=$JAVA_HOME/lib/libjsig.so
+         echo "Setting LD_PRELOAD to : $LD_PRELOAD"	
+      fi
     else
       echo "We expected either:-"
       echo "    \${PWD} to be in a hat subdir of a compiled babylon jdk build" 
