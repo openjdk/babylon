@@ -770,12 +770,12 @@ public final class BytecodeGenerator {
                                 if (op.isVarargs()) {
                                     int varargIndex = op.constructorReference().signature().parameterTypes().size() - 1;
                                     var argOperands = op.operands().subList(0, varargIndex);
-                                    processOperands(argOperands, true);
+                                    argOperands.forEach(this::load);
                                     var compType = ((ArrayType) op.constructorReference().signature().parameterTypes().getLast()).componentType();
                                     var varArgOperands = op.operands().subList(varargIndex, op.operands().size());
                                     loadArray(compType, varArgOperands);
                                 } else {
-                                    processOperands(op);
+                                    op.operands().forEach(this::load);
                                 }
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
@@ -951,10 +951,12 @@ public final class BytecodeGenerator {
                         // @@@ box, unbox, cast here ?
                     }
                     cob.return_(returnType);
+                    oprOnStack.clear();
                 }
                 case ThrowOp op -> {
                     processFirstOperand(op);
                     cob.athrow();
+                    oprOnStack.clear();
                 }
                 case BranchOp op -> {
                     setCatchStack(op.branch(), recentCatchBlocks);
@@ -1041,8 +1043,10 @@ public final class BytecodeGenerator {
                     assignBlockArguments(op.endReference());
                     cob.goto_(getLabel(op.endReference()));
                 }
-                case UnreachableOp _ ->
+                case UnreachableOp _ -> {
                     cob.aconst_null().athrow();
+                    oprOnStack.clear();
+                }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
