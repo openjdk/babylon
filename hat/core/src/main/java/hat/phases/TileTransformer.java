@@ -79,6 +79,9 @@ import java.util.function.IntBinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static jdk.incubator.code.dialect.core.CoreOp.CORE_OP_FACTORY;
+import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
+
 /**
  * Class to perform:
  * a) Type Checks and shape propagation for Tile operations.
@@ -397,13 +400,15 @@ public class TileTransformer {
                     ptrType.dims()));
         }
 
-        public Value store(CodeType type, Op.Result result,
+        public Value store(CodeType resultType, Op.Result result,
                            PtrType ptrType, Value ptr,
                            CodeType idType, Value id,
                            CodeType tensorType, Value tensor) {
+            // Check for implicit cast
+            Value tensorResult = checkAndAddConversionIfNeeded(tensor, ptrType, tensorType);
             return block.add(TileOps.store(block.context().getValue(ptr),
                     block.context().getValue(id),
-                    block.context().getValue(tensor), ptrType.dims()));
+                    block.context().getValue(tensorResult), ptrType.dims()));
         }
 
         public Value irange(CodeType resultType, Op.Result result,
@@ -571,21 +576,25 @@ public class TileTransformer {
         }
 
         public Value arange(CodeType typeResult, Op.Result result,
+                            CodeType sizeType, Value size) {
+            return block.add(TileOps.arange(typeResult,
+                    block.context().getValue(size)));
+        }
+
+        public Value arange(CodeType typeResult, Op.Result result,
                             CodeType sizeType, Value size,
                             CodeType dType, Value dTypeValue) {
-            return block.add(TileOps.arange(typeResult, block.context().getValue(size)));
-        }
-
-        public Value arange(CodeType typeResult, Op.Result result,
-                            CodeType sizeType, Value size) {
-            return block.add(TileOps.arange(typeResult, block.context().getValue(size)));
+            return block.add(TileOps.arange(typeResult,
+                    dType, block.context().getValue(size)));
         }
 
         public Value arange(CodeType typeResult, Op.Result result,
                             CodeType sizeType, Value size,
+                            CodeType dType, Value dTypeValue,
                             CodeType startType, Value start,
                             CodeType stepType, Value step) {
             return block.add(TileOps.arange(typeResult,
+                    dType,
                     block.context().getValue(size),
                     block.context().getValue(start),
                     block.context().getValue(step)));
@@ -593,14 +602,45 @@ public class TileTransformer {
 
         public Value arange(CodeType typeResult, Op.Result result,
                             CodeType sizeType, Value size,
-                            CodeType startType, Value start,
-                            CodeType stepType, Value step,
-                            CodeType arangeType, Value arangeValue) {
+                            CodeType dType, Value dTypeValue,
+                            CodeType startType, Value start) {
+            CoreOp.ConstantOp constant = CoreOp.constant(JavaType.INT, 1);
+            Op.Result cOne = block.add(constant);
             return block.add(TileOps.arange(typeResult,
+                    dType,
                     block.context().getValue(size),
                     block.context().getValue(start),
-                    block.context().getValue(step)));
+                    block.context().getValue(cOne)));
         }
+
+        private VarOp getTensorVarOp(Op op) {
+            return switch (op) {
+                case VarOp varOp -> varOp;
+                default -> getTensorVarOp((Op) op.operands().getFirst().declaringElement());
+            };
+        }
+
+        private Value addConversionOp(TensorType tt, Value tensor, CodeType dType) {
+            // We need a conversion op
+            TensorType convType = new TensorType(DType.Float, tt.shape());
+            Op.Result convResult = block.add(TileOps.convert(convType, block.context().getValue(tensor)));
+
+            // search tensor varOp
+            VarOp tensorVarOp = getTensorVarOp((Op) tensor.declaringElement());
+
+            Op.Result varValue = block.add(CoreOp.var(tensorVarOp.varName() + "_conv", convType, convResult));
+            return block.add(CoreOp.varLoad(varValue));
+        }
+
+        private Value checkAndAddConversionIfNeeded(Value tensor, PtrType ptrType, CodeType tensorType) {
+            if (ptrType.rType().equals(DType.TENSOR_F32_TYPE) && tensorType instanceof TensorType tt && !(tt.elementType().equals(DType.Float))) {
+                return addConversionOp(tt, tensor, DType.Float);
+            } else if (ptrType.rType().equals(DType.TENSOR_F16_TYPE) && tensorType instanceof TensorType tt && !(tt.elementType().equals(DType.Float))) {
+                 return addConversionOp(tt, tensor, DType.TENSOR_F16_TYPE);
+            }
+            return tensor;
+        }
+
     }
 
     static final JavaType TYPE_TILE_CONTEXT = JavaType.type(TileContext.class);
@@ -1110,15 +1150,18 @@ public class TileTransformer {
 
         // When dType is not passed, then we build a new Tile of type FLOAT
         public static CodeType arange(ConstantType sizeType) {
-            return new TensorType(JavaType.FLOAT, List.of((Integer) sizeType.value()));
+            // arange is an integral type
+            return new TensorType(JavaType.INT, List.of((Integer) sizeType.value()));
         }
 
-        public static CodeType arange(ConstantType sizeType, ConstantType start, ConstantType step, CodeType type) {
-            return arange(sizeType, type);
+        public static CodeType arange(ConstantType sizeType, CodeType dType, ConstantType start) {
+            // We use the start when building the new code tree (transform)
+            return arange(sizeType, dType);
         }
 
-        public static CodeType arange(ConstantType sizeType, ConstantType start, ConstantType step) {
-            return arange(sizeType);
+        public static CodeType arange(ConstantType sizeType, CodeType dType, ConstantType start, ConstantType step) {
+            // We use the start and end when building the new code tree (transform)
+            return arange(sizeType, dType);
         }
 
         public static CodeType binary(CodeType a, CodeType b) {

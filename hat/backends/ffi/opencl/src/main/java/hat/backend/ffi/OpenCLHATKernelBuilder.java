@@ -1097,6 +1097,16 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
 
     @Override
     public OpenCLHATKernelBuilder tileDimOp(TileOps.TileDimOp tileDimOp) {
-        throw  new UnsupportedOperationException("Tile Dimension Operation is not supported yet.");
+        throw new UnsupportedOperationException("Tile Dimension Operation is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileArangeOp(TileOps.TileArangeOp tileArangeOp) {
+        throw new UnsupportedOperationException("Tile Arange Op is not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileConvOp(TileOps.TileConvOp tileConvOp) {
+        throw new UnsupportedOperationException("Tile ConvOp Operation not supported yet.");
     }
 }
