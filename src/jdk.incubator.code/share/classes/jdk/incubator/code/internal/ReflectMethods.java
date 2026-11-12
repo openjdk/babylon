@@ -638,7 +638,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             stack = stack.parent;
         }
 
-        Value varOpValue(Symbol sym) {
+        Value getVarValue(Symbol sym) {
             Value value = getValue(sym);
             Assert.check(value.type() instanceof VarType);
             return value;
@@ -868,7 +868,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     Symbol sym = assign.sym;
                     switch (sym.getKind()) {
                         case LOCAL_VARIABLE, BINDING_VARIABLE, PARAMETER, EXCEPTION_PARAMETER -> {
-                            Value varOp = varOpValue(sym);
+                            Value varOp = getVarValue(sym);
                             append(CoreOp.varStore(varOp, result));
                         }
                         case FIELD -> {
@@ -977,7 +977,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     Symbol sym = assign.sym;
                     switch (sym.getKind()) {
                         case LOCAL_VARIABLE, BINDING_VARIABLE, PARAMETER -> { // exception parameters not valid here!
-                            Value varOp = varOpValue(sym);
+                            Value varOp = getVarValue(sym);
 
                             Op.Result lhsOpValue = append(CoreOp.varLoad(varOp));
                             // Scan the rhs
@@ -1055,9 +1055,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
             switch (sym.getKind()) {
                 case LOCAL_VARIABLE -> {
                     if (sym instanceof VarSymbol variable && variable.getConstantValue() != null) {
-                        // we can't expect value to be result of ConstantOp
-                        // as constant expression can be broder than just a literal
                         result = getValue(sym);
+                        Assert.check(!(result.type() instanceof VarType));
                     } else {
                         result = loadVar(sym);
                     }
@@ -1095,7 +1094,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         }
 
         private Value loadVar(Symbol sym) {
-            Value varOp = varOpValue(sym);
+            Value varOp = getVarValue(sym);
             return append(CoreOp.varLoad(varOp));
         }
 
