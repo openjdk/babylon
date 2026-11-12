@@ -53,6 +53,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  * @library /test/lib
  * @modules jdk.compiler jdk.incubator.code/jdk.incubator.code.internal
  * @run junit TestControlFlowPreparation
+ * @enablePreview
  */
 public class TestControlFlowPreparation {
 

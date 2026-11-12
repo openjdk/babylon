@@ -56,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @test
  * @bug 8152143 8152704 8155649 8165804 8185841 8176841 8190918
  *      8179071 8202537 8221432 8222098 8251317 8258794 8265315
- *      8296248 8306116 8174269 8347146 8346948 8354548
+ *      8296248 8306116 8174269 8347146 8346948 8354548 8384532
  * @summary IncludeLocalesPlugin tests
  * @author Naoto Sato
  * @requires (vm.compMode != "Xcomp" & os.maxMemory >= 2g)
@@ -303,8 +303,8 @@ public class IncludeLocalesPluginTest {
                         "/jdk.localedata/sun/text/resources/cldr/ext/FormatData_ja.class",
                         "/jdk.localedata/sun/text/resources/cldr/ext/FormatData_th.class"),
                 List.of(
-                        "(root)", "en", "en_US", "en_US_#Latn", "en_US_POSIX", "zh", "zh__#Latn", "zh__#Hans", "zh_CN",
-                        "zh_CN_#Latn", "zh_CN_#Hans", "zh_HK", "zh_HK_#Hans", "zh_MO", "zh_MO_#Hans", "zh_MY_#Hans", "zh_SG",
+                        "(root)", "en", "en_US", "en_US_#Latn", "en_US_POSIX", "zh", "zh__#Hans", "zh_CN",
+                        "zh_CN_#Hans", "zh_HK", "zh_HK_#Hans", "zh_MO", "zh_MO_#Hans", "zh_MY_#Hans", "zh_SG",
                         "zh_SG_#Hans"),
                 ""),
 
@@ -466,9 +466,16 @@ public class IncludeLocalesPluginTest {
     }
 
     @AfterEach
-    public void cleanup() throws IOException {
+    public void cleanup() {
         if (testPassed && lastImageDir != null && Files.exists(lastImageDir)) {
-            FileUtils.deleteFileTreeWithRetry(lastImageDir);
+            // On Windows, the java.exe process spawned by testAvailableLocales() may
+            // hold open handles to files even after waitFor() returns.
+            // Use a non-throwing cleanup method but tolerate failures. Just log them.
+            List<IOException> failures = FileUtils.deleteFileTreeUnchecked(lastImageDir);
+            if (!failures.isEmpty()) {
+                System.err.println("WARNING: cleanup of " + lastImageDir + " incomplete:");
+                failures.forEach(e -> System.err.println("  " + e));
+            }
         }
     }
 

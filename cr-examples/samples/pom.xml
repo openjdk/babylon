@@ -82,8 +82,8 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.1.2</version>
                     <configuration>
-                        <argLine>--enable-preview</argLine>
-                        <argLine>--add-modules=jdk.incubator.code</argLine>
+                        <argLine>--enable-preview --add-modules jdk.incubator.code
+                        </argLine>
                     </configuration>
                 </plugin>
             </plugins>

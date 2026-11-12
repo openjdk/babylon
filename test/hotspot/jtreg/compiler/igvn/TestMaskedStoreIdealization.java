@@ -23,7 +23,7 @@
 
 /**
  * @test
- * @bug 8387073
+ * @bug 8387073 8388490
  * @key randomness
  * @summary Narrower stores preceding masked vector stores must not be eliminated.
  * @modules jdk.incubator.vector
@@ -65,9 +65,6 @@ public class TestMaskedStoreIdealization {
             "--add-opens", "jdk.incubator.vector/jdk.incubator.vector=ALL-UNNAMED"
         ));
         vmArgs.addAll(Arrays.asList(args)); // Forward args
-        // Temporarily disable stress flag due to unrelated test failures.
-        // TODO: Remove when JDK-8388490 is fixed.
-        vmArgs.addAll(List.of("-XX:+IgnoreUnrecognizedVMOptions", "-XX:-StressReflectiveCode"));
         String[] vmArgsArray = vmArgs.toArray(new String[0]);
 
         comp.invoke(PACKAGE + "." + CLASS_NAME, "main", new Object[] { vmArgsArray });
@@ -192,7 +189,8 @@ public class TestMaskedStoreIdealization {
                     let("boxedTy", vec.elementType.boxedTypeName()),
                     let("species", vec.speciesName),
                     "        VectorMask<#boxedTy> mask = VectorMask.fromLong(#species, ",
-                    testCaseRandom.nextInt(0, 10) == 0 ? testCaseRandom.nextLong() : "-1 - (1 << #idx)",
+                    testCaseRandom.nextInt(0, 10) == 0 ? testCaseRandom.nextLong() : "-1", // All bits or random mask.
+                    " & ~(1 << #idx)", // Regardless of the mask, we must clear the idx bit. Otherwise, IR-verification fails.
                     ");\n"
                 ));
 
