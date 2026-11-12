@@ -3520,32 +3520,59 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     cop.value() instanceof Boolean trueValue && trueValue;
         }
 
-        @Override
-        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-            // put case null first
-            // put default last
-            // other cases in between
-            List<Body> bodiesReordered = reorderBodies(bodies, handleNulls);
-
-            // map bodies to blocks
-            Map<Body, Block.Builder> blocks = new HashMap<>();
-            Value selectorExpression = b.context().getValue(operands().get(0));
-            boolean selectorCanBeNull = !(selectorExpression.type() instanceof PrimitiveType);
-            int n = bodiesReordered.size();
-            // incoming block is used by first label (in the new ordering) only when selector can't be null
-            // if selector can be null, incoming block is going to be used for null check
-            Body firstLabel = bodiesReordered.getFirst();
-            if (!selectorCanBeNull) {
-                if (isCaseDefaultLabel(firstLabel)) {
-                    // case default doesn't have a predicate, so incoming block is used by default action
-                    blocks.put(bodiesReordered.getLast(), b);
-                } else {
-                    blocks.put(firstLabel, b);
+        private int findCaseDefIdx() {
+            for (int i = 0; i < bodies.size(); i++) {
+                if (isCaseDefaultLabel(bodies.get(i))) {
+                    return i;
                 }
             }
-            for (int i = 0; i < n; i += 2) {
-                blocks.computeIfAbsent(bodiesReordered.get(i), _ -> b.block());
-                blocks.computeIfAbsent(bodiesReordered.get(i + 1), _ -> b.block());
+            return -1;
+        }
+
+        private int findCaseNullIdx() {
+            for (int i = 0; i < bodies.size(); i++) {
+                if (isCaseNullLabel(bodies.get(i))) {
+                    return i;
+                }
+            }
+            // case null can be merged with default
+            return handleNulls ? findCaseDefIdx() : -1;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+            // map bodies to blocks
+            List<Block.Builder> blocks = new ArrayList<>();
+            int caseDefIdx = findCaseDefIdx();
+            int caseNullIdx = findCaseNullIdx();
+            Value selectorExpression = b.context().getValue(operands().getFirst());
+            boolean selectorCanBeNull = !(selectorExpression.type() instanceof PrimitiveType);
+            // decide which label will use the incoming block
+            // if selector can be null the incoming block will be used for null check
+            int reuseIdx = -1;
+            if (!selectorCanBeNull) {
+                int i = 0;
+                if (i == caseDefIdx) {
+                    i += 2;
+                    if (i > bodies.size() - 1) { // sw has default only
+                        i = caseDefIdx + 1;
+                    }
+                }
+                reuseIdx = i;
+            }
+            for (int i = 0; i < bodies.size(); i++) {
+                if (i == caseDefIdx || i == caseNullIdx) {
+                    blocks.add(null);
+                } else if (i == reuseIdx) {
+                    blocks.add(b);
+                } else {
+                    blocks.add(b.block());
+                }
+            }
+
+            // setup for fallthrough
+            for (int i = 1; i < bodies.size() - 2; i += 2) {
+                BranchTarget.setBranchTarget(b.context(), bodies.get(i), null, blocks.get(i + 2));
             }
 
             boolean hasYieldStatements = hasYieldStatements();
@@ -3580,160 +3607,73 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 BranchTarget.setBranchTarget(b.context(), this, exit, null);
             }
 
-            // Set action body's continue target to next action block for lowering of SwitchFallThroughOp
-            // uses the original order to preserve the correct behaviour
-            for (int i = 1; i < bodies.size() - 2; i += 2) {
-                Body actionBody = bodies.get(i);
-                Body nextActionBody = bodies.get(i + 2);
-                Block.Builder nextActionBlock = blocks.get(nextActionBody);
-                BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
-            }
-
-            // lower case null
+            // null check
             if (selectorCanBeNull) {
-                Block.Builder actionBlock;
-                Block.Builder noMatchBlock;
-
-                // null action
-                if (handleNulls) {
-                    Body caseNullAction = bodiesReordered.get(1);
-                    actionBlock = blocks.get(caseNullAction);
-                    if (isBooleanExpression) {
-                        ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, caseNullAction, List.of(),
-                                continuation, inherited);
-                    } else {
-                        lowerActionBody(actionBlock, caseNullAction, inherited, exit);
-                    }
-                    noMatchBlock = findNoMatchBlock(bodiesReordered, blocks, 0, exit);
+                Block.Builder nullAction;
+                if (caseNullIdx != -1) {
+                    nullAction = blocks.get( caseNullIdx + 1);
                 } else {
-                    actionBlock = b.block();
-                    actionBlock.add(throw_(actionBlock.add(new_(MethodRef.constructor(NullPointerException.class)))));
-                    // case null not in the sw, that's why we pass -2 as index
-                    noMatchBlock = findNoMatchBlock(bodiesReordered, blocks, -2, exit);
+                    nullAction = b.block();
+                    nullAction.add(throw_(nullAction.add(new_(MethodRef.constructor(NullPointerException.class)))));
                 }
+                Block.Builder noMatch = nextPredicate(0, blocks, exit, caseDefIdx, caseNullIdx);
 
-                // null check
                 Result cnull = b.add(constant(selectorExpression.type(), null));
                 Result p = b.add(eq(selectorExpression, cnull));
-                b.add(conditionalBranch(p, actionBlock.reference(), noMatchBlock.reference()));
+                b.add(conditionalBranch(p, nullAction.reference(), noMatch.reference()));
             }
 
-            // lower non-null non-default cases
-            int s = handleNulls ? 2 : 0;
-            int e = isCaseDefaultLabel(bodiesReordered.get(n - 2)) ? n - 3 : n;
-            for (int i = s; i < e; i += 2) {
-                Body predicateBody = bodiesReordered.get(i);
-                Block.Builder predicateBlock = blocks.get(predicateBody);
-                Body actionBody = bodiesReordered.get(i + 1);
-                Block.Builder actionBlock = blocks.get(actionBody);
+            // lower predicates
+            for (int i = 0; i < bodies.size(); i += 2) {
+                if (i == caseDefIdx || i == caseNullIdx) {
+                    continue;
+                }
+                Block.Builder noMatch = nextPredicate(i + 2, blocks, exit, caseDefIdx, caseNullIdx);
+                ControlFlowBooleanExpressionOp.lowerBooleanBody(blocks.get(i), bodies.get(i), List.of(selectorExpression),
+                        new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(blocks.get(i + 1).reference(),
+                                noMatch.reference()), inherited);
+            }
 
-                Block.Builder noMatchBlock = findNoMatchBlock(bodiesReordered, blocks, i, exit);
-
-                ControlFlowBooleanExpressionOp.lowerBooleanBody(predicateBlock, predicateBody, List.of(selectorExpression),
-                        new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(),
-                                noMatchBlock.reference()), inherited);
-
+            // lower actions
+            for (int i = 1; i < bodies.size(); i += 2) {
                 if (isBooleanExpression) {
-                    ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, actionBody, List.of(), continuation, inherited);
+                    ControlFlowBooleanExpressionOp.lowerBooleanBody(blocks.get(i), bodies.get(i), List.of(), continuation, inherited);
                 } else {
-                    lowerActionBody(actionBlock, actionBody, inherited, exit);
+                    blocks.get(i).transformBody(bodies.get(i), List.of(), loweringTransformer(inherited,
+                            (block, op) -> switch (op) {
+                                case CoreOp.YieldOp yop -> {
+                                    List<Value> args = yop.yieldValue() == null
+                                            ? List.of()
+                                            : List.of(block.context().getValue(yop.yieldValue()));
+                                    block.add(branch(exit.reference(args)));
+                                    yield block;
+                                }
+                                default -> null;
+                            }));
                 }
             }
-
-            // lower default when it doesn't share the same action with case null
-            if (isCaseDefaultLabel(bodiesReordered.get(n - 2)) && bodiesReordered.getFirst() != null) {
-                Body actionBody = bodiesReordered.getLast();
-                Block.Builder actionBlock = blocks.get(actionBody);
-                if (isBooleanExpression) {
-                    ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, actionBody, List.of(), continuation, inherited);
-                } else {
-                    lowerActionBody(actionBlock, actionBody, inherited, exit);
-                }
-            }
-
             return exit;
         }
 
-        private List<Body> reorderBodies(List<Body> bodies, boolean handleNulls) {
-            // we put case null first, then come non default cases and at the end we put default case
-            List<Body> bodiesReordered = new ArrayList<>();
-            int caseNullIndex = -1;
-            int caseDefaultIndex = -1;
-            for (int i = 0; i < bodies.size(); i += 2) {
-                Body label = bodies.get(i);
-                if (isCaseNullLabel(label)) {
-                    // case null -> ...
-                    caseNullIndex = i;
-                } else if (isCaseDefaultLabel(label)) {
-                    // default -> ... OR case null, default -> ...
-                    caseDefaultIndex = i;
-                }
+        Block.Builder nextPredicate(int startPos, List<Block.Builder> blocks, Block.Builder exit, int caseDefIdx,
+                                    int caseNullIdx) {
+            int i = startPos;
+            while (i == caseDefIdx || i == caseNullIdx) {
+                i += 2;
             }
-            if (caseNullIndex == -1 && handleNulls) {
-                // the switch has case null, default -> ...
-                caseNullIndex = caseDefaultIndex;
-            }
-
-            if (caseNullIndex != -1) {
-                if (caseNullIndex != caseDefaultIndex) {
-                    bodiesReordered.add(bodies.get(caseNullIndex));
-                } else {
-                    // case null, default -> ..., we will represent the label body with null
-                    // that's the only null we can have in the list
-                    bodiesReordered.add(null);
-                }
-                bodiesReordered.add(bodies.get(caseNullIndex + 1));
-            }
-
-            for (int i = 0; i < bodies.size(); i += 2) {
-                if (i == caseNullIndex || i == caseDefaultIndex) {
-                    continue;
-                }
-                bodiesReordered.add(bodies.get(i));
-                bodiesReordered.add(bodies.get(i + 1));
-            }
-
-            if (caseDefaultIndex != -1) {
-                bodiesReordered.add(bodies.get(caseDefaultIndex));
-                bodiesReordered.add(bodies.get(caseDefaultIndex + 1));
-            }
-            return bodiesReordered;
-        }
-
-        private Block.Builder findNoMatchBlock(List<Body> bodiesReordered, Map<Body, Block.Builder> blocks,
-                                               int currPredIndex, Block.Builder exit) {
-            if (currPredIndex + 2 > bodiesReordered.size() - 1) {
-                if (this instanceof SwitchExpressionOp) {
-                    // for a sw expr, the last label must capture all values
-                    // here we create a block that shouldn't be jumped to, hence the unreachable op
-                    Block.Builder b = exit.block();
-                    b.add(unreachable());
-                    return b;
-                } else {
+            if (i > bodies.size() - 1) {
+                if (caseDefIdx != -1) {
+                    return blocks.get(caseDefIdx + 1);
+                } else if (this instanceof SwitchStatementOp) {
                     return exit;
+                } else {
+                    Block.Builder block = exit.block();
+                    block.add(unreachable());
+                    return block;
                 }
-            }
-            Body nextPredBody = bodiesReordered.get(currPredIndex + 2);
-            if (isCaseDefaultLabel(nextPredBody)) {
-                return blocks.get(bodiesReordered.getLast());
             } else {
-                return blocks.get(nextPredBody);
+                return blocks.get(i);
             }
-        }
-
-        private void lowerActionBody(Block.Builder actionBlock, Body actionBody,
-                                     BiFunction<Block.Builder, Op, Block.Builder> inherited, Block.Builder exit) {
-            actionBlock.transformBody(actionBody, List.of(), loweringTransformer(inherited,
-                    (block, op) -> switch (op) {
-                        case CoreOp.YieldOp yop -> {
-                            List<Value> args = yop.yieldValue() == null
-                                    ? List.of()
-                                    : List.of(block.context().getValue(yop.yieldValue()));
-                            block.add(branch(exit.reference(args)));
-                            yield block;
-                        }
-                        default -> null;
-                    }));
         }
 
         /**
