@@ -230,7 +230,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToErasedMethodRef(tree.sym));
-                opMethodDecls.add(opMethodDecl(methodName));
+                JCMethodDecl opMethod = opMethodDecl(methodName);
+                currentClassSym.members().enter(opMethod.sym);
+                opMethodDecls.add(opMethod);
                 ops.put(methodName.toString(), funcOp);
             }
         }
@@ -325,11 +327,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
             JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            opMethodDecls.add(opMethod);
             ops.put(lambdaName.toString(), funcOp);
 
             // leave the lambda in place, but also leave a trail for LambdaToMethod
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
         try {
@@ -364,8 +365,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Name lambdaName = lambdaName();
             ops.put(lambdaName.toString(), funcOp);
             JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            opMethodDecls.add(opMethod);
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
         }
         super.visitReference(tree);
     }
@@ -401,7 +401,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
         var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
                 com.sun.tools.javac.util.List.nil(), syms.methodClass);
         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
-        currentClassSym.members().enter(ms);
 
         // Create the method body calling the synthetic inner class method of the same name
         var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, codeModelsClassSym))));
