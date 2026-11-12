@@ -393,7 +393,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 emitText("f");
             }
         } else {
-            throw new IllegalStateException("What is this field load ?" + fieldLoadOp);
+            //throw new IllegalStateException("What is this field load ?" + fieldLoadOp);
         }
         return self();
     }

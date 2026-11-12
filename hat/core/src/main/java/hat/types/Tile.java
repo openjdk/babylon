@@ -304,7 +304,7 @@ public record Tile() implements IfaceValue {
      * </code>
      * </p>
      * <p>
-     * If not code type is passed, then it is assumed F32 (FLOAT) Type
+     * DType for this expression is Integer (JavaType.INT)
      *
      * @param size
      * @return {@link Tile}
@@ -313,39 +313,58 @@ public record Tile() implements IfaceValue {
         throw new UnsupportedOperationException("Tile.arange is a compiler intrinsic.");
     }
 
-    public static Tile arange(final int size, CodeType codeType) {
+    /**
+     * Creates a 1D-tile with sequence elements starting with zero with a specific dType.
+     * <p>
+     * <code>
+     * var tile = Tile.arange(4, DType.FLOAT); // [0.0f, 1.0f, 2.0f, 3.0f]
+     * </code>
+     * </p>
+     * <p>
+     *
+     * @param size Tile size
+     * @param dType dType
+     * @return {@link Tile}
+     */
+    public static Tile arange(final int size, CodeType dType) {
         throw new UnsupportedOperationException("Tile.arange is a compiler intrinsic.");
     }
+
+    /**
+     * Creates a 1D-tile with sequence of elements starting with "start",
+     * in increments of 1 (step set to one).
+     * <p>
+     * <code>
+     * var tile = Tile.arange(4, DType.INT, 2); // [2, 3, 4, 5]
+     * </code>
+     * </p>
+     *
+     * @param size tile size
+     * @param dType Type of the Tensor. Use the class {@link hat.DType} to obtain the type
+     * @param start start value
+     * @return {@link Tile}
+     */
+    public static Tile arange(final int size, CodeType dType, final int start) {
+        throw new UnsupportedOperationException("Tile.arange is a compiler intrinsic.");
+    }
+
 
     /**
      * Creates a 1D-tile with sequence of elements starting with "start",
      * in increments of "step".
      * <p>
      * <code>
-     * var tile = Tile.arange(4, 2, 2); // [4, 6, 8, 10]
+     * var tile = Tile.arange(4, DType.INT, 2, 2); // [2, 4, 6, 8]
      * </code>
      * </p>
      *
-     * @param size
+     * @param size tile size
+     * @param dType Type of the Tensor. Use the class {@link hat.DType} to obtain the type
+     * @param start start value
+     * @param step step value
      * @return {@link Tile}
      */
-    public static Tile arange(final int size, final int start, final int step) {
-        throw new UnsupportedOperationException("Tile.arange is a compiler intrinsic.");
-    }
-
-    /**
-     * Creates a 1D-tile with sequence of elements starting with "start",
-     * in increments of "step".
-     * <p>
-     * <code>
-     * var tile = Tile.arange(4, 2, 2); // [4, 6, 8, 10]
-     * </code>
-     * </p>
-     *
-     * @param size
-     * @return {@link Tile}
-     */
-    public static Tile arange(final int size, final int start, final int step, CodeType codeType) {
+    public static Tile arange(final int size, CodeType dType, final int start, final int step) {
         throw new UnsupportedOperationException("Tile.arange is a compiler intrinsic.");
     }
 

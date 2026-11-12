@@ -63,6 +63,7 @@ import java.util.SequencedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -523,7 +524,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     private CudaHATKernelBuilder defineMacroTensorMMA(String macroName) {
-        // Args: "i", "j", "k", "acc", "tensorA", "tensorB", "tensorC", "tensorResult", "M", "N", "K";
+        // Interface: i, j, k, acc, tensorA, tensorB, tensorC, tensorResult, M, N, K;
         List<String> params = paramsOfTensorMMAMacro();
         List<String> cudaMMAArgs = new ArrayList<>();
         cudaMMAArgs.add(params.get(7)); // tensorResult
@@ -558,9 +559,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                             id("reference")
                                     .rarrow().id(ARRAY)
                                     .sp().plus().sp()
-                                    .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
+                                    .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id(LEADING_DIMENSION))
                                     .comma()
-                                    .id("leadingDimension");
+                                    .id(LEADING_DIMENSION);
                         }));
     }
 
@@ -574,17 +575,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
      * @return {@link CudaHATKernelBuilder}
      */
     public CudaHATKernelBuilder defineMacroTensorStore(String macroName) {
-        List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToStore", "memAccessLayout");
+        List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", LEADING_DIMENSION, "reference", "tensorToStore", "memAccessLayout");
         return macroNoParenthesis(macroName, params, _ ->
                 sp().backslash().nl()
                         .id(WMMA_STORE_TENSOR).paren(_ ->
                                 id("reference").rarrow().id(ARRAY)
                                         .sp().plus().sp()
-                                        .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id("leadingDimension"))
+                                        .id("iIndexValue").plus().paren(_ -> id("jIndexValue").mul().id(LEADING_DIMENSION))
                                         .comma()
                                         .id("tensorToStore")
                                         .comma()
-                                        .id("leadingDimension")
+                                        .id(LEADING_DIMENSION)
                                         .comma()
                                         .id("memAccessLayout")));
     }
@@ -850,16 +851,18 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .recurse(OpHelper.asResultOrThrow(varOp.operands().getFirst()).op());
     }
 
-    public static final String WMMA_MEM_COL_MAJOR = "nvcuda::wmma::mem_col_major";
-    public static final String WMMA_MEM_ROW_MAJOR = "nvcuda::wmma::mem_row_major";
-    public static final String WMMA_STORE_TENSOR = "nvcuda::wmma::store_matrix_sync";
-    public static final String WMMA_LOAD_TENSOR = "nvcuda::wmma::load_matrix_sync";
-    public static final String WMMA_MMA_TENSOR = "nvcuda::wmma::mma_sync";
-    public static final String WMMA_FILL_TENSOR = "nvcuda::wmma::fill_fragment";
-    public static final String WMMA_COL_MAJOR = "nvcuda::wmma::col_major";
-    public static final String WMMA_ROW_MAJOR = "nvcuda::wmma::row_major";
-    public static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment";
-    public static final String WMMA_PREFIX = "nvcuda::wmma::";
+    private static final String WMMA_MEM_COL_MAJOR = "nvcuda::wmma::mem_col_major";
+    private static final String WMMA_MEM_ROW_MAJOR = "nvcuda::wmma::mem_row_major";
+    private static final String WMMA_STORE_TENSOR = "nvcuda::wmma::store_matrix_sync";
+    private static final String WMMA_LOAD_TENSOR = "nvcuda::wmma::load_matrix_sync";
+    private static final String WMMA_MMA_TENSOR = "nvcuda::wmma::mma_sync";
+    private static final String WMMA_FILL_TENSOR = "nvcuda::wmma::fill_fragment";
+    private static final String WMMA_COL_MAJOR = "nvcuda::wmma::col_major";
+    private static final String WMMA_ROW_MAJOR = "nvcuda::wmma::row_major";
+    private static final String WMMA_FRAGMENT_BASE = "nvcuda::wmma::fragment";
+    private static final String WMMA_PREFIX = "nvcuda::wmma::";
+
+    private static final String LEADING_DIMENSION = "leadingDimension";
 
     private CudaHATKernelBuilder generateCreateTensor(List<Integer> shape, String matrixOrder, String type, Value access, String tensorVar) {
         // Params: "kind", "size", "m", "n", "k", "type", "layout", "name";
@@ -1042,7 +1045,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             jIndexValue = tmp;
         }
 
-        // params:         List<String> params = List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad");
+        // params:  List.of("M", "N", "varA", "varB", "iIndexValue", "jIndexValue", "isColumnMajor", "leadingDimension", "reference", "tensorToLoad");
         Value finalIIndexValue = iIndexValue;
         Value finalJIndexValue = jIndexValue;
         return id(MACRO_FRAGMENT_LOAD_F16).paren(_ ->
@@ -1508,6 +1511,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return id("store");
     }
 
+    private CudaHATKernelBuilder tileIota() {
+        return tileContext().id("iota");
+    }
+
+    private CudaHATKernelBuilder elementCast() {
+        return tileContext().id("element_cast");
+    }
+
     @Override
     public CudaHATKernelBuilder tileMMAOp(ArithMathOps.MMAOp tileMMAOp) {
         return tileMMA().paren(_ -> commaSpaceSeparated(tileMMAOp.operands(), this::recurseResultOrThrow));
@@ -1555,6 +1566,64 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     @Override
     public CudaHATKernelBuilder tileDimOp(TileOps.TileDimOp tileDimOp) {
         return commaSpaceSeparated(tileDimOp.operands(), this::genConstValueForShape);
+    }
+
+    private CudaHATKernelBuilder genArangeOperation(TileOps.TileArangeOp tileArangeOp) {
+        return tileIota().ltgt(_ -> {
+            Value sizeValue = tileArangeOp.operands().getFirst();
+            tile().ltgt(_ -> {
+                s32Type().comma().tileShape().ltgt(_ -> {
+                    if (sizeValue.type() instanceof ConstantType ct && ct.value() instanceof Integer val) {
+                        constant(val.toString());
+                    }
+                });
+            });
+        }).paren(_ -> {});
+    }
+
+    private CodeType getTensorElementType(CodeType dType) {
+        if (dType instanceof TensorType t) {
+            return t.elementType();
+        } else {
+            throw new IllegalStateException("Expected a TensorType as a result of an arange operation");
+        }
+    }
+
+    private CudaHATKernelBuilder tileConvOp(CodeType elementType, Consumer<CudaHATKernelBuilder> consumer) {
+        return elementCast().ltgt(_ -> {
+            if (elementType.equals(DType.Float)) {
+                f32Type();
+            } else if (elementType.equals(DType.Double)) {
+                f64Type();
+            } else {
+                throw new UnsupportedOperationException("dType not supported for the arange operation: ");
+            }
+        }).paren(_ -> accept(consumer));
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileArangeOp(TileOps.TileArangeOp tileArangeOp) {
+        List<Value> operands = tileArangeOp.operands();
+        CodeType dType = tileArangeOp.resultType();
+        if (operands.size() == 3) {
+            // we have start and step
+            Value start = operands.get(1);
+            Value step = operands.get(2);
+            recurseResultOrThrow(start)
+                    .sp().plus().sp()
+                    .recurseResultOrThrow(step)
+                    .sp().mul().sp();
+        }
+        CodeType elementType = getTensorElementType(dType);
+        return either(!elementType.equals(DType.Int),  // arange operation is an integral type
+                _ -> tileConvOp(elementType, _ -> genArangeOperation(tileArangeOp)),
+            _ -> genArangeOperation(tileArangeOp));
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileConvOp(TileOps.TileConvOp tileConvOp) {
+        CodeType elementType = getTensorElementType(tileConvOp.resultType());
+        return tileConvOp(elementType, _ -> recurseResultOrThrow(tileConvOp.operands().getFirst()));
     }
 
     @Override
