@@ -24,7 +24,7 @@
 */
 /*
 You probably should not edit this this file!!!
-It was auto generated 2026-10-22 15:20:36.839 by hat.FFIConfigCreator
+It was auto generated 2026-11-09 13:29:58.342 by hat.FFIConfigCreator
 */
 #pragma once
 
@@ -56,6 +56,7 @@ struct BasicConfig{
     static constexpr int CHECK_SSA_LOWERING_BIT           = 1<<0x1c;
     static constexpr int CUDA_NVCC_BIT                    = 1<<0x1d;
     static constexpr int CUDA_NVRTC_BIT                   = 1<<0x1e;
+    static constexpr int OUT_OF_ORDER_BIT                 = 1<<0x1f;
     const static char *bitNames[]; // See below for initialization
     const static char *bitDescriptions[]; // See below for initialization
     int configBits;
@@ -84,6 +85,7 @@ struct BasicConfig{
     bool checkSsaLowering;
     bool cudaNvcc;
     bool cudaNvrtc;
+    bool outOfOrder;
     int platform;
     int device;
     bool alwaysCopy;
@@ -114,6 +116,7 @@ struct BasicConfig{
         checkSsaLowering((configBits & CHECK_SSA_LOWERING_BIT)==CHECK_SSA_LOWERING_BIT),
         cudaNvcc((configBits & CUDA_NVCC_BIT)==CUDA_NVCC_BIT),
         cudaNvrtc((configBits & CUDA_NVRTC_BIT)==CUDA_NVRTC_BIT),
+        outOfOrder((configBits & OUT_OF_ORDER_BIT)==OUT_OF_ORDER_BIT),
         platform(configBits & 0x7),
         alwaysCopy(!minimizeCopies),
         device((configBits & 0x38) >> 3){
@@ -143,6 +146,7 @@ struct BasicConfig{
                 std::cout << "native checkSsaLowering " << checkSsaLowering << std::endl;
                 std::cout << "native cudaNvcc " << cudaNvcc << std::endl;
                 std::cout << "native cudaNvrtc " << cudaNvrtc << std::endl;
+                std::cout << "native outOfOrder " << outOfOrder << std::endl;
                 std::cout << "native platform " << platform << std::endl;
                 std::cout << "native device " << device << std::endl;
             }
@@ -177,6 +181,7 @@ const char *BasicConfig::bitNames[]={
     "CHECK_SSA_LOWERING_BIT",
     "CUDA_NVCC_BIT",
     "CUDA_NVRTC_BIT",
+    "OUT_OF_ORDER_BIT",
 };
 const char *BasicConfig::bitDescriptions[]={
     "FFI ONLY Try to minimize copies",
@@ -202,7 +207,8 @@ const char *BasicConfig::bitDescriptions[]={
     "Show HAT compilation phases",
     "Show java code view of compute model",
     "Verify that code model can be lowered to SSA",
-    "Select the NVCC CUDA Compiler (Default)",
-    "Select the NVRTC CUDA Compiler",
+    "Select the NVCC CUDA Compiler",
+    "Select the NVRTC CUDA Compiler (Default)",
+    "Select the NVRTC CUDA Compiler (Default)",
 };
 #endif

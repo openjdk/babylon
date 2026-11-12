@@ -830,7 +830,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
             return target != null ? types.findDescriptorType(target) : types.createErrorType(null);
         }
 
-        public record CodeReflectionInfo(MethodSymbol codeModel, Type reflectableLambdaMetafactory) { }
+        public record CodeReflectionInfo(JCMethodDecl codeModel, Type reflectableLambdaMetafactory) { }
     }
 
     /**
@@ -1876,6 +1876,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         public JCExpression meth;
         public List<JCExpression> args;
         public Type varargsElement;
+        public BoxingKind boxingKind;
         protected JCMethodInvocation(List<JCExpression> typeargs,
                         JCExpression meth,
                         List<JCExpression> args)
@@ -1912,6 +1913,11 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
         @Override
         public Tag getTag() {
             return(APPLY);
+        }
+        public enum BoxingKind {
+            NONE,
+            BOX,
+            UNBOX;
         }
     }
 

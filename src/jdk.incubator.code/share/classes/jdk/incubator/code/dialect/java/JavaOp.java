@@ -300,20 +300,23 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             final Body.Builder connectedAncestorBody;
             final FunctionType signature;
             final CodeType functionalInterface;
+            final List<CodeType> additionalInterfaces;
             final boolean isReflectable;
 
             Builder(Body.Builder connectedAncestorBody, FunctionType signature, CodeType functionalInterface) {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
+                this.additionalInterfaces = List.of();
                 this.isReflectable = false;
             }
 
             Builder(Body.Builder connectedAncestorBody, FunctionType signature, CodeType functionalInterface,
-                    boolean isReflectable) {
+                    List<CodeType> additionalInterfaces, boolean isReflectable) {
                 this.connectedAncestorBody = connectedAncestorBody;
                 this.signature = signature;
                 this.functionalInterface = functionalInterface;
+                this.additionalInterfaces = List.copyOf(additionalInterfaces);
                 this.isReflectable = isReflectable;
             }
 
@@ -326,29 +329,47 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             public LambdaOp body(Consumer<Block.Builder> c) {
                 Body.Builder body = Body.Builder.of(connectedAncestorBody, signature);
                 c.accept(body.entryBlock());
-                return new LambdaOp(functionalInterface, body, isReflectable);
+                return new LambdaOp(functionalInterface, body, additionalInterfaces, isReflectable);
+            }
+
+            /**
+             * Adds an additional interface to a lambda operation.
+             *
+             * @param additionalInterface lambda operation's additional interface type
+             * @return the new builder
+             */
+            public Builder additionalInterface(CodeType additionalInterface) {
+                List<CodeType> interfaces = new ArrayList<>(additionalInterfaces);
+                interfaces.add(additionalInterface);
+                return new Builder(connectedAncestorBody, signature, functionalInterface, interfaces, isReflectable);
             }
 
             /**
              * Returns a builder that constructs a reflectable lambda operation.
              *
-             * @return this builder
+             * @return the new builder
              * @see Reflect
              */
             public Builder reflectable() {
-                return new Builder(connectedAncestorBody, signature, functionalInterface, true);
+                return new Builder(connectedAncestorBody, signature, functionalInterface, additionalInterfaces, true);
             }
         }
 
         static final String NAME = "lambda";
+        static final String ATTRIBUTE_LAMBDA_ADDITIONAL_INTERFACES = NAME + ".additionalInterfaces";
         static final String ATTRIBUTE_LAMBDA_IS_REFLECTABLE = NAME + ".isReflectable";
 
         final CodeType functionalInterface;
         final Body body;
+        final List<CodeType> additionalInterfaces;
         final boolean isReflectable;
 
         LambdaOp(ExternalizedOp def) {
-            this(def.resultType(), requireSingleBody(def), optionalBooleanAttribute(def, ATTRIBUTE_LAMBDA_IS_REFLECTABLE));
+            this(def.resultType(),
+                 requireSingleBody(def),
+                 optionalAttribute(def, ATTRIBUTE_LAMBDA_ADDITIONAL_INTERFACES, false, TupleType.class)
+                         .map(TupleType::componentTypes).orElse(List.of()),
+                 optionalBooleanAttribute(def, ATTRIBUTE_LAMBDA_IS_REFLECTABLE));
         }
 
         LambdaOp(LambdaOp that, CodeContext cc, CodeTransformer ct) {
@@ -356,6 +377,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             this.functionalInterface = that.functionalInterface;
             this.body = that.body.transform(cc, ct).build(this);
+            this.additionalInterfaces = that.additionalInterfaces;
             this.isReflectable = that.isReflectable;
         }
 
@@ -364,10 +386,12 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return new LambdaOp(this, cc, ct);
         }
 
-        LambdaOp(CodeType functionalInterface, Body.Builder bodyC, boolean isReflectable) {
+        LambdaOp(CodeType functionalInterface, Body.Builder bodyC, List<? extends CodeType> additionalInterfaces,
+                 boolean isReflectable) {
             super(List.of());
 
             this.functionalInterface = functionalInterface;
+            this.additionalInterfaces = List.copyOf(additionalInterfaces);
             this.body = bodyC.build(this);
             this.isReflectable = isReflectable;
         }
@@ -382,6 +406,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          */
         public CodeType functionalInterface() {
             return functionalInterface;
+        }
+
+        /**
+         * {@return the additional interface types modeled by this lambda operation}
+         */
+        public List<CodeType> additionalInterfaces() {
+            return additionalInterfaces;
         }
 
         @Override
@@ -411,7 +442,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of(ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable);
+            return additionalInterfaces.isEmpty()
+                    ? Map.of(ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable)
+                    : Map.of(ATTRIBUTE_LAMBDA_ADDITIONAL_INTERFACES, CoreType.tupleType(additionalInterfaces),
+                             ATTRIBUTE_LAMBDA_IS_REFLECTABLE, isReflectable);
         }
 
         /**
@@ -3442,33 +3476,36 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
          A SwitchLabel is modeled as a body yielding a boolean value.
 
          If the SwitchLabel is "default" or "case null, default" the predicate body is modeled as one that yields
-         true, and the body has no parameter. Otherwise, the body has one parameter that models the result of the switch
-         selector expression and its content models "case CaseConstant {, CaseConstant}" and
+         true, and the body has no parameters. Otherwise, the body has one parameter that models the result of the
+         switch selector expression and its content models "case CaseConstant {, CaseConstant}" and
          "case CasePattern {, CasePattern} [Guard]".
 
-         An Expression, Block, ThrowStatement, or BlockStatements, associated with a SwitchLabel is modeled as a body
-         yielding the result of the switch expression or void for a switch statement.
-
-         A SwitchBlock is modeled as a sequence of pairs of bodies, generally the first body in a pair, the predicate
-         body, models the SwitchLabel, and the second body, the action body, models the Expression, Block,
-         ThrowStatement, or BlockStatements.
-
-         For a switch statement containing a sequence of two or more SwitchLabel, each SwitchLabel up to but not
-         including the last SwitchLabel is modeled as a pair of bodies, the predicate body modeling the SwitchLabel
-         and a synthesized action body that models fall-through.
+         If the SwitchLabel is "case null" the predicate body is modeled as one that yields the result of comparing
+         the body's parameter with null.
 
          For a SwitchLabel containing a sequence of two or more CaseConstant or CasePattern, the predicate body
-         yields the result of the logical-or of all the predicate bodies modeling each CasePattern.
+         yields the result of the logical-or of all the predicate bodies modeling each CaseConstant or CasePattern.
          For a SwitchLabel containing a CasePattern with a Guard, the predicate body yields the result of the
          logical-and of the predicate body produced for the sequence of CasePattern and the boolean yielding body
          modeling the Guard expression.
 
-         For SwitchLabel that is "default" or "case null, default" the predicate body is modeled as one that yields
-         true, and the body has no parameter. @@@ the corresponding pair of bodies should occur as the last pair
-         in the sequence of pairs modeling the SwitchBlock.
+         An Expression, Block, ThrowStatement, or BlockStatements, associated with a SwitchLabel is modeled as an action
+         body yielding the result of the switch expression or void for a switch statement. The body has no parameters.
 
-         If the SwitchBlock contains a SwitchLabel of "case null [, default]" then switch operation indicates that
+         A SwitchBlock is modeled as a sequence of pairs of bodies, in general, the first body in a pair, the predicate
+         body, models the SwitchLabel, and the second body, the action body, models the Expression, Block,
+         ThrowStatement, or BlockStatements. A SwitchLabel, of a SwitchBlockStatementGroup, with no associated
+         BlockStatements is also modeled as a pair of bodies, the first body in a pair, the predicate body, models the
+         SwitchLabel, and the second synthesized body, the action body, models fall-through to the next action body.
+
+         If the SwitchBlock contains a SwitchLabel of "case null [, default]" then the switch operation indicates that
          null values are accepted for results of the selector expression.
+
+         For a switch expression or enhanced switch statement whose SwitchBlock contains no "default",
+         "case null, default", or "case CasePattern" for an unconditional pattern label, a synthesized pair of bodies
+         occurs at the end of the sequence of bodies. The first synthesized body in the pair, the predicate body, has
+         the same form as the predicate body modeling "default", and the second synthesized body, the action body,
+         models the throwing of a MatchException.
          */
 
         SwitchOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
@@ -6533,7 +6570,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the lambda operation
      */
     public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body) {
-        return new LambdaOp(functionalInterface, body, false);
+        return new LambdaOp(functionalInterface, body, List.of(), false);
     }
 
     /**
@@ -6545,7 +6582,22 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
      * @return the lambda operation
      */
     public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body, boolean isReflectable) {
-        return new LambdaOp(functionalInterface, body, isReflectable);
+        return new LambdaOp(functionalInterface, body, List.of(), isReflectable);
+    }
+
+    /**
+     * Creates a lambda operation.
+     *
+     * @param functionalInterface  the lambda operation's functional interface type
+     * @param body                 the body of the lambda operation
+     * @param additionalInterfaces the lambda operation's additional interface types
+     * @param isReflectable        true if the lambda is reflectable
+     * @return the lambda operation
+     */
+    public static LambdaOp lambda(CodeType functionalInterface, Body.Builder body,
+                                  List<? extends CodeType> additionalInterfaces,
+                                  boolean isReflectable) {
+        return new LambdaOp(functionalInterface, body, additionalInterfaces, isReflectable);
     }
 
     /**

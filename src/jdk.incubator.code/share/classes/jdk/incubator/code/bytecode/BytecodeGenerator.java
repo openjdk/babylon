@@ -910,16 +910,18 @@ public final class BytecodeGenerator {
                             throw new IllegalArgumentException("Could not resolve function: " + op.funcName());
                         }
                         processOperands(op);
-                        cob.invokedynamic(DynamicCallSiteDesc.of(
-                                op.bootstrapMethod(),
+                        List<ConstantDesc> bootstrapArgs = new ArrayList<>();
+                        bootstrapArgs.add(op.interfaceMethodType());
+                        bootstrapArgs.add(MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
+                                className,
+                                op.funcName(),
+                                MethodRef.toNominalDescriptor(fop.invokableSignature())));
+                        bootstrapArgs.add(op.dynamicMethodType());
+                        bootstrapArgs.addAll(op.additionalBootstapArgs());
+                        cob.invokedynamic(DynamicCallSiteDesc.of(op.bootstrapMethod(),
                                 op.invocationName(),
                                 op.invocationType(),
-                                op.interfaceMethodType(),
-                                MethodHandleDesc.ofMethod(DirectMethodHandleDesc.Kind.STATIC,
-                                        className,
-                                        op.funcName(),
-                                        MethodRef.toNominalDescriptor(fop.invokableSignature())),
-                                op.dynamicMethodType()));
+                                bootstrapArgs.toArray(ConstantDesc[]::new)));
                         push(op.result());
                     }
                     case ConcatOp op -> {

@@ -53,6 +53,7 @@ import static java.lang.classfile.ClassFile.ACC_STATIC;
 import static java.lang.classfile.ClassFile.ACC_SYNCHRONIZED;
 import static java.lang.constant.ConstantDescs.*;
 import java.lang.constant.DynamicConstantDesc;
+import java.lang.invoke.MethodHandleInfo;
 import java.util.function.Function;
 
 /**
@@ -80,23 +81,14 @@ public class ReflectableLambdaMetafactory {
     /**
      * Metafactory used to create a reflectable lambda.
      * <p>
-     * The functionality provided by this metafactory is identical to that in
-     * {@link LambdaMetafactory#metafactory(Lookup, String, MethodType, MethodType, MethodHandle, MethodType)}
-     * with one important difference: this metafactory expects the provided name to be encoded in the following form:
-     * <code>
-     *     lambdaName=opMethodName
-     * </code>
-     * The {@code lambdaName} part of the name is passed to the regular metafactory method, along with all the other
-     * parameters unchanged. The {@code opMethod} part of the name is used to locate a method in the
-     * {@linkplain Lookup#lookupClass() lookup class} associated with the provided lookup. This method is expected
-     * to accept no parameters and return a {@link Op}, namely the model of the reflectable lambda.
-     * <p>
-     * This means the clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
+     * Clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
      * to access the code model of the lambda expression dynamically.
+     * <p>
+     * The functionality provided by this metafactory is identical to that in
+     * {@link LambdaMetafactory#metafactory(Lookup, String, MethodType, MethodType, MethodHandle, MethodType)}.
      *
      * @param caller The lookup
      * @param interfaceMethodName The name of the method to implement.
-     *                            This is encoded in the format described above.
      * @param factoryType The expected signature of the {@code CallSite}.
      * @param interfaceMethodType Signature and return type of method to be
      *                            implemented by the function object.
@@ -108,8 +100,8 @@ public class ReflectableLambdaMetafactory {
      *         a reflectable lambda instance implementing the interface named by {@code factoryType}.
      *         The code model for such instance can be inspected using {@link Op#ofLambda(Object)}.
      *
-     * @throws LambdaConversionException If, after the lambda name is decoded,
-     *         the parameters of the call are invalid for
+     * @throws LambdaConversionException If the lambda's code model cannot be located,
+     *         or the parameters of the call are invalid for
      *         {@link LambdaMetafactory#metafactory(Lookup, String, MethodType, MethodType, MethodHandle, MethodType)}
      * @throws NullPointerException If any argument is {@code null}.
      *
@@ -123,32 +115,23 @@ public class ReflectableLambdaMetafactory {
                                        MethodHandle implementation,
                                        MethodType dynamicMethodType)
             throws LambdaConversionException {
-        DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), decodedName.opHandle);
-        return JLI_ACCESS.metafactoryInternal(caller, decodedName.name, factoryType, interfaceMethodType,
+        MethodHandle opHandle = findReflectableOpGetter(caller, implementation);
+        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), opHandle);
+        return JLI_ACCESS.metafactoryInternal(caller, interfaceMethodName, factoryType, interfaceMethodType,
                 implementation, dynamicMethodType, finisher);
     }
 
     /**
      * Metafactory used to create a reflectable lambda.
      * <p>
-     * The functionality provided by this metafactory is identical to that in
-     * {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}
-     * with one important difference: this metafactory expects the provided name to be encoded in the following form:
-     * <code>
-     *     lambdaName=opMethodName
-     * </code>
-     * The {@code lambdaName} part of the name is passed to the regular metafactory method, along with all the other
-     * parameters unchanged. The {@code opMethod} part of the name is used to locate a method in the
-     * {@linkplain Lookup#lookupClass() lookup class} associated with the provided lookup. This method is expected
-     * to accept no parameters and return a {@link Op}, namely the model of the reflectable lambda.
-     * <p>
-     * This means the clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
+     * Clients can pass the lambda returned by this factory to the {@link Op#ofLambda(Object)} method,
      * to access the code model of the lambda expression dynamically.
+     * <p>
+     * The functionality provided by this metafactory is identical to that in
+     * {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}.
      *
      * @param caller The lookup
      * @param interfaceMethodName The name of the method to implement.
-     *                            This is encoded in the format described above.
      * @param factoryType The expected signature of the {@code CallSite}.
      * @param args An array of {@code Object} containing the required
      *              arguments {@code interfaceMethodType}, {@code implementation},
@@ -158,8 +141,8 @@ public class ReflectableLambdaMetafactory {
      *         a reflectable lambda instance implementing the interface named by {@code factoryType}.
      *         The code model for such instance can be inspected using {@link Op#ofLambda(Object)}.
      *
-     * @throws LambdaConversionException If, after the lambda name is decoded,
-     *         the parameters of the call are invalid for
+     * @throws LambdaConversionException If the lambda's code model cannot be located,
+     *         or the parameters of the call are invalid for
      *         {@link LambdaMetafactory#altMetafactory(Lookup, String, MethodType, Object...)}
      * @throws NullPointerException If any argument, or any component of {@code args},
      *         is {@code null}.
@@ -174,25 +157,20 @@ public class ReflectableLambdaMetafactory {
                                           MethodType factoryType,
                                           Object... args)
             throws LambdaConversionException {
-        DecodedName decodedName = findReflectableOpGetter(caller, interfaceMethodName);
-        LambdaFinisher finisher = new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), decodedName.opHandle);
-        return JLI_ACCESS.altMetafactoryInternal(caller, decodedName.name, factoryType, finisher, args);
+        LambdaFinisher finisher = (args.length > 1 && args[1] instanceof MethodHandle impl)
+                ? new LambdaFinisher(caller.lookupClass(), factoryType.parameterList(), findReflectableOpGetter(caller, impl))
+                : null;
+        return JLI_ACCESS.altMetafactoryInternal(caller, interfaceMethodName, factoryType, finisher, args);
     }
 
     static final JavaLangInvokeAccess JLI_ACCESS = SharedSecrets.getJavaLangInvokeAccess();
 
-    record DecodedName(String name, MethodHandle opHandle) { }
-
-    private static DecodedName findReflectableOpGetter(MethodHandles.Lookup lookup, String interfaceMethodName) throws LambdaConversionException {
-        String[] implNameParts = interfaceMethodName.split("=");
-        if (implNameParts.length != 2) {
-            throw new LambdaConversionException("Bad method name: " + interfaceMethodName);
-        }
+    static MethodHandle findReflectableOpGetter(MethodHandles.Lookup lookup, MethodHandle implementation)
+            throws LambdaConversionException {
         try {
-            return new DecodedName(
-                    implNameParts[0],
-                    lookup.findStatic(lookup.lookupClass(), implNameParts[1], MethodType.methodType(Op.class)));
-        } catch (ReflectiveOperationException ex) {
+            MethodHandleInfo info = lookup.revealDirect(implementation);
+            return lookup.findStatic(info.getDeclaringClass(), "op$" + info.getName(), MethodType.methodType(Op.class));
+        } catch (ReflectiveOperationException | IllegalArgumentException ex) {
             throw new LambdaConversionException(ex);
         }
     }
@@ -203,7 +181,8 @@ public class ReflectableLambdaMetafactory {
         final ClassDesc[] argDescs;
         final MethodHandle opHandle;
 
-        public LambdaFinisher(Class<?> callerClass, List<Class<?>> parameterTypes, MethodHandle opHandle) throws LambdaConversionException {
+        public LambdaFinisher(Class<?> callerClass, List<Class<?>> parameterTypes, MethodHandle opHandle)
+                throws LambdaConversionException {
             this.lambdaClassSymbol = ClassDesc.ofInternalName(sanitizedTargetClassName(callerClass).concat("$$Lambda"));
             this.argDescs = parameterTypes.stream().map(cls -> cls.describeConstable().get()).toArray(ClassDesc[]::new);
             this.opHandle = opHandle;

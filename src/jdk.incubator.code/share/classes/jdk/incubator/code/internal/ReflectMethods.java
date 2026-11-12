@@ -230,7 +230,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToErasedMethodRef(tree.sym));
-                opMethodDecls.add(opMethodDecl(methodName));
+                JCMethodDecl opMethod = opMethodDecl(methodName);
+                currentClassSym.members().enter(opMethod.sym);
+                opMethodDecls.add(opMethod);
                 ops.put(methodName.toString(), funcOp);
             }
         }
@@ -325,11 +327,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
             // create a static method that returns the FuncOp representing the lambda
             Name lambdaName = lambdaName();
             JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            opMethodDecls.add(opMethod);
             ops.put(lambdaName.toString(), funcOp);
 
             // leave the lambda in place, but also leave a trail for LambdaToMethod
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
         try {
@@ -364,8 +365,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             Name lambdaName = lambdaName();
             ops.put(lambdaName.toString(), funcOp);
             JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            opMethodDecls.add(opMethod);
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod.sym, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
         }
         super.visitReference(tree);
     }
@@ -401,7 +401,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
         var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
                 com.sun.tools.javac.util.List.nil(), syms.methodClass);
         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
-        currentClassSym.members().enter(ms);
 
         // Create the method body calling the synthetic inner class method of the same name
         var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, codeModelsClassSym))));
@@ -1533,7 +1532,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
         @Override
         public void visitLambda(JCTree.JCLambda tree) {
-            final FunctionType lambdaType = typeToFunctionType(types.findDescriptorType(tree.target));
+            final Type descriptorType = types.findDescriptorType(tree.target);
+            final FunctionType lambdaType = typeToFunctionType(descriptorType);
 
             // Push quoted body for a reflectable lambda
 
@@ -1561,7 +1561,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // Scan the lambda body
-            Type lambdaReturnType = tree.getDescriptorType(types).getReturnType();
+            Type lambdaReturnType = descriptorType.getReturnType();
             if (tree.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
                 Value exprVal = toValue(((JCExpression) tree.body), lambdaReturnType);
                 if (!lambdaReturnType.hasTag(TypeTag.VOID)) {
@@ -1581,9 +1581,21 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
 
             // Get the functional interface type
-            JavaType fiType = typeToCodeType(tree.target);
+            Type fiType = tree.target;
+            List<Type> miTypes = new ArrayList<>();
+            if (fiType.isIntersection()) {
+                Symbol descriptor = types.findDescriptorSymbol(fiType.tsym);
+                fiType = types.asSuper(tree.target, descriptor.owner);
+                for (Type t : types.directSupertypes(tree.target)) {
+                    if (t.tsym != fiType.tsym && t.tsym != syms.objectType.tsym) {
+                        miTypes.add(t);
+                    }
+                }
+            }
             // build functional lambda
-            Op lambdaOp = JavaOp.lambda(fiType, stack.body, true);
+            Op lambdaOp = JavaOp.lambda(typeToCodeType(fiType), stack.body,
+                    miTypes.stream().map(t -> typeToCodeType(t)).toList(),
+                    true);
 
             // Pop lambda body
             popBody();

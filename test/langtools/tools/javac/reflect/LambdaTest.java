@@ -23,9 +23,11 @@
 
 import jdk.incubator.code.Reflect;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.io.Serializable;
 
 /*
  * @test
@@ -319,5 +321,26 @@ public class LambdaTest {
                 return innerConstant + methodConstant + outerConstant;
             };
         };
+    }
+
+    @Reflect
+    @IR("""
+        func @"intersectionTarget" ()java.type:"java.lang.String" -> {
+            %0 : java.type:"java.util.function.Function<java.lang.String, java.lang.String>" = lambda @lambda.isReflectable=true @lambda.additionalInterfaces=Tuple<java.type:"java.lang.Cloneable"> (%1 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
+                %2 : Var<java.type:"java.lang.String"> = var %1 @"x";
+                %3 : java.type:"java.lang.String" = var.load %2;
+                return %3;
+            };
+            %4 : java.type:"java.lang.Cloneable" = cast %0 @java.type:"java.lang.Cloneable";
+            %5 : Var<java.type:"java.util.function.Function<java.lang.String, java.lang.String>"> = var %4 @"f";
+            %6 : java.type:"java.util.function.Function<java.lang.String, java.lang.String>" = var.load %5;
+            %7 : java.type:"java.lang.String" = constant @"Hello World";
+            %8 : java.type:"java.lang.String" = invoke %6 %7 @java.ref:"java.util.function.Function::apply(java.lang.Object):java.lang.Object";
+            return %8;
+        };
+        """)
+    static String intersectionTarget() {
+        var f = (Function<String, String> & Cloneable) x -> x;
+        return f.apply("Hello World");
     }
 }

@@ -118,26 +118,14 @@ public final class CodeModelBootstraps {
      * Bootstrap method for linking an {@code invokedynamic} call site whose
      * target creates reflectable lambda instances, using the lambda's stored
      * code model as its implementation.
-     * <p>
-     * Except for the implementation method handle, this method follows the
-     * contract and encoded-name convention of
-     * {@link ReflectableLambdaMetafactory#metafactory(Lookup, String,
-     *        MethodType, MethodType, MethodHandle, MethodType)}.
-     * <p>
-     * The supplied implementation method handle is ignored and replaced
-     * with one linked from the stored code model.
      *
      * @param caller the lookup
-     * @param interfaceMethodName the encoded interface-method and code-model
-     *                            accessor names, as specified by
-     *                            {@link ReflectableLambdaMetafactory#metafactory(Lookup,
-     *                                   String, MethodType, MethodType, MethodHandle,
-     *                                   MethodType)}
+     * @param interfaceMethodName The name of the method to implement.
      * @param factoryType The expected signature of the {@code CallSite}.
      * @param interfaceMethodType Signature and return type of method to be
      *                            implemented by the function object.
-     * @param implementation ignored, retained for compatibility with the
-                             standard lambda metafactory bootstrap signature
+     * @param implementation A direct method handle describing the original
+     *                       implementation method.
      * @param dynamicMethodType The signature and return type that should
      *                          be enforced dynamically at invocation time.
      * @return a call site whose target creates reflectable lambda instances of
@@ -146,13 +134,10 @@ public final class CodeModelBootstraps {
      *         {@link Op#ofLambda(Object)}
      *
      * @throws LambdaConversionException if the implementation cannot be linked
-     *         from its stored code model, or if, after the lambda name is
-     *         decoded, the parameters of the call are invalid for
+     *         from its stored code model, or the parameters of the call are invalid for
      *         {@link ReflectableLambdaMetafactory#metafactory(Lookup, String,
      *                MethodType, MethodType, MethodHandle, MethodType)}
-     * @throws NullPointerException if {@code interfaceMethodName},
-     *         {@code factoryType}, {@code interfaceMethodType}, or
-     *         {@code dynamicMethodType} is {@code null}
+     * @throws NullPointerException if any argument is {@code null}
      *
      * @see ReflectableLambdaMetafactory#metafactory(Lookup, String, MethodType,
      *      MethodType, MethodHandle, MethodType)
@@ -164,13 +149,13 @@ public final class CodeModelBootstraps {
                                              MethodType interfaceMethodType,
                                              MethodHandle implementation,
                                              MethodType dynamicMethodType) throws LambdaConversionException {
-        MethodHandle generatedImpl = linkLambdaImplementation(caller, interfaceMethodName);
-        CallSite site = ReflectableLambdaMetafactory.metafactory(caller,
-                                                                 interfaceMethodName,
-                                                                 generatedFactoryType(factoryType, generatedImpl),
-                                                                 interfaceMethodType,
-                                                                 generatedImpl,
-                                                                 dynamicMethodType);
+        MethodHandle opHandle = ReflectableLambdaMetafactory.findReflectableOpGetter(caller, implementation);
+        MethodHandle generatedImpl = linkLambdaImplementation(caller, opHandle);
+        MethodType generatedFactoryType = generatedFactoryType(factoryType, generatedImpl);
+        var finisher = new ReflectableLambdaMetafactory.LambdaFinisher(caller.lookupClass(),
+                generatedFactoryType.parameterList(), opHandle);
+        CallSite site = ReflectableLambdaMetafactory.JLI_ACCESS.metafactoryInternal(caller, interfaceMethodName,
+                generatedFactoryType, interfaceMethodType, generatedImpl, dynamicMethodType, finisher);
         return new ConstantCallSite(site.getTarget().asType(factoryType));
     }
 
@@ -178,29 +163,16 @@ public final class CodeModelBootstraps {
      * Bootstrap method for linking an {@code invokedynamic} call site whose
      * target creates reflectable lambda instances, using the lambda's stored
      * code model as its implementation.
-     * <p>
-     * Except for the implementation method handle, this method follows the
-     * contract and encoded-name convention of
-     * {@link ReflectableLambdaMetafactory#altMetafactory(Lookup, String,
-     *        MethodType, Object...)}.
-     * <p>
-     * The implementation method handle in {@code args} is replaced with one
-     * linked from the stored code model.
      *
      * @param caller the lookup
-     * @param interfaceMethodName the encoded interface-method and code-model
-     *                            accessor names, as specified by
-     *                            {@link ReflectableLambdaMetafactory#altMetafactory(Lookup,
-     *                                   String, MethodType, Object...)}
+     * @param interfaceMethodName The name of the method to implement.
      * @param factoryType The expected signature of the {@code CallSite}.
      * @param args An array of {@code Object} containing the required
      *              arguments {@code interfaceMethodType}, {@code implementation},
      *              {@code dynamicMethodType}, {@code flags}, and any
      *              optional arguments, as required by
      *              {@link ReflectableLambdaMetafactory#altMetafactory(Lookup,
-     *                     String, MethodType, Object...)}, the
-     *              {@code implementation} component is ignored and replaced
-     *              with one linked from the stored code model
+     *                     String, MethodType, Object...)}
      * @return a CallSite whose target can be used to perform capture, generating
      *         a reflectable lambda instance implementing the functional
      *         interface specified by the return type of {@code factoryType}.
@@ -208,15 +180,15 @@ public final class CodeModelBootstraps {
      *         {@link Op#ofLambda(Object)}.
      *
      * @throws LambdaConversionException if the implementation cannot be linked
-     *         from its stored code model, or if, after the lambda name is
-     *         decoded, the parameters of the call are invalid for
+     *         from its stored code model, or the parameters of the call are invalid for
      *         {@link ReflectableLambdaMetafactory#altMetafactory(Lookup, String,
      *                MethodType, Object...)}
-     * @throws NullPointerException if {@code interfaceMethodName},
+     * @throws NullPointerException if {@code caller}, {@code interfaceMethodName},
      *         {@code factoryType}, or {@code args} is {@code null}, or if a
      *         required component of {@code args} other than
      *         {@code implementation} is {@code null}
-     * @throws IllegalArgumentException If {@code args} are invalid for
+     * @throws IllegalArgumentException if the {@code implementation} component is
+     *         {@code null}, or {@code args} are invalid for
      *         {@link ReflectableLambdaMetafactory#altMetafactory(Lookup, String,
      *                MethodType, Object...)}
      *
@@ -228,12 +200,20 @@ public final class CodeModelBootstraps {
                                                 String interfaceMethodName,
                                                 MethodType factoryType,
                                                 Object... args) throws LambdaConversionException {
-        MethodHandle generatedImpl = linkLambdaImplementation(caller, interfaceMethodName);
+        if (args.length < 2) {
+            throw new IllegalArgumentException("missing argument");
+        }
+        if (!(args[1] instanceof MethodHandle impl)) {
+            throw new IllegalArgumentException("argument has wrong type");
+        }
+        MethodHandle opHandle = ReflectableLambdaMetafactory.findReflectableOpGetter(caller, impl);
+        MethodHandle generatedImpl = linkLambdaImplementation(caller, opHandle);
         args[1] = generatedImpl;
-        CallSite site = ReflectableLambdaMetafactory.altMetafactory(caller,
-                                                                    interfaceMethodName,
-                                                                    generatedFactoryType(factoryType, generatedImpl),
-                                                                    args);
+        MethodType generatedFactoryType = generatedFactoryType(factoryType, generatedImpl);
+        var finisher = new ReflectableLambdaMetafactory.LambdaFinisher(caller.lookupClass(),
+                generatedFactoryType.parameterList(), opHandle);
+        CallSite site = ReflectableLambdaMetafactory.JLI_ACCESS.altMetafactoryInternal(caller, interfaceMethodName,
+                generatedFactoryType, finisher, args);
         return new ConstantCallSite(site.getTarget().asType(factoryType));
     }
 
@@ -244,13 +224,9 @@ public final class CodeModelBootstraps {
     }
 
     private static MethodHandle linkLambdaImplementation(MethodHandles.Lookup caller,
-                                                         String interfaceMethodName)
+                                                         MethodHandle opHandle)
             throws LambdaConversionException {
-        String modelMethodName = interfaceMethodName.split("=")[1];
         try {
-            MethodHandle opHandle = caller.findStatic(caller.lookupClass(),
-                                                      modelMethodName,
-                                                      MethodType.methodType(Op.class));
             MethodHandle methodHandle = BytecodeGenerator.generate(caller,
                                                                    unquoteLambda((CoreOp.FuncOp)opHandle.invoke()));
             return methodHandle;

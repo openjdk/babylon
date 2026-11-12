@@ -27,6 +27,7 @@ package hat.test;
 import hat.Accelerator;
 import hat.Accelerator.Compute;
 import hat.ComputeContext;
+import hat.DType;
 import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.Tensor;
@@ -50,17 +51,7 @@ import static hat.TileContext.index;
 import static hat.TileContext.load;
 import static hat.TileContext.shape;
 import static hat.TileContext.store;
-import static hat.types.Tile.add;
-import static hat.types.Tile.ceildiv;
-import static hat.types.Tile.full;
-import static hat.types.Tile.min;
-import static hat.types.Tile.mma;
-import static hat.types.Tile.numTiles;
-import static hat.types.Tile.permute;
-import static hat.types.Tile.reshape;
-import static hat.types.Tile.sum;
-import static hat.types.Tile.transpose;
-import static hat.types.Tile.zeros;
+import static hat.types.Tile.*;
 
 /**
  * How to run?
@@ -839,4 +830,147 @@ public class TestTileAPI {
             }
         }
     }
+
+    @Reflect
+    public static void arangeTile(TensorF32 output, final int tileSize) {
+        // arange returns a tile [0, 1, 2, ..., (tileSize - 1) ]
+        var result = arange(tileSize);
+        store(output, BIDX(), result);
+    }
+
+    @Reflect
+    public static void arangeTile(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> arangeTile(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_14() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 32;
+        TensorF32 result = TensorF32.create(accelerator, size);
+        accelerator.compute((@Reflect Compute) computeContext -> arangeTile(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i += tileSize) {
+            for (int j = 0; j < tileSize; j++) {
+                HATAsserts.assertEquals(j, result.array(j + i), 0.001f);
+            }
+        }
+    }
+
+    @Reflect
+    public static void arangeTile02(TensorF32 output, final int tileSize) {
+        // arange returns a tile [0, 1, 2, ..., (tileSize - 1) ]
+        var result = arange(tileSize, DType.Float);
+        store(output, BIDX(), result);
+    }
+
+    @Reflect
+    public static void arangeTile02(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> arangeTile02(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_15() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 32;
+
+        TensorF32 result = TensorF32.create(accelerator, size);
+        accelerator.compute((@Reflect Compute) computeContext -> arangeTile02(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i += tileSize) {
+            for (int j = 0; j < tileSize; j++) {
+                HATAsserts.assertEquals(j, result.array(j + i), 0.001f);
+            }
+        }
+    }
+
+    @Reflect
+    public static void arangeTile03(TensorF32 output, final int tileSize) {
+        // arange returns a tile [2, 3, 4, ..., ((2 + 1 * (tileSize - 1))) ]
+        var result = arange(tileSize, DType.Float, 2);
+        store(output, BIDX(), result);
+    }
+
+    @Reflect
+    public static void arangeTile03(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> arangeTile03(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_16() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 32;
+
+        TensorF32 result = TensorF32.create(accelerator, size);
+
+        accelerator.compute((@Reflect Compute) computeContext -> arangeTile03(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i += tileSize) {
+            for (int j = 0; j < tileSize; j++) {
+                HATAsserts.assertEquals(2 + j, result.array(j + i), 0.001f);
+            }
+        }
+    }
+
+    @Reflect
+    public static void arangeTile04(TensorF32 output, final int tileSize) {
+        // arange returns a tile [2, 4, 6, 8, ..., (2 + 2 * (tileSize - 1)) ]
+        var result = arange(tileSize, DType.Float, 2, 2);
+        store(output, BIDX(), result);
+    }
+
+    @Reflect
+    public static void arangeTile04(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> arangeTile04(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_17() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 32;
+
+        TensorF32 result = TensorF32.create(accelerator, size);
+
+        accelerator.compute((@Reflect Compute) computeContext -> arangeTile04(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i += tileSize) {
+            for (int j = 0; j < tileSize; j++) {
+                HATAsserts.assertEquals(2 + 2 * j, result.array(j + i), 0.001f);
+            }
+        }
+    }
+
+    @Reflect
+    public static void arangeTile05(TensorF32 output, final int tileSize) {
+        // arange returns a tile [2, 4, 6, 8, ..., (2 + 2 * (tileSize - 1)) ]
+        var result = arange(tileSize, DType.Float, 7, -1);
+        store(output, BIDX(), result);
+    }
+
+    @Reflect
+    public static void arangeTile05(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> arangeTile05(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_18() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 8;
+
+        TensorF32 result = TensorF32.create(accelerator, size);
+
+        accelerator.compute((@Reflect Compute) computeContext -> arangeTile05(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i += tileSize) {
+            for (int j = 0; j < tileSize; j++) {
+                HATAsserts.assertEquals(7 + -1 * j, result.array(j + i), 0.001f);
+            }
+        }
+    }
+
 }

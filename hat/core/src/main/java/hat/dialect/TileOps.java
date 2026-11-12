@@ -24,6 +24,7 @@
  */
 package hat.dialect;
 
+import hat.DType;
 import hat.codetypes.ConstantType;
 import hat.codetypes.TensorType;
 import jdk.incubator.code.AbstractOp;
@@ -99,11 +100,11 @@ public class TileOps {
     }
 
     public static Op arange(CodeType typeResult, Value value) {
-        return new TileArangeOp(typeResult, value);
+        return new TileArangeOp(typeResult, JavaType.INT, value);
     }
 
-    public static Op arange(CodeType typeResult, Value value, Value start, Value step) {
-        return new TileArangeOp(typeResult, value, start, step);
+    public static Op arange(CodeType typeResult, CodeType dType, Value...args) {
+        return new TileArangeOp(typeResult, dType, args);
     }
 
     public static Op toType(CodeType typeResult, Value tensor) {
@@ -112,6 +113,10 @@ public class TileOps {
 
     public static Op irange(CodeType resultType, Value startValue, Value endValue) {
         return new TileIrangeOp(resultType, startValue, endValue);
+    }
+
+    public static Op convert(CodeType resultType, Value tensor) {
+        return new TileConvOp(resultType, tensor);
     }
 
     public abstract static class TOp extends AbstractOp implements ExternalizedOp.Externalizable {
@@ -347,18 +352,18 @@ public class TileOps {
         }
     }
 
-    public static class TileArangeOp extends TOp {
+    public static class TileArangeOp extends TileContextOp implements Precedence.Invoke {
 
-        protected TileArangeOp(CodeType type, Value size) {
-            super(type, List.of(size));
-        }
+        private final CodeType dType;
 
-        protected TileArangeOp(CodeType type, Value size, Value start, Value step) {
-            super(type, List.of(size, start, step));
+        protected TileArangeOp(CodeType type, CodeType dtype, Value... args) {
+            super(type, List.of(args));
+            this.dType = dtype;
         }
 
         protected TileArangeOp(TileArangeOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
+            this.dType = that.dType;
         }
 
         @Override
@@ -368,7 +373,11 @@ public class TileOps {
 
         @Override
         public Map<String, Object> externalize() {
-            return Map.of("tile.arange ", operands().get(0));
+            return Map.of("tile.arange ", operands().getFirst());
+        }
+
+        public CodeType dType() {
+            return dType;
         }
     }
 
@@ -390,6 +399,27 @@ public class TileOps {
         @Override
         public Map<String, Object> externalize() {
             return Map.of("tile.irange ", operands().getFirst());
+        }
+    }
+
+    public static class TileConvOp extends TileContextOp implements Precedence.Invoke {
+
+        protected TileConvOp(CodeType type, Value tensor) {
+            super(type, List.of(tensor));
+        }
+
+        protected TileConvOp(TileConvOp that, CodeContext cc, CodeTransformer ot) {
+            super(that, cc);
+        }
+
+        @Override
+        public TileConvOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new TileConvOp(this, codeContext, codeTransformer);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("tile.conv ", operands().getFirst());
         }
     }
 

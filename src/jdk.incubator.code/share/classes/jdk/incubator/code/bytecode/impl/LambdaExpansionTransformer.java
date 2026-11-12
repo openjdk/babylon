@@ -25,6 +25,7 @@
 package jdk.incubator.code.bytecode.impl;
 
 import java.lang.constant.ClassDesc;
+import java.lang.constant.ConstantDesc;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.invoke.LambdaMetafactory;
@@ -32,6 +33,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -39,10 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jdk.incubator.code.Block;
-import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
@@ -75,10 +77,20 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             "metafactory",
             CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
 
+    private static final DirectMethodHandleDesc DMHD_LAMBDA_ALT_METAFACTORY = ofCallsiteBootstrap(
+            LambdaMetafactory.class.describeConstable().orElseThrow(),
+            "altMetafactory",
+            CD_CallSite, CD_Object.arrayType());
+
     private static final DirectMethodHandleDesc DMHD_REFLECTABLE_LAMBDA_METAFACTORY = ofCallsiteBootstrap(
             ReflectableLambdaMetafactory.class.describeConstable().orElseThrow(),
             "metafactory",
             CD_CallSite, CD_MethodType, CD_MethodHandle, CD_MethodType);
+
+    private static final DirectMethodHandleDesc DMHD_REFLECTABLE_LAMBDA_ALT_METAFACTORY = ofCallsiteBootstrap(
+            ReflectableLambdaMetafactory.class.describeConstable().orElseThrow(),
+            "altMetafactory",
+            CD_CallSite, CD_Object.arrayType());
 
     private final MethodHandles.Lookup lookup;
     private final Set<String> names;
@@ -151,13 +163,13 @@ final class LambdaExpansionTransformer implements CodeTransformer {
 
     }
 
-    private static String uniqueName(Set<String> names, String name) {
-        if (names.add(name)) {
+    private static String uniqueName(Set<String> names, String name, boolean reflectable) {
+        if (names.add(name) && (!reflectable || names.add("op$" + name))) {
             return name;
         }
         for (int i = 0; ; i++) {
             String n = name + "$" + i;
-            if (names.add(n)) {
+            if (names.add(n) && (!reflectable || names.add("op$" + n))) {
                 return n;
             }
         }
@@ -170,22 +182,38 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             return block;
         }
         JavaType intfType = (JavaType) lop.functionalInterface();
+        List<CodeType> additionalIntfTypes = lop.additionalInterfaces();
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(lop.invokableSignature());
         try {
             Class<?> intfClass = (Class<?>) intfType.erasure().resolve(lookup);
-            Method intfMethod = funcIntfMethod(intfClass, mtd);
+            List<Class<?>> additionalIntfClasses = new ArrayList<>(additionalIntfTypes.size());
+            for (CodeType additionalIntfType : additionalIntfTypes) {
+                additionalIntfClasses.add((Class<?>) ((JavaType) additionalIntfType).erasure().resolve(lookup));
+            }
+            Method intfMethod = funcIntfMethod(intfClass, additionalIntfClasses, mtd);
             // filter out constant captures
             List<Value> captures = lop.capturedValues().stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
             int i = nextLambdaIndex++;
-            String implName = uniqueName(names, "lambda$" + i);
+            String implName = uniqueName(names, "lambda$" + i, lop.isReflectable());
             String intfMethodName = intfMethod.getName();
-            DirectMethodHandleDesc lambdaMetafactory = DMHD_LAMBDA_METAFACTORY;
+            List<ConstantDesc> additionalBootstrapArgs = new ArrayList<>();
+            if (!additionalIntfClasses.isEmpty()) {
+                // @@@ SeralizableLambda and bridges are currently unsupported
+                additionalBootstrapArgs.add(LambdaMetafactory.FLAG_MARKERS);
+                additionalBootstrapArgs.add(additionalIntfClasses.size());
+                for (Class<?> cls : additionalIntfClasses) {
+                    additionalBootstrapArgs.add(cls.describeConstable().get());
+                }
+            }
+            DirectMethodHandleDesc lambdaMetafactory = additionalBootstrapArgs.isEmpty()
+                    ? DMHD_LAMBDA_METAFACTORY : DMHD_LAMBDA_ALT_METAFACTORY;
             FuncOp quotation = lambdaToQuotation(lop);
             if (lop.isReflectable()) {
-                String modelName = uniqueName(names, "op$lambda$" + i);
+                String modelName = "op$" + implName;
                 modelsToBuild.put(modelName, quotation);
-                lambdaMetafactory = DMHD_REFLECTABLE_LAMBDA_METAFACTORY;
-                intfMethodName = intfMethodName + "=" + modelName;
+                lambdaMetafactory = additionalBootstrapArgs.isEmpty()
+                        ? DMHD_REFLECTABLE_LAMBDA_METAFACTORY
+                        : DMHD_REFLECTABLE_LAMBDA_ALT_METAFACTORY;
             }
             functions.add(quotationToImpl(implName, quotation));
 
@@ -201,7 +229,8 @@ final class LambdaExpansionTransformer implements CodeTransformer {
                     MethodTypeDesc.of(
                             intfMethod.getReturnType().describeConstable().get(),
                             Stream.of(intfMethod.getParameterTypes()).map(t -> t.describeConstable().get()).toList()),
-                    mtd));
+                    mtd,
+                    additionalBootstrapArgs));
             block.context().mapValue(lop.result(), r);
             return block;
         } catch (ReflectiveOperationException e) {
@@ -217,8 +246,12 @@ final class LambdaExpansionTransformer implements CodeTransformer {
         };
     }
 
-    private static Method funcIntfMethod(Class<?> intfc, MethodTypeDesc mtd) {
-        Method intfM = null;
+    private static Method funcIntfMethod(Class<?> intfc, List<Class<?>> addintfcs, MethodTypeDesc mtd) {
+        Map<String, Set<Method>> methods = Stream.concat(Stream.of(intfc), addintfcs.stream())
+                .flatMap(c -> Stream.of(c.getMethods()))
+                .filter(m -> !Modifier.isStatic(m.getModifiers()) && !Modifier.isAbstract(m.getModifiers()))
+                .collect(Collectors.groupingBy(Method::getName, Collectors.toSet()));
+        Method candidate = null;
         for (Method m : intfc.getMethods()) {
             String methodName = m.getName();
             if (Modifier.isAbstract(m.getModifiers())
@@ -231,17 +264,22 @@ final class LambdaExpansionTransformer implements CodeTransformer {
                     && (m.getReturnType() != boolean.class
                     || m.getParameterCount() != 1
                     || m.getParameterTypes()[0] != Object.class
-                    || !methodName.equals("equals"))) {
-                if (intfM == null) {
-                    intfM = m;
-                } else if (!intfM.getName().equals(methodName)) {
+                    || !methodName.equals("equals"))
+                    && methods.getOrDefault(methodName, Set.of()).stream().noneMatch(mth -> {
+                        return mth.getDeclaringClass() != m.getDeclaringClass()
+                                && m.getDeclaringClass().isAssignableFrom(mth.getDeclaringClass())
+                                && Arrays.equals(mth.getParameterTypes(), m.getParameterTypes());
+                    })) {
+                if (candidate == null) {
+                    candidate = m;
+                } else if (!m.getName().equals(candidate.getName())) {
                     throw new IllegalArgumentException("Not a single-method interface: " + intfc.getName());
                 }
             }
         }
-        if (intfM == null) {
+        if (candidate == null) {
             throw new IllegalArgumentException("No method in: " + intfc.getName() + " matching: " + mtd);
         }
-        return intfM;
+        return candidate;
     }
 }

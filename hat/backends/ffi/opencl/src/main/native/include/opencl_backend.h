@@ -57,6 +57,7 @@ struct PlatformInfo;
 class OpenCLBackend final : public Backend {
 private:
     std::unique_ptr<PlatformInfo> _platform_info;
+    bool isPlatformProfileOn;
 public:
     class OpenCLBuffer final : public Backend::Buffer {
     public:
@@ -140,6 +141,8 @@ public:
 
         void dispatch(DispatchContext *dispatchContext, CompilationUnit::Kernel *kernel) override;
 
+        bool isProfileOrOutOfOrder() const;
+
         ~OpenCLQueue() override;
     };
 
@@ -174,6 +177,8 @@ public:
     static const char *errorMsg(cl_int status);
 
     const PlatformInfo& getPlatformInfo() const;
+
+    const bool isPlatformOnProfile() const;
 };
 
 struct PlatformInfo {
