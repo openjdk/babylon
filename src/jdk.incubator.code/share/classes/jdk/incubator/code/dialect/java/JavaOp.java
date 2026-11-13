@@ -3572,7 +3572,9 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // setup for fallthrough
             for (int i = 1; i < bodies.size() - 2; i += 2) {
-                BranchTarget.setBranchTarget(b.context(), bodies.get(i), null, blocks.get(i + 2));
+                Body actionBody = bodies().get(i);
+                Block.Builder nextActionBlock = blocks.get(i + 2);
+                BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
             }
 
             boolean hasYieldStatements = hasYieldStatements();
@@ -3611,7 +3613,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             if (selectorCanBeNull) {
                 Block.Builder nullAction;
                 if (caseNullIdx != -1) {
-                    nullAction = blocks.get( caseNullIdx + 1);
+                    nullAction = blocks.get(caseNullIdx + 1);
                 } else {
                     nullAction = b.block();
                     nullAction.add(throw_(nullAction.add(new_(MethodRef.constructor(NullPointerException.class)))));
@@ -3628,18 +3630,23 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 if (i == caseDefIdx || i == caseNullIdx) {
                     continue;
                 }
+                Body predBody = bodies.get(i);
+                Block.Builder predBlock = blocks.get(i);
+                Block.Builder actionBlock = blocks.get(i + 1);
                 Block.Builder noMatch = nextPredicate(i + 2, blocks, exit, caseDefIdx, caseNullIdx);
-                ControlFlowBooleanExpressionOp.lowerBooleanBody(blocks.get(i), bodies.get(i), List.of(selectorExpression),
-                        new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(blocks.get(i + 1).reference(),
+                ControlFlowBooleanExpressionOp.lowerBooleanBody(predBlock, predBody, List.of(selectorExpression),
+                        new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(),
                                 noMatch.reference()), inherited);
             }
 
             // lower actions
             for (int i = 1; i < bodies.size(); i += 2) {
+                Body actionBody = bodies.get(i);
+                Block.Builder actionBlock = blocks.get(i);
                 if (isBooleanExpression) {
-                    ControlFlowBooleanExpressionOp.lowerBooleanBody(blocks.get(i), bodies.get(i), List.of(), continuation, inherited);
+                    ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, actionBody, List.of(), continuation, inherited);
                 } else {
-                    blocks.get(i).transformBody(bodies.get(i), List.of(), loweringTransformer(inherited,
+                    actionBlock.transformBody(actionBody, List.of(), loweringTransformer(inherited,
                             (block, op) -> switch (op) {
                                 case CoreOp.YieldOp yop -> {
                                     List<Value> args = yop.yieldValue() == null
