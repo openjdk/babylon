@@ -91,7 +91,7 @@ public final class ConstantValueAnalysis {
             case Op.Result result ->
                 switch (result.op()) {
                     case CoreOp.ConstantOp constant when isConstantValue(constant.value()) ->
-                            Optional.of(constant.value() instanceof String s ? s.intern() : constant.value());
+                            Optional.of(constant.value());
                     case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
                         List<Object> operands = new ArrayList<>(result.op().operands().size());
                         for (Value operand : result.op().operands()) {
@@ -115,7 +115,7 @@ public final class ConstantValueAnalysis {
                         if (first.isEmpty() || second.isEmpty()) {
                             yield Optional.empty();
                         }
-                        yield Optional.of((first.get().toString() + second.get()).intern());
+                        yield Optional.of(first.get().toString() + second.get());
                     }
                     case JavaOp.ConditionalExpressionOp co ->
                             yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
