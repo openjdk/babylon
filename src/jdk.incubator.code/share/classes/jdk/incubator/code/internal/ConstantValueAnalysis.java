@@ -115,7 +115,7 @@ public final class ConstantValueAnalysis {
                         if (first.isEmpty() || second.isEmpty()) {
                             yield Optional.empty();
                         }
-                        yield Optional.of((first.toString() + second).intern());
+                        yield Optional.of((first.get().toString() + second.get()).intern());
                     }
                     case JavaOp.ConditionalExpressionOp co ->
                         yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
