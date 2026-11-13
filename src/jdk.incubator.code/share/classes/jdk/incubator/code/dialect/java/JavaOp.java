@@ -3536,62 +3536,82 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     e -> e instanceof JavaOp.YieldOp yop && yop.targetsOrAttemptsToExit(this));
         }
 
-        @Override
-        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
-            Value selectorExpression = b.context().getValue(operands().get(0));
+        static boolean isCaseNullLabel(Body labelBody) {
+            //@@@ when op pattern matching is ready, we can use it
+            return labelBody != null &&
+                    labelBody.blocks().size() == 1 &&
+                    labelBody.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yieldOp &&
+                    yieldOp.yieldValue() instanceof Result opr &&
+                    opr.op() instanceof EqOp eqOp &&
+                    eqOp.operands().stream().anyMatch(v -> v instanceof Result r && r.op() instanceof ConstantOp cop
+                            && cop.value() == null);
+        }
 
-            // @@@ Add this during model generation?
-            // If no "case null [, default]" then perform null check on result of selector expression
-            if (!(selectorExpression.type() instanceof PrimitiveType) && !handleNulls) {
-                Block.Builder continueBlock = b.block();
-                Block.Builder throwBlock = b.block();
+        static boolean isCaseDefaultLabel(Body labelBody) {
+            return labelBody != null &&
+                    labelBody.blocks().size() == 1 &&
+                    labelBody.entryBlock().parameters().isEmpty() &&
+                    labelBody.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop &&
+                    yop.yieldValue().declaringElement() instanceof ConstantOp cop &&
+                    cop.resultType().equals(BOOLEAN) &&
+                    cop.value() instanceof Boolean trueValue && trueValue;
+        }
 
-                MethodRef equalsRef = MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class);
-                Result p = b.add(invoke(equalsRef, selectorExpression, b.add(constant(J_L_OBJECT, null))));
-                b.add(conditionalBranch(p, throwBlock.reference(), continueBlock.reference()));
-
-                throwBlock.add(throw_(
-                        throwBlock.add(new_(MethodRef.constructor(NullPointerException.class)))
-                ));
-
-                b = continueBlock;
-            }
-
-            // Default case is modeled as predicateBody with no parameters
-            // that yields a constant boolean value of true
-            int defaultCaseIndex = -1;
-            for (int i = 0; i < bodies().size(); i += 2) {
-                Body predicateBody = bodies().get(i);
-                Block predicateEntryBlock = predicateBody.entryBlock();
-                if (predicateEntryBlock.parameters().isEmpty() &&
-                        predicateEntryBlock.terminatingOp() instanceof CoreOp.YieldOp yop &&
-                        yop.yieldValue().declaringElement() instanceof ConstantOp cop &&
-                        cop.resultType().equals(BOOLEAN) &&
-                        cop.value() instanceof Boolean trueValue && trueValue) {
-                    defaultCaseIndex = i;
-                    break;
+        private int findCaseDefIdx() {
+            for (int i = 0; i < bodies.size(); i++) {
+                if (isCaseDefaultLabel(bodies.get(i))) {
+                    return i;
                 }
             }
+            return -1;
+        }
 
-            // Create predicate and action blocks
-            List<Block.Builder> blocks = new ArrayList<>(bodies().size());
-            // Reuse incoming block for the first predicate
-            int reuseIdx = 0;
-            for (int i = 0; i < bodies().size(); i ++) {
-                if (i == defaultCaseIndex) {
-                    // No block needed for default predicate
-                    blocks.add(null);
-                    if (i == 0) {
-                        // The first predicate is default. Reuese incoming block
-                        // for the default action block itself if the switch is
-                        // only-default, or for the next predicate otherwise
-                        reuseIdx = bodies().size() > 2 ? i + 2 : i + 1;
+        private int findCaseNullIdx() {
+            for (int i = 0; i < bodies.size(); i++) {
+                if (isCaseNullLabel(bodies.get(i))) {
+                    return i;
+                }
+            }
+            // case null can be merged with default
+            return handleNulls ? findCaseDefIdx() : -1;
+        }
+
+        @Override
+        public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
+            // map bodies to blocks
+            List<Block.Builder> blocks = new ArrayList<>();
+            int caseDefIdx = findCaseDefIdx();
+            int caseNullIdx = findCaseNullIdx();
+            Value selectorExpression = b.context().getValue(operands().getFirst());
+            boolean selectorCanBeNull = !(selectorExpression.type() instanceof PrimitiveType);
+            // decide which label will use the incoming block
+            // if selector can be null the incoming block will be used for null check
+            int reuseIdx = -1;
+            if (!selectorCanBeNull) {
+                int i = 0;
+                if (i == caseDefIdx) {
+                    i += 2;
+                    if (i > bodies.size() - 1) { // sw has default only
+                        i = caseDefIdx + 1;
                     }
+                }
+                reuseIdx = i;
+            }
+            for (int i = 0; i < bodies.size(); i++) {
+                if (i == caseDefIdx || i == caseNullIdx) {
+                    blocks.add(null);
                 } else if (i == reuseIdx) {
                     blocks.add(b);
                 } else {
                     blocks.add(b.block());
                 }
+            }
+
+            // setup for fallthrough
+            for (int i = 1; i < bodies.size() - 2; i += 2) {
+                Body actionBody = bodies().get(i);
+                Block.Builder nextActionBlock = blocks.get(i + 2);
+                BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
             }
 
             boolean hasYieldStatements = hasYieldStatements();
@@ -3626,50 +3646,43 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 BranchTarget.setBranchTarget(b.context(), this, exit, null);
             }
 
-            // Set action body's continue target to next action block for lowering of SwitchFallThroughOp
-            for (int i = 1; i < bodies().size() - 2; i += 2) {
-                Body actionBody = bodies().get(i);
-                Block.Builder nextActionBlock = blocks.get(i + 2);
-                BranchTarget.setBranchTarget(b.context(), actionBody, null, nextActionBlock);
+            // null check
+            if (selectorCanBeNull) {
+                Block.Builder nullAction;
+                if (caseNullIdx != -1) {
+                    nullAction = blocks.get(caseNullIdx + 1);
+                } else {
+                    nullAction = b.block();
+                    nullAction.add(throw_(nullAction.add(new_(MethodRef.constructor(NullPointerException.class)))));
+                }
+                Block.Builder noMatch = nextPredicate(0, blocks, exit, caseDefIdx, caseNullIdx);
+
+                Result cnull = b.add(constant(selectorExpression.type(), null));
+                Result p = b.add(eq(selectorExpression, cnull));
+                b.add(conditionalBranch(p, nullAction.reference(), noMatch.reference()));
             }
 
-            for (int i = 0; i < bodies().size(); i += 2) {
-                Body predicateBody = bodies().get(i);
-                Block.Builder predicateBlock = blocks.get(i);
-                Body actionBody = bodies().get(i + 1);
-                Block.Builder actionBlock = blocks.get(i + 1);
-
-                // Lower predicate body for non-default cases
-                if (i != defaultCaseIndex) {
-                    int nextPredicateIdx = i + 2;
-                    if (nextPredicateIdx == defaultCaseIndex) {
-                        nextPredicateIdx += 2;
-                    }
-
-                    Block.Builder noMatchBlock;
-                    if (nextPredicateIdx < bodies().size()) {
-                        noMatchBlock = blocks.get(nextPredicateIdx);
-                    } else if (defaultCaseIndex != -1) {
-                        noMatchBlock = blocks.get(defaultCaseIndex + 1);
-                    } else if (this instanceof SwitchExpressionOp) {
-                        // If switch expression, the last predicate body should be unconditional
-                        // and no conditional branch should be required. Rather than verifying
-                        // that create a no match block that terminates with unreachable
-                        noMatchBlock = b.block();
-                        noMatchBlock.add(unreachable());
-                    } else {
-                        noMatchBlock = exit;
-                    }
-
-                    ControlFlowBooleanExpressionOp.lowerBooleanBody(predicateBlock, predicateBody, List.of(selectorExpression),
-                            new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(), noMatchBlock.reference()),
-                            inherited);
+            // lower predicates
+            for (int i = 0; i < bodies.size(); i += 2) {
+                if (i == caseDefIdx || i == caseNullIdx) {
+                    continue;
                 }
+                Body predBody = bodies.get(i);
+                Block.Builder predBlock = blocks.get(i);
+                Block.Builder actionBlock = blocks.get(i + 1);
+                Block.Builder noMatch = nextPredicate(i + 2, blocks, exit, caseDefIdx, caseNullIdx);
+                ControlFlowBooleanExpressionOp.lowerBooleanBody(predBlock, predBody, List.of(selectorExpression),
+                        new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(),
+                                noMatch.reference()), inherited);
+            }
 
+            // lower actions
+            for (int i = 1; i < bodies.size(); i += 2) {
+                Body actionBody = bodies.get(i);
+                Block.Builder actionBlock = blocks.get(i);
                 if (isBooleanExpression) {
                     ControlFlowBooleanExpressionOp.lowerBooleanBody(actionBlock, actionBody, List.of(), continuation, inherited);
                 } else {
-                    // Lower action body for all cases
                     actionBlock.transformBody(actionBody, List.of(), loweringTransformer(inherited,
                             (block, op) -> switch (op) {
                                 case CoreOp.YieldOp yop -> {
@@ -3683,8 +3696,28 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             }));
                 }
             }
-
             return exit;
+        }
+
+        Block.Builder nextPredicate(int startPos, List<Block.Builder> blocks, Block.Builder exit, int caseDefIdx,
+                                    int caseNullIdx) {
+            int i = startPos;
+            while (i == caseDefIdx || i == caseNullIdx) {
+                i += 2;
+            }
+            if (i > bodies.size() - 1) {
+                if (caseDefIdx != -1) {
+                    return blocks.get(caseDefIdx + 1);
+                } else if (this instanceof SwitchStatementOp) {
+                    return exit;
+                } else {
+                    Block.Builder block = exit.block();
+                    block.add(unreachable());
+                    return block;
+                }
+            } else {
+                return blocks.get(i);
+            }
         }
 
         /**
@@ -3698,25 +3731,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             /*
             case null is modeled like this:
             (%4 : T)boolean -> {
-                %5 : java.lang.Object = constant @null;
-                %6 : boolean = invoke %4 %5 @"java.util.Objects::equals(java.lang.Object, java.lang.Object)boolean";
+                %5 : T = constant @null;
+                %6 : boolean = eq %4 %5;
                 yield %6;
             }
             * */
             for (int i = 0; i < bodies().size() - 2; i+=2) {
-                Body labelBody = bodies().get(i);
-                if (labelBody.blocks().size() != 1) {
-                    continue; // we skip, for now
-                }
-                Op terminatingOp = bodies().get(i).entryBlock().terminatingOp();
-                //@@@ when op pattern matching is ready, we can use it
-                if (terminatingOp instanceof CoreOp.YieldOp yieldOp &&
-                        yieldOp.yieldValue() instanceof Op.Result opr &&
-                        opr.op() instanceof InvokeOp invokeOp &&
-                        invokeOp.invokeReference().equals(
-                                MethodRef.method(Objects.class, "equals", boolean.class, Object.class, Object.class)) &&
-                        invokeOp.operands().stream().anyMatch(o -> o instanceof Op.Result r &&
-                                r.op() instanceof ConstantOp cop && cop.value() == null)) {
+                if (isCaseNullLabel(bodies().get(i))) {
                     return true;
                 }
             }

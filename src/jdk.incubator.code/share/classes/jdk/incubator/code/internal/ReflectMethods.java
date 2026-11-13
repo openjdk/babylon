@@ -1861,7 +1861,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 Value localTarget = stack.block.parameters().get(0);
                 final Value localResult;
                 if (c.labels.size() == 1) {
-                    localResult = processConstantLabel(localTarget, ccl);
+                    if (TreeInfo.isNull(ccl.expr)) {
+                        localResult = append(JavaOp.eq(localTarget, append(CoreOp.constant(localTarget.type(), null))));
+                    } else {
+                        localResult = processConstantLabel(localTarget, ccl);
+                    }
                 } else {
                     List<Body.Builder> clBodies = new ArrayList<>();
                     for (JCTree.JCCaseLabel cl : c.labels) {

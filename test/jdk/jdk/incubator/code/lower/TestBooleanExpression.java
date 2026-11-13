@@ -159,7 +159,7 @@ public class TestBooleanExpression {
                 %2 : java.type:"java.lang.Object" = var.load %1;
                 %3 : Var<java.type:"java.lang.String"> = var @"s";
                 %4 : java.type:"java.lang.Object" = constant @null;
-                %5 : java.type:"boolean" = invoke %2 %4 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                %5 : java.type:"boolean" = eq %2 %4;
                 cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
@@ -213,7 +213,7 @@ public class TestBooleanExpression {
                 %2 : java.type:"java.lang.Object" = var.load %1;
                 %3 : Var<java.type:"java.lang.String"> = var @"s";
                 %4 : java.type:"java.lang.Object" = constant @null;
-                %5 : java.type:"boolean" = invoke %2 %4 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                %5 : java.type:"boolean" = eq %2 %4;
                 cbranch %5 ^block_1 ^block_2;
 
               ^block_1:
