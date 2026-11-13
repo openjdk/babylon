@@ -139,7 +139,8 @@ public final class ConstantValueAnalysis {
     }
 
     private Optional<Object> evaluateConditionalOp(JavaOp.ConditionalOp co) {
-        boolean r = true;
+        // or -> start with false, and -> start with true
+        boolean r = co instanceof JavaOp.ConditionalAndOp;
         for (Optional<Object> v : co.bodies().stream().map(this::yieldValue).toList()) {
             if (v.isEmpty() || !(v.get() instanceof Boolean b)) {
                 return Optional.empty();

@@ -182,8 +182,16 @@ public class TestConstantExpressionEvaluation {
         return true && false;
     }
     @Reflect
+    static boolean conditionalAndOperator2() {
+        return true && true;
+    }
+    @Reflect
     static boolean conditionalOrOperator() {
         return true || false;
+    }
+    @Reflect
+    static boolean conditionalOrOperator2() {
+        return false || false;
     }
 
     @Reflect
