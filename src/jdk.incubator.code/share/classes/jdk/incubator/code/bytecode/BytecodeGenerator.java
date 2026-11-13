@@ -191,7 +191,7 @@ public final class BytecodeGenerator {
     private final Map<Block.Parameter, Value> singlePredecessorsValues;
     private final Map<String, ? extends Op.Invokable> functionMap;
     private final Map<Op, Boolean> deferCache;
-    private Value oprOnStack;
+    private final List<Value> oprOnStack;
     private Block[] recentCatchBlocks;
 
     private BytecodeGenerator(MethodHandles.Lookup lookup,
@@ -215,6 +215,7 @@ public final class BytecodeGenerator {
         this.singlePredecessorsValues = new IdentityHashMap<>();
         this.functionMap = functionMap;
         this.deferCache = new IdentityHashMap<>();
+        this.oprOnStack = new ArrayList<>();
     }
 
     private void setCatchStack(Block.Reference target, Block[] activeCatchBlocks) {
@@ -265,6 +266,26 @@ public final class BytecodeGenerator {
         }
     }
 
+    private void storeOperandsOnStack() {
+        storeOperandsOnStack(0);
+    }
+
+    private void storeOperandsOnStack(List<Value> values) {
+        int keep = 0;
+        // Make sure none of the values remains on stack
+        while (keep < oprOnStack.size() && !values.contains(oprOnStack.get(keep))) {
+            keep++;
+        }
+        storeOperandsOnStack(keep);
+    }
+
+    private void storeOperandsOnStack(int keep) {
+        while (oprOnStack.size() > keep) {
+            storeIfUsed(oprOnStack.removeLast());
+        }
+    }
+
+    // loads a local or a deferred value only
     private void load(Value v) {
         v = singlePredecessorsValues.getOrDefault(v, v);
         if (v instanceof Op.Result or &&
@@ -308,27 +329,54 @@ public final class BytecodeGenerator {
     }
 
     private void processOperand(Value operand) {
-        if (oprOnStack == null) {
-            load(operand);
-        } else {
-            assert oprOnStack == operand;
-            oprOnStack = null;
-        }
+        processOperands(List.of(operand), true);
     }
 
     private void processOperands(Op op) {
-        processOperands(op.operands());
+        processOperands(op.operands(), true);
     }
 
-    private void processOperands(List<Value> operands) {
-        if (oprOnStack == null) {
-            operands.forEach(this::load);
-        } else {
-            assert !operands.isEmpty() && oprOnStack == operands.getFirst();
-            oprOnStack = null;
-            for (int i = 1; i < operands.size(); i++) {
-                load(operands.get(i));
+    private void processOperands(List<Value> operands, boolean keepPrefix) {
+        int firstToLoad = Math.min(oprOnStack.size(), operands.size());
+        // match stack suffix against the requested operand prefix
+        while (firstToLoad > 0 && !oprOnStack.subList(oprOnStack.size() - firstToLoad, oprOnStack.size())
+                                             .equals(operands.subList(0, firstToLoad))) {
+            firstToLoad--;
+        }
+        int remainingOnStack = oprOnStack.size() - firstToLoad;
+        if (remainingOnStack == 0 || (keepPrefix && Collections.disjoint(oprOnStack.subList(0, remainingOnStack),
+                                                                         operands.subList(firstToLoad, operands.size())))) {
+            // no operand burried in the remaining stack
+            oprOnStack.subList(remainingOnStack, oprOnStack.size()).clear();
+        } else if ((keepPrefix || remainingOnStack == 1)
+                && operands.size() >= 2 && firstToLoad == 1
+                && oprOnStack.get(remainingOnStack - 1) == operands.get(1)
+                && Collections.disjoint(oprOnStack, operands.subList(2, operands.size()))) {
+            // swap special case
+            int topSize = toTypeKind(operands.get(0).type()).slotSize();
+            int belowSize = toTypeKind(operands.get(1).type()).slotSize();
+            if (topSize == 1 && belowSize == 1) {
+                cob.swap();
+            } else if (topSize == 1) {
+                cob.dup_x2().pop();
+            } else if (belowSize == 1) {
+                cob.dup2_x1().pop2();
+            } else {
+                cob.dup2_x2().pop2();
             }
+            oprOnStack.subList(remainingOnStack - 1, oprOnStack.size()).clear();
+            firstToLoad = 2;
+        } else {
+            // operands must be digged and made reloadable
+            if (keepPrefix) {
+                storeOperandsOnStack(operands);
+            } else {
+                storeOperandsOnStack();
+            }
+            firstToLoad = 0;
+        }
+        for (int i = firstToLoad; i < operands.size(); i++) {
+            load(operands.get(i));
         }
     }
 
@@ -365,58 +413,15 @@ public final class BytecodeGenerator {
             return op.result().uses().stream().allMatch(u -> u.op() instanceof VarAccessOp.VarLoadOp)
                     || op.initOperand() instanceof Block.Parameter bp
                         && bp.declaringBlock().isEntryBlock()
-                        && !moreThanOneUse(bp);
+                        && bp.uses().size() == 1;
         }
     }
 
-    // Var load can be deferred when not used as immediate operand
-    // and when they do not dominate a var store (conservative deferral refusal).
+    // Var load can be deferred when do not dominate a var store (conservative deferral refusal)
     private boolean canDefer(VarAccessOp.VarLoadOp op) {
-        return !isNextUse(op.result())
-                && op.varOperand().uses().stream()
-                        .filter(u -> u.op() instanceof VarAccessOp.VarStoreOp)
-                        .noneMatch(store -> store.isDominatedBy(op.result()));
-    }
-
-    // This method narrows the first operand inconveniences of some operations
-    private static boolean isFirstOperand(Op nextOp, Value opr) {
-        List<Value> values;
-        return switch (nextOp) {
-            // When there is no next operation
-            case null -> false;
-            // New object cannot use first operand from stack, new array fall through to the default
-            case NewOp op when !(op.constructorReference().signature().returnType() instanceof ArrayType) ->
-                false;
-            // Conditional branch may delegate to its binary test operation
-            case ConditionalBranchOp op when getConditionForCondBrOp(op) instanceof CompareOp co ->
-                isFirstOperand(co, opr);
-            // Var store effective first operand is not the first one
-            case VarAccessOp.VarStoreOp op ->
-                op.operands().get(1) == opr;
-            // Unconditional branch first target block argument
-            case BranchOp op ->
-                !(values = op.branch().arguments()).isEmpty() && values.getFirst() == opr;
-            // static vararg InvokeOp with no regular args
-            case InvokeOp op when op.isVarArgs() && !op.hasReceiver() && op.argOperands().isEmpty() -> false;
-            // InvokeOp SUPER
-            case InvokeOp op when op.invokeKind() == InvokeOp.InvokeKind.SUPER -> false;
-            // regular check of the first operand
-            default ->
-                !(values = nextOp.operands()).isEmpty() && values.getFirst() == opr;
-        };
-    }
-
-    // Determines if the operation result is immediatelly used by the next operation and so can stay on stack
-    private boolean isNextUse(Value opr) {
-        Op nextOp = switch (opr) {
-            case Block.Parameter p -> p.declaringBlock().firstOp();
-            case Op.Result r -> r.declaringBlock().nextOp(r.op());
-        };
-        // Pass over deferred operations
-        while (canDefer(nextOp)) {
-            nextOp = nextOp.ancestorBlock().nextOp(nextOp);
-        }
-        return isFirstOperand(nextOp, opr);
+        return op.varOperand().uses().stream()
+                 .filter(u -> u.op() instanceof VarAccessOp.VarStoreOp)
+                 .noneMatch(store -> store.isDominatedBy(op.result()));
     }
 
     private static boolean isConditionForCondBrOp(CompareOp op) {
@@ -499,7 +504,9 @@ public final class BytecodeGenerator {
             Label blockLabel = getLabel(b.index());
             cob.labelBinding(blockLabel);
 
-            oprOnStack = null;
+            if (!oprOnStack.isEmpty()) {
+                throw new IllegalStateException("stack should be empty here");
+            }
 
             exceptionRegionsChange(catchBlocks);
 
@@ -545,7 +552,7 @@ public final class BytecodeGenerator {
                     }
                     case VarAccessOp.VarLoadOp op -> {
                         if (canDefer(op)) {
-                            // Var load can be deferred when not used as immediate operand
+                            // create alias for the source slot
                             slots.computeIfAbsent(op.result(), r -> slots.get(op.operands().getFirst()));
                         } else {
                             load(op.operands().getFirst());
@@ -730,7 +737,7 @@ public final class BytecodeGenerator {
                         if (!isConditionForCondBrOp(op)) {
                             Label falseLabel = cob.newLabel();
                             Label endLabel = cob.newLabel();
-                            cob.branch(prepareConditionalBranch(op), falseLabel)
+                            cob.branch(prepareConditionalBranch(op, true), falseLabel)
                                .iconst_1()
                                .goto_(endLabel)
                                .labelBinding(falseLabel)
@@ -756,17 +763,19 @@ public final class BytecodeGenerator {
                                 }
                             }
                             case JavaType jt -> {
+                                // new and dup must precede the explicit constructor args
+                                storeOperandsOnStack(op.operands());
                                 cob.new_(jt.toNominalDescriptor())
                                     .dup();
                                 if (op.isVarargs()) {
                                     int varargIndex = op.constructorReference().signature().parameterTypes().size() - 1;
                                     var argOperands = op.operands().subList(0, varargIndex);
-                                    processOperands(argOperands);
+                                    argOperands.forEach(this::load);
                                     var compType = ((ArrayType) op.constructorReference().signature().parameterTypes().getLast()).componentType();
                                     var varArgOperands = op.operands().subList(varargIndex, op.operands().size());
                                     loadArray(compType, varArgOperands);
                                 } else {
-                                    processOperands(op);
+                                    op.operands().forEach(this::load);
                                 }
                                 cob.invokespecial(
                                         ((JavaType) op.resultType()).toNominalDescriptor(),
@@ -781,6 +790,11 @@ public final class BytecodeGenerator {
                         push(op.result());
                     }
                     case InvokeOp op -> {
+                        // loadArray() reloads each element after pushing array/index
+                        // any stack operand must be made reloadable now
+                        if (op.isVarArgs()) {
+                            storeOperandsOnStack(op.varArgOperands());
+                        }
                         // Resolve referenced class to determine if interface
                         MethodRef md = op.invokeReference();
                         JavaType refType = (JavaType)md.refType();
@@ -788,6 +802,9 @@ public final class BytecodeGenerator {
                         MethodTypeDesc mDesc = MethodRef.toNominalDescriptor(md.signature());
                         MethodHandles.Lookup protectedAccessLookup = null;
                         if (op.invokeKind() == InvokeOp.InvokeKind.SUPER) {
+                            // invokeExact needs the handle below receiver and args
+                            // any stack operand must be made reloadable now
+                            storeOperandsOnStack(op.operands());
                             // resolve the method handle with lookup.findSpecial using the lookup's class as the specialCaller
                             // and cache it in a dynamic constant
                             // the original lookup is stored in class data.
@@ -807,13 +824,13 @@ public final class BytecodeGenerator {
                                         });
                                 if (protectedAccessLookup != null) {
                                     specialCaller = protectedAccessLookup.lookupClass().describeConstable().get();
-                                    lookupHandle(protectedAccessLookup, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? refType.toNominalDescriptor() : specialCaller,
+                                    lookupHandle(op.operands(), protectedAccessLookup, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? refType.toNominalDescriptor() : specialCaller,
                                             md.name(), mDesc, op.invokeKind() == InvokeOp.InvokeKind.STATIC ? "findStatic" : "findVirtual");
                                 }
                             }
                         }
                         if (op.isVarArgs()) {
-                            processOperands(op.argOperands());
+                            processOperands(op.argOperands(), true);
                             var varArgOperands = op.varArgOperands();
                             var compType = ((ArrayType) op.invokeReference().signature().parameterTypes().getLast()).componentType();
                             loadArray(compType, varArgOperands);
@@ -934,10 +951,12 @@ public final class BytecodeGenerator {
                         // @@@ box, unbox, cast here ?
                     }
                     cob.return_(returnType);
+                    oprOnStack.clear();
                 }
                 case ThrowOp op -> {
                     processFirstOperand(op);
                     cob.athrow();
+                    oprOnStack.clear();
                 }
                 case BranchOp op -> {
                     setCatchStack(op.branch(), recentCatchBlocks);
@@ -951,9 +970,9 @@ public final class BytecodeGenerator {
 
                     if (getConditionForCondBrOp(op) instanceof CompareOp cop) {
                         // Processing of the BinaryTestOp was deferred, so it can be merged with CondBrOp
-                        conditionalBranch(prepareConditionalBranch(cop), op.trueBranch(), op.falseBranch());
+                        conditionalBranch(prepareConditionalBranch(cop, false), op.trueBranch(), op.falseBranch());
                     } else {
-                        processFirstOperand(op);
+                        processOperands(op.operands(), false);
                         conditionalBranch(IFEQ, op.trueBranch(), op.falseBranch());
                     }
                 }
@@ -982,7 +1001,7 @@ public final class BytecodeGenerator {
                     if (defTarget == null) {
                         throw new IllegalArgumentException("Missing default target");
                     }
-                    processFirstOperand(op);
+                    processOperands(op.operands(), false);
                     if (tableSwitchOverLookupSwitch(lo, hi, cases.size())) {
                         cob.tableswitch(defTarget, cases);
                     } else {
@@ -1024,8 +1043,10 @@ public final class BytecodeGenerator {
                     assignBlockArguments(op.endReference());
                     cob.goto_(getLabel(op.endReference()));
                 }
-                case UnreachableOp _ ->
+                case UnreachableOp _ -> {
                     cob.aconst_null().athrow();
+                    oprOnStack.clear();
+                }
                 default ->
                     throw new UnsupportedOperationException("Terminating operation not supported: " + top);
             }
@@ -1066,12 +1087,9 @@ public final class BytecodeGenerator {
         }
     }
 
-    private void lookupHandle(MethodHandles.Lookup resLookup, ClassDesc owner, String name, ConstantDesc type, String finder) {
+    private void lookupHandle(List<Value> explicitOperands, MethodHandles.Lookup resLookup, ClassDesc owner, String name, ConstantDesc type, String finder) {
         // handle must precede any operand
-        if (oprOnStack != null) {
-            storeIfUsed(oprOnStack);
-            oprOnStack = null;
-        }
+        storeOperandsOnStack(explicitOperands);
 
         // resolve the method handle with the specified finder and lookup and cache it
         // in a dynamic constant
@@ -1104,7 +1122,7 @@ public final class BytecodeGenerator {
                 });
         if (protectedAccessLookup != null) {
             caller = protectedAccessLookup.lookupClass().describeConstable().orElseThrow();
-            lookupHandle(protectedAccessLookup, isStatic ? refType.toNominalDescriptor() : caller, ref.name(),
+            lookupHandle(op.operands(), protectedAccessLookup, isStatic ? refType.toNominalDescriptor() : caller, ref.name(),
                     fieldType, "find" + (isStatic ? "Static" : "") + (store ? "Setter" : "Getter"));
         }
         processOperands(op);
@@ -1195,31 +1213,20 @@ public final class BytecodeGenerator {
                 lookup_space_cost + 3 * lookup_time_cost;
     }
 
-    // Checks if the Op.Result is used more than once in operands and block arguments
-    private static boolean moreThanOneUse(Value val) {
-        return val.uses().stream().flatMap(u ->
-                Stream.concat(
-                        u.op().operands().stream(),
-                        u.op().successors().stream()
-                                .flatMap(r -> r.arguments().stream())))
-                .filter(val::equals).limit(2).count() > 1;
-    }
-
     private void push(Value res) {
-        assert oprOnStack == null;
         if (res.type().equals(JavaType.VOID)) return;
-        if (isNextUse(res)) {
-            if (moreThanOneUse(res)) {
-                switch (toTypeKind(res.type()).slotSize()) {
-                    case 1 -> cob.dup();
-                    case 2 -> cob.dup2();
-                }
-                storeIfUsed(res);
-            }
-            oprOnStack = res;
+        var uses = res.uses();
+        Op op;
+        if (uses.size() == 1
+                && uses.getFirst().declaringBlock() == res.declaringBlock()
+                && !canDefer(op = uses.getFirst().op())
+                // one value can be used in mutliple operands of a single op
+                && Stream.concat(op.operands().stream(), op.successors().stream()
+                        .flatMap(r -> r.arguments().stream()))
+                        .filter(res::equals).limit(2).count() == 1) {
+            oprOnStack.add(res);
         } else {
             storeIfUsed(res);
-            oprOnStack = null;
         }
     }
 
@@ -1271,12 +1278,12 @@ public final class BytecodeGenerator {
         }
     }
 
-    private Opcode prepareConditionalBranch(CompareOp op) {
+    private Opcode prepareConditionalBranch(CompareOp op, boolean keepPrefix) {
         Value firstOperand = op.operands().get(0);
         TypeKind typeKind = toTypeKind(firstOperand.type());
         Value secondOperand = op.operands().get(1);
-        processOperand(firstOperand);
         if (isZeroIntOrNullConstant(secondOperand)) {
+            processOperands(List.of(firstOperand), keepPrefix);
             return switch (typeKind) {
                 case INT, BOOLEAN, BYTE, SHORT, CHAR ->
                     switch (op) {
@@ -1300,7 +1307,7 @@ public final class BytecodeGenerator {
                     throw new UnsupportedOperationException(op + " on " + op.operands().get(0).type());
             };
         }
-        processOperand(secondOperand);
+        processOperands(op.operands(), keepPrefix);
         return switch (typeKind) {
             case INT, BOOLEAN, BYTE, SHORT, CHAR ->
                 switch (op) {
@@ -1397,27 +1404,20 @@ public final class BytecodeGenerator {
         List<Value> sargs = ref.arguments();
         if (catchBlockTypes[target.index()] != null) {
             // Jumping to an exception handler, exception parameter is expected on stack
-            Value value = sargs.getFirst();
-            if (oprOnStack == value) {
-                oprOnStack = null;
-            } else {
-                load(value);
-            }
+            processOperands(List.of(sargs.getFirst()), false);
         } else if (target.predecessorReferences().size() > 1) {
             List<Block.Parameter> bargs = target.parameters();
             // First push successor arguments on the stack, then pop and assign
             // so as not to overwrite slots that are reused slots at different argument positions
+            List<Value> values = new ArrayList<>();
             for (int i = 0; i < bargs.size(); i++) {
                 Block.Parameter barg = bargs.get(i);
                 Value value = sargs.get(i);
                 if (!barg.equals(value)) {
-                    if (oprOnStack == value) {
-                        oprOnStack = null;
-                    } else {
-                        load(value);
-                    }
+                    values.add(value);
                 }
             }
+            processOperands(values, false);
             for (int i = bargs.size() - 1; i >= 0; i--) {
                 Block.Parameter barg = bargs.get(i);
                 if (!barg.equals(sargs.get(i))) {
@@ -1426,13 +1426,10 @@ public final class BytecodeGenerator {
             }
         } else {
             // Single-predecessor block can just map parameter slots
+            storeOperandsOnStack();
             List<Block.Parameter> bargs = ref.targetBlock().parameters();
             for (int i = 0; i < bargs.size(); i++) {
                 Value value = sargs.get(i);
-                if (oprOnStack == value) {
-                    storeIfUsed(oprOnStack);
-                    oprOnStack = null;
-                }
                 // Map slot of the block argument to slot of the value
                 singlePredecessorsValues.put(bargs.get(i), singlePredecessorsValues.getOrDefault(value, value));
             }
