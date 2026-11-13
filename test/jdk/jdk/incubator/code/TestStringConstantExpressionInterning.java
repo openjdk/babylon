@@ -37,9 +37,12 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static jdk.incubator.code.dialect.core.CoreOp.*;
@@ -67,30 +70,20 @@ public class TestStringConstantExpressionInterning {
     static {
         C = "C";
     }
-    //@Reflect
+    @Reflect
     static boolean f_classVariable2() {
-        // C + 1 shouldn't be interned, but currently it's
-        // that's a limitation in the evaluate API, as the API consider C a constant variable
         return C + 1 == "C1";
     }
 
     static final String D = "D".toLowerCase();
-    //@Reflect
+    @Reflect
     static boolean f_classVariable3() {
-        // D shouldn't be interned, but currently it's
-        // that's a limitation in the evaluate API, as the API consider D a constant variable
         return D == "d";
     }
 
     final String E = "E";
-    //@Reflect
+    @Reflect
     boolean t_instanceVariable() {
-        // A + 1 should be interned, but currently it's not
-        // because the op evaluate API considers E (and any instance field) a non constant variable
-        // it's a limitation in the API
-        // if core reflection can tag fields that are constant variables the limitation will be solved
-        // or, we can change the model by replacing read of constant variable by constant
-        // but the latter only work for compiler generated model
         return E + 1 == "E1";
     }
 
@@ -132,9 +125,13 @@ public class TestStringConstantExpressionInterning {
 
         FuncOp lop = op.transform(CodeTransformer.LOWERING_TRANSFORMER);
         FuncOp cfop = ConstantExpressionTransformer.transform(lop);
-        Assertions.assertEquals(expected, Interpreter.invoke(l, cfop));
+        List<Object> args = new ArrayList<>();
+        if (!m.accessFlags().contains(AccessFlag.STATIC)) {
+            args.add(this);
+        }
+        Assertions.assertEquals(expected, Interpreter.invoke(l, cfop, args));
 
-        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invoke());
+        Assertions.assertEquals(expected, BytecodeGenerator.generate(l, op).invokeWithArguments(args.toArray()));
     }
 
 
