@@ -118,8 +118,8 @@ public final class ConstantValueAnalysis {
                         yield Optional.of((first.get().toString() + second.get()).intern());
                     }
                     case JavaOp.ConditionalExpressionOp co ->
-                        yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
-                                .map(v -> yieldValue((Boolean) v ? co.trueBody() : co.falseBody())).orElse(null);
+                            yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
+                                    .map(v -> yieldValue((Boolean) v ? co.trueBody() : co.falseBody()).orElse(null));
                     case JavaOp.ConditionalOp co -> evaluateConditionalOp(co);
                     default ->  Optional.empty();
                 };
