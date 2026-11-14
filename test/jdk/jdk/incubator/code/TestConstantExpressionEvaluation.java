@@ -32,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.AccessFlag;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
@@ -181,8 +182,16 @@ public class TestConstantExpressionEvaluation {
         return true && false;
     }
     @Reflect
+    static boolean conditionalAndOperator2() {
+        return true && true;
+    }
+    @Reflect
     static boolean conditionalOrOperator() {
         return true || false;
+    }
+    @Reflect
+    static boolean conditionalOrOperator2() {
+        return false || false;
     }
 
     @Reflect
@@ -213,27 +222,26 @@ public class TestConstantExpressionEvaluation {
         return s;
     }
     @Reflect
-    static String fcNotConstantVar() {
+    static String nonConstantExpr_NotConstantVar() {
         // initialized with a non-constant expression
         final String s = LocalDate.now().toString();
         return s;
     }
     @Reflect
-    static Object fcNotConstantVar2() {
+    static Object nonConstantExpr_NotConstantVar2() {
         // type not primitive nor String
         final Object o = "s";
         return o;
     }
     @Reflect
-    static int fcFinalVariableNotInitialized() {
+    static int nonConstantExpr_FinalVariableNotInitialized() {
         final int i;
         i = 1;
         return i;
     }
 
     @Reflect
-    static int effectivelyFinalVar() {
-        // the op evaluation API broaden the JLS notion of constant variable to include effectively final variable
+    static int nonConstantExpr__effectivelyFinalVar() {
         int x = 1;
         return x;
     }
@@ -244,63 +252,66 @@ public class TestConstantExpressionEvaluation {
         return Y1;
     }
     final String V = "X";
-    //@Reflect
+    @Reflect
     String instanceField() {
-        // V is constant variable, but we can't get its value from the model
         return V;
     }
     static final Integer Y2 = 3;
     @Reflect
-    static Integer fcFieldOfWrongType() {
+    static Integer nonConstantExpr_FieldOfWrongType() {
         // field type not primitive nor String
         return Y2;
     }
     enum E {A}
     static final E e = E.A;
     @Reflect
-    static E fcFieldOfWrongType2() {
+    static E nonConstantExpr_FieldOfWrongType2() {
         return e;
     }
     static int Y4 = 3;
     @Reflect
-    static int fcFieldNotDeclaredFinal() {
+    static int nonConstantExpr_FieldNotDeclaredFinal() {
         return Y4;
     }
     static final int Y3 = Math.max(1, 2);
-    //@Reflect
-    static int fcFieldInitializedWithNonConstantExpr() {
-        // according to JLS, access to Y3 is not a constant expression
-        // because Y3 is not a constant variable, because it's initilaized with a non-constant expression,
-        // but we currently have a limitation in the API
+    @Reflect
+    static int nonConstantExpr_FieldInitializedWithNonConstantExpr() {
         return Y3;
     }
     static final String S;
     static {
         S = "A";
     }
-    //@Reflect
-    static String fcFieldBlankFinal() {
-        // according to JLS, access to S is not a constant expression
-        // because S is not a constant variable, because it lacks an initializer,
-        // but we currently have a limitation in the API
+    @Reflect
+    static String nonConstantExpr_FieldBlankFinal() {
         return S;
     }
 
     static final String T = null;
     @Reflect
-    static String fcFieldNull() {
+    static String nonConstantExpr_FieldNull() {
         return T;
     }
 
     @Reflect
-    static String fcNullVar() {
+    static String nonConstantExpr_NullVar() {
         String s = null;
         return s;
     }
 
     @Reflect
-    static String fcNullConcat() {
+    static String nonConstantExpr_NullConcat() {
         return (String) null + null;
+    }
+
+    @Reflect
+    static int nonConstantExpr_divByZeo() {
+        return 1 / 0;
+    }
+
+    @Reflect
+    static int nonConstantExpr_remainderDivByZero() {
+        return 1 % 0;
     }
 
     @ParameterizedTest
@@ -309,12 +320,12 @@ public class TestConstantExpressionEvaluation {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
         Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
         MethodHandles.Lookup l = MethodHandles.lookup();
-        Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (Op & JavaOp.JavaExpression) op);
-        if (m.getName().startsWith("fc")) {
+        Optional<Object> v = JavaOp.JavaExpression.evaluate((Op & JavaOp.JavaExpression) op);
+        if (m.getName().startsWith("nonConstantExpr_")) {
             Assertions.assertTrue(v.isEmpty(), m.getName());
         } else {
             Assertions.assertTrue(v.isPresent(), m.getName());
-            Object expected = m.invoke(null);
+            Object expected = m.invoke(m.accessFlags().contains(AccessFlag.STATIC) ? null : this);
             Assertions.assertEquals(expected, v.get());
         }
     }
@@ -325,37 +336,48 @@ public class TestConstantExpressionEvaluation {
     }
 
     @Reflect
-    static int fc2() {
+    static int nonConstantExpr_2() {
         int x = 1;
         x++;
         return x;
     }
     @Reflect
-    static boolean fc3() {
+    static boolean nonConstantExpr_3() {
         return "abc" instanceof String;
     }
 
     static int z = 0;
     @Reflect
-    static int fc4() {
+    static int nonConstantExpr_4() {
         return z;
     }
     @Reflect
-    static Object fc6() {
+    static Object nonConstantExpr_6() {
         return (Object) 1;
     }
     @Reflect
-    static Object fc7() {
+    static Object nonConstantExpr_7() {
         final int x = Math.abs(-1);
         return x;
     }
     @Reflect
-    static boolean fc8() {
+    static boolean nonConstantExpr_8() {
         return 1d > Math.pow(2, 2);
     }
     @Reflect
-    static String fc9() {
+    static String nonConstantExpr_9() {
         return null;
+    }
+
+    @Reflect
+    static boolean nonConstantExpr_ConditionalOr() {
+        return true || Math.max(1, 2) > 0;
+    }
+
+    @Reflect
+    static boolean nonConstantExpr_ConditionalAnd() {
+        int i = 0;
+        return false && i++ > 0;
     }
 
     static CoreOp.FuncOp conversionModel(CodeType source, CodeType target) {
@@ -395,7 +417,7 @@ public class TestConstantExpressionEvaluation {
                 CoreOp.FuncOp f = conversionModel(from, to);
                 Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
                 MethodHandles.Lookup l = MethodHandles.lookup();
-                Optional<Object> v = JavaOp.JavaExpression.evaluate(l, (JavaOp.ConvOp) op);
+                Optional<Object> v = JavaOp.JavaExpression.evaluate((JavaOp.ConvOp) op);
                 if ((to.equals(BOOLEAN) && !from.equals(BOOLEAN)) || (from.equals(BOOLEAN) && !to.equals(BOOLEAN))) {
                     Assertions.assertTrue(v.isEmpty(), from + " -> " + to);
                 } else {
@@ -419,7 +441,7 @@ public class TestConstantExpressionEvaluation {
 
         List<Op> convOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.ConvOp).toList();
         for (Op convOp : convOps) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (JavaOp.ConvOp) convOp);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate((JavaOp.ConvOp) convOp);
             Assertions.assertTrue(opt.isEmpty());
         }
     }
@@ -438,7 +460,7 @@ public class TestConstantExpressionEvaluation {
 
         List<Op> constantOps = funcOp.body().entryBlock().ops().stream().filter(op -> op instanceof CoreOp.ConstantOp).toList();
         for (Op cop : constantOps) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), (CoreOp.ConstantOp) cop);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate((CoreOp.ConstantOp) cop);
             Assertions.assertTrue(opt.isEmpty());
         }
     }
@@ -456,7 +478,7 @@ public class TestConstantExpressionEvaluation {
         List<JavaOp.CastOp> castOps = iv.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
                 .map(op -> (JavaOp.CastOp) op).toList();
         for (JavaOp.CastOp castOp : castOps) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), castOp);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(castOp);
             Assertions.assertTrue(opt.isEmpty());
         }
 
@@ -473,7 +495,7 @@ public class TestConstantExpressionEvaluation {
         List<JavaOp.CastOp> castOps2 = v.body().entryBlock().ops().stream().filter(op -> op instanceof JavaOp.CastOp)
                 .map(op -> (JavaOp.CastOp) op).toList();
         for (JavaOp.CastOp castOp : castOps2) {
-            Optional<Object> opt = JavaOp.JavaExpression.evaluate(MethodHandles.lookup(), castOp);
+            Optional<Object> opt = JavaOp.JavaExpression.evaluate(castOp);
             Assertions.assertTrue(opt.isPresent());
         }
     }
