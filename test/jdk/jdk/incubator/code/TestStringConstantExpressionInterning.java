@@ -156,11 +156,11 @@ public class TestStringConstantExpressionInterning {
                 ),
                 Arguments.of(
                         func("f3", CoreType.functionType(JavaType.BOOLEAN)).body(b -> {
-                            // str value but not a constant expr, it should not be interned
+                            // by using ConstantOp we are modeling a literal
                             Op.Result c1 = b.add(constant(JavaType.J_L_STRING, LocalDate.now().toString()));
                             Op.Result c2 = b.add(constant(JavaType.J_L_STRING, LocalDate.now().toString()));
                             b.add(return_(b.add(JavaOp.eq(c1, c2))));
-                        }), false
+                        }), true
                 ),
                 Arguments.of(
                         func("f4", CoreType.functionType(JavaType.BOOLEAN)).body(b -> {

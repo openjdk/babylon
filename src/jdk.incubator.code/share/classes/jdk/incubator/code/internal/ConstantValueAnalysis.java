@@ -91,7 +91,7 @@ public final class ConstantValueAnalysis {
             case Op.Result result ->
                 switch (result.op()) {
                     case CoreOp.ConstantOp constant when isConstantValue(constant.value()) ->
-                            Optional.of(constant.value());
+                            Optional.of(constant.value() instanceof String s ? s.intern() : constant.value());
                     case JavaOp.ArithmeticOperation _, JavaOp.ConvOp _ -> {
                         List<Object> operands = new ArrayList<>(result.op().operands().size());
                         for (Value operand : result.op().operands()) {
