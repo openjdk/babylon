@@ -304,6 +304,16 @@ public class TestConstantExpressionEvaluation {
         return (String) null + null;
     }
 
+    @Reflect
+    static int nonConstantExpr_divByZeo() {
+        return 1 / 0;
+    }
+
+    @Reflect
+    static int nonConstantExpr_remainderDivByZero() {
+        return 1 % 0;
+    }
+
     @ParameterizedTest
     @MethodSource("cases")
     void test(Method m) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
