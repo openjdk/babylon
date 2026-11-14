@@ -120,7 +120,10 @@ public final class ConstantValueAnalysis {
                     case JavaOp.ConditionalExpressionOp co ->
                             yieldValue(co.predicateBody()).filter(Boolean.class::isInstance)
                                     .map(v -> yieldValue((Boolean) v ? co.trueBody() : co.falseBody()).orElse(null));
-                    case JavaOp.ConditionalOp co -> evaluateConditionalOp(co);
+                    case JavaOp.ConditionalOrOp co -> co.bodies().stream().map(this::yieldValue)
+                            .reduce((r, e) -> r.flatMap(a -> e.map(b -> (Boolean) a | (Boolean) b))).get();
+                    case JavaOp.ConditionalAndOp co -> co.bodies().stream().map(this::yieldValue)
+                            .reduce((r, e) -> r.flatMap(a -> e.map(b -> (Boolean) a & (Boolean) b))).get();
                     default ->  Optional.empty();
                 };
         };
@@ -136,22 +139,6 @@ public final class ConstantValueAnalysis {
         return body.blocks().size() == 1 && body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yield
                 ? evaluate(yield.yieldValue())
                 : Optional.empty();
-    }
-
-    private Optional<Object> evaluateConditionalOp(JavaOp.ConditionalOp co) {
-        // or -> start with false, and -> start with true
-        boolean r = co instanceof JavaOp.ConditionalAndOp;
-        for (Optional<Object> v : co.bodies().stream().map(this::yieldValue).toList()) {
-            if (v.isEmpty() || !(v.get() instanceof Boolean b)) {
-                return Optional.empty();
-            }
-            if (co instanceof JavaOp.ConditionalOrOp) {
-                r |= b;
-            } else {
-                r &= b;
-            }
-        }
-        return Optional.of(r);
     }
 
     private static boolean isConstantValue(Object o) {
