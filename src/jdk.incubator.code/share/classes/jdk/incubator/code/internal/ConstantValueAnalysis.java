@@ -109,14 +109,11 @@ public final class ConstantValueAnalysis {
                     }
                     case JavaOp.CastOp co when value.type().equals(JavaType.J_L_STRING) ->
                         evaluate(co.operands().getFirst()).filter(String.class::isInstance);
-                    case JavaOp.ConcatOp co -> {
-                        Optional<Object> first = evaluate(co.operands().getFirst());
-                        Optional<Object> second = evaluate(co.operands().getLast());
-                        if (first.isEmpty() || second.isEmpty()) {
-                            yield Optional.empty();
-                        }
-                        yield Optional.of((first.get().toString() + second.get()).intern());
-                    }
+                    case JavaOp.ConcatOp co ->
+                            co.operands().stream().map(this::evaluate)
+                                    .reduce((r, e) -> r.flatMap(a -> e.map(b -> a.toString() + b)))
+                                    .get()
+                                    .map(s -> s.toString().intern());
                     case JavaOp.ConditionalExpressionOp co -> {
                         Optional<Object> p = yieldValue(co.predicateBody());
                         Optional<Object> t = yieldValue(co.trueBody());
