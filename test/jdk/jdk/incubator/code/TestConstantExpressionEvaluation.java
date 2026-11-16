@@ -318,15 +318,14 @@ public class TestConstantExpressionEvaluation {
     @MethodSource("cases")
     void test(Method m) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         CoreOp.FuncOp f = Op.ofMethod(m).get();
-        Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
-        MethodHandles.Lookup l = MethodHandles.lookup();
-        Optional<Object> v = JavaOp.JavaExpression.evaluate((Op & JavaOp.JavaExpression) op);
+        Value value = f.body().entryBlock().terminatingOp().operands().getFirst(); // use the value instead
+        Optional<Object> opt = JavaOp.JavaExpression.evaluate(value);
         if (m.getName().startsWith("nonConstantExpr_")) {
-            Assertions.assertTrue(v.isEmpty(), m.getName());
+            Assertions.assertTrue(opt.isEmpty(), m.getName());
         } else {
-            Assertions.assertTrue(v.isPresent(), m.getName());
+            Assertions.assertTrue(opt.isPresent(), m.getName());
             Object expected = m.invoke(m.accessFlags().contains(AccessFlag.STATIC) ? null : this);
-            Assertions.assertEquals(expected, v.get());
+            Assertions.assertEquals(expected, opt.get());
         }
     }
 
@@ -380,6 +379,12 @@ public class TestConstantExpressionEvaluation {
         return false && i++ > 0;
     }
 
+    @Reflect
+    static int nonConstantExpr_condExpr() {
+        int i = 0;
+        return false ? i : 1;
+    }
+
     static CoreOp.FuncOp conversionModel(CodeType source, CodeType target) {
         return CoreOp.func("conv", CoreType.functionType(target)).body(b -> {
             var v = b.add(CoreOp.constant(source, valueOne(source)));
@@ -416,13 +421,12 @@ public class TestConstantExpressionEvaluation {
             for (PrimitiveType to : pt) {
                 CoreOp.FuncOp f = conversionModel(from, to);
                 Op op = ((Op.Result) f.body().entryBlock().terminatingOp().operands().getFirst()).op();
-                MethodHandles.Lookup l = MethodHandles.lookup();
                 Optional<Object> v = JavaOp.JavaExpression.evaluate((JavaOp.ConvOp) op);
                 if ((to.equals(BOOLEAN) && !from.equals(BOOLEAN)) || (from.equals(BOOLEAN) && !to.equals(BOOLEAN))) {
                     Assertions.assertTrue(v.isEmpty(), from + " -> " + to);
                 } else {
                     Assertions.assertTrue(v.isPresent(), from + " -> " + to);
-                    Object expected = Interpreter.invoke(l, f);
+                    Object expected = Interpreter.invoke(MethodHandles.lookup(), f);
                     Assertions.assertEquals(expected, v.get());
                 }
             }

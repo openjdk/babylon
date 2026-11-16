@@ -43,7 +43,7 @@ public class ConstantExpressionTransformer implements CodeTransformer {
     private final ConstantValueAnalysis constants;
 
     private ConstantExpressionTransformer() {
-        this.constants = new ConstantValueAnalysis(_ -> List.of());
+        this.constants = new ConstantValueAnalysis();
     }
 
     @Override

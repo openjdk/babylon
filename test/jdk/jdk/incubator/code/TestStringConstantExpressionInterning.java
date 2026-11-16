@@ -120,7 +120,7 @@ public class TestStringConstantExpressionInterning {
     void test(Method m) throws Throwable {
         FuncOp op = Op.ofMethod(m).get();
         // expected value is encoded in the method name because evaluation API not fully aligned with JLS
-        Object expected = m.getName().startsWith("t");
+        Object expected = m.invoke(m.accessFlags().contains(AccessFlag.STATIC) ? null : this);
         MethodHandles.Lookup l = MethodHandles.lookup();
 
         FuncOp lop = op.transform(CodeTransformer.LOWERING_TRANSFORMER);
@@ -156,7 +156,7 @@ public class TestStringConstantExpressionInterning {
                 ),
                 Arguments.of(
                         func("f3", CoreType.functionType(JavaType.BOOLEAN)).body(b -> {
-                            // by using ConstantOp we are modeling a literal
+                            // by using ConstantOp it means we are modeling a literal
                             Op.Result c1 = b.add(constant(JavaType.J_L_STRING, LocalDate.now().toString()));
                             Op.Result c2 = b.add(constant(JavaType.J_L_STRING, LocalDate.now().toString()));
                             b.add(return_(b.add(JavaOp.eq(c1, c2))));
