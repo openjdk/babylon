@@ -138,7 +138,7 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     public T varStoreOp( CoreOp.VarAccessOp.VarStoreOp varStoreOp) {
         Op op = scopedCodeBuilderContext().resolve(varStoreOp.operands().getFirst());
         varName((CoreOp.VarOp) op);
-        equals().parenthesisIfNeeded( varStoreOp, ((Op.Result)varStoreOp.operands().get(1)).op());
+        equals().parenthesisIfNeeded( varStoreOp, ((Op.Result) varStoreOp.operands().get(1)).op());
         return self();
     }
 
