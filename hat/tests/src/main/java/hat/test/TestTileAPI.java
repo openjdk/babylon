@@ -1019,7 +1019,7 @@ public class TestTileAPI {
 
         accelerator.compute((@Reflect Compute) computeContext -> initTileOne2D(computeContext, result, tileSize));
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size * size; i++) {
             HATAsserts.assertEquals(1.0f, result.array(i), 0.001f);
         }
     }
@@ -1075,7 +1075,7 @@ public class TestTileAPI {
 
         accelerator.compute((@Reflect Compute) computeContext -> initTileOne2DF16(computeContext, result, tileSize));
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size * size; i++) {
             short value = result.array(i);
             HATAsserts.assertEquals(1.0f, Float.float16ToFloat(value), 0.001f);
         }
