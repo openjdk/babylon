@@ -66,7 +66,7 @@ public final class TileType implements HAType {
     public ExternalizedCodeType externalize() {
         List<ExternalizedCodeType> externalizedTypes = shape.stream().map(s -> new ExternalizedCodeType("x" + s, List.of())).collect(Collectors.toList());
         externalizedTypes.add(dType.externalize());
-        return ExternalizedCodeType.of("tensor", externalizedTypes);
+        return ExternalizedCodeType.of("tile", externalizedTypes);
     }
 
     @Override
