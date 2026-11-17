@@ -25,7 +25,6 @@
 package hat.buffer;
 
 import optkl.ifacemapper.BoundSchema;
-import optkl.ifacemapper.Buffer;
 import optkl.ifacemapper.MappableIface;
 import optkl.ifacemapper.Schema;
 import optkl.util.carriers.ArenaAndLookupCarrier;
