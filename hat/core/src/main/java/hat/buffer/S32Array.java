@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024,2026 Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,34 +37,46 @@ import java.util.function.Function;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public interface S32Array extends Buffer {
-    @Reflect default void  schema(){array(length());}
+
+    @Reflect
+    default void schema() {
+        array(length());
+    }
+
     int length();
+
     int array(long idx);
+
     void array(long idx, int i);
 
     long ARRAY_OFFSET = JAVA_INT.byteSize();
     Schema<S32Array> schema = Schema.of(S32Array.class);
 
-    @Reflect static S32Array create(ArenaAndLookupCarrier cc, int length){
-        return BoundSchema.of(cc ,schema, length).allocate();
+    static S32Array create(ArenaAndLookupCarrier cc, int length) {
+        return BoundSchema.of(cc, schema, length).allocate();
     }
-    @Reflect default S32Array fill(Function<Integer, Integer> filler) {
+
+    default S32Array fill(Function<Integer, Integer> filler) {
         for (int i = 0; i < length(); i++) {
             array(i, filler.apply(i));
         }
         return this;
     }
-    @Reflect static S32Array create(ArenaAndLookupCarrier cc, int length, Function<Integer,Integer> filler){
-        return create(cc,length).fill(filler);
+
+    static S32Array create(ArenaAndLookupCarrier cc, int length, Function<Integer, Integer> filler) {
+        return create(cc, length).fill(filler);
     }
-    static S32Array createFrom(ArenaAndLookupCarrier cc, int[] arr){
-        return create( cc, arr.length).copyfrom(arr);
+
+    static S32Array createFrom(ArenaAndLookupCarrier cc, int[] arr) {
+        return create(cc, arr.length).copyFrom(arr);
     }
-    @Reflect default S32Array copyfrom(int[] ints) {
+
+    default S32Array copyFrom(int[] ints) {
         MemorySegment.copy(ints, 0, MappableIface.getMemorySegment(this), JAVA_INT, ARRAY_OFFSET, length());
         return this;
     }
-    @Reflect default int[] copyTo(int[] ints) {
+
+    default int[] copyTo(int[] ints) {
         MemorySegment.copy(MappableIface.getMemorySegment(this), JAVA_INT, ARRAY_OFFSET, ints, 0, length());
         return ints;
     }
