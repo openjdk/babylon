@@ -834,7 +834,7 @@ public final class ArithmeticAndConvOpImpls {
         }
     }
 
-    public static Object evaluate(Op op, List<Object> evaluatedOperands) throws NonConstantExpression {
+    public static Object evaluate(Op op, List<Object> evaluatedOperands) {
         String mn = (op instanceof ExternalizedOp.Externalizable eop)
                 ? eop.externalizeOpName()
                 : op.getClass().getName();
@@ -843,17 +843,14 @@ public final class ArithmeticAndConvOpImpls {
         }
         MethodHandle mh = opHandle(mn, op.opSignature());
         if (mh == null) {
-            throw new NonConstantExpression();
+            return null;
         }
         try {
             return mh.invokeWithArguments(evaluatedOperands);
+        } catch (ArithmeticException e) {
+            throw e;
         } catch (Throwable e) {
             throw new InternalError("Should not reach here", e);
         }
-    }
-
-    @SuppressWarnings("serial")
-    public static class NonConstantExpression extends RuntimeException {
-        public NonConstantExpression() {}
     }
 }
