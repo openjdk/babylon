@@ -24,9 +24,8 @@
  */
 package hat.dialect;
 
-import hat.DType;
 import hat.codetypes.ConstantType;
-import hat.codetypes.TensorType;
+import hat.codetypes.TileType;
 import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
@@ -97,6 +96,10 @@ public class TileOps {
 
     public static Op zeros(CodeType typeResult, Value... tileShape) {
         return new TileZerosOp(typeResult, tileShape);
+    }
+
+    public static Op ones(CodeType typeResult, Value... tileShape) {
+        return new TileOnesOp(typeResult, tileShape);
     }
 
     public static Op arange(CodeType typeResult, Value value) {
@@ -344,13 +347,44 @@ public class TileOps {
                 Object v = constantType.value();
                 // NOTE: The values become the propagate shape, while the codeType represent the element type of
                 // the tensor operation (e.g., Tile).
-                if (v instanceof TensorType tensorType) {
+                if (v instanceof TileType tensorType) {
                     builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
                 }
             }
             return Map.of("tile.zeros ", builder.toString());
         }
     }
+
+    public static class TileOnesOp extends TileContextOp implements Precedence.Invoke {
+
+        protected TileOnesOp(CodeType type, Value... shapes) {
+            super(type, Arrays.stream(shapes).toList());
+        }
+
+        protected TileOnesOp(TileOnesOp that, CodeContext cc, CodeTransformer ot) {
+            super(that, cc);
+        }
+
+        @Override
+        public TileOnesOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new TileOnesOp(this, codeContext, codeTransformer);
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            StringBuilder builder = new StringBuilder();
+            if (resultType instanceof ConstantType constantType) {
+                Object v = constantType.value();
+                // NOTE: The values become the propagate shape, while the codeType represent the element type of
+                // the tensor operation (e.g., Tile).
+                if (v instanceof TileType tensorType) {
+                    builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
+                }
+            }
+            return Map.of("tile.ones ", builder.toString());
+        }
+    }
+
 
     public static class TileArangeOp extends TileContextOp implements Precedence.Invoke {
 
@@ -600,7 +634,7 @@ public class TileOps {
                 Object v = constantType.value();
                 // NOTE: The values become the propagate shape, while the codeType represent the element type of
                 // the tensor operation (e.g., Tile).
-                if (v instanceof TensorType tensorType) {
+                if (v instanceof TileType tensorType) {
                     builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
                 }
             }

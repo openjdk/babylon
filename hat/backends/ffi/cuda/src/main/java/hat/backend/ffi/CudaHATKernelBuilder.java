@@ -25,11 +25,15 @@
 package hat.backend.ffi;
 
 import hat.DType;
+import hat.buffer.Tensor2DF16;
+import hat.buffer.Tensor2DF32;
+import hat.buffer.TensorF16;
+import hat.buffer.TensorF32;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
-import hat.codetypes.TensorType;
+import hat.codetypes.TileType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.TileForLoopInfo;
@@ -63,7 +67,6 @@ import java.util.SequencedSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -273,9 +276,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_0, false))
                 .when(useS16Types(), _ -> defineMacroBF162Float(BF16_TO_FLOAT_1, true))
                 .when(useS16Types() || isTile, _ -> includeSys("cuda_fp16.h", "cuda_bf16.h"))
-                .when(useS16Types(), _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
-                .when(useS16Types(), _ -> typedefSingleValueStruct("F16", "half"))
-                .when(useS16Types(), _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
+                .when(useS16Types() || isTile, _ -> hashDefine("BFLOAT16", _ -> keyword("__nv_bfloat16")))
+                .when(useS16Types() || isTile, _ -> typedefSingleValueStruct("F16", "half"))
+                .when(useS16Types() || isTile, _ -> typedefSingleValueStruct("BF16", "BFLOAT16"))
 
                 // Tensor Macros
                 .when(useTensors(), _ -> includeSys("mma.h"))
@@ -729,15 +732,32 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         );
     }
 
+    private CudaHATKernelBuilder decodePtrType(PtrType ptrType) {
+        if (ptrType.rType().equals(DType.F32) || ptrType.rType().equals(DType.Float)) {
+            f32Type();
+        } else if (ptrType.rType().equals(DType.F16)) {
+            type("half");
+        } else {
+            throw new IllegalStateException("Expected a ptr type, but found: " + ptrType);
+        }
+        return self();
+    }
+
+    private CudaHATKernelBuilder decodeTileType(TileType tileType) {
+        CodeType ptr = tileType.elementType();
+        if (ptr instanceof PtrType ptrType) {
+            decodePtrType(ptrType);
+        } else {
+            throw new IllegalStateException("Expected a tileType type, but found: " + tileType.elementType().getClass());
+        }
+        return self();
+    }
+
     @Override
-    protected CudaHATKernelBuilder tileDeviceKernelDeclaration(TensorType tt) {
+    protected CudaHATKernelBuilder tileDeviceKernelDeclaration(TileType tileType) {
         tile().ltgt(_ -> {
-            if (tt.elementType().equals(DType.TENSOR_F32_TYPE) || tt.elementType().equals(DType.TENSOR_2D_F32_TYPE)) {
-                f32Type();
-            } else {
-                throw new IllegalStateException("Expected a tensor type, but found: " + tt.elementType().getClass());
-            }
-            comma().tileShape().ltgt(_ -> commaSpaceSeparated(tt.shape(), this::intValue));
+            decodeTileType(tileType);
+            comma().tileShape().ltgt(_ -> commaSpaceSeparated(tileType.shape(), this::intValue));
         });
         return self();
     }
@@ -1153,13 +1173,13 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         if (this.isTile) {
             // inspect type of parameter
             CodeType type = param.parameter.type();
-            if (type instanceof TensorType tt) {
+            if (type instanceof TileType tt && !(tt.elementType() instanceof PtrType)) {
                 tileDeviceKernelDeclaration(tt);
             } else {
                 type(type).sp();
             }
             if (!(type instanceof PrimitiveType)
-                    && !(type instanceof TensorType)
+                    && !(type instanceof TileType)
                     && !(type instanceof ConstantType)) {
                 restrict().sp();
             }
@@ -1170,8 +1190,23 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder type(CodeType codeType) {
-        if (codeType instanceof PtrType ptrType && ptrType.rType() instanceof JavaType javaType) {
-            return type(javaType);
+        if (codeType instanceof TileType tt
+                && tt.elementType() instanceof PtrType ptrType
+                && ptrType.rType() instanceof JavaType javaType) {
+
+            if (ptrType.rank() == 1) {
+                return type(javaType);
+            } else if (ptrType.rank() == 2) {
+                if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, TensorF32.class)) {
+                    return type(JavaType.type(Tensor2DF32.class));
+                }  else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, TensorF16.class)) {
+                    return type(JavaType.type(Tensor2DF16.class));
+                } else {
+                    throw new UnsupportedOperationException("PtrTile of type " + javaType + " not supported yet");
+                }
+            } else {
+                throw new UnsupportedOperationException("ptrRank 3 or more is not supported");
+            }
         } else {
             return super.type(codeType);
         }
@@ -1208,11 +1243,12 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     private void genTileSize(CodeType resultType, Value ptr) {
-        if (resultType instanceof TensorType tensorType) {
-            CodeType tt = tensorType.elementType();
-            if (tt.equals(DType.TENSOR_F32_TYPE) || tt.equals(DType.Float)) { // this check is due to type equivalence
+        if (resultType instanceof TileType tileType) {
+            CodeType tt = tileType.elementType();
+            final int rank = tileType.rank();
+            if (rank == 1) {
                 generateAlignedReference(ptr).rarrow().id("m");
-            } else if (tt.equals(DType.TENSOR_2D_F32_TYPE) || tt.equals(DType.TENSOR_2D_F16_TYPE)) {
+            } else if (rank == 2) {
                 generateAlignedReference(ptr).rarrow().id("m").comma().sp().generateAlignedReference(ptr).rarrow().id("n");
             } else {
                 throw new UnsupportedOperationException("Tensor Type not supported yet: " + tt);
@@ -1254,7 +1290,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         List<Integer> dims = tileLoadOp.dims();
         CodeType resultType = tileLoadOp.resultType();
 
-        if (!(resultType instanceof TensorType tt)) {
+        if (!(resultType instanceof TileType tt)) {
             throw new IllegalStateException("Result Type not supported yet: " + resultType);
         }
         final boolean isDivisible16 = isInputDivisible(dims, 16);
@@ -1286,7 +1322,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         Value tensor = operands.get(2);
         List<Integer> dims = tileStoreOp.dims();
 
-        if (!(tensor.type() instanceof TensorType tt)) {
+        if (!(tensor.type() instanceof TileType tt)) {
             // At this point, since the Tile Dialect was built after the type check and shape propagation,
             // we know this error can't occur. If something unexpected happens, we throw an error.
             throw new UnsupportedOperationException("[codegen] tensor store shape not supported yet.");
@@ -1353,7 +1389,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return tileFull()
                 .ltgt(_ -> {
                     cudaTile().ltgt(_ -> {
-                        if (tileFullOp.resultType() instanceof TensorType tt) {
+                        if (tileFullOp.resultType() instanceof TileType tt) {
                             type(tt.elementType().toString());
                         } else {
                             throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileFullOp.resultType());
@@ -1389,31 +1425,14 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder tileZerosOp(TileOps.TileZerosOp tileZerosOp) {
-        tileZeros().ltgt(_ -> {
-            cudaTile().ltgt(_ -> {
-                if (tileZerosOp.resultType() instanceof TensorType tt) {
-                    if (tt.elementType().equals(DType.TENSOR_2D_F32_TYPE) || tt.elementType().equals(DType.TENSOR_F32_TYPE)) {
-                        f32Type();
-                    } else {
-                        type(tt.elementType().toString());
-                    }
-                } else {
-                    throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + tileZerosOp.resultType());
-                }
-                comma().sp().tileShape().ltgt(_ -> {
-                    CodeType codeType = tileZerosOp.resultType();
-                    if (codeType instanceof TensorType tensorType) {
-                        List<Integer> shape = tensorType.shape();
-                        commaSpaceSeparated(shape, this::intValue);
-                    } else {
-                        throw new IllegalStateException("[codegen] ct::zero shape not recognized");
-                    }
-                });
-            });
-        }).paren(_ -> {
-        });
+        return tileZeros().ltgt(_ ->
+                tileDeclaration(tileZerosOp.resultType())).paren(_ -> {});
+    }
 
-        return self();
+    @Override
+    public CudaHATKernelBuilder tileOnesOp(TileOps.TileOnesOp tileOnesOp) {
+        return tileOnes().ltgt(_ ->
+                tileDeclaration(tileOnesOp.resultType())).paren(_ -> {});
     }
 
     // CUDA Tile Constructs
@@ -1453,6 +1472,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private CudaHATKernelBuilder tileZeros() {
         return tileContext().id("zeros");
+    }
+
+    private CudaHATKernelBuilder tileOnes() {
+        return tileContext().id("ones");
     }
 
     private CudaHATKernelBuilder tileSum() {
@@ -1582,7 +1605,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     private CodeType getTensorElementType(CodeType dType) {
-        if (dType instanceof TensorType t) {
+        if (dType instanceof TileType t) {
             return t.elementType();
         } else {
             throw new IllegalStateException("Expected a TensorType as a result of an arange operation");
@@ -1624,6 +1647,31 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     public CudaHATKernelBuilder tileConvOp(TileOps.TileConvOp tileConvOp) {
         CodeType elementType = getTensorElementType(tileConvOp.resultType());
         return tileConvOp(elementType, _ -> recurseResultOrThrow(tileConvOp.operands().getFirst()));
+    }
+
+    private CudaHATKernelBuilder tileDeclaration(CodeType codeType) {
+        cudaTile().ltgt(_ -> {
+            if (codeType instanceof TileType tt) {
+                if (tt.elementType().equals(DType.F32)) {
+                    f32Type();
+                } else if (tt.elementType().equals(DType.F16)) {
+                    type("half");
+                } else {
+                    type(tt.elementType().toString());
+                }
+            } else {
+                throw new UnsupportedOperationException("[codegen] tile full operation not supported yet: " + codeType);
+            }
+            comma().sp().tileShape().ltgt(_ -> {
+                if (codeType instanceof TileType tensorType) {
+                    List<Integer> shape = tensorType.shape();
+                    commaSpaceSeparated(shape, this::intValue);
+                } else {
+                    throw new IllegalStateException("[codegen] ct::zero shape not recognized");
+                }
+            });
+        });
+        return self();
     }
 
     @Override

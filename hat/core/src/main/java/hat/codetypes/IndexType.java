@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public final class IndexType implements TileType {
+public final class IndexType implements HAType {
 
     private final List<CodeType> indexes;
 

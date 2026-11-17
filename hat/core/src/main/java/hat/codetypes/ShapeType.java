@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  * tile shapes. This facilites shapes checking at runtime, before specializing
  * the code model.
  */
-public final class ShapeType implements TileType {
+public final class ShapeType implements HAType {
 
     private final List<Integer> shapes;
 

@@ -34,6 +34,8 @@ import hat.buffer.TensorF16;
 import hat.buffer.TensorF32;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
+import hat.codetypes.ShapeType;
+import hat.codetypes.TileType;
 import hat.device.NonMappableIface;
 import hat.dialect.DialectFunction;
 import hat.dialect.DialectModule;
@@ -42,6 +44,7 @@ import hat.phases.HATTransformer;
 import hat.phases.TileTransformer;
 import hat.types.S16ImplOfF16;
 import hat.types.Tensor;
+import hat.types.Tile;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
@@ -192,15 +195,13 @@ public class KernelCallGraph implements LookupCarrier {
         CodeType ct;
         switch (kernelArgument) {
             case hat.buffer.Tensor t -> ct = switch (t) {
-                case TensorF16 tf16 -> new PtrType(DType.TENSOR_F16_TYPE, tf16.m());
-                case Tensor2DF16 tf162D -> new PtrType(DType.TENSOR_2D_F16_TYPE, tf162D.m(), tf162D.n());
-                case TensorF32 tf32 -> new PtrType(DType.TENSOR_F32_TYPE, tf32.m());
-                case Tensor2DF32 tf322D -> new PtrType(DType.TENSOR_2D_F32_TYPE, tf322D.m(), tf322D.n());
-                default ->
-                        throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
+                case TensorF16 tf16 -> new TileType(new PtrType(DType.F16, tf16.m()), List.of(tf16.m()));
+                case Tensor2DF16 tf162D -> new TileType(new PtrType(DType.F16, tf162D.m(), tf162D.n()), List.of(tf162D.m(), tf162D.n()));
+                case TensorF32 tf32 -> new TileType(new PtrType(DType.F32, tf32.m()), List.of(tf32.m()));
+                case Tensor2DF32 tf322D -> new TileType(new PtrType(DType.F32, tf322D.m(), tf322D.n()), List.of(tf322D.m(), tf322D.n()));
+                default -> throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
             };
-            case null, default ->
-                    throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
+            case null, default -> throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
         }
         return ct;
     }

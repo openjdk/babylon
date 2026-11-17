@@ -30,7 +30,7 @@ import jdk.incubator.code.extern.ExternalizedCodeType;
 import java.util.List;
 import java.util.Objects;
 
-public final class ConstantType implements TileType {
+public final class ConstantType implements HAType {
 
     final CodeType codeType;
     final Object value;

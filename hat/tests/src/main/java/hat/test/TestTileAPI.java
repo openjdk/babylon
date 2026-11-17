@@ -30,11 +30,7 @@ import hat.ComputeContext;
 import hat.DType;
 import hat.NDRange;
 import hat.backend.Backend;
-import hat.buffer.Tensor;
-import hat.buffer.Tensor2DF16;
-import hat.buffer.Tensor2DF32;
-import hat.buffer.TensorF32;
-
+import hat.buffer.*;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import hat.types.Tile;
@@ -972,5 +968,118 @@ public class TestTileAPI {
             }
         }
     }
+
+    @Reflect
+    public static void initTileOne(TensorF32 output, final int tileSize) {
+        var result = ones(shape(tileSize));
+        store(output, BIDX(), result);
+    }
+
+    @Reflect
+    public static void initTileOne(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> initTileOne(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_19() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024 * 16;
+        final int tileSize = 64;
+
+        TensorF32 result = TensorF32.create(accelerator, size);
+
+        accelerator.compute((@Reflect Compute) computeContext -> initTileOne(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i++) {
+            HATAsserts.assertEquals(1.0f, result.array(i), 0.001f);
+        }
+    }
+
+    @Reflect
+    public static void initTileOne2D(Tensor output, final int tileSize) {
+        var result = ones(shape(tileSize, tileSize));
+        store(output, index(BIDX(), BIDY()), result);
+    }
+
+    @Reflect
+    public static void initTileOne2D(ComputeContext computeContext, Tensor2DF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of2D(
+                output.m(), output.n(),
+                tileSize, tileSize),
+                () -> initTileOne2D(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_20() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 64;
+
+        Tensor2DF32 result = Tensor2DF32.create(accelerator, size, size);
+
+        accelerator.compute((@Reflect Compute) computeContext -> initTileOne2D(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i++) {
+            HATAsserts.assertEquals(1.0f, result.array(i), 0.001f);
+        }
+    }
+
+    @Reflect
+    public static void initTileOneF16(Tensor output, final int tileSize) {
+        var result = ones(shape(tileSize), DType.F16);
+        store(output, BIDX(), result);
+    }
+
+    @Reflect
+    public static void initTileOneF16(ComputeContext computeContext, TensorF16 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> initTileOneF16(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_21() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024 * 16;
+        final int tileSize = 64;
+
+        TensorF16 result = TensorF16.create(accelerator, size);
+
+        accelerator.compute((@Reflect Compute) computeContext -> initTileOneF16(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i++) {
+            short value = result.array(i);
+            HATAsserts.assertEquals(1.0f, Float.float16ToFloat(value), 0.001f);
+        }
+    }
+
+    @Reflect
+    public static void initTileOne2DF16(Tensor output, final int tileSize) {
+        var result = ones(shape(tileSize, tileSize), DType.F16);
+        store(output, index(BIDX(), BIDY()), result);
+    }
+
+    @Reflect
+    public static void initTileOne2DF16(ComputeContext computeContext, Tensor2DF16 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of2D(
+                        output.m(), output.n(),
+                        tileSize, tileSize),
+                () -> initTileOne2DF16(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_22() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 64;
+
+        Tensor2DF16 result = Tensor2DF16.create(accelerator, size, size);
+
+        accelerator.compute((@Reflect Compute) computeContext -> initTileOne2DF16(computeContext, result, tileSize));
+
+        for (int i = 0; i < size; i++) {
+            short value = result.array(i);
+            HATAsserts.assertEquals(1.0f, Float.float16ToFloat(value), 0.001f);
+        }
+    }
+
 
 }

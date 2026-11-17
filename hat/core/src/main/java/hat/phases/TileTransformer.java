@@ -31,7 +31,7 @@ import hat.codetypes.DimType;
 import hat.codetypes.IndexType;
 import hat.codetypes.PtrType;
 import hat.codetypes.ShapeType;
-import hat.codetypes.TensorType;
+import hat.codetypes.TileType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.DialectFunction;
 import hat.dialect.DialectModule;
@@ -79,7 +79,6 @@ import java.util.function.IntBinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static jdk.incubator.code.dialect.core.CoreOp.CORE_OP_FACTORY;
 import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
 
 /**
@@ -390,9 +389,10 @@ public class TileTransformer {
         }
 
         public Value load(CodeType type, Op.Result result,
-                          PtrType ptrType, Value ptr,
+                          CodeType ptrTile, Value ptr,
                           CodeType dimensionType, Value dimension,
                           CodeType shapeType, Value shape) {
+            PtrType ptrType = TileTypeInterpreter.inferPtrType(ptrTile);
             return block.add(TileOps.load(type,
                     block.context().getValue(ptr),
                     block.context().getValue(dimension),
@@ -401,9 +401,11 @@ public class TileTransformer {
         }
 
         public Value store(CodeType resultType, Op.Result result,
-                           PtrType ptrType, Value ptr,
+                           CodeType ptrTile, Value ptr,
                            CodeType idType, Value id,
                            CodeType tensorType, Value tensor) {
+
+            PtrType ptrType = TileTypeInterpreter.inferPtrType(ptrTile);
             // Check for implicit cast
             Value tensorResult = checkAndAddConversionIfNeeded(tensor, ptrType, tensorType);
             return block.add(TileOps.store(block.context().getValue(ptr),
@@ -429,7 +431,7 @@ public class TileTransformer {
                          CodeType typeB, Value tensorB) {
             tensorA = block.context().getValue(tensorA);
             tensorB = block.context().getValue(tensorB);
-            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+            if (type instanceof PtrType ptrType || type instanceof TileType t && t.elementType() instanceof PtrType) {
                 throw new IllegalStateException("Not supported yet");
             } else {
                 return block.add(ArithMathOps.add(type, tensorA, tensorB));
@@ -441,7 +443,7 @@ public class TileTransformer {
                          CodeType typeB, Value tensorB) {
             tensorA = block.context().getValue(tensorA);
             tensorB = block.context().getValue(tensorB);
-            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+            if (type instanceof PtrType ptrType || type instanceof TileType t && t.elementType() instanceof PtrType) {
                 throw new IllegalStateException("Not supported yet");
             } else {
                 return block.add(ArithMathOps.sub(type, tensorA, tensorB));
@@ -453,7 +455,7 @@ public class TileTransformer {
                          CodeType typeB, Value tensorB) {
             tensorA = block.context().getValue(tensorA);
             tensorB = block.context().getValue(tensorB);
-            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+            if (type instanceof PtrType ptrType || type instanceof TileType t && t.elementType() instanceof PtrType) {
                 throw new IllegalStateException("Not supported yet");
             } else {
                 return block.add(ArithMathOps.mul(type, tensorA, tensorB));
@@ -465,7 +467,7 @@ public class TileTransformer {
                           CodeType typeB, Value tensorB) {
             tensorA = block.context().getValue(tensorA);
             tensorB = block.context().getValue(tensorB);
-            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+            if (type instanceof PtrType ptrType || type instanceof TileType t && t.elementType() instanceof PtrType) {
                 throw new IllegalStateException("Not supported yet");
             } else {
                 return block.add(ArithMathOps.cdiv(type, tensorA, tensorB));
@@ -477,7 +479,7 @@ public class TileTransformer {
                              CodeType typeB, Value valB) {
             valA = block.context().getValue(valA);
             valB = block.context().getValue(valB);
-            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+            if (type instanceof PtrType ptrType || type instanceof TileType t && t.elementType() instanceof PtrType) {
                 throw new IllegalStateException("Not supported yet");
             } else {
                 return block.add(ArithMathOps.cdiv(type, valA, valB));
@@ -489,7 +491,7 @@ public class TileTransformer {
                          CodeType typeB, Value valB) {
             valA = block.context().getValue(valA);
             valB = block.context().getValue(valB);
-            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+            if (type instanceof PtrType ptrType || type instanceof TileType t && t.elementType() instanceof PtrType) {
                 throw new IllegalStateException("Not supported yet");
             } else {
                 return block.add(ArithMathOps.min(type, valA, valB));
@@ -501,7 +503,7 @@ public class TileTransformer {
                              CodeType typeB, Value tensorB) {
             tensorA = block.context().getValue(tensorA);
             tensorB = block.context().getValue(tensorB);
-            if (type instanceof PtrType ptrType || type instanceof TensorType t && t.elementType() instanceof PtrType) {
+            if (type instanceof PtrType ptrType || type instanceof TileType t && t.elementType() instanceof PtrType) {
                 throw new IllegalStateException("Not supported yet");
             } else {
                 return block.add(ArithMathOps.truediv(type, tensorA, tensorB));
@@ -509,7 +511,7 @@ public class TileTransformer {
         }
 
         public Value numTiles(CodeType type, Op.Result result,
-                              PtrType ptrType, Value ptr,
+                              CodeType ptrType, Value ptr,
                               CodeType dimensionType, Value dimension,
                               CodeType shapeType, Value shape) {
             return block.add(TileOps.numTiles(type,
@@ -521,7 +523,6 @@ public class TileTransformer {
         public Value full(CodeType typeResult, Op.Result result,
                           CodeType shapeType, Value shape,
                           CodeType valueType, Value val) {
-            // TODO: We might need to inspect the shape to pass the dimensions as a field too.
             return block.add(TileOps.full(typeResult,
                     block.context().getValue(shape),
                     block.context().getValue(val)));
@@ -536,6 +537,19 @@ public class TileTransformer {
         public Value zeros(CodeType typeResult, Op.Result result,
                            CodeType shapeType, Value shape) {
             return block.add(TileOps.zeros(typeResult,
+                    block.context().getValue(shape)));
+        }
+
+        public Value ones(CodeType typeResult, Op.Result result,
+                           CodeType shapeType, Value shape) {
+            return block.add(TileOps.ones(typeResult,
+                    block.context().getValue(shape)));
+        }
+
+        public Value ones(CodeType typeResult, Op.Result result,
+                          CodeType shapeType, Value shape,
+                          CodeType dType, Value valueDType) {
+            return block.add(TileOps.ones(typeResult,
                     block.context().getValue(shape)));
         }
 
@@ -620,9 +634,9 @@ public class TileTransformer {
             };
         }
 
-        private Value addConversionOp(TensorType tt, Value tensor, CodeType dType) {
+        private Value addConversionOp(TileType tt, Value tensor, CodeType dType) {
             // We need a conversion op
-            TensorType convType = new TensorType(DType.Float, tt.shape());
+            TileType convType = new TileType(DType.Float, tt.shape());
             Op.Result convResult = block.add(TileOps.convert(convType, block.context().getValue(tensor)));
 
             // search tensor varOp
@@ -633,10 +647,12 @@ public class TileTransformer {
         }
 
         private Value checkAndAddConversionIfNeeded(Value tensor, PtrType ptrType, CodeType tensorType) {
-            if (ptrType.rType().equals(DType.TENSOR_F32_TYPE) && tensorType instanceof TensorType tt && !(tt.elementType().equals(DType.Float))) {
+            if (tensorType instanceof TileType tt && tt.elementType().equals(ptrType.rType())) {
+                return tensor;
+            } else if (ptrType.rType().equals(DType.F32) && tensorType instanceof TileType tt && !(tt.elementType().equals(DType.Float))) {
                 return addConversionOp(tt, tensor, DType.Float);
-            } else if (ptrType.rType().equals(DType.TENSOR_F16_TYPE) && tensorType instanceof TensorType tt && !(tt.elementType().equals(DType.Float))) {
-                 return addConversionOp(tt, tensor, DType.TENSOR_F16_TYPE);
+            } else if (ptrType.rType().equals(DType.F16) && tensorType instanceof TileType tt && !(tt.elementType().equals(DType.Float))) {
+                 return addConversionOp(tt, tensor, DType.F16);
             }
             return tensor;
         }
@@ -650,9 +666,11 @@ public class TileTransformer {
     private static boolean isTypePromotionValid(CodeType fromType, CodeType toType) {
         if (fromType.equals(toType)) {
             return true;
-        } else if (toType.equals(DType.TENSOR_2D_F32_TYPE) && fromType.equals(DType.TENSOR_2D_F16_TYPE)) {
+        } else if (fromType.equals(DType.F32) && toType.equals(DType.Float)) {
             return true;
-        } else if (toType.equals(DType.TENSOR_F32_TYPE) && fromType.equals(DType.TENSOR_F16_TYPE)) {
+        } else if (fromType.equals(DType.F16) && toType.equals(DType.Float)) {
+            return true;
+        } else if (fromType.equals(DType.F16) && toType.equals(DType.F32)) {
             return true;
         }
         throw new IllegalStateException("Type conversion not supported: " + fromType + " -> " + toType);
@@ -693,7 +711,7 @@ public class TileTransformer {
                     CodeType vType = valueTypeMap.get(v);
 
                     // check type promotion for Tensors
-                    if (varType instanceof TensorType t1 && vType instanceof TensorType t2) {
+                    if (varType instanceof TileType t1 && vType instanceof TileType t2) {
                         CodeType toType = t1.elementType();
                         CodeType fromType = t2.elementType();
                         // Promotion: F16 to F32
@@ -1019,21 +1037,23 @@ public class TileTransformer {
             return new DimType(dimMap);
         }
 
-        public static TensorType load(PtrType ptr, CodeType dimension, CodeType shape) {
+        public static TileType load(CodeType ptrTile, CodeType dimension, CodeType shape) {
+            PtrType ptr = inferPtrType(ptrTile);
             if (shape instanceof ShapeType shapeType) {
                 check(ptr.dims().size(), shapeType.list().size(), "load");
-                return new TensorType(ptr.rType(), shapeType.list());
+                return new TileType(ptr.rType(), shapeType.list());
             } else if (shape instanceof ConstantType constantType) {
                 check(ptr.dims().size(), 1, "load");
-                return new TensorType(ptr.rType(), List.of((Integer) constantType.value()));
+                return new TileType(ptr.rType(), List.of((Integer) constantType.value()));
             } else {
                 throw new IllegalArgumentException("shape for a load operation must be a constant type or a shape type");
             }
         }
 
         // store(arrayBuffer, id, tensor)
-        public static void store(PtrType ptr, CodeType id, CodeType tensor) {
-            if (tensor instanceof TensorType tensorType) {
+        public static void store(CodeType ptrTile, CodeType id, CodeType tensor) {
+            PtrType ptr = inferPtrType(ptrTile);
+            if (tensor instanceof TileType tensorType) {
                 check(ptr.dims().size(), tensorType.shape().size(), "load");
             } else {
                 throw new IllegalArgumentException("tensor must be a TensorType");
@@ -1077,7 +1097,8 @@ public class TileTransformer {
         }
 
 
-        public static CodeType numTiles(PtrType ptr, CodeType dimension, CodeType tileSize) {
+        public static CodeType numTiles(CodeType ptrTile, CodeType dimension, CodeType tileSize) {
+            PtrType ptr = inferPtrType(ptrTile);
             int numDimensionsInputData = ptr.dims().size();
             int dimAccess;
             if (dimension instanceof ConstantType constantType && constantType.value() instanceof Integer i) {
@@ -1105,33 +1126,49 @@ public class TileTransformer {
             }
         }
 
-        public static CodeType full(CodeType dimension, CodeType value) {
-            CodeType codeType = inferConstantType(dimension);
+        public static CodeType full(CodeType shapeCodeType, CodeType value) {
+            CodeType codeType = inferConstantType(shapeCodeType);
             if (codeType instanceof ShapeType shapeType) {
-                return new TensorType(JavaType.FLOAT, shapeType.list());
+                return new TileType(JavaType.FLOAT, shapeType.list());
             } else if (codeType instanceof ConstantType constantType && constantType.value() instanceof Integer i) {
-                return new TensorType(JavaType.FLOAT, List.of(i));
+                return new TileType(JavaType.FLOAT, List.of(i));
             } else {
-                throw new IllegalArgumentException("Invalid dimension type for the full operation " + dimension.getClass());
+                throw new IllegalArgumentException("Invalid dimension type for the full operation " + shapeCodeType.getClass());
             }
         }
 
         public static CodeType zeros(CodeType shape) {
             if (shape instanceof ShapeType shapeType) {
-                int dimensions = shapeType.dimensions();
-                List<Integer> list = shapeType.list();
-                switch (dimensions) {
-                    case 1: return new TensorType(DType.TENSOR_F32_TYPE, list);
-                    case 2: return new TensorType(DType.TENSOR_2D_F32_TYPE, list);
-                }
+                return new TileType(JavaType.FLOAT, shapeType.list());
             }
             throw new IllegalArgumentException("Tile.zeros operation, first argument expected to be of type ShapeType but found : " + shape.getClass());
         }
 
+        public static CodeType zeros(CodeType shape, CodeType dType) {
+            if (shape instanceof ShapeType shapeType && dType instanceof ConstantType ct && ct.value() instanceof CodeType codeType) {
+                return new TileType(codeType, shapeType.list());
+            }
+            throw new IllegalArgumentException("Tile.zeros operation, first argument expected to be of type ShapeType but found : " + shape.getClass());
+        }
+
+        public static CodeType ones(CodeType shape) {
+            if (shape instanceof ShapeType shapeType) {
+                return new TileType(JavaType.FLOAT, shapeType.list());
+            }
+            throw new IllegalArgumentException("Tile.ones operation, first argument expected to be of type ShapeType but found : " + shape.getClass());
+        }
+
+        public static CodeType ones(CodeType shape, CodeType dType) {
+            if (shape instanceof ShapeType shapeType && dType instanceof ConstantType ct && ct.value() instanceof CodeType codeType) {
+                return new TileType(codeType, shapeType.list());
+            }
+            throw new IllegalArgumentException("Tile.ones operation, first argument expected to be of type ShapeType but found : " + shape.getClass());
+        }
+
         public static CodeType asType(CodeType tensor, CodeType toType) {
             tensor = inferConstantType(tensor);
-            if (tensor instanceof TensorType tensorType) {
-                return new TensorType(toType, tensorType.shape());
+            if (tensor instanceof TileType tensorType) {
+                return new TileType(toType, tensorType.shape());
             }
             throw new IllegalArgumentException("tensor must be a tensor type");
         }
@@ -1143,7 +1180,7 @@ public class TileTransformer {
 
         public static CodeType arange(ConstantType sizeType, CodeType type) {
             if (type instanceof ConstantType constantType && constantType.value() instanceof CodeType ct) {
-                return new TensorType(ct, List.of((Integer) sizeType.value()));
+                return new TileType(ct, List.of((Integer) sizeType.value()));
             }
             throw new IllegalArgumentException("type must be a constant type");
         }
@@ -1151,7 +1188,7 @@ public class TileTransformer {
         // When dType is not passed, then we build a new Tile of type FLOAT
         public static CodeType arange(ConstantType sizeType) {
             // arange is an integral type
-            return new TensorType(JavaType.INT, List.of((Integer) sizeType.value()));
+            return new TileType(JavaType.INT, List.of((Integer) sizeType.value()));
         }
 
         public static CodeType arange(ConstantType sizeType, CodeType dType, ConstantType start) {
@@ -1165,31 +1202,31 @@ public class TileTransformer {
         }
 
         public static CodeType binary(CodeType a, CodeType b) {
-            if (a instanceof TensorType ta && b instanceof TensorType tb) {
+            if (a instanceof TileType ta && b instanceof TileType tb) {
                 return checkTensorTypes(ta, tb);
-            } else if (a instanceof TensorType ta) {
-                return new TensorType(checkScalarTypes(ta.elementType(), b), ta.shape());
-            } else if (b instanceof TensorType tb) {
-                return new TensorType(checkScalarTypes(a, tb.elementType()), tb.shape());
+            } else if (a instanceof TileType ta) {
+                return new TileType(checkScalarTypes(ta.elementType(), b), ta.shape());
+            } else if (b instanceof TileType tb) {
+                return new TileType(checkScalarTypes(a, tb.elementType()), tb.shape());
             } else {
                 return checkScalarTypes(a, b);
             }
         }
 
-        public static TensorType transpose(CodeType matrix) {
+        public static TileType transpose(CodeType matrix) {
             var tensor = inferConstantType(matrix);
-            if (tensor instanceof TensorType tensorType) {
+            if (tensor instanceof TileType tensorType) {
                 List<Integer> shape = transposeShape(tensorType.shape());
-                return new TensorType(tensorType.elementType(), shape);
+                return new TileType(tensorType.elementType(), shape);
             } else {
                 throw new IllegalArgumentException("matrix must be a tensor type, but found " + matrix.getClass());
             }
         }
 
-        public static TensorType reshape(CodeType codeType, CodeType reshapeDims) {
+        public static TileType reshape(CodeType codeType, CodeType reshapeDims) {
             var tensor = inferConstantType(codeType);
             var dims = inferReshapeDims(reshapeDims);
-            if (tensor instanceof TensorType tensorType) {
+            if (tensor instanceof TileType tensorType) {
                 List<Integer> shape = tensorType.shape();
                 List<Integer> newShape = dims.list();
                 int originalShape = shape.stream().reduce(1, (a, b) -> a * b);
@@ -1197,15 +1234,15 @@ public class TileTransformer {
                 if (originalShape != newShapeSize) {
                     throw new IllegalArgumentException("reshape dimensions must be the same size: " + originalShape + " != " + newShapeSize);
                 }
-                return new TensorType(tensorType.elementType(), newShape);
+                return new TileType(tensorType.elementType(), newShape);
             }
             throw new IllegalArgumentException("Reshape input must be a tensor type, but found " + tensor.getClass());
         }
 
-        public static TensorType permute(CodeType codeType, CodeType reshapeDims) {
+        public static TileType permute(CodeType codeType, CodeType reshapeDims) {
             var tensor = inferConstantType(codeType);
             var permuteShape = inferDims(reshapeDims);
-            if (tensor instanceof TensorType tensorType) {
+            if (tensor instanceof TileType tensorType) {
                 List<Integer> shape = tensorType.shape();
                 List<Integer> permuteList = permuteShape.list();
                 List<Integer> resultShape = new ArrayList<>();
@@ -1223,12 +1260,12 @@ public class TileTransformer {
                     check.add(permuteList.get(i));
                     resultShape.add(shape.get(permuteList.get(i)));
                 }
-                return new TensorType(tensorType.elementType(), resultShape);
+                return new TileType(tensorType.elementType(), resultShape);
             }
             throw new IllegalArgumentException("Reshape input must be a tensor type, but found " + tensor.getClass());
         }
 
-        public static TensorType mma(CodeType codeTypeA, CodeType codeTypeB, CodeType codeTypeC) {
+        public static TileType mma(CodeType codeTypeA, CodeType codeTypeB, CodeType codeTypeC) {
             CodeType ta = inferConstantType(codeTypeA);
             CodeType tb = inferConstantType(codeTypeB);
             CodeType accA = inferConstantType(codeTypeC);
@@ -1239,14 +1276,14 @@ public class TileTransformer {
             // Then, the resulting (acc) must be of shape: tm x tk
             // We also assume that MMA operations are performed with 2D tile shapes
 
-            if (ta instanceof TensorType tensorA && tb instanceof TensorType tensorB && accA instanceof TensorType tensorC) {
+            if (ta instanceof TileType tensorA && tb instanceof TileType tensorB && accA instanceof TileType tensorC) {
                 List<Integer> dimA = tensorA.shape();
                 List<Integer> dimB = tensorB.shape();
                 List<Integer> dimC = tensorC.shape();
 
                 // mma operations are performed on 2D tensors
                 if (isMMADimensionCompatible(dimA, dimB, dimC) && isMMAShapeCompatible(dimA, dimB, dimC)) {
-                    return new TensorType(tensorA.elementType(), tensorC.shape());
+                    return new TileType(tensorA.elementType(), tensorC.shape());
                 } else {
                     throw new IllegalArgumentException("Incompatible tensor shapes for performing the MMA operation");
                 }
@@ -1263,13 +1300,13 @@ public class TileTransformer {
             return dimC.getFirst().equals(dimA.getFirst()) && dimC.get(1).equals(dimB.get(1)) && dimA.get(1).equals(dimB.get(0));
         }
 
-        static TensorType checkTensorTypes(TensorType t1, TensorType t2) {
+        static TileType checkTensorTypes(TileType t1, TileType t2) {
             List<Integer> dimensions = checkTensorShape(t1, t2);
             CodeType elementType = checkScalarTypes(t1.elementType(), t2.elementType());
-            return new TensorType(elementType, dimensions);
+            return new TileType(elementType, dimensions);
         }
 
-        static List<Integer> checkTensorShape(TensorType t1, TensorType t2) {
+        static List<Integer> checkTensorShape(TileType t1, TileType t2) {
             if (t1.shape().size() != t2.shape().size()) {
                 throw new IllegalStateException("Shapes must have the same length");
             }
@@ -1312,7 +1349,7 @@ public class TileTransformer {
                 // check for type equivalence
                 if (classType.equals(ClassType.J_L_FLOAT) && t1.equals(JavaType.FLOAT)) {
                     return t1;
-                } else if (classType.equals(DType.TENSOR_F32_TYPE) && t1.equals(JavaType.FLOAT)) {
+                } else if (classType.equals(DType.F32) && t1.equals(JavaType.FLOAT)) {
                     return t1;
                 } else {
                     throw new IllegalArgumentException("t1 vs t2 vs classType! " + t1 + " vs " + t2);
@@ -1337,19 +1374,19 @@ public class TileTransformer {
                 throw new IllegalArgumentException("axis must be a positive integer between 0 and 2!");
             }
 
-            if (tensor instanceof TensorType tensorType) {
+            if (tensor instanceof TileType tensorType) {
                 List<Integer> reduceShape = new ArrayList<>();
                 for (int i = 0; i < tensorType.shape().size(); i++) {
                     reduceShape.add(i == axisValue ? 1 : tensorType.shape().get(i));
                 }
-                return new TensorType(tensorType.elementType(), reduceShape);
+                return new TileType(tensorType.elementType(), reduceShape);
             }
             throw new IllegalArgumentException("tensor must be of type Constant!");
         }
 
         static CodeType inferConstantType(CodeType codeType) {
             if (codeType instanceof ConstantType constantType) {
-                if (constantType.value() instanceof TensorType || constantType.value() instanceof ShapeType) {
+                if (constantType.value() instanceof TileType || constantType.value() instanceof ShapeType) {
                     return (CodeType) constantType.value();
                 }
                 return codeType;
@@ -1391,6 +1428,17 @@ public class TileTransformer {
         private static void check(int bufferDims, int shapeDim, String op) {
             if (bufferDims != shapeDim) {
                 throw new IllegalArgumentException("Shape dimensions between the memory buffer and shape do not match in the " + op + " operation");
+            }
+        }
+
+        private static PtrType inferPtrType(CodeType codeType) {
+            if (codeType instanceof TileType tt && !(tt.elementType() instanceof PtrType p)) {
+                throw new IllegalStateException("Input ptr must be of type TileType<PtrType>");
+            }
+            if (codeType instanceof TileType tt && tt.elementType() instanceof PtrType ptrType) {
+                return ptrType;
+            } else {
+                throw new IllegalStateException("Expected a ptrType, but found: " + codeType);
             }
         }
     }
