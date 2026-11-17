@@ -27,6 +27,7 @@ package hat.codetypes;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.extern.ExternalizedCodeType;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ public final class TileType implements HAType {
 
     public TileType(CodeType codeType, List<Integer> shape) {
         this.dType = codeType;
-        this.shape = shape;
+        this.shape = Collections.unmodifiableList(shape);
     }
 
     public CodeType elementType() {

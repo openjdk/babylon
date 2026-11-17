@@ -51,7 +51,7 @@ public final class ShapeType implements HAType {
     public List<Integer> list(List<ConstantType> shapes) {
         return shapes.stream()
                 .map(shape -> (Integer) shape.value)
-                .collect(Collectors.toList());
+                .collect(Collectors.toUnmodifiableList());
     }
 
     public List<Integer> list() {
