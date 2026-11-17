@@ -3521,7 +3521,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         private int findCaseDefIdx() {
-            for (int i = 0; i < bodies.size(); i++) {
+            for (int i = 0; i < bodies.size(); i += 2) {
                 if (isCaseDefaultLabel(bodies.get(i))) {
                     return i;
                 }
@@ -3530,7 +3530,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         private int findCaseNullIdx() {
-            for (int i = 0; i < bodies.size(); i++) {
+            for (int i = 0; i < bodies.size(); i += 2) {
                 if (isCaseNullLabel(bodies.get(i))) {
                     return i;
                 }
