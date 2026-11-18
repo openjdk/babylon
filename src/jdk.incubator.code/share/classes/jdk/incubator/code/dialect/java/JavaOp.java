@@ -3499,7 +3499,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     e -> e instanceof JavaOp.YieldOp yop && yop.targetsOrAttemptsToExit(this));
         }
 
-        static boolean isCaseNullLabel(Body labelBody) {
+        static boolean isNullLabel(Body labelBody) {
             //@@@ when op pattern matching is ready, we can use it
             return labelBody != null &&
                     labelBody.blocks().size() == 1 &&
@@ -3510,7 +3510,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                             && cop.value() == null);
         }
 
-        static boolean isCaseDefaultLabel(Body labelBody) {
+        static boolean isDefaultLabel(Body labelBody) {
             return labelBody != null &&
                     labelBody.blocks().size() == 1 &&
                     labelBody.entryBlock().parameters().isEmpty() &&
@@ -3520,31 +3520,31 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                     cop.value() instanceof Boolean trueValue && trueValue;
         }
 
-        private int findCaseDefIdx() {
+        private int findDefLabelIdx() {
             for (int i = 0; i < bodies.size(); i += 2) {
-                if (isCaseDefaultLabel(bodies.get(i))) {
+                if (isDefaultLabel(bodies.get(i))) {
                     return i;
                 }
             }
             return -1;
         }
 
-        private int findCaseNullIdx() {
+        private int findNullLabelIdx() {
             for (int i = 0; i < bodies.size(); i += 2) {
-                if (isCaseNullLabel(bodies.get(i))) {
+                if (isNullLabel(bodies.get(i))) {
                     return i;
                 }
             }
             // case null can be merged with default
-            return handleNulls ? findCaseDefIdx() : -1;
+            return handleNulls ? findDefLabelIdx() : -1;
         }
 
         @Override
         public Block.Builder lower(Block.Builder b, BiFunction<Block.Builder, Op, Block.Builder> inherited) {
             // map bodies to blocks
             List<Block.Builder> blocks = new ArrayList<>();
-            int caseDefIdx = findCaseDefIdx();
-            int caseNullIdx = findCaseNullIdx();
+            int defLabelIdx = findDefLabelIdx();
+            int nullLabelIdx = findNullLabelIdx();
             Value selectorExpression = b.context().getValue(operands().getFirst());
             boolean selectorCanBeNull = !(selectorExpression.type() instanceof PrimitiveType);
             // decide which label will use the incoming block
@@ -3552,16 +3552,16 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             int reuseIdx = -1;
             if (!selectorCanBeNull) {
                 int i = 0;
-                if (i == caseDefIdx) {
+                if (i == defLabelIdx) {
                     i += 2;
                     if (i > bodies.size() - 1) { // sw has default only
-                        i = caseDefIdx + 1;
+                        i = defLabelIdx + 1;
                     }
                 }
                 reuseIdx = i;
             }
             for (int i = 0; i < bodies.size(); i++) {
-                if (i == caseDefIdx || i == caseNullIdx) {
+                if (i == defLabelIdx || i == nullLabelIdx) {
                     blocks.add(null);
                 } else if (i == reuseIdx) {
                     blocks.add(b);
@@ -3612,13 +3612,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // null check
             if (selectorCanBeNull) {
                 Block.Builder nullAction;
-                if (caseNullIdx != -1) {
-                    nullAction = blocks.get(caseNullIdx + 1);
+                if (nullLabelIdx != -1) {
+                    nullAction = blocks.get(nullLabelIdx + 1);
                 } else {
                     nullAction = b.block();
                     nullAction.add(throw_(nullAction.add(new_(MethodRef.constructor(NullPointerException.class)))));
                 }
-                Block.Builder noMatch = nextPredicate(0, blocks, exit, caseDefIdx, caseNullIdx);
+                Block.Builder noMatch = nextPredicate(0, blocks, exit, defLabelIdx, nullLabelIdx);
 
                 Result cnull = b.add(constant(selectorExpression.type(), null));
                 Result p = b.add(eq(selectorExpression, cnull));
@@ -3627,13 +3627,13 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
 
             // lower predicates
             for (int i = 0; i < bodies.size(); i += 2) {
-                if (i == caseDefIdx || i == caseNullIdx) {
+                if (i == defLabelIdx || i == nullLabelIdx) {
                     continue;
                 }
                 Body predBody = bodies.get(i);
                 Block.Builder predBlock = blocks.get(i);
                 Block.Builder actionBlock = blocks.get(i + 1);
-                Block.Builder noMatch = nextPredicate(i + 2, blocks, exit, caseDefIdx, caseNullIdx);
+                Block.Builder noMatch = nextPredicate(i + 2, blocks, exit, defLabelIdx, nullLabelIdx);
                 ControlFlowBooleanExpressionOp.lowerBooleanBody(predBlock, predBody, List.of(selectorExpression),
                         new ControlFlowBooleanExpressionOp.ConditionalBranchContinuation(actionBlock.reference(),
                                 noMatch.reference()), inherited);
@@ -3662,15 +3662,18 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return exit;
         }
 
-        Block.Builder nextPredicate(int startPos, List<Block.Builder> blocks, Block.Builder exit, int caseDefIdx,
-                                    int caseNullIdx) {
+        Block.Builder nextPredicate(int startPos, List<Block.Builder> blocks, Block.Builder exit, int defLabelIdx,
+                                    int nullLabelIdx) {
+            // look for the next predicate starting from the position indicated by startPos param
+            // this logic is needed when lowering a predicate body
+            // more specifically when lowering the yield of the boolean value to cond_branch %p action_block next_predicate
             int i = startPos;
-            while (i == caseDefIdx || i == caseNullIdx) {
+            while (i == defLabelIdx || i == nullLabelIdx) {
                 i += 2;
             }
             if (i > bodies.size() - 1) {
-                if (caseDefIdx != -1) {
-                    return blocks.get(caseDefIdx + 1);
+                if (defLabelIdx != -1) {
+                    return blocks.get(defLabelIdx + 1);
                 } else if (this instanceof SwitchStatementOp) {
                     return exit;
                 } else {
@@ -3700,7 +3703,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             }
             * */
             for (int i = 0; i < bodies().size() - 2; i+=2) {
-                if (isCaseNullLabel(bodies().get(i))) {
+                if (isNullLabel(bodies().get(i))) {
                     return true;
                 }
             }
