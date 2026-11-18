@@ -24,6 +24,7 @@
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
@@ -34,7 +35,7 @@ import resolve.Parent;
 
 /*
  * @test
- * @bug 8392556
+ * @bug 8392556 8397256
  * @summary Test for code reflection with method reference expressions.
  * @library ../lib/
  * @library ../
@@ -70,6 +71,11 @@ public class TestMethodReferenceAccess {
     public static <T extends Parent & Runnable> T genericReferenceWithIntersectionTypeVarReceiver(T p) {
         Optional.of("ok").ifPresent(p::setValue);
         return p;
+    }
+
+    @Reflect
+    public static Supplier<String> nullCheck(Object receiver) {
+        return receiver::toString;
     }
 
     @Test
@@ -115,6 +121,15 @@ public class TestMethodReferenceAccess {
         var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
         Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithIntersectionTypeVarReceiver(parent), handle.invoke(parent));
         Assertions.assertEquals(TestMethodReferenceAccess.genericReferenceWithIntersectionTypeVarReceiver(parent), Interpreter.invoke(MethodHandles.lookup(), op, parent));
+    }
+
+    @Test
+    public void testNullCheck() throws Throwable {
+        var op = Op.ofMethod(getMethod(TestMethodReferenceAccess.class, "nullCheck").orElseThrow()).orElseThrow();
+        var handle = BytecodeGenerator.generate(MethodHandles.lookup(), op);
+        Assertions.assertThrows(NullPointerException.class, () -> TestMethodReferenceAccess.nullCheck(null));
+        Assertions.assertThrows(NullPointerException.class, () -> handle.invoke(null));
+        Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), op, (Object) null));
     }
 
     static Optional<Method> getMethod(Class<?> c, String name) {

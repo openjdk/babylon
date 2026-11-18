@@ -607,7 +607,14 @@ CudaBackend::CudaModule *CudaBackend::compile(const CudaImage *image) {
     if (image->text != nullptr) {
         CUDA_CHECK(cuCtxSetCurrent(context), "cuCtxSetCurrent");
         if (isCudaTileIR(image->text, image->len)) {
-            CUDA_CHECK(cuModuleLoadData(&module, image->text), "cuModuleLoadData");
+            if (config->profile) {
+                // Enable profiler line info if the profiler is enabled
+                CUjit_option jitOptions[] = { CU_JIT_GENERATE_LINE_INFO };
+                void *jitOptVals[] = {reinterpret_cast<void *>(1)};
+                CUDA_CHECK(cuModuleLoadDataEx(&module, image->text, 1, jitOptions, jitOptVals), "cuModuleLoadDataEx");
+            } else {
+                CUDA_CHECK(cuModuleLoadData(&module, image->text), "cuModuleLoadData");
+            }
             return new CudaModule(this, image, new char[1]{'\0'}, true, module);
         }
 
@@ -625,15 +632,19 @@ CudaBackend::CudaModule *CudaBackend::compile(const CudaImage *image) {
         jitOptVals[2] = reinterpret_cast<void *>(errLog->len);
         jitOptions[3] = CU_JIT_ERROR_LOG_BUFFER;
         jitOptVals[3] = errLog->text;
-        jitOptions[4] = CU_JIT_GENERATE_LINE_INFO;
-        jitOptVals[4] = reinterpret_cast<void *>(1);
 
-        CUDA_CHECK(cuModuleLoadDataEx(&module, image->text, optc, jitOptions, (void **) jitOptVals), "cuModuleLoadDataEx");
+        if (config->profile) {
+            jitOptions[4] = CU_JIT_GENERATE_LINE_INFO;
+            jitOptVals[4] = reinterpret_cast<void *>(1);
+        }
+        const int numOptions = (config->profile) ? 5 : 4;
 
-        if (*infLog->text!='\0'){
+        CUDA_CHECK(cuModuleLoadDataEx(&module, image->text, numOptions, jitOptions, jitOptVals), "cuModuleLoadDataEx");
+
+        if (*infLog->text != '\0') {
             std::cout << "> PTX JIT inflog:" << std::endl << infLog->text << std::endl;
         }
-        if (*errLog->text!='\0'){
+        if (*errLog->text != '\0') {
             std::cout << "> PTX JIT errlog:" << std::endl << errLog->text << std::endl;
         }
         return new CudaModule(this, image, infLog->text, true, module);
@@ -655,65 +666,14 @@ Backend::CompilationUnit *CudaBackend::compile(const int len, char *source, int 
         }
         CudaImage image(len, source, false);
         return compile(image);
-    }else{
-        if (config->trace) {
-            std::cout << "compiling from provided  cuda " << std::endl;
-        }
-        CudaSource cudaSource(len , source, false, config->profile, typeModel);
-        return compile(cudaSource);
     }
+
+    if (config->trace) {
+        std::cout << "compiling from provided  cuda " << std::endl;
+    }
+    CudaSource cudaSource(len , source, false, config->profile, typeModel);
+    return compile(cudaSource);
 }
-
-/*
-
-    if (config->ptx) {
-
-    } else {
-        if (config->trace) {
-            std::cout << "compiling from cuda c99 " << std::endl;
-        }
-        if (config->showCode) {
-            std::cout << "cuda " << source << std::endl;
-        }
-        auto* cuda = new CudaSource(len, source, false);
-        ptx = nvcc(cuda);
-    }
-    if (config->showCode) {
-        std::cout << "ptx " << ptx->text << std::endl;
-    }
-    CUmodule module;
-
-
-    if (ptx->text != nullptr) {
-        constexpr unsigned int jitNumOptions = 2;
-        const auto jitOptions = new CUjit_option[jitNumOptions];
-        const auto jitOptVals = new void *[jitNumOptions];
-
-        // set up size of compilation log buffer
-        jitOptions[0] = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES;
-        constexpr int jitLogBufferSize = 8192;
-        jitOptVals[0] = reinterpret_cast<void *>(jitLogBufferSize);
-
-        // set up pointer to the compilation log buffer
-        jitOptions[1] = CU_JIT_INFO_LOG_BUFFER;
-        auto jitLogBuffer = new char[jitLogBufferSize];
-        jitOptVals[1] = jitLogBuffer;
-        cuCtxSetCurrent(context);
-
-        WHERE{
-            .f = __FILE__, .l = __LINE__,
-            .e = cuModuleLoadDataEx(&module, ptx->text, jitNumOptions, jitOptions, jitOptVals),
-            .t = "cuModuleLoadDataEx"
-        }.report();
-        if (jitLogBuffer != nullptr && *jitLogBuffer!='\0'){
-             std::cout << "PTX log:" << jitLogBuffer << std::endl;
-        }
-        return new CudaModule(this, ptx->text, jitLogBuffer, true, module);
-    } else {
-        std::cout << "no ptx content!" << std::endl;
-        exit(1);
-    }
-} */
 
 extern "C" long getBackend(int mode) {
     long backendHandle = reinterpret_cast<long>(new CudaBackend(mode));

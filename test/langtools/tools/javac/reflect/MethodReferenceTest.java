@@ -105,15 +105,16 @@ public class MethodReferenceTest {
             func @"test4" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.lang.String" = constant @"s";
                 %2 : java.type:"MethodReferenceTest::A<java.lang.String>" = invoke %0 %1 @java.ref:"MethodReferenceTest::a(java.lang.Object):MethodReferenceTest::A";
-                %3 : Var<java.type:"MethodReferenceTest::A<java.lang.String>"> = var %2 @"rec$";
-                %4 : java.type:"java.util.function.Function<java.lang.String, java.lang.String>" = lambda @lambda.isReflectable=true (%5 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
-                    %6 : Var<java.type:"java.lang.String"> = var %5 @"x$0";
-                    %7 : java.type:"MethodReferenceTest::A<java.lang.String>" = var.load %3;
-                    %8 : java.type:"java.lang.String" = var.load %6;
-                    %9 : java.type:"java.lang.String" = invoke %7 %8 @java.ref:"MethodReferenceTest::A::m(java.lang.Object):java.lang.Object";
-                    return %9;
+                %3 : java.type:"java.lang.Object" = invoke %2 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %4 : Var<java.type:"MethodReferenceTest::A<java.lang.String>"> = var %2 @"rec$";
+                %5 : java.type:"java.util.function.Function<java.lang.String, java.lang.String>" = lambda @lambda.isReflectable=true (%6 : java.type:"java.lang.String")java.type:"java.lang.String" -> {
+                    %7 : Var<java.type:"java.lang.String"> = var %6 @"x$0";
+                    %8 : java.type:"MethodReferenceTest::A<java.lang.String>" = var.load %4;
+                    %9 : java.type:"java.lang.String" = var.load %7;
+                    %10 : java.type:"java.lang.String" = invoke %8 %9 @java.ref:"MethodReferenceTest::A::m(java.lang.Object):java.lang.Object";
+                    return %10;
                 };
-                %10 : Var<java.type:"java.util.function.Function<java.lang.String, java.lang.String>"> = var %4 @"f";
+                %11 : Var<java.type:"java.util.function.Function<java.lang.String, java.lang.String>"> = var %5 @"f";
                 return;
             };
             """)
@@ -125,15 +126,16 @@ public class MethodReferenceTest {
     @IR("""
             func @"test5" (%0 : java.type:"MethodReferenceTest")java.type:"void" -> {
                 %1 : java.type:"java.io.PrintStream" = field.load @java.ref:"java.lang.System::out:java.io.PrintStream";
-                %2 : Var<java.type:"java.io.PrintStream"> = var %1 @"rec$";
-                %3 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isReflectable=true (%4 : java.type:"java.lang.String")java.type:"void" -> {
-                    %5 : Var<java.type:"java.lang.String"> = var %4 @"x$0";
-                    %6 : java.type:"java.io.PrintStream" = var.load %2;
-                    %7 : java.type:"java.lang.String" = var.load %5;
-                    invoke %6 %7 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
+                %2 : java.type:"java.lang.Object" = invoke %1 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %3 : Var<java.type:"java.io.PrintStream"> = var %1 @"rec$";
+                %4 : java.type:"java.util.function.Consumer<java.lang.String>" = lambda @lambda.isReflectable=true (%5 : java.type:"java.lang.String")java.type:"void" -> {
+                    %6 : Var<java.type:"java.lang.String"> = var %5 @"x$0";
+                    %7 : java.type:"java.io.PrintStream" = var.load %3;
+                    %8 : java.type:"java.lang.String" = var.load %6;
+                    invoke %7 %8 @java.ref:"java.io.PrintStream::println(java.lang.String):void";
                     return;
                 };
-                %8 : Var<java.type:"java.util.function.Consumer<java.lang.String>"> = var %3 @"c3";
+                %9 : Var<java.type:"java.util.function.Consumer<java.lang.String>"> = var %4 @"c3";
                 return;
             };
             """)
