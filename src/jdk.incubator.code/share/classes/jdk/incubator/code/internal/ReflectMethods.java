@@ -2727,7 +2727,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     recvType = types.asSuper(recvType, sym);
                 }
                 VarSymbol vsym = makeSyntheticVar("rec$", recvType);
-                receiverVar = make.VarDef(vsym, tree.getQualifierExpression());
+                receiverVar = make.VarDef(vsym, attr.makeNullCheck(tree.getQualifierExpression()));
             }
         }
 

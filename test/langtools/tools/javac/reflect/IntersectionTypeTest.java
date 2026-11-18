@@ -95,34 +95,37 @@ class IntersectionTypeTest {
 
     @Reflect
     @IR("""
-            func @"test3" (%0 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)")java.type:"void" -> {
-                %1 : Var<java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)"> = var %0 @"x";
-                %2 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %3 : Var<java.type:"IntersectionTypeTest$A"> = var %2 @"rec$";
-                %4 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %5 : java.type:"IntersectionTypeTest$A" = var.load %3;
-                    invoke %5 @java.ref:"IntersectionTypeTest$A::m_A():void";
+            func @"test3" (%0 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>")java.type:"void" -> {
+                %1 : Var<java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>"> = var %0 @"x";
+                %2 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
+                %3 : java.type:"java.lang.Object" = invoke %2 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %4 : Var<java.type:"IntersectionTypeTest$A"> = var %2 @"rec$";
+                %5 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %6 : java.type:"IntersectionTypeTest$A" = var.load %4;
+                    invoke %6 @java.ref:"IntersectionTypeTest$A::m_A():void";
                     return;
                 };
-                %6 : Var<java.type:"java.lang.Runnable"> = var %4 @"rA";
-                %7 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %8 : java.type:"IntersectionTypeTest$B" = cast %7 @java.type:"IntersectionTypeTest$B";
-                %9 : Var<java.type:"IntersectionTypeTest$B"> = var %8 @"rec$";
-                %10 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %11 : java.type:"IntersectionTypeTest$B" = var.load %9;
-                    invoke %11 @java.ref:"IntersectionTypeTest$B::m_B():void";
+                %7 : Var<java.type:"java.lang.Runnable"> = var %5 @"rA";
+                %8 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
+                %9 : java.type:"java.lang.Object" = invoke %8 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %10 : java.type:"IntersectionTypeTest$B" = cast %8 @java.type:"IntersectionTypeTest$B";
+                %11 : Var<java.type:"IntersectionTypeTest$B"> = var %10 @"rec$";
+                %12 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %13 : java.type:"IntersectionTypeTest$B" = var.load %11;
+                    invoke %13 @java.ref:"IntersectionTypeTest$B::m_B():void";
                     return;
                 };
-                %12 : Var<java.type:"java.lang.Runnable"> = var %10 @"rB";
-                %13 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>)" = var.load %1;
-                %14 : java.type:"IntersectionTypeTest$C" = cast %13 @java.type:"IntersectionTypeTest$C";
-                %15 : Var<java.type:"IntersectionTypeTest$C"> = var %14 @"rec$";
-                %16 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %17 : java.type:"IntersectionTypeTest$C" = var.load %15;
-                    invoke %17 @java.ref:"IntersectionTypeTest$C::m_C():void";
+                %14 : Var<java.type:"java.lang.Runnable"> = var %12 @"rB";
+                %15 : java.type:"&IntersectionTypeTest::test3(IntersectionTypeTest$A):void::<X extends IntersectionTypeTest$A>" = var.load %1;
+                %16 : java.type:"java.lang.Object" = invoke %15 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %17 : java.type:"IntersectionTypeTest$C" = cast %15 @java.type:"IntersectionTypeTest$C";
+                %18 : Var<java.type:"IntersectionTypeTest$C"> = var %17 @"rec$";
+                %19 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %20 : java.type:"IntersectionTypeTest$C" = var.load %18;
+                    invoke %20 @java.ref:"IntersectionTypeTest$C::m_C():void";
                     return;
                 };
-                %18 : Var<java.type:"java.lang.Runnable"> = var %16 @"rC";
+                %21 : Var<java.type:"java.lang.Runnable"> = var %19 @"rC";
                 return;
             };
             """)
@@ -244,31 +247,34 @@ class IntersectionTypeTest {
                 %6 : java.type:"IntersectionTypeTest$A" = invoke %4 %5 @java.ref:"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$A, IntersectionTypeTest$A):IntersectionTypeTest$A";
                 %7 : Var<java.type:"IntersectionTypeTest$A"> = var %6 @"x";
                 %8 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %9 : Var<java.type:"IntersectionTypeTest$A"> = var %8 @"rec$";
-                %10 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %11 : java.type:"IntersectionTypeTest$A" = var.load %9;
-                    invoke %11 @java.ref:"IntersectionTypeTest$A::m_A():void";
+                %9 : java.type:"java.lang.Object" = invoke %8 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %10 : Var<java.type:"IntersectionTypeTest$A"> = var %8 @"rec$";
+                %11 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %12 : java.type:"IntersectionTypeTest$A" = var.load %10;
+                    invoke %12 @java.ref:"IntersectionTypeTest$A::m_A():void";
                     return;
                 };
-                %12 : Var<java.type:"java.lang.Runnable"> = var %10 @"rA";
-                %13 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %14 : java.type:"IntersectionTypeTest$B" = cast %13 @java.type:"IntersectionTypeTest$B";
-                %15 : Var<java.type:"IntersectionTypeTest$B"> = var %14 @"rec$";
-                %16 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %17 : java.type:"IntersectionTypeTest$B" = var.load %15;
-                    invoke %17 @java.ref:"IntersectionTypeTest$B::m_B():void";
+                %13 : Var<java.type:"java.lang.Runnable"> = var %11 @"rA";
+                %14 : java.type:"IntersectionTypeTest$A" = var.load %7;
+                %15 : java.type:"java.lang.Object" = invoke %14 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %16 : java.type:"IntersectionTypeTest$B" = cast %14 @java.type:"IntersectionTypeTest$B";
+                %17 : Var<java.type:"IntersectionTypeTest$B"> = var %16 @"rec$";
+                %18 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %19 : java.type:"IntersectionTypeTest$B" = var.load %17;
+                    invoke %19 @java.ref:"IntersectionTypeTest$B::m_B():void";
                     return;
                 };
-                %18 : Var<java.type:"java.lang.Runnable"> = var %16 @"rB";
-                %19 : java.type:"IntersectionTypeTest$A" = var.load %7;
-                %20 : java.type:"IntersectionTypeTest$C" = cast %19 @java.type:"IntersectionTypeTest$C";
-                %21 : Var<java.type:"IntersectionTypeTest$C"> = var %20 @"rec$";
-                %22 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %23 : java.type:"IntersectionTypeTest$C" = var.load %21;
-                    invoke %23 @java.ref:"IntersectionTypeTest$C::m_C():void";
+                %20 : Var<java.type:"java.lang.Runnable"> = var %18 @"rB";
+                %21 : java.type:"IntersectionTypeTest$A" = var.load %7;
+                %22 : java.type:"java.lang.Object" = invoke %21 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %23 : java.type:"IntersectionTypeTest$C" = cast %21 @java.type:"IntersectionTypeTest$C";
+                %24 : Var<java.type:"IntersectionTypeTest$C"> = var %23 @"rec$";
+                %25 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %26 : java.type:"IntersectionTypeTest$C" = var.load %24;
+                    invoke %26 @java.ref:"IntersectionTypeTest$C::m_C():void";
                     return;
                 };
-                %24 : Var<java.type:"java.lang.Runnable"> = var %22 @"rC";
+                %27 : Var<java.type:"java.lang.Runnable"> = var %25 @"rC";
                 return;
             };
             """)
@@ -328,22 +334,24 @@ class IntersectionTypeTest {
                 %6 : java.type:"IntersectionTypeTest$G" = invoke %4 %5 @java.ref:"IntersectionTypeTest::makeIntersection(IntersectionTypeTest$G, IntersectionTypeTest$A):IntersectionTypeTest$G";
                 %7 : Var<java.type:"IntersectionTypeTest$G"> = var %6 @"x";
                 %8 : java.type:"IntersectionTypeTest$G" = var.load %7;
-                %9 : Var<java.type:"IntersectionTypeTest$G"> = var %8 @"rec$";
-                %10 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %11 : java.type:"IntersectionTypeTest$G" = var.load %9;
-                    invoke %11 @java.ref:"IntersectionTypeTest$G::m_F():void";
+                %9 : java.type:"java.lang.Object" = invoke %8 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %10 : Var<java.type:"IntersectionTypeTest$G"> = var %8 @"rec$";
+                %11 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %12 : java.type:"IntersectionTypeTest$G" = var.load %10;
+                    invoke %12 @java.ref:"IntersectionTypeTest$G::m_F():void";
                     return;
                 };
-                %12 : Var<java.type:"java.lang.Runnable"> = var %10 @"rG";
-                %13 : java.type:"IntersectionTypeTest$G" = var.load %7;
-                %14 : java.type:"IntersectionTypeTest$A" = cast %13 @java.type:"IntersectionTypeTest$A";
-                %15 : Var<java.type:"IntersectionTypeTest$A"> = var %14 @"rec$";
-                %16 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
-                    %17 : java.type:"IntersectionTypeTest$A" = var.load %15;
-                    invoke %17 @java.ref:"IntersectionTypeTest$A::m_A():void";
+                %13 : Var<java.type:"java.lang.Runnable"> = var %11 @"rG";
+                %14 : java.type:"IntersectionTypeTest$G" = var.load %7;
+                %15 : java.type:"java.lang.Object" = invoke %14 @java.ref:"java.util.Objects::requireNonNull(java.lang.Object):java.lang.Object";
+                %16 : java.type:"IntersectionTypeTest$A" = cast %14 @java.type:"IntersectionTypeTest$A";
+                %17 : Var<java.type:"IntersectionTypeTest$A"> = var %16 @"rec$";
+                %18 : java.type:"java.lang.Runnable" = lambda @lambda.isReflectable=true ()java.type:"void" -> {
+                    %19 : java.type:"IntersectionTypeTest$A" = var.load %17;
+                    invoke %19 @java.ref:"IntersectionTypeTest$A::m_A():void";
                     return;
                 };
-                %18 : Var<java.type:"java.lang.Runnable"> = var %16 @"rA";
+                %20 : Var<java.type:"java.lang.Runnable"> = var %18 @"rA";
                 return;
             };
             """)
