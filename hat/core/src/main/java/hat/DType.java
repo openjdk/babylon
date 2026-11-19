@@ -24,8 +24,7 @@
  */
 package hat;
 
-import hat.buffer.TensorF16;
-import hat.buffer.TensorF32;
+import hat.types.F16;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.JavaType;
 
@@ -33,8 +32,8 @@ public class DType {
 
     private DType() {}
 
-    public static final CodeType F32 = JavaType.type(TensorF32.class);
-    public static final CodeType F16 = JavaType.type(TensorF16.class);
+    public static final CodeType F32 = JavaType.FLOAT;
+    public static final CodeType F16 = JavaType.type(F16.class);
     public static final CodeType Float = JavaType.FLOAT;
     public static final CodeType Double = JavaType.DOUBLE;
     public static final CodeType Boolean = JavaType.BOOLEAN;

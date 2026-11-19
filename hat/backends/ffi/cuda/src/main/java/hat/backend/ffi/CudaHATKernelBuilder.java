@@ -210,6 +210,10 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return blockIdx().dot().id("z");
     }
 
+    private CudaHATKernelBuilder half() {
+        return type("half");
+    }
+
     @Override
     protected CudaHATKernelBuilder hatWarpSize() {
         return id("HAT_WRS");
@@ -558,7 +562,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                         .id(WMMA_LOAD_TENSOR)
                         .paren(_ -> {
                             id("tensorToLoad").comma();
-                            paren(_ -> type("half").asterisk());
+                            paren(_ -> half().asterisk());
                             id("reference")
                                     .rarrow().id(ARRAY)
                                     .sp().plus().sp()
@@ -734,32 +738,41 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     private CudaHATKernelBuilder decodePtrType(PtrType ptrType) {
         if (ptrType.rType().equals(DType.F32) || ptrType.rType().equals(DType.Float)) {
-            f32Type();
+            return f32Type();
         } else if (ptrType.rType().equals(DType.F16)) {
-            type("half");
+            return half();
         } else {
             throw new IllegalStateException("Expected a ptr type, but found: " + ptrType);
         }
-        return self();
+    }
+
+    private CudaHATKernelBuilder decodePrimitiveType(PrimitiveType ptrType) {
+        if (ptrType.equals(DType.F32) || ptrType.equals(DType.Float)) {
+            return f32Type();
+        } else {
+            throw new IllegalStateException("Expected a ptr type, but found: " + ptrType);
+        }
     }
 
     private CudaHATKernelBuilder decodeTileType(TileType tileType) {
         CodeType ptr = tileType.elementType();
-        if (ptr instanceof PtrType ptrType) {
-            decodePtrType(ptrType);
+        if (ptr instanceof PrimitiveType primitiveType) {
+            return decodePrimitiveType(primitiveType);
+        } else if (ptr instanceof PtrType ptrType) {
+            return decodePtrType(ptrType);
+        } else if (ptr instanceof ClassType classType && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), classType, F16.class)) {
+            return half();
         } else {
-            throw new IllegalStateException("Expected a tileType type, but found: " + tileType.elementType().getClass());
+            throw new IllegalStateException("Expected a PrimitiveType|PtrType|ClassType type, but found: " + tileType.elementType().getClass());
         }
-        return self();
     }
 
     @Override
     protected CudaHATKernelBuilder tileDeviceKernelDeclaration(TileType tileType) {
-        tile().ltgt(_ -> {
-            decodeTileType(tileType);
-            comma().tileShape().ltgt(_ -> commaSpaceSeparated(tileType.shape(), this::intValue));
-        });
-        return self();
+        return tile().ltgt(_ ->
+                decodeTileType(tileType).comma()
+                .tileShape()
+                .ltgt(_ -> commaSpaceSeparated(tileType.shape(), this::intValue)));
     }
 
     @Override
@@ -1181,6 +1194,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
             if (!(type instanceof PrimitiveType)
                     && !(type instanceof TileType)
                     && !(type instanceof ConstantType)) {
+
                 restrict().sp();
             }
             return varName(param.varOp);
@@ -1188,22 +1202,41 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return type((JavaType) param.parameter.type()).sp().varName(param.varOp);
     }
 
+    private CudaHATKernelBuilder genGlobalAccessType1D(CodeType ct, JavaType javaType) {
+        if (ct.equals(JavaType.FLOAT)) {
+            return type(JavaType.type(TensorF32.class));
+        } else if (ct.equals(DType.F16)) {
+            return type(JavaType.type(TensorF16.class));
+        } else {
+            return type(javaType);
+        }
+    }
+
+    private CudaHATKernelBuilder genGlobalAccessType2D(CodeType ct, JavaType javaType) {
+        if (ct.equals(JavaType.FLOAT)) {
+            return type(JavaType.type(Tensor2DF32.class));
+        } else if (ct.equals(DType.F16)) {
+            return type(JavaType.type(Tensor2DF16.class));
+        } else {
+            return type(javaType);
+        }
+    }
+
     @Override
     public CudaHATKernelBuilder type(CodeType codeType) {
         if (codeType instanceof TileType tt
                 && tt.elementType() instanceof PtrType ptrType
                 && ptrType.rType() instanceof JavaType javaType) {
-
+            // if it is a tile of ptrType, this corresponds to I/O
+            // tensors. Thus, we need to map to the correct data
+            // structures to be able to generate the correct struct layout.
+            // TODO: We need to find a more generic way to do this,
+            // although, for the implementation of the tile programming model
+            // we are constraint to a set of Tensor types.
             if (ptrType.rank() == 1) {
-                return type(javaType);
+                return genGlobalAccessType1D(ptrType.rType(), javaType);
             } else if (ptrType.rank() == 2) {
-                if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, TensorF32.class)) {
-                    return type(JavaType.type(Tensor2DF32.class));
-                }  else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, TensorF16.class)) {
-                    return type(JavaType.type(Tensor2DF16.class));
-                } else {
-                    throw new UnsupportedOperationException("PtrTile of type " + javaType + " not supported yet");
-                }
+                return genGlobalAccessType2D(ptrType.rType(), javaType);
             } else {
                 throw new UnsupportedOperationException("ptrRank 3 or more is not supported");
             }
@@ -1655,7 +1688,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 if (tt.elementType().equals(DType.F32)) {
                     f32Type();
                 } else if (tt.elementType().equals(DType.F16)) {
-                    type("half");
+                    half();
                 } else {
                     type(tt.elementType().toString());
                 }

@@ -29,6 +29,7 @@ import hat.Accelerator.Compute;
 import hat.ComputeContext;
 import hat.NDRange;
 import hat.backend.Backend;
+import hat.buffer.TensorF16;
 import hat.buffer.TensorF32;
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
@@ -164,6 +165,53 @@ public class TestTileMultiFunctions {
             var r1 = inputA.array(i) + inputB.array(i);
             var r2 = r1 + inputB.array(i);
             HATAsserts.assertEquals(r2, result.array(i), 0.01f);
+        }
+    }
+
+    @Reflect
+    public static void multipleHelpers(TensorF16 inputA, TensorF16 inputB, TensorF16 output, final int tileSize) {
+        final var pid = BIDX();
+        var tileA = load(inputA, pid, tileSize);
+        var tileB = load(inputB, pid, tileSize);
+        var r1 = helperA(tileA, tileB);
+        var r2 = helperB(r1, tileB);
+        store(output, pid, r2);
+    }
+
+    @Reflect
+    public static void multipleHelpers(ComputeContext computeContext, TensorF16 inputA, TensorF16 inputB, TensorF16 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(inputA.m(), tileSize),
+                () -> multipleHelpers(inputA, inputB, output, tileSize));
+    }
+
+    /**
+     * Test:
+     *     multipleKernels -> helperA -> shared
+     *                     -> helperB -> shared
+     */
+    @HatTest
+    public void test_hat_multi_function03() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 32;
+        TensorF16 inputA = TensorF16.create(accelerator, size);
+        TensorF16 inputB = TensorF16.create(accelerator, size);
+        TensorF16 result = TensorF16.create(accelerator, size);
+
+        Random r = new Random(19);
+        for (int i = 0; i < size; i++) {
+            inputA.array(i, Float.floatToFloat16(r.nextFloat(1)));
+            inputB.array(i, Float.floatToFloat16(r.nextFloat(1)));
+        }
+
+        // Invoking the kernel multiple times to check the code cache
+        accelerator.compute((@Reflect Compute) computeContext ->
+                multipleHelpers(computeContext, inputA, inputB, result, tileSize));
+
+        for (int i = 0; i < size; i++) {
+            var r1 = Float.float16ToFloat(inputA.array(i)) + Float.float16ToFloat(inputB.array(i));
+            var r2 = r1 + Float.float16ToFloat(inputB.array(i));
+            HATAsserts.assertEquals(r2, Float.float16ToFloat(result.array(i)), 0.01f);
         }
     }
 }
