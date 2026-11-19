@@ -2832,4 +2832,17 @@ public class SwitchStatementTest {
                 return -1;
         }
     }
+
+    @IR("""
+        func @"empty" (%0 : java.type:"int")java.type:"void" -> {
+            %1 : Var<java.type:"int"> = var %0 @"sel";
+            %2 : java.type:"int" = var.load %1;
+            java.switch.statement %2;
+            return;
+        };
+        """)
+    @Reflect
+    private static void empty(int sel) {
+        switch(sel) {}
+    }
 }
