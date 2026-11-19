@@ -3519,6 +3519,10 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 b = continueBlock;
             }
 
+            if (bodies().isEmpty()) {
+                return b;
+            }
+
             // Default case is modeled as predicateBody with no parameters
             // that yields a constant boolean value of true
             int defaultCaseIndex = -1;
@@ -3717,7 +3721,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         SwitchExpressionOp(CodeType resultType, Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
-            super(target, nullHandling, requireBodyPairs(NAME, bodyCs));
+            super(target, nullHandling, requireBodyPairs(NAME, requireMinBodies(NAME, bodyCs, 2)));
             this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
         }
 
