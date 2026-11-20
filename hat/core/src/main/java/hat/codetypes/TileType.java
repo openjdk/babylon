@@ -43,7 +43,8 @@ public final class TileType implements HAType {
 
     public TileType(CodeType codeType, List<Integer> shape) {
         this.dType = codeType;
-        this.shape = Collections.unmodifiableList(shape);
+        // shape list immutable
+        this.shape = List.copyOf(shape);
     }
 
     public CodeType elementType() {

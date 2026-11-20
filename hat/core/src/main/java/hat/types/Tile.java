@@ -286,7 +286,7 @@ public record Tile() implements IfaceValue {
 
     /**
      * It creates a new tile and set the initial value to zeros.
-     * By default, the tensor type is {@link hat.DType#F32}.
+     * By default, the tensor type is {@link hat.DType#FLOAT}.
      * @param shape
      * @return {@link Tile}
      */
@@ -296,12 +296,12 @@ public record Tile() implements IfaceValue {
 
     /**
      * It creates a new tile and set the initial value to ones.
-     * By default, the tensor type is {@link hat.DType#F32}.
+     * By default, the tensor type is {@link hat.DType#FLOAT}.
      * @param shape
      * @return {@link Tile}
      */
     public static Tile ones(Shape shape) {
-        throw new UnsupportedOperationException("Tile.zeros is a compiler intrinsic.");
+        throw new UnsupportedOperationException("Tile.ones is a compiler intrinsic.");
     }
 
     /**
@@ -313,7 +313,7 @@ public record Tile() implements IfaceValue {
      * @return {@link Tile}
      */
     public static Tile ones(Shape shape, CodeType codeType) {
-        throw new UnsupportedOperationException("Tile.zeros is a compiler intrinsic.");
+        throw new UnsupportedOperationException("Tile.ones is a compiler intrinsic.");
     }
 
 
