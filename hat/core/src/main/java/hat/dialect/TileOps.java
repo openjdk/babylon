@@ -52,7 +52,8 @@ import java.util.Map;
  */
 public class TileOps {
 
-    private TileOps() {}
+    private TileOps() {
+    }
 
     public static ModuleOp module(List<CoreOp.FuncOp> list) {
         return new ModuleOp(List.copyOf(list));
@@ -78,7 +79,7 @@ public class TileOps {
         return new TileShapeOp(values);
     }
 
-    public static Op dim(Value...dims) {
+    public static Op dim(Value... dims) {
         return new TileDimOp(dims);
     }
 
@@ -106,7 +107,7 @@ public class TileOps {
         return new TileArangeOp(typeResult, JavaType.INT, value);
     }
 
-    public static Op arange(CodeType typeResult, CodeType dType, Value...args) {
+    public static Op arange(CodeType typeResult, CodeType dType, Value... args) {
         return new TileArangeOp(typeResult, dType, args);
     }
 
@@ -167,6 +168,33 @@ public class TileOps {
 
         TileContextOp(CodeType resultType, List<? extends Value> operands) {
             super(resultType, operands);
+        }
+
+    }
+
+    public abstract static class TileCreateOp extends TileContextOp {
+
+        protected TileCreateOp(ExternalizedOp def) {
+            super(def);
+        }
+
+        TileCreateOp(TOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        TileCreateOp(CodeType resultType, List<? extends Value> operands) {
+            super(resultType, operands);
+        }
+
+        public StringBuilder shapeToStringBuilder() {
+            StringBuilder builder = new StringBuilder();
+            if (resultType instanceof ConstantType constantType) {
+                Object v = constantType.value();
+                if (v instanceof TileType tensorType) {
+                    builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
+                }
+            }
+            return builder;
         }
     }
 
@@ -304,7 +332,7 @@ public class TileOps {
         }
     }
 
-    public static class TileFullOp extends TileContextOp implements Precedence.Invoke{
+    public static class TileFullOp extends TileCreateOp implements Precedence.Invoke {
 
         protected TileFullOp(CodeType type, Value shapeValue, Value initValue) {
             super(type, List.of(shapeValue, initValue));
@@ -325,7 +353,7 @@ public class TileOps {
         }
     }
 
-    public static class TileZerosOp extends TileContextOp implements Precedence.Invoke {
+    public static class TileZerosOp extends TileCreateOp implements Precedence.Invoke {
 
         protected TileZerosOp(CodeType type, Value... shapes) {
             super(type, Arrays.stream(shapes).toList());
@@ -342,20 +370,12 @@ public class TileOps {
 
         @Override
         public Map<String, Object> externalize() {
-            StringBuilder builder = new StringBuilder();
-            if (resultType instanceof ConstantType constantType) {
-                Object v = constantType.value();
-                // NOTE: The values become the propagate shape, while the codeType represent the element type of
-                // the tensor operation (e.g., Tile).
-                if (v instanceof TileType tensorType) {
-                    builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
-                }
-            }
+            StringBuilder builder = shapeToStringBuilder();
             return Map.of("tile.zeros ", builder.toString());
         }
     }
 
-    public static class TileOnesOp extends TileContextOp implements Precedence.Invoke {
+    public static class TileOnesOp extends TileCreateOp implements Precedence.Invoke {
 
         protected TileOnesOp(CodeType type, Value... shapes) {
             super(type, Arrays.stream(shapes).toList());
@@ -372,21 +392,12 @@ public class TileOps {
 
         @Override
         public Map<String, Object> externalize() {
-            StringBuilder builder = new StringBuilder();
-            if (resultType instanceof ConstantType constantType) {
-                Object v = constantType.value();
-                // NOTE: The values become the propagate shape, while the codeType represent the element type of
-                // the tensor operation (e.g., Tile).
-                if (v instanceof TileType tensorType) {
-                    builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
-                }
-            }
+            StringBuilder builder = shapeToStringBuilder();
             return Map.of("tile.ones ", builder.toString());
         }
     }
 
-
-    public static class TileArangeOp extends TileContextOp implements Precedence.Invoke {
+    public static class TileArangeOp extends TileCreateOp implements Precedence.Invoke {
 
         private final CodeType dType;
 

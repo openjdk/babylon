@@ -857,7 +857,7 @@ public class TestTileAPI {
     @Reflect
     public static void arangeTile02(TensorF32 output, final int tileSize) {
         // arange returns a tile [0, 1, 2, ..., (tileSize - 1) ]
-        var result = arange(tileSize, DType.Float);
+        var result = arange(tileSize, DType.FLOAT);
         store(output, BIDX(), result);
     }
 
@@ -885,7 +885,7 @@ public class TestTileAPI {
     @Reflect
     public static void arangeTile03(TensorF32 output, final int tileSize) {
         // arange returns a tile [2, 3, 4, ..., ((2 + 1 * (tileSize - 1))) ]
-        var result = arange(tileSize, DType.Float, 2);
+        var result = arange(tileSize, DType.FLOAT, 2);
         store(output, BIDX(), result);
     }
 
@@ -914,7 +914,7 @@ public class TestTileAPI {
     @Reflect
     public static void arangeTile04(TensorF32 output, final int tileSize) {
         // arange returns a tile [2, 4, 6, 8, ..., (2 + 2 * (tileSize - 1)) ]
-        var result = arange(tileSize, DType.Float, 2, 2);
+        var result = arange(tileSize, DType.FLOAT, 2, 2);
         store(output, BIDX(), result);
     }
 
@@ -943,7 +943,7 @@ public class TestTileAPI {
     @Reflect
     public static void arangeTile05(TensorF32 output, final int tileSize) {
         // arange returns a tile [2, 4, 6, 8, ..., (2 + 2 * (tileSize - 1)) ]
-        var result = arange(tileSize, DType.Float, 7, -1);
+        var result = arange(tileSize, DType.FLOAT, 7, -1);
         store(output, BIDX(), result);
     }
 
@@ -1026,7 +1026,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void initTileOneF16(Tensor output, final int tileSize) {
-        var result = ones(shape(tileSize), DType.F16);
+        var result = ones(shape(tileSize), DType.FLOAT16);
         store(output, BIDX(), result);
     }
 
@@ -1053,7 +1053,7 @@ public class TestTileAPI {
 
     @Reflect
     public static void initTileOne2DF16(Tensor output, final int tileSize) {
-        var result = ones(shape(tileSize, tileSize), DType.F16);
+        var result = ones(shape(tileSize, tileSize), DType.FLOAT16);
         store(output, index(BIDX(), BIDY()), result);
     }
 

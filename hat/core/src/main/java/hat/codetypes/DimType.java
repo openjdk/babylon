@@ -50,7 +50,7 @@ public final class DimType implements HAType {
     public List<Integer> list(List<ConstantType> shapes) {
         return shapes.stream()
                 .map(shape -> (Integer) shape.value)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<Integer> list() {

@@ -41,7 +41,7 @@ public final class ShapeType implements HAType {
     private final List<Integer> shapes;
 
     public ShapeType(ConstantType ...shapes) {
-        this.shapes = list(Arrays.stream(shapes).toList());
+        this.shapes = list(List.of(shapes));
     }
 
     public int dimensions() {
@@ -51,7 +51,7 @@ public final class ShapeType implements HAType {
     public List<Integer> list(List<ConstantType> shapes) {
         return shapes.stream()
                 .map(shape -> (Integer) shape.value)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
     }
 
     public List<Integer> list() {
