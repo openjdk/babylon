@@ -31,8 +31,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-public final class IndexType implements TileType {
+public final class IndexType implements HAType {
 
     private final List<CodeType> indexes;
 

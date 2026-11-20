@@ -36,12 +36,12 @@ import java.util.stream.Collectors;
  * tile shapes. This facilites shapes checking at runtime, before specializing
  * the code model.
  */
-public final class ShapeType implements TileType {
+public final class ShapeType implements HAType {
 
     private final List<Integer> shapes;
 
     public ShapeType(ConstantType ...shapes) {
-        this.shapes = list(Arrays.stream(shapes).toList());
+        this.shapes = list(List.of(shapes));
     }
 
     public int dimensions() {
@@ -51,7 +51,7 @@ public final class ShapeType implements TileType {
     public List<Integer> list(List<ConstantType> shapes) {
         return shapes.stream()
                 .map(shape -> (Integer) shape.value)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<Integer> list() {

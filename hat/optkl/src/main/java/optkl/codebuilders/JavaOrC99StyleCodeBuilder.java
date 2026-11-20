@@ -393,15 +393,16 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public T invokeOp( JavaOp.InvokeOp invokeOp) {
-        var invoke = invoke(scopedCodeBuilderContext().lookup(),invokeOp);
-
-            funcName(invoke.op()).paren(_ ->
-                    commaSpaceSeparated(invoke.op().operands(),
-                            op -> {if (op instanceof Op.Result result) {recurse( result.op());}
-                            })
-            );
-
+    public T invokeOp(JavaOp.InvokeOp invokeOp) {
+        var invoke = invoke(scopedCodeBuilderContext().lookup(), invokeOp);
+        funcName(invoke.op()).paren(_ ->
+                commaSpaceSeparated(invoke.op().operands(),
+                        op -> {
+                            if (op instanceof Op.Result result) {
+                                recurse(result.op());
+                            }
+                        })
+        );
         return self();
     }
 
@@ -436,18 +437,17 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
         return self();
     }
 
-    public final  T statement(Op op) {
-        recurse( op);
-        if (switch (op){
+    public final T statement(Op op) {
+        recurse(op);
+        if (switch (op) {
             case JavaOp.ForOp _ -> false;
             case JavaOp.WhileOp _ -> false;
             case JavaOp.IfOp _ -> false;
             case JavaOp.LabeledOp _ -> false;
             case JavaOp.YieldOp _ -> false;
-            case CoreOp.TupleOp _ ->false;
+            case CoreOp.TupleOp _ -> false;
             default -> true;
-        }
-        ){
+        }) {
             semicolon();
         }
         return self();
@@ -538,34 +538,23 @@ public abstract class JavaOrC99StyleCodeBuilder<T extends JavaOrC99StyleCodeBuil
     }
 
     @Override
-    public final T lambdaOp( JavaOp.LambdaOp lambdaOp) {
-        scopedCodeBuilderContext().lambdaScope(lambdaOp,()-> {
-                    var parameters = lambdaOp.body().entryBlock().parameters();
-                  //  if (parameters.isEmpty()) {
-                    //    ocparen();
-                    //}else{
-                        parenWhen(parameters.size()!=1,_->{
-                           commaSpaceSeparated(parameters,$->
-                               varName((CoreOp.VarOp)$.uses().stream().findFirst().get().op())
-                           );
-                        });
-                    //}
-                    sp().rarrow().sp();
-                    braceNlIndented(_ -> {
-                        nlSeparated(OpHelper.Statement.bodyStatements(lambdaOp.body()),
-                                op->{
-                                    if (op instanceof CoreOp.VarOp varOp
-                                            && varOp.operands().getFirst() instanceof Block.Parameter parameter
-                                           ){
-                                        varName(varOp);
-                                    }else {
-                                        statement(op);
-                                    }
-                                }
-                        );
-                    });
-                }
-        );
+    public final T lambdaOp(JavaOp.LambdaOp lambdaOp) {
+        scopedCodeBuilderContext().lambdaScope(lambdaOp, () -> {
+            var parameters = lambdaOp.body().entryBlock().parameters();
+            parenWhen(parameters.size() != 1, _ -> {
+                commaSpaceSeparated(parameters, $ -> varName((CoreOp.VarOp) $.uses().stream().findFirst().get().op()));
+            });
+            sp().rarrow().sp();
+            braceNlIndented(_ -> {
+                nlSeparated(OpHelper.Statement.bodyStatements(lambdaOp.body()), op -> {
+                    if (op instanceof CoreOp.VarOp varOp && varOp.operands().getFirst() instanceof Block.Parameter parameter) {
+                        varName(varOp);
+                    } else {
+                        statement(op);
+                    }
+                });
+            });
+        });
         return self();
     }
 }

@@ -25,7 +25,7 @@
 package hat.phases;
 
 import hat.codetypes.PtrType;
-import hat.codetypes.TensorType;
+import hat.codetypes.TileType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.TileOps;
 import hat.types.Tile;
@@ -104,7 +104,8 @@ public record HATTilesPhase() implements HATPhase {
         for (Block.Parameter param : parameters) {
             Op.Result paramUsage = param.uses().getFirst();
             if (paramUsage.declaringElement() instanceof CoreOp.VarOp varOp) {
-                if (varOp.resultType().valueType() instanceof PtrType) {
+//                if (varOp.resultType().valueType() instanceof PtrType) {
+                if (varOp.resultType().valueType() instanceof TileType tt && tt.elementType() instanceof PtrType) {
                     tileArgs.add(varOp);
                     opsToProcess.add(varOp);
                 }
@@ -169,7 +170,7 @@ public record HATTilesPhase() implements HATPhase {
                         opsToProcess.add(varOo);
                 case ArithMathOps.ArithMathOp arithMathOp when arithMathOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOp ->
                         opsToProcess.add(varOp);
-                case JavaOp.InvokeOp invokeOp when invokeOp.resultType() instanceof TensorType
+                case JavaOp.InvokeOp invokeOp when invokeOp.resultType() instanceof TileType
                         && invokeOp.result().uses().getFirst().declaringElement() instanceof CoreOp.VarOp varOp ->
                         // We need to process as Tile the result of an invoke (tile device kernel)
                         opsToProcess.add(varOp);

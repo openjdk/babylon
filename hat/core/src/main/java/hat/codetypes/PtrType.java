@@ -34,7 +34,7 @@ import java.util.Objects;
  * Type to represent input/output tensors (mutable data) that will be copied
  * between host <-> device to/from the accelerator's global memory.
  */
-public final class PtrType implements TileType {
+public final class PtrType implements HAType {
 
     private final CodeType rType;
     private final List<Integer> dims;
@@ -86,5 +86,9 @@ public final class PtrType implements TileType {
 
     public List<Integer> dims() {
         return dims;
+    }
+
+    public int rank() {
+        return dims.size();
     }
 }
