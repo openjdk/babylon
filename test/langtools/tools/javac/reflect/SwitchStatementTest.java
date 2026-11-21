@@ -396,8 +396,8 @@ public class SwitchStatementTest {
                 %4 : java.type:"java.lang.String" = var.load %1;
                 java.switch.statement %4 @switch.handle.nulls=true
                     (%5 : java.type:"java.lang.String")java.type:"boolean" -> {
-                        %6 : java.type:"java.lang.Object" = constant @null;
-                        %7 : java.type:"boolean" = invoke %5 %6 @java.ref:"java.util.Objects::equals(java.lang.Object, java.lang.Object):boolean";
+                        %6 : java.type:"java.lang.String" = constant @null;
+                        %7 : java.type:"boolean" = eq %5 %6;
                         yield %7;
                     }
                     ()java.type:"void" -> {
@@ -429,6 +429,57 @@ public class SwitchStatementTest {
             case null -> r += "null";
             default -> r += "non null";
         }
+        return r;
+    }
+
+    @IR("""
+            func @"caseConstantNullLabel" (%0 : java.type:"java.lang.Integer")java.type:"int" -> {
+                  %1 : Var<java.type:"java.lang.Integer"> = var %0 @"value";
+                  %2 : Var<java.type:"int"> = var @"r";
+                  %3 : java.type:"java.lang.Integer" = var.load %1;
+                  java.switch.statement %3 @switch.handle.nulls=true
+                      (%4 : java.type:"java.lang.Integer")java.type:"boolean" -> {
+                          %5 : java.type:"java.lang.Integer" = constant @null;
+                          %6 : java.type:"boolean" = eq %4 %5;
+                          yield %6;
+                      }
+                      ()java.type:"void" -> {
+                          %7 : java.type:"int" = constant @-1;
+                          var.store %2 %7;
+                          yield;
+                      }
+                      (%8 : java.type:"java.lang.Integer")java.type:"boolean" -> {
+                          %9 : java.type:"int" = invoke %8 @java.ref:"java.lang.Integer::intValue():int";
+                          %10 : java.type:"int" = constant @1;
+                          %11 : java.type:"boolean" = eq %9 %10;
+                          yield %11;
+                      }
+                      ()java.type:"void" -> {
+                          %12 : java.type:"int" = constant @10;
+                          var.store %2 %12;
+                          yield;
+                      }
+                      ()java.type:"boolean" -> {
+                          %13 : java.type:"boolean" = constant @true;
+                          yield %13;
+                      }
+                      ()java.type:"void" -> {
+                          %14 : java.type:"int" = constant @20;
+                          var.store %2 %14;
+                          yield;
+                      };
+                  %15 : java.type:"int" = var.load %2;
+                  return %15;
+              };
+            """)
+    @Reflect
+    static int caseConstantNullLabel(Integer value) {
+        int r;
+        switch (value) {
+            case null -> r = -1;
+            case 1 -> r = 10;
+            default -> r = 20;
+        };
         return r;
     }
 
@@ -1050,7 +1101,7 @@ public class SwitchStatementTest {
                         yield;
                     }
                     (%17 : java.type:"SwitchStatementTest$E")java.type:"boolean" -> {
-                        %18 : java.type:"java.lang.Object" = constant @null;
+                        %18 : java.type:"SwitchStatementTest$E" = constant @null;
                         %19 : java.type:"boolean" = eq %17 %18;
                         yield %19;
                     }
