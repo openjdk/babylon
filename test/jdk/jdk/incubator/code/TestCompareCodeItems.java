@@ -47,7 +47,7 @@ public class TestCompareCodeItems {
         int sum = 0;
         for (int i = 0; i < 10; i++) {
             sum += u.applyAsInt(i) + 42;
-            if (sum instanceof byte _) {
+            if (sum <= Byte.MAX_VALUE) {
                 // Increment sum if it fits in a byte
                 sum++;
             }

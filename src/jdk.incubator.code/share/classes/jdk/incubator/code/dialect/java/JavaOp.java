@@ -6300,51 +6300,19 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                                                   TypePatternOp tpOp, Value target) {
                 CodeType s = target.type();
                 CodeType t = tpOp.targetType();
-                if (t instanceof PrimitiveType pt) {
-                    if (s instanceof ClassType cs) {
-                        ClassType box;
-                        if (cs.unbox().isEmpty()) { // s not a boxed type
-                            // e.g. Number -> int, narrowing + unboxing
-                            box = pt.box().orElseThrow();
-                            currentBlock = appendTypeTestOp(instanceOf(box, target), currentBlock, falseRef);
-                            // e.g. Object -> int, on true path we need to cast Object to Integer
-                            target = currentBlock.add(cast(box, target));
-                        } else {
-                            // e.g. Float -> float, unboxing
-                            // e.g. Integer -> long, unboxing + widening
-                            box = cs;
-                            Op p = neq(target, currentBlock.add(constant(s, null)));
-                            currentBlock = appendTypeTestOp(p, currentBlock, falseRef);
-                        }
-                        target = currentBlock.add(invoke(MethodRef.method(box, t + "Value", t), target));
-                    } else {
-                        // primitive to primitive conversion
-                        PrimitiveType ps = ((PrimitiveType) s);
-                        if (isNarrowingPrimitiveConv(ps, pt) || isWideningPrimitiveConvWithCheck(ps, pt)
-                                || isWideningAndNarrowingPrimitiveConv(ps, pt)) {
-                            // e.g. int -> byte, narrowing
-                            // e,g. int -> float, widening with check
-                            // e.g. byte -> char, widening and narrowing
-                            MethodRef mref = convMethodRef(s, t);
-                            currentBlock = appendTypeTestOp(invoke(mref, target), currentBlock, falseRef);
-                        }
-                        target = currentBlock.add(conv(t, target));
+                if (s instanceof PrimitiveType) {
+                    // must be identity and inside a record pattern
+                    if (!t.equals(s)) {
+                        throw new UnsupportedOperationException("Primitive pattern are only allowed in identity form");
                     }
-                } else if (s instanceof PrimitiveType ps) {
-                    // boxing conversions
-                    // e.g. int -> Number, boxing + widening
-                    // e.g. byte -> Byte, boxing
-                    ClassType box = ps.box().orElseThrow();
-                    target = currentBlock.add(invoke(MethodRef.method(box, "valueOf", box, ps), target));
+                    // verify we are inside a record pattern
+                    if (tpOp.result().uses().size() != 1 ||
+                            !(tpOp.result().uses().getFirst().op() instanceof RecordPatternOp)) {
+                        throw new UnsupportedOperationException("Primitive type pattern are only allowed inside a record pattern");
+                    }
                 } else {
-                    // reference to reference
-                    // e.g. Character -> Character
-                    // e.g. Number -> Double, narrowing
-                    // e.g. Short -> Object, widening
                     currentBlock = appendTypeTestOp(instanceOf(t, target), currentBlock, falseRef);
-                    if (!s.equals(t)) {
-                        target = currentBlock.add(cast(t, target));
-                    }
+                    target = currentBlock.add(cast(t, target));
                 }
 
                 bindings.add(target);
@@ -6358,44 +6326,8 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 return trueBlock;
             }
 
-            private static boolean isWideningAndNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
-                return BYTE.equals(s) && CHAR.equals(t);
-            }
 
-            private static boolean isWideningPrimitiveConvWithCheck(PrimitiveType s, PrimitiveType t) {
-                return (INT.equals(s) && FLOAT.equals(t))
-                        || (LONG.equals(s) && FLOAT.equals(t))
-                        || (LONG.equals(s) && DOUBLE.equals(t));
-            }
 
-            // s -> t is narrowing if order(t) <= order(s)
-            private final static Map<PrimitiveType, Integer> narrowingOrder = Map.of(
-                    BYTE, 1,
-                    SHORT, 2,
-                    CHAR, 2,
-                    INT, 3,
-                    LONG, 4,
-                    FLOAT, 5,
-                    DOUBLE, 6
-            );
-            private static boolean isNarrowingPrimitiveConv(PrimitiveType s, PrimitiveType t) {
-                return narrowingOrder.get(t) <= narrowingOrder.get(s) && !s.equals(t); // need to be strict, to not consider int -> int as narrowing
-            }
-
-            private static MethodRef convMethodRef(CodeType s, CodeType t) {
-                if (BYTE.equals(s) || SHORT.equals(s) || CHAR.equals(s)) {
-                    s = INT;
-                }
-                String sn = capitalize(s.toString());
-                String tn = capitalize(t.toString());
-                String mn = "is%sTo%sExact".formatted(sn, tn);
-                JavaType exactConversionSupport = JavaType.type(ClassDesc.of("java.lang.runtime.ExactConversionsSupport"));
-                return MethodRef.method(exactConversionSupport, mn, BOOLEAN, s);
-            }
-
-            private static String capitalize(String s) {
-                return s.substring(0, 1).toUpperCase() + s.substring(1);
-            }
 
             static Block.Builder lowerMatchAllPattern(Block.Builder currentBlock) {
                 return currentBlock;
