@@ -3529,14 +3529,14 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             return -1;
         }
 
-        private int findNullLabelIdx() {
+        private int findNullLabelIdx(int defLabelIdx) {
             for (int i = 0; i < bodies.size(); i += 2) {
                 if (isNullLabel(bodies.get(i))) {
                     return i;
                 }
             }
             // case null can be merged with default
-            return handleNulls ? findDefLabelIdx() : -1;
+            return handleNulls ? defLabelIdx : -1;
         }
 
         @Override
@@ -3544,7 +3544,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             // map bodies to blocks
             List<Block.Builder> blocks = new ArrayList<>();
             int defLabelIdx = findDefLabelIdx();
-            int nullLabelIdx = findNullLabelIdx();
+            int nullLabelIdx = findNullLabelIdx(defLabelIdx);
             Value selectorExpression = b.context().getValue(operands().getFirst());
             boolean selectorCanBeNull = !(selectorExpression.type() instanceof PrimitiveType);
             // decide which label will use the incoming block
