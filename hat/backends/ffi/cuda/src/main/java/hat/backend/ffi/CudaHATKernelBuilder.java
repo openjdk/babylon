@@ -1217,15 +1217,8 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
 
     @Override
     public CudaHATKernelBuilder type(CodeType codeType) {
-        if (codeType instanceof TileType tt
-                && tt.elementType() instanceof PtrType ptrType
-                && ptrType.rType() instanceof JavaType javaType) {
-            // if it is a tile of ptrType, this corresponds to I/O
-            // tensors. Thus, we need to map to the correct data
-            // structures to be able to generate the correct struct layout.
-            // TODO: We need to find a more generic way to do this,
-            // although, for the implementation of the tile programming model
-            // we are constraint to a set of Tensor types.
+        PtrType ptrType = TileType.getTilePtrOrNull(codeType);
+        if (ptrType != null) {
             return genGlobalAccessType(ptrType.rType(), ptrType.rank());
         } else {
             return super.type(codeType);

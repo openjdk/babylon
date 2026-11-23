@@ -39,7 +39,6 @@ import hat.types.BF16;
 import hat.types.F16;
 import hat.types.Tensor;
 import jdk.incubator.code.Block;
-import jdk.incubator.code.CodeType;
 import jdk.incubator.code.dialect.java.ClassType;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
@@ -59,7 +58,6 @@ import optkl.util.Mutable;
 import jdk.incubator.code.dialect.core.CoreOp;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -268,13 +266,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 || ifaceType.iface.isAssignableFrom(BF16Array.BF16Impl.class);
     }
 
-    public final boolean isTensorType(Schema.IfaceType ifaceType) {
+    public final boolean isTensorF16Type(Schema.IfaceType ifaceType) {
         return ifaceType.iface.isAssignableFrom(Tensor2DF16.class) || ifaceType.iface.isAssignableFrom(TensorF16.class);
     }
 
     private boolean isTensorArray(Schema.FieldNode.AbstractPrimitiveField primitiveField,Schema.IfaceType ifaceType) {
         // Generate half, only if is a tensor type for the field array (short -> half)
-        return primitiveField instanceof Schema.FieldNode.PrimitiveArray  && isTensorType(ifaceType);
+        return primitiveField instanceof Schema.FieldNode.PrimitiveArray  && isTensorF16Type(ifaceType);
     }
 
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {

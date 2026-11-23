@@ -25,9 +25,9 @@
 package hat.codetypes;
 
 import jdk.incubator.code.CodeType;
+import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedCodeType;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -82,5 +82,21 @@ public final class TileType implements HAType {
 
     public int rank() {
         return shape.size();
+    }
+
+
+    public static PtrType getTilePtrOrNull(CodeType codeType) {
+        // if it is a tile of ptrType, this corresponds to I/O
+        // tensors. Thus, we need to map to the correct data
+        // structures to be able to generate the correct struct layout.
+        // TODO: We need to find a more generic way to do this,
+        // although, for the implementation of the tile programming model
+        // we are constraint to a set of Tensor types.
+        if (codeType instanceof TileType tt
+                && tt.elementType() instanceof PtrType ptrType
+                && ptrType.rType() instanceof JavaType) {
+            return ptrType;
+        }
+        return null;
     }
 }
