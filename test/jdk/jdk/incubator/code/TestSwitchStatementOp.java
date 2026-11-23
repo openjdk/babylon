@@ -800,6 +800,38 @@ public class TestSwitchStatementOp {
         }
     }
 
+    @Reflect
+    private static int emptyWithIntSelector(int sel) {
+        switch(sel) {}
+        return sel;
+    }
+
+    @Reflect
+    private static Integer emptyWithIntegerSelector(Integer sel) {
+        switch(sel) {}
+        return sel;
+    }
+
+    @Reflect
+    private static String emptyWithStringSelector(String sel) {
+        switch(sel) {}
+        return sel;
+    }
+
+    @Test
+    void testEmpty() {
+        CoreOp.FuncOp intSel = lower("emptyWithIntSelector");
+        CoreOp.FuncOp integerSel = lower("emptyWithIntegerSelector");
+        CoreOp.FuncOp stringSel = lower("emptyWithStringSelector");
+        Assertions.assertEquals(emptyWithIntSelector(0), Interpreter.invoke(MethodHandles.lookup(), intSel, 0));
+        Assertions.assertEquals(emptyWithIntegerSelector(0), Interpreter.invoke(MethodHandles.lookup(), integerSel, 0));
+        Assertions.assertThrows(NullPointerException.class, () -> emptyWithIntegerSelector(null));
+        Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), integerSel, (Integer) null));
+        Assertions.assertEquals(emptyWithStringSelector("one"), Interpreter.invoke(MethodHandles.lookup(), stringSel, "one"));
+        Assertions.assertThrows(NullPointerException.class, () -> emptyWithStringSelector(null));
+        Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), stringSel, (String) null));
+    }
+
     private static CoreOp.FuncOp lower(String methodName) {
         return lower(getCodeModel(methodName));
     }

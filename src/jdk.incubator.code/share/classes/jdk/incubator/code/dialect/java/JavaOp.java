@@ -3599,13 +3599,15 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
                 if (hasYieldStatements) {
                     BranchTarget.setBranchTarget(b.context(), this, exit, null);
                 }
-            } else {
+            } else if (!bodies.isEmpty()) {
                 exit = b.block();
                 if (resultType() != VOID) {
                     Value r = exit.parameter(resultType());
                     exit.context().mapValue(result(), r);
                 }
                 BranchTarget.setBranchTarget(b.context(), this, exit, null);
+            } else {
+                exit = selectorCanBeNull ? b.block() : b;
             }
 
             // null check
@@ -3741,7 +3743,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         SwitchExpressionOp(CodeType resultType, Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
-            super(target, nullHandling, requireBodyPairs(NAME, bodyCs));
+            super(target, nullHandling, requireBodyPairs(NAME, requireMinBodies(NAME, bodyCs, 2)));
             this.resultType = resultType == null ? bodies.get(1).yieldType() : resultType;
         }
 
@@ -3779,7 +3781,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         SwitchStatementOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
-            super(target, nullHandling, requireBodyPairs(NAME, bodyCs));
+            super(target, nullHandling, requireBodyPairs(NAME, requireMinBodies(NAME, bodyCs, nullHandling == SwitchNullHandling.ALLOW_NULL ? 2 : 0)));
         }
 
         @Override

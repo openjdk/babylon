@@ -151,12 +151,14 @@ public final class LoweringTransformer {
             }
         }
         var labels = labelsAndTargets.labels();
-        if (!labels.contains(null)) {
-            // implicit default to exit
-            labels.add(null);
-            blocks.add(exit);
+        if (!labels.isEmpty()) {
+            if (!labels.contains(null)) {
+                // implicit default to exit
+                labels.add(null);
+                blocks.add(exit);
+            }
+            block.add(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
         }
-        block.add(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
         return exit;
     }
 
