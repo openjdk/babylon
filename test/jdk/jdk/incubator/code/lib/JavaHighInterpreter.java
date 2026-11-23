@@ -30,6 +30,7 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 import java.util.*;
@@ -206,6 +207,12 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
     }
 
     private OpEffect executeSwitchOp(JavaOp.SwitchOp op, Env e) {
+        List<Value> operands = op.operands();
+        Value sel = operands.get(0);
+        if (!(sel.type() instanceof PrimitiveType) && !op.handleNulls() && e.valueOf(sel) == null) {
+            return new TerminatingOpEffect(FAKE_THROW_OP, List.of(new NullPointerException()), e);
+        }
+
         int i;
         int defLabelIndex = -1;
         for (i = 0; i < op.bodies().size(); i+=2) {
@@ -213,7 +220,7 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
                 defLabelIndex = i;
                 continue;
             }
-            TerminatingOpEffect effect = executeBody(op.bodies().get(i), e.valuesOf(op.operands()), e);
+            TerminatingOpEffect effect = executeBody(op.bodies().get(i), e.valuesOf(operands), e);
             Optional<Boolean> b = processBooleanEffect(effect);
             if (b.isEmpty()) {
                 return effect;
