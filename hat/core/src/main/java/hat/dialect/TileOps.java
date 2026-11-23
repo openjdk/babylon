@@ -123,6 +123,18 @@ public class TileOps {
         return new TileConvOp(resultType, tensor);
     }
 
+    public static Op gather(CodeType typeResult, Value ptrValueOffset) {
+        return new GatherOp(typeResult, ptrValueOffset);
+    }
+
+    public static Op scatter(Value ptrValue, Value tile) {
+        return new ScatterOp(ptrValue, tile);
+    }
+
+    public static Op offsetIndex(CodeType typeResult, Value ptrValue, Value indexTile) {
+        return new OffsetOp(typeResult, ptrValue, indexTile);
+    }
+
     public abstract static class TOp extends AbstractOp implements ExternalizedOp.Externalizable {
 
         final CodeType resultType;
@@ -657,6 +669,71 @@ public class TileOps {
             return dims;
         }
     }
+
+    public static class GatherOp extends TileContextOp implements Precedence.LoadOrConv {
+
+
+        GatherOp(GatherOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public GatherOp transform(CodeContext cc, CodeTransformer ot) {
+            return new GatherOp(this, cc);
+        }
+
+        GatherOp(CodeType tensorType, Value ptr) {
+            super(tensorType, List.of(ptr));
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("tile.gather  ", resultType + " -- ");
+        }
+    }
+
+    public static class OffsetOp extends TileContextOp implements Precedence.LoadOrConv {
+
+        OffsetOp(OffsetOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public OffsetOp transform(CodeContext cc, CodeTransformer ot) {
+            return new OffsetOp(this, cc);
+        }
+
+        OffsetOp(CodeType tensorType, Value ptr, Value index) {
+            super(tensorType, List.of(ptr, index));
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("tile.offset  ", resultType + " -- ");
+        }
+    }
+
+    public static class ScatterOp extends TOp {
+
+        ScatterOp(ScatterOp that, CodeContext cc) {
+            super(that, cc);
+        }
+
+        @Override
+        public ScatterOp transform(CodeContext cc, CodeTransformer ot) {
+            return new ScatterOp(this, cc);
+        }
+
+        ScatterOp(Value ptr, Value tile) {
+            super(JavaType.VOID, List.of(ptr, tile));
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("tile.scatter  ", resultType + " -- ");
+        }
+    }
+
 
     static Object getDefaultAttributeValue(ExternalizedOp def, String attributeName) {
         var attr = def.attributes();

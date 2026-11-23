@@ -24,11 +24,8 @@
  */
 package hat.test;
 
-import hat.Accelerator;
+import hat.*;
 import hat.Accelerator.Compute;
-import hat.ComputeContext;
-import hat.DType;
-import hat.NDRange;
 import hat.backend.Backend;
 import hat.buffer.*;
 import hat.test.annotation.HatTest;
@@ -40,6 +37,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Random;
 
+import static hat.TileContext.*;
 import static hat.TileContext.BIDX;
 import static hat.TileContext.BIDY;
 import static hat.TileContext.dimMap;
@@ -1070,14 +1068,111 @@ public class TestTileAPI {
         var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
         final int size = 1024;
         final int tileSize = 64;
-
         Tensor2DF16 result = Tensor2DF16.create(accelerator, size, size);
-
         accelerator.compute((@Reflect Compute) computeContext -> initTileOne2DF16(computeContext, result, tileSize));
-
         for (int i = 0; i < size * size; i++) {
             short value = result.array(i);
             HATAsserts.assertEquals(1.0f, Float.float16ToFloat(value), 0.001f);
+        }
+    }
+
+    @Reflect
+    public static void scalarSamples(Tensor a, final int tileSize) {
+        final int bidx = BIDX();
+        var arange = arange(tileSize);
+        var indices = add((bidx * tileSize), arange);
+        store(a, BIDX(), indices);
+    }
+
+    @Reflect
+    public static void scalarSample(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> scalarSamples(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_23() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 8;
+        TensorF32 result = TensorF32.create(accelerator, size);
+        accelerator.compute((@Reflect Compute) computeContext -> scalarSample(computeContext, result, tileSize));
+        for (int i = 0; i < size; i++) {
+            HATAsserts.assertEquals((float) i, result.array(i) , 0.001f);
+        }
+    }
+
+    @Reflect
+    public static void scalarSamples02(Tensor a, final int tileSize) {
+        final int bidx = BIDX();
+        var arange = arange(tileSize);
+        var indices = add(arange, bidx * tileSize);
+        store(a, BIDX(), indices);
+    }
+
+    @Reflect
+    public static void scalarSamples02(ComputeContext computeContext, TensorF32 output, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(output.m(), tileSize), () -> scalarSamples02(output, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_24() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 8;
+        TensorF32 result = TensorF32.create(accelerator, size);
+        accelerator.compute((@Reflect Compute) computeContext -> scalarSamples02(computeContext, result, tileSize));
+        for (int i = 0; i < size; i++) {
+            HATAsserts.assertEquals((float) i, result.array(i) , 0.001f);
+        }
+    }
+
+    @Reflect
+    public static void sampleGatherScatter(Tensor a, Tensor b, Tensor c, final int tileSize) {
+        final int bidx = BIDX();
+
+        // Compute the indices to load/store in the gather/scatter operations
+        final var arange = arange(tileSize);
+        final var indices = add(arange, bidx * tileSize);
+
+        // Load a tile using a gather operation
+        // It loads the data using the indices represented by
+        // the tile `indices`.
+        final var aTile = gather(a, indices);
+        final var bTile = gather(b, indices);
+
+        // Store the tile using a scatter operation.
+        // The tile will be store in the indices specified
+        // in the tile 'indices`
+        scatter(c, indices, add(aTile, bTile));
+    }
+
+    @Reflect
+    public static void sampleGatherScatter(ComputeContext computeContext, TensorF32 a, TensorF32 b, TensorF32 c, final int tileSize) {
+        computeContext.dispatchTile(NDRange.of1D(a.m(), tileSize),
+                () -> sampleGatherScatter(a, b, c, tileSize));
+    }
+
+    @HatTest
+    public void test_hat_tile_25() {
+        // Check 1D gather/scatter operations.
+
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSize = 8;
+        TensorF32 tensorA = TensorF32.create(accelerator, size);
+        TensorF32 tensorB = TensorF32.create(accelerator, size);
+        TensorF32 result = TensorF32.create(accelerator, size);
+
+        for (int i = 0; i < tensorA.m(); i++) {
+            tensorA.array(i, (float)i);
+            tensorA.array(i, (float)(i + 1));
+        }
+
+        accelerator.compute((@Reflect Compute) computeContext -> sampleGatherScatter(computeContext, tensorA, tensorB, result, tileSize));
+        for (int i = 0; i < size; i++) {
+            float valA = tensorA.array(i);
+            float valB = tensorB.array(i);
+            HATAsserts.assertEquals(valA + valB, result.array(i) , 0.001f);
         }
     }
 

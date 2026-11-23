@@ -58,18 +58,8 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Supplier;
@@ -234,7 +224,6 @@ public class TileTransformer {
         TileBuilderInterpreter tileBuilderInterpreter = new TileBuilderInterpreter(symbolTable, kblock);
         CodeContext cc = kblock.context();
         switch (op) {
-
             case CoreOp.VarOp varOp -> {
                 Value init = cc.getValue(op.operands().getFirst());
                 Op.Result r = kblock.add(CoreOp.var(varOp.varName(), init));
@@ -261,6 +250,9 @@ public class TileTransformer {
                     cc.mapValue(op.result(), result);
                 }
             }
+            case JavaOp.InvokeOp iop when isInvokeFromNumberClass(iop) -> {
+                cc.mapValue(op.result(), cc.getValue(op.operands().getFirst()));
+            }
             case JavaOp.InvokeOp iop -> {
                 JavaOp.InvokeOp invokeOp = JavaOp.invoke(valueTypeMap.get(iop.result()), iop.invokeReference(), cc.getValues(iop.operands()));
                 Op.Result result = kblock.add(invokeOp);
@@ -269,6 +261,10 @@ public class TileTransformer {
             default -> kblock.add(op);
         }
         return kblock;
+    }
+
+    static boolean isInvokeFromNumberClass(JavaOp.InvokeOp iop) {
+        return NUMBER_TYPES.contains(iop.invokeReference().refType());
     }
 
     /**
@@ -354,9 +350,16 @@ public class TileTransformer {
             return block.add(TileOps.dim(block.context().getValue(shapeA), block.context().getValue(shapeB), block.context().getValue(shapeC)));
         }
 
-        public Value load(CodeType type, Op.Result result, CodeType ptrTile, Value ptr, CodeType dimensionType, Value dimension, CodeType shapeType, Value shape) {
+        public Value load(CodeType resultType, Op.Result result,
+                          CodeType ptrTile, Value ptr,
+                          CodeType dimensionType, Value dimension,
+                          CodeType shapeType, Value shape) {
             PtrType ptrType = TileTypeInterpreter.inferPtrType(ptrTile);
-            return block.add(TileOps.load(type, block.context().getValue(ptr), block.context().getValue(dimension), block.context().getValue(shape), ptrType.dims()));
+            return block.add(TileOps.load(resultType,
+                    block.context().getValue(ptr),
+                    block.context().getValue(dimension),
+                    block.context().getValue(shape),
+                    ptrType.dims()));
         }
 
         public Value store(CodeType resultType, Op.Result result, CodeType ptrTile, Value ptr, CodeType idType, Value id, CodeType tensorType, Value tensor) {
@@ -461,10 +464,44 @@ public class TileTransformer {
             return block.add(TileOps.arange(typeResult, dType, block.context().getValue(size), block.context().getValue(start), block.context().getValue(step)));
         }
 
-        public Value arange(CodeType typeResult, Op.Result result, CodeType sizeType, Value size, CodeType dType, Value dTypeValue, CodeType startType, Value start) {
+        public Value arange(CodeType typeResult, Op.Result result,
+                            CodeType sizeType, Value size,
+                            CodeType dType, Value dTypeValue,
+                            CodeType startType, Value start) {
             CoreOp.ConstantOp constant = CoreOp.constant(DType.INT, 1);
             Op.Result cOne = block.add(constant);
             return block.add(TileOps.arange(typeResult, dType, block.context().getValue(size), block.context().getValue(start), block.context().getValue(cOne)));
+        }
+
+        public Value gather(CodeType typeResult, Op.Result result,
+                            CodeType pointerType, Value pointerValue,
+                            CodeType tileIndexType, Value index) {
+            // Add offset
+            Op.Result loadOffsetValue = addVarOffset(typeResult, pointerValue, index);
+            // Add gather
+            return block.add(TileOps.gather(typeResult, loadOffsetValue));
+        }
+
+        public Value scatter(CodeType typeResult, Op.Result result,
+                            CodeType pointerType, Value pointerValue,
+                            CodeType tileIndexType, Value index,
+                             CodeType tileType, Value tile) {
+            // Add offset operation
+            Op.Result loadOffsetValue = addVarOffset(tileIndexType, pointerValue, index);
+            // Add scatter operation
+            return block.add(TileOps.scatter(loadOffsetValue, block.context().getValue(tile)));
+        }
+
+        private Op.Result addVarOffset(CodeType typeResult, Value pointerValue, Value index) {
+            Op offsetOp = TileOps.offsetIndex(typeResult, block.context().getValue(pointerValue), block.context().getValue(index));
+            Op.Result offsetValue = block.add(offsetOp);
+            String varName = ThreadLocalRandom.current()
+                    .ints(5, 'a', 'z')
+                    .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                    .toString();
+            VarOp varOp = CoreOp.var(varName, offsetValue);
+            Op.Result varOffsetValue = block.add(varOp);
+            return block.add(CoreOp.varLoad(varOffsetValue));
         }
 
         private VarOp getTensorVarOp(Op op) {
@@ -509,6 +546,12 @@ public class TileTransformer {
     static final CodeType TYPE_TILE_CONTEXT = JavaType.type(TileContext.class);
     static final CodeType TYPE_TILE = JavaType.type(Tile.class);
     static final CodeType TYPE_J_L_MATH = JavaType.type(Math.class);
+    static final CodeType TYPE_J_NUMBER_INTEGER = JavaType.type(Integer.class);
+    static final CodeType TYPE_J_NUMBER_FLOAT = JavaType.type(Float.class);
+    static final CodeType TYPE_J_NUMBER_DOUBLE = JavaType.type(Double.class);
+    static final CodeType TYPE_J_NUMBER_SHORT = JavaType.type(Short.class);
+    static final CodeType TYPE_J_NUMBER_LONG = JavaType.type(Long.class);
+    static final Set<CodeType> NUMBER_TYPES = Set.of(TYPE_J_NUMBER_INTEGER, TYPE_J_NUMBER_FLOAT, TYPE_J_NUMBER_DOUBLE, TYPE_J_NUMBER_LONG, TYPE_J_NUMBER_SHORT);
 
     private static boolean isTypePromotionValid(CodeType fromType, CodeType toType) {
         if (fromType.equals(toType)) {
@@ -1113,6 +1156,16 @@ public class TileTransformer {
             } else {
                 throw new IllegalArgumentException("input types must be a tensorA type");
             }
+        }
+
+        public static TileType gather(CodeType pointerTensor, CodeType index) {
+            if (pointerTensor instanceof TileType tt && tt.elementType() instanceof PtrType ptrType && index instanceof TileType indexTile) {
+                return new TileType(ptrType.rType(), indexTile.shape());
+            }
+            throw new IllegalStateException("Expected a TypeTile<PtrTrype>");
+        }
+
+        public static void scatter(CodeType pointer, CodeType index, CodeType tile) {
         }
 
         static boolean isMMADimensionCompatible(List<Integer> dimA, List<Integer> dimB, List<Integer> dimC) {

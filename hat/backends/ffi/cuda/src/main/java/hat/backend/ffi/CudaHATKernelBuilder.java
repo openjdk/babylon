@@ -1448,6 +1448,25 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 tileDeclaration(tileOnesOp.resultType())).paren(_ -> {});
     }
 
+    @Override
+    public CudaHATKernelBuilder tileGatherOp(TileOps.GatherOp gatherOp) {
+        return tileLoad().paren(_ -> recurseResultOrThrow(gatherOp.operands().getFirst()));
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileScatterOp(TileOps.ScatterOp scatterOp) {
+        return tileStore().paren(_ ->
+                recurseResultOrThrow(scatterOp.operands().getFirst())
+                        .comma().sp().recurseResultOrThrow(scatterOp.operands().getLast()));
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileOffsetOp(TileOps.OffsetOp offsetOp) {
+        return recurseResultOrThrow(offsetOp.operands().getFirst())
+                .sp().plus().sp()
+                .recurseResultOrThrow(offsetOp.operands().getLast());
+    }
+
     // CUDA Tile Constructs
     private CudaHATKernelBuilder tileContext() {
         return id("ct").colon().colon();
