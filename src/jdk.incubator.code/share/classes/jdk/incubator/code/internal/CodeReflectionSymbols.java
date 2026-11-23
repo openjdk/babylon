@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,7 +33,6 @@ import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.List;
-import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 
 import static com.sun.tools.javac.code.Flags.PUBLIC;
@@ -50,7 +49,9 @@ public class CodeReflectionSymbols {
     public final Type opType;
     public final Type funcOpType;
     public final Type reflectableLambdaMetafactory;
+    public final Type codeModelGetterType;
     public final MethodSymbol quotedExtractOp;
+    public final MethodSymbol codeModelGetterValue;
 
     CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
@@ -61,11 +62,16 @@ public class CodeReflectionSymbols {
         opType = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.Op")).type;
         funcOpType = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.dialect.core.CoreOp$FuncOp")).type;
         reflectableLambdaMetafactory = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.runtime.ReflectableLambdaMetafactory")).type;
+        codeModelGetterType = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.internal.CodeModelGetter")).type;
         quotedExtractOp = new MethodSymbol(PUBLIC | STATIC | VARARGS,
                 names.fromString("extractOp"),
                 new MethodType(List.of(funcOpType, new ArrayType(syms.objectType, syms.arrayClass)), quotedType,
                         List.nil(), syms.methodClass),
                 quotedType.tsym);
+        codeModelGetterValue = new MethodSymbol(PUBLIC,
+                names.value,
+                new MethodType(List.nil(), syms.stringType, List.nil(), syms.methodClass),
+                codeModelGetterType.tsym);
         syms.synthesizeEmptyInterfaceIfMissing(quotedType);
     }
 }

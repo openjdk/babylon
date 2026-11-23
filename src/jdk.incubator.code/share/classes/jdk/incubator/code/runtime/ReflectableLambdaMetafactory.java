@@ -40,11 +40,13 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Method;
 import java.util.List;
 
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Quoted;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
+import jdk.incubator.code.internal.CodeModelGetter;
 import jdk.internal.access.JavaLangInvokeAccess;
 import jdk.internal.access.SharedSecrets;
 
@@ -169,7 +171,12 @@ public class ReflectableLambdaMetafactory {
             throws LambdaConversionException {
         try {
             MethodHandleInfo info = lookup.revealDirect(implementation);
-            return lookup.findStatic(info.getDeclaringClass(), "op$" + info.getName(), MethodType.methodType(Op.class));
+            Method method = info.reflectAs(Method.class, lookup);
+            CodeModelGetter getter = method.getDeclaredAnnotation(CodeModelGetter.class);
+            if (getter == null) {
+                throw new LambdaConversionException("No code model getter for " + method);
+            }
+            return lookup.findStatic(method.getDeclaringClass(), getter.value(), MethodType.methodType(Op.class));
         } catch (ReflectiveOperationException | IllegalArgumentException ex) {
             throw new LambdaConversionException(ex);
         }

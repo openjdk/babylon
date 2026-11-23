@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedMap;
@@ -93,21 +92,23 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             CD_CallSite, CD_Object.arrayType());
 
     private final MethodHandles.Lookup lookup;
-    private final Set<String> names;
     private final List<FuncOp> functions = new ArrayList<>();
     private final LinkedHashMap<String, FuncOp> modelsToBuild = new LinkedHashMap<>();
+    private final Map<String, String> methodToModel;
     private int nextLambdaIndex;
     // used for expression constants evaluation only
     private final ConstantValueAnalysis constants = new ConstantValueAnalysis(_ -> List.of());
 
-    private LambdaExpansionTransformer(MethodHandles.Lookup lookup, Set<String> names) {
+    private LambdaExpansionTransformer(MethodHandles.Lookup lookup, Map<String, String> methodToModel) {
         this.lookup = lookup;
-        this.names = new LinkedHashSet<>(names);
+        this.methodToModel = methodToModel;
     }
 
     static <O extends Op & Op.Invokable> CoreOp.ModuleOp transform(MethodHandles.Lookup lookup,
-                                                                   SequencedMap<String, ? extends O> ops) {
-        return new LambdaExpansionTransformer(lookup, ops.sequencedKeySet()).transform(ops);
+                                                                   SequencedMap<String, ? extends O> ops,
+                                                                   Map<String, String> methodToModel) {
+        ops.sequencedKeySet().forEach(name -> methodToModel.put(name, null));
+        return new LambdaExpansionTransformer(lookup, methodToModel).transform(ops);
     }
 
     private <O extends Op & Op.Invokable> CoreOp.ModuleOp transform(SequencedMap<String, ? extends O> ops) {
@@ -123,7 +124,7 @@ final class LambdaExpansionTransformer implements CodeTransformer {
                     modelsToBuild,
                     b -> b.add(JavaOp.fieldLoad(
                             FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
-            names.addAll(module.functionTable().sequencedKeySet());
+            module.functionTable().sequencedKeySet().forEach(name -> methodToModel.putIfAbsent(name, null));
             for (FuncOp builder : module.functionTable().sequencedValues()) {
                 // module may contain chunked large lambdas, which must also be expanded
                 functions.add(builder.transform(this));
@@ -163,16 +164,13 @@ final class LambdaExpansionTransformer implements CodeTransformer {
 
     }
 
-    private static String uniqueName(Set<String> names, String name, boolean reflectable) {
-        if (names.add(name) && (!reflectable || names.add("op$" + name))) {
-            return name;
+    private String uniqueName(String name) {
+        String candidate = name;
+        for (int i = 0; methodToModel.containsKey(candidate); i++) {
+            candidate = name + "$" + i;
         }
-        for (int i = 0; ; i++) {
-            String n = name + "$" + i;
-            if (names.add(n) && (!reflectable || names.add("op$" + n))) {
-                return n;
-            }
-        }
+        methodToModel.put(candidate, null);
+        return candidate;
     }
 
     @Override
@@ -194,7 +192,7 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             // filter out constant captures
             List<Value> captures = lop.capturedValues().stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
             int i = nextLambdaIndex++;
-            String implName = uniqueName(names, "lambda$" + i, lop.isReflectable());
+            String implName = uniqueName("lambda$" + i);
             String intfMethodName = intfMethod.getName();
             List<ConstantDesc> additionalBootstrapArgs = new ArrayList<>();
             if (!additionalIntfClasses.isEmpty()) {
@@ -209,7 +207,8 @@ final class LambdaExpansionTransformer implements CodeTransformer {
                     ? DMHD_LAMBDA_METAFACTORY : DMHD_LAMBDA_ALT_METAFACTORY;
             FuncOp quotation = lambdaToQuotation(lop);
             if (lop.isReflectable()) {
-                String modelName = "op$" + implName;
+                String modelName = uniqueName("op$lambda$" + i);
+                methodToModel.put(implName, modelName);
                 modelsToBuild.put(modelName, quotation);
                 lambdaMetafactory = additionalBootstrapArgs.isEmpty()
                         ? DMHD_REFLECTABLE_LAMBDA_METAFACTORY

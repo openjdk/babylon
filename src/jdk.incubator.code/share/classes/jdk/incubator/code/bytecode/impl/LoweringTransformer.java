@@ -28,6 +28,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
@@ -80,10 +81,11 @@ public final class LoweringTransformer {
     }
 
     public static <O extends Op & Op.Invokable> CoreOp.ModuleOp transform(MethodHandles.Lookup lookup,
-                                                                          SequencedMap<String, ? extends O> ops) {
+                                                                          SequencedMap<String, ? extends O> ops,
+                                                                          Map<String, String> methodToModel) {
         CodeTransformer lowering = getInstance(lookup);
         // lambda expansion goes first, so reflectable lambdas use the original model
-        CoreOp.ModuleOp module = LambdaExpansionTransformer.transform(lookup, ops);
+        CoreOp.ModuleOp module = LambdaExpansionTransformer.transform(lookup, ops, methodToModel);
         List<FuncOp> functions = new ArrayList<>();
         for (FuncOp fop : module.functionTable().sequencedValues()) {
             FuncOp lowered = fop.elements().anyMatch(op -> op instanceof Op.Lowerable

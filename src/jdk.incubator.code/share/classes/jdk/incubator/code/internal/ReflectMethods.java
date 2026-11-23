@@ -27,6 +27,7 @@ package jdk.incubator.code.internal;
 
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.MemberReferenceTree.ReferenceMode;
+import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Kinds.Kind;
 import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
@@ -98,6 +99,7 @@ import com.sun.tools.javac.util.Log;
 import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 import com.sun.tools.javac.util.Options;
+import com.sun.tools.javac.util.Pair;
 import jdk.incubator.code.*;
 import jdk.incubator.code.extern.DialectFactory;
 import jdk.incubator.code.dialect.core.*;
@@ -230,9 +232,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 }
                 // create a static method that returns the op
                 Name methodName = methodName(symbolToErasedMethodRef(tree.sym));
-                JCMethodDecl opMethod = opMethodDecl(methodName);
-                currentClassSym.members().enter(opMethod.sym);
-                opMethodDecls.add(opMethod);
+                opMethodDecls.add(opMethodDecl(methodName));
                 ops.put(methodName.toString(), funcOp);
             }
         }
@@ -324,13 +324,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 // dump the method IR if requested
                 log.note(Notes.ReflectableLambdaIrDump(funcOp.toText()));
             }
-            // create a static method that returns the FuncOp representing the lambda
-            Name lambdaName = lambdaName();
-            JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            ops.put(lambdaName.toString(), funcOp);
-
-            // leave the lambda in place, but also leave a trail for LambdaToMethod
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = reflectLambda(funcOp);
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
         try {
@@ -361,13 +355,22 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 // dump the method IR if requested
                 log.note(Notes.ReflectableMrefIrDump(funcOp.toText()));
             }
-            // create a method that returns the FuncOp representing the lambda
-            Name lambdaName = lambdaName();
-            ops.put(lambdaName.toString(), funcOp);
-            JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = reflectLambda(funcOp);
         }
         super.visitReference(tree);
+    }
+
+    private CodeReflectionInfo reflectLambda(Op op) {
+        Name getterName = lambdaName();
+        opMethodDecls.add(opMethodDecl(getterName));
+        ops.put(getterName.toString(), op);
+        return new CodeReflectionInfo(
+                new Attribute.Compound(
+                        crSyms.codeModelGetterType,
+                        com.sun.tools.javac.util.List.of(Pair.of(
+                                crSyms.codeModelGetterValue,
+                                new Attribute.Constant(syms.stringType, getterName.toString())))),
+                crSyms.reflectableLambdaMetafactory);
     }
 
     Name lambdaName() {
@@ -401,6 +404,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
                 com.sun.tools.javac.util.List.nil(), syms.methodClass);
         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
+        currentClassSym.members().enter(ms);
 
         // Create the method body calling the synthetic inner class method of the same name
         var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, codeModelsClassSym))));

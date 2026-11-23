@@ -38,8 +38,10 @@ import jdk.incubator.code.dialect.core.FunctionType;
 import jdk.incubator.code.dialect.core.TupleType;
 import jdk.incubator.code.dialect.core.VarType;
 import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.internal.CodeModelGetter;
 
 import java.lang.classfile.*;
+import java.lang.classfile.attribute.RuntimeVisibleAnnotationsAttribute;
 import java.lang.classfile.instruction.SwitchCase;
 import java.lang.constant.*;
 import java.lang.invoke.MethodHandle;
@@ -65,6 +67,8 @@ public final class BytecodeGenerator {
             "makeConcat",
             CD_CallSite);
 
+    private static final ClassDesc CD_CodeModelGetter =
+            CodeModelGetter.class.describeConstable().orElseThrow();
     private static final MethodTypeDesc MTD_FIND_FIELD =
             MethodTypeDesc.of(CD_MethodHandle, CD_Class, CD_String, CD_Class);
     private static final MethodTypeDesc MTD_FIND_METHOD =
@@ -152,10 +156,11 @@ public final class BytecodeGenerator {
     private static <O extends Op & Op.Invokable> byte[] generateClassData(MethodHandles.Lookup lookup,
                                                                           ClassDesc clName,
                                                                           SequencedMap<String, ? extends O> ops) {
-        ModuleOp module = LoweringTransformer.transform(lookup, ops);
+        Map<String, String> methodToModel = new HashMap<>();
+        ModuleOp module = LoweringTransformer.transform(lookup, ops, methodToModel);
         byte[] classBytes = ClassFile.of().build(clName, clb -> {
             for (var e : module.functionTable().sequencedEntrySet()) {
-                generateMethod(lookup, clName, e.getKey(), e.getValue(), clb, module.functionTable());
+                generateMethod(lookup, clName, e.getKey(), e.getValue(), clb, module.functionTable(), methodToModel.get(e.getKey()));
             }
         });
 
@@ -168,11 +173,17 @@ public final class BytecodeGenerator {
                                        String methodName,
                                        FuncOp fop,
                                        ClassBuilder clb,
-                                       SequencedMap<String, FuncOp> functionTable) {
+                                       SequencedMap<String, FuncOp> functionTable,
+                                       String modelGetter) {
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(fop.invokableSignature());
-        clb.withMethodBody(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC,
-                cob -> new BytecodeGenerator(lookup, className, List.of(), TypeKind.from(mtd.returnType()),
-                                             fop.body().blocks(), cob, functionTable).generate());
+        clb.withMethod(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC, mb -> {
+            if (modelGetter != null) {
+                mb.with(RuntimeVisibleAnnotationsAttribute.of(
+                        Annotation.of(CD_CodeModelGetter, AnnotationElement.ofString("value", modelGetter))));
+            }
+            mb.withCode(cob -> new BytecodeGenerator(lookup, className, List.of(), TypeKind.from(mtd.returnType()),
+                    fop.body().blocks(), cob, functionTable).generate());
+        });
     }
 
     private record Slot(int slot, TypeKind typeKind) {}
