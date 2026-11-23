@@ -3546,7 +3546,6 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
             int nullLabelIdx = findNullLabelIdx(defLabelIdx);
             Value selectorExpression = b.context().getValue(operands().getFirst());
             boolean selectorCanBeNull = !(selectorExpression.type() instanceof PrimitiveType);
-
             // decide which label will use the incoming block
             // if selector can be null the incoming block will be used for null check
             int reuseIdx = -1;
@@ -3782,7 +3781,7 @@ public sealed interface JavaOp extends ExternalizedOp.Externalizable {
         }
 
         SwitchStatementOp(Value target, SwitchNullHandling nullHandling, List<Body.Builder> bodyCs) {
-            super(target, nullHandling, requireBodyPairs(NAME, bodyCs));
+            super(target, nullHandling, requireBodyPairs(NAME, requireMinBodies(NAME, bodyCs, nullHandling == SwitchNullHandling.ALLOW_NULL ? 2 : 0)));
         }
 
         @Override
