@@ -35,10 +35,10 @@ import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import com.sun.tools.javac.tree.TreeMaker;
 import com.sun.tools.javac.util.Context;
 import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.internal.CodeModelGetter;
 import jdk.incubator.code.internal.ReflectMethods;
 import jdk.incubator.code.dialect.core.CoreOp.FuncOp;
 import jdk.incubator.code.dialect.core.FunctionType;
-import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.extern.OpWriter;
 import jdk.internal.access.SharedSecrets;
 
@@ -559,16 +559,13 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
     }
 
     private static Optional<FuncOp> createCodeModel(Method method) {
-        char[] sig = MethodRef.method(method).toString().toCharArray();
-        for (int i = 0; i < sig.length; i++) {
-            switch (sig[i]) {
-                case '.', ';', '[', '/': sig[i] = '$';
-            }
+        CodeModelGetter getter = method.getDeclaredAnnotation(CodeModelGetter.class);
+        if (getter == null) {
+            return Optional.empty();
         }
-        String opMethodName = new String(sig);
         MethodHandle mh;
         try {
-            mh = SharedSecrets.getJavaLangInvokeAccess().findStatic(method.getDeclaringClass(), opMethodName,
+            mh = SharedSecrets.getJavaLangInvokeAccess().findStatic(method.getDeclaringClass(), getter.value(),
                     MethodType.methodType(Op.class));
         } catch (IllegalAccessException e) { // @@@ when this is thrown and what to do about it ?
             throw new RuntimeException(e);
