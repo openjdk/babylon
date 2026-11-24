@@ -24,10 +24,18 @@
  */
 package hat.test;
 
-import hat.*;
+import hat.Accelerator;
 import hat.Accelerator.Compute;
+import hat.ComputeContext;
+import hat.DType;
+import hat.NDRange;
 import hat.backend.Backend;
-import hat.buffer.*;
+import hat.buffer.Tensor;
+import hat.buffer.Tensor2DF16;
+import hat.buffer.Tensor2DF32;
+import hat.buffer.TensorF16;
+import hat.buffer.TensorF32;
+
 import hat.test.annotation.HatTest;
 import hat.test.exceptions.HATAsserts;
 import hat.types.Tile;
@@ -37,15 +45,28 @@ import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Random;
 
-import static hat.TileContext.*;
 import static hat.TileContext.BIDX;
 import static hat.TileContext.BIDY;
 import static hat.TileContext.dimMap;
+import static hat.TileContext.gather;
 import static hat.TileContext.index;
 import static hat.TileContext.load;
+import static hat.TileContext.scatter;
 import static hat.TileContext.shape;
 import static hat.TileContext.store;
-import static hat.types.Tile.*;
+import static hat.types.Tile.add;
+import static hat.types.Tile.arange;
+import static hat.types.Tile.ceildiv;
+import static hat.types.Tile.full;
+import static hat.types.Tile.min;
+import static hat.types.Tile.mma;
+import static hat.types.Tile.numTiles;
+import static hat.types.Tile.ones;
+import static hat.types.Tile.permute;
+import static hat.types.Tile.reshape;
+import static hat.types.Tile.sum;
+import static hat.types.Tile.transpose;
+import static hat.types.Tile.zeros;
 
 /**
  * How to run?

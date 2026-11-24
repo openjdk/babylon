@@ -350,16 +350,9 @@ public class TileTransformer {
             return block.add(TileOps.dim(block.context().getValue(shapeA), block.context().getValue(shapeB), block.context().getValue(shapeC)));
         }
 
-        public Value load(CodeType resultType, Op.Result result,
-                          CodeType ptrTile, Value ptr,
-                          CodeType dimensionType, Value dimension,
-                          CodeType shapeType, Value shape) {
+        public Value load(CodeType type, Op.Result result, CodeType ptrTile, Value ptr, CodeType dimensionType, Value dimension, CodeType shapeType, Value shape) {
             PtrType ptrType = TileTypeInterpreter.inferPtrType(ptrTile);
-            return block.add(TileOps.load(resultType,
-                    block.context().getValue(ptr),
-                    block.context().getValue(dimension),
-                    block.context().getValue(shape),
-                    ptrType.dims()));
+            return block.add(TileOps.load(type, block.context().getValue(ptr), block.context().getValue(dimension), block.context().getValue(shape), ptrType.dims()));
         }
 
         public Value store(CodeType resultType, Op.Result result, CodeType ptrTile, Value ptr, CodeType idType, Value id, CodeType tensorType, Value tensor) {
@@ -464,10 +457,7 @@ public class TileTransformer {
             return block.add(TileOps.arange(typeResult, dType, block.context().getValue(size), block.context().getValue(start), block.context().getValue(step)));
         }
 
-        public Value arange(CodeType typeResult, Op.Result result,
-                            CodeType sizeType, Value size,
-                            CodeType dType, Value dTypeValue,
-                            CodeType startType, Value start) {
+        public Value arange(CodeType typeResult, Op.Result result, CodeType sizeType, Value size, CodeType dType, Value dTypeValue, CodeType startType, Value start) {
             CoreOp.ConstantOp constant = CoreOp.constant(DType.INT, 1);
             Op.Result cOne = block.add(constant);
             return block.add(TileOps.arange(typeResult, dType, block.context().getValue(size), block.context().getValue(start), block.context().getValue(cOne)));
@@ -781,7 +771,17 @@ public class TileTransformer {
             Type type = classTypeToTypeOrThrow(lookup, classType);
             return Arrays.stream(classes).anyMatch(clazz -> clazz.isAssignableFrom((Class<?>) type));
         } else if (codeType instanceof PrimitiveType) {
-            return Arrays.stream(classes).anyMatch(clazz -> (codeType == DType.FLOAT && clazz.equals(float.class)) || (codeType == DType.DOUBLE && clazz.equals(double.class)) || (codeType == DType.INT && clazz.equals(int.class)) || (codeType == DType.LONG && clazz.equals(long.class)) || (codeType == DType.SHORT && clazz.equals(short.class)) || (codeType == DType.CHAR && clazz.equals(char.class)) || (codeType == DType.BYTE && clazz.equals(byte.class)) || (codeType == DType.BOOLEAN && clazz.equals(boolean.class)) || (codeType == JavaType.VOID && clazz.equals(void.class)));
+            return Arrays.stream(classes).anyMatch(clazz ->
+                    (codeType == JavaType.FLOAT && clazz.equals(float.class))
+                            || (codeType == JavaType.DOUBLE && clazz.equals(double.class))
+                            || (codeType == JavaType.INT && clazz.equals(int.class))
+                            || (codeType == JavaType.LONG && clazz.equals(long.class))
+                            || (codeType == JavaType.SHORT && clazz.equals(short.class))
+                            || (codeType == JavaType.CHAR && clazz.equals(char.class))
+                            || (codeType == JavaType.BYTE && clazz.equals(byte.class))
+                            || (codeType == JavaType.BOOLEAN && clazz.equals(boolean.class))
+                            || (codeType == JavaType.VOID && clazz.equals(void.class))
+            );
         }
         return false;
     }
@@ -839,7 +839,10 @@ public class TileTransformer {
     static CodeType checkWithTypeInterpreter(Op op, String name, Map<Value, CodeType> valueTypeMap) {
         final MethodHandle mh;
         try {
-            Optional<Method> optionalMethod = Stream.of(TileTypeInterpreter.class.getDeclaredMethods()).filter(m -> m.getName().equals(name)).filter(m -> m.isVarArgs() ? m.getParameterCount() <= op.operands().size() : m.getParameterCount() == op.operands().size()).findFirst();
+            Optional<Method> optionalMethod = Stream.of(TileTypeInterpreter.class.getDeclaredMethods())
+                    .filter(m -> m.getName().equals(name))
+                    .filter(m -> m.isVarArgs() ? m.getParameterCount() <= op.operands().size() : m.getParameterCount() == op.operands().size())
+                    .findFirst();
             mh = MethodHandles.lookup().unreflect(optionalMethod.orElseThrow(() -> new NoSuchMethodException(name)));
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
