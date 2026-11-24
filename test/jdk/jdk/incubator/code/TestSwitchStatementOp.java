@@ -28,6 +28,8 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -830,6 +832,41 @@ public class TestSwitchStatementOp {
         Assertions.assertEquals(emptyWithStringSelector("one"), Interpreter.invoke(MethodHandles.lookup(), stringSel, "one"));
         Assertions.assertThrows(NullPointerException.class, () -> emptyWithStringSelector(null));
         Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), stringSel, (String) null));
+    }
+
+    @Reflect
+    static String nonExhaustiveCase1(String s) {
+        String r;
+        switch (s) {
+            case "A" -> r = "Alphabet";
+            case "#" -> r = "Special char";
+            default -> r = "Something else";
+        }
+        return r;
+    }
+
+    @Reflect
+    static String nonExhaustiveCase2(Object o) {
+        String s;
+        switch (o) {
+            case Number _ -> s = "number";
+            case Object _ -> s = "else"; // implicit default
+        }
+        return s;
+    }
+
+    static Stream<Method> nonExhaustiveSwitchStatCases() {
+        return Arrays.stream(TestSwitchStatementOp.class.getDeclaredMethods())
+                .filter(m -> m.getName().startsWith("nonExhaustiveCase"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonExhaustiveSwitchStatCases")
+    void testInterpretNonExhaustiveSwitchStat(Method m) {
+        CoreOp.FuncOp fop = Op.ofMethod(m).get();
+        CoreOp.FuncOp tfop = fop.transform(TestSwitchExpressionOp.REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP);
+        // sw stat completes normally when no label applies
+        Assertions.assertDoesNotThrow(() -> Interpreter.invoke(MethodHandles.lookup(), tfop, "unhandledValue"));
     }
 
     private static CoreOp.FuncOp lower(String methodName) {

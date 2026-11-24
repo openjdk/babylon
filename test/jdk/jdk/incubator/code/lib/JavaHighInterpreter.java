@@ -276,9 +276,17 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
             }
         }
 
-        if (i >= op.bodies().size() && defLabelIdx != -1) {
-            i = defLabelIdx;
-        } // sw expr and no default -> throws MatchEx
+        if (i >= op.bodies().size()) {
+            if (defLabelIdx != -1) {
+                i = defLabelIdx;
+            } else if (op instanceof JavaOp.SwitchExpressionOp) {
+                // sw expr and no label applies -> throw MatchException
+                // can't happen if model came from Javac
+                // but the user can build a model of non exhaustive switch
+                return new TerminatingOpEffect(FAKE_THROW_OP,
+                        List.of(new MatchException("non exhaustive switch expression", null)), e);
+            }
+        }
         i++;
         while (i < op.bodies().size()) {
             TerminatingOpEffect effect = executeBody(op.bodies().get(i), List.of(), e);
