@@ -49,7 +49,11 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
@@ -58,15 +62,23 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
 
 /**
  * Class to perform:
@@ -75,7 +87,6 @@ import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
  */
 public class TileTransformer {
 
-    private static final boolean PRINT_INTERNALS = Boolean.parseBoolean(System.getProperty("PRINT_INTERNALS"));
     private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA", "FALSE"));
     private static final boolean SIMPLE_SIGNATURE = Boolean.parseBoolean(System.getProperty("SIMPLE_SIGNATURE", "TRUE"));
 
@@ -88,9 +99,9 @@ public class TileTransformer {
      * @param argTypes Arguments to the Tile Kernel
      * @param <O>      Op type
      */
-    public static <O extends Op & Op.Invokable> DialectModule tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
+    public static <O extends Op & Op.Invokable> DialectModule tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodHandles.Lookup lookup) {
         Map<String, List<DialectFunction>> symbolTable = new LinkedHashMap<>();
-        List<DialectFunction> tileFunctions = tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
+        List<DialectFunction> tileFunctions = tileFunction(kernel, rType, argTypes, symbolTable, lookup);
         return new DialectModule(tileFunctions.getLast(), tileFunctions.subList(0, tileFunctions.size() - 1));
     }
 
@@ -139,7 +150,9 @@ public class TileTransformer {
      * @param <O>
      * @return A new function which includes the code tree in the Tile format (dialect)
      */
-    private static <O extends Op & Op.Invokable> List<DialectFunction> tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, Map<String, List<DialectFunction>> symbolTable, MethodRef methodRef, MethodHandles.Lookup lookup) {
+    private static <O extends Op & Op.Invokable> List<DialectFunction> tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes,
+                                                                                    Map<String, List<DialectFunction>> symbolTable,
+                                                                                    MethodHandles.Lookup lookup) {
 
         String signature = (kernel instanceof CoreOp.FuncOp f) ? f.funcName() : "kernel";
         if (!SIMPLE_SIGNATURE) {
@@ -164,13 +177,7 @@ public class TileTransformer {
         // Check for types and propagate the shapes across the model
         typeCheckKernel(kernel, argTypes, valueTypeMap, opData, stack, functionTable, methodRefMap, lookup);
 
-        if (PRINT_INTERNALS) {
-            // Print the intermediate step
-            printTypeMap(kernel, valueTypeMap);
-        }
-
         List<DialectFunction> funcOps = new ArrayList<>();
-
         while (!stack.isEmpty()) {
             O k = stack.pop();
             signature = (k instanceof CoreOp.FuncOp f) ? f.funcName() : "kernel";
@@ -194,7 +201,10 @@ public class TileTransformer {
         return funcOps;
     }
 
-    private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature, CodeType rType, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable, final int functionIndex) {
+    private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature,
+                                                                                       CodeType rType, Map<Value, CodeType> valueTypeMap,
+                                                                                       Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable,
+                                                                                       final int functionIndex) {
         // builds a function using the internal code reflection APIs
         CoreOp.FuncOp tileKernel = CoreOp.func(signature, CoreType.functionType(rType)).body(functionBlock -> {
             // List of parameters for the kernel
@@ -489,14 +499,14 @@ public class TileTransformer {
                     .ints(5, 'a', 'z')
                     .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                     .toString();
-            VarOp varOp = CoreOp.var(varName, offsetValue);
+            CoreOp.VarOp varOp = CoreOp.var(varName, offsetValue);
             Op.Result varOffsetValue = block.add(varOp);
             return block.add(CoreOp.varLoad(varOffsetValue));
         }
 
-        private VarOp getTensorVarOp(Op op) {
+        private CoreOp.VarOp getTensorVarOp(Op op) {
             return switch (op) {
-                case VarOp varOp -> varOp;
+                case CoreOp.VarOp varOp -> varOp;
                 default -> getTensorVarOp((Op) op.operands().getFirst().declaringElement());
             };
         }
@@ -507,7 +517,7 @@ public class TileTransformer {
             Op.Result convResult = block.add(TileOps.convert(convType, block.context().getValue(tensor)));
 
             // search tensor varOp
-            VarOp tensorVarOp = getTensorVarOp((Op) tensor.declaringElement());
+            CoreOp.VarOp tensorVarOp = getTensorVarOp((Op) tensor.declaringElement());
 
             Op.Result varValue = block.add(CoreOp.var(tensorVarOp.varName() + "_conv", convType, convResult));
             return block.add(CoreOp.varLoad(varValue));
@@ -805,35 +815,6 @@ public class TileTransformer {
         sb.append("_");
         sb.append(rType);
         return sb.toString();
-    }
-
-    public static <O extends Op & Op.Invokable> void printTypeMap(O kernel, Map<Value, CodeType> valueTypeMap) {
-        AtomicInteger valueId = new AtomicInteger();
-        Map<Value, Integer> valueIdMap = new LinkedHashMap<>();
-        kernel.elements().forEach(codeElement -> {
-            switch (codeElement) {
-                case CoreOp.FuncOp _ -> {
-                    // Ignore
-                }
-                case Op op when !op.result().type().equals(JavaType.VOID) -> {
-                    valueIdMap.put(op.result(), valueId.getAndIncrement());
-                }
-                case Block block -> {
-                    for (Block.Parameter parameter : block.parameters()) {
-                        valueIdMap.put(parameter, valueId.getAndIncrement());
-                    }
-                }
-                default -> {
-                }
-            }
-        });
-
-        valueIdMap.forEach((value, id) -> {
-            CodeType type = valueTypeMap.get(value);
-            if (type != null) {
-                System.out.println("%" + id + " : " + value.type() + " -> " + type);
-            }
-        });
     }
 
     static CodeType checkWithTypeInterpreter(Op op, String name, Map<Value, CodeType> valueTypeMap) {

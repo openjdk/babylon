@@ -230,8 +230,7 @@ public class KernelCallGraph implements LookupCarrier {
         // 3. A list of CodeTypes for each input argument to the kernel.
         CoreOp.FuncOp funcOp = entrypoint.funcOp();
         funcOp = TileTransformer.processConstantFields(funcOp, lookup());
-        MethodRef methodRef = MethodRef.method(method);
-        dialectModule = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes, methodRef, lookup());
+        dialectModule = TileTransformer.tileFunction(funcOp, JavaType.VOID, codeTypes, lookup());
 
         // Update the entry point: the main kernel is the last entry from the tileFunctions list
         entrypoint = new FuncOpCarrier.Impl(dialectModule.entryPoint().function());
