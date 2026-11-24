@@ -1114,4 +1114,19 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder tileOnesOp(TileOps.TileOnesOp tileOnesOp) {
         throw new UnsupportedOperationException("Tile OnesOp is not supported yet");
     }
+
+    @Override
+    public OpenCLHATKernelBuilder tileGatherOp(TileOps.GatherOp gatherOp) {
+        throw new UnsupportedOperationException("Tile Gather is not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileScatterOp(TileOps.ScatterOp scatterOp) {
+        throw new UnsupportedOperationException("Tile Scatter is not supported yet");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileOffsetOp(TileOps.OffsetOp offsetOp) {
+        throw new UnsupportedOperationException("Tile OffsetOp not supported yet");
+    }
 }

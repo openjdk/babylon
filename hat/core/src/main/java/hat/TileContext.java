@@ -178,4 +178,25 @@ public interface TileContext {
         return new DimMap(Arrays.stream(dimMap).boxed().toList());
     }
 
+    /**
+     * Loads a tile from an input tensor specified by the tile indices.
+     * @param tensorBuffer input tensor (from global memory)
+     * @param indices tile that represents the indices to load
+     * @return {@link Tile}
+     * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
+     */
+    static Tile gather(Tensor tensorBuffer, Tile indices) {
+        throw new UnsupportedOperationException("TileContext.gather() is a compiler intrinsic.");
+    }
+
+    /**
+     * Stores a tile value into a tensor (global memory) specific by a tile index.
+     * @param tensorBuffer tensor in global memory
+     * @param indices indices represented by a Tile
+     * @param resultTile tile to store
+     * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
+     */
+    static void scatter(Tensor tensorBuffer, Tile indices, Tile resultTile) {
+        throw new UnsupportedOperationException("TileContext.scatter() is a compiler intrinsic.");
+    }
 }
