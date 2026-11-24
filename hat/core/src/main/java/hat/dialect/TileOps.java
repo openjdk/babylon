@@ -24,8 +24,6 @@
  */
 package hat.dialect;
 
-import hat.codetypes.ConstantType;
-import hat.codetypes.TileType;
 import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
@@ -138,19 +136,23 @@ public class TileOps {
     public abstract static class TOp extends AbstractOp implements ExternalizedOp.Externalizable {
 
         final CodeType resultType;
+        final String opName;
 
         protected TOp(ExternalizedOp def) {
             super(def.operands());
+            this.opName = def.name();
             this.resultType = def.resultType();
         }
 
         TOp(TOp that, CodeContext cc) {
             super(that, cc);
+            this.opName = that.opName;
             this.resultType = that.resultType;
         }
 
-        TOp(CodeType resultType, List<? extends Value> operands) {
+        TOp(String name, CodeType resultType, List<? extends Value> operands) {
             super(operands);
+            this.opName = name;
             this.resultType = resultType;
         }
 
@@ -161,7 +163,7 @@ public class TileOps {
 
         @Override
         public String externalizeOpName() {
-            return "Tile-Op";
+            return opName;
         }
     }
 
@@ -178,35 +180,20 @@ public class TileOps {
             super(that, cc);
         }
 
-        TileContextOp(CodeType resultType, List<? extends Value> operands) {
-            super(resultType, operands);
+        TileContextOp(String name, CodeType resultType, List<? extends Value> operands) {
+            super(name, resultType, operands);
         }
 
     }
 
     public abstract static class TileCreateOp extends TileContextOp {
 
-        protected TileCreateOp(ExternalizedOp def) {
-            super(def);
-        }
-
         TileCreateOp(TOp that, CodeContext cc) {
             super(that, cc);
         }
 
-        TileCreateOp(CodeType resultType, List<? extends Value> operands) {
-            super(resultType, operands);
-        }
-
-        public StringBuilder shapeToStringBuilder() {
-            StringBuilder builder = new StringBuilder();
-            if (resultType instanceof ConstantType constantType) {
-                Object v = constantType.value();
-                if (v instanceof TileType tensorType) {
-                    builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
-                }
-            }
-            return builder;
+        TileCreateOp(String name, CodeType resultType, List<? extends Value> operands) {
+            super(name, resultType, operands);
         }
     }
 
@@ -232,7 +219,7 @@ public class TileOps {
 
         ModuleOp(List<CoreOp.FuncOp> functions) {
 
-            super(JavaType.VOID, List.of());
+            super(NAME, JavaType.VOID, List.of());
 
             Body.Builder bodyC = Body.Builder.of(null, CoreType.FUNCTION_TYPE_VOID);
             Block.Builder entryBlock = bodyC.entryBlock();
@@ -277,7 +264,7 @@ public class TileOps {
     }
 
     public static class TileIDOp extends TOp implements Precedence.Invoke {
-
+        public static final String NAME = "tile.pid";
         final int dimension;
 
         public static TileIDOp create(ExternalizedOp def) {
@@ -291,7 +278,7 @@ public class TileOps {
         }
 
         protected TileIDOp(int dimensions) {
-            super(JavaType.INT, List.of());
+            super(NAME, JavaType.INT, List.of());
             this.dimension = dimensions;
         }
 
@@ -309,18 +296,14 @@ public class TileOps {
             return dimension;
         }
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.pid ##### ", dimension);
-        }
     }
 
     public static class TileIndexOp extends TOp {
-
+        public static final String NAME = "tile.index";
         final int dimension;
 
         protected TileIndexOp(Value... values) {
-            super(JavaType.INT, Arrays.stream(values).toList());
+            super(NAME, JavaType.INT, Arrays.stream(values).toList());
             this.dimension = values.length;
         }
 
@@ -338,16 +321,12 @@ public class TileOps {
             return dimension;
         }
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.index ", dimension);
-        }
     }
 
     public static class TileFullOp extends TileCreateOp implements Precedence.Invoke {
-
+        public static final String NAME = "tile.full";
         protected TileFullOp(CodeType type, Value shapeValue, Value initValue) {
-            super(type, List.of(shapeValue, initValue));
+            super(NAME, type, List.of(shapeValue, initValue));
         }
 
         protected TileFullOp(TileFullOp that, CodeContext cc, CodeTransformer ot) {
@@ -358,17 +337,12 @@ public class TileOps {
         public TileFullOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new TileFullOp(this, codeContext, codeTransformer);
         }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.full ", operands().get(1));
-        }
     }
 
     public static class TileZerosOp extends TileCreateOp implements Precedence.Invoke {
-
+        public static final String NAME = "tile.zeros";
         protected TileZerosOp(CodeType type, Value... shapes) {
-            super(type, Arrays.stream(shapes).toList());
+            super(NAME, type, Arrays.stream(shapes).toList());
         }
 
         protected TileZerosOp(TileZerosOp that, CodeContext cc, CodeTransformer ot) {
@@ -379,18 +353,12 @@ public class TileOps {
         public TileZerosOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new TileZerosOp(this, codeContext, codeTransformer);
         }
-
-        @Override
-        public Map<String, Object> externalize() {
-            StringBuilder builder = shapeToStringBuilder();
-            return Map.of("tile.zeros ", builder.toString());
-        }
     }
 
     public static class TileOnesOp extends TileCreateOp implements Precedence.Invoke {
-
+        public static final String NAME = "tile.ones";
         protected TileOnesOp(CodeType type, Value... shapes) {
-            super(type, Arrays.stream(shapes).toList());
+            super(NAME, type, Arrays.stream(shapes).toList());
         }
 
         protected TileOnesOp(TileOnesOp that, CodeContext cc, CodeTransformer ot) {
@@ -401,20 +369,14 @@ public class TileOps {
         public TileOnesOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new TileOnesOp(this, codeContext, codeTransformer);
         }
-
-        @Override
-        public Map<String, Object> externalize() {
-            StringBuilder builder = shapeToStringBuilder();
-            return Map.of("tile.ones ", builder.toString());
-        }
     }
 
     public static class TileArangeOp extends TileCreateOp implements Precedence.Invoke {
-
+        public static final String NAME = "tile.arange";
         private final CodeType dType;
 
         protected TileArangeOp(CodeType type, CodeType dtype, Value... args) {
-            super(type, List.of(args));
+            super(NAME, type, List.of(args));
             this.dType = dtype;
         }
 
@@ -428,20 +390,15 @@ public class TileOps {
             return new TileArangeOp(this, codeContext, codeTransformer);
         }
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.arange ", operands().getFirst());
-        }
-
         public CodeType dType() {
             return dType;
         }
     }
 
     public static class TileIrangeOp extends TOp {
-
+        public static final String NAME = "tile.irange";
         protected TileIrangeOp(CodeType type, Value startIndex, Value endIndex) {
-            super(type, List.of(startIndex, endIndex));
+            super(NAME, type, List.of(startIndex, endIndex));
         }
 
         protected TileIrangeOp(TileIrangeOp that, CodeContext cc, CodeTransformer ot) {
@@ -452,17 +409,12 @@ public class TileOps {
         public TileIrangeOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new TileIrangeOp(this, codeContext, codeTransformer);
         }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.irange ", operands().getFirst());
-        }
     }
 
     public static class TileConvOp extends TileContextOp implements Precedence.Invoke {
-
+        public static final String NAME = "tile.conv";
         protected TileConvOp(CodeType type, Value tensor) {
-            super(type, List.of(tensor));
+            super(NAME, type, List.of(tensor));
         }
 
         protected TileConvOp(TileConvOp that, CodeContext cc, CodeTransformer ot) {
@@ -473,17 +425,12 @@ public class TileOps {
         public TileConvOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new TileConvOp(this, codeContext, codeTransformer);
         }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.conv ", operands().getFirst());
-        }
     }
 
     public static class AsTypeOp extends TOp {
-
+        public static final String NAME = "tile.astType";
         protected AsTypeOp(CodeType type, Value size) {
-            super(type, List.of(size));
+            super(NAME, type, List.of(size));
         }
 
         protected AsTypeOp(AsTypeOp that, CodeContext cc, CodeTransformer ot) {
@@ -494,19 +441,14 @@ public class TileOps {
         public AsTypeOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
             return new AsTypeOp(this, codeContext, codeTransformer);
         }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.asType ", operands().get(0));
-        }
     }
 
     public static class TileShapeOp extends TOp {
-
+        public static final String NAME = "tile.shape";
         final int dimension;
 
         protected TileShapeOp(Value... values) {
-            super(JavaType.INT, Arrays.stream(values).toList());
+            super(NAME, JavaType.INT, Arrays.stream(values).toList());
             this.dimension = values.length;
         }
 
@@ -523,19 +465,14 @@ public class TileOps {
         public int dimension() {
             return dimension;
         }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.shape ", dimension);
-        }
     }
 
     public static class TileDimOp extends TOp {
-
+        public static final String NAME = "tile.dimMap";
         final int dimension;
 
         protected TileDimOp(Value... values) {
-            super(JavaType.INT, Arrays.stream(values).toList());
+            super(NAME, JavaType.INT, Arrays.stream(values).toList());
             this.dimension = values.length;
         }
 
@@ -553,14 +490,10 @@ public class TileOps {
             return dimension;
         }
 
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.dimMap ", dimension);
-        }
     }
 
     public static class TileNumOp extends TileContextOp implements Precedence.Invoke {
-
+        public static final String NAME = "tile.numTiles";
         TileNumOp(TileNumOp that, CodeContext cc) {
             super(that, cc);
         }
@@ -571,16 +504,12 @@ public class TileOps {
         }
 
         TileNumOp(CodeType codeType, Value ptr, Value dimension, Value shape) {
-            super(codeType, List.of(ptr, dimension, shape));
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.numTile  ", operands().get(1)); // with dimension
+            super(NAME, codeType, List.of(ptr, dimension, shape));
         }
     }
 
     public static class TileSumOp extends TileContextOp implements Precedence.Invoke {
+        public static final String NAME = "tile.sum";
 
         TileSumOp(TileSumOp that, CodeContext cc) {
             super(that, cc);
@@ -592,16 +521,12 @@ public class TileOps {
         }
 
         TileSumOp(CodeType tensorType, Value tensor, Value dimension) {
-            super(tensorType, List.of(tensor, dimension));
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.sum  ", resultType);
+            super(NAME, tensorType, List.of(tensor, dimension));
         }
     }
 
     public static class LoadOp extends TileContextOp implements Precedence.LoadOrConv {
+        public static final String NAME = "tile.load";
 
         private final List<Integer> dims;
 
@@ -616,13 +541,8 @@ public class TileOps {
         }
 
         LoadOp(CodeType tensorType, Value ptr, Value mask, Value other, List<Integer> dims) {
-            super(tensorType, List.of(ptr, mask, other));
+            super(NAME, tensorType, List.of(ptr, mask, other));
             this.dims = dims;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.load  ", resultType + " -- " + Arrays.toString(dims.toArray()));
         }
 
         public List<Integer> dims() {
@@ -631,6 +551,7 @@ public class TileOps {
     }
 
     public static class StoreOp extends TOp {
+        public static final String NAME = "tile.store";
 
         private final List<Integer> dims;
 
@@ -645,24 +566,8 @@ public class TileOps {
         }
 
         StoreOp(Value ptr, Value id, Value tensor, List<Integer> dims) {
-            super(JavaType.VOID, List.of(ptr, id, tensor));
+            super(NAME, JavaType.VOID, List.of(ptr, id, tensor));
             this.dims = dims;
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            StringBuilder builder = new StringBuilder();
-            Value tensor = operands().getLast();
-            if (tensor.type() instanceof ConstantType constantType) {
-                Object v = constantType.value();
-                // NOTE: The values become the propagate shape, while the codeType represent the element type of
-                // the tensor operation (e.g., Tile).
-                if (v instanceof TileType tensorType) {
-                    builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
-                }
-            }
-            builder.append(resultType).append(" ").append(Arrays.toString(dims.toArray()));
-            return Map.of("tile.store  ", builder.toString());
         }
 
         public List<Integer> dims() {
@@ -671,7 +576,7 @@ public class TileOps {
     }
 
     public static class GatherOp extends TileContextOp implements Precedence.LoadOrConv {
-
+        public static final String NAME = "tile.gather";
 
         GatherOp(GatherOp that, CodeContext cc) {
             super(that, cc);
@@ -683,16 +588,12 @@ public class TileOps {
         }
 
         GatherOp(CodeType tensorType, Value ptr) {
-            super(tensorType, List.of(ptr));
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.gather  ", resultType + " -- ");
+            super(NAME, tensorType, List.of(ptr));
         }
     }
 
     public static class OffsetOp extends TileContextOp implements Precedence.LoadOrConv {
+        public static final String NAME = "tile.offset";
 
         OffsetOp(OffsetOp that, CodeContext cc) {
             super(that, cc);
@@ -704,16 +605,12 @@ public class TileOps {
         }
 
         OffsetOp(CodeType tensorType, Value ptr, Value index) {
-            super(tensorType, List.of(ptr, index));
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.offset  ", resultType + " -- ");
+            super(NAME, tensorType, List.of(ptr, index));
         }
     }
 
     public static class ScatterOp extends TOp {
+        public static final String NAME = "tile.scatter";
 
         ScatterOp(ScatterOp that, CodeContext cc) {
             super(that, cc);
@@ -725,12 +622,7 @@ public class TileOps {
         }
 
         ScatterOp(Value ptr, Value tile) {
-            super(JavaType.VOID, List.of(ptr, tile));
-        }
-
-        @Override
-        public Map<String, Object> externalize() {
-            return Map.of("tile.scatter  ", resultType + " -- ");
+            super(NAME, JavaType.VOID, List.of(ptr, tile));
         }
     }
 

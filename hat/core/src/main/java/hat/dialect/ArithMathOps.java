@@ -70,15 +70,6 @@ public class ArithMathOps {
             this.resultType = resultType;
         }
 
-        protected StringBuilder externalizeShape() {
-            StringBuilder builder = new StringBuilder();
-            if (resultType instanceof ConstantType constantType
-                    && constantType.value() instanceof TileType tensorType) {
-                builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
-            }
-            return builder;
-        }
-
         @Override
         public CodeType resultType() {
             return resultType;
@@ -180,12 +171,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(a, b));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> ").append(opName).append(" - resultType: ").append(resultType);
-            return builder.toString();
-        }
     }
 
     public static class TransposeOp extends ArithMathOp {
@@ -208,12 +193,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(a));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class ReshapeOp extends ArithMathOp {
@@ -236,12 +215,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(tensor, shape));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class PermuteOp extends ArithMathOp {
@@ -264,12 +237,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(tensor, shape));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class MMAOp extends ArithMathOp implements Precedence.Invoke {
@@ -292,12 +259,6 @@ public class ArithMathOps {
             super(NAME, tensorC.type(), List.of(tensorA, tensorB, tensorC));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class SubOp extends ArithMathOp {
@@ -409,7 +370,7 @@ public class ArithMathOps {
         return TileOps.getDefaultAttributeValue(def, attributeName);
     }
 
-    // Arith
+    // Tile Arith factory
 
     public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
