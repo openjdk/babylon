@@ -1186,7 +1186,7 @@ public class TestTileAPI {
 
         for (int i = 0; i < tensorA.m(); i++) {
             tensorA.array(i, (float)i);
-            tensorA.array(i, (float)(i + 1));
+            tensorB.array(i, (float)(i + 1));
         }
 
         accelerator.compute((@Reflect Compute) computeContext -> sampleGatherScatter(computeContext, tensorA, tensorB, result, tileSize));
