@@ -34,6 +34,8 @@ import jdk.incubator.code.dialect.java.MethodRef;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
+import static jdk.incubator.code.dialect.java.JavaType.BOOLEAN;
+
 class JavaHighInterpreter extends AbstractJavaInterpreter {
     private final JavaLowInterpreter javaLowInterpreter;
 
@@ -197,20 +199,71 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
         }
     }
 
-    private static boolean isDefaultLabel(Body body) {
-        return body.blocks().size() == 1 &&
-                body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop &&
-                yop.operands().getFirst() instanceof Op.Result opr &&
-                opr.op() instanceof CoreOp.ConstantOp cop &&
-                cop.value() instanceof Boolean b && b;
+    static boolean isDefaultLabel(Body labelBody) {
+        return labelBody != null &&
+                labelBody.blocks().size() == 1 &&
+                labelBody.entryBlock().parameters().isEmpty() &&
+                labelBody.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop &&
+                yop.yieldValue().declaringElement() instanceof CoreOp.ConstantOp cop &&
+                cop.resultType().equals(BOOLEAN) &&
+                cop.value() instanceof Boolean trueValue && trueValue;
+    }
+
+    static boolean isNullLabel(Body labelBody) {
+        //@@@ when op pattern matching is ready, we can use it
+        return labelBody != null &&
+                labelBody.blocks().size() == 1 &&
+                labelBody.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yieldOp &&
+                yieldOp.yieldValue() instanceof Op.Result opr &&
+                opr.op() instanceof JavaOp.EqOp eqOp &&
+                eqOp.operands().stream().anyMatch(v -> v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop
+                        && cop.value() == null);
+    }
+
+    static int findDefLabelIdx(JavaOp.SwitchOp swOp) {
+        for (int i = 0; i < swOp.bodies().size(); i += 2) {
+            if (isDefaultLabel(swOp.bodies().get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    static int findNullLabelIdx(JavaOp.SwitchOp swOp, int defLabelIdx) {
+        for (int i = 0; i < swOp.bodies().size(); i += 2) {
+            if (isNullLabel(swOp.bodies().get(i))) {
+                return i;
+            }
+        }
+        // case null can be merged with default
+        return swOp.handleNulls() ? defLabelIdx : -1;
     }
 
     private OpEffect executeSwitchOp(JavaOp.SwitchOp op, Env e) {
+        List<Value> operands = op.operands();
+        Value sel = operands.get(0);
+        int defLabelIdx = findDefLabelIdx(op);
+        int nullLabelIdx = findNullLabelIdx(op, defLabelIdx);
+        if (e.valueOf(sel) == null) {
+            if (nullLabelIdx != -1) {
+                TerminatingOpEffect effect = executeBody(op.bodies().get(nullLabelIdx + 1), List.of(), e);
+                switch (effect.terminatingOp()) {
+                    case CoreOp.YieldOp _, JavaOp.YieldOp _, JavaOp.BreakOp _ -> {
+                        return new OpResultEffect(effect.operands().isEmpty() ? null : effect.operands().getFirst(), e);
+                    }
+                    case JavaOp.SwitchFallthroughOp _ -> {
+                    } // let execution continue
+                    default -> {
+                        return effect;
+                    }
+                }
+            } else {
+                return new TerminatingOpEffect(FAKE_THROW_OP, List.of(new NullPointerException()), e);
+            }
+        }
         int i;
-        int defLabelIndex = -1;
         for (i = 0; i < op.bodies().size(); i+=2) {
-            if (isDefaultLabel(op.bodies().get(i))) {
-                defLabelIndex = i;
+            if (i == defLabelIdx || i == nullLabelIdx) {
                 continue;
             }
             TerminatingOpEffect effect = executeBody(op.bodies().get(i), e.valuesOf(op.operands()), e);
@@ -223,9 +276,9 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
             }
         }
 
-        if (i >= op.bodies().size() && defLabelIndex != -1) {
-            i = defLabelIndex;
-        }
+        if (i >= op.bodies().size() && defLabelIdx != -1) {
+            i = defLabelIdx;
+        } // sw expr and no default -> throws MatchEx
         i++;
         while (i < op.bodies().size()) {
             TerminatingOpEffect effect = executeBody(op.bodies().get(i), List.of(), e);

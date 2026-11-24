@@ -459,13 +459,15 @@ public class TestSwitchExpressionOp {
             Object actual = null;
             Throwable actualEx = null;
             try {
-                actual = new JavaLowInterpreter().interpret(lf, Arrays.asList(a), MethodHandles.lookup());
+                actual = Interpreter.invoke(MethodHandles.lookup(), f, Arrays.asList(a));
+                // interpretation of low level and high level models must produce the same result
+                Assertions.assertEquals(actual, Interpreter.invoke(MethodHandles.lookup(), lf, Arrays.asList(a)));
             } catch (Exception ex) {
                 actualEx = ex;
             }
             if (expectedEx != null) {
                 Assertions.assertSame(expectedEx.getClass(), actualEx.getClass());
-            } else if (expected != null) {
+            } else {
                 Assertions.assertEquals(expected, actual);
             }
         }
