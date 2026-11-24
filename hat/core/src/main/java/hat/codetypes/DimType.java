@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * Internal Type to the TypeInterpreter for providing/passing through the
  * dimensions after a permute operation.
  */
-public final class DimType implements TileType {
+public final class DimType implements HAType {
 
     private final List<Integer> dims;
 
@@ -50,7 +50,7 @@ public final class DimType implements TileType {
     public List<Integer> list(List<ConstantType> shapes) {
         return shapes.stream()
                 .map(shape -> (Integer) shape.value)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<Integer> list() {

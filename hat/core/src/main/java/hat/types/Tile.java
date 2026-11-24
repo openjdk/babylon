@@ -286,15 +286,36 @@ public record Tile() implements IfaceValue {
 
     /**
      * It creates a new tile and set the initial value to zeros.
-     * By default, the tensor type is {@link hat.DType#TENSOR_F32_TYPE} for 1D and
-     * {@link hat.DType#TENSOR_2D_F32_TYPE} for a 2D tile.
-     *
+     * By default, the tensor type is {@link hat.DType#FLOAT}.
      * @param shape
      * @return {@link Tile}
      */
     public static Tile zeros(Shape shape) {
         throw new UnsupportedOperationException("Tile.zeros is a compiler intrinsic.");
     }
+
+    /**
+     * It creates a new tile and set the initial value to ones.
+     * By default, the tensor type is {@link hat.DType#FLOAT}.
+     * @param shape
+     * @return {@link Tile}
+     */
+    public static Tile ones(Shape shape) {
+        throw new UnsupportedOperationException("Tile.ones is a compiler intrinsic.");
+    }
+
+    /**
+     * It creates a new tile and set the initial value to ones.
+     *
+     * @param shape
+     * @param codeType
+     *
+     * @return {@link Tile}
+     */
+    public static Tile ones(Shape shape, CodeType codeType) {
+        throw new UnsupportedOperationException("Tile.ones is a compiler intrinsic.");
+    }
+
 
     /**
      * Creates a 1D-tile with sequence elements starting with zero.

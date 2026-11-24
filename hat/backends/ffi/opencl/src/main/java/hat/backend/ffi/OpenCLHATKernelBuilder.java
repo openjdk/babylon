@@ -27,7 +27,7 @@ package hat.backend.ffi;
 import hat.buffer.F16Array;
 import hat.callgraph.KernelCallGraph;
 import hat.codebuilders.C99HATKernelBuilder;
-import hat.codetypes.TensorType;
+import hat.codetypes.TileType;
 import hat.dialect.ArithMathOps;
 import hat.dialect.BinaryOpEnum;
 import hat.dialect.TileOps;
@@ -118,7 +118,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    protected OpenCLHATKernelBuilder tileDeviceKernelDeclaration(TensorType tensorType) {
+    protected OpenCLHATKernelBuilder tileDeviceKernelDeclaration(TileType tensorType) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
@@ -1108,5 +1108,10 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     @Override
     public OpenCLHATKernelBuilder tileConvOp(TileOps.TileConvOp tileConvOp) {
         throw new UnsupportedOperationException("Tile ConvOp Operation not supported yet.");
+    }
+
+    @Override
+    public OpenCLHATKernelBuilder tileOnesOp(TileOps.TileOnesOp tileOnesOp) {
+        throw new UnsupportedOperationException("Tile OnesOp is not supported yet");
     }
 }

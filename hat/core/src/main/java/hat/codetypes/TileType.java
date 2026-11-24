@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,10 +25,78 @@
 package hat.codetypes;
 
 import jdk.incubator.code.CodeType;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.extern.ExternalizedCodeType;
 
-public sealed interface TileType extends CodeType
-        permits ConstantType,
-        DimType, IndexType,
-        PtrType, ShapeType,
-        TensorType {
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+/**
+ * Type to be used within the TypeInterpreter to pass build/pass
+ * tensors with a specific shape.
+ */
+public final class TileType implements HAType {
+
+    private final CodeType dType;   // dType
+    private final List<Integer> shape;  // Shape
+
+    public TileType(CodeType codeType, List<Integer> shape) {
+        this.dType = codeType;
+        // shape list immutable
+        this.shape = List.copyOf(shape);
+    }
+
+    public CodeType elementType() {
+        return dType;
+    }
+
+    public List<Integer> shape() {
+        return shape;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (o == null || getClass() != o.getClass()) { return false; }
+        TileType tensorType = (TileType) o;
+        return Objects.equals(dType, tensorType.dType) && Objects.equals(shape, tensorType.shape);
+    }
+
+    @Override
+    public ExternalizedCodeType externalize() {
+        List<ExternalizedCodeType> externalizedTypes = shape.stream().map(s -> new ExternalizedCodeType("x" + s, List.of())).collect(Collectors.toList());
+        externalizedTypes.add(dType.externalize());
+        return ExternalizedCodeType.of("tile", externalizedTypes);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(dType, shape);
+    }
+
+    @Override
+    public String toString() {
+        return externalize().toString();
+    }
+
+    public int rank() {
+        return shape.size();
+    }
+
+
+    public static PtrType getTilePtrOrNull(CodeType codeType) {
+        // if it is a tile of ptrType, this corresponds to I/O
+        // tensors. Thus, we need to map to the correct data
+        // structures to be able to generate the correct struct layout.
+        // TODO: We need to find a more generic way to do this,
+        // although, for the implementation of the tile programming model
+        // we are constraint to a set of Tensor types.
+        if (codeType instanceof TileType tt
+                && tt.elementType() instanceof PtrType ptrType
+                && ptrType.rType() instanceof JavaType) {
+            return ptrType;
+        }
+        return null;
+    }
 }

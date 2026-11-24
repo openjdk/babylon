@@ -25,12 +25,11 @@
 package hat.dialect;
 
 import hat.codetypes.ConstantType;
-import hat.codetypes.TensorType;
+import hat.codetypes.TileType;
 import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.CodeType;
-import jdk.incubator.code.Op;
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
@@ -74,7 +73,7 @@ public class ArithMathOps {
         protected StringBuilder externalizeShape() {
             StringBuilder builder = new StringBuilder();
             if (resultType instanceof ConstantType constantType
-                    && constantType.value() instanceof TensorType tensorType) {
+                    && constantType.value() instanceof TileType tensorType) {
                 builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
             }
             return builder;
@@ -122,7 +121,7 @@ public class ArithMathOps {
                 return n.floatValue();
             } else if (codeType.equals(JavaType.DOUBLE) && value instanceof Number n) {
                 return n.doubleValue();
-            } else if (codeType instanceof TensorType tt) {
+            } else if (codeType instanceof TileType tt) {
                 return processConstantValue(tt.elementType(), value);
             }
             throw new UnsupportedOperationException("Unsupported constant type and value: " + codeType + " " + value);

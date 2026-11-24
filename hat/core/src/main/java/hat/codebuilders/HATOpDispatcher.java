@@ -87,6 +87,8 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T tileConvOp(TileOps.TileConvOp tileConvOp);
 
+    T tileOnesOp(TileOps.TileOnesOp tileOnesOp);
+
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -119,6 +121,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case TileOps.TileSumOp tileSumOp -> tileSumOp(tileSumOp);
                 case TileOps.TileIndexOp tileIndexOp -> tileIndexOp(tileIndexOp);
                 case TileOps.TileZerosOp tileZerosOp -> tileZerosOp(tileZerosOp);
+                case TileOps.TileOnesOp tileOnesOp -> tileOnesOp(tileOnesOp);
                 case TileOps.TileIrangeOp tileIrangeOp -> tileIrangeOp(tileIrangeOp);
                 case TileOps.TileDimOp tileDimOp -> tileDimOp(tileDimOp);
                 case TileOps.TileArangeOp tileArangeOp -> tileArangeOp(tileArangeOp);

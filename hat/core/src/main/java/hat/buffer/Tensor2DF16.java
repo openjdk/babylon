@@ -38,8 +38,11 @@ import static java.lang.foreign.ValueLayout.JAVA_INT;
 public interface Tensor2DF16 extends Tensor, Half {
 
     int m();
+
     int n();
+
     void array(long index, short value);
+
     short array(long index);
 
     long ARRAY_HEADER_OFFSET = JAVA_INT.byteSize() * 32;
@@ -50,7 +53,7 @@ public interface Tensor2DF16 extends Tensor, Half {
                     .array("array"));
 
     static Tensor2DF16 create(ArenaAndLookupCarrier cc, int m, int n) {
-        return BoundSchema.of(cc ,schema, m, n).allocate();
+        return BoundSchema.of(cc, schema, m, n).allocate();
     }
 
     default Tensor2DF16 copyFrom(float[] floats) {

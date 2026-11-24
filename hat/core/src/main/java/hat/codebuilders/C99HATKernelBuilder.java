@@ -26,10 +26,9 @@ package hat.codebuilders;
 
 import hat.KernelContext;
 import hat.TileContext;
-import hat.buffer.BF16Array;
-import hat.buffer.Tensor2DF16;
+import hat.buffer.*;
 import hat.callgraph.KernelCallGraph;
-import hat.codetypes.TensorType;
+import hat.codetypes.TileType;
 import hat.device.NonMappableIface;
 import hat.dialect.HATPtrOp;
 import hat.phases.HATArrayViewPhase;
@@ -248,9 +247,9 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         return HAT_FUNC().sp().type(javaType).sp().funcName(funcOp);
     }
 
-    protected abstract T tileDeviceKernelDeclaration(TensorType tensorType);
+    protected abstract T tileDeviceKernelDeclaration(TileType tensorType);
 
-    public final T functionDeclaration(TensorType tt, CoreOp.FuncOp funcOp) {
+    public final T functionDeclaration(TileType tt, CoreOp.FuncOp funcOp) {
         return HAT_FUNC().sp()
                 .tileDeviceKernelDeclaration(tt)
                 .sp()
@@ -267,13 +266,13 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
                 || ifaceType.iface.isAssignableFrom(BF16Array.BF16Impl.class);
     }
 
-    public final boolean isTensorType(Schema.IfaceType ifaceType) {
-        return ifaceType.iface.isAssignableFrom(Tensor2DF16.class);
+    public final boolean isTensorF16Type(Schema.IfaceType ifaceType) {
+        return ifaceType.iface.isAssignableFrom(Tensor2DF16.class) || ifaceType.iface.isAssignableFrom(TensorF16.class);
     }
 
     private boolean isTensorArray(Schema.FieldNode.AbstractPrimitiveField primitiveField,Schema.IfaceType ifaceType) {
         // Generate half, only if is a tensor type for the field array (short -> half)
-        return primitiveField instanceof Schema.FieldNode.PrimitiveArray  && isTensorType(ifaceType);
+        return primitiveField instanceof Schema.FieldNode.PrimitiveArray  && isTensorF16Type(ifaceType);
     }
 
     public final T typedef(BoundSchema<?> boundSchema, Schema.IfaceType ifaceType) {
@@ -405,7 +404,7 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
         if (isVecOrMatType(scopedCodeBuilderContext().lookup(), javaType)) {
             handleType(self(), javaType);
         } else if (OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, Tensor.class)) {
-                HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
+            HAT_GLOBAL_MEM().sp().suffix_t(F16Impl.class).asterisk();
         } else if (javaType instanceof ClassType classType
                 && OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, IfaceValue.class)
                 && !OpHelper.isAssignable(scopedCodeBuilderContext().lookup(), javaType, S16ImplOfF16.class)) {
@@ -429,8 +428,8 @@ public abstract class C99HATKernelBuilder<T extends C99HATKernelBuilder<T>> exte
             nl();
             if (funcOp.body().yieldType() instanceof JavaType) {
                 functionDeclaration((JavaType) funcOp.body().yieldType(), funcOp);
-            } else if (funcOp.body().yieldType() instanceof TensorType) {
-                functionDeclaration((TensorType) funcOp.body().yieldType(), funcOp);
+            } else if (funcOp.body().yieldType() instanceof TileType) {
+                functionDeclaration((TileType) funcOp.body().yieldType(), funcOp);
             }
             parenNlIndented(_ ->
                     commaNlSeparated(

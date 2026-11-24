@@ -36,7 +36,7 @@ public interface TensorF16 extends Tensor, Half {
 
     Schema<TensorF16> schema = Schema.of(TensorF16.class, f16array ->
             f16array.arrayLen("m")
-                    .pad(120)
+                    .pad(124)
                     .array("array"));
 
     static TensorF16 create(Accelerator accelerator, int length){

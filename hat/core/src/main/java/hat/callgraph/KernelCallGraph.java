@@ -34,6 +34,7 @@ import hat.buffer.TensorF16;
 import hat.buffer.TensorF32;
 import hat.codetypes.ConstantType;
 import hat.codetypes.PtrType;
+import hat.codetypes.TileType;
 import hat.device.NonMappableIface;
 import hat.dialect.DialectFunction;
 import hat.dialect.DialectModule;
@@ -174,14 +175,14 @@ public class KernelCallGraph implements LookupCarrier {
 
     private static CodeType handlePrimitiveType(Object kernelArgument, Class<?> parameterType) {
         return switch (kernelArgument) {
-            case Integer val when parameterType.equals(int.class) -> new ConstantType(DType.Int, val);
-            case Long val when parameterType.equals(long.class) -> new ConstantType(DType.Long, val);
-            case Float val when parameterType.equals(float.class) -> new ConstantType(DType.Float, val);
-            case Double val when parameterType.equals(double.class) -> new ConstantType(DType.Double, val);
-            case Boolean val when parameterType.equals(boolean.class) -> new ConstantType(DType.Boolean, val);
-            case Character val when parameterType.equals(char.class) -> new ConstantType(DType.Char, val);
-            case Short val when parameterType.equals(short.class) -> new ConstantType(DType.Short, val);
-            case Byte val when parameterType.equals(byte.class) -> new ConstantType(DType.Byte, val);
+            case Integer val when parameterType.equals(int.class) -> new ConstantType(DType.INT, val);
+            case Long val when parameterType.equals(long.class) -> new ConstantType(DType.LONG, val);
+            case Float val when parameterType.equals(float.class) -> new ConstantType(DType.FLOAT, val);
+            case Double val when parameterType.equals(double.class) -> new ConstantType(DType.DOUBLE, val);
+            case Boolean val when parameterType.equals(boolean.class) -> new ConstantType(DType.BOOLEAN, val);
+            case Character val when parameterType.equals(char.class) -> new ConstantType(DType.CHAR, val);
+            case Short val when parameterType.equals(short.class) -> new ConstantType(DType.SHORT, val);
+            case Byte val when parameterType.equals(byte.class) -> new ConstantType(DType.BYTE, val);
             case null, default ->
                     throw new UnsupportedOperationException("Illegal parameter type " + parameterType.getName());
         };
@@ -192,15 +193,13 @@ public class KernelCallGraph implements LookupCarrier {
         CodeType ct;
         switch (kernelArgument) {
             case hat.buffer.Tensor t -> ct = switch (t) {
-                case TensorF16 tf16 -> new PtrType(DType.TENSOR_F16_TYPE, tf16.m());
-                case Tensor2DF16 tf162D -> new PtrType(DType.TENSOR_2D_F16_TYPE, tf162D.m(), tf162D.n());
-                case TensorF32 tf32 -> new PtrType(DType.TENSOR_F32_TYPE, tf32.m());
-                case Tensor2DF32 tf322D -> new PtrType(DType.TENSOR_2D_F32_TYPE, tf322D.m(), tf322D.n());
-                default ->
-                        throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
+                case TensorF16 tf16 -> new TileType(new PtrType(DType.FLOAT16, tf16.m()), List.of(tf16.m()));
+                case Tensor2DF16 tf162D -> new TileType(new PtrType(DType.FLOAT16, tf162D.m(), tf162D.n()), List.of(tf162D.m(), tf162D.n()));
+                case TensorF32 tf32 -> new TileType(new PtrType(DType.FLOAT, tf32.m()), List.of(tf32.m()));
+                case Tensor2DF32 tf322D -> new TileType(new PtrType(DType.FLOAT, tf322D.m(), tf322D.n()), List.of(tf322D.m(), tf322D.n()));
+                default -> throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
             };
-            case null, default ->
-                    throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
+            case null, default -> throw new UnsupportedOperationException("Unsupported I/O parameter type: " + kernelArgument.getClass());
         }
         return ct;
     }
