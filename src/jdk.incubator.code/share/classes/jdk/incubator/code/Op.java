@@ -560,7 +560,7 @@ public sealed interface Op extends CodeElement<Op, Body> permits Op.Terminating,
 
     private static Optional<FuncOp> createCodeModel(Method method) {
         CodeModelGetter getter = method.getDeclaredAnnotation(CodeModelGetter.class);
-        if (getter == null) {
+        if (getter == null || method.isSynthetic()) {
             return Optional.empty();
         }
         MethodHandle mh;

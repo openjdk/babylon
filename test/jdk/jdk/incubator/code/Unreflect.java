@@ -21,6 +21,7 @@
  * questions.
  */
 
+import java.lang.classfile.AnnotationValue;
 import java.lang.classfile.Attributes;
 import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
@@ -45,14 +46,13 @@ import java.util.*;
 
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.Op;
-import jdk.incubator.code.dialect.java.JavaType;
-import jdk.incubator.code.dialect.java.MethodRef;
 import jdk.incubator.code.runtime.CodeModelBootstraps;
 import jdk.incubator.code.runtime.ReflectableLambdaMetafactory;
 
 public final class Unreflect {
 
     static final ClassDesc CD_Reflect = Reflect.class.describeConstable().get();
+    static final ClassDesc CD_CodeModelGetter = ClassDesc.of("jdk.incubator.code.internal.CodeModelGetter");
     static final ClassDesc CD_CodeModelBootstraps = CodeModelBootstraps.class.describeConstable().get();
     static final ClassDesc CD_ReflectableLambdaMetafactory = ReflectableLambdaMetafactory.class.describeConstable().get();
     static final ClassDesc CD_CallerSensitive = ClassDesc.of("jdk.internal.reflect.CallerSensitive");
@@ -78,7 +78,7 @@ public final class Unreflect {
                                 .map(a -> a.annotations().stream().anyMatch(ann -> ann.classSymbol().equals(CD_CallerSensitive)))
                                 .orElse(false)) {
                     clb.with(mm);
-                } else if (isReflective(mm) || modelAccessors.contains(modelAccessorName(clm, mm))) {
+                } else if (!mm.flags().has(AccessFlag.SYNTHETIC) && (isReflective(mm) || modelAccessors.contains(modelAccessorName(mm)))) {
                     clb.transformMethod(mm, MethodTransform.dropping(me -> me instanceof CodeModel)
                             .andThen(MethodTransform.endHandler(mb -> mb.withCode(cob -> {
                                 MethodTypeDesc mts = mm.methodTypeSymbol();
@@ -130,11 +130,13 @@ public final class Unreflect {
         });
     }
 
-    static String modelAccessorName(ClassModel clm, MethodModel mm) {
-        MethodTypeDesc type = mm.methodTypeSymbol();
-        return MethodRef.method(JavaType.type(clm.thisClass().asSymbol()), mm.methodName().stringValue(),
-                JavaType.type(type.returnType()), type.parameterList().stream().map(JavaType::type).toList())
-                .toString().replace('.', '$').replace(';', '$').replace('[', '$').replace('/', '$');
+    static String modelAccessorName(MethodModel mm) {
+        return mm.findAttribute(Attributes.runtimeVisibleAnnotations()).stream()
+                 .flatMap(attr -> attr.annotations().stream())
+                 .filter(ann -> ann.classSymbol().equals(CD_CodeModelGetter))
+                 .flatMap(ann -> ann.elements().stream())
+                 .map(el -> ((AnnotationValue.OfString) el.value()).stringValue())
+                 .findFirst().orElse(null);
     }
 
     public static void main(String[] args) throws Exception {
