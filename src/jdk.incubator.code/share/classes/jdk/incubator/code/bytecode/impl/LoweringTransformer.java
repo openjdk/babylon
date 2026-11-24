@@ -151,12 +151,14 @@ public final class LoweringTransformer {
             }
         }
         var labels = labelsAndTargets.labels();
-        if (!labels.contains(null)) {
-            // implicit default to exit
-            labels.add(null);
-            blocks.add(exit);
+        if (!labels.isEmpty()) {
+            if (!labels.contains(null)) {
+                // implicit default to exit
+                labels.add(null);
+                blocks.add(exit);
+            }
+            block.add(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
         }
-        block.add(new ConstantLabelSwitchOp(selector, labels, blocks.stream().map(Block.Builder::reference).toList()));
         return exit;
     }
 
@@ -171,6 +173,11 @@ public final class LoweringTransformer {
         // so labels in model / source code will be identical to the one we will find in bytecode
         Value selector = swOp.operands().get(0);
         if (!integralPrimitiveTypes.contains(selector.type()) && !integralReferenceTypes.contains(selector.type())) {
+            return Optional.empty();
+        }
+        if (swOp.handleNulls()) {
+            // a switch that has case null, default -> ... is not constant
+            // if the switch has case null -> ... it will be rejected by the below check
             return Optional.empty();
         }
         var labels = new ArrayList<Integer>();

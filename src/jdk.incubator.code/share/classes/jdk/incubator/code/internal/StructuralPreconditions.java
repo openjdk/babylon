@@ -86,8 +86,8 @@ public final class StructuralPreconditions {
 
     public static List<Body.Builder> requireBodyPairs(String opName, List<Body.Builder> bodies) {
         int count = bodies.size();
-        if (count < 2 || count % 2 == 1) {
-            throw structuralException(opName, "requires one or more body pairs, found %d".formatted(count));
+        if (count % 2 == 1) {
+            throw structuralException(opName, "requires body pairs, found %d".formatted(count));
         }
         return bodies;
     }
