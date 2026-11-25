@@ -28,6 +28,7 @@ package com.sun.tools.javac.tree;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.*;
+import java.util.function.Consumer;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
@@ -830,7 +831,7 @@ public abstract class JCTree implements Tree, Cloneable, DiagnosticPosition {
             return target != null ? types.findDescriptorType(target) : types.createErrorType(null);
         }
 
-        public record CodeReflectionInfo(JCMethodDecl codeModel, Type reflectableLambdaMetafactory) { }
+        public record CodeReflectionInfo(Consumer<Name> registerImplementation, Type reflectableLambdaMetafactory) { }
     }
 
     /**

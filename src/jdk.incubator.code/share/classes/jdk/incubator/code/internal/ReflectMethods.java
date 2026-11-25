@@ -165,11 +165,8 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private final boolean reflectAll;
 
     private TreeMaker make;
-    private ListBuffer<JCTree> opMethodDecls;
-    private SequencedMap<String, Op> ops;
+    private SequencedMap<Op, Name> ops;
     private Symbol.ClassSymbol currentClassSym;
-    private Symbol.ClassSymbol codeModelsClassSym;
-    private int lambdaCount;
     private boolean codeReflectionEnabled = false;
     private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
@@ -191,7 +188,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
         typeEnvs = TypeEnvs.instance(context);
         attr = Attr.instance(context);
         flow = Flow.instance(context);
-        crSyms = new CodeReflectionSymbols(context);
+        crSyms = CodeReflectionSymbols.instance(context);
     }
 
     @Override
@@ -228,12 +225,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // dump the method IR if requested
                     log.note(Notes.ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
-                // create a static method that returns the op
-                Name methodName = methodName(symbolToErasedMethodRef(tree.sym));
-                JCMethodDecl opMethod = opMethodDecl(methodName);
-                currentClassSym.members().enter(opMethod.sym);
-                opMethodDecls.add(opMethod);
-                ops.put(methodName.toString(), funcOp);
+                ops.put(funcOp, methodName(symbolToErasedMethodRef(tree.sym)));
             }
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
@@ -252,36 +244,24 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
     @Override
     public void visitClassDef(JCClassDecl tree) {
-        ListBuffer<JCTree> prevOpMethodDecls = opMethodDecls;
-        SequencedMap<String, Op> prevOps = ops;
+        SequencedMap<Op, Name> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
-        Symbol.ClassSymbol prevCodeModelsClassSym = codeModelsClassSym;
-        int prevLambdaCount = lambdaCount;
         JavaFileObject prev = log.useSource(tree.sym.sourcefile);
         computeCapturesIfNeeded(tree);
         try {
-            lambdaCount = 0;
             currentClassSym = tree.sym;
-            opMethodDecls = new ListBuffer<>();
-            // The flags are usually filled by Check::checkFlags, which we don't run
-            codeModelsClassSym = new ClassSymbol(IDENTITY_TYPE | STATIC, names.fromString("$CM"), currentClassSym);
             ops = new LinkedHashMap<>();
             super.visitClassDef(tree);
             if (!ops.isEmpty()) {
-                tree.defs = tree.defs.prependList(opMethodDecls.toList());
                 tree = new JCReflectMethodsClassDecl(tree, ops);
                 // store the tree for later phases
                 Env<AttrContext> classEnv = typeEnvs.get(tree.sym);
                 classEnv.tree = tree;
                 classEnv.enclClass = tree;
-                currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
-            lambdaCount = prevLambdaCount;
-            opMethodDecls = prevOpMethodDecls;
             ops = prevOps;
             currentClassSym = prevClassSym;
-            codeModelsClassSym = prevCodeModelsClassSym;
             result = tree;
             log.useSource(prev);
         }
@@ -324,13 +304,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 // dump the method IR if requested
                 log.note(Notes.ReflectableLambdaIrDump(funcOp.toText()));
             }
-            // create a static method that returns the FuncOp representing the lambda
-            Name lambdaName = lambdaName();
-            JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            ops.put(lambdaName.toString(), funcOp);
-
-            // leave the lambda in place, but also leave a trail for LambdaToMethod
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = reflectLambda(funcOp);
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
         try {
@@ -361,17 +335,15 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 // dump the method IR if requested
                 log.note(Notes.ReflectableMrefIrDump(funcOp.toText()));
             }
-            // create a method that returns the FuncOp representing the lambda
-            Name lambdaName = lambdaName();
-            ops.put(lambdaName.toString(), funcOp);
-            JCMethodDecl opMethod = opMethodDecl(lambdaName);
-            tree.codeReflectionInfo = new CodeReflectionInfo(opMethod, crSyms.reflectableLambdaMetafactory);
+            tree.codeReflectionInfo = reflectLambda(funcOp);
         }
         super.visitReference(tree);
     }
 
-    Name lambdaName() {
-        return names.fromString("lambda").append('$', names.fromString(String.valueOf(lambdaCount++)));
+    CodeReflectionInfo reflectLambda(Op op) {
+        ops.put(op, null);
+        var snapshot = ops;
+        return new CodeReflectionInfo(name -> snapshot.put(op, names.fromString("op$").append(name)), crSyms.reflectableLambdaMetafactory);
     }
 
     Name methodName(MethodRef method) {
@@ -395,17 +367,6 @@ public class ReflectMethods extends TreeTranslatorPrev {
             }
             return CodeModelStorageOption.valueOf(s);
         }
-    }
-
-    private JCMethodDecl opMethodDecl(Name methodName) {
-        var mt = new MethodType(com.sun.tools.javac.util.List.nil(), crSyms.opType,
-                com.sun.tools.javac.util.List.nil(), syms.methodClass);
-        var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, currentClassSym);
-
-        // Create the method body calling the synthetic inner class method of the same name
-        var body = make.Return(make.App(make.Ident(new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, methodName, mt, codeModelsClassSym))));
-        var md = make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(body)));
-        return md;
     }
 
     public JCTree translateTopLevelClass(JCTree cdef, TreeMaker make) {
@@ -2870,9 +2831,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
 
     static class JCReflectMethodsClassDecl extends JCClassDecl {
 
-        SequencedMap<String, Op> ops;
+        SequencedMap<Op, Name> ops;
 
-        JCReflectMethodsClassDecl(JCClassDecl cls, SequencedMap<String, Op> ops) {
+        JCReflectMethodsClassDecl(JCClassDecl cls, SequencedMap<Op, Name> ops) {
             super(cls.mods, cls.name, cls.typarams, cls.extending, cls.implementing, cls.permitting, cls.defs, cls.sym);
             this.pos = cls.pos;
             this.type = cls.type;
@@ -2889,6 +2850,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
         @Override
         public void genCode(Context context, JCClassDecl cdef) throws IOException {
             if (cdef instanceof JCReflectMethodsClassDecl rmcdef) {
+                ClassSymbol codeModelsClassSym = new ClassSymbol(IDENTITY_TYPE | STATIC, Names.instance(context).fromString("$CM"), cdef.sym);
+                cdef.sym.members().enter(codeModelsClassSym);
+
                 JavaFileManager fileManager = context.get(JavaFileManager.class);
                 JavaFileManager.Location outLocn;
                 if (fileManager.hasLocation(StandardLocation.MODULE_SOURCE_PATH)) {
@@ -2896,20 +2860,38 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 } else {
                     outLocn = StandardLocation.CLASS_OUTPUT;
                 }
-                String className = cdef.sym.flatName().toString() + "$$CM";
+                String className = codeModelsClassSym.flatName().toString();
                 ClassDesc classDesc = ClassDesc.of(className);
                 JavaFileObject outFile = fileManager.getJavaFileForOutput(outLocn, className, JavaFileObject.Kind.CLASS, cdef.sym.sourcefile);
                 ClassDesc hostClass = ClassDesc.of(cdef.sym.flatName().toString());
 
+                MethodType getterType = CodeReflectionSymbols.instance(context).opGetterType;
+                TreeMaker make = TreeMaker.instance(context).forToplevel(null).at(cdef.pos());
+                var getters = new ListBuffer<JCTree>();
+                var ops = new LinkedHashMap<String, Op>();
+                for (var op : rmcdef.ops.sequencedEntrySet()) {
+                    if (op.getValue() != null && ops.putIfAbsent(op.getValue().toString(), op.getKey()) == null) {
+                        var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, op.getValue(), getterType, rmcdef.sym);
+                        getters.add(make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(
+                                make.Return(make.App(make.Ident(
+                                        new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, op.getValue(), getterType, codeModelsClassSym))))))));
+                        rmcdef.sym.members().enter(ms);
+                    }
+                }
+                rmcdef.defs = rmcdef.defs.appendList(getters.toList());
+
                 CoreOp.ModuleOp module = OpBuilder.createBuilderFunctions(
-                        rmcdef.ops,
+                        ops,
                         b -> b.add(JavaOp.fieldLoad(
                                 FieldRef.field(JavaOp.class, "JAVA_DIALECT_FACTORY", DialectFactory.class))));
                 byte[] data = BytecodeGenerator.generateClassData(MethodHandles.lookup(), classDesc, module);
                 // inject InnerClassesAttribute and NestHostAttribute
                 var clm = ClassFile.of().parse(data);
                 data = ClassFile.of().transformClass(clm, ClassTransform.endHandler(clb ->
-                        clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc, Optional.of(hostClass), Optional.of("$CM"), ClassFile.ACC_STATIC)))
+                        clb.with(InnerClassesAttribute.of(InnerClassInfo.of(classDesc,
+                                                                            Optional.of(hostClass),
+                                                                            Optional.of(codeModelsClassSym.name.toString()),
+                                                                            ClassFile.ACC_STATIC)))
                            .with(NestHostAttribute.of(hostClass))));
                 try (OutputStream out = outFile.openOutputStream()) {
                     out.write(data);
