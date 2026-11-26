@@ -160,9 +160,7 @@ public final class BytecodeGenerator {
         ModuleOp module = LoweringTransformer.transform(lookup, ops, methodToModel);
         byte[] classBytes = ClassFile.of().build(clName, clb -> {
             for (var e : module.functionTable().sequencedEntrySet()) {
-                String methodName = e.getKey();
-                generateMethod(lookup, clName, methodName, e.getValue(), clb, module.functionTable(),
-                        methodToModel.get(methodName), !ops.containsKey(methodName));
+                generateMethod(lookup, clName, e.getKey(), e.getValue(), clb, module.functionTable(), methodToModel.get(e.getKey()));
             }
         });
 
@@ -176,10 +174,9 @@ public final class BytecodeGenerator {
                                        FuncOp fop,
                                        ClassBuilder clb,
                                        SequencedMap<String, FuncOp> functionTable,
-                                       String modelGetter,
-                                       boolean synthetic) {
+                                       String modelGetter) {
         MethodTypeDesc mtd = MethodRef.toNominalDescriptor(fop.invokableSignature());
-        clb.withMethod(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | (synthetic ? ClassFile.ACC_SYNTHETIC : 0), mb -> {
+        clb.withMethod(methodName, mtd, ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC, mb -> {
             if (modelGetter != null) {
                 mb.with(RuntimeVisibleAnnotationsAttribute.of(
                         Annotation.of(CD_CodeModelGetter, AnnotationElement.ofString("value", modelGetter))));

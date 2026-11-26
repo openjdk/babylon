@@ -171,7 +171,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     private SequencedMap<String, Op> ops;
     private Symbol.ClassSymbol currentClassSym;
     private Symbol.ClassSymbol codeModelsClassSym;
-    private int modelCount;
+    private int lambdaCount;
     private boolean codeReflectionEnabled = false;
     private final Map<Symbol, List<Symbol>> localCaptures = new HashMap<>();
 
@@ -230,7 +230,10 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // dump the method IR if requested
                     log.note(Notes.ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
-                tree.sym.appendAttributes(com.sun.tools.javac.util.List.of(registerModel(funcOp)));
+                // create a static method that returns the op
+                Name methodName = methodName(symbolToErasedMethodRef(tree.sym));
+                opMethodDecls.add(opMethodDecl(methodName));
+                ops.put(methodName.toString(), funcOp);
             }
         }
         boolean prevCodeReflectionEnabled = codeReflectionEnabled;
@@ -253,11 +256,11 @@ public class ReflectMethods extends TreeTranslatorPrev {
         SequencedMap<String, Op> prevOps = ops;
         Symbol.ClassSymbol prevClassSym = currentClassSym;
         Symbol.ClassSymbol prevCodeModelsClassSym = codeModelsClassSym;
-        int prevModelCount = modelCount;
+        int prevLambdaCount = lambdaCount;
         JavaFileObject prev = log.useSource(tree.sym.sourcefile);
         computeCapturesIfNeeded(tree);
         try {
-            modelCount = 0;
+            lambdaCount = 0;
             currentClassSym = tree.sym;
             opMethodDecls = new ListBuffer<>();
             // The flags are usually filled by Check::checkFlags, which we don't run
@@ -274,7 +277,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 currentClassSym.members().enter(codeModelsClassSym);
             }
         } finally {
-            modelCount = prevModelCount;
+            lambdaCount = prevLambdaCount;
             opMethodDecls = prevOpMethodDecls;
             ops = prevOps;
             currentClassSym = prevClassSym;
@@ -358,18 +361,30 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     private CodeReflectionInfo reflectLambda(Op op) {
-        return new CodeReflectionInfo(registerModel(op), crSyms.reflectableLambdaMetafactory);
+        Name getterName = lambdaName();
+        opMethodDecls.add(opMethodDecl(getterName));
+        ops.put(getterName.toString(), op);
+        return new CodeReflectionInfo(
+                new Attribute.Compound(
+                        crSyms.codeModelGetterType,
+                        com.sun.tools.javac.util.List.of(Pair.of(
+                                crSyms.codeModelGetterValue,
+                                new Attribute.Constant(syms.stringType, getterName.toString())))),
+                crSyms.reflectableLambdaMetafactory);
     }
 
-    private Attribute.Compound registerModel(Op op) {
-        Name modelName = names.fromString("op#" + modelCount++);
-        opMethodDecls.add(opMethodDecl(modelName));
-        ops.put(modelName.toString(), op);
-        return new Attribute.Compound(
-                crSyms.codeModelGetterType,
-                com.sun.tools.javac.util.List.of(Pair.of(
-                        crSyms.codeModelGetterValue,
-                        new Attribute.Constant(syms.stringType, modelName.toString()))));
+    Name lambdaName() {
+        return names.fromString("lambda").append('$', names.fromString(String.valueOf(lambdaCount++)));
+    }
+
+    Name methodName(MethodRef method) {
+        char[] sigCh = method.toString().toCharArray();
+        for (int i = 0; i < sigCh.length; i++) {
+            switch (sigCh[i]) {
+                case '.', ';', '[', '/' -> sigCh[i] = '$';
+            }
+        }
+        return names.fromChars(sigCh, 0, sigCh.length);
     }
 
     // @@@ Retain enum for when we might add another storage to test

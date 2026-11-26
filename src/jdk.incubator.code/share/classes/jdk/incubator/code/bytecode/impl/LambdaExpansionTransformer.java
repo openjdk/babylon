@@ -96,7 +96,6 @@ final class LambdaExpansionTransformer implements CodeTransformer {
     private final LinkedHashMap<String, FuncOp> modelsToBuild = new LinkedHashMap<>();
     private final Map<String, String> methodToModel;
     private int nextLambdaIndex;
-    private int nextModelIndex;
     // used for expression constants evaluation only
     private final ConstantValueAnalysis constants = new ConstantValueAnalysis(_ -> List.of());
 
@@ -165,6 +164,15 @@ final class LambdaExpansionTransformer implements CodeTransformer {
 
     }
 
+    private String uniqueName(String name) {
+        String candidate = name;
+        for (int i = 0; methodToModel.containsKey(candidate); i++) {
+            candidate = name + "$" + i;
+        }
+        methodToModel.put(candidate, null);
+        return candidate;
+    }
+
     @Override
     public Block.Builder acceptOp(Block.Builder block, Op op) {
         if (!(op instanceof JavaOp.LambdaOp lop)) {
@@ -183,11 +191,8 @@ final class LambdaExpansionTransformer implements CodeTransformer {
             Method intfMethod = funcIntfMethod(intfClass, additionalIntfClasses, mtd);
             // filter out constant captures
             List<Value> captures = lop.capturedValues().stream().filter(v -> constants.evaluate(v).isEmpty()).toList();
-            String implName;
-            do {
-                implName = "lambda$" + nextLambdaIndex++;
-            } while (methodToModel.containsKey(implName));
-            methodToModel.put(implName, null);
+            int i = nextLambdaIndex++;
+            String implName = uniqueName("lambda$" + i);
             String intfMethodName = intfMethod.getName();
             List<ConstantDesc> additionalBootstrapArgs = new ArrayList<>();
             if (!additionalIntfClasses.isEmpty()) {
@@ -202,11 +207,7 @@ final class LambdaExpansionTransformer implements CodeTransformer {
                     ? DMHD_LAMBDA_METAFACTORY : DMHD_LAMBDA_ALT_METAFACTORY;
             FuncOp quotation = lambdaToQuotation(lop);
             if (lop.isReflectable()) {
-                String modelName;
-                do {
-                    modelName = "op#" + nextModelIndex++;
-                } while (methodToModel.containsKey(modelName));
-                methodToModel.put(modelName, null);
+                String modelName = uniqueName("op$lambda$" + i);
                 methodToModel.put(implName, modelName);
                 modelsToBuild.put(modelName, quotation);
                 lambdaMetafactory = additionalBootstrapArgs.isEmpty()
