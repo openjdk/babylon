@@ -24,7 +24,6 @@
  */
 package hat.dialect;
 
-import hat.codetypes.ConstantType;
 import hat.codetypes.TileType;
 import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
@@ -35,15 +34,11 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 import optkl.util.ops.Precedence;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 // Arithmetic Math Ops extended from Triton PoC and adapted to the Tile Programming Model
 public class ArithMathOps {
-    private ArithMathOps() {
-        /* This utility class should not be instantiated */
-    }
 
     public abstract static class ArithMathOp extends AbstractOp implements ExternalizedOp.Externalizable {
         final String opName;
@@ -68,15 +63,6 @@ public class ArithMathOps {
 
             this.opName = name;
             this.resultType = resultType;
-        }
-
-        protected StringBuilder externalizeShape() {
-            StringBuilder builder = new StringBuilder();
-            if (resultType instanceof ConstantType constantType
-                    && constantType.value() instanceof TileType tensorType) {
-                builder.append("shape: ").append(Arrays.toString(tensorType.shape().toArray()));
-            }
-            return builder;
         }
 
         @Override
@@ -180,12 +166,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(a, b));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> ").append(opName).append(" - resultType: ").append(resultType);
-            return builder.toString();
-        }
     }
 
     public static class TransposeOp extends ArithMathOp {
@@ -208,12 +188,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(a));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class ReshapeOp extends ArithMathOp {
@@ -236,12 +210,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(tensor, shape));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class PermuteOp extends ArithMathOp {
@@ -264,12 +232,6 @@ public class ArithMathOps {
             super(NAME, type, List.of(tensor, shape));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class MMAOp extends ArithMathOp implements Precedence.Invoke {
@@ -292,12 +254,6 @@ public class ArithMathOps {
             super(NAME, tensorC.type(), List.of(tensorA, tensorB, tensorC));
         }
 
-        @Override
-        public String externalizeOpName() {
-            StringBuilder builder = externalizeShape();
-            builder.append(" >>>>>> " + opName + " - resultType: " + resultType);
-            return builder.toString();
-        }
     }
 
     public static class SubOp extends ArithMathOp {
@@ -409,7 +365,7 @@ public class ArithMathOps {
         return TileOps.getDefaultAttributeValue(def, attributeName);
     }
 
-    // Arith
+    // Tile Arith factory
 
     public static ConstantOp constant(CodeType type, Object value) {
         return new ConstantOp(type, value);
@@ -453,5 +409,9 @@ public class ArithMathOps {
 
     public static MMAOp mma(Value tensorA, Value tensorB, Value tensorC) {
         return new MMAOp(tensorA, tensorB, tensorC);
+    }
+
+    private ArithMathOps() {
+        /* This utility class should not be instantiated */
     }
 }

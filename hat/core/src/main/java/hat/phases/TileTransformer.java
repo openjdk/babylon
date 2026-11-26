@@ -49,7 +49,11 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.core.CoreType;
 import jdk.incubator.code.dialect.core.SSA;
 import jdk.incubator.code.dialect.core.VarType;
-import jdk.incubator.code.dialect.java.*;
+import jdk.incubator.code.dialect.java.ClassType;
+import jdk.incubator.code.dialect.java.JavaOp;
+import jdk.incubator.code.dialect.java.JavaType;
+import jdk.incubator.code.dialect.java.MethodRef;
+import jdk.incubator.code.dialect.java.PrimitiveType;
 import jdk.incubator.code.extern.ExternalizedOp;
 
 import java.lang.invoke.MethodHandle;
@@ -58,15 +62,23 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
 
 /**
  * Class to perform:
@@ -75,7 +87,6 @@ import static jdk.incubator.code.dialect.core.CoreOp.VarOp;
  */
 public class TileTransformer {
 
-    private static final boolean PRINT_INTERNALS = Boolean.parseBoolean(System.getProperty("PRINT_INTERNALS"));
     private static final boolean LOWER_TO_SSA = Boolean.parseBoolean(System.getProperty("LOWER_TO_SSA", "FALSE"));
     private static final boolean SIMPLE_SIGNATURE = Boolean.parseBoolean(System.getProperty("SIMPLE_SIGNATURE", "TRUE"));
 
@@ -88,9 +99,9 @@ public class TileTransformer {
      * @param argTypes Arguments to the Tile Kernel
      * @param <O>      Op type
      */
-    public static <O extends Op & Op.Invokable> DialectModule tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodRef methodRef, MethodHandles.Lookup lookup) {
+    public static <O extends Op & Op.Invokable> DialectModule tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, MethodHandles.Lookup lookup) {
         Map<String, List<DialectFunction>> symbolTable = new LinkedHashMap<>();
-        List<DialectFunction> tileFunctions = tileFunction(kernel, rType, argTypes, symbolTable, methodRef, lookup);
+        List<DialectFunction> tileFunctions = tileFunction(kernel, rType, argTypes, symbolTable, lookup);
         return new DialectModule(tileFunctions.getLast(), tileFunctions.subList(0, tileFunctions.size() - 1));
     }
 
@@ -139,7 +150,9 @@ public class TileTransformer {
      * @param <O>
      * @return A new function which includes the code tree in the Tile format (dialect)
      */
-    private static <O extends Op & Op.Invokable> List<DialectFunction> tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes, Map<String, List<DialectFunction>> symbolTable, MethodRef methodRef, MethodHandles.Lookup lookup) {
+    private static <O extends Op & Op.Invokable> List<DialectFunction> tileFunction(O kernel, CodeType rType, List<? extends CodeType> argTypes,
+                                                                                    Map<String, List<DialectFunction>> symbolTable,
+                                                                                    MethodHandles.Lookup lookup) {
 
         String signature = (kernel instanceof CoreOp.FuncOp f) ? f.funcName() : "kernel";
         if (!SIMPLE_SIGNATURE) {
@@ -151,7 +164,6 @@ public class TileTransformer {
         }
 
         Map<Value, CodeType> valueTypeMap = new HashMap<>();
-        Map<Op, Object> opData = new HashMap<>();
 
         Deque<O> stack = new ArrayDeque<>();
         stack.push(kernel);
@@ -162,15 +174,9 @@ public class TileTransformer {
         Map<O, MethodRef> methodRefMap = new HashMap<>();
 
         // Check for types and propagate the shapes across the model
-        typeCheckKernel(kernel, argTypes, valueTypeMap, opData, stack, functionTable, methodRefMap, lookup);
-
-        if (PRINT_INTERNALS) {
-            // Print the intermediate step
-            printTypeMap(kernel, valueTypeMap);
-        }
+        typeCheckKernel(kernel, argTypes, valueTypeMap, stack, functionTable, methodRefMap, lookup);
 
         List<DialectFunction> funcOps = new ArrayList<>();
-
         while (!stack.isEmpty()) {
             O k = stack.pop();
             signature = (k instanceof CoreOp.FuncOp f) ? f.funcName() : "kernel";
@@ -179,7 +185,7 @@ public class TileTransformer {
 
             // Once we have verified the input code model to have the correct shapes and propagated those shapes for the new operations,
             // we generate a new code model. For the new code model, it uses the symbol table built in the previous process.
-            CoreOp.FuncOp funcOp = TileTransformer.transformToTileFunction(k, signature, rType, valueTypeMap, opData, symTable, stack.size());
+            CoreOp.FuncOp funcOp = TileTransformer.transformToTileFunction(k, signature, rType, valueTypeMap, symTable, stack.size());
             if (symbolTable.containsKey(signature)) {
                 List<DialectFunction> put = symbolTable.put(signature, symbolTable.get(signature));
                 Objects.requireNonNull(put).add(new DialectFunction(null, funcOp));
@@ -194,7 +200,10 @@ public class TileTransformer {
         return funcOps;
     }
 
-    private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature, CodeType rType, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable, final int functionIndex) {
+    private static <O extends Op & Op.Invokable> CoreOp.FuncOp transformToTileFunction(O kernel, String signature,
+                                                                                       CodeType rType, Map<Value, CodeType> valueTypeMap,
+                                                                                       Map<String, CoreOp.FuncOp> symbolTable,
+                                                                                       final int functionIndex) {
         // builds a function using the internal code reflection APIs
         CoreOp.FuncOp tileKernel = CoreOp.func(signature, CoreType.functionType(rType)).body(functionBlock -> {
             // List of parameters for the kernel
@@ -210,7 +219,7 @@ public class TileTransformer {
                 }
             }
             // kernel body
-            functionBlock.transformBody(kernel.body(), args, (kernelBlock, op) -> transformToTileOperation(kernelBlock, op, valueTypeMap, opData, symbolTable));
+            functionBlock.transformBody(kernel.body(), args, (kernelBlock, op) -> transformToTileOperation(kernelBlock, op, valueTypeMap));
         });
 
         if (LOWER_TO_SSA) {
@@ -220,8 +229,8 @@ public class TileTransformer {
         return tileKernel;
     }
 
-    private static Block.Builder transformToTileOperation(Block.Builder kblock, Op op, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Map<String, CoreOp.FuncOp> symbolTable) {
-        TileBuilderInterpreter tileBuilderInterpreter = new TileBuilderInterpreter(symbolTable, kblock);
+    private static Block.Builder transformToTileOperation(Block.Builder kblock, Op op, Map<Value, CodeType> valueTypeMap) {
+        TileBuilderInterpreter tileBuilderInterpreter = new TileBuilderInterpreter(kblock);
         CodeContext cc = kblock.context();
         switch (op) {
             case CoreOp.VarOp varOp -> {
@@ -279,18 +288,19 @@ public class TileTransformer {
     }
 
     static class TileBuilderInterpreter {
-        private final Map<String, CoreOp.FuncOp> symbolTable;
         private final Block.Builder block;
 
-        TileBuilderInterpreter(Map<String, CoreOp.FuncOp> symbolTable, Block.Builder block) {
-            this.symbolTable = symbolTable;
+        TileBuilderInterpreter(Block.Builder block) {
             this.block = block;
         }
 
         public Value build(Op op, String name, Map<Value, CodeType> valueTypeMap) {
             MethodHandle methodHandle;
             try {
-                Optional<Method> om = Stream.of(TileBuilderInterpreter.class.getDeclaredMethods()).filter(m -> m.getName().equals(name)).filter(m -> m.isVarArgs() ? m.getParameterCount() / 2 - 1 <= op.operands().size() : m.getParameterCount() / 2 - 1 == op.operands().size()).findFirst();
+                Optional<Method> om = Stream.of(TileBuilderInterpreter.class.getDeclaredMethods())
+                        .filter(m -> m.getName().equals(name))
+                        .filter(m -> m.isVarArgs() ? m.getParameterCount() / 2 - 1 <= op.operands().size() :
+                                m.getParameterCount() / 2 - 1 == op.operands().size()).findFirst();
                 methodHandle = MethodHandles.lookup().unreflect(om.orElseThrow(() -> new NoSuchMethodException(name)));
             } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException(e);
@@ -322,142 +332,226 @@ public class TileTransformer {
             return block.add(TileOps.bid(2));
         }
 
-        public Value index(CodeType type, Op.Result result, CodeType indexAType, Value indexA, CodeType indexBType, Value indexB) {
+        public Value index(CodeType type, Op.Result result,
+                           CodeType indexAType, Value indexA,
+                           CodeType indexBType, Value indexB) {
             return block.add(TileOps.index(block.context().getValue(indexA), block.context().getValue(indexB)));
         }
 
-        public Value shape(CodeType type, Op.Result result, CodeType shapeAType, Value shapeA) {
+        public Value shape(CodeType type, Op.Result result,
+                           CodeType shapeAType, Value shapeA) {
             return block.add(TileOps.shape(block.context().getValue(shapeA)));
         }
 
-        public Value shape(CodeType type, Op.Result result, CodeType shapeAType, Value shapeA, CodeType shapeBType, Value shapeB) {
+        public Value shape(CodeType type, Op.Result result,
+                           CodeType shapeAType, Value shapeA,
+                           CodeType shapeBType, Value shapeB) {
             return block.add(TileOps.shape(block.context().getValue(shapeA), block.context().getValue(shapeB)));
         }
 
-        public Value shape(CodeType type, Op.Result result, CodeType shapeAType, Value shapeA, CodeType shapeBType, Value shapeB, CodeType shapeCType, Value shapeC) {
-            return block.add(TileOps.shape(block.context().getValue(shapeA), block.context().getValue(shapeB), block.context().getValue(shapeC)));
+        public Value shape(CodeType type, Op.Result result,
+                           CodeType shapeAType, Value shapeA,
+                           CodeType shapeBType, Value shapeB,
+                           CodeType shapeCType, Value shapeC) {
+            return block.add(TileOps.shape(block.context().getValue(shapeA),
+                    block.context().getValue(shapeB),
+                    block.context().getValue(shapeC)));
         }
 
-        public Value dimMap(CodeType type, Op.Result result, CodeType shapeAType, Value shapeA) {
+        public Value dimMap(CodeType type, Op.Result result,
+                            CodeType shapeAType, Value shapeA) {
             return block.add(TileOps.dim(block.context().getValue(shapeA)));
         }
 
-        public Value dimMap(CodeType type, Op.Result result, CodeType shapeAType, Value shapeA, CodeType shapeBType, Value shapeB) {
+        public Value dimMap(CodeType type, Op.Result result,
+                            CodeType shapeAType, Value shapeA,
+                            CodeType shapeBType, Value shapeB) {
             return block.add(TileOps.dim(block.context().getValue(shapeA), block.context().getValue(shapeB)));
         }
 
-        public Value dimMap(CodeType type, Op.Result result, CodeType shapeAType, Value shapeA, CodeType shapeBType, Value shapeB, CodeType shapeCType, Value shapeC) {
-            return block.add(TileOps.dim(block.context().getValue(shapeA), block.context().getValue(shapeB), block.context().getValue(shapeC)));
+        public Value dimMap(CodeType type, Op.Result result,
+                            CodeType shapeAType, Value shapeA,
+                            CodeType shapeBType, Value shapeB,
+                            CodeType shapeCType, Value shapeC) {
+            return block.add(TileOps.dim(block.context().getValue(shapeA),
+                    block.context().getValue(shapeB),
+                    block.context().getValue(shapeC)));
         }
 
-        public Value load(CodeType type, Op.Result result, CodeType ptrTile, Value ptr, CodeType dimensionType, Value dimension, CodeType shapeType, Value shape) {
+        public Value load(CodeType type, Op.Result result,
+                          CodeType ptrTile, Value ptr,
+                          CodeType dimensionType, Value dimension,
+                          CodeType shapeType, Value shape) {
             PtrType ptrType = TileTypeInterpreter.inferPtrType(ptrTile);
-            return block.add(TileOps.load(type, block.context().getValue(ptr), block.context().getValue(dimension), block.context().getValue(shape), ptrType.dims()));
+            return block.add(TileOps.load(type,
+                    block.context().getValue(ptr),
+                    block.context().getValue(dimension),
+                    block.context().getValue(shape), ptrType.dims()));
         }
 
-        public Value store(CodeType resultType, Op.Result result, CodeType ptrTile, Value ptr, CodeType idType, Value id, CodeType tensorType, Value tensor) {
-
+        public Value store(CodeType resultType, Op.Result result,
+                           CodeType ptrTile, Value ptr,
+                           CodeType idType, Value id,
+                           CodeType tensorType, Value tensor) {
             PtrType ptrType = TileTypeInterpreter.inferPtrType(ptrTile);
             // Check for implicit cast
             Value tensorResult = checkAndAddConversionIfNeeded(tensor, ptrType, tensorType);
-            return block.add(TileOps.store(block.context().getValue(ptr), block.context().getValue(id), block.context().getValue(tensorResult), ptrType.dims()));
+            return block.add(TileOps.store(block.context().getValue(ptr),
+                    block.context().getValue(id),
+                    block.context().getValue(tensorResult),
+                    ptrType.dims()));
         }
 
-        public Value irange(CodeType resultType, Op.Result result, CodeType startIndex, Value start, CodeType endIndex, Value end) {
-            return block.add(TileOps.irange(resultType, block.context().getValue(start), block.context().getValue(end)));
+        public Value irange(CodeType resultType, Op.Result result,
+                            CodeType startIndex, Value start,
+                            CodeType endIndex, Value end) {
+            return block.add(TileOps.irange(resultType,
+                    block.context().getValue(start),
+                    block.context().getValue(end)));
         }
 
-        public Value irange(CodeType resultType, Op.Result result, CodeType endIndex, Value end) {
+        public Value irange(CodeType resultType, Op.Result result,
+                            CodeType endIndex, Value end) {
             CoreOp.ConstantOp constantOp = CoreOp.constant(DType.INT, 0);
             block.add(constantOp);
             return block.add(TileOps.irange(resultType, constantOp.result(), block.context().getValue(end)));
         }
 
-        public Value add(CodeType type, Op.Result result, CodeType typeA, Value tensorA, CodeType typeB, Value tensorB) {
-            return addOrThrow(type, () -> block.add(ArithMathOps.add(type, block.context().getValue(tensorA), block.context().getValue(tensorB))));
+        public Value add(CodeType type, Op.Result result,
+                         CodeType typeA, Value tensorA,
+                         CodeType typeB, Value tensorB) {
+            return addOrThrow(type,
+                    () -> block.add(ArithMathOps.add(type,
+                            block.context().getValue(tensorA),
+                            block.context().getValue(tensorB))));
         }
 
-        public Value sub(CodeType type, Op.Result result, CodeType typeA, Value tensorA, CodeType typeB, Value tensorB) {
+        public Value sub(CodeType type, Op.Result result,
+                         CodeType typeA, Value tensorA,
+                         CodeType typeB, Value tensorB) {
             return addOrThrow(type, () -> block.add(ArithMathOps.sub(type, block.context().getValue(tensorA), block.context().getValue(tensorB))));
         }
 
-        public Value mul(CodeType type, Op.Result result, CodeType typeA, Value tensorA, CodeType typeB, Value tensorB) {
-            return addOrThrow(type, () -> block.add(ArithMathOps.mul(type, block.context().getValue(tensorA), block.context().getValue(tensorB))));
+        public Value mul(CodeType type, Op.Result result,
+                         CodeType typeA, Value tensorA,
+                         CodeType typeB, Value tensorB) {
+            return addOrThrow(type,
+                    () -> block.add(ArithMathOps.mul(type, block.context().getValue(tensorA),
+                            block.context().getValue(tensorB))));
         }
 
-        public Value cdiv(CodeType type, Op.Result result, CodeType typeA, Value tensorA, CodeType typeB, Value tensorB) {
+        public Value cdiv(CodeType type, Op.Result result,
+                          CodeType typeA, Value tensorA,
+                          CodeType typeB, Value tensorB) {
             return addOrThrow(type, () -> block.add(ArithMathOps.cdiv(type, block.context().getValue(tensorA), block.context().getValue(tensorB))));
         }
 
-        public Value ceildiv(CodeType type, Op.Result result, CodeType typeA, Value valA, CodeType typeB, Value valB) {
+        public Value ceildiv(CodeType type, Op.Result result,
+                             CodeType typeA, Value valA,
+                             CodeType typeB, Value valB) {
             return addOrThrow(type, () -> block.add(ArithMathOps.cdiv(type, block.context().getValue(valA), block.context().getValue(valB))));
         }
 
-        public Value min(CodeType type, Op.Result result, CodeType typeA, Value valA, CodeType typeB, Value valB) {
+        public Value min(CodeType type, Op.Result result,
+                         CodeType typeA, Value valA,
+                         CodeType typeB, Value valB) {
             return addOrThrow(type, () -> block.add(ArithMathOps.min(type, block.context().getValue(valA), block.context().getValue(valB))));
         }
 
-        public Value truediv(CodeType type, Op.Result result, CodeType typeA, Value tensorA, CodeType typeB, Value tensorB) {
+        public Value truediv(CodeType type, Op.Result result,
+                             CodeType typeA, Value tensorA,
+                             CodeType typeB, Value tensorB) {
             return addOrThrow(type, () -> block.add(ArithMathOps.truediv(type, block.context().getValue(tensorA), block.context().getValue(tensorB))));
         }
 
-        public Value numTiles(CodeType type, Op.Result result, CodeType ptrType, Value ptr, CodeType dimensionType, Value dimension, CodeType shapeType, Value shape) {
+        public Value numTiles(CodeType type, Op.Result result,
+                              CodeType ptrType, Value ptr,
+                              CodeType dimensionType, Value dimension,
+                              CodeType shapeType, Value shape) {
             return block.add(TileOps.numTiles(type, block.context().getValue(ptr), block.context().getValue(dimension), block.context().getValue(shape)));
         }
 
-        public Value full(CodeType typeResult, Op.Result result, CodeType shapeType, Value shape, CodeType valueType, Value val) {
+        public Value full(CodeType typeResult, Op.Result result,
+                          CodeType shapeType, Value shape,
+                          CodeType valueType, Value val) {
             return block.add(TileOps.full(typeResult, block.context().getValue(shape), block.context().getValue(val)));
         }
 
-        public Value asType(CodeType typeResult, Op.Result result, CodeType tensorType, Value tensor, CodeType toType, Value toTypeValue) {
+        public Value asType(CodeType typeResult, Op.Result result,
+                            CodeType tensorType, Value tensor,
+                            CodeType toType, Value toTypeValue) {
             return block.add(TileOps.toType(typeResult, block.context().getValue(tensor)));
         }
 
-        public Value zeros(CodeType typeResult, Op.Result result, CodeType shapeType, Value shape) {
+        public Value zeros(CodeType typeResult, Op.Result result,
+                           CodeType shapeType, Value shape) {
             return block.add(TileOps.zeros(typeResult, block.context().getValue(shape)));
         }
 
-        public Value ones(CodeType typeResult, Op.Result result, CodeType shapeType, Value shape) {
+        public Value ones(CodeType typeResult, Op.Result result,
+                          CodeType shapeType, Value shape) {
             return block.add(TileOps.ones(typeResult, block.context().getValue(shape)));
         }
 
-        public Value ones(CodeType typeResult, Op.Result result, CodeType shapeType, Value shape, CodeType dType, Value valueDType) {
+        public Value ones(CodeType typeResult, Op.Result result,
+                          CodeType shapeType, Value shape,
+                          CodeType dType, Value valueDType) {
             return block.add(TileOps.ones(typeResult, block.context().getValue(shape)));
         }
 
-        public Value sum(CodeType typeResult, Op.Result result, CodeType tileType, Value tile, CodeType dimensionType, Value dimension) {
+        public Value sum(CodeType typeResult, Op.Result result,
+                         CodeType tileType, Value tile,
+                         CodeType dimensionType, Value dimension) {
             return block.add(TileOps.sum(typeResult, block.context().getValue(tile), block.context().getValue(dimension)));
         }
 
-        public Value transpose(CodeType type, Op.Result result, CodeType typeMatrix, Value matrix) {
+        public Value transpose(CodeType type, Op.Result result,
+                               CodeType typeMatrix, Value matrix) {
             return block.add(ArithMathOps.transpose(type, block.context().getValue(matrix)));
         }
 
-        public Value reshape(CodeType type, Op.Result result, CodeType tensorType, Value tensor, CodeType shapeType, Value shape) {
+        public Value reshape(CodeType type, Op.Result result,
+                             CodeType tensorType, Value tensor,
+                             CodeType shapeType, Value shape) {
             return block.add(ArithMathOps.reshape(type, block.context().getValue(tensor), block.context().getValue(shape)));
         }
 
-        public Value permute(CodeType type, Op.Result result, CodeType tensorType, Value tensor, CodeType shapeType, Value shape) {
+        public Value permute(CodeType type, Op.Result result,
+                             CodeType tensorType, Value tensor,
+                             CodeType shapeType, Value shape) {
             return block.add(ArithMathOps.permute(type, block.context().getValue(tensor), block.context().getValue(shape)));
         }
 
-        public Value mma(CodeType typeResult, Op.Result result, CodeType tensorTypeA, Value tensorA, CodeType tensorTypeB, Value tensorB, CodeType tensorTypeC, Value tensorC) {
+        public Value mma(CodeType typeResult, Op.Result result,
+                         CodeType tensorTypeA, Value tensorA,
+                         CodeType tensorTypeB, Value tensorB,
+                         CodeType tensorTypeC, Value tensorC) {
             return block.add(ArithMathOps.mma(block.context().getValue(tensorA), block.context().getValue(tensorB), block.context().getValue(tensorC)));
         }
 
-        public Value arange(CodeType typeResult, Op.Result result, CodeType sizeType, Value size) {
+        public Value arange(CodeType typeResult, Op.Result result,
+                            CodeType sizeType, Value size) {
             return block.add(TileOps.arange(typeResult, block.context().getValue(size)));
         }
 
-        public Value arange(CodeType typeResult, Op.Result result, CodeType sizeType, Value size, CodeType dType, Value dTypeValue) {
+        public Value arange(CodeType typeResult, Op.Result result,
+                            CodeType sizeType, Value size,
+                            CodeType dType, Value dTypeValue) {
             return block.add(TileOps.arange(typeResult, dType, block.context().getValue(size)));
         }
 
-        public Value arange(CodeType typeResult, Op.Result result, CodeType sizeType, Value size, CodeType dType, Value dTypeValue, CodeType startType, Value start, CodeType stepType, Value step) {
+        public Value arange(CodeType typeResult, Op.Result result,
+                            CodeType sizeType, Value size,
+                            CodeType dType, Value dTypeValue,
+                            CodeType startType, Value start,
+                            CodeType stepType, Value step) {
             return block.add(TileOps.arange(typeResult, dType, block.context().getValue(size), block.context().getValue(start), block.context().getValue(step)));
         }
 
-        public Value arange(CodeType typeResult, Op.Result result, CodeType sizeType, Value size, CodeType dType, Value dTypeValue, CodeType startType, Value start) {
+        public Value arange(CodeType typeResult, Op.Result result,
+                            CodeType sizeType, Value size,
+                            CodeType dType, Value dTypeValue,
+                            CodeType startType, Value start) {
             CoreOp.ConstantOp constant = CoreOp.constant(DType.INT, 1);
             Op.Result cOne = block.add(constant);
             return block.add(TileOps.arange(typeResult, dType, block.context().getValue(size), block.context().getValue(start), block.context().getValue(cOne)));
@@ -489,14 +583,14 @@ public class TileTransformer {
                     .ints(5, 'a', 'z')
                     .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                     .toString();
-            VarOp varOp = CoreOp.var(varName, offsetValue);
+            CoreOp.VarOp varOp = CoreOp.var(varName, offsetValue);
             Op.Result varOffsetValue = block.add(varOp);
             return block.add(CoreOp.varLoad(varOffsetValue));
         }
 
-        private VarOp getTensorVarOp(Op op) {
+        private CoreOp.VarOp getTensorVarOp(Op op) {
             return switch (op) {
-                case VarOp varOp -> varOp;
+                case CoreOp.VarOp varOp -> varOp;
                 default -> getTensorVarOp((Op) op.operands().getFirst().declaringElement());
             };
         }
@@ -507,7 +601,7 @@ public class TileTransformer {
             Op.Result convResult = block.add(TileOps.convert(convType, block.context().getValue(tensor)));
 
             // search tensor varOp
-            VarOp tensorVarOp = getTensorVarOp((Op) tensor.declaringElement());
+            CoreOp.VarOp tensorVarOp = getTensorVarOp((Op) tensor.declaringElement());
 
             Op.Result varValue = block.add(CoreOp.var(tensorVarOp.varName() + "_conv", convType, convResult));
             return block.add(CoreOp.varLoad(varValue));
@@ -564,7 +658,12 @@ public class TileTransformer {
     private record FunctionTable(CodeType rType, List<? extends CodeType> argTypes) {
     }
 
-    private static <O extends Op & Op.Invokable> void typeCheckKernel(O kernel, List<? extends CodeType> argTypes, Map<Value, CodeType> valueTypeMap, Map<Op, Object> opData, Deque<O> stack, Map<O, FunctionTable> functionTable, Map<O, MethodRef> methodRefMap, MethodHandles.Lookup lookup) {
+    private static <O extends Op & Op.Invokable> void typeCheckKernel(O kernel, List<? extends CodeType> argTypes,
+                                                                      Map<Value, CodeType> valueTypeMap,
+                                                                      Deque<O> stack,
+                                                                      Map<O, FunctionTable> functionTable,
+                                                                      Map<O, MethodRef> methodRefMap,
+                                                                      MethodHandles.Lookup lookup) {
         kernel.elements().forEach(codeElement -> {
             if (!(codeElement instanceof Op op)) {
                 return;
@@ -713,7 +812,9 @@ public class TileTransformer {
                 case JavaOp.InvokeOp invokeOp -> {
                     O functionOp = null;
                     try {
-                        if (invokeOp.invokeReference().resolveToMethod(lookup) instanceof Method m && Op.ofMethod(m) instanceof Optional<CoreOp.FuncOp> optionalFuncOp && optionalFuncOp.isPresent()) {
+                        if (invokeOp.invokeReference().resolveToMethod(lookup) instanceof Method m
+                                && Op.ofMethod(m) instanceof Optional<CoreOp.FuncOp> optionalFuncOp
+                                && optionalFuncOp.isPresent()) {
                             functionOp = (O) optionalFuncOp.get();
                         }
                         if (functionOp == null) {
@@ -730,7 +831,7 @@ public class TileTransformer {
                             methodRefMap.put(functionOp, invokeOp.invokeReference());
                             functionTable.put(functionOp, null);  // we insert it into the hashmap to avoid repetitions
                             stack.push(functionOp);   // add new function into the stack
-                            typeCheckKernel(functionOp, paramTypes, valueTypeMap, opData, stack, functionTable, methodRefMap, lookup);
+                            typeCheckKernel(functionOp, paramTypes, valueTypeMap, stack, functionTable, methodRefMap, lookup);
                             functionTable.put(functionOp, new FunctionTable(valueTypeMap.get(functionOp.result()), paramTypes));
                         } else {
                             // If the function is already in the functionTable, we need to add priority to this method.
@@ -745,13 +846,13 @@ public class TileTransformer {
                     }
                 }
                 case CoreOp.YieldOp _ -> {
-
+                    // empty
                 }
                 case JavaOp.ContinueOp _ -> {
-
+                    // empty
                 }
                 case JavaOp.ConvOp _ -> {
-
+                    // empty
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + op);
             }
@@ -805,35 +906,6 @@ public class TileTransformer {
         sb.append("_");
         sb.append(rType);
         return sb.toString();
-    }
-
-    public static <O extends Op & Op.Invokable> void printTypeMap(O kernel, Map<Value, CodeType> valueTypeMap) {
-        AtomicInteger valueId = new AtomicInteger();
-        Map<Value, Integer> valueIdMap = new LinkedHashMap<>();
-        kernel.elements().forEach(codeElement -> {
-            switch (codeElement) {
-                case CoreOp.FuncOp _ -> {
-                    // Ignore
-                }
-                case Op op when !op.result().type().equals(JavaType.VOID) -> {
-                    valueIdMap.put(op.result(), valueId.getAndIncrement());
-                }
-                case Block block -> {
-                    for (Block.Parameter parameter : block.parameters()) {
-                        valueIdMap.put(parameter, valueId.getAndIncrement());
-                    }
-                }
-                default -> {
-                }
-            }
-        });
-
-        valueIdMap.forEach((value, id) -> {
-            CodeType type = valueTypeMap.get(value);
-            if (type != null) {
-                System.out.println("%" + id + " : " + value.type() + " -> " + type);
-            }
-        });
     }
 
     static CodeType checkWithTypeInterpreter(Op op, String name, Map<Value, CodeType> valueTypeMap) {
