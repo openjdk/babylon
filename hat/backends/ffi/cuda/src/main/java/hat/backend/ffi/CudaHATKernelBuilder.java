@@ -119,6 +119,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private static final int CUDA_WARP_SIZE = 32;
     private final boolean isTile;
 
+    private final String[] TILE_INDEX_STRIDES = new String[]{"m", "n", "k"};
+
+
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext, boolean isTile) {
         super(kernelCallGraph, scopedCodeBuilderContext);
         stack = new ConcurrentLinkedDeque<>();
@@ -1465,6 +1468,44 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         return recurseResultOrThrow(offsetOp.operands().getFirst())
                 .sp().plus().sp()
                 .recurseResultOrThrow(offsetOp.operands().getLast());
+    }
+
+    private Value searchGatherOrScatter(Value value) {
+        if (value == null) {
+            throw new IllegalStateException("Value can't be null");
+        }
+        Op op = (Op) value.declaringElement();
+        return switch (op) {
+            case TileOps.ScatterOp scatterOp -> scatterOp.operands().getFirst();
+            case TileOps.GatherOp gatherOp -> gatherOp.operands().getFirst();
+            default -> searchGatherOrScatter(op.result().uses().getFirst());
+        };
+    }
+
+    private Value searchGatherOrScatter(TileOps.TileIndicesOp indicesOp) {
+        return searchGatherOrScatter(indicesOp.result().uses().getFirst());
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileIndicesOp(TileOps.TileIndicesOp indicesOp) {
+        if (indicesOp.operands().size() > TILE_INDEX_STRIDES.length) {
+            throw new IllegalStateException("Tile index shape is not supported");
+        }
+        // Search gather||scatter operations based on usages.
+        // Then, return the ptrType associated with the gather||scatter
+        Value ptr = searchGatherOrScatter(indicesOp);
+        int numOperations = indicesOp.operands().size() - 1;
+        for (int i = 0; i < numOperations; i++) {
+            for (int j = i; j < numOperations; j++) {
+                recurseResultOrThrow(indicesOp.operands().get(j))
+                        .sp().mul().sp()
+                        .generateAlignedReference(ptr)
+                        .rarrow().id(TILE_INDEX_STRIDES[j])
+                        .sp().plus().sp();
+            }
+        }
+        // Last value (last operand)
+        return recurseResultOrThrow(indicesOp.operands().getLast());
     }
 
     // CUDA Tile Constructs

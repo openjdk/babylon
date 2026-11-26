@@ -95,6 +95,8 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T tileOffsetOp(TileOps.OffsetOp offsetOp);
 
+    T tileIndicesOp(TileOps.TileIndicesOp indicesOp);
+
     @Override
     default T recurse(Op op) {
         if (op instanceof HATOp hatOp) {
@@ -135,6 +137,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case TileOps.GatherOp gatherOp -> tileGatherOp(gatherOp);
                 case TileOps.ScatterOp scatterOp -> tileScatterOp(scatterOp);
                 case TileOps.OffsetOp offsetOp -> tileOffsetOp(offsetOp);
+                case TileOps.TileIndicesOp indicesOp -> tileIndicesOp(indicesOp);
                 default -> throw new IllegalStateException("handle nesting of Tile TileOps.TOp " + op);
             }
         } else {

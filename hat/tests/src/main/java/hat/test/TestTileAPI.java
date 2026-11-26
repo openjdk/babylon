@@ -50,6 +50,7 @@ import static hat.TileContext.BIDY;
 import static hat.TileContext.dimMap;
 import static hat.TileContext.gather;
 import static hat.TileContext.index;
+import static hat.TileContext.indices;
 import static hat.TileContext.load;
 import static hat.TileContext.scatter;
 import static hat.TileContext.shape;
@@ -1194,6 +1195,114 @@ public class TestTileAPI {
             float valA = tensorA.array(i);
             float valB = tensorB.array(i);
             HATAsserts.assertEquals(valA + valB, result.array(i) , 0.001f);
+        }
+    }
+
+    @Reflect
+    public static void gatherScatter2D(Tensor a, Tensor b, final int tileM, final int tileN) {
+        // Example using gathers and scatters to transpose an input matrix
+        // Obtain the block thread indices
+        final int bidx = BIDX();
+        final int bidy = BIDY();
+
+        // Compute the indices to load/store in the gather/scatter operations
+        Tile arangeM = arange(tileM);  // [ 0, 1, ..., tileM ]
+        Tile arangeN = arange(tileN);  // [ 0, 1, ..., tileN ]
+        Tile indM = add(arangeM, bidx * tileM);
+        Tile indN = add(arangeN, bidy * tileN);
+
+        // Reshape to convert 1D tiles into 2D tiles
+        Tile rows = reshape(indM, shape(tileM, 1));  // [ tileM x 1 ]
+        Tile cols = reshape(indN, shape(1, tileN));  // [ 1 x tileN]
+
+        // Gather X,Y tile in order
+        // result tile [ tileM x tileN ]
+        Tile result = gather(a, indices(rows, cols));
+
+        // Store the result
+        // Store Y,X (transpose) using the scatter operation
+        scatter(b, indices(cols, rows), result);
+    }
+
+    @Reflect
+    public static void gatherScatter2D(ComputeContext computeContext, Tensor2DF32 a, Tensor2DF32 b, final int tileM, final int tileN) {
+        computeContext.dispatchTile(
+                NDRange.of2D(a.m(), a.n(), tileM, tileN),
+                () -> gatherScatter2D(a, b, tileM, tileN)
+        );
+    }
+
+    @HatTest
+    public void test_hat_tile_26() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 1024;
+        final int tileSizeM = 16;
+        final int tileSizeN = 16;
+        Tensor2DF32 a = Tensor2DF32.create(accelerator, size, size);
+        Tensor2DF32 result = Tensor2DF32.create(accelerator, size, size);
+
+        Random r = new Random(71);
+        for (int i = 0; i < a.m() * a.n(); i++) {
+            a.array(i, r.nextFloat());
+        }
+        accelerator.compute((@Reflect Compute)
+                computeContext -> gatherScatter2D(computeContext, a, result, tileSizeM, tileSizeN));
+
+        for (int i = 0; i < a.m(); i++) {
+            for (int j = 0; j < a.n(); j++) {
+                HATAsserts.assertEquals(a.array((long) j * size + i),
+                        result.array((long) i * size + j), 0.001f);
+            }
+        }
+    }
+
+    @Reflect
+    public static void gatherScatter2DScalar(Tensor a, Tensor b, final int rowValue) {
+        // Tensor 2D to 1D tensor
+        // I accessed a specific row (rowValue) and stores the results into 1D tensor.
+
+        // Create a tile index using [0, 1, ...]
+        final int bidx = BIDX();
+        Tile tileIndex = arange(rowValue);
+        Tile cols = add(tileIndex, bidx * rowValue);
+
+        // Gather a specific row from the input (a[rowValue][cols])
+        Tile result = gather(a, indices(rowValue, cols));
+
+        // Store the resulting tile into b[cols]
+        scatter(b, indices(cols), result);
+    }
+
+    @Reflect
+    public static void gatherScatter2DScalar(ComputeContext computeContext, Tensor2DF32 a, TensorF32 b, final int tileSize) {
+        computeContext.dispatchTile(
+                NDRange.of1D(a.m(), tileSize),
+                () -> gatherScatter2DScalar(a, b, tileSize)
+        );
+    }
+
+    @HatTest
+    public void test_hat_tile_27() {
+        var accelerator = new Accelerator(MethodHandles.lookup(), Backend.FIRST);
+        final int size = 256;
+        final int tileSize = 8;
+        Tensor2DF32 a = Tensor2DF32.create(accelerator, size, size);
+        TensorF32 result = TensorF32.create(accelerator, size);
+        Random r = new Random(71);
+        for (int i = 0; i < a.m() * a.n(); i++) {
+            a.array(i, r.nextFloat());
+        }
+
+        accelerator.compute((@Reflect Compute)
+                computeContext -> gatherScatter2DScalar(computeContext, a, result, tileSize));
+
+        for (int i = 0; i < a.m(); i++) {
+            for (int j = 0; j < a.n(); j++) {
+                // In this case, we address the input with a specific row (input[tileSize][j]), and store the result in output[j].
+                // Thus:
+                // result[j] = input[row][j]
+                HATAsserts.assertEquals(a.array((long) tileSize * size + j), result.array(j), 0.001f);
+            }
         }
     }
 

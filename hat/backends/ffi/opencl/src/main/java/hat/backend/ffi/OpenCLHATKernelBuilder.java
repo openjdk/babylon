@@ -1129,4 +1129,9 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     public OpenCLHATKernelBuilder tileOffsetOp(TileOps.OffsetOp offsetOp) {
         throw new UnsupportedOperationException("Tile OffsetOp not supported yet");
     }
+
+    @Override
+    public OpenCLHATKernelBuilder tileIndicesOp(TileOps.TileIndicesOp indicesOp) {
+        throw new UnsupportedOperationException("Tile TileIndicesOp not supported yet");
+    }
 }

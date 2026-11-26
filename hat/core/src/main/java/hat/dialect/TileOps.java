@@ -73,6 +73,10 @@ public class TileOps {
         return new TileIndexOp(values);
     }
 
+    public static Op indices(Value... values) {
+        return new TileIndicesOp(values);
+    }
+
     public static Op shape(Value... values) {
         return new TileShapeOp(values);
     }
@@ -329,6 +333,27 @@ public class TileOps {
         @Override
         public Map<String, Object> externalize() {
             return Map.of("dimension", dimension);
+        }
+    }
+
+    public static class TileIndicesOp extends TOp {
+        public static final String NAME = "tile.indices";
+
+        protected TileIndicesOp(Value... values) {
+            super(NAME, JavaType.INT, Arrays.stream(values).toList());
+        }
+
+        protected TileIndicesOp(TileIndicesOp that, CodeContext cc, CodeTransformer ot) {
+            super(that, cc);
+        }
+
+        @Override
+        public TileIndicesOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new TileIndicesOp(this, codeContext, codeTransformer);
+        }
+
+        public int dimension() {
+            return operands().size();
         }
 
     }

@@ -112,14 +112,9 @@ public class KernelCallGraph implements LookupCarrier {
         this.inlinedEntryPoint = inlineEntryPoint(kernelFunction);
         this.usesBarrier = OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .anyMatch(invoke -> invoke instanceof OpHelper.Invoke.Static invokeStatic && invokeStatic.refIs(KernelContext.class) && invokeStatic.named("barrier"));
-        // We should be able to remove these field access checks once we pivot to using direct access to KernelContext static calls.
-        //    this.accessedKernelContextFields = new HashSet<>(OpHelper.FieldAccess.stream(lookup(), inlinedEntryPoint)
-        //          .filter(fieldAccess -> fieldAccess.refType(KernelContext.class)).map(OpHelper.FieldAccess::name).toList()
-        // );
         this.accessedKernelContextMethods = new HashSet<>(OpHelper.Invoke.stream(lookup(), inlinedEntryPoint)
                 .filter(invoke -> invoke instanceof OpHelper.Invoke.Static)
-                .filter(invokeStatic -> invokeStatic.refIs(KernelContext.class) && invokeStatic.nameMatchesRegex(KernelContext.threadAccessRegex)).map(OpHelper.Invoke::name).toList()
-        );
+                .filter(invokeStatic -> invokeStatic.refIs(KernelContext.class) && invokeStatic.nameMatchesRegex(KernelContext.threadAccessRegex)).map(OpHelper.Invoke::name).toList());
         this.accessedTypes = inlinedEntryPoint.elements()
                 .filter(Op.class::isInstance).map(ce -> ((Op) ce).resultType())
                 .collect(Collectors.toSet());

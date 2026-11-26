@@ -24,6 +24,7 @@
  */
 package hat.types;
 
+import hat.DType;
 import hat.DimMap;
 import hat.Shape;
 import hat.buffer.Tensor;
@@ -50,7 +51,7 @@ import optkl.IfaceValue;
  * execution is planned for future versions of the Tile programming model
  * implementation within HAT.
  */
-public record Tile() implements IfaceValue {
+public record Tile(Shape shape, DType dType) implements IfaceValue {
 
     /**
      * Add two tiles.

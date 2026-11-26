@@ -29,6 +29,7 @@ import hat.TileContext;
 import hat.codetypes.ConstantType;
 import hat.codetypes.DimType;
 import hat.codetypes.IndexType;
+import hat.codetypes.IndicesType;
 import hat.codetypes.PtrType;
 import hat.codetypes.ShapeType;
 import hat.codetypes.TileType;
@@ -78,6 +79,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -335,7 +337,32 @@ public class TileTransformer {
         public Value index(CodeType type, Op.Result result,
                            CodeType indexAType, Value indexA,
                            CodeType indexBType, Value indexB) {
-            return block.add(TileOps.index(block.context().getValue(indexA), block.context().getValue(indexB)));
+            return block.add(TileOps.index(block.context().getValue(indexA),
+                    block.context().getValue(indexB)));
+        }
+
+        // 1D Indices
+        public Value indices(CodeType type, Op.Result result,
+                             CodeType indexAType, Value indexA) {
+            return block.add(TileOps.indices(block.context().getValue(indexA)));
+        }
+
+        // 2D Indices
+        public Value indices(CodeType type, Op.Result result,
+                             CodeType indexAType, Value indexA,
+                             CodeType indexBType, Value indexB) {
+            return block.add(TileOps.indices(block.context().getValue(indexA),
+                    block.context().getValue(indexB)));
+        }
+
+        // 3D Indices
+        public Value indices(CodeType type, Op.Result result,
+                             CodeType indexAType, Value indexA,
+                             CodeType indexBType, Value indexB,
+                             CodeType indexCType, Value indexC) {
+            return block.add(TileOps.indices(block.context().getValue(indexA),
+                    block.context().getValue(indexB),
+                    block.context().getValue(indexC)));
         }
 
         public Value shape(CodeType type, Op.Result result,
@@ -346,7 +373,8 @@ public class TileTransformer {
         public Value shape(CodeType type, Op.Result result,
                            CodeType shapeAType, Value shapeA,
                            CodeType shapeBType, Value shapeB) {
-            return block.add(TileOps.shape(block.context().getValue(shapeA), block.context().getValue(shapeB)));
+            return block.add(TileOps.shape(block.context().getValue(shapeA),
+                    block.context().getValue(shapeB)));
         }
 
         public Value shape(CodeType type, Op.Result result,
@@ -958,6 +986,25 @@ public class TileTransformer {
             return new IndexType(index);
         }
 
+        public static IndicesType indices(CodeType... tileIndices) {
+            if (tileIndices.length == 0) {
+                throw new IllegalArgumentException("Call to TileContext.indices() can't be empty");
+            }
+            // check
+            for (CodeType ct : tileIndices) {
+                if (!isTileIndicesValid(ct)) {
+                    throw new IllegalArgumentException("Call to TileContext.indices() must have primitive or tile values: " + ct);
+                }
+            }
+            return new IndicesType(tileIndices);
+        }
+
+        private static boolean isTileIndicesValid(CodeType codeType) {
+            return ((codeType instanceof ConstantType ct && ct.codeType().equals(JavaType.INT))
+                    || (codeType instanceof PrimitiveType pt && pt.equals(JavaType.INT))
+                    || (codeType instanceof TileType tileType && tileType.elementType().equals(DType.INT)));
+        }
+
         public static ShapeType shape(CodeType... shape) {
             if (shape.length == 0) {
                 throw new IllegalArgumentException("Shape must not be empty");
@@ -1234,8 +1281,31 @@ public class TileTransformer {
         }
 
         public static TileType gather(CodeType pointerTensor, CodeType index) {
-            if (pointerTensor instanceof TileType tt && tt.elementType() instanceof PtrType ptrType && index instanceof TileType indexTile) {
-                return new TileType(ptrType.rType(), indexTile.shape());
+            if (pointerTensor instanceof TileType tt && tt.elementType() instanceof PtrType ptrType && index instanceof TileType tileType) {
+                return new TileType(ptrType.rType(), tileType.shape());
+            } else if (pointerTensor instanceof TileType tt && tt.elementType() instanceof PtrType ptrType && index instanceof IndicesType indicesType) {
+                List<CodeType> indices = indicesType.indices();
+                // The list size must be equal to the rank ptr
+                if (ptrType.rank() != indices.size()) {
+                    throw new IllegalStateException("Tensor rank must be equal to indices size");
+                }
+
+                // Convert all indices to list of shapes
+                // Scalar   : {}
+                // Tiles 1D : {x}
+                // Tiles 2D : {x, y}
+                // ...
+                List<List<Integer>> shapes = new ArrayList<>();
+                for (CodeType ct: indices) {
+                    if (ct instanceof TileType tileType) {
+                        shapes.add(tileType.shape());
+                    } else if (ct instanceof PrimitiveType) {
+                        // add scalar empty list
+                        shapes.add(List.of());
+                    }
+                }
+                return new TileType(ptrType.rType(), broadcastShapes(shapes));
+
             }
             throw new IllegalStateException("Expected a TypeTile<PtrTrype>");
         }
@@ -1401,5 +1471,31 @@ public class TileTransformer {
             }
             throw new IllegalArgumentException("Tile operation, first argument expected to be of type ShapeType but found : " + shape.getClass());
         }
+
+        private static List<Integer> broadcastShapes(List<List<Integer>> shapes) {
+            int max = 0;
+            for (List<Integer> shape: shapes) {
+                max = Math.max(max, shape.size());
+            }
+            List<Integer> resultShape = new ArrayList<>(max);
+            IntStream.range(0, max).mapToObj(_ -> 1).forEach(resultShape::add);
+            for (List<Integer> shape: shapes) {
+                // we propagate the shape right to left
+                for (int i = shape.size() - 1; i >= 0; i--) {
+                    int target = shape.get(i);
+                    int tmpRes = resultShape.get(i);
+                    if (target == tmpRes || target == 1) {
+                        continue;
+                    }
+                    if (tmpRes == 1) {
+                        resultShape.set(i, target);
+                    } else {
+                        throw new IllegalStateException("index shapes not compatible for the gather operation");
+                    }
+                }
+            }
+            return resultShape;
+        }
+
     }
 }
