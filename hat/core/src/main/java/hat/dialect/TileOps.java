@@ -58,7 +58,7 @@ public class TileOps {
     }
 
     public static Op bid(int dimension) {
-        return new TileIDOp(dimension);
+        return new TilePidOp(dimension);
     }
 
     public static Op load(CodeType type, Value ptr, Value dimension, Value shape, List<Integer> dims) {
@@ -78,7 +78,7 @@ public class TileOps {
     }
 
     public static Op dim(Value... dims) {
-        return new TileDimOp(dims);
+        return new TileDimMapOp(dims);
     }
 
     public static Op numTiles(CodeType typeResult, Value ptr, Value dimension, Value shape) {
@@ -263,37 +263,42 @@ public class TileOps {
         }
     }
 
-    public static class TileIDOp extends TOp implements Precedence.Invoke {
+    public static class TilePidOp extends TOp implements Precedence.Invoke {
         public static final String NAME = "tile.pid";
         final int dimension;
 
-        public static TileIDOp create(ExternalizedOp def) {
+        public static TilePidOp create(ExternalizedOp def) {
             // Note: it seems we need to have a contract between the parameter name and the following attribute name
             Object v = getDefaultAttributeValue(def, "dimension");
             int dimension = switch (v) {
                 case Integer i -> i;
                 case null, default -> throw new IllegalArgumentException("Invalid dimension: " + v);
             };
-            return new TileIDOp(dimension);
+            return new TilePidOp(dimension);
         }
 
-        protected TileIDOp(int dimensions) {
+        protected TilePidOp(int dimensions) {
             super(NAME, JavaType.INT, List.of());
             this.dimension = dimensions;
         }
 
-        protected TileIDOp(TileIDOp that, CodeContext cc, CodeTransformer ot) {
+        protected TilePidOp(TilePidOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
             this.dimension = that.dimension;
         }
 
         @Override
-        public TileIDOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
-            return new TileIDOp(this, codeContext, codeTransformer);
+        public TilePidOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new TilePidOp(this, codeContext, codeTransformer);
         }
 
         public int dimension() {
             return dimension;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("dimension", dimension);
         }
 
     }
@@ -319,6 +324,11 @@ public class TileOps {
 
         public int dimension() {
             return dimension;
+        }
+
+        @Override
+        public Map<String, Object> externalize() {
+            return Map.of("dimension", dimension);
         }
 
     }
@@ -467,23 +477,23 @@ public class TileOps {
         }
     }
 
-    public static class TileDimOp extends TOp {
+    public static class TileDimMapOp extends TOp {
         public static final String NAME = "tile.dimMap";
         final int dimension;
 
-        protected TileDimOp(Value... values) {
+        protected TileDimMapOp(Value... values) {
             super(NAME, JavaType.INT, Arrays.stream(values).toList());
             this.dimension = values.length;
         }
 
-        protected TileDimOp(TileDimOp that, CodeContext cc, CodeTransformer ot) {
+        protected TileDimMapOp(TileDimMapOp that, CodeContext cc, CodeTransformer ot) {
             super(that, cc);
             this.dimension = that.dimension;
         }
 
         @Override
-        public TileDimOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
-            return new TileDimOp(this, codeContext, codeTransformer);
+        public TileDimMapOp transform(CodeContext codeContext, CodeTransformer codeTransformer) {
+            return new TileDimMapOp(this, codeContext, codeTransformer);
         }
 
         public int dimension() {

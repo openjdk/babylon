@@ -1011,7 +1011,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder tileIdOp(TileOps.TileIDOp tileIdOp) {
+    public OpenCLHATKernelBuilder tileIdOp(TileOps.TilePidOp tileIdOp) {
         throw new UnsupportedOperationException("Tile ID Operation is not supported yet.");
     }
 
@@ -1096,7 +1096,7 @@ public class OpenCLHATKernelBuilder extends C99HATKernelBuilder<OpenCLHATKernelB
     }
 
     @Override
-    public OpenCLHATKernelBuilder tileDimOp(TileOps.TileDimOp tileDimOp) {
+    public OpenCLHATKernelBuilder tileDimOp(TileOps.TileDimMapOp tileDimOp) {
         throw new UnsupportedOperationException("Tile Dimension Operation is not supported yet.");
     }
 

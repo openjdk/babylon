@@ -1234,7 +1234,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder tileIdOp(TileOps.TileIDOp tileIdOp) {
+    public CudaHATKernelBuilder tileIdOp(TileOps.TilePidOp tileIdOp) {
         switch (tileIdOp.dimension()) {
             case 0 -> tileBlockId().dot().id("x");
             case 1 -> tileBlockId().dot().id("y");
@@ -1619,7 +1619,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder tileDimOp(TileOps.TileDimOp tileDimOp) {
+    public CudaHATKernelBuilder tileDimOp(TileOps.TileDimMapOp tileDimOp) {
         return commaSpaceSeparated(tileDimOp.operands(), this::genConstValueForShape);
     }
 

@@ -24,7 +24,6 @@
  */
 package hat.dialect;
 
-import hat.codetypes.ConstantType;
 import hat.codetypes.TileType;
 import jdk.incubator.code.AbstractOp;
 import jdk.incubator.code.CodeContext;
@@ -35,15 +34,11 @@ import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.extern.ExternalizedOp;
 import optkl.util.ops.Precedence;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 // Arithmetic Math Ops extended from Triton PoC and adapted to the Tile Programming Model
 public class ArithMathOps {
-    private ArithMathOps() {
-        /* This utility class should not be instantiated */
-    }
 
     public abstract static class ArithMathOp extends AbstractOp implements ExternalizedOp.Externalizable {
         final String opName;
@@ -414,5 +409,9 @@ public class ArithMathOps {
 
     public static MMAOp mma(Value tensorA, Value tensorB, Value tensorC) {
         return new MMAOp(tensorA, tensorB, tensorC);
+    }
+
+    private ArithMathOps() {
+        /* This utility class should not be instantiated */
     }
 }
