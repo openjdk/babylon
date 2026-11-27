@@ -1495,16 +1495,17 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
         // Then, return the ptrType associated with the gather||scatter
         Value ptr = searchGatherOrScatter(indicesOp);
         int numOperations = indicesOp.operands().size() - 1;
+
+        // For a 3D expression, this should emit:
+        // indices (a, b, c) and ptr x
+        // a * ptr->n * ptr->k + b * ptr->k + c
         for (int i = 0; i < numOperations; i++) {
-            for (int j = i; j < numOperations; j++) {
-                recurseResultOrThrow(indicesOp.operands().get(j))
-                        .sp().mul().sp()
-                        .generateAlignedReference(ptr)
-                        .rarrow().id(TILE_INDEX_STRIDES[j])
-                        .sp().plus().sp();
+            recurseResultOrThrow(indicesOp.operands().get(i));
+            for (int j = i + 1; j < indicesOp.operands().size(); j++) {
+                sp().mul().sp().generateAlignedReference(ptr).rarrow().id(TILE_INDEX_STRIDES[j]);
             }
+            sp().plus().sp();
         }
-        // Last value (last operand)
         return recurseResultOrThrow(indicesOp.operands().getLast());
     }
 

@@ -66,6 +66,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -79,7 +80,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -1477,18 +1477,18 @@ public class TileTransformer {
             for (List<Integer> shape: shapes) {
                 max = Math.max(max, shape.size());
             }
-            List<Integer> resultShape = new ArrayList<>(max);
-            IntStream.range(0, max).mapToObj(_ -> 1).forEach(resultShape::add);
+            List<Integer> resultShape = new ArrayList<>(Collections.nCopies(max, 1));
             for (List<Integer> shape: shapes) {
                 // we propagate the shape right to left
                 for (int i = shape.size() - 1; i >= 0; i--) {
-                    int target = shape.get(i);
-                    int tmpRes = resultShape.get(i);
-                    if (target == tmpRes || target == 1) {
+                    int valueToInspect = shape.get(i);
+                    int indexResult = max - shape.size() + i;
+                    int resultTemp = resultShape.get(indexResult);
+                    if (valueToInspect == resultTemp || valueToInspect == 1) {
                         continue;
                     }
-                    if (tmpRes == 1) {
-                        resultShape.set(i, target);
+                    if (resultTemp == 1) {
+                        resultShape.set(indexResult, valueToInspect);
                     } else {
                         throw new IllegalStateException("index shapes not compatible for the gather operation");
                     }
