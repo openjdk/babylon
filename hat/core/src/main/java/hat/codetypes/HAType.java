@@ -27,8 +27,8 @@ package hat.codetypes;
 import jdk.incubator.code.CodeType;
 
 public sealed interface HAType extends CodeType
-        permits ConstantType,
-        DimType, IndexType,
+        permits ConstantType, DimType,
+        IndexType, IndicesType,
         PtrType, ShapeType,
         TileType {
 }

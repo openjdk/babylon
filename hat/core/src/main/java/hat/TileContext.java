@@ -27,7 +27,9 @@ package hat;
 import hat.buffer.Tensor;
 import hat.types.Tile;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Interface to provide an execution-context and memory operations for the
@@ -72,7 +74,7 @@ public interface TileContext {
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
     static int BIDX() {
-        throw  new UnsupportedOperationException("TileContext.BIDX() is a compiler intrinsic.");
+        throw new UnsupportedOperationException("TileContext.BIDX() is a compiler intrinsic.");
     }
 
     /**
@@ -106,7 +108,7 @@ public interface TileContext {
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
     static Tile load(Tensor buffer, int pid, int tileSize) {
-        throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
+        throw new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     /**
@@ -120,7 +122,7 @@ public interface TileContext {
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
     static Tile load(Tensor buffer, TileIndex tileIndex, Shape shape) {
-        throw  new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
+        throw new UnsupportedOperationException("TileContext.load() is a compiler intrinsic.");
     }
 
     /**
@@ -132,7 +134,7 @@ public interface TileContext {
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
     static void store(Tensor buffer, int pid, Tile result) {
-        throw  new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
+        throw new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
     /**
@@ -144,7 +146,7 @@ public interface TileContext {
      * @throws UnsupportedOperationException if the method is invoked as ordinary Java code
      */
     static void store(Tensor buffer, TileIndex tileIndex, Tile result) {
-        throw  new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
+        throw new UnsupportedOperationException("TileContext.store() is a compiler intrinsic.");
     }
 
 
@@ -156,6 +158,17 @@ public interface TileContext {
      */
     static TileIndex index(int...index) {
         return new TileIndex(Arrays.stream(index).boxed().toList());
+    }
+
+    static TileIndices indices(Tile...tileIndices) {
+        List<List<Integer>> shapes = new ArrayList<>(tileIndices.length);
+        return getTileIndices(tileIndices, shapes);
+    }
+
+    static TileIndices indices(final int index, Tile...tileIndices) {
+        List<List<Integer>> shapes = new ArrayList<>(tileIndices.length);
+        shapes.add(List.of());
+        return getTileIndices(tileIndices, shapes);
     }
 
     /**
@@ -189,6 +202,10 @@ public interface TileContext {
         throw new UnsupportedOperationException("TileContext.gather() is a compiler intrinsic.");
     }
 
+    static Tile gather(Tensor tensorBuffer, TileIndices indices) {
+        throw new UnsupportedOperationException("TileContext.gather() is a compiler intrinsic.");
+    }
+
     /**
      * Stores a tile value into a tensor (global memory) specific by a tile index.
      * @param tensorBuffer tensor in global memory
@@ -198,5 +215,16 @@ public interface TileContext {
      */
     static void scatter(Tensor tensorBuffer, Tile indices, Tile resultTile) {
         throw new UnsupportedOperationException("TileContext.scatter() is a compiler intrinsic.");
+    }
+
+    static void scatter(Tensor tensorBuffer, TileIndices indices, Tile resultTile) {
+        throw new UnsupportedOperationException("TileContext.scatter() is a compiler intrinsic.");
+    }
+
+    private static TileIndices getTileIndices(Tile[] tileIndices, List<List<Integer>> shapes) {
+        for (Tile t : tileIndices) {
+            shapes.add(t.shape().dimensions());
+        }
+        return new TileIndices(shapes);
     }
 }

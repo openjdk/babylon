@@ -47,7 +47,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T tileConstantOp(ArithMathOps.ConstantOp constantOp);
 
-    T tileIdOp(TileOps.TileIDOp tileIdOp);
+    T tileIdOp(TileOps.TilePidOp tileIdOp);
 
     T tileLoadOp(TileOps.LoadOp tileLoadOp);
 
@@ -81,7 +81,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
 
     T permuteOp(ArithMathOps.PermuteOp permuteOp);
 
-    T tileDimOp(TileOps.TileDimOp tileDimOp);
+    T tileDimOp(TileOps.TileDimMapOp tileDimOp);
 
     T tileArangeOp(TileOps.TileArangeOp tileArangeOp);
 
@@ -94,6 +94,8 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
     T tileScatterOp(TileOps.ScatterOp scatterOp);
 
     T tileOffsetOp(TileOps.OffsetOp offsetOp);
+
+    T tileIndicesOp(TileOps.TileIndicesOp indicesOp);
 
     @Override
     default T recurse(Op op) {
@@ -118,7 +120,7 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
             }
         } else if (op instanceof TileOps.TOp tileOps) {
             switch (tileOps) {
-                case TileOps.TileIDOp idOp -> tileIdOp(idOp);
+                case TileOps.TilePidOp idOp -> tileIdOp(idOp);
                 case TileOps.LoadOp loadOp -> tileLoadOp(loadOp);
                 case TileOps.StoreOp storeOp -> tileStoreOp(storeOp);
                 case TileOps.TileNumOp tileNumOp -> tileNumOp(tileNumOp);
@@ -129,12 +131,13 @@ public interface HATOpDispatcher<T extends ScopeAwareJavaOrC99StyleCodeBuilder<T
                 case TileOps.TileZerosOp tileZerosOp -> tileZerosOp(tileZerosOp);
                 case TileOps.TileOnesOp tileOnesOp -> tileOnesOp(tileOnesOp);
                 case TileOps.TileIrangeOp tileIrangeOp -> tileIrangeOp(tileIrangeOp);
-                case TileOps.TileDimOp tileDimOp -> tileDimOp(tileDimOp);
+                case TileOps.TileDimMapOp tileDimOp -> tileDimOp(tileDimOp);
                 case TileOps.TileArangeOp tileArangeOp -> tileArangeOp(tileArangeOp);
                 case TileOps.TileConvOp tileConvOp -> tileConvOp(tileConvOp);
                 case TileOps.GatherOp gatherOp -> tileGatherOp(gatherOp);
                 case TileOps.ScatterOp scatterOp -> tileScatterOp(scatterOp);
                 case TileOps.OffsetOp offsetOp -> tileOffsetOp(offsetOp);
+                case TileOps.TileIndicesOp indicesOp -> tileIndicesOp(indicesOp);
                 default -> throw new IllegalStateException("handle nesting of Tile TileOps.TOp " + op);
             }
         } else {

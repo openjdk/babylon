@@ -119,6 +119,9 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     private static final int CUDA_WARP_SIZE = 32;
     private final boolean isTile;
 
+    private final String[] TILE_INDEX_STRIDES = new String[]{"m", "n", "k"};
+
+
     protected CudaHATKernelBuilder(KernelCallGraph kernelCallGraph, ScopedCodeBuilderContext scopedCodeBuilderContext, boolean isTile) {
         super(kernelCallGraph, scopedCodeBuilderContext);
         stack = new ConcurrentLinkedDeque<>();
@@ -1234,7 +1237,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder tileIdOp(TileOps.TileIDOp tileIdOp) {
+    public CudaHATKernelBuilder tileIdOp(TileOps.TilePidOp tileIdOp) {
         switch (tileIdOp.dimension()) {
             case 0 -> tileBlockId().dot().id("x");
             case 1 -> tileBlockId().dot().id("y");
@@ -1467,6 +1470,45 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
                 .recurseResultOrThrow(offsetOp.operands().getLast());
     }
 
+    private Value searchGatherOrScatter(Value value) {
+        if (value == null) {
+            throw new IllegalStateException("Value can't be null");
+        }
+        Op op = (Op) value.declaringElement();
+        return switch (op) {
+            case TileOps.ScatterOp scatterOp -> scatterOp.operands().getFirst();
+            case TileOps.GatherOp gatherOp -> gatherOp.operands().getFirst();
+            default -> searchGatherOrScatter(op.result().uses().getFirst());
+        };
+    }
+
+    private Value searchGatherOrScatter(TileOps.TileIndicesOp indicesOp) {
+        return searchGatherOrScatter(indicesOp.result().uses().getFirst());
+    }
+
+    @Override
+    public CudaHATKernelBuilder tileIndicesOp(TileOps.TileIndicesOp indicesOp) {
+        if (indicesOp.operands().size() > TILE_INDEX_STRIDES.length) {
+            throw new IllegalStateException("Tile index shape is not supported");
+        }
+        // Search gather||scatter operations based on usages.
+        // Then, return the ptrType associated with the gather||scatter
+        Value ptr = searchGatherOrScatter(indicesOp);
+        int numOperations = indicesOp.operands().size() - 1;
+
+        // For a 3D expression, this should emit:
+        // indices (a, b, c) and ptr x
+        // a * ptr->n * ptr->k + b * ptr->k + c
+        for (int i = 0; i < numOperations; i++) {
+            recurseResultOrThrow(indicesOp.operands().get(i));
+            for (int j = i + 1; j < indicesOp.operands().size(); j++) {
+                sp().mul().sp().generateAlignedReference(ptr).rarrow().id(TILE_INDEX_STRIDES[j]);
+            }
+            sp().plus().sp();
+        }
+        return recurseResultOrThrow(indicesOp.operands().getLast());
+    }
+
     // CUDA Tile Constructs
     private CudaHATKernelBuilder tileContext() {
         return id("ct").colon().colon();
@@ -1619,7 +1661,7 @@ public class CudaHATKernelBuilder extends C99HATKernelBuilder<CudaHATKernelBuild
     }
 
     @Override
-    public CudaHATKernelBuilder tileDimOp(TileOps.TileDimOp tileDimOp) {
+    public CudaHATKernelBuilder tileDimOp(TileOps.TileDimMapOp tileDimOp) {
         return commaSpaceSeparated(tileDimOp.operands(), this::genConstValueForShape);
     }
 
