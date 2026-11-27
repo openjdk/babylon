@@ -33,7 +33,6 @@ import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.util.Context;
 import com.sun.tools.javac.util.List;
-import com.sun.tools.javac.util.Name;
 import com.sun.tools.javac.util.Names;
 
 import static com.sun.tools.javac.code.Flags.PUBLIC;
@@ -50,15 +49,26 @@ public class CodeReflectionSymbols {
     public final Type opType;
     public final Type funcOpType;
     public final Type reflectableLambdaMetafactory;
+    public final MethodType opGetterType;
     public final MethodSymbol quotedExtractOp;
 
-    CodeReflectionSymbols(Context context) {
+    static CodeReflectionSymbols instance(Context context) {
+        CodeReflectionSymbols symbols = context.get(CodeReflectionSymbols.class);
+        if (symbols == null) {
+            symbols = new CodeReflectionSymbols(context);
+            context.put(CodeReflectionSymbols.class, symbols);
+        }
+        return symbols;
+    }
+
+    private CodeReflectionSymbols(Context context) {
         Symtab syms = Symtab.instance(context);
         Names names = Names.instance(context);
         ModuleSymbol jdk_incubator_code = syms.enterModule(names.jdk_incubator_code);
         codeReflectionType = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.Reflect")).type;
         quotedType = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.Quoted")).type;
         opType = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.Op")).type;
+        opGetterType = new MethodType(List.nil(), opType, List.nil(), syms.methodClass);
         funcOpType = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.dialect.core.CoreOp$FuncOp")).type;
         reflectableLambdaMetafactory = syms.enterClass(jdk_incubator_code, names.fromString("jdk.incubator.code.runtime.ReflectableLambdaMetafactory")).type;
         quotedExtractOp = new MethodSymbol(PUBLIC | STATIC | VARARGS,
