@@ -225,6 +225,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                     // dump the method IR if requested
                     log.note(Notes.ReflectableMethodIrDump(tree.sym.enclClass(), tree.sym, funcOp.toText()));
                 }
+                if (ops == null) ops = new LinkedHashMap<>();
                 ops.put(funcOp, methodName(symbolToErasedMethodRef(tree.sym)));
             }
         }
@@ -250,9 +251,9 @@ public class ReflectMethods extends TreeTranslatorPrev {
         computeCapturesIfNeeded(tree);
         try {
             currentClassSym = tree.sym;
-            ops = new LinkedHashMap<>();
+            ops = null;
             super.visitClassDef(tree);
-            if (!ops.isEmpty()) {
+            if (ops != null) {
                 tree = new JCReflectMethodsClassDecl(tree, ops);
                 // store the tree for later phases
                 Env<AttrContext> classEnv = typeEnvs.get(tree.sym);
@@ -341,7 +342,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
     }
 
     CodeReflectionInfo reflectLambda(Op op) {
-        ops.put(op, null);
+        if (ops == null) ops = new LinkedHashMap<>();
         var snapshot = ops;
         return new CodeReflectionInfo(name -> snapshot.put(op, names.fromString("op$").append(name)), crSyms.reflectableLambdaMetafactory);
     }
@@ -2870,7 +2871,7 @@ public class ReflectMethods extends TreeTranslatorPrev {
                 var getters = new ListBuffer<JCTree>();
                 var ops = new LinkedHashMap<String, Op>();
                 for (var op : rmcdef.ops.sequencedEntrySet()) {
-                    if (op.getValue() != null && ops.putIfAbsent(op.getValue().toString(), op.getKey()) == null) {
+                    if (ops.putIfAbsent(op.getValue().toString(), op.getKey()) == null) {
                         var ms = new MethodSymbol(PRIVATE | STATIC | SYNTHETIC, op.getValue(), getterType, rmcdef.sym);
                         getters.add(make.MethodDef(ms, make.Block(0, com.sun.tools.javac.util.List.of(
                                 make.Return(make.App(make.Ident(
