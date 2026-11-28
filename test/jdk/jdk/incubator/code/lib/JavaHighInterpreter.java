@@ -312,7 +312,7 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
             if (i == defLabelIdx || i == nullLabelIdx) {
                 continue;
             }
-            TerminatingOpEffect effect = executeBody(op.bodies().get(i), e.valuesOf(op.operands()), e);
+            TerminatingOpEffect effect = executeBody(op.bodies().get(i), e.valuesOf(operands), e);
             Optional<Boolean> b = processBooleanEffect(effect);
             if (b.isEmpty()) {
                 return effect;

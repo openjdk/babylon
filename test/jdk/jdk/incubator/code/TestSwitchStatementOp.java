@@ -821,9 +821,9 @@ public class TestSwitchStatementOp {
 
     @Test
     void testEmpty() {
-        CoreOp.FuncOp intSel = lower("emptyWithIntSelector");
-        CoreOp.FuncOp integerSel = lower("emptyWithIntegerSelector");
-        CoreOp.FuncOp stringSel = lower("emptyWithStringSelector");
+        CoreOp.FuncOp intSel = getCodeModel("emptyWithIntSelector");
+        CoreOp.FuncOp integerSel = getCodeModel("emptyWithIntegerSelector");
+        CoreOp.FuncOp stringSel = getCodeModel("emptyWithStringSelector");
         Assertions.assertEquals(emptyWithIntSelector(0), Interpreter.invoke(MethodHandles.lookup(), intSel, 0));
         Assertions.assertEquals(emptyWithIntegerSelector(0), Interpreter.invoke(MethodHandles.lookup(), integerSel, 0));
         Assertions.assertThrows(NullPointerException.class, () -> emptyWithIntegerSelector(null));
@@ -831,6 +831,15 @@ public class TestSwitchStatementOp {
         Assertions.assertEquals(emptyWithStringSelector("one"), Interpreter.invoke(MethodHandles.lookup(), stringSel, "one"));
         Assertions.assertThrows(NullPointerException.class, () -> emptyWithStringSelector(null));
         Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), stringSel, (String) null));
+
+        CoreOp.FuncOp lIntSel = lower(intSel);
+        CoreOp.FuncOp lIntegerSel = lower(integerSel);
+        CoreOp.FuncOp lStringSel = lower(stringSel);
+        Assertions.assertEquals(emptyWithIntSelector(0), Interpreter.invoke(MethodHandles.lookup(), lIntSel, 0));
+        Assertions.assertEquals(emptyWithIntegerSelector(0), Interpreter.invoke(MethodHandles.lookup(), lIntegerSel, 0));
+        Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lIntegerSel, (Integer) null));
+        Assertions.assertEquals(emptyWithStringSelector("one"), Interpreter.invoke(MethodHandles.lookup(), lStringSel, "one"));
+        Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lStringSel, (String) null));
     }
 
     @Reflect
