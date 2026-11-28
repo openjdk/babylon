@@ -498,14 +498,19 @@ public class TestSwitchExpressionOp {
     }
 
     static final CodeTransformer REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP = (b, op) -> {
-        // removes the default label and its action to make the sw expr non exhaustive
+        // removes the default label and its action to make the sw non exhaustive
         // expect the default case to be the last
-        if (op instanceof JavaOp.SwitchExpressionOp swExprOp) {
-            List<Body.Builder> list = swExprOp.bodies().subList(0, swExprOp.bodies().size() - 2).stream()
+        if (op instanceof JavaOp.SwitchOp swOp) {
+            List<Body.Builder> list = swOp.bodies().subList(0, swOp.bodies().size() - 2).stream()
                     .map(body -> body.transform(b.context(), b.transformer()))
                     .toList();
-            var newSwExprOp = JavaOp.switchExpression(b.context().getValue(swExprOp.operands().getFirst()), list);
-            b.context().mapValue(swExprOp.result(), b.add(newSwExprOp));
+            JavaOp.SwitchOp newSwOp;
+            if (swOp instanceof JavaOp.SwitchExpressionOp) {
+                newSwOp = JavaOp.switchExpression(b.context().getValue(swOp.operands().getFirst()), list);
+            } else {
+                newSwOp = JavaOp.switchStatement(b.context().getValue(swOp.operands().getFirst()), list);
+            }
+            b.context().mapValue(swOp.result(), b.add(newSwOp));
         } else {
             b.add(op);
         }

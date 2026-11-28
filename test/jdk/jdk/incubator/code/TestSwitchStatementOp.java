@@ -28,8 +28,6 @@ import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -42,6 +40,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @enablePreview
  * @library lib
  * @run junit TestSwitchStatementOp
  * @run main Unreflect TestSwitchStatementOp
@@ -835,38 +834,63 @@ public class TestSwitchStatementOp {
     }
 
     @Reflect
-    static String nonExhaustiveCase1(String s) {
-        String r;
+    static String nonExhaustiveTraditionalSwStat(String s) {
+        String r = "";
         switch (s) {
-            case "A" -> r = "Alphabet";
-            case "#" -> r = "Special char";
-            default -> r = "Something else";
+            case "a" -> r = "Alphabet";
         }
         return r;
     }
 
+    @Test
+    void testInterpretNonExhaustiveTraditionalSwitch() {
+        CoreOp.FuncOp f = getCodeModel("nonExhaustiveTraditionalSwStat");
+        Assertions.assertDoesNotThrow(() -> nonExhaustiveTraditionalSwStat("x"));
+        Assertions.assertDoesNotThrow(() -> Interpreter.invoke(MethodHandles.lookup(), f, Arrays.asList("x")));
+    }
+
     @Reflect
-    static String nonExhaustiveCase2(Object o) {
+    static String enhancedSwStat(String o) {
         String s;
         switch (o) {
-            case Number _ -> s = "number";
-            case Object _ -> s = "else"; // implicit default
+            case null -> s = "null";
+            default -> s = "def";
         }
         return s;
     }
 
-    static Stream<Method> nonExhaustiveSwitchStatCases() {
-        return Arrays.stream(TestSwitchStatementOp.class.getDeclaredMethods())
-                .filter(m -> m.getName().startsWith("nonExhaustiveCase"));
+    @Reflect
+    static String enhancedSwStat2(Integer o) {
+        String s;
+        switch (o) {
+            case Integer x when x > 0 -> s = "pos";
+            default -> s = "def";
+        }
+        return s;
     }
 
-    @ParameterizedTest
-    @MethodSource("nonExhaustiveSwitchStatCases")
-    void testInterpretNonExhaustiveSwitchStat(Method m) {
-        CoreOp.FuncOp fop = Op.ofMethod(m).get();
-        CoreOp.FuncOp tfop = fop.transform(TestSwitchExpressionOp.REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP);
-        // sw stat completes normally when no label applies
-        Assertions.assertDoesNotThrow(() -> Interpreter.invoke(MethodHandles.lookup(), tfop, "unhandledValue"));
+    @Reflect
+    static String enhancedSwStat3(Object o) {
+        String s = "";
+        switch (o) {
+            default -> s = "def";
+        }
+        return s;
+    }
+
+    @Test
+    void testInterpretNonExhaustiveEnhancedSwitch() {
+        // map op to a value not handled by the switch to trigger the MatchException
+        Map<CoreOp.FuncOp, Object> opsArgs = Map.of(
+                getCodeModel("enhancedSwStat"), "a",
+                getCodeModel("enhancedSwStat2"), 0,
+                getCodeModel("enhancedSwStat3"), new Object()
+        );
+        for (Map.Entry<CoreOp.FuncOp, Object> e : opsArgs.entrySet()) {
+            CoreOp.FuncOp top = e.getKey().transform(TestSwitchExpressionOp.REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP);
+            Assertions.assertThrows(MatchException.class, () -> Interpreter.invoke(MethodHandles.lookup(), top, e.getValue()),
+                    e.getKey().funcName());
+        }
     }
 
     private static CoreOp.FuncOp lower(String methodName) {

@@ -21,10 +21,10 @@
  * questions.
  */
 
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
-
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
@@ -239,6 +239,52 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
         return swOp.handleNulls() ? defLabelIdx : -1;
     }
 
+    static final Set<Class<?>> PRIMITIVE_WRAPPERS = Set.of(Byte.class, Short.class,
+            Character.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class);
+
+    static boolean isEnhancedSwitch(JavaOp.SwitchOp op, int nullLabelIdx, Env e) {
+        /*
+            An enhanced switch statement is one where either (i) the type of the selector expression is not
+            char, byte, short, int, Character, Byte, Short, Integer, String, or an enum type,
+            or (ii) there is a case pattern or null literal associated with the switch block.
+            * */
+        // type in the model
+        // runtime type
+        Object sel = e.valueOf(op.operands().getFirst());
+        Class<?> selClass = sel.getClass();
+        return (!selClass.isPrimitive() && !PRIMITIVE_WRAPPERS.contains(selClass) &&
+                !selClass.equals(String.class) && !selClass.isEnum()) ||
+                (casePatternPresent(op) || nullLabelIdx != -1);
+
+    }
+
+    static boolean casePatternPresent(JavaOp.SwitchOp op) {
+        for (int i = 0; i < op.bodies().size(); i += 2) {
+            Body label = op.bodies().get(i);
+            if (isPatternLabel(label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean isPatternLabel(Body label) {
+        if (label.blocks().size() != 1) {
+            return false;
+        }
+        Block eb = label.entryBlock();
+        if (!(eb.terminatingOp() instanceof CoreOp.YieldOp yop) ||
+                !(yop.yieldValue() instanceof Op.Result opr)) {
+            return false;
+        }
+        if (opr.op() instanceof JavaOp.ConditionalAndOp cand) {
+            // the label has a guard, the first body represents the actual label
+            return isPatternLabel(cand.bodies().getFirst());
+        } else {
+            return opr.op() instanceof JavaOp.PatternOps.MatchOp;
+        }
+    }
+
     private OpEffect executeSwitchOp(JavaOp.SwitchOp op, Env e) {
         List<Value> operands = op.operands();
         Value sel = operands.get(0);
@@ -279,10 +325,7 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
         if (i >= op.bodies().size()) {
             if (defLabelIdx != -1) {
                 i = defLabelIdx;
-            } else if (op instanceof JavaOp.SwitchExpressionOp) {
-                // sw expr and no label applies -> throw MatchException
-                // can't happen if model came from Javac
-                // but the user can build a model of non exhaustive switch
+            } else if (op instanceof JavaOp.SwitchExpressionOp || isEnhancedSwitch(op, nullLabelIdx, e)) {
                 return new TerminatingOpEffect(FAKE_THROW_OP,
                         List.of(new MatchException("non exhaustive switch expression", null)), e);
             }
