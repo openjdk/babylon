@@ -21,19 +21,20 @@
  * questions.
  */
 
+import jdk.incubator.code.Block;
 import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeType;
 import jdk.incubator.code.Op;
-
 import jdk.incubator.code.Value;
 import jdk.incubator.code.dialect.core.CoreOp;
 import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.dialect.java.JavaType;
 import jdk.incubator.code.dialect.java.MethodRef;
-import jdk.incubator.code.dialect.java.PrimitiveType;
 
 import java.lang.invoke.MethodHandles;
 import java.util.*;
+
+import static jdk.incubator.code.dialect.java.JavaType.BOOLEAN;
 
 class JavaHighInterpreter extends AbstractJavaInterpreter {
     private final JavaLowInterpreter javaLowInterpreter;
@@ -198,26 +199,117 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
         }
     }
 
-    private static boolean isDefaultLabel(Body body) {
-        return body.blocks().size() == 1 &&
-                body.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop &&
-                yop.operands().getFirst() instanceof Op.Result opr &&
-                opr.op() instanceof CoreOp.ConstantOp cop &&
-                cop.value() instanceof Boolean b && b;
+    static boolean isDefaultLabel(Body labelBody) {
+        return labelBody != null &&
+                labelBody.blocks().size() == 1 &&
+                labelBody.entryBlock().parameters().isEmpty() &&
+                labelBody.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yop &&
+                yop.yieldValue().declaringElement() instanceof CoreOp.ConstantOp cop &&
+                cop.resultType().equals(BOOLEAN) &&
+                cop.value() instanceof Boolean trueValue && trueValue;
+    }
+
+    static boolean isNullLabel(Body labelBody) {
+        //@@@ when op pattern matching is ready, we can use it
+        return labelBody != null &&
+                labelBody.blocks().size() == 1 &&
+                labelBody.entryBlock().terminatingOp() instanceof CoreOp.YieldOp yieldOp &&
+                yieldOp.yieldValue() instanceof Op.Result opr &&
+                opr.op() instanceof JavaOp.EqOp eqOp &&
+                eqOp.operands().stream().anyMatch(v -> v instanceof Op.Result r && r.op() instanceof CoreOp.ConstantOp cop
+                        && cop.value() == null);
+    }
+
+    static int findDefLabelIdx(JavaOp.SwitchOp swOp) {
+        for (int i = 0; i < swOp.bodies().size(); i += 2) {
+            if (isDefaultLabel(swOp.bodies().get(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    static int findNullLabelIdx(JavaOp.SwitchOp swOp, int defLabelIdx) {
+        for (int i = 0; i < swOp.bodies().size(); i += 2) {
+            if (isNullLabel(swOp.bodies().get(i))) {
+                return i;
+            }
+        }
+        // case null can be merged with default
+        return swOp.handleNulls() ? defLabelIdx : -1;
+    }
+
+    static final Set<Class<?>> PRIMITIVE_WRAPPERS = Set.of(Byte.class, Short.class,
+            Character.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class);
+
+    static boolean isEnhancedSwitchStat(JavaOp.SwitchStatementOp op, int nullLabelIdx, Env e) {
+        /*
+            An enhanced switch statement is one where either (i) the type of the selector expression is not
+            char, byte, short, int, Character, Byte, Short, Integer, String, or an enum type,
+            or (ii) there is a case pattern or null literal associated with the switch block.
+            * */
+        // type in the model
+        // runtime type
+        Object sel = e.valueOf(op.operands().getFirst());
+        Class<?> selClass = sel.getClass();
+        return (!selClass.isPrimitive() && !PRIMITIVE_WRAPPERS.contains(selClass) &&
+                !selClass.equals(String.class) && !selClass.isEnum()) ||
+                (casePatternPresent(op) || nullLabelIdx != -1);
+
+    }
+
+    static boolean casePatternPresent(JavaOp.SwitchOp op) {
+        for (int i = 0; i < op.bodies().size(); i += 2) {
+            Body label = op.bodies().get(i);
+            if (isPatternLabel(label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean isPatternLabel(Body label) {
+        if (label.blocks().size() != 1) {
+            return false;
+        }
+        Block eb = label.entryBlock();
+        if (!(eb.terminatingOp() instanceof CoreOp.YieldOp yop) ||
+                !(yop.yieldValue() instanceof Op.Result opr)) {
+            return false;
+        }
+        if (opr.op() instanceof JavaOp.ConditionalAndOp cand) {
+            // the label has a guard, the first body represents the actual label
+            return isPatternLabel(cand.bodies().getFirst());
+        } else {
+            return opr.op() instanceof JavaOp.PatternOps.MatchOp;
+        }
     }
 
     private OpEffect executeSwitchOp(JavaOp.SwitchOp op, Env e) {
         List<Value> operands = op.operands();
         Value sel = operands.get(0);
-        if (!(sel.type() instanceof PrimitiveType) && !op.handleNulls() && e.valueOf(sel) == null) {
-            return new TerminatingOpEffect(FAKE_THROW_OP, List.of(new NullPointerException()), e);
+        int defLabelIdx = findDefLabelIdx(op);
+        int nullLabelIdx = findNullLabelIdx(op, defLabelIdx);
+        if (e.valueOf(sel) == null) {
+            if (nullLabelIdx != -1) {
+                TerminatingOpEffect effect = executeBody(op.bodies().get(nullLabelIdx + 1), List.of(), e);
+                switch (effect.terminatingOp()) {
+                    case CoreOp.YieldOp _, JavaOp.YieldOp _, JavaOp.BreakOp _ -> {
+                        return new OpResultEffect(effect.operands().isEmpty() ? null : effect.operands().getFirst(), e);
+                    }
+                    case JavaOp.SwitchFallthroughOp _ -> {
+                    } // let execution continue
+                    default -> {
+                        return effect;
+                    }
+                }
+            } else {
+                return new TerminatingOpEffect(FAKE_THROW_OP, List.of(new NullPointerException()), e);
+            }
         }
-
         int i;
-        int defLabelIndex = -1;
         for (i = 0; i < op.bodies().size(); i+=2) {
-            if (isDefaultLabel(op.bodies().get(i))) {
-                defLabelIndex = i;
+            if (i == defLabelIdx || i == nullLabelIdx) {
                 continue;
             }
             TerminatingOpEffect effect = executeBody(op.bodies().get(i), e.valuesOf(operands), e);
@@ -230,8 +322,14 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
             }
         }
 
-        if (i >= op.bodies().size() && defLabelIndex != -1) {
-            i = defLabelIndex;
+        if (i >= op.bodies().size()) {
+            if (defLabelIdx != -1) {
+                i = defLabelIdx;
+            } else if (op instanceof JavaOp.SwitchExpressionOp ||
+                    isEnhancedSwitchStat((JavaOp.SwitchStatementOp) op, nullLabelIdx, e)) {
+                return new TerminatingOpEffect(FAKE_THROW_OP,
+                        List.of(new MatchException("non exhaustive switch expression", null)), e);
+            }
         }
         i++;
         while (i < op.bodies().size()) {

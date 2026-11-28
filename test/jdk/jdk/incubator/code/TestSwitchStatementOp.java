@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 /*
  * @test
  * @modules jdk.incubator.code
+ * @enablePreview
  * @library lib
  * @run junit TestSwitchStatementOp
  * @run main Unreflect TestSwitchStatementOp
@@ -839,6 +840,66 @@ public class TestSwitchStatementOp {
         Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lIntegerSel, (Integer) null));
         Assertions.assertEquals(emptyWithStringSelector("one"), Interpreter.invoke(MethodHandles.lookup(), lStringSel, "one"));
         Assertions.assertThrows(NullPointerException.class, () -> Interpreter.invoke(MethodHandles.lookup(), lStringSel, (String) null));
+    }
+
+    @Reflect
+    static String nonExhaustiveTraditionalSwStat(String s) {
+        String r = "";
+        switch (s) {
+            case "a" -> r = "Alphabet";
+        }
+        return r;
+    }
+
+    @Test
+    void testInterpretNonExhaustiveTraditionalSwitch() {
+        CoreOp.FuncOp f = getCodeModel("nonExhaustiveTraditionalSwStat");
+        Assertions.assertDoesNotThrow(() -> nonExhaustiveTraditionalSwStat("x"));
+        Assertions.assertDoesNotThrow(() -> Interpreter.invoke(MethodHandles.lookup(), f, Arrays.asList("x")));
+    }
+
+    @Reflect
+    static String enhancedSwStat(String o) {
+        String s;
+        switch (o) {
+            case null -> s = "null";
+            default -> s = "def";
+        }
+        return s;
+    }
+
+    @Reflect
+    static String enhancedSwStat2(Integer o) {
+        String s;
+        switch (o) {
+            case Integer x when x > 0 -> s = "pos";
+            default -> s = "def";
+        }
+        return s;
+    }
+
+    @Reflect
+    static String enhancedSwStat3(Object o) {
+        String s = "";
+        switch (o) {
+            default -> s = "def";
+        }
+        return s;
+    }
+
+    @Test
+    void testInterpretNonExhaustiveEnhancedSwitch() {
+        // map op to a value not handled by the switch to trigger the MatchException
+        Map<CoreOp.FuncOp, Object> opsArgs = Map.of(
+                getCodeModel("enhancedSwStat"), "a",
+                getCodeModel("enhancedSwStat2"), 0,
+                getCodeModel("enhancedSwStat3"), new Object()
+        );
+        for (Map.Entry<CoreOp.FuncOp, Object> e : opsArgs.entrySet()) {
+            CoreOp.FuncOp top = e.getKey().transform(TestSwitchExpressionOp.REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP);
+            Assertions.assertThrows(MatchException.class, () -> Interpreter.invoke(MethodHandles.lookup(), top, e.getValue()),
+                    e.getKey().funcName());
+        }
     }
 
     private static CoreOp.FuncOp lower(String methodName) {

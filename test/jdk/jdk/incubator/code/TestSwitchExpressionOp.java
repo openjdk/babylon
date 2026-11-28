@@ -21,10 +21,12 @@
  * questions.
  */
 
+import jdk.incubator.code.Body;
 import jdk.incubator.code.CodeTransformer;
 import jdk.incubator.code.Op;
 import jdk.incubator.code.Reflect;
 import jdk.incubator.code.dialect.core.CoreOp;
+import jdk.incubator.code.dialect.java.JavaOp;
 import jdk.incubator.code.extern.OpWriter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -459,17 +461,70 @@ public class TestSwitchExpressionOp {
             Object actual = null;
             Throwable actualEx = null;
             try {
-                actual = new JavaLowInterpreter().interpret(lf, Arrays.asList(a), MethodHandles.lookup());
+                actual = Interpreter.invoke(MethodHandles.lookup(), f, Arrays.asList(a));
+                // interpretation of low level and high level models must produce the same result
+                Assertions.assertEquals(actual, Interpreter.invoke(MethodHandles.lookup(), lf, Arrays.asList(a)));
             } catch (Exception ex) {
                 actualEx = ex;
             }
             if (expectedEx != null) {
                 Assertions.assertSame(expectedEx.getClass(), actualEx.getClass());
-            } else if (expected != null) {
+            } else {
                 Assertions.assertEquals(expected, actual);
             }
         }
     }
+
+    @Reflect
+    static String nonExhaustiveCase1(String s) {
+        return switch (s) {
+            case "A" -> "Alphabet";
+            case "#" -> "Special char";
+            default -> "Something else";
+        };
+    }
+
+    @Reflect
+    static String nonExhaustiveCase2(Object o) {
+        return switch (o) {
+            case Number _ -> "number";
+            case Object _ -> "else"; // implicit default
+        };
+    }
+
+    static Stream<Method> nonExhaustiveSwitchExprCases() {
+        return Arrays.stream(TestSwitchExpressionOp.class.getDeclaredMethods())
+                .filter(m -> m.getName().startsWith("nonExhaustiveCase"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonExhaustiveSwitchExprCases")
+    void testInterpretNonExhaustiveSwitchExpr(Method m) {
+        CoreOp.FuncOp fop = Op.ofMethod(m).get();
+        CoreOp.FuncOp tfop = fop.transform(REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP);
+        Assertions.assertThrows(MatchException.class,
+                () -> Interpreter.invoke(MethodHandles.lookup(), tfop, "unhandledValue"));
+    }
+
+    static final CodeTransformer REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP = (b, op) -> {
+        // removes the default label and its action to make the sw non exhaustive
+        // expect the default case to be the last
+        if (op instanceof JavaOp.SwitchOp swOp) {
+            List<Body.Builder> list = swOp.bodies().subList(0, swOp.bodies().size() - 2).stream()
+                    .map(body -> body.transform(b.context(), b.transformer()))
+                    .toList();
+            JavaOp.SwitchOp newSwOp;
+            if (swOp instanceof JavaOp.SwitchExpressionOp) {
+                newSwOp = JavaOp.switchExpression(b.context().getValue(swOp.operands().getFirst()), list);
+            } else {
+                newSwOp = JavaOp.switchStatement(b.context().getValue(swOp.operands().getFirst()), list);
+            }
+            b.context().mapValue(swOp.result(), b.add(newSwOp));
+        } else {
+            b.add(op);
+        }
+        return b;
+    };
 
     @Reflect
     static int swOnPrimitive(int value) {
