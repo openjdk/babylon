@@ -242,7 +242,7 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
     static final Set<Class<?>> PRIMITIVE_WRAPPERS = Set.of(Byte.class, Short.class,
             Character.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class);
 
-    static boolean isEnhancedSwitch(JavaOp.SwitchOp op, int nullLabelIdx, Env e) {
+    static boolean isEnhancedSwitchStat(JavaOp.SwitchStatementOp op, int nullLabelIdx, Env e) {
         /*
             An enhanced switch statement is one where either (i) the type of the selector expression is not
             char, byte, short, int, Character, Byte, Short, Integer, String, or an enum type,
@@ -325,7 +325,8 @@ class JavaHighInterpreter extends AbstractJavaInterpreter {
         if (i >= op.bodies().size()) {
             if (defLabelIdx != -1) {
                 i = defLabelIdx;
-            } else if (op instanceof JavaOp.SwitchExpressionOp || isEnhancedSwitch(op, nullLabelIdx, e)) {
+            } else if (op instanceof JavaOp.SwitchExpressionOp ||
+                    isEnhancedSwitchStat((JavaOp.SwitchStatementOp) op, nullLabelIdx, e)) {
                 return new TerminatingOpEffect(FAKE_THROW_OP,
                         List.of(new MatchException("non exhaustive switch expression", null)), e);
             }

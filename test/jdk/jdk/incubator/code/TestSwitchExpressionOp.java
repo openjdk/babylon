@@ -497,6 +497,15 @@ public class TestSwitchExpressionOp {
                 .filter(m -> m.getName().startsWith("nonExhaustiveCase"));
     }
 
+    @ParameterizedTest
+    @MethodSource("nonExhaustiveSwitchExprCases")
+    void testInterpretNonExhaustiveSwitchExpr(Method m) {
+        CoreOp.FuncOp fop = Op.ofMethod(m).get();
+        CoreOp.FuncOp tfop = fop.transform(REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP);
+        Assertions.assertThrows(MatchException.class,
+                () -> Interpreter.invoke(MethodHandles.lookup(), tfop, "unhandledValue"));
+    }
+
     static final CodeTransformer REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP = (b, op) -> {
         // removes the default label and its action to make the sw non exhaustive
         // expect the default case to be the last
@@ -516,15 +525,6 @@ public class TestSwitchExpressionOp {
         }
         return b;
     };
-
-    @ParameterizedTest
-    @MethodSource("nonExhaustiveSwitchExprCases")
-    void testInterpretNonExhaustiveSwitchExpr(Method m) {
-        CoreOp.FuncOp fop = Op.ofMethod(m).get();
-        CoreOp.FuncOp tfop = fop.transform(REMOVE_DEFAULT_LABEL_FROM_SWITCH_OP);
-        Assertions.assertThrows(MatchException.class,
-                () -> Interpreter.invoke(MethodHandles.lookup(), tfop, "unhandledValue"));
-    }
 
     @Reflect
     static int swOnPrimitive(int value) {
